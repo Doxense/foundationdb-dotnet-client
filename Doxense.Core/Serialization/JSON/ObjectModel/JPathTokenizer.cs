@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -26,13 +44,13 @@ namespace Doxense.Serialization.Json
 		//SubObject,
 		///// <summary>Nom d'un champ qui sera une array ("Foo[")</summary>
 		//SubArray,
-		///// <summary>Nom de champ terminal (dernier élément d'un path)</summary>
+		///// <summary>Nom de champ terminal (dernier Ã©lÃ©ment d'un path)</summary>
 		//Identifier,
 		///// <summary>Indexer dans une array ("[123]")</summary>
 		//ArrayIndex,
 	}
 
-	/// <summary>Structure utilisée pour parser un JPath (ex: "foo.bar[1].baz") en réduisant le nombre d'allocations nécessaires</summary>
+	/// <summary>Structure utilisÃ©e pour parser un JPath (ex: "foo.bar[1].baz") en rÃ©duisant le nombre d'allocations nÃ©cessaires</summary>
 	[DebuggerDisplay("Path={Path}, Offset={Offset}, Cursor={Cursor}, IndexOrSize={IndexOrSize}")]
 	internal struct JPathTokenizer
 	{
@@ -40,11 +58,11 @@ namespace Doxense.Serialization.Json
 		/// <summary>Valeur du JPath</summary>
 		public readonly string Path;
 
-		/// <summary>Position de début du token courrant</summary>
+		/// <summary>Position de dÃ©but du token courrant</summary>
 		public int Offset;
-		/// <summary>Position juste après la fin du token courrant</summary>
+		/// <summary>Position juste aprÃ¨s la fin du token courrant</summary>
 		public int Cursor;
-		/// <summary>Contient la valeur du dernier array index parsé, le nombre de caractère du dernier nom parsé, ou -1 si on est a la fin du path</summary>
+		/// <summary>Contient la valeur du dernier array index parsÃ©, le nombre de caractÃ¨re du dernier nom parsÃ©, ou -1 si on est a la fin du path</summary>
 		public int IndexOrSize;
 
 		public JPathTokenizer(string path)
@@ -66,10 +84,10 @@ namespace Doxense.Serialization.Json
 			Contract.Debug.Assert(path[offset] != '[', "The current token is not an identifier name");
 			int count = this.IndexOrSize;
 
-			// optimisation pour les cas où le path est le nom direct d'un champ
+			// optimisation pour les cas oÃ¹ le path est le nom direct d'un champ
 			if (offset == 0 && count == path.Length) return path;
 
-			// découpe le token
+			// dÃ©coupe le token
 			return path.Substring(offset, count);
 		}
 
@@ -91,7 +109,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Indique s'il y a encore des tokens dans le path</summary>
 		public bool HasMore => this.Cursor < this.Path.Length;
 
-		/// <summary>Retourne le segment de texte correspondant au dernier token parsé (pour formatter un message d'erreur, par exemple)</summary>
+		/// <summary>Retourne le segment de texte correspondant au dernier token parsÃ© (pour formatter un message d'erreur, par exemple)</summary>
 		public string GetSourceToken()
 		{
 			if (this.Offset >= this.Path.Length) return String.Empty;
@@ -101,7 +119,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Lit le prochain token dans le path</summary>
 		/// <returns>Type du token</returns>
-		/// <remarks>Retourne <see cref="JPathToken.End"/> si on est arrivé en fin de stream. Un nouvel appel provoquera une exception</remarks>
+		/// <remarks>Retourne <see cref="JPathToken.End"/> si on est arrivÃ© en fin de stream. Un nouvel appel provoquera une exception</remarks>
 		public JPathToken ReadNext()
 		{
 			var pos = this.Cursor;

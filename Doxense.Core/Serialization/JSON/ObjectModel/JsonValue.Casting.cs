@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -30,7 +48,7 @@ namespace Doxense.Serialization.Json
 		public static explicit operator string?(JsonValue? value)
 		{
 			//note: JsonNull.Null.ToString() retourne String.Empty, ce qui ne va pas dans notre cas!
-			// on est donc obligé d'utiliser ToStringOrDefault() qui peut retourner null
+			// on est donc obligÃ© d'utiliser ToStringOrDefault() qui peut retourner null
 			return (value ?? JsonNull.Null).ToStringOrDefault();
 		}
 
@@ -291,7 +309,7 @@ namespace Doxense.Serialization.Json
 		#region Int32
 
 		//REVIEW: est-ce qu'on ne devrait pas caster en JsonNumber, plutot que JsonValue?
-		// même remarque pour les autres types integers/float
+		// mÃªme remarque pour les autres types integers/float
 
 		[Pure]
 		public static implicit operator JsonValue(int value)
@@ -744,7 +762,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.Instant value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -757,7 +775,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.Instant? value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -774,7 +792,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.OffsetDateTime value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -787,7 +805,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.OffsetDateTime? value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -804,7 +822,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.ZonedDateTime value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -817,7 +835,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.ZonedDateTime? value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -834,7 +852,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.LocalDateTime value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -847,7 +865,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.LocalDateTime? value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -863,7 +881,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(NodaTime.LocalDate value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -876,7 +894,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(NodaTime.LocalDate? value)
 		{
-			//TODO: type dédié pour Noda?
+			//TODO: type dÃ©diÃ© pour Noda?
 			return JsonString.Return(value);
 		}
 

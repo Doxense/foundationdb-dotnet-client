@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Networking.Http
@@ -116,7 +134,7 @@ namespace Doxense.Networking.Http
 			ILogger<BetterHttpClient> logger,
 			NodaTime.IClock? clock)
 		{
-			this.Id = CorrelationIdGenerator.GetNextId(); //BUGBUG: ca doit etre par requête! (le client est un singleton réutilisé plein de fois!)
+			this.Id = CorrelationIdGenerator.GetNextId(); //BUGBUG: ca doit etre par requÃªte! (le client est un singleton rÃ©utilisÃ© plein de fois!)
 			this.HostAddress = hostAddress;
 			this.Handler = handler;
 			this.Options = options;
@@ -133,8 +151,8 @@ namespace Doxense.Networking.Http
 		private HttpClient CreateClientState()
 		{
 			//NOTE: on pourrait se passer de HttpClient et directement invoquer le HttpMessageHandler, mais:
-			// 1) il y a beaucoup de logique de cancellation/timeout/erreur qui est déja implémentée dans HttpClient
-			// 2) toutes les méthodes pour transférer les headers par défaut son internal donc on n'y a pas accès directement! :(
+			// 1) il y a beaucoup de logique de cancellation/timeout/erreur qui est dÃ©ja implÃ©mentÃ©e dans HttpClient
+			// 2) toutes les mÃ©thodes pour transfÃ©rer les headers par dÃ©faut son internal donc on n'y a pas accÃ¨s directement! :(
 			// => pour l'instant on continue d'utiliser la classe directement!
 
 			var client = CreateClient(this.Handler);
@@ -198,7 +216,7 @@ namespace Doxense.Networking.Http
 				VersionPolicy = this.Options.DefaultVersionPolicy,
 				Content = content,
 			};
-			//note: les default headers sont ajoutés plus tards
+			//note: les default headers sont ajoutÃ©s plus tards
 			return req;
 		}
 
@@ -387,7 +405,7 @@ namespace Doxense.Networking.Http
 								default:
 								{
 #if DEBUG
-									// c'est pas normal! normalement on controle exactement le type de handler passé a cette fonction!
+									// c'est pas normal! normalement on controle exactement le type de handler passÃ© a cette fonction!
 									if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
 									throw new ArgumentException("Unexpected delegate type", nameof(handler));

@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.IO.Hashing
@@ -14,7 +32,7 @@ namespace Doxense.IO.Hashing
 	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Calcul de hash xxHash sur 32 bits</summary>
-	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
+	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les donnÃ©es hashÃ©es, et ne doit donc pas Ãªtre utilisÃ© publiquement dans un scenario de protection de donnÃ©es! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
 	public static class XxHash32
 	{
 		// From https://code.google.com/p/xxhash/
@@ -33,7 +51,7 @@ namespace Doxense.IO.Hashing
 		//		MD5-32          0.33 GB/s    10       Ronald L. Rivest
 		//		SHA1-32         0.28 GB/s    10
 
-		// WEIRD: Dans la pratique, L'implémentation ci dessous donne 2.4 GB/s avec xxHash alors que MurmurHash obtiens 4.3GB/s ??
+		// WEIRD: Dans la pratique, L'implÃ©mentation ci dessous donne 2.4 GB/s avec xxHash alors que MurmurHash obtiens 4.3GB/s ??
 
 		private const uint INITIAL_SEED = 0;
 
@@ -46,9 +64,9 @@ namespace Doxense.IO.Hashing
 		/// <summary>Hash of the empty buffer</summary>
 		public const uint HASH0 = 0x02CC5D05;
 
-		/// <summary>Calcul le xxHash 32-bit d'un chaîne (a partir de sa représentation UTF-16 en mémoire)</summary>
-		/// <param name="text">Chaîne de texte à convertir</param>
-		/// <returns>Code xxHash 32 bit calculé sur la représentation UTF-16 de la chaîne. Attention: N'est pas garantit unique!</returns>
+		/// <summary>Calcul le xxHash 32-bit d'un chaÃ®ne (a partir de sa reprÃ©sentation UTF-16 en mÃ©moire)</summary>
+		/// <param name="text">ChaÃ®ne de texte Ã  convertir</param>
+		/// <returns>Code xxHash 32 bit calculÃ© sur la reprÃ©sentation UTF-16 de la chaÃ®ne. Attention: N'est pas garantit unique!</returns>
 		public static uint Compute(string text)
 		{
 			Contract.NotNull(text);
@@ -75,8 +93,8 @@ namespace Doxense.IO.Hashing
 			}
 		}
 
-		/// <summary>Calcul le xxHash 32-bit d'un chaîne (a partir de sa représentation UTF-16 en mémoire)</summary>
-		/// <returns>Code xxHash 32 bit calculé sur la représentation UTF-16 de la chaîne. Attention: N'est pas garantit unique!</returns>
+		/// <summary>Calcul le xxHash 32-bit d'un chaÃ®ne (a partir de sa reprÃ©sentation UTF-16 en mÃ©moire)</summary>
+		/// <returns>Code xxHash 32 bit calculÃ© sur la reprÃ©sentation UTF-16 de la chaÃ®ne. Attention: N'est pas garantit unique!</returns>
 		public static uint Compute(char[] buffer, int offset, int count)
 		{
 			Contract.DoesNotOverflow(buffer, offset, count);
@@ -237,7 +255,7 @@ namespace Doxense.IO.Hashing
 			uint h = XxHash32.Continue(123, bytes, 0, bytes.Length);
 			Console.WriteLine(h + " : " + h.ToString("X8"));
 
-			const string TEXT = "Il était une fois un petit chaperon rouge qui s'en allait au bois, et c'est alors que sa mère prit peur et l'envoya chez sa tante et son oncle à Bel Air";
+			const string TEXT = "Il Ã©tait une fois un petit chaperon rouge qui s'en allait au bois, et c'est alors que sa mÃ¨re prit peur et l'envoya chez sa tante et son oncle Ã  Bel Air";
 			bytes = Encoding.UTF8.GetBytes(TEXT);
 
 			h = XxHash32.Compute(bytes);

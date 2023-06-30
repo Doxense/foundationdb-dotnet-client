@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -30,7 +48,7 @@ namespace Doxense.Serialization.Json
 	{
 		// TODO: temporaire! a terme il faudrait implementer notre propre dico !
 		private readonly Dictionary<string, JsonValue?> m_items;
-		//INVARIANT: il ne doit pas y avoir de key ou de value == à null!
+		//INVARIANT: il ne doit pas y avoir de key ou de value == Ã  null!
 
 		//REVIEW: s'inspirer de FrugalMap ( http://referencesource.microsoft.com/#WindowsBase/src/Shared/MS/Utility/FrugalMap.cs )
 		// => plusieurs variantes d'une map, suivant sa taille, qui essayent de minimiser le plus possible la taille des objets
@@ -87,10 +105,10 @@ namespace Doxense.Serialization.Json
 			m_items = new Dictionary<string, JsonValue?>(capacity, comparer ?? StringComparer.Ordinal);
 		}
 
-		/// <summary>Crée un JsonObject à partir d'une liste de clé/valeurs</summary>
-		/// <param name="items">Séquence de noms et valeurs</param>
-		/// <param name="comparer">Comparateur utilisé pour les clés de ce JsonObject</param>
-		/// <remarks> Si <paramref name="comparer"/> n'est pas précisé, mais que <paramref name="items"/> est un <see cref="Dictionary{K,V}"/> ou un <see cref="JsonObject"/>, le même Comparer sera utilisé. Sinon, <see cref="StringComparer.Ordinal"/> sera utilisé. </remarks>
+		/// <summary>CrÃ©e un JsonObject Ã  partir d'une liste de clÃ©/valeurs</summary>
+		/// <param name="items">SÃ©quence de noms et valeurs</param>
+		/// <param name="comparer">Comparateur utilisÃ© pour les clÃ©s de ce JsonObject</param>
+		/// <remarks> Si <paramref name="comparer"/> n'est pas prÃ©cisÃ©, mais que <paramref name="items"/> est un <see cref="Dictionary{K,V}"/> ou un <see cref="JsonObject"/>, le mÃªme Comparer sera utilisÃ©. Sinon, <see cref="StringComparer.Ordinal"/> sera utilisÃ©. </remarks>
 		public JsonObject(IEnumerable<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.Debug.Requires(items != null);
@@ -101,23 +119,23 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			// devines la capacité et le comparer...
+			// devines la capacitÃ© et le comparer...
 			var map = new Dictionary<string, JsonValue?>(
 				(items as ICollection<KeyValuePair<string, JsonValue>>)?.Count ?? 0,
 				comparer ?? ExtractKeyComparer(items) ?? StringComparer.Ordinal
 			);
 			foreach (var item in items)
 			{
-				//note: on utilise Add(..) pour détecter les doublons
-				//REVIEW: faut-il rejeter ou accepter les doublons? si on rempalce Add par [], le dernier écrase le premier...
+				//note: on utilise Add(..) pour dÃ©tecter les doublons
+				//REVIEW: faut-il rejeter ou accepter les doublons? si on rempalce Add par [], le dernier Ã©crase le premier...
 				map.Add(item.Key, item.Value ?? JsonNull.Null);
 			}
 			m_items = map;
 
 		}
 
-		/// <summary>Crée un JsonObject à partir d'un dictionnaire de JsonValue existant</summary>
-		/// <param name="items">Contenu pré-calculé du JsonObject</param>
+		/// <summary>CrÃ©e un JsonObject Ã  partir d'un dictionnaire de JsonValue existant</summary>
+		/// <param name="items">Contenu prÃ©-calculÃ© du JsonObject</param>
 		/// <param name="owner">Si true, l'instance utilisera <paramref name="items"/> directement. Si false, elle transfert les items dans un autre dictionnaire</param>
 		/// <remarks>Cette instance utilisera <paramref name="items"/> directement, sans faire de copie</remarks>
 		internal JsonObject(Dictionary<string, JsonValue?> items, bool owner)
@@ -126,15 +144,15 @@ namespace Doxense.Serialization.Json
 			m_items = owner ? items : new Dictionary<string, JsonValue?>(items, items.Comparer);
 		}
 
-		/// <summary>Crée un JsonObject à partir d'une liste dynamique de noms et de valeures</summary>
-		/// <param name="items">Liste des noms des champs et des valeurs (de taille supérieure ou égale à <paramref name="count"/>)</param>
-		/// <param name="count">Nombre de valeurs à lire dans <paramref name="items"/></param>
-		/// <param name="comparer">Comparateur utilisé pour les clés de ce JsonObject</param>
+		/// <summary>CrÃ©e un JsonObject Ã  partir d'une liste dynamique de noms et de valeures</summary>
+		/// <param name="items">Liste des noms des champs et des valeurs (de taille supÃ©rieure ou Ã©gale Ã  <paramref name="count"/>)</param>
+		/// <param name="count">Nombre de valeurs Ã  lire dans <paramref name="items"/></param>
+		/// <param name="comparer">Comparateur utilisÃ© pour les clÃ©s de ce JsonObject</param>
 		internal JsonObject(KeyValuePair<string, JsonValue>[] items, int count, IEqualityComparer<string> comparer)
 		{
 			Contract.Debug.Requires(items != null && count >= 0 && count <= items.Length && comparer != null);
 
-			//note: on écrase en cas de doublons. L'appelant peut détecter la présence de doublons en comparent 'count' et 'dictionary.Count'
+			//note: on Ã©crase en cas de doublons. L'appelant peut dÃ©tecter la prÃ©sence de doublons en comparent 'count' et 'dictionary.Count'
 			var map = new Dictionary<string, JsonValue?>(count, comparer);
 			for (int i = 0; i < count; i++)
 			{
@@ -143,16 +161,16 @@ namespace Doxense.Serialization.Json
 			m_items = map;
 		}
 
-		/// <summary>Crée un JsonObject à partir d'une liste dynamique de noms et de valeures</summary>
-		/// <param name="keys">Liste des noms des champs (de taille supérieure ou égale à <paramref name="count"/>)</param>
-		/// <param name="values">List des valeurs (de taille supérieure ou égale à <paramref name="count"/>)</param>
-		/// <param name="count">Nombre de valeurs à lire dans <paramref name="keys"/> et <paramref name="values"/></param>
-		/// <param name="comparer">Comparateur utilisé pour les clés de ce JsonObject</param>
+		/// <summary>CrÃ©e un JsonObject Ã  partir d'une liste dynamique de noms et de valeures</summary>
+		/// <param name="keys">Liste des noms des champs (de taille supÃ©rieure ou Ã©gale Ã  <paramref name="count"/>)</param>
+		/// <param name="values">List des valeurs (de taille supÃ©rieure ou Ã©gale Ã  <paramref name="count"/>)</param>
+		/// <param name="count">Nombre de valeurs Ã  lire dans <paramref name="keys"/> et <paramref name="values"/></param>
+		/// <param name="comparer">Comparateur utilisÃ© pour les clÃ©s de ce JsonObject</param>
 		internal JsonObject(string[] keys, JsonValue[] values, int count, IEqualityComparer<string> comparer)
 		{
 			Contract.Debug.Requires(keys != null && values != null && count >= 0 && count <= keys.Length && count <= values.Length && comparer != null);
 
-			//note: redondant avec le ctor qui prend un KeyValuePair<string, JsonValue>[], mais c'est plus pratique, pour les decodeurs qui stockent les clés et les valeurs séparemment, d'avoir deux array distinctes (vu que KVP<K,V> est immutable!)
+			//note: redondant avec le ctor qui prend un KeyValuePair<string, JsonValue>[], mais c'est plus pratique, pour les decodeurs qui stockent les clÃ©s et les valeurs sÃ©paremment, d'avoir deux array distinctes (vu que KVP<K,V> est immutable!)
 
 			var map = new Dictionary<string, JsonValue?>(count, comparer);
 			for (int i = 0; i < count; i++)
@@ -165,14 +183,14 @@ namespace Doxense.Serialization.Json
 		/// <summary>Essayes d'extraire le KeyComparer d'un dictionnaire existant</summary>
 		internal static IEqualityComparer<string>? ExtractKeyComparer<T>([NoEnumeration] IEnumerable<KeyValuePair<string, T>> items)
 		{
-			//note: pour le cas où T == JsonValue, on check quand même si c'est un JsonObject!
+			//note: pour le cas oÃ¹ T == JsonValue, on check quand mÃªme si c'est un JsonObject!
 			// ReSharper disable once SuspiciousTypeConversion.Global
 			// ReSharper disable once ConstantNullCoalescingCondition
 			return (items as JsonObject)?.Comparer ?? (items as Dictionary<string, T>)?.Comparer;
 		}
 
-		/// <summary>Crée un objet JSON qui ne contient qu'un seul champ</summary>
-		/// <param name="key0">Clé du champ</param>
+		/// <summary>CrÃ©e un objet JSON qui ne contient qu'un seul champ</summary>
+		/// <param name="key0">ClÃ© du champ</param>
 		/// <param name="value0">Valeur du champ</param>
 		/// <returns>JsonObject contenant un seul item</returns>
 		[Pure]
@@ -184,11 +202,11 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		/// <summary>Crée un objet JSON qui ne contient que deux champs</summary>
-		/// <param name="key0">Clé du premier champ</param>
+		/// <summary>CrÃ©e un objet JSON qui ne contient que deux champs</summary>
+		/// <param name="key0">ClÃ© du premier champ</param>
 		/// <param name="value0">Valeur du premier champ</param>
-		/// <param name="key1">Clé du deuxième champ</param>
-		/// <param name="value1">Valeur du deuxième champ</param>
+		/// <param name="key1">ClÃ© du deuxiÃ¨me champ</param>
+		/// <param name="value1">Valeur du deuxiÃ¨me champ</param>
 		/// <returns>JsonObject contenant deux items</returns>
 		[Pure]
 		public static JsonObject Create(string key0, JsonValue value0, string key1, JsonValue value1)
@@ -200,13 +218,13 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		/// <summary>Crée un objet JSON qui ne contient que trois champs</summary>
-		/// <param name="key0">Clé du premier champ</param>
+		/// <summary>CrÃ©e un objet JSON qui ne contient que trois champs</summary>
+		/// <param name="key0">ClÃ© du premier champ</param>
 		/// <param name="value0">Valeur du premier champ</param>
-		/// <param name="key1">Clé du deuxième champ</param>
-		/// <param name="value1">Valeur du deuxième champ</param>
-		/// <param name="key2">Clé du troisième champ</param>
-		/// <param name="value2">Valeur du troisième champ</param>
+		/// <param name="key1">ClÃ© du deuxiÃ¨me champ</param>
+		/// <param name="value1">Valeur du deuxiÃ¨me champ</param>
+		/// <param name="key2">ClÃ© du troisiÃ¨me champ</param>
+		/// <param name="value2">Valeur du troisiÃ¨me champ</param>
 		/// <returns>JsonObject contenant trois items</returns>
 		[Pure]
 		public static JsonObject Create(string key0, JsonValue value0, string key1, JsonValue value1, string key2, JsonValue value2)
@@ -219,15 +237,15 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		/// <summary>Crée un objet JSON qui ne contient que quatre champs</summary>
-		/// <param name="key0">Clé du premier champ</param>
+		/// <summary>CrÃ©e un objet JSON qui ne contient que quatre champs</summary>
+		/// <param name="key0">ClÃ© du premier champ</param>
 		/// <param name="value0">Valeur du premier champ</param>
-		/// <param name="key1">Clé du deuxième champ</param>
-		/// <param name="value1">Valeur du deuxième champ</param>
-		/// <param name="key2">Clé du troisième champ</param>
-		/// <param name="value2">Valeur du troisième champ</param>
-		/// <param name="key3">Clé du quatrième champ</param>
-		/// <param name="value3">Valeur du quatrième champ</param>
+		/// <param name="key1">ClÃ© du deuxiÃ¨me champ</param>
+		/// <param name="value1">Valeur du deuxiÃ¨me champ</param>
+		/// <param name="key2">ClÃ© du troisiÃ¨me champ</param>
+		/// <param name="value2">Valeur du troisiÃ¨me champ</param>
+		/// <param name="key3">ClÃ© du quatriÃ¨me champ</param>
+		/// <param name="value3">Valeur du quatriÃ¨me champ</param>
 		/// <returns>JsonObject contenant trois items</returns>
 		[Pure]
 		public static JsonObject Create(string key0, JsonValue value0, string key1, JsonValue value1, string key2, JsonValue value2, string key3, JsonValue value3)
@@ -242,14 +260,14 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Transforme un objet CLR en un JsonObject</summary>
-		/// <typeparam name="T">Type de l'objet à convertir</typeparam>
-		/// <param name="value">Instance de l'objet à convertir</param>
+		/// <typeparam name="T">Type de l'objet Ã  convertir</typeparam>
+		/// <param name="value">Instance de l'objet Ã  convertir</param>
 		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
 		[ContractAnnotation("value:notnull => notnull")]
 		[return: NotNullIfNotNull("value")]
 		public static JsonObject? FromObject<T>(T value)
 		{
-			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
+			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gÃ¨re pas de DOM de toutes maniÃ¨res...
 			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(T)).AsObject(required: false);
 		}
 
@@ -257,12 +275,12 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull("value")]
 		public static JsonObject? FromObject<T>(T value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
+			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gÃ¨re pas de DOM de toutes maniÃ¨res...
 			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(T)).AsObject(required: false);
 		}
 
 		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
-		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		/// <returns>Ne pas utiliser cette mÃ©thode pour *construire* un JsonObject! Elle n'est Ã  utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
 		public static JsonObject FromDictionary(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
@@ -497,7 +515,7 @@ namespace Doxense.Serialization.Json
 		public bool Remove(KeyValuePair<string, JsonValue> keyValuePair)
 		{
 			Contract.Debug.Requires(keyValuePair.Key != null);
-			//BUGBUG: gérer la comparaison avec .Value avant de delete!
+			//BUGBUG: gÃ©rer la comparaison avec .Value avant de delete!
 			return m_items.Remove(keyValuePair.Key);
 		}
 
@@ -546,7 +564,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Type d'objet JSON</summary>
 		public override JsonType Type => JsonType.Object;
 
-		/// <summary>Indique s'il s'agit de la valeur par défaut du type ("vide")</summary>
+		/// <summary>Indique s'il s'agit de la valeur par dÃ©faut du type ("vide")</summary>
 		public override bool IsDefault => this.Count == 0;
 
 		/// <summary>Indique si l'objet contient des valeurs</summary>
@@ -564,12 +582,12 @@ namespace Doxense.Serialization.Json
 			where TJson : JsonValue
 		{
 			if (!TryGetValue(key, out var value))
-			{ // La propriété n'est pas définie dans l'objet
+			{ // La propriÃ©tÃ© n'est pas dÃ©finie dans l'objet
 				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(key);
 				return null;
 			}
 			if (value.Type == JsonType.Null)
-			{ // La propriété existe mais contient null
+			{ // La propriÃ©tÃ© existe mais contient null
 				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(key);
 				return null;
 			}
@@ -588,7 +606,7 @@ namespace Doxense.Serialization.Json
 
 		public bool ContainsKey(string key)
 		{
-			//note: retourne true même si la propriété vaut null
+			//note: retourne true mÃªme si la propriÃ©tÃ© vaut null
 			return m_items.ContainsKey(key);
 		}
 
@@ -598,13 +616,13 @@ namespace Doxense.Serialization.Json
 		}
 
 
-		/// <summary>Indique si la propriété <paramref name="key"/> existe et contient une valeur différent de null</summary>
-		/// <param name="key">Nom de la clé à vérifier</param>
-		/// <returns>Retourne false si la clé n'existe pas, ou s'il est contient null.</returns>
+		/// <summary>Indique si la propriÃ©tÃ© <paramref name="key"/> existe et contient une valeur diffÃ©rent de null</summary>
+		/// <param name="key">Nom de la clÃ© Ã  vÃ©rifier</param>
+		/// <returns>Retourne false si la clÃ© n'existe pas, ou s'il est contient null.</returns>
 		/// <example>
 		/// { Foo: "..." }.Has("Foo") => true
-		/// { Foo: ""    }.Has("Foo") => true    // présent même si vide
-		/// { Foo: null  }.Has("Foo") => false // présent mais null!
+		/// { Foo: ""    }.Has("Foo") => true    // prÃ©sent mÃªme si vide
+		/// { Foo: null  }.Has("Foo") => false // prÃ©sent mais null!
 		/// { Bar: ".."  }.Has("Foo") => false // absent!
 		/// </example>
 		public bool Has(string key)
@@ -614,9 +632,9 @@ namespace Doxense.Serialization.Json
 
 		//REVIEW: renommer les Get<T>(..) en Value<T>(), et GetArray<T>(..) en Values<T>(..)
 
-		/// <summary>Retourne la valeur d'une propriété de cet objet</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriété contient null ou n'existe pas.</returns>
+		/// <summary>Retourne la valeur d'une propriÃ©tÃ© de cet objet</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© recherchÃ©e</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriÃ©tÃ© contient null ou n'existe pas.</returns>
 		/// <example>
 		/// obj.Get&lt;string&gt;"FieldThatExists") // returns the value of the field as an int
 		/// obj.Get&lt;string&gt;"FieldThatIsMissing") // returns null
@@ -624,20 +642,20 @@ namespace Doxense.Serialization.Json
 		/// obj.Get&lt;int&gt;"FieldThatIsMissing") // returns 0
 		/// obj.Get&lt;int&gt;"FieldThatIsNull") // returns 0
 		/// </example>
-		/// <remarks>Cette méthode est équivalente à <code>obj[key].As&lt;T&gt;()</code></remarks>
+		/// <remarks>Cette mÃ©thode est Ã©quivalente Ã  <code>obj[key].As&lt;T&gt;()</code></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T? Get<T>(string key)
 		{
 			return this[key].As<T>();
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de cet objet, avec une contrainte de présence optionnelle</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="required">Si true, une exception est lancée si la propriété n'existe pas où vaut null. Si false, retourne default(<typeparamref name="T"/>) si la propriété est manquante ou vaut explicitement null</param>
+		/// <summary>Retourne la valeur d'une propriÃ©tÃ© de cet objet, avec une contrainte de prÃ©sence optionnelle</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© recherchÃ©e</param>
+		/// <param name="required">Si true, une exception est lancÃ©e si la propriÃ©tÃ© n'existe pas oÃ¹ vaut null. Si false, retourne default(<typeparamref name="T"/>) si la propriÃ©tÃ© est manquante ou vaut explicitement null</param>
 		/// <returns>
-		/// Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriété contient null ou n'existe pas.
-		/// Si <typeparamref name="T"/> est un ValueType qui n'est pas nullable, et que le champ est manquant (avec <paramref name="required"/> == false), alors c'est le "zéro" du type qui sera retourné (0, false, Guid.Empty, ...)
-		/// Si par contre <typeparamref name="T"/> est un <see cref="Nullable{T}"/> alors c'est bien 'null' qui sera retourné dans ce cas.
+		/// Valeur de la propriÃ©tÃ© <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriÃ©tÃ© contient null ou n'existe pas.
+		/// Si <typeparamref name="T"/> est un ValueType qui n'est pas nullable, et que le champ est manquant (avec <paramref name="required"/> == false), alors c'est le "zÃ©ro" du type qui sera retournÃ© (0, false, Guid.Empty, ...)
+		/// Si par contre <typeparamref name="T"/> est un <see cref="Nullable{T}"/> alors c'est bien 'null' qui sera retournÃ© dans ce cas.
 		/// </returns>
 		/// <example>
 		/// obj.Get&lt;int&gt;"FieldThatExists", required: true) // returns the value of the field as an int
@@ -645,7 +663,7 @@ namespace Doxense.Serialization.Json
 		/// obj.Get&lt;string&gt;"FieldThatIsMissing", required: true) // => throws
 		/// obj.Get&lt;string&gt;"FieldThatIsNull", required: true) // => throws
 		/// </example>
-		/// <remarks> Cette méthode est équivalente à <code>obj[key].RequiredField(key).As&lt;T&gt;()</code> </remarks>
+		/// <remarks> Cette mÃ©thode est Ã©quivalente Ã  <code>obj[key].RequiredField(key).As&lt;T&gt;()</code> </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[ContractAnnotation("required:true => notnull")]
 		public T? Get<T>(string key, bool required)
@@ -655,32 +673,32 @@ namespace Doxense.Serialization.Json
 			return val.As<T>();
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de cet objet, ou une valeur par défaut si elle n'existe pas</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="resolver">Résolveur spécifique utilisé pour la conversion.</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>} si la propriété contient null ou n'existe pas.</returns>
-		/// <remarks>Cette méthode est équivalente à <code>obj[key].As&lt;T&gt;(defaultValue, resolver)</code></remarks>
+		/// <summary>Retourne la valeur d'une propriÃ©tÃ© de cet objet, ou une valeur par dÃ©faut si elle n'existe pas</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© recherchÃ©e</param>
+		/// <param name="resolver">RÃ©solveur spÃ©cifique utilisÃ© pour la conversion.</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>} si la propriÃ©tÃ© contient null ou n'existe pas.</returns>
+		/// <remarks>Cette mÃ©thode est Ã©quivalente Ã  <code>obj[key].As&lt;T&gt;(defaultValue, resolver)</code></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T? Get<T>(string key, ICrystalJsonTypeResolver resolver)
 		{
 			return this[key].As<T>(resolver);
 		}
 
-		/// <summary>Retourne la valeur JSON d'une propriété de cet objet</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
+		/// <summary>Retourne la valeur JSON d'une propriÃ©tÃ© de cet objet</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© recherchÃ©e</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> castÃ©e en JsonObject, <see cref="JsonNull.Null"/> si la propriÃ©tÃ© contient null, ou <see cref="JsonNull.Missing"/> si la propriÃ©tÃ© n'existe pas.</returns>
+		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retournÃ© Ã  la place.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue GetValue(string key)
 		{
 			return this[key];
 		}
 
-		/// <summary>Retourne la valeur JSON d'une propriété de cet objet</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
+		/// <summary>Retourne la valeur JSON d'une propriÃ©tÃ© de cet objet</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© recherchÃ©e</param>
 		/// <param name="required"></param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> castÃ©e en JsonObject, <see cref="JsonNull.Null"/> si la propriÃ©tÃ© contient null, ou <see cref="JsonNull.Missing"/> si la propriÃ©tÃ© n'existe pas.</returns>
+		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retournÃ© Ã  la place.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue GetValue(string key, bool required)
 		{
@@ -689,32 +707,32 @@ namespace Doxense.Serialization.Json
 			return val;
 		}
 
-		/// <summary>Retourne la valeur JSON d'une propriété de cet objet, ou une valeur JSON par défaut</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="missingValue">Valeur par défaut retournée si l'objet ne contient cette propriété</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété existe et contient null, ou <paramref name="missingValue"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retourné à la place.</remarks>
+		/// <summary>Retourne la valeur JSON d'une propriÃ©tÃ© de cet objet, ou une valeur JSON par dÃ©faut</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© recherchÃ©e</param>
+		/// <param name="missingValue">Valeur par dÃ©faut retournÃ©e si l'objet ne contient cette propriÃ©tÃ©</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> castÃ©e en JsonObject, <see cref="JsonNull.Null"/> si la propriÃ©tÃ© existe et contient null, ou <paramref name="missingValue"/> si la propriÃ©tÃ© n'existe pas.</returns>
+		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retournÃ© Ã  la place.</remarks>
 		[Pure, ContractAnnotation("halt<=key:null")]
 		public JsonValue GetValueOrDefault(string key, JsonValue missingValue)
 		{
 			return TryGetValue(key, out var value) ? (value ?? JsonNull.Null) : (missingValue ?? JsonNull.Missing);
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
-		/// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas un object.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
+		/// <summary>Retourne la valeur d'une propriÃ©tÃ© de type JsonObject</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© qui contient le sous-objet recherchÃ©</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> castÃ©e en JsonObject, ou null si la propriÃ©tÃ© contient null ou n'existe pas. GÃ©nÃ¨re une exception si la propriÃ©tÃ© ne contient pas un object.</returns>
+		/// <exception cref="ArgumentException">Si l'objet contient une propriÃ©tÃ© nommÃ©e <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
 		[Pure]
 		public JsonObject? GetObject(string key)
 		{
 			return InternalGet<JsonObject>(JsonType.Object, key, required: false);
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
-		/// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
-		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient null, une exception est lancée. Sinon, la méthode retourne null.</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas et <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas un object.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
+		/// <summary>Retourne la valeur d'une propriÃ©tÃ© de type JsonObject</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© qui contient le sous-objet recherchÃ©</param>
+		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient null, une exception est lancÃ©e. Sinon, la mÃ©thode retourne null.</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> castÃ©e en JsonObject, ou null si la propriÃ©tÃ© contient null ou n'existe pas et <paramref name="required"/> est <b>false</b>. GÃ©nÃ¨re une exception si la propriÃ©tÃ© ne contient pas un object.</returns>
+		/// <exception cref="ArgumentException">Si l'objet contient une propriÃ©tÃ© nommÃ©e <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public JsonObject? GetObject(string key, bool required)
 		{
@@ -733,21 +751,21 @@ namespace Doxense.Serialization.Json
 			return GetPath(path).AsObject(required);
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
-		/// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas une array.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
+		/// <summary>Retourne la valeur d'une propriÃ©tÃ© de type JsonArray</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© qui contient l'array recherchÃ©e</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> castÃ©e en JsonArray, ou null si la propriÃ©tÃ© contient null ou n'existe pas. GÃ©nÃ¨re une exception si la propriÃ©tÃ© ne contient pas une array.</returns>
+		/// <exception cref="ArgumentException">Si l'objet contient une propriÃ©tÃ© nommÃ©e <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
 		[Pure]
 		public JsonArray? GetArray(string key)
 		{
 			return InternalGet<JsonArray>(JsonType.Array, key, required: false);
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
-		/// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
-		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient <b>null</b>, une exception est lancée. Sinon, la méthode retourne null.</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas et que <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas une array.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
+		/// <summary>Retourne la valeur d'une propriÃ©tÃ© de type JsonArray</summary>
+		/// <param name="key">Nom de la propriÃ©tÃ© qui contient l'array recherchÃ©e</param>
+		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient <b>null</b>, une exception est lancÃ©e. Sinon, la mÃ©thode retourne null.</param>
+		/// <returns>Valeur de la propriÃ©tÃ© <paramref name="key"/> castÃ©e en JsonArray, ou null si la propriÃ©tÃ© contient null ou n'existe pas et que <paramref name="required"/> est <b>false</b>. GÃ©nÃ¨re une exception si la propriÃ©tÃ© ne contient pas une array.</returns>
+		/// <exception cref="ArgumentException">Si l'objet contient une propriÃ©tÃ© nommÃ©e <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public JsonArray? GetArray(string key, bool required)
 		{
@@ -766,14 +784,14 @@ namespace Doxense.Serialization.Json
 			return GetPath(path).AsArray(required);
 		}
 
-		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
+		/// <summary>Retourne un objet fils, en le crÃ©ant (vide) au besoin</summary>
 		/// <param name="path">Path vers le fils (peut inclure des '.')</param>
 		/// <returns>Object correspondant, ou object vide</returns>
 		/// <example>{ }.GetOrCreate("foo").Set("bar", 123) => { "foo": { "bar": 123 } }
 		/// { }.GetOrCreate("foo.bar").Set("baz", 123) => { "foo": { "bar": { "baz": 123 } } }</example>
-		/// <remarks>Si un parent n'existe pas, il est également créé</remarks>
+		/// <remarks>Si un parent n'existe pas, il est Ã©galement crÃ©Ã©</remarks>
 		/// <exception cref="System.ArgumentNullException">Si <paramref name="path"/> est null (ou vide)</exception>
-		/// <exception cref="System.ArgumentException">Si un des élément dans <paramref name="path"/> existe et n'est pas un objet</exception>
+		/// <exception cref="System.ArgumentException">Si un des Ã©lÃ©ment dans <paramref name="path"/> existe et n'est pas un objet</exception>
 		public JsonObject GetOrCreateObject(string path)
 		{
 			Contract.NotNullOrEmpty(path);
@@ -781,14 +799,14 @@ namespace Doxense.Serialization.Json
 			return (JsonObject) SetPathInternal(path, null, JsonType.Object);
 		}
 
-		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
+		/// <summary>Retourne un objet fils, en le crÃ©ant (vide) au besoin</summary>
 		/// <param name="path">Path vers le fils (peut inclure des '.')</param>
 		/// <returns>Object correspondant, ou object vide</returns>
 		/// <example>{ }.GetOrCreate("foo").Set("bar", 123) => { "foo": { "bar": 123 } }
 		/// { }.GetOrCreate("foo.bar").Set("baz", 123) => { "foo": { "bar": { "baz": 123 } } }</example>
-		/// <remarks>Si un parent n'existe pas, il est également créé</remarks>
+		/// <remarks>Si un parent n'existe pas, il est Ã©galement crÃ©Ã©</remarks>
 		/// <exception cref="System.ArgumentNullException">Si key est null (ou vide)</exception>
-		/// <exception cref="System.ArgumentException">Si un des élément dans key existe et n'est pas un objet</exception>
+		/// <exception cref="System.ArgumentException">Si un des Ã©lÃ©ment dans key existe et n'est pas un objet</exception>
 		public JsonArray GetOrCreateArray(string path)
 		{
 			Contract.NotNullOrEmpty(path);
@@ -796,9 +814,9 @@ namespace Doxense.Serialization.Json
 			return (JsonArray) SetPathInternal(path, null, JsonType.Array);
 		}
 
-		/// <summary>Retourne une valeur à partir de son chemin</summary>
-		/// <param name="path">Chemin vers la valeur à lire, au format "foo", "foo.bar" ou "foo[2].baz"</param>
-		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvée</returns>
+		/// <summary>Retourne une valeur Ã  partir de son chemin</summary>
+		/// <param name="path">Chemin vers la valeur Ã  lire, au format "foo", "foo.bar" ou "foo[2].baz"</param>
+		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvÃ©e</returns>
 		[Pure]
 		public JsonValue GetPath(string path)
 		{
@@ -849,10 +867,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Retourne une valeur à partir de son chemin</summary>
-		/// <param name="path">Chemin vers la valeur à lire, au format "foo", "foo.bar" ou "foo[2].baz"</param>
-		/// <param name="required">Si true et que le champ n'existe pas dans l'objet, une exception est générée</param>
-		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvée</returns>
+		/// <summary>Retourne une valeur Ã  partir de son chemin</summary>
+		/// <param name="path">Chemin vers la valeur Ã  lire, au format "foo", "foo.bar" ou "foo[2].baz"</param>
+		/// <param name="required">Si true et que le champ n'existe pas dans l'objet, une exception est gÃ©nÃ©rÃ©e</param>
+		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvÃ©e</returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public T? GetPath<T>(string path, bool required = false)
 		{
@@ -861,11 +879,11 @@ namespace Doxense.Serialization.Json
 			return val.As<T>();
 		}
 
-		/// <summary>Retourne ou crée le fils d'un objet, qui doit lui-même être un objet</summary>
-		/// <param name="current">Noeud courant (doit être un objet)</param>
-		/// <param name="name">Nom du fils de <paramref name="current"/> qui devrait être un objet (ou null)</param>
-		/// <param name="createIfMissing">Si true, crée l'objet s'il n'existait pas. Si false, retourne null</param>
-		/// <returns>Valeur du fils, initialisée à un objet vide si manquante</returns>
+		/// <summary>Retourne ou crÃ©e le fils d'un objet, qui doit lui-mÃªme Ãªtre un objet</summary>
+		/// <param name="current">Noeud courant (doit Ãªtre un objet)</param>
+		/// <param name="name">Nom du fils de <paramref name="current"/> qui devrait Ãªtre un objet (ou null)</param>
+		/// <param name="createIfMissing">Si true, crÃ©e l'objet s'il n'existait pas. Si false, retourne null</param>
+		/// <returns>Valeur du fils, initialisÃ©e Ã  un objet vide si manquante</returns>
 		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonObject? GetOrCreateChildObject(JsonValue current, string? name, bool createIfMissing)
 		{
@@ -894,11 +912,11 @@ namespace Doxense.Serialization.Json
 			return (JsonObject) child;
 		}
 
-		/// <summary>Retourne ou crée le fils d'un objet, qui doit être une array</summary>
-		/// <param name="current">Noeud courrant (doit être un objet)</param>
-		/// <param name="name">Nom du fils de <paramref name="current"/> qui devrait être un objet (ou null)</param>
-		/// <param name="createIfMissing">Si true, crée l'array si elle n'existait pas. Si false, retourne null</param>
-		/// <returns>Valeur du fils, initialisée à une array vide si manquante</returns>
+		/// <summary>Retourne ou crÃ©e le fils d'un objet, qui doit Ãªtre une array</summary>
+		/// <param name="current">Noeud courrant (doit Ãªtre un objet)</param>
+		/// <param name="name">Nom du fils de <paramref name="current"/> qui devrait Ãªtre un objet (ou null)</param>
+		/// <param name="createIfMissing">Si true, crÃ©e l'array si elle n'existait pas. Si false, retourne null</param>
+		/// <returns>Valeur du fils, initialisÃ©e Ã  une array vide si manquante</returns>
 		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonArray? GetOrCreateChildArray(JsonValue current, string? name, bool createIfMissing)
 		{
@@ -927,10 +945,10 @@ namespace Doxense.Serialization.Json
 			return (JsonArray) child;
 		}
 
-		/// <summary>Retourne ou crée une entrée d'une array, qui doit être un objet</summary>
-		/// <param name="array">Noeud courrant (doit être une array)</param>
-		/// <param name="index">Index de l'entrée dans <paramref name="array"/> qui devrait être un objet (ou null)</param>
-		/// <param name="createIfMissing">Si true, crée l'objet s'il n'existait pas. Si false, retourne null</param>
+		/// <summary>Retourne ou crÃ©e une entrÃ©e d'une array, qui doit Ãªtre un objet</summary>
+		/// <param name="array">Noeud courrant (doit Ãªtre une array)</param>
+		/// <param name="index">Index de l'entrÃ©e dans <paramref name="array"/> qui devrait Ãªtre un objet (ou null)</param>
+		/// <param name="createIfMissing">Si true, crÃ©e l'objet s'il n'existait pas. Si false, retourne null</param>
 		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonObject? GetOrCreateEntryObject(JsonArray array, int index, bool createIfMissing)
 		{
@@ -948,10 +966,10 @@ namespace Doxense.Serialization.Json
 			return (JsonObject) child;
 		}
 
-		/// <summary>Retourne ou crée une entrée d'une array, qui doit être aussi une array</summary>
-		/// <param name="array">Noeud courrant (doit être une array)</param>
-		/// <param name="index">Index de l'entrée dans <paramref name="array"/> qui devrait être une array (ou null)</param>
-		/// <param name="createIfMissing">Si true, crée l'array si elle n'existait pas. Si false, retourne null</param>
+		/// <summary>Retourne ou crÃ©e une entrÃ©e d'une array, qui doit Ãªtre aussi une array</summary>
+		/// <param name="array">Noeud courrant (doit Ãªtre une array)</param>
+		/// <param name="index">Index de l'entrÃ©e dans <paramref name="array"/> qui devrait Ãªtre une array (ou null)</param>
+		/// <param name="createIfMissing">Si true, crÃ©e l'array si elle n'existait pas. Si false, retourne null</param>
 		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonArray? GetOrCreateEntryArray(JsonArray array, int index, bool createIfMissing)
 		{
@@ -969,8 +987,8 @@ namespace Doxense.Serialization.Json
 			return (JsonArray)child;
 		}
 
-		/// <summary>Crée ou modifie une valeur à partir de son chemin</summary>
-		/// <param name="path">Chemin vers la valeur à créer ou modifier.</param>
+		/// <summary>CrÃ©e ou modifie une valeur Ã  partir de son chemin</summary>
+		/// <param name="path">Chemin vers la valeur Ã  crÃ©er ou modifier.</param>
 		/// <param name="value">Nouvelle valeur</param>
 		public void SetPath(string path, JsonValue value)
 		{
@@ -1035,7 +1053,7 @@ namespace Doxense.Serialization.Json
 					{ // "(current).(name)" ou "(current).(name)[index]"
 						if (index.HasValue)
 						{
-							// current.name doit être une array
+							// current.name doit Ãªtre une array
 							JsonArray array = name == null
 								? current.AsArray(required: true)!
 								: GetOrCreateChildArray(current, name, createIfMissing: true)!;
@@ -1057,7 +1075,7 @@ namespace Doxense.Serialization.Json
 							return valueToSet;
 						}
 
-						// current doit être un objet
+						// current doit Ãªtre un objet
 						if (!current.IsMap) throw ThrowHelper.InvalidOperationException("TODO: object expected");
 
 						if (name == null) throw ThrowHelper.FormatException("TODO: missing identifier at end of JPath");
@@ -1089,9 +1107,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Crée ou modifie une valeur à partir de son chemin</summary>
-		/// <param name="path">Chemin vers la valeur à supprimer.</param>
-		/// <returns>True si la valeur existait. False si elle n'a pas été trouvée</returns>
+		/// <summary>CrÃ©e ou modifie une valeur Ã  partir de son chemin</summary>
+		/// <param name="path">Chemin vers la valeur Ã  supprimer.</param>
+		/// <returns>True si la valeur existait. False si elle n'a pas Ã©tÃ© trouvÃ©e</returns>
 		public bool RemovePath(string path)
 		{
 			Contract.NotNullOrEmpty(path);
@@ -1151,7 +1169,7 @@ namespace Doxense.Serialization.Json
 
 						if (index.HasValue)
 						{
-							// current.name doit être une array
+							// current.name doit Ãªtre une array
 							JsonArray? array;
 							if (name == null)
 							{
@@ -1167,7 +1185,7 @@ namespace Doxense.Serialization.Json
 							return true;
 						}
 
-						// current doit être un objet
+						// current doit Ãªtre un objet
 						if (!current.IsMap) throw ThrowHelper.InvalidOperationException("TODO: object expected");
 
 						if (name == null) throw ThrowHelper.FormatException("TODO: missing identifier at end of JPath");
@@ -1202,17 +1220,17 @@ namespace Doxense.Serialization.Json
 		}
 
 
-		/// <summary>Ajoute l'attribut "_class" avec l'id résolvé du type</summary>
-		/// <typeparam name="T">Type à résolver</typeparam>
-		/// <param name="resolver">Résolveur utilisé (optionnel)</param>
+		/// <summary>Ajoute l'attribut "_class" avec l'id rÃ©solvÃ© du type</summary>
+		/// <typeparam name="T">Type Ã  rÃ©solver</typeparam>
+		/// <param name="resolver">RÃ©solveur utilisÃ© (optionnel)</param>
 		public JsonObject SetClassId<T>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			return SetClassId(typeof(T), resolver);
 		}
 
-		/// <summary>Ajoute l'attribut "_class" avec l'id résolvé du type</summary>
-		/// <param name="type">Type à résolver</param>
-		/// <param name="resolver">Résolveur utilisé (optionnel)</param>
+		/// <summary>Ajoute l'attribut "_class" avec l'id rÃ©solvÃ© du type</summary>
+		/// <param name="type">Type Ã  rÃ©solver</param>
+		/// <param name="resolver">RÃ©solveur utilisÃ© (optionnel)</param>
 		public JsonObject SetClassId(Type type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(type);
@@ -1243,8 +1261,8 @@ namespace Doxense.Serialization.Json
 		#region Merging...
 
 		/// <summary>Copie les champs d'un autre objet dans l'objet courrant</summary>
-		/// <param name="other">Autre objet JSON dont les champs vont être copié dans l'objet courrant. Tout champ déjà existant sera écrasé.</param>
-		/// <param name="deepCopy">Si true, clone tous les champs de <paramref name="other"/> avant de le copier. Sinon, ils sont copiés par référence.</param>
+		/// <param name="other">Autre objet JSON dont les champs vont Ãªtre copiÃ© dans l'objet courrant. Tout champ dÃ©jÃ  existant sera Ã©crasÃ©.</param>
+		/// <param name="deepCopy">Si true, clone tous les champs de <paramref name="other"/> avant de le copier. Sinon, ils sont copiÃ©s par rÃ©fÃ©rence.</param>
 		public void MergeWith(JsonObject other, bool deepCopy = false)
 		{
 			Merge(this, other, deepCopy);
@@ -1257,8 +1275,8 @@ namespace Doxense.Serialization.Json
 			if (other != null && other.Count > 0)
 			{
 
-				// merge récursivement les propriétés
-				// * Copie tout ce qu'il y a dans other, en mergeant les propriétés qui existent déjà
+				// merge rÃ©cursivement les propriÃ©tÃ©s
+				// * Copie tout ce qu'il y a dans other, en mergeant les propriÃ©tÃ©s qui existent dÃ©jÃ 
 				// * Le merge de properties
 				// * > Ecrase si "value type" (string, bool, int, ...)
 				// * > Merge si object
@@ -1276,7 +1294,7 @@ namespace Doxense.Serialization.Json
 						continue;
 					}
 
-					// Gestion particulière du cas 'missing'
+					// Gestion particuliÃ¨re du cas 'missing'
 					if (kvp.Value.IsMissing())
 					{ // Missing = "remove"
 						parent.Remove(kvp.Key);
@@ -1346,21 +1364,21 @@ namespace Doxense.Serialization.Json
 
 		#region Projection...
 
-		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
+		/// <summary>GÃ©nÃ¨re un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
 		public static Func<JsonObject, JsonObject> Picker(params string[] fields)
 		{
 			var projections = JsonObject.CheckProjectionFields(fields, false);
 			return (obj) => JsonObject.Project(obj, projections);
 		}
 
-		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
+		/// <summary>GÃ©nÃ¨re un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
 		public static Func<JsonObject, JsonObject> Picker(IEnumerable<string> fields, bool keepMissing, bool removeFromSource = false)
 		{
 			var projections = JsonObject.CheckProjectionFields(fields, keepMissing);
 			return (obj) => JsonObject.Project(obj, projections, removeFromSource);
 		}
 
-		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
+		/// <summary>GÃ©nÃ¨re un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
 		public static Func<JsonObject, JsonObject> Picker(IDictionary<string, JsonValue?> defaults, bool removeFromSource = false)
 		{
 			var projections = JsonObject.CheckProjectionDefaults(defaults);
@@ -1369,48 +1387,48 @@ namespace Doxense.Serialization.Json
 
 		public JsonObject Pick(string field)
 		{
-			//TODO: uniquement la pour éviter ambiguïté avec Pick(object defaults).
+			//TODO: uniquement la pour Ã©viter ambiguÃ¯tÃ© avec Pick(object defaults).
 			return JsonObject.Project(this, JsonObject.CheckProjectionFields(new[] { field }, false));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="fields">Liste des noms des champs à conserver</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
+		/// <summary>Retourne un nouvel objet ne contenant que certains champs spÃ©cifiques de cet objet</summary>
+		/// <param name="fields">Liste des noms des champs Ã  conserver</param>
+		/// <returns>Nouvel objet qui ne contient que les champs spÃ©cifiÃ©s dans <paramref name="fields"/></returns>
 		public JsonObject Pick(params string[] fields)
 		{
 			return JsonObject.Project(this, JsonObject.CheckProjectionFields(fields, false));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="fields">Liste des noms des champs à conserver</param>
-		/// <param name="keepMissing">Si false, les champs projetés qui n'existent pas dans l'objet source ne seront pas présent dans le résultat. Si true, les champs seront présents dans le résultat avec une valeur à 'null'</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
+		/// <summary>Retourne un nouvel objet ne contenant que certains champs spÃ©cifiques de cet objet</summary>
+		/// <param name="fields">Liste des noms des champs Ã  conserver</param>
+		/// <param name="keepMissing">Si false, les champs projetÃ©s qui n'existent pas dans l'objet source ne seront pas prÃ©sent dans le rÃ©sultat. Si true, les champs seront prÃ©sents dans le rÃ©sultat avec une valeur Ã  'null'</param>
+		/// <returns>Nouvel objet qui ne contient que les champs spÃ©cifiÃ©s dans <paramref name="fields"/></returns>
 		public JsonObject Pick(IEnumerable<string> fields, bool keepMissing)
 		{
 			return JsonObject.Project(this, JsonObject.CheckProjectionFields(fields, keepMissing));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="defaults">Liste des des champs à conserver, avec une éventuelle valeur par défaut</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="defaults"/></returns>
+		/// <summary>Retourne un nouvel objet ne contenant que certains champs spÃ©cifiques de cet objet</summary>
+		/// <param name="defaults">Liste des des champs Ã  conserver, avec une Ã©ventuelle valeur par dÃ©faut</param>
+		/// <returns>Nouvel objet qui ne contient que les champs spÃ©cifiÃ©s dans <paramref name="defaults"/></returns>
 		public JsonObject Pick(IDictionary<string, JsonValue?> defaults)
 		{
 			//TODO: renommer en PickWithDefaults() ?
 			return JsonObject.Project(this, JsonObject.CheckProjectionDefaults(defaults));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="defaults">Liste des des champs à conserver, avec une éventuelle valeur par défaut</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="defaults"/></returns>
+		/// <summary>Retourne un nouvel objet ne contenant que certains champs spÃ©cifiques de cet objet</summary>
+		/// <param name="defaults">Liste des des champs Ã  conserver, avec une Ã©ventuelle valeur par dÃ©faut</param>
+		/// <returns>Nouvel objet qui ne contient que les champs spÃ©cifiÃ©s dans <paramref name="defaults"/></returns>
 		public JsonObject Pick(object defaults)
 		{
-			//REVIEW: crée un conflit avec Pick(params[] string) si on passe un seul argument!
+			//REVIEW: crÃ©e un conflit avec Pick(params[] string) si on passe un seul argument!
 			//TODO: renommer en PickWithDefaults() ?
 			return JsonObject.Project(this, JsonObject.CheckProjectionDefaults(defaults));
 		}
 
-		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
-		/// <param name="keys">Liste de nom de champs à projeter</param>
+		/// <summary>VÃ©rifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
+		/// <param name="keys">Liste de nom de champs Ã  projeter</param>
 		/// <param name="keepMissing"></param>
 		[ContractAnnotation("keys:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionFields(IEnumerable<string> keys, bool keepMissing)
@@ -1434,9 +1452,9 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
-		/// <param name="defaults">Liste des clés à projeter, avec leur valeur par défaut</param>
-		/// <remarks>Si un champ est manquant dans l'objet source, la valeur par défaut est utilisée, sauf si elle est égale à null.</remarks>
+		/// <summary>VÃ©rifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
+		/// <param name="defaults">Liste des clÃ©s Ã  projeter, avec leur valeur par dÃ©faut</param>
+		/// <remarks>Si un champ est manquant dans l'objet source, la valeur par dÃ©faut est utilisÃ©e, sauf si elle est Ã©gale Ã  null.</remarks>
 		[ContractAnnotation("defaults:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionDefaults(IDictionary<string, JsonValue?> defaults)
 		{
@@ -1464,15 +1482,15 @@ namespace Doxense.Serialization.Json
 
 			var obj = JsonObject.FromObject(defaults);
 			Contract.Debug.Assert(obj != null);
-			//note: garantit sans doublons et sans clés vides
+			//note: garantit sans doublons et sans clÃ©s vides
 			return obj.ToArray()!;
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
+		/// <summary>Retourne un nouvel objet ne contenant que certains champs spÃ©cifiques de cet objet</summary>
 		/// <param name="item">Objet source</param>
-		/// <param name="defaults">Liste des propriétés à conserver, avec leur valeur par défaut si elle n'existe pas dans la source</param>
-		/// <param name="removeFromSource">Si true, retire les champs sélectionnés de <paramref name="item"/>. Si false, ils sont copiés dans le résultat</param>
-		/// <returns>Nouvel objet qui ne contient que les champs de <paramref name="item"/> présents dans <paramref name="defaults"/></returns>
+		/// <param name="defaults">Liste des propriÃ©tÃ©s Ã  conserver, avec leur valeur par dÃ©faut si elle n'existe pas dans la source</param>
+		/// <param name="removeFromSource">Si true, retire les champs sÃ©lectionnÃ©s de <paramref name="item"/>. Si false, ils sont copiÃ©s dans le rÃ©sultat</param>
+		/// <returns>Nouvel objet qui ne contient que les champs de <paramref name="item"/> prÃ©sents dans <paramref name="defaults"/></returns>
 		/// <remarks>{ A: 1, C: false }.Project({ A: 0, B: 42, C: true}) => { A: 1, B: 42, C: false }</remarks>
 		internal static JsonObject Project(JsonObject item, KeyValuePair<string, JsonValue?>[] defaults, bool removeFromSource = false)
 		{
@@ -1499,17 +1517,17 @@ namespace Doxense.Serialization.Json
 		#region Filtering...
 
 		/// <summary>Retourne un nouvel objet qui ne contient que les champs d'un objet source qui passent le filtre</summary>
-		/// <param name="value">Objet source à filtrer</param>
-		/// <param name="filter">Test appliqué sur le nom de chaque champ de <paramref name="value"/>. Les champs qui passent le filtre ne sont pas copiés dans le résultat.</param>
-		/// <param name="deepCopy">Si true, fait une copie complète des champs conservés. Si false, copie la référence.</param>
-		/// <returns>Nouvel objet filtré</returns>
-		/// <remarks>Si aucun champ ne passe le filtre, un nouvel objet vide est retourné.</remarks>
+		/// <param name="value">Objet source Ã  filtrer</param>
+		/// <param name="filter">Test appliquÃ© sur le nom de chaque champ de <paramref name="value"/>. Les champs qui passent le filtre ne sont pas copiÃ©s dans le rÃ©sultat.</param>
+		/// <param name="deepCopy">Si true, fait une copie complÃ¨te des champs conservÃ©s. Si false, copie la rÃ©fÃ©rence.</param>
+		/// <returns>Nouvel objet filtrÃ©</returns>
+		/// <remarks>Si aucun champ ne passe le filtre, un nouvel objet vide est retournÃ©.</remarks>
 		internal static JsonObject Without(JsonObject value, Func<string, bool> filter, bool deepCopy)
 		{
 			Contract.Debug.Requires(value != null && filter != null);
 
-			// comme on ne peut pas savoir a l'avance combien de champs vont matcher, on fait quand même une copie de l'objet, qu'on drop si aucun champ n'a été modifié (le GC s'en occupera)
-			// on espère que si quelqu'un appelle cette méthode, c'est que la probabilité d'au moins un match est élevée (et donc si ça match, on aurait du allouer l'objet de toute manière)
+			// comme on ne peut pas savoir a l'avance combien de champs vont matcher, on fait quand mÃªme une copie de l'objet, qu'on drop si aucun champ n'a Ã©tÃ© modifiÃ© (le GC s'en occupera)
+			// on espÃ¨re que si quelqu'un appelle cette mÃ©thode, c'est que la probabilitÃ© d'au moins un match est Ã©levÃ©e (et donc si Ã§a match, on aurait du allouer l'objet de toute maniÃ¨re)
 
 			var obj = new JsonObject(value.Count, value.Comparer);
 			foreach(var item in value)
@@ -1523,17 +1541,17 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne un nouvel objet qui ne contient que les champs d'un objet source qui passent le filtre</summary>
-		/// <param name="value">Objet source à filtrer</param>
-		/// <param name="filtered">Test appliqué sur le nom de chaque champ de <paramref name="value"/>. Les champs qui passent le filtre ne sont pas copiés dans le résultat.</param>
-		/// <param name="deepCopy">Si true, fait une copie complète des champs conservés. Si false, copie la référence.</param>
-		/// <returns>Nouvel objet filtré</returns>
-		/// <remarks>Si aucun champ ne passe le filtre, un nouvel objet vide est retourné.</remarks>
+		/// <param name="value">Objet source Ã  filtrer</param>
+		/// <param name="filtered">Test appliquÃ© sur le nom de chaque champ de <paramref name="value"/>. Les champs qui passent le filtre ne sont pas copiÃ©s dans le rÃ©sultat.</param>
+		/// <param name="deepCopy">Si true, fait une copie complÃ¨te des champs conservÃ©s. Si false, copie la rÃ©fÃ©rence.</param>
+		/// <returns>Nouvel objet filtrÃ©</returns>
+		/// <remarks>Si aucun champ ne passe le filtre, un nouvel objet vide est retournÃ©.</remarks>
 		internal static JsonObject Without(JsonObject value, HashSet<string> filtered, bool deepCopy)
 		{
 			Contract.Debug.Requires(value != null && filtered != null);
 
-			// comme on ne peut pas savoir a l'avance combien de champs vont matcher, on fait quand même une copie de l'objet, qu'on drop si aucun champ n'a été modifié (le GC s'en occupera)
-			// on espère que si quelqu'un appelle cette méthode, c'est que la probabilité d'au moins un match est élevée (et donc si ça match, on aurait du allouer l'objet de toute manière)
+			// comme on ne peut pas savoir a l'avance combien de champs vont matcher, on fait quand mÃªme une copie de l'objet, qu'on drop si aucun champ n'a Ã©tÃ© modifiÃ© (le GC s'en occupera)
+			// on espÃ¨re que si quelqu'un appelle cette mÃ©thode, c'est que la probabilitÃ© d'au moins un match est Ã©levÃ©e (et donc si Ã§a match, on aurait du allouer l'objet de toute maniÃ¨re)
 
 			var obj = new JsonObject(value.Count, value.Comparer);
 			foreach (var item in value)
@@ -1546,35 +1564,35 @@ namespace Doxense.Serialization.Json
 			return obj;
 		}
 
-		/// <summary>Retourne une copie d'un objet sans un champ spécifique, s'il existe dans la source</summary>
-		/// <param name="value">Objet qui contient éventuellement le champ <paramref name="field"/></param>
-		/// <param name="field">Nom du champ à supprimer s'il existe</param>
-		/// <param name="deepCopy">Si true, copie également les fils de cet objet</param>
+		/// <summary>Retourne une copie d'un objet sans un champ spÃ©cifique, s'il existe dans la source</summary>
+		/// <param name="value">Objet qui contient Ã©ventuellement le champ <paramref name="field"/></param>
+		/// <param name="field">Nom du champ Ã  supprimer s'il existe</param>
+		/// <param name="deepCopy">Si true, copie Ã©galement les fils de cet objet</param>
 		/// <returns>Nouvel objet sans le champ <paramref name="field"/>.</returns>
 		internal static JsonObject Without(JsonObject value, string field, bool deepCopy)
 		{
 			Contract.Debug.Requires(value != null && field != null);
 
-			//TODO: actuellement, on risque de faire une deepCopy du champ qui sera supprimé ensuite!
+			//TODO: actuellement, on risque de faire une deepCopy du champ qui sera supprimÃ© ensuite!
 			var obj = value.Copy(deepCopy);
 			obj.Remove(field);
 			return obj;
 		}
 
-		/// <summary>Retourne une copie de cet objet, à l'exception du champ spécifié</summary>
+		/// <summary>Retourne une copie de cet objet, Ã  l'exception du champ spÃ©cifiÃ©</summary>
 		/// <param name="filter">Nom du champ</param>
-		/// <param name="deepCopy">Si true, effectue une copie complète de l'objet et de ses fils (récursivement). Sinon, ne copie que l'objet top-level.</param>
-		/// <returns>Nouvel objet contenant les mêmes champs que, sauf <paramref name="filter"/>.</returns>
+		/// <param name="deepCopy">Si true, effectue une copie complÃ¨te de l'objet et de ses fils (rÃ©cursivement). Sinon, ne copie que l'objet top-level.</param>
+		/// <returns>Nouvel objet contenant les mÃªmes champs que, sauf <paramref name="filter"/>.</returns>
 		public JsonObject Without(Func<string, bool> filter, bool deepCopy = false)
 		{
 			Contract.NotNull(filter);
 			return Without(this, filter, deepCopy);
 		}
 
-		/// <summary>Retourne une copie de cet objet, à l'exception du champ spécifié</summary>
+		/// <summary>Retourne une copie de cet objet, Ã  l'exception du champ spÃ©cifiÃ©</summary>
 		/// <param name="fieldToRemove">Nom du champ</param>
-		/// <param name="deepCopy">Si true, effectue une copie complète de l'objet et de ses fils (récursivement). Sinon, ne copie que l'objet top-level.</param>
-		/// <returns>Nouvel objet contenant les mêmes champs que, sauf <paramref name="fieldToRemove"/>.</returns>
+		/// <param name="deepCopy">Si true, effectue une copie complÃ¨te de l'objet et de ses fils (rÃ©cursivement). Sinon, ne copie que l'objet top-level.</param>
+		/// <returns>Nouvel objet contenant les mÃªmes champs que, sauf <paramref name="fieldToRemove"/>.</returns>
 		public JsonObject Without(string fieldToRemove, bool deepCopy = false)
 		{
 			Contract.NotNullOrEmpty(fieldToRemove);
@@ -1583,8 +1601,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Supprime un champ de l'objet</summary>
 		/// <param name="fieldToRemove">Nom du champ</param>
-		/// <returns>Le même objet (éventuellement modifié)</returns>
-		/// <remarks>Cette méthode est un alias sur <see cref="Remove(string)"/>, utilisable en mode Fluent</remarks>
+		/// <returns>Le mÃªme objet (Ã©ventuellement modifiÃ©)</returns>
+		/// <remarks>Cette mÃ©thode est un alias sur <see cref="Remove(string)"/>, utilisable en mode Fluent</remarks>
 		public JsonObject Erase(string fieldToRemove)
 		{
 			Contract.NotNullOrEmpty(fieldToRemove);
@@ -1615,7 +1633,7 @@ namespace Doxense.Serialization.Json
 			{
 				var arr = (JsonArray)item;
 
-				// on n'alloue le buffer d'items que si au moins un a changé!
+				// on n'alloue le buffer d'items que si au moins un a changÃ©!
 				JsonValue[]? items = null;
 				for (int i = 0; i < arr.Count;i++)
 				{
@@ -1626,7 +1644,7 @@ namespace Doxense.Serialization.Json
 					}
 				}
 				if (items != null)
-				{ // au moins un item a changé
+				{ // au moins un item a changÃ©
 					result = new JsonArray(items, items.Length);
 					return true;
 				}
@@ -1636,14 +1654,14 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Tri les clés d'un dictionnaire, en utilisant un comparer spécifique</summary>
-		/// <param name="items">Dictionnaire contenant les items à trier</param>
-		/// <param name="comparer">Comparer à utiliser</param>
-		/// <param name="result">Dictionnaire dont les clés ont été insérées dans le bon ordre</param>
+		/// <summary>Tri les clÃ©s d'un dictionnaire, en utilisant un comparer spÃ©cifique</summary>
+		/// <param name="items">Dictionnaire contenant les items Ã  trier</param>
+		/// <param name="comparer">Comparer Ã  utiliser</param>
+		/// <param name="result">Dictionnaire dont les clÃ©s ont Ã©tÃ© insÃ©rÃ©es dans le bon ordre</param>
 		private static bool TrySortByKeys(Dictionary<string, JsonValue?> items, IComparer<string> comparer, [MaybeNullWhen(false)] out Dictionary<string, JsonValue?> result)
 		{
-			//ATTENTION: cet algo se base sur le fait qu'actuellement (.NET 4.0 / 4.5) un Dictionary<K,V> conserve l'ordre d'insertion des clés, tant que personne ne supprime de clés.
-			// => si jamais cela n'est plus vrai dans une nouvelle version de .NET, il faudra trouver une nouvelle méthode!
+			//ATTENTION: cet algo se base sur le fait qu'actuellement (.NET 4.0 / 4.5) un Dictionary<K,V> conserve l'ordre d'insertion des clÃ©s, tant que personne ne supprime de clÃ©s.
+			// => si jamais cela n'est plus vrai dans une nouvelle version de .NET, il faudra trouver une nouvelle mÃ©thode!
 
 			Contract.Debug.Requires(items != null && comparer != null);
 			result = null!;
@@ -1657,13 +1675,13 @@ namespace Doxense.Serialization.Json
 
 			bool changed = false;
 
-			// capture l'état de l'objet
+			// capture l'Ã©tat de l'objet
 			var keys = new string[items.Count];
 			var values = new JsonValue[items.Count];
 			items.Keys.CopyTo(keys, 0);
 			items.Values.CopyTo(values, 0);
 
-			// il faut aussi trier les sous-éléments de cet objet
+			// il faut aussi trier les sous-Ã©lÃ©ments de cet objet
 			for (int i = 0; i < values.Length; i++)
 			{
 				if (TrySortValue(values[i], comparer, out var val))
@@ -1673,7 +1691,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// tri des clés
+			// tri des clÃ©s
 
 			var indexes = new int[keys.Length];
 			for (int i = 0; i < indexes.Length; i++) indexes[i] = i;
@@ -1681,8 +1699,8 @@ namespace Doxense.Serialization.Json
 
 			if (!changed)
 			{
-				// Si toutes les clés étaient déjà dans le bon ordre, indexes var rester trié [0, 1, 2, ..., N-1].
-				// Dans ce cas, on peut éviter de modifier cette objet.
+				// Si toutes les clÃ©s Ã©taient dÃ©jÃ  dans le bon ordre, indexes var rester triÃ© [0, 1, 2, ..., N-1].
+				// Dans ce cas, on peut Ã©viter de modifier cette objet.
 				for (int i = 0; i < indexes.Length; i++)
 				{
 					if (indexes[i] != i)
@@ -1694,8 +1712,8 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (changed)
-			{ // aucune modification n'a été faite dans la sous-branche correspondant à cet objet
-				// génère la nouvelle version de cet objet
+			{ // aucune modification n'a Ã©tÃ© faite dans la sous-branche correspondant Ã  cet objet
+				// gÃ©nÃ¨re la nouvelle version de cet objet
 				result = new Dictionary<string, JsonValue?>(keys.Length, items.Comparer);
 				for (int i = 0; i < keys.Length; i++)
 				{
@@ -1707,8 +1725,8 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Tri les clés de ce dictionnaire dans un ordre spécifique</summary>
-		/// <remarks>L'instance est modifiée si les clés n'étaient pas dans le bon ordre</remarks>
+		/// <summary>Tri les clÃ©s de ce dictionnaire dans un ordre spÃ©cifique</summary>
+		/// <remarks>L'instance est modifiÃ©e si les clÃ©s n'Ã©taient pas dans le bon ordre</remarks>
 		public void SortKeys(IComparer<string>? comparer = null)
 		{
 			if (TrySortByKeys(m_items, comparer ?? StringComparer.Ordinal, out var items))
@@ -1721,10 +1739,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Retourne un nouveau document JSON, identique au premier, mais avec les clés triées suivant un ordre spécifique</summary>
-		/// <param name="map">Object JSON source. Cet objet n'est pas modifié.</param>
-		/// <param name="comparer">Comparer à utiliser (Ordinal par défaut)</param>
-		/// <returns>Copie (non deep) de <paramref name="map"/> dont les clés sont triées selon <paramref name="comparer"/></returns>
+		/// <summary>Retourne un nouveau document JSON, identique au premier, mais avec les clÃ©s triÃ©es suivant un ordre spÃ©cifique</summary>
+		/// <param name="map">Object JSON source. Cet objet n'est pas modifiÃ©.</param>
+		/// <param name="comparer">Comparer Ã  utiliser (Ordinal par dÃ©faut)</param>
+		/// <returns>Copie (non deep) de <paramref name="map"/> dont les clÃ©s sont triÃ©es selon <paramref name="comparer"/></returns>
 		public static JsonObject OrderedByKeys(JsonObject map, IComparer<string>? comparer = null)
 		{
 			Contract.NotNull(map);
@@ -1738,7 +1756,7 @@ namespace Doxense.Serialization.Json
 			return map;
 		}
 
-		/// <summary>Retourne un nouvel objet, identique à celui-ci, mais avec les clés dans un ordre spécifique</summary>
+		/// <summary>Retourne un nouvel objet, identique Ã  celui-ci, mais avec les clÃ©s dans un ordre spÃ©cifique</summary>
 		public JsonObject OrderedByKeys(IComparer<string>? comparer = null)
 		{
 			return OrderedByKeys(this, comparer);
@@ -1767,8 +1785,8 @@ namespace Doxense.Serialization.Json
 
 			if (m_items.Count == 0) return "{ }"; // empty
 
-			// On va dumper jusqu'à 4 champs (ce qui couvre la majorité des "petits" objets
-			// Si la valeur d'un field est "small" elle est dumpée intégralement, sinon elle est remplacer par des '...'
+			// On va dumper jusqu'Ã  4 champs (ce qui couvre la majoritÃ© des "petits" objets
+			// Si la valeur d'un field est "small" elle est dumpÃ©e intÃ©gralement, sinon elle est remplacer par des '...'
 
 			var sb = new StringBuilder("{ ");
 			int i = 0;
@@ -1814,7 +1832,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne une JsonArray contenant les valeurs de cet objet</summary>
-		/// <returns>JsonArray contenant toutes les valeurs (sans les clés) de cet objet</returns>
+		/// <returns>JsonArray contenant toutes les valeurs (sans les clÃ©s) de cet objet</returns>
 		public JsonArray ToJsonArray()
 		{
 			return this.Count == 0 ? JsonArray.Empty : new JsonArray(this.Values);
@@ -1862,11 +1880,11 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			// le hashcode de l'objet ne doit pas changer meme s'il est modifié (sinon on casse les hashtables!)
+			// le hashcode de l'objet ne doit pas changer meme s'il est modifiÃ© (sinon on casse les hashtables!)
 			return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);
 
-			//TODO: si on jour on gère les Read-Only dictionaries, on peut utiliser ce code
-			//// on n'est pas obligé de calculer le hash code de tous les éléments de l'objet!
+			//TODO: si on jour on gÃ¨re les Read-Only dictionaries, on peut utiliser ce code
+			//// on n'est pas obligÃ© de calculer le hash code de tous les Ã©lÃ©ments de l'objet!
 			//var items = m_items;
 			//int h = 17;
 			//int n = 4;
@@ -1921,7 +1939,7 @@ namespace Doxense.Serialization.Json
 			bool first = true;
 			foreach (var kv in this)
 			{
-				// par défaut, on ne sérialise pas les "Missing"
+				// par dÃ©faut, on ne sÃ©rialise pas les "Missing"
 				if (kv.Value.IsMissing()) break;
 
 				if (first) first = false; else writer.WriteByte(',');

@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -26,8 +44,8 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public abstract object? ToObject();
 
-		/// <summary>Bind vers un type CLR spécifique</summary>
-		/// <param name="type">Type CLR désiré</param>
+		/// <summary>Bind vers un type CLR spÃ©cifique</summary>
+		/// <param name="type">Type CLR dÃ©sirÃ©</param>
 		/// <param name="resolver">Resolver (optionnel)</param>
 		[Pure]
 		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
@@ -39,7 +57,7 @@ namespace Doxense.Serialization.Json
 			get => false;
 		}
 
-		/// <summary>Indique si cette valeur correspond au défaut du type (0, null, empty)</summary>
+		/// <summary>Indique si cette valeur correspond au dÃ©faut du type (0, null, empty)</summary>
 		public abstract bool IsDefault { [Pure] get; }
 
 		/// <summary>Indique si cette valeur est une array qui contient d'autres valeurs</summary>
@@ -56,20 +74,20 @@ namespace Doxense.Serialization.Json
 			get => this.Type == JsonType.Object;
 		}
 
-		/// <summary>Heuristique qui détermine si cette valeur est considérée comme "petite" et peut être dumpée dans un log sans flooder</summary>
+		/// <summary>Heuristique qui dÃ©termine si cette valeur est considÃ©rÃ©e comme "petite" et peut Ãªtre dumpÃ©e dans un log sans flooder</summary>
 		internal abstract bool IsSmallValue();
 
-		/// <summary>Indique si ce type de valeur est assez petite pour être affichée en une seule ligne quand présente dans un petit tableau</summary>
+		/// <summary>Indique si ce type de valeur est assez petite pour Ãªtre affichÃ©e en une seule ligne quand prÃ©sente dans un petit tableau</summary>
 		/// <returns></returns>
 		internal abstract bool IsInlinable();
 		
-		/// <summary>Sérialise une valeur JSON en string</summary>
-		/// <param name="settings">Settings JSON à utiliser (optionnel)</param>
-		/// <returns>Chaîne de texte correspondant à la valeur JSON</returns>
+		/// <summary>SÃ©rialise une valeur JSON en string</summary>
+		/// <param name="settings">Settings JSON Ã  utiliser (optionnel)</param>
+		/// <returns>ChaÃ®ne de texte correspondant Ã  la valeur JSON</returns>
 		[Pure]
 		public virtual string ToJson(CrystalJsonSettings? settings = null)
 		{
-			// implémentation générique
+			// implÃ©mentation gÃ©nÃ©rique
 			if (this.IsNull) return JsonTokens.Null;
 			var sb = new StringBuilder(this.IsArray || this.IsMap ? 256 : 64);
 			var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, null);
@@ -77,7 +95,7 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
-		/// <summary>Retourne une chaîne "compact" représentant tout (ou partie) de cette valeur pour les logs</summary>
+		/// <summary>Retourne une chaÃ®ne "compact" reprÃ©sentant tout (ou partie) de cette valeur pour les logs</summary>
 		[Pure]
 		internal virtual string GetCompactRepresentation(int depth)
 		{
@@ -85,31 +103,31 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Formate la valeur JSON en une string</summary>
-		/// <remarks>Voir <see cref="ToString(string,IFormatProvider)"/> pour la liste des formats supportés</remarks>
+		/// <remarks>Voir <see cref="ToString(string,IFormatProvider)"/> pour la liste des formats supportÃ©s</remarks>
 		public override string ToString()
 		{
 			return ToString(null, null);
 		}
 
 		/// <summary>Formate la valeur JSON en une string</summary>
-		/// <param name="format">Format désiré (voir remarques), ou "D" par défaut</param>
-		/// <remarks>Voir <see cref="ToString(string,IFormatProvider)"/> pour la liste des formats supportés</remarks>
+		/// <param name="format">Format dÃ©sirÃ© (voir remarques), ou "D" par dÃ©faut</param>
+		/// <remarks>Voir <see cref="ToString(string,IFormatProvider)"/> pour la liste des formats supportÃ©s</remarks>
 		public string ToString(string? format)
 		{
 			return ToString(format, null);
 		}
 
 		/// <summary>Formate la valeur JSON en une string</summary>
-		/// <param name="format">Format désiré (voir remarques), ou "D" par défaut</param>
-		/// <param name="provider">Ignoré</param>
-		/// <remarks>Les formats supportés sont:
+		/// <param name="format">Format dÃ©sirÃ© (voir remarques), ou "D" par dÃ©faut</param>
+		/// <param name="provider">IgnorÃ©</param>
+		/// <remarks>Les formats supportÃ©s sont:
 		/// <list type="bullet">
 		///   <listheader><term>format</term><description>foo</description></listheader>
-		///   <item><term>D</term><description>Default, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.Json"/></description></item>
-		///   <item><term>C</term><description>Compact, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JsonCompact"/></description></item>
-		///   <item><term>P</term><description>Pretty, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JsonIndented"/></description></item>
-		///   <item><term>J</term><description>JavaScript, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JavaScript"/>.</description></item>
-		///   <item><term>Q</term><description>Quick, équivalent de <see cref="GetCompactRepresentation"/>, qui retourne une version simplifiée ou partielle du JSON, adaptée pour des logs/traces.</description></item>
+		///   <item><term>D</term><description>Default, Ã©quivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.Json"/></description></item>
+		///   <item><term>C</term><description>Compact, Ã©quivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JsonCompact"/></description></item>
+		///   <item><term>P</term><description>Pretty, Ã©quivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JsonIndented"/></description></item>
+		///   <item><term>J</term><description>JavaScript, Ã©quivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JavaScript"/>.</description></item>
+		///   <item><term>Q</term><description>Quick, Ã©quivalent de <see cref="GetCompactRepresentation"/>, qui retourne une version simplifiÃ©e ou partielle du JSON, adaptÃ©e pour des logs/traces.</description></item>
 		/// </list>
 		/// </remarks>
 		public virtual string ToString(string? format, IFormatProvider? provider)
@@ -148,7 +166,7 @@ namespace Doxense.Serialization.Json
 					if (format!.EndsWith("}}", StringComparison.Ordinal))
 					{
 						// ATTENTION! vous avez un bug dans un formatter de string interpolation!
-						// Si vous écrivez "... {{{obj:P}}}", ca va parser "P}}" comme le string format!!
+						// Si vous Ã©crivez "... {{{obj:P}}}", ca va parser "P}}" comme le string format!!
 						if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 					}
 #endif
@@ -162,18 +180,18 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Crée une copie de l'objet (en copier les références sur ses fils, s'il en a)</summary>
-		/// <returns>Nouvelle version de l'objet (note: peut être le même pour les valeurs immutable)</returns>
-		/// <remarks>Ne clone pas les éléments de cet objet (JsonArray, JsonObject)</remarks>
+		/// <summary>CrÃ©e une copie de l'objet (en copier les rÃ©fÃ©rences sur ses fils, s'il en a)</summary>
+		/// <returns>Nouvelle version de l'objet (note: peut Ãªtre le mÃªme pour les valeurs immutable)</returns>
+		/// <remarks>Ne clone pas les Ã©lÃ©ments de cet objet (JsonArray, JsonObject)</remarks>
 		[Pure]
 		public JsonValue Copy()
 		{
 			return Clone(false);
 		}
 
-		/// <summary>Crée une copie complète de l'objet, en clonant éventuellement les éléments de cet objet (s'il en a)</summary>
-		/// <param name="deep">Si true, clone également les fils de cet object. Si false, ne copie que les références.</param>
-		/// <returns>Nouvelle version de l'objet (note: peut être le même pour les valeurs immutable)</returns>
+		/// <summary>CrÃ©e une copie complÃ¨te de l'objet, en clonant Ã©ventuellement les Ã©lÃ©ments de cet objet (s'il en a)</summary>
+		/// <param name="deep">Si true, clone Ã©galement les fils de cet object. Si false, ne copie que les rÃ©fÃ©rences.</param>
+		/// <returns>Nouvelle version de l'objet (note: peut Ãªtre le mÃªme pour les valeurs immutable)</returns>
 		[Pure]
 		public virtual JsonValue Copy(bool deep)
 		{
@@ -183,7 +201,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		protected virtual JsonValue Clone(bool deep)
 		{
-			// la plupart des implémentation sont immutable
+			// la plupart des implÃ©mentation sont immutable
 			return this;
 		}
 
@@ -218,7 +236,7 @@ namespace Doxense.Serialization.Json
 		public virtual bool Contains(JsonValue? value) => false;
 
 		/// <summary>Retourne la valeur d'un champ, si cette valeur est un objet JSON</summary>
-		/// <param name="key">Nom du champ à retourner</param>
+		/// <param name="key">Nom du champ Ã  retourner</param>
 		/// <returns>Valeur de ce champ, ou missing si le champ n'existe. Une exception si cette valeur n'est pas un objet JSON</returns>
 		/// <exception cref="System.ArgumentNullException">Si <paramref name="key"/> est null.</exception>
 		/// <exception cref="System.InvalidOperationException">Cet valeur JSON ne supporte pas la notion d'indexation</exception>
@@ -230,9 +248,9 @@ namespace Doxense.Serialization.Json
 			set => throw ThrowHelper.InvalidOperationException($"Cannot set child '{key}' on {this.GetType().Name}");
 		}
 
-		/// <summary>Retourne la valeur d'un élément d'après son index, si cette valeur est une array JSON</summary>
-		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié. Une exception si cette valeur n'est pas une array JSON, ou si l'index est en dehors des bornes</returns>
+		/// <summary>Retourne la valeur d'un Ã©lÃ©ment d'aprÃ¨s son index, si cette valeur est une array JSON</summary>
+		/// <param name="index">Index de l'Ã©lÃ©ment Ã  retourner</param>
+		/// <returns>Valeur de l'Ã©lÃ©ment Ã  l'index spÃ©cifiÃ©. Une exception si cette valeur n'est pas une array JSON, ou si l'index est en dehors des bornes</returns>
 		/// <exception cref="System.InvalidOperationException">Cet valeur JSON ne supporte pas la notion d'indexation</exception>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		public virtual JsonValue this[int index]
@@ -245,9 +263,9 @@ namespace Doxense.Serialization.Json
 
 		//BLACK MAGIC!
 
-		// Pour pouvoir écrire "if (obj["Hello"]) ... else ...", il faut que JsonValue implémente l'opérateur 'op_true' (et 'op_false')
-		// Pour pouvoir écrire "if (obj["Hello"] && obj["World"]) ...." (resp. '||') il faut que JsonValue implémente l'opérateur 'op_&' (resp: 'op_|'),
-		// et que celui ci retourne aussi un JsonValue (qui sera passé en paramètre à 'op_true'/'op_false'.
+		// Pour pouvoir Ã©crire "if (obj["Hello"]) ... else ...", il faut que JsonValue implÃ©mente l'opÃ©rateur 'op_true' (et 'op_false')
+		// Pour pouvoir Ã©crire "if (obj["Hello"] && obj["World"]) ...." (resp. '||') il faut que JsonValue implÃ©mente l'opÃ©rateur 'op_&' (resp: 'op_|'),
+		// et que celui ci retourne aussi un JsonValue (qui sera passÃ© en paramÃ¨tre Ã  'op_true'/'op_false'.
 
 		public static bool operator true(JsonValue? obj)
 		{
@@ -261,13 +279,13 @@ namespace Doxense.Serialization.Json
 
 		public static JsonValue operator &(JsonValue? left, JsonValue? right)
 		{
-			//REVIEW:TODO: peut être gérer le cas de deux number pour faire le vrai binary AND ?
+			//REVIEW:TODO: peut Ãªtre gÃ©rer le cas de deux number pour faire le vrai binary AND ?
 			return left != null && right!= null && left.ToBoolean() && right.ToBoolean() ? JsonBoolean.True : JsonBoolean.False;
 		}
 
 		public static JsonValue operator |(JsonValue? left, JsonValue? right)
 		{
-			//REVIEW:TODO: peut être gérer le cas de deux number pour faire le vrai binary AND ?
+			//REVIEW:TODO: peut Ãªtre gÃ©rer le cas de deux number pour faire le vrai binary AND ?
 			return (left != null && left.ToBoolean()) || (right != null && right.ToBoolean()) ? JsonBoolean.True : JsonBoolean.False;
 		}
 

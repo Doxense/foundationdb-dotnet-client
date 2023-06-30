@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 #nullable enable
@@ -20,29 +38,29 @@ namespace Doxense.Reactive.Disposables
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
 
-	/// <summary>Classe qui encapsule un objet, en interceptant éventuellement le Dispose()</summary>
-	/// <typeparam name="T">Type de l'objet encapsulé</typeparam>
+	/// <summary>Classe qui encapsule un objet, en interceptant Ã©ventuellement le Dispose()</summary>
+	/// <typeparam name="T">Type de l'objet encapsulÃ©</typeparam>
 	[DebuggerDisplay("Value={m_value}, Disposed={Disposed}")]
 	public sealed class Disposable<T> : IDisposable<T>
 	{
 		#region Private Members...
 
-		/// <summary>Placeholder utilisé lorsqu'il ne faut rien faire</summary>
+		/// <summary>Placeholder utilisÃ© lorsqu'il ne faut rien faire</summary>
 		private static readonly Action<T> s_nop = (t) => { };
 
-		/// <summary>Placeholder utilisé lorsqu'il faut Disposer l'objet</summary>
+		/// <summary>Placeholder utilisÃ© lorsqu'il faut Disposer l'objet</summary>
 		private static readonly Action<T> s_dispose = (t) => (t as IDisposable)?.Dispose();
 
-		/// <summary>Valeur encapsulée</summary>
-		/// <remarks>La référence vers la valeur persiste après le Dispose() ! (au cas où l'objet serait mit dans un dictionary, il faut que les Equals/GetHashcode fonctionnent toujours!)</remarks>
+		/// <summary>Valeur encapsulÃ©e</summary>
+		/// <remarks>La rÃ©fÃ©rence vers la valeur persiste aprÃ¨s le Dispose() ! (au cas oÃ¹ l'objet serait mit dans un dictionary, il faut que les Equals/GetHashcode fonctionnent toujours!)</remarks>
 		private readonly T m_value;
 
-		/// <summary>Action effectuée lors du Dispose: soit s_nop (s'il ne faut rien faire), soit s_dispose (s'il faut Disposer l'objet encapsulé) soit une Action custom fournie par l'appelant, soit null si Dispose() a déja été appelé</summary>
-		/// <remarks>Est mit à null par Dispose() pour éviter de garder des références vers les objets</remarks>
+		/// <summary>Action effectuÃ©e lors du Dispose: soit s_nop (s'il ne faut rien faire), soit s_dispose (s'il faut Disposer l'objet encapsulÃ©) soit une Action custom fournie par l'appelant, soit null si Dispose() a dÃ©ja Ã©tÃ© appelÃ©</summary>
+		/// <remarks>Est mit Ã  null par Dispose() pour Ã©viter de garder des rÃ©fÃ©rences vers les objets</remarks>
 		private Delegate? m_action;
 
-		/// <summary>Etat supplémentaire (optionnel)</summary>
-		/// <remarks>Passé en paramètre à l'action (si elle est du bon type). Est mit à null par Dispose() pour éviter de garder des références vers les objets</remarks>
+		/// <summary>Etat supplÃ©mentaire (optionnel)</summary>
+		/// <remarks>PassÃ© en paramÃ¨tre Ã  l'action (si elle est du bon type). Est mit Ã  null par Dispose() pour Ã©viter de garder des rÃ©fÃ©rences vers les objets</remarks>
 		private object? m_state;
 
 		/// <summary>0 = alive, 1 = disposed</summary>
@@ -52,27 +70,27 @@ namespace Doxense.Reactive.Disposables
 
 		#region Constructors...
 
-		/// <summary>Encapsule un IDisposable (qui est disposé lorsque cet objet est disposé)</summary>
-		/// <param name="value">Valeur encapsulée (qui peut implémenter IDisposable ou non)</param>
-		/// <remarks>La valeur est Dispose() si elle implémente IDisposable</remarks>
+		/// <summary>Encapsule un IDisposable (qui est disposÃ© lorsque cet objet est disposÃ©)</summary>
+		/// <param name="value">Valeur encapsulÃ©e (qui peut implÃ©menter IDisposable ou non)</param>
+		/// <remarks>La valeur est Dispose() si elle implÃ©mente IDisposable</remarks>
 		[TargetedPatchingOptOut("Performance critical to inline across NGen image boundaries")]
 		public Disposable(T value)
 			: this(value, false)
 		{ }
 
-		/// <summary>Encapsule un IDisposable, en précisant s'il doit être disposé en même temps que cet objet, ou non</summary>
-		/// <param name="value">Valeur encapsulée</param>
-		/// <param name="preventDisposition">Si true, la valeur ne sera pas Dispose(). Si false, elle sera Dispose() en même temps que l'objet</param>
-		/// <remarks>La valeur est Dispose() si elle implémente IDisposable ET si preventDisposition est égal à false.</remarks>
+		/// <summary>Encapsule un IDisposable, en prÃ©cisant s'il doit Ãªtre disposÃ© en mÃªme temps que cet objet, ou non</summary>
+		/// <param name="value">Valeur encapsulÃ©e</param>
+		/// <param name="preventDisposition">Si true, la valeur ne sera pas Dispose(). Si false, elle sera Dispose() en mÃªme temps que l'objet</param>
+		/// <remarks>La valeur est Dispose() si elle implÃ©mente IDisposable ET si preventDisposition est Ã©gal Ã  false.</remarks>
 		public Disposable(T value, bool preventDisposition)
 		{
 			m_value = value;
 			m_action = !preventDisposition && value is IDisposable ? s_dispose : s_nop;
 		}
 
-		/// <summary>Encapsule un IDisposable, avec une action spécifique exécutée pour le Disposer</summary>
-		/// <param name="value">Valeur encapsulée</param>
-		/// <param name="onDispose">Action qui sera exécutée (une seule fois) lorsque le wrappeur sera Disposé. La valeur encapsulée est passée en paramètre</param>
+		/// <summary>Encapsule un IDisposable, avec une action spÃ©cifique exÃ©cutÃ©e pour le Disposer</summary>
+		/// <param name="value">Valeur encapsulÃ©e</param>
+		/// <param name="onDispose">Action qui sera exÃ©cutÃ©e (une seule fois) lorsque le wrappeur sera DisposÃ©. La valeur encapsulÃ©e est passÃ©e en paramÃ¨tre</param>
 		public Disposable(T value, Action<T> onDispose)
 		{
 			Contract.NotNull(onDispose);
@@ -80,10 +98,10 @@ namespace Doxense.Reactive.Disposables
 			m_action = onDispose;
 		}
 
-		/// <summary>Encapsule un IDisposable, avec une action spécifique exécutée pour le Disposer</summary>
-		/// <param name="value">Valeur encapsulée</param>
-		/// <param name="onDispose">Action qui sera exécutée (une seule fois) lorsque le wrappeur sera Disposé. La valeur encapsulée est passée en paramètre</param>
-		/// <param name="state">Argument qui sera passé comme second argument à <paramref name="onDispose"/></param>
+		/// <summary>Encapsule un IDisposable, avec une action spÃ©cifique exÃ©cutÃ©e pour le Disposer</summary>
+		/// <param name="value">Valeur encapsulÃ©e</param>
+		/// <param name="onDispose">Action qui sera exÃ©cutÃ©e (une seule fois) lorsque le wrappeur sera DisposÃ©. La valeur encapsulÃ©e est passÃ©e en paramÃ¨tre</param>
+		/// <param name="state">Argument qui sera passÃ© comme second argument Ã  <paramref name="onDispose"/></param>
 		public Disposable(T value, Action<T, object?> onDispose, object? state)
 		{
 			Contract.NotNull(onDispose);
@@ -96,7 +114,7 @@ namespace Doxense.Reactive.Disposables
 
 		#region Public Properties...
 
-		/// <summary>Valeure encapsulée (peut être null!)</summary>
+		/// <summary>Valeure encapsulÃ©e (peut Ãªtre null!)</summary>
 		public T Value
 		{
 			[TargetedPatchingOptOut("Performance critical to inline across NGen image boundaries")]
@@ -107,7 +125,7 @@ namespace Doxense.Reactive.Disposables
 			}
 		}
 
-		/// <summary>Indique si l'objet a été dispose (true), ou s'il est toujours vivant (false)</summary>
+		/// <summary>Indique si l'objet a Ã©tÃ© dispose (true), ou s'il est toujours vivant (false)</summary>
 		public bool Disposed => m_disposed != 0;
 
 		#endregion
@@ -134,7 +152,7 @@ namespace Doxense.Reactive.Disposables
 				m_state = null;
 				if (action != null)
 				{
-					// le delegate peut être un Action<T> ou un Action<T, object> suivant les cas...
+					// le delegate peut Ãªtre un Action<T> ou un Action<T, object> suivant les cas...
 					if (action is Action<T> simple)
 					{
 						simple(m_value);
@@ -186,12 +204,12 @@ namespace Doxense.Reactive.Disposables
 
 	}
 
-	/// <summary>Class helper pour créer ou combiner des IDisposable entre eux</summary>
-	/// <remarks>Remplace System.Disposables.Disposable de Rx (fonctionnalités similaire, drop-in replacement)</remarks>
+	/// <summary>Class helper pour crÃ©er ou combiner des IDisposable entre eux</summary>
+	/// <remarks>Remplace System.Disposables.Disposable de Rx (fonctionnalitÃ©s similaire, drop-in replacement)</remarks>
 	public static class Disposable
 	{
 
-		/// <summary>Crée un IDisposable qui execute une action lorsqu'il est Dispose()</summary>
+		/// <summary>CrÃ©e un IDisposable qui execute une action lorsqu'il est Dispose()</summary>
 		/// <param name="action"></param>
 		/// <returns></returns>
 		[Pure]
@@ -200,7 +218,7 @@ namespace Doxense.Reactive.Disposables
 			return new AnonymousDisposable(action);
 		}
 
-		/// <summary>Crée un IDisposable qui execute une action avec un état, lorsqu'il est Dispose()</summary>
+		/// <summary>CrÃ©e un IDisposable qui execute une action avec un Ã©tat, lorsqu'il est Dispose()</summary>
 		[Pure]
 		public static IDisposable<T> Create<T>(T value, Action<T> action)
 		{

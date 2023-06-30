@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense
@@ -20,10 +38,10 @@ namespace Doxense
 
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
-		/// <summary>Représente un résultat vide (no computation)</summary>
+		/// <summary>ReprÃ©sente un rÃ©sultat vide (no computation)</summary>
 		public static readonly Maybe<T> Nothing = new Maybe<T>();
 
-		/// <summary>Représente un résultat correspondant à la valeur par défaut du type (0, false, null)</summary>
+		/// <summary>ReprÃ©sente un rÃ©sultat correspondant Ã  la valeur par dÃ©faut du type (0, false, null)</summary>
 		public static readonly Maybe<T> Default = new Maybe<T>(default!);
 
 		/// <summary>Cached completed Task that always return an empty value</summary>
@@ -34,9 +52,9 @@ namespace Doxense
 		// ==================================================================================
 		//  m_hasValue |   m_value   |  m_error     | description
 		// ==================================================================================
-		//     True    |   Résultat  |   null       | Le calcul a produit un résultat (qui peut être le défaut du type, mais qui n'est pas "vide")
-		//     False   |      -      |   null       | Le calcul n'a pas produit de résultat
-		//     False   |      -      |   Exception  | Le calcul a provoqué une exception
+		//     True    |   RÃ©sultat  |   null       | Le calcul a produit un rÃ©sultat (qui peut Ãªtre le dÃ©faut du type, mais qui n'est pas "vide")
+		//     False   |      -      |   null       | Le calcul n'a pas produit de rÃ©sultat
+		//     False   |      -      |   Exception  | Le calcul a provoquÃ© une exception
 
 		/// <summary>If true, there is a value. If false, either no value or an exception</summary>
 		private readonly T? m_value;
@@ -376,9 +394,9 @@ namespace Doxense
 	public static class Maybe
 	{
 
-		/// <summary>Crée un Maybe&lt;T&gt; représentant une valeur connue</summary>
+		/// <summary>CrÃ©e un Maybe&lt;T&gt; reprÃ©sentant une valeur connue</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="value">Valeur à convertir</param>
+		/// <param name="value">Valeur Ã  convertir</param>
 		/// <returns>Maybe&lt;T&gt; contenant la valeur</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Return<T>(T value)
@@ -387,9 +405,9 @@ namespace Doxense
 			return new Maybe<T>(value);
 		}
 
-		/// <summary>Convertit les référence null en Maybe.Nothing</summary>
+		/// <summary>Convertit les rÃ©fÃ©rence null en Maybe.Nothing</summary>
 		/// <typeparam name="T">Reference Type</typeparam>
-		/// <param name="value">Instance à protéger (peut être null)</param>
+		/// <param name="value">Instance Ã  protÃ©ger (peut Ãªtre null)</param>
 		/// <returns>Maybe.Nothing si l'instance est null, sinon un Maybe encapsulant cette instance</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> ReturnNotNull<T>(T? value)
@@ -401,8 +419,8 @@ namespace Doxense
 
 		/// <summary>Convertit un T? en Maybe&lt;T&;t (lorsque T est un ValueType)</summary>
 		/// <typeparam name="T">ValueType</typeparam>
-		/// <param name="value">Nullable à convertir</param>
-		/// <returns>Version maybe du nullable, qui vaut Nothing si le nullable est default(T?), ou la valeur elle même s'il contient un résultat.</returns>
+		/// <param name="value">Nullable Ã  convertir</param>
+		/// <returns>Version maybe du nullable, qui vaut Nothing si le nullable est default(T?), ou la valeur elle mÃªme s'il contient un rÃ©sultat.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> ReturnNotNull<T>(T? value)
 			where T : struct
@@ -410,7 +428,7 @@ namespace Doxense
 			return value.HasValue ? new Maybe<T>(value.Value) : default(Maybe<T>);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt;.Nothing</summary>
+		/// <summary>Helper pour crÃ©er un Maybe&lt;T&gt;.Nothing</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
 		/// <returns>Maybe vide</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -420,9 +438,9 @@ namespace Doxense
 			return default(Maybe<T>);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt;.Nothing en utilisant le compilateur pour inférer le type de la valeur</summary>
+		/// <summary>Helper pour crÃ©er un Maybe&lt;T&gt;.Nothing en utilisant le compilateur pour infÃ©rer le type de la valeur</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
+		/// <param name="_">ParamÃ¨tre dont la valeur est ignorÃ©e, et qui sert juste Ã  aider le compilateur Ã  infÃ©rer le type</param>
 		/// <returns>Maybe vide</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Nothing<T>(T? _)
@@ -431,9 +449,9 @@ namespace Doxense
 			return default(Maybe<T>);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception</summary>
+		/// <summary>Helper pour crÃ©er un Maybe&lt;T&gt; reprÃ©sentant une Exception</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="error">Exception à enrober</param>
+		/// <param name="error">Exception Ã  enrober</param>
 		/// <returns>Maybe encapsulant l'erreur</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(Exception error)
@@ -442,9 +460,9 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception</summary>
+		/// <summary>Helper pour crÃ©er un Maybe&lt;T&gt; reprÃ©sentant une Exception</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="error">Exception à enrober</param>
+		/// <param name="error">Exception Ã  enrober</param>
 		/// <returns>Maybe encapsulant l'erreur</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(ExceptionDispatchInfo error)
@@ -453,10 +471,10 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception, en utilisant le compilateur pour inférer le type de la valeur</summary>
+		/// <summary>Helper pour crÃ©er un Maybe&lt;T&gt; reprÃ©sentant une Exception, en utilisant le compilateur pour infÃ©rer le type de la valeur</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error">Exception à enrober</param>
+		/// <param name="_">ParamÃ¨tre dont la valeur est ignorÃ©e, et qui sert juste Ã  aider le compilateur Ã  infÃ©rer le type</param>
+		/// <param name="error">Exception Ã  enrober</param>
 		/// <returns>Maybe encapsulant l'erreur</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(T? _, Exception error)
@@ -465,10 +483,10 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception, en utilisant le compilateur pour inférer le type de la valeur</summary>
+		/// <summary>Helper pour crÃ©er un Maybe&lt;T&gt; reprÃ©sentant une Exception, en utilisant le compilateur pour infÃ©rer le type de la valeur</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error">Exception à enrober</param>
+		/// <param name="_">ParamÃ¨tre dont la valeur est ignorÃ©e, et qui sert juste Ã  aider le compilateur Ã  infÃ©rer le type</param>
+		/// <param name="error">Exception Ã  enrober</param>
 		/// <returns>Maybe encapsulant l'erreur</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(T? _, ExceptionDispatchInfo error)
@@ -477,12 +495,12 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour combiner des erreurs, en utilisant le compilateur pour inférer le type de la valeur</summary>
+		/// <summary>Helper pour combiner des erreurs, en utilisant le compilateur pour infÃ©rer le type de la valeur</summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error0">Première exception (peut être null)</param>
-		/// <param name="error1">Deuxième exception (peut être null)</param>
-		/// <returns>Maybe encapsulant la ou les erreur. Si les deux erreurs sont présentes, elles sont combinées dans une AggregateException</returns>
+		/// <param name="_">ParamÃ¨tre dont la valeur est ignorÃ©e, et qui sert juste Ã  aider le compilateur Ã  infÃ©rer le type</param>
+		/// <param name="error0">PremiÃ¨re exception (peut Ãªtre null)</param>
+		/// <param name="error1">DeuxiÃ¨me exception (peut Ãªtre null)</param>
+		/// <returns>Maybe encapsulant la ou les erreur. Si les deux erreurs sont prÃ©sentes, elles sont combinÃ©es dans une AggregateException</returns>
 		[Pure]
 		public static Maybe<T> Error<T>(T? _, Exception error0, Exception error1)
 		{
@@ -502,8 +520,8 @@ namespace Doxense
 
 		/// <summary>Convertit un Maybe&lt;T&;t en T? (lorsque T est un ValueType)</summary>
 		/// <typeparam name="T">ValueType</typeparam>
-		/// <param name="m">Maybe à convertir</param>
-		/// <returns>Version nullable du maybe, qui vaut default(T?) si le Maybe est Nothing, ou la valeur elle même s'il contient un résultat.</returns>
+		/// <param name="m">Maybe Ã  convertir</param>
+		/// <returns>Version nullable du maybe, qui vaut default(T?) si le Maybe est Nothing, ou la valeur elle mÃªme s'il contient un rÃ©sultat.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T? ToNullable<T>(this Maybe<T> m)
 			where T : struct
@@ -513,7 +531,7 @@ namespace Doxense
 			return m.HasValue ? m.Value : default(T?);
 		}
 
-		/// <summary>Retourne le résultat d'un Maybe, ou une valeur par défaut s'il est vide.</summary>
+		/// <summary>Retourne le rÃ©sultat d'un Maybe, ou une valeur par dÃ©faut s'il est vide.</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T OrDefault<T>(this Maybe<T> m, T @default = default)
 		{

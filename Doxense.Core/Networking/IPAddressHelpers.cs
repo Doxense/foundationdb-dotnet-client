@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Networking
@@ -29,8 +47,8 @@ namespace Doxense.Networking
 	{
 
 		/// <summary>Indique si une adresse IP(v4/v6) est valide syntaxiquement</summary>
-		/// <param name="ip">Adresse IPv4 à vérifier (ex: "192.168.1.0")</param>
-		/// <returns>True si l'adresse IP est valide syntaxiquement (4 nombres de 0 à 255)</returns>
+		/// <param name="ip">Adresse IPv4 Ã  vÃ©rifier (ex: "192.168.1.0")</param>
+		/// <returns>True si l'adresse IP est valide syntaxiquement (4 nombres de 0 Ã  255)</returns>
 		
 		public static bool IsValidIP([NotNullWhen(true)] string? ip)
 		{
@@ -39,16 +57,16 @@ namespace Doxense.Networking
 
 #if !NETFRAMEWORK && !NETSTANDARD
 		/// <summary>Indique si une adresse IP(v4/v6) est valide syntaxiquement</summary>
-		/// <param name="ip">Adresse IPv4 à vérifier (ex: "192.168.1.0")</param>
-		/// <returns>True si l'adresse IP est valide syntaxiquement (4 nombres de 0 à 255)</returns>
+		/// <param name="ip">Adresse IPv4 Ã  vÃ©rifier (ex: "192.168.1.0")</param>
+		/// <returns>True si l'adresse IP est valide syntaxiquement (4 nombres de 0 Ã  255)</returns>
 		public static bool IsValidIP(ReadOnlySpan<char> ip)
 		{
 			return ip.Length != 0 && IPAddress.TryParse(ip, out _);
 		}
 #endif
 
-		/// <summary>Détermine s'il s'agit d'une adresse IPv4 valide</summary>
-		/// <param name="ip">Chaîne à vérifier</param>
+		/// <summary>DÃ©termine s'il s'agit d'une adresse IPv4 valide</summary>
+		/// <param name="ip">ChaÃ®ne Ã  vÃ©rifier</param>
 		/// <returns>true si c'est une IPv4 valide, false dans tout les autres cas</returns>
 		public static bool IsValidIPv4([NotNullWhen(true)] string? ip)
 		{
@@ -56,8 +74,8 @@ namespace Doxense.Networking
 		}
 
 #if !NETFRAMEWORK && !NETSTANDARD
-		/// <summary>Détermine s'il s'agit d'une adresse IPv4 valide</summary>
-		/// <param name="ip">Chaîne à vérifier</param>
+		/// <summary>DÃ©termine s'il s'agit d'une adresse IPv4 valide</summary>
+		/// <param name="ip">ChaÃ®ne Ã  vÃ©rifier</param>
 		/// <returns>true si c'est une IPv4 valide, false dans tout les autres cas</returns>
 		public static bool IsValidIPv4(ReadOnlySpan<char> ip)
 		{
@@ -65,8 +83,8 @@ namespace Doxense.Networking
 		}
 #endif
 
-		/// <summary>Détermine s'il s'agit d'une adresse IPv6 valide</summary>
-		/// <param name="ip">Chaîne à vérifier</param>
+		/// <summary>DÃ©termine s'il s'agit d'une adresse IPv6 valide</summary>
+		/// <param name="ip">ChaÃ®ne Ã  vÃ©rifier</param>
 		/// <returns>true si c'est une IPv6 valide, false dans tout les autres cas</returns>
 		public static bool IsValidIPv6([NotNullWhen(true)] string? ip)
 		{
@@ -74,8 +92,8 @@ namespace Doxense.Networking
 		}
 
 #if !NETFRAMEWORK && !NETSTANDARD
-		/// <summary>Détermine s'il s'agit d'une adresse IPv6 valide</summary>
-		/// <param name="ip">Chaîne à vérifier</param>
+		/// <summary>DÃ©termine s'il s'agit d'une adresse IPv6 valide</summary>
+		/// <param name="ip">ChaÃ®ne Ã  vÃ©rifier</param>
 		/// <returns>true si c'est une IPv6 valide, false dans tout les autres cas</returns>
 		public static bool IsValidIPv6(ReadOnlySpan<char> ip)
 		{
@@ -83,7 +101,7 @@ namespace Doxense.Networking
 		}
 #endif
 
-		/// <summary>Détermine s'il s'agit d'une adresse IP "any" (0.0.0.0 ou '::')</summary>
+		/// <summary>DÃ©termine s'il s'agit d'une adresse IP "any" (0.0.0.0 ou '::')</summary>
 		public static bool IsAny(IPAddress? address)
 		{
 			return address != null && (IPAddress.Any.Equals(address) || IPAddress.IPv6Any.Equals(address));
@@ -119,11 +137,11 @@ namespace Doxense.Networking
 		private static unsafe string ToSortableIPv4(IPAddress address)
 		{
 #pragma warning disable 618
-			// Note: on est en IPv4 donc on peut utiliser .Address sans problèmes
+			// Note: on est en IPv4 donc on peut utiliser .Address sans problÃ¨mes
 			long bytes = address.Address;
 #pragma warning restore 618
 
-			// résultat: "000.000.000.000" = 15 chars mais on on alloue 16 pour que ce soit un nombre rond
+			// rÃ©sultat: "000.000.000.000" = 15 chars mais on on alloue 16 pour que ce soit un nombre rond
 			char* buffer = stackalloc char[16];
 			int p = 14;
 
@@ -177,9 +195,9 @@ namespace Doxense.Networking
 					var bits = address.Address;
 #pragma warning restore CS0618
 
-					if ((bits & 0x00FF) == 0x000A) return true; //    10.0.0.0/8  : 10.0.0.0    – 10.255.255.255
-					if ((bits & 0xFFFF) == 0xA8C0) return true; // 196.168.0.0/16 : 192.168.0.0 – 192.168.255.255
-					if ((bits & 0xF0FF) == 0x10AC) return true; //  172.16.0.0/20 : 172.16.0.0  – 172.31.255.255
+					if ((bits & 0x00FF) == 0x000A) return true; //    10.0.0.0/8  : 10.0.0.0    Â– 10.255.255.255
+					if ((bits & 0xFFFF) == 0xA8C0) return true; // 196.168.0.0/16 : 192.168.0.0 Â– 192.168.255.255
+					if ((bits & 0xF0FF) == 0x10AC) return true; //  172.16.0.0/20 : 172.16.0.0  Â– 172.31.255.255
 
 					return false;
 				}
@@ -190,15 +208,15 @@ namespace Doxense.Networking
 				}
 				default:
 				{
-					// note: IPAddress actuellement ne retourne que l'un des deux enum ci-dessus, mais on se protégère contre le futur!
+					// note: IPAddress actuellement ne retourne que l'un des deux enum ci-dessus, mais on se protÃ©gÃ¨re contre le futur!
 					return false;
 				}
 			}
 		}
 
-		/// <summary>Retourne la première IPv4 dans la liste, ou sinon la première IPv6</summary>
+		/// <summary>Retourne la premiÃ¨re IPv4 dans la liste, ou sinon la premiÃ¨re IPv6</summary>
 		/// <param name="list">Liste d'adresse IP candidates</param>
-		/// <returns>Premiere adresse IPv4 trouvée ou null si aucune (ou que du IPv6)</returns>
+		/// <returns>Premiere adresse IPv4 trouvÃ©e ou null si aucune (ou que du IPv6)</returns>
 		public static IPAddress? GetPreferredAddress(IPAddress[]? list)
 		{
 			if (list == null || list.Length == 0) return null;
@@ -277,9 +295,9 @@ namespace Doxense.Networking
 			return new IPAddress(v);
 		}
 
-		/// <summary>Détermine l'adresse IP de broadcast à partir d'une adresse IP et d'un masque de sous-réseau</summary>
+		/// <summary>DÃ©termine l'adresse IP de broadcast Ã  partir d'une adresse IP et d'un masque de sous-rÃ©seau</summary>
 		/// <param name="ip">Adresse IP du host (ex: 192.168.1.156)</param>
-		/// <param name="subnet">Masque de sous réseau (ex: 255.255.255.0)</param>
+		/// <param name="subnet">Masque de sous rÃ©seau (ex: 255.255.255.0)</param>
 		/// <returns>Adresse IP de broadcast correspondante (192.168.1.255)</returns>
 		public static string IPToBroadcast(string ip, string subnet)
 		{
@@ -305,14 +323,14 @@ namespace Doxense.Networking
 		}
 
 		/// <summary>Teste si une adresse IP fait partie d'une plage.
-		/// il y a plusieurs formats acceptés.
+		/// il y a plusieurs formats acceptÃ©s.
 		/// ex: pour "entre 192.168.1.0 et 192.168.1.255")
 		///     "192.168.1.*"
 		///     "192.168.1.0-255"
 		///     "192.168.1.0/255.255.255.0"
 		///     "192.168.1.0/24"
 		/// </summary>
-		/// <param name="ip">Adresse IP à tester</param>
+		/// <param name="ip">Adresse IP Ã  tester</param>
 		/// <param name="range">Plage d'IP</param>
 		/// <returns>'true' si l'IP est dans la plage (bornes incluses)</returns>
 		public static bool IPMatchRange(string? ip, string? range)
@@ -387,16 +405,16 @@ namespace Doxense.Networking
 				if (n > System.Convert.ToInt16(tok[1])) return false;
 				return true;
 			}
-			// plage constitué d'une seule ip ?
+			// plage constituÃ© d'une seule ip ?
 			return (ip == range);
 		}
 
 		/// <summary>Retourne les bornes d'une plage d'adresse IP</summary>
 		/// <param name="range">Plage IP ("192.168.1.0/24", "192.168.1.0|255.255.255.0", "192.168.1.1-192.168.1.255", "192.168.1")</param>
-		/// <param name="first">Récupère la première adresse IP de la plage</param>
-		/// <param name="last">Récupère la dernière adresse IP de la plage</param>
+		/// <param name="first">RÃ©cupÃ¨re la premiÃ¨re adresse IP de la plage</param>
+		/// <param name="last">RÃ©cupÃ¨re la derniÃ¨re adresse IP de la plage</param>
 		/// <param name="include0">Si true, inclue "192.168.0.0" comme adresse valide</param>
-		/// <remarks>Retourne une exception en cas d'erreur, dans lequel cas first et last sont fixés à null</remarks>
+		/// <remarks>Retourne une exception en cas d'erreur, dans lequel cas first et last sont fixÃ©s Ã  null</remarks>
 		public static void DecodeIPRange(string range, out IPAddress first, out IPAddress last, bool include0 = false)
 		{
 			Contract.NotNull(range);
@@ -424,10 +442,10 @@ namespace Doxense.Networking
 #endif
 
 				// on connait le subnet (/8, /16, /24, ..) et l'adresse
-				// il faut qu'on en déduise l'adresse de début
+				// il faut qu'on en dÃ©duise l'adresse de dÃ©but
 				if (addr.AddressFamily == AddressFamily.InterNetworkV6) throw new NotSupportedException("IPv6 is not currently supported!");
 
-				// l'adresse sera constitué des "subnet" premiers bits
+				// l'adresse sera constituÃ© des "subnet" premiers bits
 				long bytes = addr.GetAddressBytes().AsSpan().ToUInt32BE();
 
 				// check que l'IP est bien adressable si on est en /32
@@ -443,13 +461,13 @@ namespace Doxense.Networking
 				// "arrondi" les bords (.0 et .255) quand il ne sont pas des adresses valides)
 				if ((start & 0xFF) == 0 && !include0)
 				{
-					//ie: 192.168.1.0/24, couvre 192.168.1.0 .. 192.168.1.255, bornes qui sont en général écartées
-					// Par contre, 192.168.0.0/16, couvre 192.168.0.0 .. 192.168.255.255. Mais ici, 192.168.1.0 n'est PAS une borne, donc il est légal
+					//ie: 192.168.1.0/24, couvre 192.168.1.0 .. 192.168.1.255, bornes qui sont en gÃ©nÃ©ral Ã©cartÃ©es
+					// Par contre, 192.168.0.0/16, couvre 192.168.0.0 .. 192.168.255.255. Mais ici, 192.168.1.0 n'est PAS une borne, donc il est lÃ©gal
 					++start; // 0->1
 				}
 				else if ((start & 0xFF) == 255)
 				{
-					//note: on va par contre on va interdire .255 dans tous les cas, par précaution...
+					//note: on va par contre on va interdire .255 dans tous les cas, par prÃ©caution...
 					--start; // 255->254
 				}
 				if ((end & 0xFF) == 0 && !include0)
@@ -527,7 +545,7 @@ namespace Doxense.Networking
 		}
 
 		/// <summary>Retourne le nombre d'adresses entre (et incluant) deux bornes</summary>
-		/// <param name="from">Adresse de départ</param>
+		/// <param name="from">Adresse de dÃ©part</param>
 		/// <param name="to">Adresse de destination</param>
 		/// <param name="include0">true si on souhaite inclure les adresses en .0</param>
 		/// <param name="include255">true si on souhaite inclure les adresses en .255</param>
@@ -545,39 +563,39 @@ namespace Doxense.Networking
 				return 1;
 			}
 
-			// récupère les octets pour les comparaisons
+			// rÃ©cupÃ¨re les octets pour les comparaisons
 			byte[] fromBytes = from.GetAddressBytes();
 			byte[] toBytes = to.GetAddressBytes();
 			Contract.Debug.Assert(fromBytes.Length == toBytes.Length && fromBytes.Length == 4, "IP address size does not match!");
 
-			// compare le début de l'adresse (en excluant le dernier octet)
+			// compare le dÃ©but de l'adresse (en excluant le dernier octet)
 			int fromSubnet = (fromBytes[0] << 16) + (fromBytes[1] << 8) + fromBytes[2];
 			int toSubnet = (toBytes[0] << 16) + (toBytes[1] << 8) + toBytes[2];
 
 			if (toSubnet == fromSubnet)
-			{ // même subnet /24, cas le plus simple:
+			{ // mÃªme subnet /24, cas le plus simple:
 				long res = toBytes[3] - fromBytes[3] + 1;
 				if (res <= 0) throw new ArgumentException("The 'to' address should be higher than or equal to the 'from' address!", nameof(to));
 				return res;
 			}
 			else if (toSubnet < fromSubnet)
-			{ // to est inférieur à from !?
+			{ // to est infÃ©rieur Ã  from !?
 				throw new ArgumentException("The 'to' address should be higher than or equal to the 'from' address!", nameof(to));
 			}
 			else
-			{ // subnets différents
-			  // compte le nombre de plages /24 qu'il y a entre les deux en intégrant les adresses en 0
+			{ // subnets diffÃ©rents
+			  // compte le nombre de plages /24 qu'il y a entre les deux en intÃ©grant les adresses en 0
 				var adressesBySubnet = 254 + (include0 ? 1 : 0) + (include255 ? 1 : 0);
 				long res = ((toSubnet - fromSubnet - 1) * adressesBySubnet) + (255 - fromBytes[3] + (include255 ? 1 : 0)) + toBytes[3] + (include0 ? 1 : 0);
 				return res;
 			}
 		}
 
-		/// <summary>Ajoute un offset à une adresse IP</summary>
+		/// <summary>Ajoute un offset Ã  une adresse IP</summary>
 		/// <param name="address">Adresse de base (ex: 192.168.1.23)</param>
 		/// <param name="offset">Offset (ex: 42)</param>
 		/// <returns>Nouvelle adresse (ex: 192.168.1.65)</returns>
-		/// <exception cref="ArgumentException">Si <paramref name="address"/> n'est pas d'un type supporté (IPv4)</exception>
+		/// <exception cref="ArgumentException">Si <paramref name="address"/> n'est pas d'un type supportÃ© (IPv4)</exception>
 		public static IPAddress AddOffset(IPAddress address, int offset)
 		{
 			if (address.AddressFamily != AddressFamily.InterNetwork) throw new ArgumentException("Only IPv4 are currently supported!", nameof(address));
@@ -590,7 +608,7 @@ namespace Doxense.Networking
 			return new IPAddress(x);
 		}
 
-		/// <summary>Convertit une adresse MAC binaire en représentation string</summary>
+		/// <summary>Convertit une adresse MAC binaire en reprÃ©sentation string</summary>
 		/// <param name="mac">Tableau de 6 octets contenant une adresse MAC</param>
 		/// <returns>"00-11-22-33-44-55"</returns>
 		/// <version>1.1.0.7</version>
@@ -600,7 +618,7 @@ namespace Doxense.Networking
 			return MACAddressToString(mac, 0, mac.Length);
 		}
 
-		/// <summary>Convertit une adresse MAC binaire en représentation string</summary>
+		/// <summary>Convertit une adresse MAC binaire en reprÃ©sentation string</summary>
 		/// <param name="mac">Buffer de 6 octets contenant une adresse MAC</param>
 		/// <returns>"00-11-22-33-44-55"</returns>
 		/// <version>1.1.0.7</version>
@@ -610,7 +628,7 @@ namespace Doxense.Networking
 			return MACAddressToString(mac.Span);
 		}
 
-		/// <summary>Convertit une adresse MAC binaire en représentation string</summary>
+		/// <summary>Convertit une adresse MAC binaire en reprÃ©sentation string</summary>
 		/// <returns>"00-11-22-33-44-55"</returns>
 		/// <version>1.1.0.7</version>
 		public static string MACAddressToString(byte[] mac, int offset, int count)
@@ -619,7 +637,7 @@ namespace Doxense.Networking
 			return MACAddressToString(mac.AsSpan(offset, count));
 		}
 
-		/// <summary>Convertit une adresse MAC binaire en représentation string</summary>
+		/// <summary>Convertit une adresse MAC binaire en reprÃ©sentation string</summary>
 		/// <returns>"00-11-22-33-44-55"</returns>
 		/// <version>1.1.0.7</version>
 		public static string MACAddressToString(ReadOnlySpan<byte> mac)

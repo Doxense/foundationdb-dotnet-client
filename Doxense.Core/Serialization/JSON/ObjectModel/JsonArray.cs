@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -31,14 +49,14 @@ namespace Doxense.Serialization.Json
 	{
 		/// <summary>Taille initiale de l'array</summary>
 		private const int DEFAULT_CAPACITY = 4;
-		/// <summary>Capacité maximale pour conserver le buffer en cas de clear</summary>
+		/// <summary>CapacitÃ© maximale pour conserver le buffer en cas de clear</summary>
 		private const int MAX_KEEP_CAPACITY = 1024;
-		/// <summary>Capacité maximale pour la croissance automatique</summary>
+		/// <summary>CapacitÃ© maximale pour la croissance automatique</summary>
 		private const int MAX_GROWTH_CAPACITY = 0X7FEFFFFF;
 
 		//TODO: OPTIMIZE: quelle intial_size et growth_ratio?
 
-		// => .NET démarre a 4 et utilise n*2 ce qui minimise le cout d'une insertion, mais maximize la consommation mémoire
+		// => .NET dÃ©marre a 4 et utilise n*2 ce qui minimise le cout d'une insertion, mais maximize la consommation mÃ©moire
 		//    > [4], 8, 16, 32, 64, 128, 256, 512, 1024, 2048, ...
 		//	  -    3 (  24 bytes) =>    4 slots (  32 bytes) =>   1 waste (   8 bytes) =>    3 writes (   24 bytes) =>  1 allocations,  0 resize
 		//	  -   10 (  80 bytes) =>   16 slots ( 128 bytes) =>   6 waste (  48 bytes) =>   22 writes (  176 bytes) =>  3 allocations,  2 resize
@@ -48,7 +66,7 @@ namespace Doxense.Serialization.Json
 		//	  -  366 (2928 bytes) =>  512 slots (4096 bytes) => 146 waste (1168 bytes) =>  874 writes ( 6992 bytes) =>  8 allocations,  7 resize
 		//	  - 1000 (8000 bytes) => 1024 slots (8192 bytes) =>  24 waste ( 192 bytes) => 2020 writes (16160 bytes) =>  9 allocations,  8 resize
 
-		// => JAVA démarre a 10 et utilise (n*3/2)+1 (+50%), a savoir si ca nous donne le meilleur compromis, ou un sidecar :) (1.7 fois plus de resize de .NET, pour 2x moins de waste de mémoire en moyenne)
+		// => JAVA dÃ©marre a 10 et utilise (n*3/2)+1 (+50%), a savoir si ca nous donne le meilleur compromis, ou un sidecar :) (1.7 fois plus de resize de .NET, pour 2x moins de waste de mÃ©moire en moyenne)
 		//    > [10], 16, 25, 38, 58, 88, 133, 200, 301, 452, 679, 1019, 1529, 2294, ...
 		//	  -    3 (  24 bytes) =>   10 slots (  80 bytes) =>   7 waste (  56 bytes) =>    3 writes (   24 bytes) =>  1 allocations,  0 resize
 		//	  -   10 (  80 bytes) =>   10 slots (  80 bytes) =>   0 waste (   0 bytes) =>   10 writes (   80 bytes) =>  1 allocations,  0 resize
@@ -58,7 +76,7 @@ namespace Doxense.Serialization.Json
 		//	  -  366 (2928 bytes) =>  452 slots (3616 bytes) =>  86 waste ( 688 bytes) => 1235 writes ( 9880 bytes) => 10 allocations,  9 resize
 		//	  - 1000 (8000 bytes) => 1019 slots (8152 bytes) =>  19 waste ( 152 bytes) => 3000 writes (24000 bytes) => 12 allocations, 11 resize
 
-		// => CPython démarre a 4 utilise n*9/8 (+12.5%)) avec de l'aide au démarrage ce qui minimise la consommation mémoire, mais augmente le nombre de resize (6 fois plus de resize que .NET environ, mais 8x moins de waste mémoire en moyenne)
+		// => CPython dÃ©marre a 4 utilise n*9/8 (+12.5%)) avec de l'aide au dÃ©marrage ce qui minimise la consommation mÃ©moire, mais augmente le nombre de resize (6 fois plus de resize que .NET environ, mais 8x moins de waste mÃ©moire en moyenne)
 		//    > [4], 8, 16, 25, 35, 46, 58, 72, 88, 106, 126, 148, 173, 201, 233, 269, 309, 354, 405, 462, 526, 598, 679, 771, 874, 990, 1120, 1267, 1432, 1618, 1827, 2062, ...
 		//	  -    3 (  24 bytes) =>    4 slots (  32 bytes) =>   1 waste (   8 bytes) =>    3 writes (   24 bytes) =>  1 allocations,  0 resize
 		//	  -   10 (  80 bytes) =>   16 slots ( 128 bytes) =>   6 waste (  48 bytes) =>   22 writes (  176 bytes) =>  3 allocations,  2 resize
@@ -113,15 +131,15 @@ namespace Doxense.Serialization.Json
 			get => new JsonArray(0);
 		}
 
-		/// <summary>Crée une nouvelle array vide</summary>
+		/// <summary>CrÃ©e une nouvelle array vide</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray()
 		{
 			m_items = Array.Empty<JsonValue?>();
 		}
 
-		/// <summary>Crée une nouvelle array avec une capacité initiale</summary>
-		/// <param name="capacity">Capacité initiale</param>
+		/// <summary>CrÃ©e une nouvelle array avec une capacitÃ© initiale</summary>
+		/// <param name="capacity">CapacitÃ© initiale</param>
 		public JsonArray(int capacity)
 		{
 			if (capacity < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(capacity), "Non-negative number required.");
@@ -135,7 +153,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(collection);
 
-			//note: optimisé car fréquemment utilisé lorsqu'on manipule des array JSON (via LINQ par exemple)
+			//note: optimisÃ© car frÃ©quemment utilisÃ© lorsqu'on manipule des array JSON (via LINQ par exemple)
 
 			switch (collection)
 			{
@@ -304,21 +322,21 @@ namespace Doxense.Serialization.Json
 			return new JsonArray(tmp, size1 + size2 + size3);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Séquences d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'une sÃ©quence d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des Ã©lÃ©ments de la sÃ©quence</typeparam>
+		/// <param name="values">SÃ©quences d'Ã©lÃ©ments Ã  convertir</param>
+		/// <returns>JsonArray contenant tous les Ã©lÃ©ments de la sÃ©quence, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<T>(IEnumerable<T> values)
 		{
 			return new JsonArray().AddRange<T>(values);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TCollection">Type de base de la séquence</typeparam>
-		/// <typeparam name="TElement">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Séquences d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'une sÃ©quence d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="TCollection">Type de base de la sÃ©quence</typeparam>
+		/// <typeparam name="TElement">Type de base des Ã©lÃ©ments de la sÃ©quence</typeparam>
+		/// <param name="values">SÃ©quences d'Ã©lÃ©ments Ã  convertir</param>
+		/// <returns>JsonArray contenant tous les Ã©lÃ©ments de la sÃ©quence, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<TCollection, TElement>(TCollection values)
 			where TCollection : struct, ICollection<TElement>
@@ -331,12 +349,12 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TItem">Type de base des éléments de la séquence</typeparam>
-		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
-		/// <param name="items">Séquences d'éléments à convertir</param>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'une sÃ©quence d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des Ã©lÃ©ments de la sÃ©quence</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque Ã©lÃ©ment, et insÃ©rÃ©e dans la JsonArray</typeparam>
+		/// <param name="items">SÃ©quences d'Ã©lÃ©ments Ã  convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
-		/// <returns>JsonArray contenant tous les valeurs de la séquence, convertis en JsonValue</returns>
+		/// <returns>JsonArray contenant tous les valeurs de la sÃ©quence, convertis en JsonValue</returns>
 		[Pure]
 		[return: MaybeNull, NotNullIfNotNull("items")]
 		public static JsonArray FromValues<TItem, TValue>(IEnumerable<TItem>? items, Func<TItem, TValue> selector)
@@ -347,30 +365,30 @@ namespace Doxense.Serialization.Json
 			return new JsonArray().AddRange(items, selector);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'une liste d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la liste</typeparam>
-		/// <param name="values">Liste d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'une liste d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des Ã©lÃ©ments de la liste</typeparam>
+		/// <param name="values">Liste d'Ã©lÃ©ments Ã  convertir</param>
+		/// <returns>JsonArray contenant tous les Ã©lÃ©ments de la sÃ©quence, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<T>(List<T> values)
 		{
 			return new JsonArray().AddRange<T>(values);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Tableau d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'un tableu d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des Ã©lÃ©ments de la sÃ©quence</typeparam>
+		/// <param name="values">Tableau d'Ã©lÃ©ments Ã  convertir</param>
+		/// <returns>JsonArray contenant tous les Ã©lÃ©ments du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<T>(T[] values)
 		{
 			return new JsonArray().AddRange<T>(values);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
-		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
-		/// <param name="items">Tableau d'éléments à convertir</param>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'un tableau d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des Ã©lÃ©ments du tableau</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque Ã©lÃ©ment, et insÃ©rÃ©e dans la JsonArray</typeparam>
+		/// <param name="items">Tableau d'Ã©lÃ©ments Ã  convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
 		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -380,20 +398,20 @@ namespace Doxense.Serialization.Json
 			return items == null ? JsonArray.Empty : new JsonArray().AddRange(items.AsSpan(), selector);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Tableau d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'un tableu d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des Ã©lÃ©ments de la sÃ©quence</typeparam>
+		/// <param name="values">Tableau d'Ã©lÃ©ments Ã  convertir</param>
+		/// <returns>JsonArray contenant tous les Ã©lÃ©ments du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<T>(ReadOnlySpan<T> values)
 		{
 			return values.Length == 0 ? JsonArray.Empty : new JsonArray().AddRange<T>(values);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
-		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
-		/// <param name="items">Tableau d'éléments à convertir</param>
+		/// <summary>CrÃ©e une nouvelle JsonArray Ã  partir d'un tableau d'Ã©lÃ©ments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des Ã©lÃ©ments du tableau</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque Ã©lÃ©ment, et insÃ©rÃ©e dans la JsonArray</typeparam>
+		/// <param name="items">Tableau d'Ã©lÃ©ments Ã  convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
 		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -449,14 +467,14 @@ namespace Doxense.Serialization.Json
 
 		public override JsonType Type => JsonType.Array;
 
-		/// <summary>Une Array ne peut pas être null</summary>
+		/// <summary>Une Array ne peut pas Ãªtre null</summary>
 		public override bool IsNull
 		{
 			[ContractAnnotation("=> false")]
 			get => false;
 		}
 
-		/// <summary>La valeur par défaut pour une array est null, donc retourne toujours false</summary>
+		/// <summary>La valeur par dÃ©faut pour une array est null, donc retourne toujours false</summary>
 		public override bool IsDefault
 		{
 			[ContractAnnotation("=> false")]
@@ -478,10 +496,10 @@ namespace Doxense.Serialization.Json
 			get => m_size;
 		}
 
-		/// <summary>Fixe ou retourne la capacité interne de l'array</summary>
+		/// <summary>Fixe ou retourne la capacitÃ© interne de l'array</summary>
 		/// <remarks>
-		/// A utiliser avant d'insérer un grand nombre d'éléments si la taille finale est connue.
-		/// Si la nouvelle capacité est inférieure au nombre d'items existants, une exception est générée.
+		/// A utiliser avant d'insÃ©rer un grand nombre d'Ã©lÃ©ments si la taille finale est connue.
+		/// Si la nouvelle capacitÃ© est infÃ©rieure au nombre d'items existants, une exception est gÃ©nÃ©rÃ©e.
 		/// </remarks>
 		public int Capacity
 		{
@@ -496,11 +514,11 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Vérifie la capacité du buffer interne, et resize le ci besoin</summary>
+		/// <summary>VÃ©rifie la capacitÃ© du buffer interne, et resize le ci besoin</summary>
 		/// <param name="min">Taille minimum du buffer</param>
 		private void EnsureCapacity(int min)
 		{
-			// devrait être inliné
+			// devrait Ãªtre inlinÃ©
 			if (m_items.Length < min)
 			{
 				GrowBuffer(min);
@@ -508,7 +526,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Resize le buffer pour accomoder un certain nombre d'items</summary>
-		/// <param name="min">Nombre minimum d'éléments nécessaires</param>
+		/// <param name="min">Nombre minimum d'Ã©lÃ©ments nÃ©cessaires</param>
 		/// <remarks>Double la taille du buffer interne jusqu'a ce qu'il puisse stocker au moins <paramref name="min"/> items</remarks>
 		private void GrowBuffer(int min)
 		{
@@ -517,7 +535,7 @@ namespace Doxense.Serialization.Json
 			long newCapacity = Math.Max(m_items.Length, DEFAULT_CAPACITY);
 			while (newCapacity < min) newCapacity <<= 1;
 
-			// au dela de MAX_GROWTH_CAPACITY, on stop le factor de x2 (et donc forte dégradation des perfs)
+			// au dela de MAX_GROWTH_CAPACITY, on stop le factor de x2 (et donc forte dÃ©gradation des perfs)
 			if (newCapacity > MAX_GROWTH_CAPACITY)
 			{
 				newCapacity = MAX_GROWTH_CAPACITY;
@@ -528,7 +546,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Redimenssione le buffer interne</summary>
 		/// <param name="size">Taille exacte du nouveau buffer</param>
-		/// <remarks>Les éléments existants sont copiés, les nouveaux slots sont remplis de null</remarks>
+		/// <remarks>Les Ã©lÃ©ments existants sont copiÃ©s, les nouveaux slots sont remplis de null</remarks>
 		private void ResizeBuffer(int size)
 		{
 			if (size > 0)
@@ -544,8 +562,8 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Réajuste la taille du buffer interne, afin d'optimiser la consommation mémoire</summary>
-		/// <remarks>A utiliser après un batch d'insertion, si on sait qu'on n'ajoutera plus d'items dans la liste</remarks>
+		/// <summary>RÃ©ajuste la taille du buffer interne, afin d'optimiser la consommation mÃ©moire</summary>
+		/// <remarks>A utiliser aprÃ¨s un batch d'insertion, si on sait qu'on n'ajoutera plus d'items dans la liste</remarks>
 		public void TrimExcess()
 		{
 			// uniquement si on gagne au moins 10%
@@ -601,35 +619,35 @@ namespace Doxense.Serialization.Json
 
 		#region AddRange...
 
-		//note: AddRange(..) est appelé par beaucoup de helpers comme ToJsonArray(), CreateRange(), ....
-		// => c'est ici qu'on doit centraliser toute la logique d'optimisations (pour éviter d'en retrouver partout)
+		//note: AddRange(..) est appelÃ© par beaucoup de helpers comme ToJsonArray(), CreateRange(), ....
+		// => c'est ici qu'on doit centraliser toute la logique d'optimisations (pour Ã©viter d'en retrouver partout)
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Append une autre array en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(JsonArray items)
 		{
 			return AddRange(items, deepCopy: false);
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Append une autre array en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(JsonValue[] items)
 		{
 			return AddRange(items.AsSpan(), deepCopy: false);
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Append une autre array en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(ReadOnlySpan<JsonValue> items)
 		{
 			return AddRange(items, deepCopy: false);
 		}
 
-		/// <summary>Append une autre séquence en copiant ses éléments à la fin</summary>
-		/// <param name="items">Séquence à ajouter</param>
+		/// <summary>Append une autre sÃ©quence en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">SÃ©quence Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(IEnumerable<JsonValue> items)
 		{
@@ -639,10 +657,10 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		internal JsonArray AddRangeBoxed(IEnumerable<object?> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			//note: internal pour éviter que ce soit trop facile de passer par 'object' au lieu de 'T'
+			//note: internal pour Ã©viter que ce soit trop facile de passer par 'object' au lieu de 'T'
 			Contract.NotNull(items);
 
-			// si c'est déjà une collection de JsonValue, on n'a pas besoin de les convertir
+			// si c'est dÃ©jÃ  une collection de JsonValue, on n'a pas besoin de les convertir
 			if (items is IEnumerable<JsonValue> values)
 			{
 				AddRange(values);
@@ -652,12 +670,12 @@ namespace Doxense.Serialization.Json
 			settings ??= CrystalJsonSettings.Json;
 			resolver ??= CrystalJson.DefaultResolver;
 
-			// pré-alloue si on connaît à l'avance la taille
+			// prÃ©-alloue si on connaÃ®t Ã  l'avance la taille
 			if (items is ICollection coll) EnsureCapacity(this.Count + coll.Count);
 
 			foreach (var value in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particuliÃ¨rement ici
 				Add(JsonValue.FromValue(value, settings, resolver));
 			}
 
@@ -677,14 +695,14 @@ namespace Doxense.Serialization.Json
 			var dom = CrystalJsonDomWriter.Create(settings, resolver);
 			foreach (var value in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particuliÃ¨rement ici
 				Add(dom.ParseObject(value, typeof(T)));
 			}
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Append une autre array en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<T>(IEnumerable<T> items)
 		{
@@ -696,15 +714,15 @@ namespace Doxense.Serialization.Json
 			{ // fast path pour des listes
 				if (items is List<T> list) return AddRange<T>(list);
 			}
-			{ // si c'est déja une collection de JsonValue, on n'a pas besoin de les convertir
+			{ // si c'est dÃ©ja une collection de JsonValue, on n'a pas besoin de les convertir
 				if (items is IEnumerable<JsonValue> json) return AddRange(json, deepCopy: false);
 			}
-			{ // pré-alloue si on connait à l'avance la taille
+			{ // prÃ©-alloue si on connait Ã  l'avance la taille
 				if (items is ICollection<T> coll) EnsureCapacity(this.Count + coll.Count);
 			}
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern reconnu et optimisÃ© par le JIT en Release
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -747,7 +765,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// version Ã©galement optimisÃ©e!
 				foreach (var item in items)
 				{
 					Add(FromValue<T>(item));
@@ -762,17 +780,17 @@ namespace Doxense.Serialization.Json
 			var type = typeof(T);
 			foreach (var value in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particuliÃ¨rement ici
 				Add(dom.ParseObjectInternal(ref context, value, type, null));
 			}
 			return this;
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
+		/// <summary>Ajout le rÃ©sultat de la transformation des Ã©lÃ©ments d'une sÃ©quence</summary>
+		/// <typeparam name="TInput">Type des Ã©lÃ©ments de <paramref name="items"/></typeparam>
+		/// <typeparam name="TOutput">Type du rÃ©sultat transformÃ©</typeparam>
+		/// <param name="items">SÃ©quence d'Ã©lÃ©ments d'origine</param>
+		/// <param name="transform">Transformation appliquÃ©e Ã  chaque Ã©lÃ©ment</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<TInput, TOutput>(IEnumerable<TInput> items, Func<TInput, TOutput> transform)
 		{
@@ -780,14 +798,14 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(transform);
 
 			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
+			// donc ca vaut le coup tenter de prÃ©-allouer l'array
 			if (items is ICollection<TInput> coll)
 			{
 				EnsureCapacity(this.Count + coll.Count);
 			}
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern reconnu et optimisÃ© par le JIT en Release
 #if !DEBUG
 			if (typeof(TOutput) == typeof(bool)
 			 || typeof(TOutput) == typeof(char)
@@ -830,7 +848,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(TOutput) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// version Ã©galement optimisÃ©e!
 				foreach (var item in items)
 				{
 					Add(FromValue<TOutput>(transform(item)));
@@ -845,28 +863,28 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TOutput);
 			foreach (var item in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particuliÃ¨rement ici
 				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
 			}
 			return this;
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
+		/// <summary>Ajout le rÃ©sultat de la transformation des Ã©lÃ©ments d'une sÃ©quence</summary>
+		/// <typeparam name="TInput">Type des Ã©lÃ©ments de <paramref name="items"/></typeparam>
+		/// <typeparam name="TOutput">Type du rÃ©sultat transformÃ©</typeparam>
+		/// <param name="items">SÃ©quence d'Ã©lÃ©ments d'origine</param>
+		/// <param name="transform">Transformation appliquÃ©e Ã  chaque Ã©lÃ©ment</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<TInput, TOutput>(ReadOnlySpan<TInput> items, Func<TInput, TOutput> transform)
 		{
 			Contract.NotNull(transform);
 
 			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
+			// donc ca vaut le coup tenter de prÃ©-allouer l'array
 			EnsureCapacity(checked(this.Count + items.Length));
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern reconnu et optimisÃ© par le JIT en Release
 #if !DEBUG
 			if (typeof(TOutput) == typeof(bool)
 			 || typeof(TOutput) == typeof(char)
@@ -909,7 +927,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(TOutput) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// version Ã©galement optimisÃ©e!
 				foreach (var item in items)
 				{
 					Add(FromValue<TOutput>(transform(item)));
@@ -924,14 +942,14 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TOutput);
 			foreach (var item in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particuliÃ¨rement ici
 				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
 			}
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Append une autre array en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<T>(params T[] items)
 		{
@@ -939,18 +957,18 @@ namespace Doxense.Serialization.Json
 			return AddRange<T>(items.AsSpan());
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Append une autre array en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<T>(ReadOnlySpan<T> items)
 		{
 			if (items.Length == 0) return this;
 
-			// pré-alloue si on connait à l'avance la taille
+			// prÃ©-alloue si on connait Ã  l'avance la taille
 			EnsureCapacity(this.Count + items.Length);
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern reconnu et optimisÃ© par le JIT en Release
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -993,7 +1011,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// version Ã©galement optimisÃ©e!
 				foreach (var item in items)
 				{
 					Add(FromValue<T>(item));
@@ -1022,14 +1040,14 @@ namespace Doxense.Serialization.Json
 			var type = typeof(T);
 			foreach (var value in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particuliÃ¨rement ici
 				Add(dom.ParseObjectInternal(ref context, value, type, null));
 			}
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Append une autre array en copiant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<T>(List<T> items)
 		{
@@ -1037,11 +1055,11 @@ namespace Doxense.Serialization.Json
 
 			if (items.Count == 0) return this;
 
-			// pré-alloue si on connaît à l'avance la taille
+			// prÃ©-alloue si on connaÃ®t Ã  l'avance la taille
 			EnsureCapacity(this.Count + items.Count);
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern reconnu et optimisÃ© par le JIT en Release
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -1084,7 +1102,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// version Ã©galement optimisÃ©e!
 				foreach (var item in items)
 				{
 					Add(FromValue<T>(item));
@@ -1094,7 +1112,7 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-			// si c'est déja une liste de JsonValue, on n'a pas besoin de les convertir
+			// si c'est dÃ©ja une liste de JsonValue, on n'a pas besoin de les convertir
 			if (items is List<JsonValue> json)
 			{
 				return AddRange(json, deepCopy: false);
@@ -1105,15 +1123,15 @@ namespace Doxense.Serialization.Json
 			var type = typeof(T);
 			foreach (var value in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particuliÃ¨rement ici
 				Add(dom.ParseObjectInternal(ref context, value, type, null));
 			}
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ou collant ses éléments à la fin</summary>
-		/// <param name="array">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="array"/> avant de les copier.</param>
+		/// <summary>Append une autre array en copiant ou collant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="array">Array Ã  ajouter</param>
+		/// <param name="deepCopy">Si true, clone les Ã©lÃ©ments de <paramref name="array"/> avant de les copier.</param>
 		/// <remarks>Optimisation: utilise Array.Copy() si deepCopy==false</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(JsonArray array, bool deepCopy)
@@ -1128,7 +1146,7 @@ namespace Doxense.Serialization.Json
 				EnsureCapacity(size + count);
 
 				if (deepCopy)
-				{ // on doit copier les éléments
+				{ // on doit copier les Ã©lÃ©ments
 					int p = size;
 					var myItems = m_items;
 					var otherItems = array.m_items;
@@ -1138,7 +1156,7 @@ namespace Doxense.Serialization.Json
 					}
 				}
 				else
-				{ // on peut transférer directement les éléments
+				{ // on peut transfÃ©rer directement les Ã©lÃ©ments
 					Array.Copy(array.m_items, 0, m_items, size, count);
 				}
 				m_size = size + count;
@@ -1146,9 +1164,9 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="array">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="array"/> avant de les copier.</param>
+		/// <summary>Append une autre array en copiant ou clonant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="array">Array Ã  ajouter</param>
+		/// <param name="deepCopy">Si true, clone les Ã©lÃ©ments de <paramref name="array"/> avant de les copier.</param>
 		/// <remarks>Optimisation: utilise Array.Copy() si deepCopy==false</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(JsonValue[] array, bool deepCopy)
@@ -1157,9 +1175,9 @@ namespace Doxense.Serialization.Json
 			return AddRange(array.AsSpan(), deepCopy);
 		}
 
-		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="array">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="array"/> avant de les copier.</param>
+		/// <summary>Append une autre array en copiant ou clonant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="array">Array Ã  ajouter</param>
+		/// <param name="deepCopy">Si true, clone les Ã©lÃ©ments de <paramref name="array"/> avant de les copier.</param>
 		/// <remarks>Optimisation: utilise Array.Copy() si deepCopy==false</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(ReadOnlySpan<JsonValue> array, bool deepCopy)
@@ -1174,7 +1192,7 @@ namespace Doxense.Serialization.Json
 				Contract.Debug.Assert(items != null && size + array.Length <= items.Length);
 
 				if (deepCopy)
-				{ // on doit copier les éléments
+				{ // on doit copier les Ã©lÃ©ments
 					int p = size;
 					foreach (var item in array)
 					{
@@ -1182,7 +1200,7 @@ namespace Doxense.Serialization.Json
 					}
 				}
 				else
-				{ // on peut transférer directement les éléments
+				{ // on peut transfÃ©rer directement les Ã©lÃ©ments
 					array.CopyTo(items.AsSpan(size)!);
 				}
 				m_size = size + array.Length;
@@ -1191,9 +1209,9 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Append une autre collection en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="collection">Collection à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="collection"/> avant de les copier.</param>
+		/// <summary>Append une autre collection en copiant ou clonant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="collection">Collection Ã  ajouter</param>
+		/// <param name="deepCopy">Si true, clone les Ã©lÃ©ments de <paramref name="collection"/> avant de les copier.</param>
 		/// <remarks>Optimisation: utilise collection.CopyTo() si deepCopy==false</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(ICollection<JsonValue> collection, bool deepCopy)
@@ -1227,9 +1245,9 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Append une séquence d'éléments en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="items"/> avant de les copier.</param>
+		/// <summary>Append une sÃ©quence d'Ã©lÃ©ments en copiant ou clonant ses Ã©lÃ©ments Ã  la fin</summary>
+		/// <param name="items">Array Ã  ajouter</param>
+		/// <param name="deepCopy">Si true, clone les Ã©lÃ©ments de <paramref name="items"/> avant de les copier.</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(IEnumerable<JsonValue> items, bool deepCopy)
 		{
@@ -1266,9 +1284,9 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Supprime tous les éléments de cette array</summary>
-		/// <remarks>Si le buffer est inférieur à 1024, il est conservé.
-		/// Pour supprimer le buffer, il faut appeler <see cref="TrimExcess()"/> juste après <see cref="Clear()"/></remarks>
+		/// <summary>Supprime tous les Ã©lÃ©ments de cette array</summary>
+		/// <remarks>Si le buffer est infÃ©rieur Ã  1024, il est conservÃ©.
+		/// Pour supprimer le buffer, il faut appeler <see cref="TrimExcess()"/> juste aprÃ¨s <see cref="Clear()"/></remarks>
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void Clear()
 		{
@@ -1287,10 +1305,10 @@ namespace Doxense.Serialization.Json
 
 		public bool IsReadOnly => false;
 
-		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
+		/// <summary>Retourne la valeur d'un Ã©lÃ©ment d'aprÃ¨s son index</summary>
 		/// <typeparam name="T">Type attendu de la valeur</typeparam>
-		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array, où si la valeur ne peut pas être bindé vers le type <typeparamref name="T"/></returns>
+		/// <param name="index">Index de l'Ã©lÃ©ment Ã  retourner</param>
+		/// <returns>Valeur de l'Ã©lÃ©ment Ã  l'index spÃ©cifiÃ©, ou une exception si l'index est en dehors des bornes de l'array, oÃ¹ si la valeur ne peut pas Ãªtre bindÃ© vers le type <typeparamref name="T"/></returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T? Get<T>(int index)
@@ -1310,48 +1328,48 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
-		/// <param name="index">Index de l'objet à retourner</param>
-		/// <returns>Valeur de l'objet à l'index spécifié, ou null si l'array contient null à cet index, ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas un objet</returns>
+		/// <summary>Retourne la valeur Ã  l'index spÃ©cifiÃ© sous forme d'objet JSON</summary>
+		/// <param name="index">Index de l'objet Ã  retourner</param>
+		/// <returns>Valeur de l'objet Ã  l'index spÃ©cifiÃ©, ou null si l'array contient null Ã  cet index, ou une exception si l'index est en dehors des bornes de l'array, oÃ¹ si la valeur n'est pas un objet</returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas un objet JSON.</exception>
+		/// <exception cref="ArgumentException">Si la valeur Ã  l'<paramref name="index"/> spÃ©cifiÃ© n'est pas un objet JSON.</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonObject? GetObject(int index)
 		{
 			return this[index]?.AsObject(required: false);
 		}
 
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
-		/// <param name="index">Index de l'objet à retourner</param>
-		/// <param name="required">Si true et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
-		/// <returns>Valeur de l'objet à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas un objet, ou si la valeur est null (et que <paramref name="required"/> est true)</returns>
+		/// <summary>Retourne la valeur Ã  l'index spÃ©cifiÃ© sous forme d'objet JSON</summary>
+		/// <param name="index">Index de l'objet Ã  retourner</param>
+		/// <param name="required">Si true et que l'array contient null Ã  cet index, provoque une exception. Sinon, retourne null.</param>
+		/// <returns>Valeur de l'objet Ã  l'index spÃ©cifiÃ©, ou null si l'array contient null Ã  cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, oÃ¹ si la valeur n'est pas un objet, ou si la valeur est null (et que <paramref name="required"/> est true)</returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas un objet JSON.</exception>
+		/// <exception cref="InvalidOperationException">Si la valeur Ã  l'<paramref name="index"/> spÃ©cifiÃ© est null, et que <paramref name="required"/> vaut true.</exception>
+		/// <exception cref="ArgumentException">Si la valeur Ã  l'<paramref name="index"/> spÃ©cifiÃ© n'est pas un objet JSON.</exception>
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read)]
 		public JsonObject? GetObject(int index, bool required)
 		{
 			return this[index].AsObject(required);
 		}
 
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'array JSON</summary>
-		/// <param name="index">Index de l'array à retourner</param>
-		/// <returns>Valeur à l'index spécifié, ou null si l'array contient null à cet index, ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas une array</returns>
+		/// <summary>Retourne la valeur Ã  l'index spÃ©cifiÃ© sous forme d'array JSON</summary>
+		/// <param name="index">Index de l'array Ã  retourner</param>
+		/// <returns>Valeur Ã  l'index spÃ©cifiÃ©, ou null si l'array contient null Ã  cet index, ou une exception si l'index est en dehors des bornes de l'array, oÃ¹ si la valeur n'est pas une array</returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
+		/// <exception cref="ArgumentException">Si la valeur Ã  l'<paramref name="index"/> spÃ©cifiÃ© n'est pas une array JSON.</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray? GetArray(int index)
 		{
 			return this[index]?.AsArray(required: false);
 		}
 
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'array JSON</summary>
-		/// <param name="index">Index de l'array à retourner</param>
-		/// <param name="required">Si true et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
-		/// <returns>Valeur à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas une array, ou si la valeur est null (et que <paramref name="required"/> est true)</returns>
+		/// <summary>Retourne la valeur Ã  l'index spÃ©cifiÃ© sous forme d'array JSON</summary>
+		/// <param name="index">Index de l'array Ã  retourner</param>
+		/// <param name="required">Si true et que l'array contient null Ã  cet index, provoque une exception. Sinon, retourne null.</param>
+		/// <returns>Valeur Ã  l'index spÃ©cifiÃ©, ou null si l'array contient null Ã  cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, oÃ¹ si la valeur n'est pas une array, ou si la valeur est null (et que <paramref name="required"/> est true)</returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
+		/// <exception cref="InvalidOperationException">Si la valeur Ã  l'<paramref name="index"/> spÃ©cifiÃ© est null, et que <paramref name="required"/> vaut true.</exception>
+		/// <exception cref="ArgumentException">Si la valeur Ã  l'<paramref name="index"/> spÃ©cifiÃ© n'est pas une array JSON.</exception>
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray? GetArray(int index, bool required)
 		{
@@ -1392,7 +1410,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (index < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
 
-			// s'il n'y a pas assez de place, on doit insérer autant de JsonNull.Null que nécessaire
+			// s'il n'y a pas assez de place, on doit insÃ©rer autant de JsonNull.Null que nÃ©cessaire
 			var empty = JsonNull.Null;
 			if (index >= m_size)
 			{
@@ -1449,9 +1467,9 @@ namespace Doxense.Serialization.Json
 			}
 			m_items[m_size] = null!;
 
-			//TODO: OPTIMIZE: pas forcément une bonne idée pour des algos qui remplissent une array de "TODO" items, et la vident progressivement jusqu'a ce qu'elle soit vide
-			// => on pourrait déferrer le shrink en cas d'insert après un delete ?
-			// => on ne peut pas non plus shrinker si un insert observe une trop grand capacité, car c'est le cas quand on pré-alloue une array avant de la remplir...
+			//TODO: OPTIMIZE: pas forcÃ©ment une bonne idÃ©e pour des algos qui remplissent une array de "TODO" items, et la vident progressivement jusqu'a ce qu'elle soit vide
+			// => on pourrait dÃ©ferrer le shrink en cas d'insert aprÃ¨s un delete ?
+			// => on ne peut pas non plus shrinker si un insert observe une trop grand capacitÃ©, car c'est le cas quand on prÃ©-alloue une array avant de la remplir...
 			// => ne rien faire, et rendre le shrink explicite ?
 			/* DISABLED
 			if (m_size < m_items.Length >> 1)
@@ -1579,9 +1597,9 @@ namespace Doxense.Serialization.Json
 			m_size = p;
 		}
 
-		/// <summary>Retourne une nouvelle array ne contenant que les éléments de cette array à partir de l'index indiqué</summary>
-		/// <param name="index">Index de l'élément de cette array qui sera le premier dans la nouvelle array</param>
-		/// <returns>Nouvelle array (copie de la précédente)</returns>
+		/// <summary>Retourne une nouvelle array ne contenant que les Ã©lÃ©ments de cette array Ã  partir de l'index indiquÃ©</summary>
+		/// <param name="index">Index de l'Ã©lÃ©ment de cette array qui sera le premier dans la nouvelle array</param>
+		/// <returns>Nouvelle array (copie de la prÃ©cÃ©dente)</returns>
 		[CollectionAccess(CollectionAccessType.Read)]
 		public JsonArray Substring(int index)
 		{
@@ -1688,22 +1706,22 @@ namespace Doxense.Serialization.Json
 			public JsonValue Current => m_current!;
 		}
 
-		/// <summary>Retourne une vue typée de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonObject"/>s</summary>
-		/// <param name="required">Si true, vérifie que chaque élément de l'array n'est pas null</param>
+		/// <summary>Retourne une vue typÃ©e de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonObject"/>s</summary>
+		/// <param name="required">Si true, vÃ©rifie que chaque Ã©lÃ©ment de l'array n'est pas null</param>
 		/// <remarks>
-		/// Toute entrée contenant un <see cref="JsonNull"/> retournera <b>null</b>!
-		/// Si l'array contient autre chose que des <see cref="JsonObject"/>, une <see cref="InvalidCastException"/> sera générée au runtime lors de l'énumération!
+		/// Toute entrÃ©e contenant un <see cref="JsonNull"/> retournera <b>null</b>!
+		/// Si l'array contient autre chose que des <see cref="JsonObject"/>, une <see cref="InvalidCastException"/> sera gÃ©nÃ©rÃ©e au runtime lors de l'Ã©numÃ©ration!
 		/// </remarks>
 		public JsonArray<JsonObject> AsObjects(bool required = false)
 		{
 			return new JsonArray<JsonObject>(m_items, m_size, required);
 		}
 
-		/// <summary>Retourne une vue typée de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonArray"/>s</summary>
-		/// <param name="required">Si true, vérifie que chaque élément de l'array n'est pas null</param>
+		/// <summary>Retourne une vue typÃ©e de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonArray"/>s</summary>
+		/// <param name="required">Si true, vÃ©rifie que chaque Ã©lÃ©ment de l'array n'est pas null</param>
 		/// <remarks>
-		/// Toute entrée contenant un <see cref="JsonNull"/> retournera <b>null</b>!
-		/// Si l'array contient autre chose que des <see cref="JsonArray"/>, une <see cref="InvalidCastException"/> sera générée au runtime lors de l'énumération!
+		/// Toute entrÃ©e contenant un <see cref="JsonNull"/> retournera <b>null</b>!
+		/// Si l'array contient autre chose que des <see cref="JsonArray"/>, une <see cref="InvalidCastException"/> sera gÃ©nÃ©rÃ©e au runtime lors de l'Ã©numÃ©ration!
 		/// </remarks>
 		[Pure]
 		public JsonArray<JsonArray> AsArrays(bool required = false)
@@ -1711,12 +1729,12 @@ namespace Doxense.Serialization.Json
 			return new JsonArray<JsonArray>(m_items, m_size, required);
 		}
 
-		/// <summary>Retourne une wrapper sur cette <see cref="JsonArray"/> qui convertit les éléments en <typeparamref name="TValue"/></summary>
-		/// <remarks>Cette version est optimisée pour réduire le nombre d'allocations mémoires</remarks>
+		/// <summary>Retourne une wrapper sur cette <see cref="JsonArray"/> qui convertit les Ã©lÃ©ments en <typeparamref name="TValue"/></summary>
+		/// <remarks>Cette version est optimisÃ©e pour rÃ©duire le nombre d'allocations mÃ©moires</remarks>
 		public TypedEnumerable<TValue> Cast<TValue>(bool required = false)
 		{
-			//note: on ne peut pas appeler cette méthode "As<T>" a cause d'un conflit avec l'extension method As<T> sur les JsonValue!
-			//=> arr.As<int[]> retourne un int[], alors que arr.Cast<int[]> serait l'équivalent d'un IEnumerable<int[]> (~= int[][]) !
+			//note: on ne peut pas appeler cette mÃ©thode "As<T>" a cause d'un conflit avec l'extension method As<T> sur les JsonValue!
+			//=> arr.As<int[]> retourne un int[], alors que arr.Cast<int[]> serait l'Ã©quivalent d'un IEnumerable<int[]> (~= int[][]) !
 
 			return new TypedEnumerable<TValue>(this, required);
 		}
@@ -1883,21 +1901,21 @@ namespace Doxense.Serialization.Json
 
 			var sb = new StringBuilder(128);
 			// Dump les 4 premiers, et rajoutes des ", ... X more" si plus que 4.
-			// On va quand même dumper le 5 eme s'il y a exactement 5 items, pour éviter le " .... 1 more" qui prend autant de places que de l'écrire!
+			// On va quand mÃªme dumper le 5 eme s'il y a exactement 5 items, pour Ã©viter le " .... 1 more" qui prend autant de places que de l'Ã©crire!
 			++depth;
 			sb.Append("[ ").Append((items[0] ?? JsonNull.Null).GetCompactRepresentation(depth));
 			if (size >= 2) sb.Append(", ").Append((items[1] ?? JsonNull.Null).GetCompactRepresentation(depth));
 			if (size >= 3) sb.Append(", ").Append((items[2] ?? JsonNull.Null).GetCompactRepresentation(depth));
 			if (depth == (0+1))
-			{ // on va jusqu'à 4 items (5eme joker)
+			{ // on va jusqu'Ã  4 items (5eme joker)
 				if (size >= 4) sb.Append(", ").Append((items[3] ?? JsonNull.Null).GetCompactRepresentation(depth));
 				if (size == 5) sb.Append(", ").Append((items[4] ?? JsonNull.Null).GetCompactRepresentation(depth));
-				else if (size > 5) sb.Append($", /* … {size - 4:N0} more */");
+				else if (size > 5) sb.Append($", /* â€¦ {size - 4:N0} more */");
 			}
 			else
-			{ // on va jusqu'à 3 items (4eme joker)
+			{ // on va jusqu'Ã  3 items (4eme joker)
 				if (size == 4) sb.Append(", ").Append((items[3] ?? JsonNull.Null).GetCompactRepresentation(depth));
-				else if (size > 4) sb.Append($", /* … {size - 3:N0} more */");
+				else if (size > 4) sb.Append($", /* â€¦ {size - 3:N0} more */");
 			}
 			sb.Append(" ]");
 			return sb.ToString();
@@ -1905,9 +1923,9 @@ namespace Doxense.Serialization.Json
 
 		public override object? ToObject()
 		{
-			//TODO: détecter le cas ou tt les members ont le même type T,
-			// et dans ce cas créer une List<T>, plutôt qu'une List<object> !
-			//TODO2: pourquoi ne pas retourner un object[] plutôt qu'une List<object> ?
+			//TODO: dÃ©tecter le cas ou tt les members ont le mÃªme type T,
+			// et dans ce cas crÃ©er une List<T>, plutÃ´t qu'une List<object> !
+			//TODO2: pourquoi ne pas retourner un object[] plutÃ´t qu'une List<object> ?
 
 			var list = new List<object?>(this.Count);
 			foreach (var value in this)
@@ -1922,8 +1940,8 @@ namespace Doxense.Serialization.Json
 			return (resolver ?? CrystalJson.DefaultResolver).BindJsonArray(type, this);
 		}
 
-		/// <summary>Retourne une <see cref="JsonValue"/>[] contenant les mêmes éléments comme cette array JSON</summary>
-		/// <remarks>Effectue une shallow copy des éléments.</remarks>
+		/// <summary>Retourne une <see cref="JsonValue"/>[] contenant les mÃªmes Ã©lÃ©ments comme cette array JSON</summary>
+		/// <remarks>Effectue une shallow copy des Ã©lÃ©ments.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonValue[] ToArray()
 		{
@@ -1937,7 +1955,7 @@ namespace Doxense.Serialization.Json
 		public T?[] ToArray<T>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern reconnu et optimisÃ© par le JIT en Release
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -1980,13 +1998,13 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// version Ã©galement optimisÃ©e!
 				return ToPrimitiveArray<T>();
 			}
 #endif
 			#endregion </JIT_HACK>
 
-			//testé au runtime, mais il est probable que la majorité des array soient des string[] ??
+			//testÃ© au runtime, mais il est probable que la majoritÃ© des array soient des string[] ??
 			if (typeof (T) == typeof (string)) return (T[]) (object) ToStringArray();
 
 			var size = m_size;
@@ -2024,12 +2042,12 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		/// <summary>Désérialise une JSON Array en array d'objets dont le type est défini</summary>
-		/// <typeparam name="T">Type des éléments de la liste</typeparam>
+		/// <summary>DÃ©sÃ©rialise une JSON Array en array d'objets dont le type est dÃ©fini</summary>
+		/// <typeparam name="T">Type des Ã©lÃ©ments de la liste</typeparam>
 		/// <param name="value">Tableau JSON contenant des objets a priori de type T</param>
 		/// <param name="required"></param>
 		/// <param name="customResolver">Resolver optionnel</param>
-		/// <returns>Retourne une IList&lt;T&gt; contenant les éléments désérialisés</returns>
+		/// <returns>Retourne une IList&lt;T&gt; contenant les Ã©lÃ©ments dÃ©sÃ©rialisÃ©s</returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static T?[]? BindArray<T>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
 		{
@@ -2041,7 +2059,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
 		private T?[] ToPrimitiveArray<T>()
-		//IMPORTANT! T doit être un type primitif reconnu par As<T> via compile time scanning!!!
+		//IMPORTANT! T doit Ãªtre un type primitif reconnu par As<T> via compile time scanning!!!
 		{
 			if (this.Count == 0) return Array.Empty<T?>();
 			var result = new T?[this.Count];
@@ -2186,7 +2204,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Retourne une <see cref="List&lt;JsonValue&gt;"/> contenant les mêmes éléments comme cette array</summary>
+		/// <summary>Retourne une <see cref="List&lt;JsonValue&gt;"/> contenant les mÃªmes Ã©lÃ©ments comme cette array</summary>
 		/// <remarks>Effectue une shallow copy de la liste.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<JsonValue> ToList()
@@ -2199,7 +2217,7 @@ namespace Doxense.Serialization.Json
 		{
 			#region <JIT_HACK>
 
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern reconnu et optimisÃ© par le JIT en Release
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -2242,7 +2260,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// version Ã©galement optimisÃ©e!
 				return ToPrimitiveList<T>();
 			}
 #endif
@@ -2282,12 +2300,12 @@ namespace Doxense.Serialization.Json
 			return list;
 		}
 
-		/// <summary>Désérialise une JSON Array en List d'objets dont le type est défini</summary>
-		/// <typeparam name="T">Type des éléments de la liste</typeparam>
+		/// <summary>DÃ©sÃ©rialise une JSON Array en List d'objets dont le type est dÃ©fini</summary>
+		/// <typeparam name="T">Type des Ã©lÃ©ments de la liste</typeparam>
 		/// <param name="value">Tableau JSON contenant des objets a priori de type T</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required"></param>
-		/// <returns>Retourne une IList&lt;T&gt; contenant les éléments désérialisés</returns>
+		/// <returns>Retourne une IList&lt;T&gt; contenant les Ã©lÃ©ments dÃ©sÃ©rialisÃ©s</returns>
 		[Pure, ContractAnnotation("value:null => null")]
 		public static List<T?>? BindList<T>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
 		{
@@ -2301,7 +2319,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
 		private List<T?> ToPrimitiveList<T>()
-			//IMPORTANT! T doit être un type primitif reconnu par As<T> via compile time scanning!!!
+			//IMPORTANT! T doit Ãªtre un type primitif reconnu par As<T> via compile time scanning!!!
 		{
 			var result = new List<T?>(this.Count);
 			foreach (var item in this)
@@ -2541,9 +2559,9 @@ namespace Doxense.Serialization.Json
 			return Copy(this, deep);
 		}
 
-		/// <summary>Crée une copie d'une array JSON, en clonant éventuellement ses éléments</summary>
-		/// <param name="value">Array JSON à copier</param>
-		/// <param name="deep">Si true, clone les éléments de <paramref name="value"/>. Si false, la nouvelle array contiendra les mêmes éléments.</param>
+		/// <summary>CrÃ©e une copie d'une array JSON, en clonant Ã©ventuellement ses Ã©lÃ©ments</summary>
+		/// <param name="value">Array JSON Ã  copier</param>
+		/// <param name="deep">Si true, clone les Ã©lÃ©ments de <paramref name="value"/>. Si false, la nouvelle array contiendra les mÃªmes Ã©lÃ©ments.</param>
 		/// <returns>Clone de <paramref name="value"/>.</returns>
 		[CollectionAccess(CollectionAccessType.Read)]
 		public static JsonArray Copy(JsonArray value, bool deep)
@@ -2555,7 +2573,7 @@ namespace Doxense.Serialization.Json
 			return array;
 		}
 
-		/// <summary>Indique si l'array contient au moins un élément</summary>
+		/// <summary>Indique si l'array contient au moins un Ã©lÃ©ment</summary>
 		/// <returns>True si <see cref="Count"/> &gt; 0; Sinon, false</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool Any()
@@ -2563,8 +2581,8 @@ namespace Doxense.Serialization.Json
 			return m_size > 0;
 		}
 
-		/// <summary>Indique si au moins un élément de l'array est du type indiqué</summary>
-		/// <param name="type">Type d'élément JSON recherché</param>
+		/// <summary>Indique si au moins un Ã©lÃ©ment de l'array est du type indiquÃ©</summary>
+		/// <param name="type">Type d'Ã©lÃ©ment JSON recherchÃ©</param>
 		/// <remarks>Retourne toujours false pour une array vide.</remarks>
 		public bool Any(JsonType type)
 		{
@@ -2577,7 +2595,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Indique si au moins un élément de l'array satisfait le prédicat</summary>
+		/// <summary>Indique si au moins un Ã©lÃ©ment de l'array satisfait le prÃ©dicat</summary>
 		/// <remarks>Retourne toujours false pour une array vide.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool Any([InstantHandle] Func<JsonValue, bool> predicate)
@@ -2593,8 +2611,8 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Indique si tous les éléments de l'array sont du type indiqué</summary>
-		/// <param name="type">Type d'élément JSON recherché</param>
+		/// <summary>Indique si tous les Ã©lÃ©ments de l'array sont du type indiquÃ©</summary>
+		/// <param name="type">Type d'Ã©lÃ©ment JSON recherchÃ©</param>
 		/// <remarks>Retourne toujours true pour une array vide.</remarks>
 		public bool All(JsonType type)
 		{
@@ -2607,7 +2625,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Indique si tous les éléments de l'array satisfont le prédicat</summary>
+		/// <summary>Indique si tous les Ã©lÃ©ments de l'array satisfont le prÃ©dicat</summary>
 		/// <remarks>Retourne toujours true pour une array vide.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool All([InstantHandle] Func<JsonValue, bool> predicate)
@@ -2623,11 +2641,11 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Détermine si tous les éléments de l'array ont le même type JSON, où s'ils sont de type différent</summary>
-		/// <returns>Un <see cref="JsonType"/> si tous les éléments sont du même type, ou null s'il y a au moins deux éléments de type différent</returns>
+		/// <summary>DÃ©termine si tous les Ã©lÃ©ments de l'array ont le mÃªme type JSON, oÃ¹ s'ils sont de type diffÃ©rent</summary>
+		/// <returns>Un <see cref="JsonType"/> si tous les Ã©lÃ©ments sont du mÃªme type, ou null s'il y a au moins deux Ã©lÃ©ments de type diffÃ©rent</returns>
 		/// <remarks>
-		/// Ignore les éléments de 'null' de l'array (ie: [ 123, null, 789 ] retournera le type <see cref="JsonType.Number"/>).
-		/// Ne peut pas retourner <see cref="JsonType.Null"/>: si l'array ne contient que des 'null', le résultat sera default(<see cref="JsonType"/>).
+		/// Ignore les Ã©lÃ©ments de 'null' de l'array (ie: [ 123, null, 789 ] retournera le type <see cref="JsonType.Number"/>).
+		/// Ne peut pas retourner <see cref="JsonType.Null"/>: si l'array ne contient que des 'null', le rÃ©sultat sera default(<see cref="JsonType"/>).
 		/// </remarks>
 		public JsonType? GetElementsTypeOrDefault()
 		{
@@ -2638,7 +2656,7 @@ namespace Doxense.Serialization.Json
 			{
 				var t = items[i]?.Type ?? JsonType.Null;
 				if (type == null)
-				{ // on n'a pas encore eu d'éléments non null
+				{ // on n'a pas encore eu d'Ã©lÃ©ments non null
 					type = t;
 				}
 				else if (t != type && t != JsonType.Null)
@@ -2650,8 +2668,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Copie les champs d'un autre objet dans l'objet courrant</summary>
-		/// <param name="other">Autre objet JSON dont les champs vont être copié dans l'objet courant. Tout champ déjà existant sera écrasé.</param>
-		/// <param name="deepCopy">Si true, clone tous les champs de <paramref name="other"/> avant de le copier. Sinon, ils sont copiés par référence.</param>
+		/// <param name="other">Autre objet JSON dont les champs vont Ãªtre copiÃ© dans l'objet courant. Tout champ dÃ©jÃ  existant sera Ã©crasÃ©.</param>
+		/// <param name="deepCopy">Si true, clone tous les champs de <paramref name="other"/> avant de le copier. Sinon, ils sont copiÃ©s par rÃ©fÃ©rence.</param>
 		public void MergeWith(JsonArray other, bool deepCopy = false)
 		{
 			Merge(this, other, deepCopy);
@@ -2723,7 +2741,7 @@ namespace Doxense.Serialization.Json
 						break;
 					}
 					case JsonType.Null:
-					{ // null/JsonNull sont laissés tel quel
+					{ // null/JsonNull sont laissÃ©s tel quel
 						array.Add(JsonNull.Null);
 						break;
 					}
@@ -2738,8 +2756,8 @@ namespace Doxense.Serialization.Json
 
 		#region Flatten...
 
-		/// <summary>Applatit une liste de liste en une liste tout court (équivalent d'un SelectMany récursif)</summary>
-		/// <param name="deep">Si false, n'applatit que sur un niveau. Si true, aplatit récursivement quelque soit la profondeur</param>
+		/// <summary>Applatit une liste de liste en une liste tout court (Ã©quivalent d'un SelectMany rÃ©cursif)</summary>
+		/// <param name="deep">Si false, n'applatit que sur un niveau. Si true, aplatit rÃ©cursivement quelque soit la profondeur</param>
 		/// <returns>Liste applatie</returns>
 		/// <example>
 		/// Flatten([ [1,2], 3, [4, [5,6]] ], deep: false) => [ 1, 2, 3, 4, [5, 6] ]
@@ -2866,10 +2884,10 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			// le hashcode de l'objet ne doit pas changer meme s'il est modifié (sinon on casse les hashtables!)
+			// le hashcode de l'objet ne doit pas changer meme s'il est modifiÃ© (sinon on casse les hashtables!)
 			return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);
 
-			//TODO: si on jour on gère les Read-Only Arrays, on peut utiliser ce code
+			//TODO: si on jour on gÃ¨re les Read-Only Arrays, on peut utiliser ce code
 			//int n = Math.Min(m_size, 4);
 
 			//var items = m_items;
@@ -2921,11 +2939,11 @@ namespace Doxense.Serialization.Json
 	{
 
 		// magic cast entre JsonValue et JsonArray
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
+		// le but est de rÃ©duire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
-		/// <param name="value">Valeur JSON qui doit être une array</param>
-		/// <returns>Valeur castée en JsonArray si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
+		/// <summary>VÃ©rifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
+		/// <param name="value">Valeur JSON qui doit Ãªtre une array</param>
+		/// <returns>Valeur castÃ©e en JsonArray si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas une array.</exception>
 		[Pure, ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use AsArray(required: true) instead", error: true)]
@@ -2937,8 +2955,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne la valeur JSON sous forme d'array, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit une array, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonArray si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
+		/// <param name="value">Valeur JSON qui doit Ãªtre soit une array, soit null/missing.</param>
+		/// <returns>Valeur castÃ©e en JsonArray si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type diffÃ©rent.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> n'est ni null, ni une array.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use AsArray(required: false) instead", error: true)]
@@ -2949,10 +2967,10 @@ namespace Doxense.Serialization.Json
 				: (JsonArray) value;
 		}
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
-		/// <param name="value">Valeur JSON qui doit être une array</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <returns>Valeur castée en JsonArray si elle existe, ou null si la valeur est null/missing et que <paramref name="required"/> vaut false. Throw dans tous les autres cas</returns>
+		/// <summary>VÃ©rifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
+		/// <param name="value">Valeur JSON qui doit Ãªtre une array</param>
+		/// <param name="required">Si true, throw une exception si le document JSON parsÃ© est Ã©quivalent Ã  null (vide, 'null', ...)</param>
+		/// <returns>Valeur castÃ©e en JsonArray si elle existe, ou null si la valeur est null/missing et que <paramref name="required"/> vaut false. Throw dans tous les autres cas</returns>
 		/// <exception cref="InvalidOperationException">Si <paramref name="value"/> est null ou missing et que <paramref name="required"/> vaut true. Ou si <paramref name="value"/> n'est pas une array.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? AsArray(this JsonValue? value, bool required)
@@ -2983,59 +3001,59 @@ namespace Doxense.Serialization.Json
 
 		#region ToJsonArray...
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Copie les Ã©lÃ©ments de la sÃ©quence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonValue> source)
 		{
-			//note: même si source est déjà un JsonArray, on veut quand même copier!
+			//note: mÃªme si source est dÃ©jÃ  un JsonArray, on veut quand mÃªme copier!
 			return new JsonArray(source);
 		}
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Copie les Ã©lÃ©ments de la sÃ©quence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonArray> source)
 		{
-			//note: même si source est déja un JsonArray, on veut quand même copier!
+			//note: mÃªme si source est dÃ©ja un JsonArray, on veut quand mÃªme copier!
 			return new JsonArray(source);
 		}
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Copie les Ã©lÃ©ments de la sÃ©quence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonObject> source)
 		{
-			//note: même si source est déja un JsonArray, on veut quand même copier!
+			//note: mÃªme si source est dÃ©ja un JsonArray, on veut quand mÃªme copier!
 			return new JsonArray(source);
 		}
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Copie les Ã©lÃ©ments de la sÃ©quence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray<TElement>([InstantHandle] this IEnumerable<TElement> source, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return new JsonArray().AddRange<TElement>(source, settings, resolver);
 		}
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Copie les Ã©lÃ©ments de la sÃ©quence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray<TElement>([InstantHandle] this IEnumerable<TElement> source)
 		{
 			return new JsonArray().AddRange<TElement>(source);
 		}
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Copie les Ã©lÃ©ments de la sÃ©quence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray<TElement>(this TElement[] source)
 		{
 			return new JsonArray().AddRange<TElement>(source);
 		}
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Copie les Ã©lÃ©ments de la sÃ©quence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray<TElement>(this List<TElement> source)
 		{
 			return new JsonArray().AddRange<TElement>(source);
 		}
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforme les Ã©lÃ©ments de la sÃ©quence source en une nouvelle JsonArray</summary>
 		public static JsonArray ToJsonArray<TInput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonValue> selector)
 		{
 			var arr = new JsonArray((source as ICollection<TInput>)?.Count ?? 0);
@@ -3046,7 +3064,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforme les Ã©lÃ©ments de la sÃ©quence source en une nouvelle JsonArray</summary>
 		public static JsonArray ToJsonArray<TInput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonObject> selector)
 		{
 			var arr = new JsonArray((source as ICollection<TInput>)?.Count ?? 0);
@@ -3057,7 +3075,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforme les Ã©lÃ©ments de la sÃ©quence source en une nouvelle JsonArray</summary>
 		public static JsonArray ToJsonArray<TInput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonArray> selector)
 		{
 			var arr = new JsonArray((source as ICollection<TInput>)?.Count ?? 0);
@@ -3068,7 +3086,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforme les Ã©lÃ©ments de la sÃ©quence source en une nouvelle JsonArray</summary>
 		public static JsonArray ToJsonArray<TInput, TOutput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, TOutput> selector)
 		{
 			return new JsonArray((source as ICollection<TInput>)?.Count ?? 0).AddRange(source, selector);
@@ -3078,7 +3096,7 @@ namespace Doxense.Serialization.Json
 
 		#region Pick...
 
-		/// <summary>Retourne une liste d'objets copiés, et filtrés pour ne contenir que les champs autorisés dans <param name="keys"/>.</summary>
+		/// <summary>Retourne une liste d'objets copiÃ©s, et filtrÃ©s pour ne contenir que les champs autorisÃ©s dans <param name="keys"/>.</summary>
 		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue> source, params string[] keys)
 		{
 			Contract.NotNull(source);
@@ -3086,11 +3104,11 @@ namespace Doxense.Serialization.Json
 			return JsonArray.Project(source, JsonObject.CheckProjectionFields(keys, keepMissing: false));
 		}
 
-		/// <summary>Retourne une liste d'objets copiés, et filtrés pour ne contenir que les champs autorisés dans <param name="keys"/>.</summary>
+		/// <summary>Retourne une liste d'objets copiÃ©s, et filtrÃ©s pour ne contenir que les champs autorisÃ©s dans <param name="keys"/>.</summary>
 		/// <param name="source"></param>
-		/// <param name="keys">Liste des clés à conserver sur les éléments de la liste</param>
-		/// <param name="keepMissing">Si true, toute propriété manquante sera ajoutée avec la valeur 'null' / JsonNull.Missing.</param>
-		/// <returns>Nouvelle liste contenant le résultat de la projection sur chaque élément de la liste</returns>
+		/// <param name="keys">Liste des clÃ©s Ã  conserver sur les Ã©lÃ©ments de la liste</param>
+		/// <param name="keepMissing">Si true, toute propriÃ©tÃ© manquante sera ajoutÃ©e avec la valeur 'null' / JsonNull.Missing.</param>
+		/// <returns>Nouvelle liste contenant le rÃ©sultat de la projection sur chaque Ã©lÃ©ment de la liste</returns>
 		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue> source, IEnumerable<string> keys, bool keepMissing = false)
 		{
 			Contract.NotNull(source);
@@ -3099,10 +3117,10 @@ namespace Doxense.Serialization.Json
 			return JsonArray.Project(source, JsonObject.CheckProjectionFields(keys, keepMissing));
 		}
 
-		/// <summary>Retourne une liste d'objets copiés, et filtrés pour ne contenir que les champs autorisés dans <param name="defaults"/>.</summary>
+		/// <summary>Retourne une liste d'objets copiÃ©s, et filtrÃ©s pour ne contenir que les champs autorisÃ©s dans <param name="defaults"/>.</summary>
 		/// <param name="source"></param>
-		/// <param name="defaults">Liste des clés à conserver sur les éléments de la liste</param>
-		/// <returns>Nouvelle liste contenant le résultat de la projection sur chaque élément de la liste</returns>
+		/// <param name="defaults">Liste des clÃ©s Ã  conserver sur les Ã©lÃ©ments de la liste</param>
+		/// <returns>Nouvelle liste contenant le rÃ©sultat de la projection sur chaque Ã©lÃ©ment de la liste</returns>
 		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue> source, IDictionary<string, JsonValue?> defaults)
 		{
 			Contract.NotNull(source);
@@ -3119,19 +3137,19 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Map les éléments de cette liste vers un dictionnaire</summary>
-		/// <typeparam name="TKey">Type des clé du dictionnaire cible</typeparam>
+		/// <summary>Map les Ã©lÃ©ments de cette liste vers un dictionnaire</summary>
+		/// <typeparam name="TKey">Type des clÃ© du dictionnaire cible</typeparam>
 		/// <typeparam name="TValue">Type des valeurs du dictionnaire cible</typeparam>
 		/// <param name="source"></param>
 		/// <param name="target">Dictionnaire cible dans lequel stocker les valeurs</param>
 		/// <param name="expectedType">Type attendu des objets de la liste (ou null si aucun filtrage)</param>
-		/// <param name="keySelector">Lambda utilisée pour extraire les clés du dictionnaire</param>
-		/// <param name="valueSelector">Lambda utilisée pour extraire les valeurs stockées dans le dictionnaire</param>
-		/// <param name="customResolver">Résolveur de type custom (ou celui par défaut si null)</param>
-		/// <param name="overwrite">Si true, écrase toute valeur existante. Si false, provoque une exception en cas de doublon de clé</param>
-		/// <returns>L'annuaire cible passé en paramètre</returns>
-		/// <exception cref="System.ArgumentNullException">Si l'un des paramètre requis est null</exception>
-		/// <exception cref="System.InvalidOperationException">Si un élément de l'array est null, ou s'il n'est pas dy type attendu</exception>
+		/// <param name="keySelector">Lambda utilisÃ©e pour extraire les clÃ©s du dictionnaire</param>
+		/// <param name="valueSelector">Lambda utilisÃ©e pour extraire les valeurs stockÃ©es dans le dictionnaire</param>
+		/// <param name="customResolver">RÃ©solveur de type custom (ou celui par dÃ©faut si null)</param>
+		/// <param name="overwrite">Si true, Ã©crase toute valeur existante. Si false, provoque une exception en cas de doublon de clÃ©</param>
+		/// <returns>L'annuaire cible passÃ© en paramÃ¨tre</returns>
+		/// <exception cref="System.ArgumentNullException">Si l'un des paramÃ¨tre requis est null</exception>
+		/// <exception cref="System.InvalidOperationException">Si un Ã©lÃ©ment de l'array est null, ou s'il n'est pas dy type attendu</exception>
 		/// <remarks>Attention, l'Array ne doit pas contenir de valeur null !</remarks>
 		public static IDictionary<TKey, TValue> MapTo<TKey, TValue>(
 			[InstantHandle] this IEnumerable<JsonValue> source,
@@ -3216,7 +3234,7 @@ namespace Doxense.Serialization.Json
 			return GetEnumerator();
 		}
 
-		/// <summary>Enumerator qui cast chaque élément d'une <see cref="JsonArray"/> en un <b>TJson</b>.</summary>
+		/// <summary>Enumerator qui cast chaque Ã©lÃ©ment d'une <see cref="JsonArray"/> en un <b>TJson</b>.</summary>
 		public struct Enumerator : IEnumerator<TJson>
 		{
 			private readonly JsonValue?[] m_items;
@@ -3255,7 +3273,7 @@ namespace Doxense.Serialization.Json
 
 			private bool MoveNextNullOrInvalidCast()
 			{
-				// appelé si le cast "as JsonValue" en T retourne null:
+				// appelÃ© si le cast "as JsonValue" en T retourne null:
 				// - car la valeur est un JsonNull (dans ce cas on retourne un null)
 				// - car la valeur est un autre type de Json que celui attendu
 				int index = m_index;
@@ -3270,8 +3288,8 @@ namespace Doxense.Serialization.Json
 					throw FailElementAtIndexNullOrMissing(index);
 				}
 
-				//note: on considère que c'est l'équivalent de "foreach(string s in new [] { "hello", null, "world" }) { ... }"
-				// => dans ce cas, s vaudrait aussi 'null'. C'est la responsabilité de l'appelant de se débrouiller avec!
+				//note: on considÃ¨re que c'est l'Ã©quivalent de "foreach(string s in new [] { "hello", null, "world" }) { ... }"
+				// => dans ce cas, s vaudrait aussi 'null'. C'est la responsabilitÃ© de l'appelant de se dÃ©brouiller avec!
 				m_current = null;
 				m_index = index + 1;
 				return true;

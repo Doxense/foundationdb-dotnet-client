@@ -1,14 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
-// Based on Murmur3 by Austin Appleby
-//-----------------------------------------------------------------------------
-// MurmurHash3 was written by Austin Appleby, and is placed in the public
-// domain. The author hereby disclaims copyright to this source code.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.IO.Hashing
@@ -20,12 +33,12 @@ namespace Doxense.IO.Hashing
 	using JetBrains.Annotations;
 
 	/// <summary>Calcul d'un hash "Murmur3" sur 128 bits</summary>
-	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
+	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les donnÃ©es hashÃ©es, et ne doit donc pas Ãªtre utilisÃ© publiquement dans un scenario de protection de donnÃ©es! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
 	[PublicAPI]
 	public static class Murmur3Hash128
 	{
-		// Version 32 bits de "MurmurHash3", créé par Austin Appleby. Cet algo de hashing est idéal pour calcule un hashcode pour utilisation avec une table de hashage.
-		// ATTENTION: Ce n'est *PAS* un hash cryptographique (il peut leaker des informations sur les données sources), et ne doit donc être calculé que sur les données déja cryptées.
+		// Version 32 bits de "MurmurHash3", crÃ©Ã© par Austin Appleby. Cet algo de hashing est idÃ©al pour calcule un hashcode pour utilisation avec une table de hashage.
+		// ATTENTION: Ce n'est *PAS* un hash cryptographique (il peut leaker des informations sur les donnÃ©es sources), et ne doit donc Ãªtre calculÃ© que sur les donnÃ©es dÃ©ja cryptÃ©es.
 
 		// "MurmurHash3 is the successor to MurmurHash2. It comes in 3 variants - a 32-bit version that targets low latency for hash table use and two 128-bit versions for generating unique identifiers for large blocks of data, one each for x86 and x64 platforms."
 
@@ -63,7 +76,7 @@ namespace Doxense.IO.Hashing
 		[Pure]
 		public static Guid Continue(uint seed, byte[]? bytes)
 		{
-			// IMPORTANT: il faut quand même laisser passer le cas où null, ou Length == 0
+			// IMPORTANT: il faut quand mÃªme laisser passer le cas oÃ¹ null, ou Length == 0
 
 			unsafe
 			{
@@ -78,7 +91,7 @@ namespace Doxense.IO.Hashing
 		[Pure]
 		public static Guid Continue(uint seed, Slice bytes)
 		{
-			// IMPORTANT: il faut quand même laisser passer le cas où null, ou Length == 0
+			// IMPORTANT: il faut quand mÃªme laisser passer le cas oÃ¹ null, ou Length == 0
 
 			unsafe
 			{
@@ -93,7 +106,7 @@ namespace Doxense.IO.Hashing
 		[Pure]
 		public static Guid Continue(uint seed, ReadOnlySpan<byte> bytes)
 		{
-			// IMPORTANT: il faut quand même laisser passer le cas où null, ou Length == 0
+			// IMPORTANT: il faut quand mÃªme laisser passer le cas oÃ¹ null, ou Length == 0
 
 			unsafe
 			{

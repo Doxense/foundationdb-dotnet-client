@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+Ôªø#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Collections.Lookup
@@ -16,9 +34,9 @@ namespace Doxense.Collections.Lookup
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	/// <summary>Table de lookup utilisant une HashTable pour le stockage des ÈlÈments stockage (clÈs non ordonnÈes)</summary>
-	/// <typeparam name="TKey">Type des clÈs</typeparam>
-	/// <typeparam name="TElement">Type des ÈlÈments</typeparam>
+	/// <summary>Table de lookup utilisant une HashTable pour le stockage des √©l√©ments stockage (cl√©s non ordonn√©es)</summary>
+	/// <typeparam name="TKey">Type des cl√©s</typeparam>
+	/// <typeparam name="TElement">Type des √©l√©ments</typeparam>
 	public class HashLookup<TKey, TElement> : IEnumerable<Grouping<TKey, TElement>> where TKey : notnull
 	{
 		//REVIEW: TODO: il n'y a pas de tests unitaires pour cette classe ???
@@ -30,7 +48,7 @@ namespace Doxense.Collections.Lookup
 		{ }
 
 		public HashLookup(IEqualityComparer<TKey> comparer)
-			: this(919, comparer) // 919 (0x397) est le nombre premier le plu proche de 1000, ce qui reprÈsente une capacitÈ initiale plus que correcte pour un map reduce
+			: this(919, comparer) // 919 (0x397) est le nombre premier le plu proche de 1000, ce qui repr√©sente une capacit√© initiale plus que correcte pour un map reduce
 		{ }
 
 		public HashLookup(int capacity, IEqualityComparer<TKey> comparer)
@@ -55,7 +73,7 @@ namespace Doxense.Collections.Lookup
 
 			if (elements is HashLookup<TKey, TElement> hl)
 			{
-				//TODO: vÈrifier si comparer et hl.m_comparer sont compatibles?
+				//TODO: v√©rifier si comparer et hl.m_comparer sont compatibles?
 				items = new Dictionary<TKey, Grouping<TKey, TElement>>(hl.m_items, comparer);
 			}
 			else
@@ -93,10 +111,10 @@ namespace Doxense.Collections.Lookup
 			get => m_items[key];
 		}
 
-		/// <summary>Retourne le grouping d'une clÈ d'une hashlookup, ou une valeur par dÈfaut si elle est manquante</summary>
-		/// <param name="key">ClÈ ‡ lire</param>
-		/// <param name="missing">Valeur ‡ retourner si la clÈ est manquante</param>
-		/// <returns>Valeur de la clÈ dans le dictionnaire, ou valeur par dÈfaut si elle est manquante</returns>
+		/// <summary>Retourne le grouping d'une cl√© d'une hashlookup, ou une valeur par d√©faut si elle est manquante</summary>
+		/// <param name="key">Cl√© √† lire</param>
+		/// <param name="missing">Valeur √† retourner si la cl√© est manquante</param>
+		/// <returns>Valeur de la cl√© dans le dictionnaire, ou valeur par d√©faut si elle est manquante</returns>
 		[ContractAnnotation("missing:notnull => notnull")]
 		[return: NotNullIfNotNull("missing")]
 		public Grouping<TKey, TElement>? GetValueOrDefault(TKey key, Grouping<TKey, TElement>? missing = null)
@@ -110,16 +128,16 @@ namespace Doxense.Collections.Lookup
 		public Grouping<TKey, TElement>? GetGrouping(TKey key, bool createIfMissing)
 		{
 			if (m_items.TryGetValue(key, out var grouping))
-			{ // il existait dÈj‡
+			{ // il existait d√©j√†
 				return grouping;
 			}
 
 			if (!createIfMissing)
-			{ // on ne doit pas le crÈer
+			{ // on ne doit pas le cr√©er
 				return null;
 			}
 
-			// on crÈe un nouveau grouping (vide, mais avec la place pour un ÈlÈment)
+			// on cr√©e un nouveau grouping (vide, mais avec la place pour un √©l√©ment)
 			grouping = new Grouping<TKey, TElement>
 			{
 				m_key = key,
@@ -135,12 +153,12 @@ namespace Doxense.Collections.Lookup
 		public Grouping<TKey, TElement> GetOrCreateGrouping(TKey key, out bool created)
 		{
 			if (m_items.TryGetValue(key, out var grouping))
-			{ // il existait dÈj‡
+			{ // il existait d√©j√†
 				created = false;
 				return grouping;
 			}
 
-			// on crÈe un nouveau grouping (vide, mais avec la place pour un ÈlÈment)
+			// on cr√©e un nouveau grouping (vide, mais avec la place pour un √©l√©ment)
 			grouping = new Grouping<TKey, TElement>
 			{
 				m_key = key,
@@ -164,13 +182,13 @@ namespace Doxense.Collections.Lookup
 		public Grouping<TKey, TElement> AddOrUpdateGrouping(TKey key, IEnumerable<TElement> elements, out bool created)
 		{
 			if (m_items.TryGetValue(key, out var grouping))
-			{ // il existait dÈj‡
+			{ // il existait d√©j√†
 				grouping.AddRange(elements);
 				created = false;
 				return grouping;
 			}
 
-			// on crÈe un nouveau grouping (vide, mais avec la place pour un ÈlÈment)
+			// on cr√©e un nouveau grouping (vide, mais avec la place pour un √©l√©ment)
 			var t = elements.ToArray();
 			grouping = new Grouping<TKey, TElement>
 			{
@@ -230,8 +248,8 @@ namespace Doxense.Collections.Lookup
 		}
 
 		/// <summary>Execute, pour chaque grouping qui n'est pas vide, une action</summary>
-		/// <param name="handler">Action exÈcutÈe sur chaque grouping qui contient des ÈlÈments</param>
-		/// <returns>Nombre de groupings traitÈs</returns>
+		/// <param name="handler">Action ex√©cut√©e sur chaque grouping qui contient des √©l√©ments</param>
+		/// <returns>Nombre de groupings trait√©s</returns>
 		public int ForEach(Action<TKey, TElement[]> handler)
 		{
 			Contract.NotNull(handler);
@@ -242,11 +260,11 @@ namespace Doxense.Collections.Lookup
 				if (kvp.m_count == 0) continue;
 
 				if (kvp.m_count == kvp.m_elements.Length)
-				{ // si le buffer est ‡ la bonne taille, on peut le passer directement
+				{ // si le buffer est √† la bonne taille, on peut le passer directement
 					handler(kvp.Key, kvp.m_elements);
 				}
 				else
-				{ // sinon on est obligÈ de le copier
+				{ // sinon on est oblig√© de le copier
 					handler(kvp.Key, kvp.ToArray());
 				}
 				++count;
@@ -255,8 +273,8 @@ namespace Doxense.Collections.Lookup
 		}
 
 		/// <summary>Execute, pour chaque grouping qui n'est pas vide, une action</summary>
-		/// <param name="handler">Action exÈcutÈe sur chaque grouping qui contient des ÈlÈments. Le 3Ëme argument contient le nombre d'ÈlÈments dans l'array qui sont utilisables.</param>
-		/// <returns>Nombre de groupings traitÈs</returns>
+		/// <param name="handler">Action ex√©cut√©e sur chaque grouping qui contient des √©l√©ments. Le 3√®me argument contient le nombre d'√©l√©ments dans l'array qui sont utilisables.</param>
+		/// <returns>Nombre de groupings trait√©s</returns>
 		public int ForEach(Action<TKey, TElement[], int> handler)
 		{
 			Contract.NotNull(handler);

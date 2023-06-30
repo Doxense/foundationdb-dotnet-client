@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -19,7 +37,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Tools;
 	using JetBrains.Annotations;
 
-	/// <summary>Chaîne de texte JSON</summary>
+	/// <summary>ChaÃ®ne de texte JSON</summary>
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
 	[DebuggerNonUserCode]
 	public sealed class JsonString : JsonValue, IEquatable<JsonString>, IEquatable<string>, IEquatable<Guid>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
@@ -48,13 +66,13 @@ namespace Doxense.Serialization.Json
 
 		public static JsonString Return(char value)
 		{
-			//note: pas vraiment d'intérêt à optimiser, je ne pense pas que des chaînes d'un seul caractère soit si fréquentes que ça...
+			//note: pas vraiment d'intÃ©rÃªt Ã  optimiser, je ne pense pas que des chaÃ®nes d'un seul caractÃ¨re soit si frÃ©quentes que Ã§a...
 			return new JsonString(new string(value, 1));
 		}
 
 		public static JsonValue Return(char? value)
 		{
-			//note: pas vraiment d'intérêt à optimiser, je ne pense pas que des chaînes d'un seul caractère soit si fréquentes que ça...
+			//note: pas vraiment d'intÃ©rÃªt Ã  optimiser, je ne pense pas que des chaÃ®nes d'un seul caractÃ¨re soit si frÃ©quentes que Ã§a...
 			return value == null ? JsonNull.Null : Return(value.Value);
 		}
 
@@ -430,7 +448,7 @@ namespace Doxense.Serialization.Json
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			//TODO: réécrire via une Dictionary<Type, Func<..>> pour éviter le train de if/elseif !
+			//TODO: rÃ©Ã©crire via une Dictionary<Type, Func<..>> pour Ã©viter le train de if/elseif !
 
 			if (type == null || typeof(string) == type || typeof(object) == type)
 			{
@@ -529,7 +547,7 @@ namespace Doxense.Serialization.Json
 					return m_value.ToCharArray();
 				}
 				else if (typeof(byte[]) == type)
-				{ // par convention, la chaîne doit être Base64 encodée !
+				{ // par convention, la chaÃ®ne doit Ãªtre Base64 encodÃ©e !
 					return ToBuffer();
 				}
 				else if (typeof(ArraySegment<byte>) == type)
@@ -614,9 +632,9 @@ namespace Doxense.Serialization.Json
 				throw CrystalJson.Errors.Binding_CannotBindJsonStringToThisType(this, type, e);
 			}
 
-			// check si implémente IJsonBindable
+			// check si implÃ©mente IJsonBindable
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
-			{ // HACKHACK: pour les type qui se sérialisent en string (par ex: Oid)
+			{ // HACKHACK: pour les type qui se sÃ©rialisent en string (par ex: Oid)
 				var typeDef = resolver.ResolveJsonType(type);
 				if (typeDef?.CustomBinder != null)
 				{
@@ -625,7 +643,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// passe par un custom binder?
-			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques
+			// => gÃ¨re le cas des classes avec un ctor DuckTyping, ou des mÃ©thodes statiques
 			var def = resolver.ResolveJsonType(type);
 			if (def?.CustomBinder != null)
 			{
@@ -641,10 +659,10 @@ namespace Doxense.Serialization.Json
 
 		internal override string GetCompactRepresentation(int depth)
 		{
-			// depth 0, chaine entière jusqu'a 128 caracs, ou avec un '[...]' au millieu si plus grand
-			// depth 1: chaine entière jusqu'a 64 caracs, ou avec un '[...]' au millieu si plus grand
-			// depth 2: chaine entière jusqu'a 36 caracs, ou avec un '[...]' au millieu si plus grand
-			// depth 3: chaine entière jusqu'a 16 caracs, ou avec un '[...]' au millieu si plus grand
+			// depth 0, chaine entiÃ¨re jusqu'a 128 caracs, ou avec un '[...]' au millieu si plus grand
+			// depth 1: chaine entiÃ¨re jusqu'a 64 caracs, ou avec un '[...]' au millieu si plus grand
+			// depth 2: chaine entiÃ¨re jusqu'a 36 caracs, ou avec un '[...]' au millieu si plus grand
+			// depth 3: chaine entiÃ¨re jusqu'a 16 caracs, ou avec un '[...]' au millieu si plus grand
 			// depth 4+: '...'
 
 			var value = m_value;
@@ -743,7 +761,7 @@ namespace Doxense.Serialization.Json
 			switch (other.Type)
 			{
 				case JsonType.String: return CompareTo(other as JsonString);
-				case JsonType.Number: return -((JsonNumber)other).CompareTo(this); //note: négatif car on inverse le sens de la comparaison!
+				case JsonType.Number: return -((JsonNumber)other).CompareTo(this); //note: nÃ©gatif car on inverse le sens de la comparaison!
 				default: return base.CompareTo(other);
 			}
 		}
@@ -887,7 +905,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (string.IsNullOrEmpty(m_value)) return 0;
 			if (m_value.Length == 1)
-			{ // le cas le plus fréquent est un nombre de 0 à 9
+			{ // le cas le plus frÃ©quent est un nombre de 0 Ã  9
 				char c = m_value[0];
 				if (c >= '0' & c <= '9') return c - '0';
 			}
@@ -905,7 +923,7 @@ namespace Doxense.Serialization.Json
 			var lit = m_value;
 			if (lit == null) { value = 0; return false; }
 			if (lit.Length == 1)
-			{ // le cas le plus fréquent est un nombre de 0 à 9
+			{ // le cas le plus frÃ©quent est un nombre de 0 Ã  9
 				char c = lit[0];
 				if (c >= '0' & c <= '9') { value = c - '0'; return true; }
 			}
@@ -942,7 +960,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (string.IsNullOrEmpty(m_value)) return 0L;
 			if (m_value.Length == 1)
-			{ // le cas le plus fréquent est un nombre de 0 à 9
+			{ // le cas le plus frÃ©quent est un nombre de 0 Ã  9
 				char c = m_value[0];
 				if (c >= '0' & c <= '9') return c - '0';
 			}
@@ -960,7 +978,7 @@ namespace Doxense.Serialization.Json
 			var lit = m_value;
 			if (lit == null) { value = 0L; return false; }
 			if (lit.Length == 1)
-			{ // le cas le plus fréquent est un nombre de 0 à 9
+			{ // le cas le plus frÃ©quent est un nombre de 0 Ã  9
 				char c = lit[0];
 				if (c >= '0' & c <= '9') { value = c - '0'; return true; }
 			}
@@ -1271,7 +1289,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (string.IsNullOrEmpty(m_value)) return default(NodaTime.Instant);
 			var parseResult = CrystalJsonNodaPatterns.Instants.Parse(m_value);
-			if (parseResult.TryGetValue(default(NodaTime.Instant), out var instant)) //on est obligé de lui donner le failureValue (default(Instant)) meme si on l'utilise pas
+			if (parseResult.TryGetValue(default(NodaTime.Instant), out var instant)) //on est obligÃ© de lui donner le failureValue (default(Instant)) meme si on l'utilise pas
 			{
 				return instant;
 			}
@@ -1307,8 +1325,8 @@ namespace Doxense.Serialization.Json
 			if (string.IsNullOrEmpty(value)) return default(NodaTime.LocalDateTime);
 			if (value.EndsWith("Z", StringComparison.Ordinal))
 			{ // c'est un date UTC, probablement un Instant!
-				//HACK: c'est crado, mais on se dit que l'intention d'origine était de stocker l'heure locale, donc on la remap dans l'heure locale du système
-				// => ca ne marchera pas si c'est un autre serveur d'une autre timezone qui a généré le JSON, mais a ce moment la pourquoi il a choisi un Instant pour un LocalDateTime???
+				//HACK: c'est crado, mais on se dit que l'intention d'origine Ã©tait de stocker l'heure locale, donc on la remap dans l'heure locale du systÃ¨me
+				// => ca ne marchera pas si c'est un autre serveur d'une autre timezone qui a gÃ©nÃ©rÃ© le JSON, mais a ce moment la pourquoi il a choisi un Instant pour un LocalDateTime???
 				return NodaTime.LocalDateTime.FromDateTime(ToInstant().ToDateTimeUtc().ToLocalTime());
 			}
 			return CrystalJsonNodaPatterns.LocalDateTimes.Parse(value).Value;
@@ -1392,7 +1410,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			//TODO: version "optimisée!"
+			//TODO: version "optimisÃ©e!"
 			if (JsonEncoding.NeedsEscaping(value))
 			{
 				writer.WriteStringUtf8(JsonEncoding.EncodeSlow(value));

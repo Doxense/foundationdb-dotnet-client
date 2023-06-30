@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Diagnostics.Contracts.Tests
@@ -148,7 +166,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		{
 			Assert.DoesNotThrow(() => { Contract.NotNullOrEmpty("foobar", paramName: "x"); });
 			Assert.DoesNotThrow(() => { Contract.NotNullOrEmpty("  foobar", paramName: "x"); });
-			Assert.DoesNotThrow(() => { Contract.NotNullOrEmpty("\0", paramName: "x"); }); //note: '\0' n'est PAS considéré comme du whitespace!
+			Assert.DoesNotThrow(() => { Contract.NotNullOrEmpty("\0", paramName: "x"); }); //note: '\0' n'est PAS considÃ©rÃ© comme du whitespace!
 
 			// si c'est null => ArgumentNullException
 			var anex = Assert.Throws<ArgumentNullException>(() => { Contract.NotNullOrWhiteSpace(default(string), paramName: "foo"); });
@@ -362,16 +380,16 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		[Test]
 		public void Test_Contract_Requires_And_Asserts_Map_To_NUnit_Assertion_When_Under_Test()
 		{
-			// il y a de la magie dans le constructeur de Contract, qui détecte si on est dans un test unitaire,
+			// il y a de la magie dans le constructeur de Contract, qui dÃ©tecte si on est dans un test unitaire,
 			// et qui se met a envoeyr des AssertionException, au lieu de ContractException, pour simplifier les tests.
 
-			// Cette fonction peut etre activée ou désactiver via Contract.IsUnderTesting :
+			// Cette fonction peut etre activÃ©e ou dÃ©sactiver via Contract.IsUnderTesting :
 
 			// si on l'active, on obtient une AssertionException
 			Contract.IsUnitTesting = true;
 			Assert.Throws<AssertionException>(() => { Contract.Requires(false); });
 
-			// si par contre on désactive ce mode, on doit obtenir une ContractException !
+			// si par contre on dÃ©sactive ce mode, on doit obtenir une ContractException !
 			Contract.IsUnitTesting = false;
 			Assert.Throws<ContractException>(() => { Contract.Requires(false); });
 		}
@@ -379,7 +397,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		[Test]
 		public void Test_Contract_Requires_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Requires(true); });
@@ -395,7 +413,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		[Test]
 		public void Test_Contract_Assert_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Assert(true); });
@@ -414,7 +432,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		[Test]
 		public void Test_Contract_Ensures_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Ensures(true); });
@@ -430,7 +448,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		[Test]
 		public void Test_Contract_Invariant_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Invariant(true); });
@@ -449,16 +467,16 @@ namespace Doxense.Diagnostics.Contracts.Tests
 #endif
 		public void Test_Contract_Debug_Requires_And_Asserts_Map_To_NUnit_Assertion_When_Under_Test()
 		{
-			// il y a de la magie dans le constructeur de Contract, qui détecte si on est dans un test unitaire,
+			// il y a de la magie dans le constructeur de Contract, qui dÃ©tecte si on est dans un test unitaire,
 			// et qui se met a envoeyr des AssertionException, au lieu de ContractException, pour simplifier les tests.
 
-			// Cette fonction peut etre activée ou désactiver via Contract.IsUnderTesting :
+			// Cette fonction peut etre activÃ©e ou dÃ©sactiver via Contract.IsUnderTesting :
 
 			// si on l'active, on obtient une AssertionException
 			Contract.IsUnitTesting = true;
 			Assert.Throws<AssertionException>(() => { Contract.Debug.Requires(false); });
 
-			// si par contre on désactive ce mode, on doit obtenir une ContractException !
+			// si par contre on dÃ©sactive ce mode, on doit obtenir une ContractException !
 			Contract.IsUnitTesting = false;
 			Assert.Throws<ContractException>(() => { Contract.Debug.Requires(false); });
 		}
@@ -469,7 +487,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 #endif
 		public void Test_Contract_Debug_Requires_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Debug.Requires(true); });
@@ -488,7 +506,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 #endif
 		public void Test_Contract_Debug_Assert_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Debug.Assert(true); });
@@ -510,7 +528,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 #endif
 		public void Test_Contract_Debug_Ensures_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Debug.Ensures(true); });
@@ -529,7 +547,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 #endif
 		public void Test_Contract_Debug_Invariant_Will_Throw_A_ContractException()
 		{
-			// note: on désactive le testing mode, pour être en situation "réelle"
+			// note: on dÃ©sactive le testing mode, pour Ãªtre en situation "rÃ©elle"
 			Contract.IsUnitTesting = false;
 
 			Assert.DoesNotThrow(() => { Contract.Debug.Invariant(true); });

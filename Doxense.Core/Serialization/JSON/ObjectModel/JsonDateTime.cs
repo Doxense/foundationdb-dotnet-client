@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -27,7 +45,7 @@ namespace Doxense.Serialization.Json
 		public static JsonDateTime UtcNow { get { return new JsonDateTime(Truncate(DateTime.UtcNow)); } }
 		public static JsonDateTime Now { get { return new JsonDateTime(Truncate(DateTime.Now)); } }
 
-		/// <summary>Précision des dates JSON (lié à la façon dont elles sont sérialisées)</summary>
+		/// <summary>PrÃ©cision des dates JSON (liÃ© Ã  la faÃ§on dont elles sont sÃ©rialisÃ©es)</summary>
 		public static readonly long PrecisionTicks = TimeSpan.TicksPerMillisecond;
 
 		/// <summary>Arrondit une date en millisecondes</summary>
@@ -39,13 +57,13 @@ namespace Doxense.Serialization.Json
 			return new DateTime((date.Ticks / PrecisionTicks) * PrecisionTicks, date.Kind);
 		}
 
-		/// <summary>Indique si deux dates sont identiques, à la précision près</summary>
+		/// <summary>Indique si deux dates sont identiques, Ã  la prÃ©cision prÃ¨s</summary>
 		public static bool AreEqual(DateTime left, DateTime right)
 		{
 			return Math.Abs(left.Ticks - right.Ticks) <= PrecisionTicks;
 		}
 
-		/// <summary>Indique si deux dates sont identiques, à la précision près</summary>
+		/// <summary>Indique si deux dates sont identiques, Ã  la prÃ©cision prÃ¨s</summary>
 		public static bool AreEqual(DateTimeOffset left, DateTimeOffset right)
 		{
 			return Math.Abs(left.Ticks - right.Ticks) <= PrecisionTicks;
@@ -55,17 +73,17 @@ namespace Doxense.Serialization.Json
 
 		#region Private Members...
 
-		// Problème: DateTimeOffset "perd" l'information du DateTimeKind d'origine
-		// cad que si le serveur est dans la TimeZone de Greenwith (== UTC), alors on ne saura pas dire si la DateTime d'origine était Kind.Utc ou Kind.Local
+		// ProblÃ¨me: DateTimeOffset "perd" l'information du DateTimeKind d'origine
+		// cad que si le serveur est dans la TimeZone de Greenwith (== UTC), alors on ne saura pas dire si la DateTime d'origine Ã©tait Kind.Utc ou Kind.Local
 
 		/// <summary>Copie du membre "dateData" de DateTime (ou de m_dateTime pour un DateTimeOffset)</summary>
 		private readonly DateTime m_value;
 		/// <summary>Copie du membre "m_offsetMinutes" de DateTimeOffset (ou int.MinValue pour un DateTime)</summary>
 		private readonly short m_offset;
 
-		// un DateTimeOffset est stocké sous forme d'une DateTime en UTC, accompagnée d'un offset
+		// un DateTimeOffset est stockÃ© sous forme d'une DateTime en UTC, accompagnÃ©e d'un offset
 		// un DateTime de source locale (UTC ou Local) aura m_offset == NO_TIMEZONE
-		// un DateTime de source distante (parsé) aura m_offset = NO_TIMEZONE s'il n'y avait pas d'infos dans le source, ou l'offset spécifié dans la source
+		// un DateTime de source distante (parsÃ©) aura m_offset = NO_TIMEZONE s'il n'y avait pas d'infos dans le source, ou l'offset spÃ©cifiÃ© dans la source
 		// => si on demande un DateTime dans une autre TZ on aura la date convertie en LocalTime du serveur courrant.
 
 		#endregion
@@ -143,7 +161,7 @@ namespace Doxense.Serialization.Json
 				{ // Date local, il faut la convertir
 					return m_value.ToUniversalTime().Ticks;
 				}
-				//DTO: déja en UTC
+				//DTO: dÃ©ja en UTC
 				return m_value.Ticks;
 			}
 		}
@@ -153,11 +171,11 @@ namespace Doxense.Serialization.Json
 			get
 			{
 				if (m_offset != NO_TIMEZONE)
-				{ // DateTimeOffset, ou DateTime local à convertir en UTC
+				{ // DateTimeOffset, ou DateTime local Ã  convertir en UTC
 					return DateTime.SpecifyKind(m_value, DateTimeKind.Utc);
 				}
 				else
-				{ // DateTime retournée telle quelle
+				{ // DateTime retournÃ©e telle quelle
 					return m_value;
 				}
 			}
@@ -183,17 +201,17 @@ namespace Doxense.Serialization.Json
 
 		public bool HasOffset => m_offset != NO_TIMEZONE;
 
-		/// <summary>Nombre de millisecondes écoulées depuis le 1er Janvier 1970 UTC</summary>
+		/// <summary>Nombre de millisecondes Ã©coulÃ©es depuis le 1er Janvier 1970 UTC</summary>
 		public long UnixTime
 		{
-			//note: c'est un long pour ne pas avoir de problème avec le Y2038 bug (Unix Time Epoch Bug)
+			//note: c'est un long pour ne pas avoir de problÃ¨me avec le Y2038 bug (Unix Time Epoch Bug)
 			get { return (this.UtcDateTime.Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerMillisecond; }
 		}
 
-		/// <summary>Nombre de jours écoulés depuis le 1er Janvier 1970 UTC</summary>
+		/// <summary>Nombre de jours Ã©coulÃ©s depuis le 1er Janvier 1970 UTC</summary>
 		public double UnixTimeDays
 		{
-			//note: normalement pas affecté par le Y2038 bug
+			//note: normalement pas affectÃ© par le Y2038 bug
 			get { return (double)(UtcTicks - UNIX_EPOCH_TICKS) / (double)TimeSpan.TicksPerDay; }
 		}
 
@@ -311,25 +329,25 @@ namespace Doxense.Serialization.Json
 
 		public bool Equals(DateTime value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
+			//TODO: gÃ©rer le cas ou on wrap un DateTimeOffset
 			return AreEqual(this.Date, value);
 		}
 
 		public bool Equals(DateTimeOffset value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
+			//TODO: gÃ©rer le cas ou on wrap un DateTimeOffset
 			return AreEqual(this.DateWithOffset, value);
 		}
 
 		public bool Equals(NodaTime.LocalDateTime value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
+			//TODO: gÃ©rer le cas ou on wrap un DateTimeOffset
 			return ToLocalDateTime() == value;
 		}
 
 		public bool Equals(NodaTime.LocalDate value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
+			//TODO: gÃ©rer le cas ou on wrap un DateTimeOffset
 			return ToLocalDate() == value;
 		}
 
@@ -375,19 +393,19 @@ namespace Doxense.Serialization.Json
 			return (ulong) this.UtcTicks;
 		}
 
-		/// <summary>Retourne le nombre de jours écoulés depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Retourne le nombre de jours Ã©coulÃ©s depuis le 1er Janvier 1970 UTC)</summary>
 		public override float ToSingle()
 		{
 			return (float)this.UnixTimeDays;
 		}
 
-		/// <summary>Retourne le nombre de jours écoulés depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Retourne le nombre de jours Ã©coulÃ©s depuis le 1er Janvier 1970 UTC)</summary>
 		public override double ToDouble()
 		{
 			return this.UnixTimeDays;
 		}
 
-		/// <summary>Retourne le nombre de jours écoulés depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Retourne le nombre de jours Ã©coulÃ©s depuis le 1er Janvier 1970 UTC)</summary>
 		public override decimal ToDecimal()
 		{
 			return (decimal) this.UnixTimeDays;
@@ -413,14 +431,14 @@ namespace Doxense.Serialization.Json
 			return NodaTime.LocalDate.FromDateTime(this.Date);
 		}
 
-		/// <summary>Retourne le temps écoulé depuis le 1er Janvier 1970 UTC</summary>
+		/// <summary>Retourne le temps Ã©coulÃ© depuis le 1er Janvier 1970 UTC</summary>
 		/// <returns></returns>
 		public override TimeSpan ToTimeSpan()
 		{
 			return new TimeSpan(this.UtcTicks - UNIX_EPOCH_TICKS);
 		}
 
-		/// <summary>Retourne le temps écoulé depuis le 1er Janvier 1970 UTC</summary>
+		/// <summary>Retourne le temps Ã©coulÃ© depuis le 1er Janvier 1970 UTC</summary>
 		/// <returns></returns>
 		public override NodaTime.Duration ToDuration()
 		{

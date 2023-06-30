@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Xml
@@ -18,7 +36,7 @@ namespace Doxense.Serialization.Xml
 	{
 		#region Static Members...
 
-		/// <summary>Map indiquant si un caractère est clean</summary>
+		/// <summary>Map indiquant si un caractÃ¨re est clean</summary>
 		private static readonly byte[] s_xmlCharMap = InitializeCharMap();
 
 		private const string TokenAmp = "&amp;";
@@ -40,27 +58,27 @@ namespace Doxense.Serialization.Xml
 
 		#endregion
 
-		/// <summary>HTMLEncode une chaine de caractère (& => &amp; , etc...)</summary>
-		/// <param name="text">Chaîne à encoder</param>
-		/// <returns>Chaîne encodée</returns>
-		/// <remarks>Version optimisée qui n'alloue pas de mémoire si la chaîne est deja clean</remarks>
+		/// <summary>HTMLEncode une chaine de caractÃ¨re (& => &amp; , etc...)</summary>
+		/// <param name="text">ChaÃ®ne Ã  encoder</param>
+		/// <returns>ChaÃ®ne encodÃ©e</returns>
+		/// <remarks>Version optimisÃ©e qui n'alloue pas de mÃ©moire si la chaÃ®ne est deja clean</remarks>
 		public static string Encode(string? text)
 		{
-			// INFO: cette méthode est utilisée pour la génération XML de Watchdoc,
-			// et doit donc être la plus performante possible !!!
+			// INFO: cette mÃ©thode est utilisÃ©e pour la gÃ©nÃ©ration XML de Watchdoc,
+			// et doit donc Ãªtre la plus performante possible !!!
 			// => System.Web.HttpUtility.HtmlEncode est trop lente !
 			if (string.IsNullOrEmpty(text)) return String.Empty;
 
-			// premiere passe pour voir s'il y a des caractères a remplacer..
-			if (IsCleanXml(text)) return text; // rien a modifier, retourne la chaîne initiale (fast, no memory used)
+			// premiere passe pour voir s'il y a des caractÃ¨res a remplacer..
+			if (IsCleanXml(text)) return text; // rien a modifier, retourne la chaÃ®ne initiale (fast, no memory used)
 
-			// deuxième passe: remplace les caractères invalides (slow, memory used)
+			// deuxiÃ¨me passe: remplace les caractÃ¨res invalides (slow, memory used)
 			return XmlEncodeSlow(new StringBuilder(text.Length + 16), text, true).ToString();
 		}
 
-		/// <summary>HTMLEncode une chaîne de caractère (& => &amp; , etc...)</summary>
-		/// <param name="sb">Buffer où écrire le résultat</param>
-		/// <param name="text">Chaîne à encoder</param>
+		/// <summary>HTMLEncode une chaÃ®ne de caractÃ¨re (& => &amp; , etc...)</summary>
+		/// <param name="sb">Buffer oÃ¹ Ã©crire le rÃ©sultat</param>
+		/// <param name="text">ChaÃ®ne Ã  encoder</param>
 		public static StringBuilder AppendTo(StringBuilder sb, string? text)
 		{
 			if (string.IsNullOrEmpty(text)) return sb;
@@ -68,7 +86,7 @@ namespace Doxense.Serialization.Xml
 			return XmlEncodeSlow(sb, text, true);
 		}
 
-		/// <summary>Extension méthode sur StringBuilder</summary>
+		/// <summary>Extension mÃ©thode sur StringBuilder</summary>
 		/// <param name="sb"></param>
 		/// <param name="text"></param>
 		/// <returns></returns>
@@ -135,9 +153,9 @@ namespace Doxense.Serialization.Xml
 
 		private static bool IsLegalChar(char c)
 		{
-			// On traite comme "légal" tout ce qui est compris entre ' ' (32) et '~' (126), *SAUF* les caractères '<' '>' '&' '"', ainsi que de 161 a 255
+			// On traite comme "lÃ©gal" tout ce qui est compris entre ' ' (32) et '~' (126), *SAUF* les caractÃ¨res '<' '>' '&' '"', ainsi que de 161 a 255
 
-			// Les specs de XML 1.0 conseille d'encoder les caractères suivants: 
+			// Les specs de XML 1.0 conseille d'encoder les caractÃ¨res suivants: 
 			// cf http://www.w3.org/TR/2006/REC-xml-20060816/#charsets
 			//
 			// [#x7F-#x84], [#x86-#x9F], [#xFDD0-#xFDDF],
@@ -146,7 +164,7 @@ namespace Doxense.Serialization.Xml
 			// [#x7FFFE-#x7FFFF], [#x8FFFE-#x8FFFF], [#x9FFFE-#x9FFFF],
 			// [#xAFFFE-#xAFFFF], [#xBFFFE-#xBFFFF], [#xCFFFE-#xCFFFF],
 			// [#xDFFFE-#xDFFFF], [#xEFFFE-#xEFFFF], [#xFFFFE-#xFFFFF],
-			// [#x10FFFE-#x10FFFF] // <= dans la pratique on ne peut jamais voir cette range en C# qui est en UCS-2 (donc sera encodé avec une pair de Hi/Lo Surrogates!)
+			// [#x10FFFE-#x10FFFF] // <= dans la pratique on ne peut jamais voir cette range en C# qui est en UCS-2 (donc sera encodÃ© avec une pair de Hi/Lo Surrogates!)
 
 			// A-Z, a-z, 0-9, ' ', '!', '#',
 			if (c <= 0x007F)
@@ -220,7 +238,7 @@ namespace Doxense.Serialization.Xml
 				while (n-- > 0)
 				{
 					if (mask[*ptr++] != 0)
-					{ // pas autorisé!
+					{ // pas autorisÃ©!
 						return false;
 					}
 				}
@@ -228,10 +246,10 @@ namespace Doxense.Serialization.Xml
 			return true;
 		}
 
-		/// <summary>Détermine si le texte HTML est "clean" (ie: ne nécessite pas d'encodage)</summary>
-		/// <param name="sb">Buffer dans lequel écrire le résultat encodé</param>
-		/// <param name="s">Chaîne à vérifier</param>
-		/// <param name="replaceIllegal">Si true, remplace les caractères illegaux par du text équivalent (lossy!)</param>
+		/// <summary>DÃ©termine si le texte HTML est "clean" (ie: ne nÃ©cessite pas d'encodage)</summary>
+		/// <param name="sb">Buffer dans lequel Ã©crire le rÃ©sultat encodÃ©</param>
+		/// <param name="s">ChaÃ®ne Ã  vÃ©rifier</param>
+		/// <param name="replaceIllegal">Si true, remplace les caractÃ¨res illegaux par du text Ã©quivalent (lossy!)</param>
 		/// <returns>Instance de <paramref name="sb"/></returns>
 		private static unsafe StringBuilder XmlEncodeSlow(StringBuilder sb, string s, bool replaceIllegal = false)
 		{
@@ -282,26 +300,26 @@ namespace Doxense.Serialization.Xml
 						}
 						case HIGH_SURROGATE:
 						{
-							// doit normalement être suivi d'un autre caractère de type "LOW_SURROGATE"!
+							// doit normalement Ãªtre suivi d'un autre caractÃ¨re de type "LOW_SURROGATE"!
 							if (ptr < end)
 							{
 								char c2 = *ptr;
-								// c2 doit être un Low Surrogate!
+								// c2 doit Ãªtre un Low Surrogate!
 								if (mask[c2] == LOW_SURROGATE)
 								{ // combine les deux!
-									++ptr; // consome le low surrogate également
+									++ptr; // consome le low surrogate Ã©galement
 									EncodeSurrogatePair(sb, c, c2);
 									break;
 								}
 							}
-							// il y a un problème soit il n'y a rien derrière, soit ce n'est pas un Low Surrogate?
+							// il y a un problÃ¨me soit il n'y a rien derriÃ¨re, soit ce n'est pas un Low Surrogate?
 							// => on n'a rien vu, rien entendu!
 							DealWithBadCodePoint(sb, c, replaceIllegal);
 							break;
 						}
 						case LOW_SURROGATE:
 						{
-							// on n'est pas censé tomber sur ce caractère directement, car il doit normalement être précédé d'un HIGH_SURROGATE, et donc géré par le case plus haut?
+							// on n'est pas censÃ© tomber sur ce caractÃ¨re directement, car il doit normalement Ãªtre prÃ©cÃ©dÃ© d'un HIGH_SURROGATE, et donc gÃ©rÃ© par le case plus haut?
 							DealWithBadCodePoint(sb, c, replaceIllegal);
 							break;
 						}
@@ -317,16 +335,16 @@ namespace Doxense.Serialization.Xml
 
 		private static void DealWithBadCodePoint(StringBuilder sb, char c, bool replaceIllegal)
 		{
-			// Quand on arrive ici, c'est qu'on est confronté à un cas "invalide".
-			// On pourrait throw une Exception, mais cela n'est pas forcément prévu par l'appelant a cet endroit, et puis dans tous les cas cela "brique" le code (si c'est lié au data, on peut refresh tant qu'on veut ca ne changera rien)
-			// => On doit décider si on remplace le caractère par autre chose (fallback), au risque de "corrompre" silencieusement les données, ou alors passer la patate chaude au récipient qui devra se débrouiller avec!
+			// Quand on arrive ici, c'est qu'on est confrontÃ© Ã  un cas "invalide".
+			// On pourrait throw une Exception, mais cela n'est pas forcÃ©ment prÃ©vu par l'appelant a cet endroit, et puis dans tous les cas cela "brique" le code (si c'est liÃ© au data, on peut refresh tant qu'on veut ca ne changera rien)
+			// => On doit dÃ©cider si on remplace le caractÃ¨re par autre chose (fallback), au risque de "corrompre" silencieusement les donnÃ©es, ou alors passer la patate chaude au rÃ©cipient qui devra se dÃ©brouiller avec!
 
 			if (replaceIllegal)
-			{ // Compatibilité MSXML, évite que LoadXML provoque une erreur "Invalid Unicode character"
+			{ // CompatibilitÃ© MSXML, Ã©vite que LoadXML provoque une erreur "Invalid Unicode character"
 				EncodeIllegal(sb, c);
 			}
 			else
-			{ // Autre XML encoder normalement constitué
+			{ // Autre XML encoder normalement constituÃ©
 				EncodeEntity(sb, c);
 			}
 		}
@@ -352,7 +370,7 @@ namespace Doxense.Serialization.Xml
 
 		private static void EncodeIllegal(StringBuilder sb, char c)
 		{
-			// On ne peut pas les représenter, on les remplaces par une version de substitution (plutot que '?')
+			// On ne peut pas les reprÃ©senter, on les remplaces par une version de substitution (plutot que '?')
 			if (c >= 0 && c < 32)
 			{ // \0 => "<NUL>", \x1B => "<ESC>"
 				sb.Append(TokenLt).Append(s_asciiControlCodes[c]).Append(TokenGt);

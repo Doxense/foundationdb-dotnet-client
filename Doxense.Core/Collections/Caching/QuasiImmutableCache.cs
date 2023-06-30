@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+Ôªø#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Collections.Caching
@@ -17,22 +35,22 @@ namespace Doxense.Collections.Caching
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	/// <summary>ReprÈsente un cache qui ne change pratiquement jamais</summary>
-	/// <typeparam name="TKey">Type des clÈs du cache</typeparam>
+	/// <summary>Repr√©sente un cache qui ne change pratiquement jamais</summary>
+	/// <typeparam name="TKey">Type des cl√©s du cache</typeparam>
 	/// <typeparam name="TValue">Type des valeurs du cache</typeparam>
-	/// <remarks>Cache optimisÈ pour un scenario ou il y a un nombre restraint de valeurs 'statiques' qui vont Ítre crÈÈes assez rapidement (au dÈmarrage du processus), puis rÈutilisÈe en mode lecteur seule, avec Èventuellement quelles ajouts de temps en temps</remarks>
+	/// <remarks>Cache optimis√© pour un scenario ou il y a un nombre restraint de valeurs 'statiques' qui vont √™tre cr√©√©es assez rapidement (au d√©marrage du processus), puis r√©utilis√©e en mode lecteur seule, avec √©ventuellement quelles ajouts de temps en temps</remarks>
 	public sealed class QuasiImmutableCache<TKey, TValue> : ICache<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>
 		where TKey : notnull
 	{
 
 		/// <summary>Version actuelle du cache</summary>
-		/// <remarks>Cette instance n'est pas modifiÈe! Toute modification au cache est faite dans une copie qui vient remplacer ce champ</remarks>
+		/// <remarks>Cette instance n'est pas modifi√©e! Toute modification au cache est faite dans une copie qui vient remplacer ce champ</remarks>
 		private volatile Dictionary<TKey, TValue> m_root;
 
-		/// <summary>Comparateur utilisÈ pour rechercher une valeur dans le cache</summary>
+		/// <summary>Comparateur utilis√© pour rechercher une valeur dans le cache</summary>
 		private readonly IEqualityComparer<TValue> m_valueComparer;
 
-		/// <summary>Factory optionnelle utilisÈe pour crÈer un nouvel item qui ne serait pas prÈsent dans le cache</summary>
+		/// <summary>Factory optionnelle utilis√©e pour cr√©er un nouvel item qui ne serait pas pr√©sent dans le cache</summary>
 		private readonly Func<TKey, TValue>? m_valueFactory;
 
 		public QuasiImmutableCache()
@@ -69,14 +87,14 @@ namespace Doxense.Collections.Caching
 		/// <summary>Gets the number of elements contained in the cache.</summary>
 		public int Count => m_root.Count;
 
-		/// <summary>Comparateur utilisÈ pour les clÈs du cache</summary>
+		/// <summary>Comparateur utilis√© pour les cl√©s du cache</summary>
 		public IEqualityComparer<TKey> KeyComparer => m_root.Comparer;
 
-		/// <summary>Comparateur utilisÈ pour les valeurs du cache</summary>
+		/// <summary>Comparateur utilis√© pour les valeurs du cache</summary>
 		public IEqualityComparer<TValue> ValueComparer => m_valueComparer;
 
-		/// <summary>GÈnÈrateur (optionnel) utilisÈ pour gÈnÈrer des valeurs manquante dans le cache</summary>
-		/// <remarks>Uniquement utilisÈ par <see cref="GetOrAdd(TKey)"/> pour le moment.</remarks>
+		/// <summary>G√©n√©rateur (optionnel) utilis√© pour g√©n√©rer des valeurs manquante dans le cache</summary>
+		/// <remarks>Uniquement utilis√© par <see cref="GetOrAdd(TKey)"/> pour le moment.</remarks>
 		public Func<TKey, TValue>? Factory => m_valueFactory;
 
 		bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
@@ -105,11 +123,11 @@ namespace Doxense.Collections.Caching
 		[Pure]
 		public bool ContainsValue(TValue? value)
 		{
-			// il n'y a pas de mÈthode sur Dictionary<,> qui accepte un IEqualityComparer<TValue>, donc on est obligÈ de scanner nous mÍme :(
-			// a priori, le foreach sur la collection Values d'un dictionnaire est optimisÈ, donc ce n'est pas si dramatique...
+			// il n'y a pas de m√©thode sur Dictionary<,> qui accepte un IEqualityComparer<TValue>, donc on est oblig√© de scanner nous m√™me :(
+			// a priori, le foreach sur la collection Values d'un dictionnaire est optimis√©, donc ce n'est pas si dramatique...
 
 			if (value == null)
-			{ // cas spÈcial pour null
+			{ // cas sp√©cial pour null
 				// ReSharper disable once LoopCanBeConvertedToQuery
 				foreach (var item in m_root.Values)
 				{
@@ -129,7 +147,7 @@ namespace Doxense.Collections.Caching
 			return false;
 		}
 
-		/// <summary>Retourne un entrÈe du cache, si elle existe</summary>
+		/// <summary>Retourne un entr√©e du cache, si elle existe</summary>
 		public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
 			return m_root.TryGetValue(key, out value);
@@ -143,9 +161,9 @@ namespace Doxense.Collections.Caching
 			get => m_root.TryGetValue(key, out var result) ? result : default!;
 		}
 
-		/// <summary>Retourne la valeur d'une entrÈe dans le cache, en la crÈant si nÈcessaire</summary>
-		/// <param name="key">ClÈ de l'entrÈe recherchÈe</param>
-		/// <returns>Valeur de l'entrÈe si elle existait, ou utilise <see cref="Factory"/> pour gÈnÈrer la valeur si elle n'existait pas</returns>
+		/// <summary>Retourne la valeur d'une entr√©e dans le cache, en la cr√©ant si n√©cessaire</summary>
+		/// <param name="key">Cl√© de l'entr√©e recherch√©e</param>
+		/// <returns>Valeur de l'entr√©e si elle existait, ou utilise <see cref="Factory"/> pour g√©n√©rer la valeur si elle n'existait pas</returns>
 		public TValue GetOrAdd(TKey key)
 		{
 			if (m_root.TryGetValue(key, out var result))
@@ -157,7 +175,7 @@ namespace Doxense.Collections.Caching
 
 		private TValue GetOrAddSlow(TKey key, out TValue result)
 		{
-			// on sait dÈj‡ qu'elle n'existe pas dans le cache
+			// on sait d√©j√† qu'elle n'existe pas dans le cache
 			var factory = m_valueFactory;
 			if (factory == null) throw new InvalidOperationException("The cache does not have a default Value factory");
 			result = factory(key);
@@ -165,10 +183,10 @@ namespace Doxense.Collections.Caching
 			return result;
 		}
 
-		/// <summary>Retourne la valeur d'une entrÈe dans le cache, en la crÈant si nÈcessaire</summary>
-		/// <param name="key">ClÈ de l'entrÈe recherchÈe</param>
-		/// <param name="value">Valeur qui sera ajoutÈe dans le cache pour cette clÈ, si elle n'existait pas</param>
-		/// <returns>Valeur de l'entrÈe si elle existait, ou <paramref name="value"/> si elle n'existait pas</returns>
+		/// <summary>Retourne la valeur d'une entr√©e dans le cache, en la cr√©ant si n√©cessaire</summary>
+		/// <param name="key">Cl√© de l'entr√©e recherch√©e</param>
+		/// <param name="value">Valeur qui sera ajout√©e dans le cache pour cette cl√©, si elle n'existait pas</param>
+		/// <returns>Valeur de l'entr√©e si elle existait, ou <paramref name="value"/> si elle n'existait pas</returns>
 		public TValue GetOrAdd(TKey key, TValue value)
 		{
 			if (m_root.TryGetValue(key, out var result))
@@ -178,11 +196,11 @@ namespace Doxense.Collections.Caching
 			return result;
 		}
 
-		/// <summary>Retourne la valeur d'une entrÈe dans le cache, en la crÈant si nÈcessaire</summary>
-		/// <param name="key">ClÈ de l'entrÈe recherchÈe</param>
-		/// <param name="factory">Lambda qui sera appelÈe pour gÈnÈrÈe la valeur ‡ ajouter, si elle n'existait pas</param>
-		/// <returns>Valeur de l'entrÈe si elle existait, ou le rÈsultat de <paramref name="factory"/> si elle n'existait pas</returns>
-		/// <reremarks>Attention: certains caches n'offrent aucune garantie sur le fait que valueFactory ne soit pas appelÈ plusieurs fois!</reremarks>
+		/// <summary>Retourne la valeur d'une entr√©e dans le cache, en la cr√©ant si n√©cessaire</summary>
+		/// <param name="key">Cl√© de l'entr√©e recherch√©e</param>
+		/// <param name="factory">Lambda qui sera appel√©e pour g√©n√©r√©e la valeur √† ajouter, si elle n'existait pas</param>
+		/// <returns>Valeur de l'entr√©e si elle existait, ou le r√©sultat de <paramref name="factory"/> si elle n'existait pas</returns>
+		/// <reremarks>Attention: certains caches n'offrent aucune garantie sur le fait que valueFactory ne soit pas appel√© plusieurs fois!</reremarks>
 		public TValue GetOrAdd(TKey key, Func<TKey, TValue> factory)
 		{
 			Contract.Debug.Requires(factory != null);
@@ -198,12 +216,12 @@ namespace Doxense.Collections.Caching
 			return result;
 		}
 
-		/// <summary>Retourne la valeur d'une entrÈe dans le cache, en la crÈant si nÈcessaire</summary>
-		/// <param name="key">ClÈ de l'entrÈe recherchÈe</param>
-		/// <param name="factory">Lambda qui sera appelÈe pour gÈnÈrÈe la valeur ‡ ajouter, si elle n'existait pas</param>
-		/// <param name="state">Valeur passÈe en second paramËtre ‡ <param name="factory"/></param>
-		/// <returns>Valeur de l'entrÈe si elle existait, ou le rÈsultat de <paramref name="factory"/> si elle n'existait pas</returns>
-		/// <reremarks>Attention: certains caches n'offrent aucune garantie sur le fait que valueFactory ne soit pas appelÈ plusieurs fois!</reremarks>
+		/// <summary>Retourne la valeur d'une entr√©e dans le cache, en la cr√©ant si n√©cessaire</summary>
+		/// <param name="key">Cl√© de l'entr√©e recherch√©e</param>
+		/// <param name="factory">Lambda qui sera appel√©e pour g√©n√©r√©e la valeur √† ajouter, si elle n'existait pas</param>
+		/// <param name="state">Valeur pass√©e en second param√®tre √† <param name="factory"/></param>
+		/// <returns>Valeur de l'entr√©e si elle existait, ou le r√©sultat de <paramref name="factory"/> si elle n'existait pas</returns>
+		/// <reremarks>Attention: certains caches n'offrent aucune garantie sur le fait que valueFactory ne soit pas appel√© plusieurs fois!</reremarks>
 		public TValue GetOrAdd<TState>(TKey key, Func<TKey, TState, TValue> factory, TState state)
 		{
 			Contract.Debug.Requires(factory != null);
@@ -222,7 +240,7 @@ namespace Doxense.Collections.Caching
 		private void TryAddInternal(TKey key, TValue value, bool allowUpdate, out TValue result)
 		{
 			// NOTE: les appelant de TryAddInternal ne nous appellent souvent qu'en cas de MISS, du coup on risque de l'appeler deux fois TryGetValue en suivant.
-			// Ce n'est pas grave car on privilÈgie justement les perfs pour les HIT (qui n'appellera pas cette mÈthode), plutÙt que les MISS (qui ne se produit qu'au dÈmarrage ou peu frÈquemment)
+			// Ce n'est pas grave car on privil√©gie justement les perfs pour les HIT (qui n'appellera pas cette m√©thode), plut√¥t que les MISS (qui ne se produit qu'au d√©marrage ou peu fr√©quemment)
 
 			var wait = new SpinWait();
 
@@ -260,10 +278,10 @@ namespace Doxense.Collections.Caching
 			}
 		}
 
-		/// <summary>DÈfini la valeur d'une entrÈe dans le cache</summary>
-		/// <param name="key">ClÈ dans le cache</param>
-		/// <param name="value">Valeur ‡ insÈrer ou modifier</param>
-		/// <remarks>Si l'ÈlÈment existe dÈja, sa valeur est ÈcrasÈe par <paramref name="value"/></remarks>
+		/// <summary>D√©fini la valeur d'une entr√©e dans le cache</summary>
+		/// <param name="key">Cl√© dans le cache</param>
+		/// <param name="value">Valeur √† ins√©rer ou modifier</param>
+		/// <remarks>Si l'√©l√©ment existe d√©ja, sa valeur est √©cras√©e par <paramref name="value"/></remarks>
 		public void SetItem(TKey key, TValue value)
 		{
 			TryAddInternal(key, value, true, out TValue _);
@@ -274,7 +292,7 @@ namespace Doxense.Collections.Caching
 			Contract.Debug.Requires(items != null);
 
 			// NOTE: les appelant de TryAddInternal ne nous appellent souvent qu'en cas de MISS, du coup on risque de l'appeler deux fois TryGetValue en suivant.
-			// Ce n'est pas grave car on privilÈgie justement les perfs pour les HIT (qui n'appellera pas cette mÈthode), plutÙt que les MISS (qui ne se produit qu'au dÈmarrage ou peu frÈquemment)
+			// Ce n'est pas grave car on privil√©gie justement les perfs pour les HIT (qui n'appellera pas cette m√©thode), plut√¥t que les MISS (qui ne se produit qu'au d√©marrage ou peu fr√©quemment)
 
 			var wait = new SpinWait();
 
@@ -309,29 +327,29 @@ namespace Doxense.Collections.Caching
 			}
 		}
 
-		/// <summary>Ajout ou modifie une ou plusieurs entrÈes dans le cache, en une seule transaction.</summary>
-		/// <param name="items">Liste des ÈlÈments ‡ ajouter ou modifier dans le cache</param>
-		/// <remarks>Si un ÈlÈment existe dÈj‡, sa valeur est ÈcrasÈe par celle dans <paramref name="items"/></remarks>
+		/// <summary>Ajout ou modifie une ou plusieurs entr√©es dans le cache, en une seule transaction.</summary>
+		/// <param name="items">Liste des √©l√©ments √† ajouter ou modifier dans le cache</param>
+		/// <remarks>Si un √©l√©ment existe d√©j√†, sa valeur est √©cras√©e par celle dans <paramref name="items"/></remarks>
 		public void SetItems(IEnumerable<KeyValuePair<TKey, TValue>> items)
 		{
 			Contract.NotNull(items);
 			TryAddRangeInternal(items, true);
 		}
 
-		/// <summary>Ajoute une ou plusieurs nouvelles entrÈes dans le cache, en une seule transaction.</summary>
-		/// <param name="items">Liste des nouveaux ÈlÈments qui ne doivent pas exister dans le cache</param>
-		/// <remarks>Si un ÈlÈment existe dÈj‡, une exception est dÈclenchÈe et aucune modification ne sera apportÈe au cache (Èquivalent d'un rollback de transaction)</remarks>
+		/// <summary>Ajoute une ou plusieurs nouvelles entr√©es dans le cache, en une seule transaction.</summary>
+		/// <param name="items">Liste des nouveaux √©l√©ments qui ne doivent pas exister dans le cache</param>
+		/// <remarks>Si un √©l√©ment existe d√©j√†, une exception est d√©clench√©e et aucune modification ne sera apport√©e au cache (√©quivalent d'un rollback de transaction)</remarks>
 		public void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
 		{
 			Contract.NotNull(items);
 			TryAddRangeInternal(items, false);
 		}
 
-		/// <summary>Ajout ou modifie la valeur d'une entrÈe dans le cache</summary>
-		/// <param name="key">ClÈ de l'entrÈe</param>
-		/// <param name="addValue">Valeur ajoutÈe, si la clÈ n'existait pas</param>
-		/// <param name="updateValueFactory">Lambda appelÈe avec la valeur prÈcÈdente si elle existait dÈj‡</param>
-		/// <returns>True si la valeur a ÈtÈ ajoutÈe, ou false si elle a ÈtÈ modifiÈe</returns>
+		/// <summary>Ajout ou modifie la valeur d'une entr√©e dans le cache</summary>
+		/// <param name="key">Cl√© de l'entr√©e</param>
+		/// <param name="addValue">Valeur ajout√©e, si la cl√© n'existait pas</param>
+		/// <param name="updateValueFactory">Lambda appel√©e avec la valeur pr√©c√©dente si elle existait d√©j√†</param>
+		/// <returns>True si la valeur a √©t√© ajout√©e, ou false si elle a √©t√© modifi√©e</returns>
 		public bool AddOrUpdate(TKey key, TValue addValue, Func<TKey, TValue, TValue> updateValueFactory)
 		{
 			var wait = new SpinWait();
@@ -359,14 +377,14 @@ namespace Doxense.Collections.Caching
 				}
 
 				if (object.ReferenceEquals(updated, original))
-				{ // Le cache contenait dÈj‡ ce couple key/value, donc ce n'est pas une addition
+				{ // Le cache contenait d√©j√† ce couple key/value, donc ce n'est pas une addition
 					return false;
 				}
 
 #pragma warning disable 420
 				if (object.ReferenceEquals(original, Interlocked.CompareExchange(ref m_root, updated, original)))
 #pragma warning restore 420
-				{ // on a rÈussi ‡ publier la nouvelle version, on a juste besoin de vÈrifier si la clÈ existant dÈj‡ dans l'ancienne version
+				{ // on a r√©ussi √† publier la nouvelle version, on a juste besoin de v√©rifier si la cl√© existant d√©j√† dans l'ancienne version
 					return flag;
 				}
 
@@ -374,9 +392,9 @@ namespace Doxense.Collections.Caching
 			}
 		}
 
-		/// <summary>Supprime une entrÈe du cache</summary>
-		/// <param name="key">ClÈ de l'entrÈe ‡ supprimer</param>
-		/// <returns>True si l'entrÈe a ÈtÈ supprimÈe, false si elle n'existait pas</returns>
+		/// <summary>Supprime une entr√©e du cache</summary>
+		/// <param name="key">Cl√© de l'entr√©e √† supprimer</param>
+		/// <returns>True si l'entr√©e a √©t√© supprim√©e, false si elle n'existait pas</returns>
 		public bool Remove(TKey key)
 		{
 			var wait = new SpinWait();
@@ -386,14 +404,14 @@ namespace Doxense.Collections.Caching
 				var original = m_root;
 				var updated = new Dictionary<TKey, TValue>(original, original.Comparer);
 				if (!updated.Remove(key))
-				{ // La clÈ n'existait dÈj‡ pas
+				{ // La cl√© n'existait d√©j√† pas
 					return false;
 				}
 
 #pragma warning disable 420
 				if (object.ReferenceEquals(Interlocked.CompareExchange(ref m_root, updated, original), original))
 #pragma warning restore 420
-				{ // La nouvelle version du cache ne contient plus la clÈ
+				{ // La nouvelle version du cache ne contient plus la cl√©
 					return true;
 				}
 
@@ -401,11 +419,11 @@ namespace Doxense.Collections.Caching
 			}
 		}
 
-		/// <summary>Supprime une entrÈe du cache, uniquement si elle ‡ une valeur spÈcifique</summary>
-		/// <param name="key">ClÈ de l'entrÈe ‡ supprimer</param>
-		/// <param name="expectedValue">Valeur que l'entrÈe doit avoir pour Ítre supprimÈe</param>
+		/// <summary>Supprime une entr√©e du cache, uniquement si elle √† une valeur sp√©cifique</summary>
+		/// <param name="key">Cl√© de l'entr√©e √† supprimer</param>
+		/// <param name="expectedValue">Valeur que l'entr√©e doit avoir pour √™tre supprim√©e</param>
 		/// <param name="valueComparer">Comparateur optionnel pour les valeurs</param>
-		/// <returns>True si l'entrÈe existait et avait la valeur attendue, ou false sinon.</returns>
+		/// <returns>True si l'entr√©e existait et avait la valeur attendue, ou false sinon.</returns>
 		public bool TryRemove(TKey key, TValue expectedValue, IEqualityComparer<TValue>? valueComparer = null)
 		{
 			var wait = new SpinWait();
@@ -428,7 +446,7 @@ namespace Doxense.Collections.Caching
 #pragma warning disable 420
 				if (object.ReferenceEquals(Interlocked.CompareExchange(ref m_root, updated, original), original))
 #pragma warning restore 420
-				{ // La nouvelle version du cache ne contient plus la clÈ
+				{ // La nouvelle version du cache ne contient plus la cl√©
 					return true;
 				}
 
@@ -436,8 +454,8 @@ namespace Doxense.Collections.Caching
 			}
 		}
 
-		/// <summary>Recherche et supprimer des entrÈes du cache</summary>
-		/// <exception cref="System.NotSupportedException">Ce type de cache ne permet pas cette opÈration</exception>
+		/// <summary>Recherche et supprimer des entr√©es du cache</summary>
+		/// <exception cref="System.NotSupportedException">Ce type de cache ne permet pas cette op√©ration</exception>
 		int ICache<TKey, TValue>.Cleanup(Func<TKey, TValue, bool> predicate)
 		{
 			// il faudrait locker pour pouvoir le faire!
@@ -499,7 +517,7 @@ namespace Doxense.Collections.Caching
 			return TryRemove(item.Key, item.Value);
 		}
 
-		/// <summary>Retourne une liste avec une copie de toutes les entrÈes du cache</summary>
+		/// <summary>Retourne une liste avec une copie de toutes les entr√©es du cache</summary>
 		public List<KeyValuePair<TKey, TValue>> ToList()
 		{
 			var list = new List<KeyValuePair<TKey, TValue>>(m_root.Count);
@@ -507,7 +525,7 @@ namespace Doxense.Collections.Caching
 			return list;
 		}
 
-		/// <summary>Retourne une array avec une copie de toutes les entrÈes du cache</summary>
+		/// <summary>Retourne une array avec une copie de toutes les entr√©es du cache</summary>
 		public KeyValuePair<TKey, TValue>[] ToArray()
 		{
 			var root = m_root;

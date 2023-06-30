@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -18,7 +36,7 @@ namespace Doxense.Serialization.Json
 	public static class JsonValueExtensions
 	{
 
-		/// <summary>Test si une valeur JSON est null, ou équivalente à null</summary>
+		/// <summary>Test si une valeur JSON est null, ou Ã©quivalente Ã  null</summary>
 		/// <param name="value">Valeur JSON</param>
 		/// <returns>True si <paramref name="value"/> est null, ou une instance de type <see cref="JsonNull"/></returns>
 		[Pure, ContractAnnotation("null=>true"), MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -27,31 +45,31 @@ namespace Doxense.Serialization.Json
 			return object.ReferenceEquals(value, null) || value.IsNull;
 		}
 
-		/// <summary>Test si une valeur JSON est l'équivalent logique de 'missing'</summary>
+		/// <summary>Test si une valeur JSON est l'Ã©quivalent logique de 'missing'</summary>
 		/// <param name="value">Valeur JSON</param>
-		/// <returns>True si <paramref name="value"/> est null, ou égal à <see cref="JsonNull.Missing"/>.</returns>
-		/// <remarks><see cref="JsonNull.Null"/> n'est pas considéré comme manquant (c'est un null explicite)</remarks>
+		/// <returns>True si <paramref name="value"/> est null, ou Ã©gal Ã  <see cref="JsonNull.Missing"/>.</returns>
+		/// <remarks><see cref="JsonNull.Null"/> n'est pas considÃ©rÃ© comme manquant (c'est un null explicite)</remarks>
 		[Pure, ContractAnnotation("null=>true"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsMissing([NotNullWhen(false)] this JsonValue? value)
 		{
-			//note: JsonNull.Error est un singleton, donc on peut le comparer par référence!
+			//note: JsonNull.Error est un singleton, donc on peut le comparer par rÃ©fÃ©rence!
 			return !object.ReferenceEquals(value, null) && object.ReferenceEquals(value, JsonNull.Missing);
 		}
 
 
 		/// <summary>Test si une valeur JSON est manquant pour cause d'une erreur de parsing</summary>
 		/// <param name="value">Valeur JSON</param>
-		/// <returns>True si <paramref name="value"/> est null, ou égal à <see cref="JsonNull.Error"/>.</returns>
-		/// <remarks><see cref="JsonNull.Null"/> n'est pas considéré comme manquant (c'est un null explicite)</remarks>
+		/// <returns>True si <paramref name="value"/> est null, ou Ã©gal Ã  <see cref="JsonNull.Error"/>.</returns>
+		/// <remarks><see cref="JsonNull.Null"/> n'est pas considÃ©rÃ© comme manquant (c'est un null explicite)</remarks>
 		[Pure, ContractAnnotation("null=>true")]
 		public static bool IsError([NotNullWhen(false)] this JsonValue? value)
 		{
-			//note: JsonNull.Error est un singleton, donc on peut le comparer par référence!
+			//note: JsonNull.Error est un singleton, donc on peut le comparer par rÃ©fÃ©rence!
 			return !object.ReferenceEquals(value, null) && object.ReferenceEquals(value, JsonNull.Error);
 		}
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
+		/// <summary>VÃ©rifie qu'une valeur JSON est bien prÃ©sente</summary>
+		/// <param name="value">Valeur JSON qui ne doit pas Ãªtre null ou manquante</param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		[ ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Required(this JsonValue? value)
@@ -59,9 +77,9 @@ namespace Doxense.Serialization.Json
 			return IsNullOrMissing(value) ? FailValueIsNullOrMissing() : value;
 		}
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente dans une array</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <param name="index">Index dans l'array qui doit être présent</param>
+		/// <summary>VÃ©rifie qu'une valeur JSON est bien prÃ©sente dans une array</summary>
+		/// <param name="value">Valeur JSON qui ne doit pas Ãªtre null ou manquante</param>
+		/// <param name="index">Index dans l'array qui doit Ãªtre prÃ©sent</param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue RequiredIndex(this JsonValue? value, int index)
@@ -69,9 +87,9 @@ namespace Doxense.Serialization.Json
 			return IsNullOrMissing(value) ? FailIndexIsNullOrMissing(index) : value;
 		}
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <param name="field">Nom du champ qui doit être présent</param>
+		/// <summary>VÃ©rifie qu'une valeur JSON est bien prÃ©sente</summary>
+		/// <param name="value">Valeur JSON qui ne doit pas Ãªtre null ou manquante</param>
+		/// <param name="field">Nom du champ qui doit Ãªtre prÃ©sent</param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue RequiredField(this JsonValue? value, string field)
@@ -79,9 +97,9 @@ namespace Doxense.Serialization.Json
 			return IsNullOrMissing(value) ? FailFieldIsNullOrMissing(field) : value;
 		}
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <param name="path">Chemin vers le champ qui doit être présent</param>
+		/// <summary>VÃ©rifie qu'une valeur JSON est bien prÃ©sente</summary>
+		/// <param name="value">Valeur JSON qui ne doit pas Ãªtre null ou manquante</param>
+		/// <param name="path">Chemin vers le champ qui doit Ãªtre prÃ©sent</param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue RequiredPath(this JsonValue? value, string path)
@@ -89,8 +107,8 @@ namespace Doxense.Serialization.Json
 			return IsNullOrMissing(value) ? FailPathIsNullOrMissing(path) : value;
 		}
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
+		/// <summary>VÃ©rifie qu'une valeur JSON est bien prÃ©sente</summary>
+		/// <param name="value">Valeur JSON qui ne doit pas Ãªtre null ou manquante</param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		[ContractAnnotation("null => halt")]
 		public static JsonArray Required(this JsonArray? value)
@@ -99,8 +117,8 @@ namespace Doxense.Serialization.Json
 			return value;
 		}
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
+		/// <summary>VÃ©rifie qu'une valeur JSON est bien prÃ©sente</summary>
+		/// <param name="value">Valeur JSON qui ne doit pas Ãªtre null ou manquante</param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		[ContractAnnotation("null => halt")]
 		public static JsonObject Required(this JsonObject? value)
@@ -147,50 +165,50 @@ namespace Doxense.Serialization.Json
 
 		#region ToStuff(...)
 
-		/// <summary>Sérialise cette valeur JSON en texte le plus compact possible (pour du stockage)</summary>
-		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonBuffer(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
+		/// <summary>SÃ©rialise cette valeur JSON en texte le plus compact possible (pour du stockage)</summary>
+		/// <remarks>Note: si le JSON doit Ãªtre envoyÃ©s en HTTP ou sauvÃ© sur disque, prÃ©fÃ©rer <see cref="ToJsonBuffer(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
 		[Pure]
 		public static string ToJsonCompact(this JsonValue? value)
 		{
 			return value?.ToJson(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
 		}
 
-		/// <summary>Sérialise cette valeur JSON en texte au format indenté (pratique pour des logs ou en mode debug)</summary>
-		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonBuffer(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
+		/// <summary>SÃ©rialise cette valeur JSON en texte au format indentÃ© (pratique pour des logs ou en mode debug)</summary>
+		/// <remarks>Note: si le JSON doit Ãªtre envoyÃ©s en HTTP ou sauvÃ© sur disque, prÃ©fÃ©rer <see cref="ToJsonBuffer(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
 		[Pure]
 		public static string ToJsonIndented(this JsonValue? value)
 		{
 			return value?.ToJson(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
 		}
 
-		/// <summary>Sérialise cette valeur JSON en un tableau de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
-		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonBuffer(JsonValue)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
+		/// <summary>SÃ©rialise cette valeur JSON en un tableau de bytes</summary>
+		/// <returns>Buffer contenant le texte JSON encodÃ© en UTF-8</returns>
+		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, prÃ©fÃ©rer <see cref="ToJsonBuffer(JsonValue)"/> qui permet d'Ã©viter une copie inutile en mÃ©moire</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value)
 		{
 			return CrystalJson.ToBytes(value, null);
 		}
 
-		/// <summary>Sérialise cette valeur JSON en un tableau de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
-		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonBuffer(JsonValue, CrystalJsonSettings)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
+		/// <summary>SÃ©rialise cette valeur JSON en un tableau de bytes</summary>
+		/// <returns>Buffer contenant le texte JSON encodÃ© en UTF-8</returns>
+		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, prÃ©fÃ©rer <see cref="ToJsonBuffer(JsonValue, CrystalJsonSettings)"/> qui permet d'Ã©viter une copie inutile en mÃ©moire</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings)
 		{
 			return CrystalJson.ToBytes(value, settings);
 		}
 
-		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
+		/// <summary>SÃ©rialise cette valeur JSON en un buffer de bytes</summary>
+		/// <returns>Buffer contenant le texte JSON encodÃ© en UTF-8</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonBuffer(this JsonValue? value)
 		{
 			return CrystalJson.ToBuffer(value, null);
 		}
 
-		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
+		/// <summary>SÃ©rialise cette valeur JSON en un buffer de bytes</summary>
+		/// <returns>Buffer contenant le texte JSON encodÃ© en UTF-8</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonBuffer(this JsonValue? value, CrystalJsonSettings? settings)
 		{
@@ -201,8 +219,8 @@ namespace Doxense.Serialization.Json
 
 		#region As<T>...
 
-		//REVIEW: "AsXXX()" en général c'est pour du casting, et "ToXXX()" pour de la conversion...
-		//note: appelé ToObject<T> dans Json.NET
+		//REVIEW: "AsXXX()" en gÃ©nÃ©ral c'est pour du casting, et "ToXXX()" pour de la conversion...
+		//note: appelÃ© ToObject<T> dans Json.NET
 
 		/// <summary>Bind cette valeur JSON en une instance d'un type CLR</summary>
 		/// <remarks>Si la valeur est null, retourne default(<typeparam name="T"/>)</remarks>
@@ -211,11 +229,11 @@ namespace Doxense.Serialization.Json
 		{
 			#region <JIT_HACK>
 
-			// En mode RELEASE, le JIT reconnaît les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une méthode générique Foo<T> quand T est un ValueType,
-			// et les remplace par des "if (true) { ...}" ce qui permet d'éliminer le reste du code (très efficace si le if contient un return!)
-			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour éviter le boxing inutile (le cast intermédiaire en object est pour faire taire le compilateur)
-			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
-			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
+			// En mode RELEASE, le JIT reconnaÃ®t les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une mÃ©thode gÃ©nÃ©rique Foo<T> quand T est un ValueType,
+			// et les remplace par des "if (true) { ...}" ce qui permet d'Ã©liminer le reste du code (trÃ¨s efficace si le if contient un return!)
+			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour Ã©viter le boxing inutile (le cast intermÃ©diaire en object est pour faire taire le compilateur)
+			// => pour le vÃ©rifier, il faut inspecter l'asm gÃ©nÃ©rÃ© par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
+			// => vÃ©rifiÃ© avec .NET 4.6.1 + RyuJIT x64, la mÃ©thode FromValue<int> est directement inlinÃ©e en l'appel Ã  JsonNumber.Return(...) !
 
 #if !DEBUG // trop lent en debug !
 
@@ -241,7 +259,7 @@ namespace Doxense.Serialization.Json
 			if (typeof (T) == typeof (NodaTime.Instant)) return value != null ? (T) (object) value.ToInstant() : default(T);
 			if (typeof (T) == typeof (NodaTime.Duration)) return value != null ? (T) (object) value.ToDuration() : default(T);
 
-			//note: value peut être un JsonNull, donc on doit invoquer les ...OrDefault() !
+			//note: value peut Ãªtre un JsonNull, donc on doit invoquer les ...OrDefault() !
 			if (typeof (T) == typeof (bool?)) return value != null ? (T) (object) value.ToBooleanOrDefault()! : default(T);
 			if (typeof (T) == typeof (char?)) return value != null ? (T) (object) value.ToCharOrDefault()! : default(T);
 			if (typeof (T) == typeof (byte?)) return value != null ? (T) (object) value.ToByteOrDefault()! : default(T);
@@ -280,11 +298,11 @@ namespace Doxense.Serialization.Json
 		{
 			#region <JIT_HACK>
 
-			// En mode RELEASE, le JIT reconnaît les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une méthode générique Foo<T> quand T est un ValueType,
-			// et les remplace par des "if (true) { ...}" ce qui permet d'éliminer le reste du code (très efficace si le if contient un return!)
-			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour éviter le boxing inutile (le cast intermédiaire en object est pour faire taire le compilateur)
-			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
-			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
+			// En mode RELEASE, le JIT reconnaÃ®t les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une mÃ©thode gÃ©nÃ©rique Foo<T> quand T est un ValueType,
+			// et les remplace par des "if (true) { ...}" ce qui permet d'Ã©liminer le reste du code (trÃ¨s efficace si le if contient un return!)
+			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour Ã©viter le boxing inutile (le cast intermÃ©diaire en object est pour faire taire le compilateur)
+			// => pour le vÃ©rifier, il faut inspecter l'asm gÃ©nÃ©rÃ© par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
+			// => vÃ©rifiÃ© avec .NET 4.6.1 + RyuJIT x64, la mÃ©thode FromValue<int> est directement inlinÃ©e en l'appel Ã  JsonNumber.Return(...) !
 
 #if !DEBUG // trop lent en debug !
 
@@ -310,7 +328,7 @@ namespace Doxense.Serialization.Json
 			if (typeof (T) == typeof (NodaTime.Instant)) return value != null ? (T) (object) value.ToInstant() : default(T);
 			if (typeof (T) == typeof (NodaTime.Duration)) return value != null ? (T) (object) value.ToDuration() : default(T);
 
-			//note: value peut être un JsonNull, donc on doit invoquer les ...OrDefault() !
+			//note: value peut Ãªtre un JsonNull, donc on doit invoquer les ...OrDefault() !
 			if (typeof (T) == typeof (bool?)) return value != null ? (T) (object) value.ToBooleanOrDefault()! : default(T);
 			if (typeof (T) == typeof (char?)) return value != null ? (T) (object) value.ToCharOrDefault()! : default(T);
 			if (typeof (T) == typeof (byte?)) return value != null ? (T) (object) value.ToByteOrDefault()! : default(T);
@@ -354,11 +372,11 @@ namespace Doxense.Serialization.Json
 
 			#region <JIT_HACK>
 
-			// En mode RELEASE, le JIT reconnaît les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une méthode générique Foo<T> quand T est un ValueType,
-			// et les remplace par des "if (true) { ...}" ce qui permet d'éliminer le reste du code (très efficace si le if contient un return!)
-			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour éviter le boxing inutile (le cast intermédiaire en object est pour faire taire le compilateur)
-			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
-			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
+			// En mode RELEASE, le JIT reconnaÃ®t les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une mÃ©thode gÃ©nÃ©rique Foo<T> quand T est un ValueType,
+			// et les remplace par des "if (true) { ...}" ce qui permet d'Ã©liminer le reste du code (trÃ¨s efficace si le if contient un return!)
+			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour Ã©viter le boxing inutile (le cast intermÃ©diaire en object est pour faire taire le compilateur)
+			// => pour le vÃ©rifier, il faut inspecter l'asm gÃ©nÃ©rÃ© par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
+			// => vÃ©rifiÃ© avec .NET 4.6.1 + RyuJIT x64, la mÃ©thode FromValue<int> est directement inlinÃ©e en l'appel Ã  JsonNumber.Return(...) !
 
 #if !DEBUG // trop lent en debug !
 
@@ -384,7 +402,7 @@ namespace Doxense.Serialization.Json
 			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) value.ToInstant();
 			if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) value.ToDuration();
 
-			//note: value peut être un JsonNull, donc on doit invoquer les ...OrDefault() !
+			//note: value peut Ãªtre un JsonNull, donc on doit invoquer les ...OrDefault() !
 			if (typeof(T) == typeof(bool?)) return (T) (object) value.ToBooleanOrDefault()!;
 			if (typeof(T) == typeof(char?)) return (T) (object) value.ToCharOrDefault()!;
 			if (typeof(T) == typeof(byte?)) return (T) (object) value.ToByteOrDefault()!;
@@ -411,8 +429,8 @@ namespace Doxense.Serialization.Json
 			return (T?) value.Bind(typeof(T), resolver);
 		}
 
-		/// <summary>Bind cette valeur JSON en une instance d'un type CLR, avec une valeur par défaut en cas de null</summary>
-		/// <remarks>Pour les types simples (int, string, guid, ....) préférez utiliser les ToInt32(), ToGuid(), etc...</remarks>
+		/// <summary>Bind cette valeur JSON en une instance d'un type CLR, avec une valeur par dÃ©faut en cas de null</summary>
+		/// <remarks>Pour les types simples (int, string, guid, ....) prÃ©fÃ©rez utiliser les ToInt32(), ToGuid(), etc...</remarks>
 		[Pure, ContractAnnotation("defaultValue:notnull => notnull")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use '??' operator instead")]
@@ -422,11 +440,11 @@ namespace Doxense.Serialization.Json
 
 			#region <JIT_HACK>
 
-			// En mode RELEASE, le JIT reconnait les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une méthode générique Foo<T> quand T est un ValueType,
-			// et les remplace par des "if (true) { ...}" ce qui permet d'éliminer le reste du code (très efficace si le if contient un return!)
-			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour éviter le boxing inutile (le cast intermédiaire en object est pour faire taire le compilateur)
-			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
-			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
+			// En mode RELEASE, le JIT reconnait les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une mÃ©thode gÃ©nÃ©rique Foo<T> quand T est un ValueType,
+			// et les remplace par des "if (true) { ...}" ce qui permet d'Ã©liminer le reste du code (trÃ¨s efficace si le if contient un return!)
+			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour Ã©viter le boxing inutile (le cast intermÃ©diaire en object est pour faire taire le compilateur)
+			// => pour le vÃ©rifier, il faut inspecter l'asm gÃ©nÃ©rÃ© par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
+			// => vÃ©rifiÃ© avec .NET 4.6.1 + RyuJIT x64, la mÃ©thode FromValue<int> est directement inlinÃ©e en l'appel Ã  JsonNumber.Return(...) !
 
 #if !DEBUG // trop lent en debug !
 
@@ -452,7 +470,7 @@ namespace Doxense.Serialization.Json
 			if (typeof (T) == typeof (NodaTime.Instant)) return (T) (object) value.ToInstant();
 			if (typeof (T) == typeof (NodaTime.Duration)) return (T) (object) value.ToDuration();
 
-			//note: on a déja testé le null plus haut, donc pas la peine de rappeler les overload "..OrDefault"!
+			//note: on a dÃ©ja testÃ© le null plus haut, donc pas la peine de rappeler les overload "..OrDefault"!
 			if (typeof (T) == typeof (bool?)) return (T) (object) value.ToBoolean();
 			if (typeof (T) == typeof (char?)) return (T) (object) value.ToChar();
 			if (typeof (T) == typeof (byte?)) return (T) (object) value.ToByte();
@@ -480,7 +498,7 @@ namespace Doxense.Serialization.Json
 			return o != null ? (T) o : defaultValue;
 		}
 
-		/// <summary>Retourne une exception indiquant qu'une valeur JSON était requise</summary>
+		/// <summary>Retourne une exception indiquant qu'une valeur JSON Ã©tait requise</summary>
 		/// <exception cref="InvalidOperationException">Toujours</exception>
 		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
 		internal static T FailRequiredValueIsNullOrMissing<T>()
@@ -489,7 +507,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne soit le default(T) correspondant, ou une exception si required == true</summary>
-		/// <remarks>Si T est JsonValue ou JsonNull, alors retourne JsonNull.Null à la place</remarks>
+		/// <remarks>Si T est JsonValue ou JsonNull, alors retourne JsonNull.Null Ã  la place</remarks>
 		[Pure]
 		internal static T? DefaultOrRequired<T>(bool required)
 		{
@@ -500,151 +518,151 @@ namespace Doxense.Serialization.Json
 
 		#region OrDefault...
 
-		// pour simplifier les conversion avec valeur par défaut
+		// pour simplifier les conversion avec valeur par dÃ©faut
 		// le but est de n'allouer la JsonValue "missing" que si besoin.
-		// pour des raisons de perfs, on a des version typées, et on reserve OrDefault<T>(...) pour les clas les plus complexes
+		// pour des raisons de perfs, on a des version typÃ©es, et on reserve OrDefault<T>(...) pour les clas les plus complexes
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure, ContractAnnotation("missingValue:notnull => notnull")]
 		public static JsonValue? OrDefault(this JsonValue? value, JsonValue missingValue)
 		{
 			return value.IsNullOrMissing() ? missingValue : value;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="factory">Lambda appelée pour générer la valeur valeur retournée si <paramref name="value"/> est null ou manquante.</param>
-		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="factory">Lambda appelÃ©e pour gÃ©nÃ©rer la valeur valeur retournÃ©e si <paramref name="value"/> est null ou manquante.</param>
+		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournÃ©e sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault(this JsonValue? value, Func<JsonValue> factory)
 		{
 			return value.IsNullOrMissing() ? (factory() ?? JsonNull.Null) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="factory">Lambda appelée pour générer la valeur valeur retournée si <paramref name="value"/> est null ou manquante.</param>
-		/// <param name="arg">Argument passé à <paramref name="factory"/></param>
-		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="factory">Lambda appelÃ©e pour gÃ©nÃ©rer la valeur valeur retournÃ©e si <paramref name="value"/> est null ou manquante.</param>
+		/// <param name="arg">Argument passÃ© Ã  <paramref name="factory"/></param>
+		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournÃ©e sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault<TArg>(this JsonValue? value, Func<TArg, JsonValue> factory, TArg arg)
 		{
 			return value.IsNullOrMissing() ? (factory(arg) ?? JsonNull.Null) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, string missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, bool missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonBoolean.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, int missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, long missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, double missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, float missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, Guid missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, TimeSpan missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, DateTime missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, DateTimeOffset missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="missingValue">Valeur retournÃ©e si <paramref name="value"/> est null ou manquante</param>
 		[Pure]
 		public static JsonValue OrDefault<TValue>(this JsonValue? value, TValue? missingValue)
 		{
 			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(missingValue) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="factory">Lambda appelée pour générer la valeur retournée, si <paramref name="value"/> est null ou manquante</param>
-		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="factory">Lambda appelÃ©e pour gÃ©nÃ©rer la valeur retournÃ©e, si <paramref name="value"/> est null ou manquante</param>
+		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournÃ©e sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault<TValue>(this JsonValue? value, Func<TValue> factory)
 		{
 			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(factory()) : value!;
 		}
 
-		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
-		/// <param name="value">Valeur JSON à valider</param>
-		/// <param name="factory">Lambda appelée pour générer la valeur retournée, si <paramref name="value"/> est null ou manquante</param>
-		/// <param name="arg">Argument passé à <paramref name="factory"/></param>
-		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
+		/// <summary>Retourne une valeur par dÃ©faut si la valeur JSON est null ou manquante</summary>
+		/// <param name="value">Valeur JSON Ã  valider</param>
+		/// <param name="factory">Lambda appelÃ©e pour gÃ©nÃ©rer la valeur retournÃ©e, si <paramref name="value"/> est null ou manquante</param>
+		/// <param name="arg">Argument passÃ© Ã  <paramref name="factory"/></param>
+		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournÃ©e sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault<TValue, TArg>(this JsonValue? value, Func<TArg, TValue> factory, TArg? arg)
 		{
 			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(factory(arg)) : value!;
@@ -655,11 +673,11 @@ namespace Doxense.Serialization.Json
 		#region Object Helpers...
 
 		// magic cast entre JsonValue et JsonObject
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
+		// le but est de rÃ©duire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
-		/// <param name="value">Valeur JSON qui doit être un object</param>
-		/// <returns>Valeur castée en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
+		/// <summary>VÃ©rifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
+		/// <param name="value">Valeur JSON qui doit Ãªtre un object</param>
+		/// <returns>Valeur castÃ©e en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas un object.</exception>
 		[Pure]
 		[Obsolete("Prefer using AsObject(required: true) instead", error: true)]
@@ -670,10 +688,10 @@ namespace Doxense.Serialization.Json
 			return (JsonObject) value;
 		}
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
-		/// <param name="value">Valeur JSON qui doit être un object</param>
-		/// <param name="required">Si true, une exception sera générée si l'objet est null.</param>
-		/// <returns>Valeur castée en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
+		/// <summary>VÃ©rifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
+		/// <param name="value">Valeur JSON qui doit Ãªtre un object</param>
+		/// <param name="required">Si true, une exception sera gÃ©nÃ©rÃ©e si l'objet est null.</param>
+		/// <returns>Valeur castÃ©e en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas un object.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? AsObject(this JsonValue? value, bool required)
@@ -688,8 +706,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne la valeur JSON sous forme d'object, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit un object, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonObject si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
+		/// <param name="value">Valeur JSON qui doit Ãªtre soit un object, soit null/missing.</param>
+		/// <returns>Valeur castÃ©e en JsonObject si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type diffÃ©rent.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> n'est ni null, ni un object.</exception>
 		[Pure]
 		[Obsolete("Prefer using AsObject(required: false) instead", error: true)]
@@ -725,7 +743,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(items);
 
-			// essayes de garder le même comparer que la source...
+			// essayes de garder le mÃªme comparer que la source...
 			comparer ??= JsonObject.ExtractKeyComparer(items) ?? StringComparer.Ordinal;
 
 			var map = new Dictionary<string, JsonValue>((items as ICollection<KeyValuePair<string, TValue>>)?.Count ?? 0, comparer);
@@ -743,7 +761,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(items);
 			Contract.NotNull(valueSelector);
 
-			// essayes de garder le même comparer que la source...
+			// essayes de garder le mÃªme comparer que la source...
 			comparer ??= JsonObject.ExtractKeyComparer(items) ?? StringComparer.Ordinal;
 
 			var map = new Dictionary<string, JsonValue>((items as ICollection<KeyValuePair<string, TValue>>)?.Count ?? 0, comparer);
@@ -794,11 +812,11 @@ namespace Doxense.Serialization.Json
 		#region AsNumber...
 
 		// magic cast entre JsonValue et JsonNumber
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
+		// le but est de rÃ©duire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonNumber.</summary>
-		/// <param name="value">Valeur JSON qui doit être un number</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe. Une exception si la valeur est null, missing, ou n'est pas un number.</returns>
+		/// <summary>VÃ©rifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonNumber.</summary>
+		/// <param name="value">Valeur JSON qui doit Ãªtre un number</param>
+		/// <returns>Valeur castÃ©e en JsonNumber si elle existe. Une exception si la valeur est null, missing, ou n'est pas un number.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas un number.</exception>
 		[Pure, ContractAnnotation("null => halt")]
 		public static JsonNumber AsNumber(this JsonValue? value)
@@ -808,8 +826,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne la valeur JSON sous forme d'un number, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit un number, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
+		/// <param name="value">Valeur JSON qui doit Ãªtre soit un number, soit null/missing.</param>
+		/// <returns>Valeur castÃ©e en JsonNumber si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type diffÃ©rent.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> n'est ni null, ni un number.</exception>
 		[Pure]
 		public static JsonNumber? AsNumberOrDefault(this JsonValue? value)
@@ -831,11 +849,11 @@ namespace Doxense.Serialization.Json
 		#region AsString...
 
 		// magic cast entre JsonValue et JsonNumber
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
+		// le but est de rÃ©duire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonNumber.</summary>
-		/// <param name="value">Valeur JSON qui doit être un number</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe. Une exception si la valeur est null, missing, ou n'est pas un number.</returns>
+		/// <summary>VÃ©rifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonNumber.</summary>
+		/// <param name="value">Valeur JSON qui doit Ãªtre un number</param>
+		/// <returns>Valeur castÃ©e en JsonNumber si elle existe. Une exception si la valeur est null, missing, ou n'est pas un number.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas un number.</exception>
 		[Pure, ContractAnnotation("null => halt")]
 		public static JsonString AsString(this JsonValue? value)
@@ -845,8 +863,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne la valeur JSON sous forme d'un number, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit un number, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
+		/// <param name="value">Valeur JSON qui doit Ãªtre soit un number, soit null/missing.</param>
+		/// <returns>Valeur castÃ©e en JsonNumber si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type diffÃ©rent.</returns>
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> n'est ni null, ni un number.</exception>
 		[Pure]
 		public static JsonString? AsStringOrDefault(this JsonValue? value)

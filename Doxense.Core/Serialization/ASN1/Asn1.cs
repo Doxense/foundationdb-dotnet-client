@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 //#define FULL_DEBUG
@@ -17,10 +35,10 @@ namespace Doxense.Serialization.Asn1
 	using Doxense.Memory;
 	using JetBrains.Annotations;
 
-	//TODO: cette classe était normalement utilisée par SNMP, mais est utilisée par d'autres pour gérer l'encodage ASN.1
-	// => elle devrait être "déspécialisée" pour devenir le plus générique possible!
+	//TODO: cette classe Ã©tait normalement utilisÃ©e par SNMP, mais est utilisÃ©e par d'autres pour gÃ©rer l'encodage ASN.1
+	// => elle devrait Ãªtre "dÃ©spÃ©cialisÃ©e" pour devenir le plus gÃ©nÃ©rique possible!
 
-	/// <summary>Routines statiques d'encodage/décodage des règles ASN.1</summary>
+	/// <summary>Routines statiques d'encodage/dÃ©codage des rÃ¨gles ASN.1</summary>
 	public static class Asn1
 	{
 		public const string TOKENS_PREFIX_1_2 = "1.2";
@@ -41,7 +59,7 @@ namespace Doxense.Serialization.Asn1
 			return v < 0x80 ? 1 : ((v & 0x7f) + 1);
 		}
 
-		/// <summary>Calcule le nombre d'octets qu'occupera la longueur donnée une fois sérialisée</summary>
+		/// <summary>Calcule le nombre d'octets qu'occupera la longueur donnÃ©e une fois sÃ©rialisÃ©e</summary>
 		/// <param name="length">longueur dont on veut calculer la longueur</param>
 		/// <returns>longueur de cette longueur</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -52,9 +70,9 @@ namespace Doxense.Serialization.Asn1
 
 		/// <summary>Ecrit un champ longueur dans un byte[] selon la norme ASN.1</summary>
 		/// <param name="dst">le tableau destination</param>
-		/// <param name="pos">offset dans ce tableau où commencera l'écriture</param>
-		/// <param name="length">longueur du champ longueur a écrire</param>
-		/// <returns>position dans le tableau apres écriture</returns>
+		/// <param name="pos">offset dans ce tableau oÃ¹ commencera l'Ã©criture</param>
+		/// <param name="length">longueur du champ longueur a Ã©crire</param>
+		/// <returns>position dans le tableau apres Ã©criture</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int PutLength(byte[] dst, int pos, int length)
 		{
@@ -69,17 +87,17 @@ namespace Doxense.Serialization.Asn1
 		[Pure]
 		private static int PutLengthSlow(byte[] dst, int pos, int length)
 		{
-			//note: 1-byte déjà géré!
+			//note: 1-byte dÃ©jÃ  gÃ©rÃ©!
 
 			if (length < 0x100)
-			{ // 2-byte (préfixé par 0x81)
+			{ // 2-byte (prÃ©fixÃ© par 0x81)
 				dst[pos] = 0x81;
 				dst[pos + 1] = (byte)length;
 				return pos + 2;
 			}
 
 			if (length < 0x10000)
-			{ // 3-byte (préfixé par 0x82)
+			{ // 3-byte (prÃ©fixÃ© par 0x82)
 				dst[pos] = 0x82;
 				dst[pos + 1] = (byte)(length >> 8);
 				dst[pos + 2] = (byte) length;
@@ -87,7 +105,7 @@ namespace Doxense.Serialization.Asn1
 			}
 
 			if (length < 0x1000000)
-			{ // 4-byte (préfixé par 0x83)
+			{ // 4-byte (prÃ©fixÃ© par 0x83)
 				dst[pos] = 0x83;
 				dst[pos + 1] = (byte)(length >> 16);
 				dst[pos + 2] = (byte)(length >> 8);
@@ -95,7 +113,7 @@ namespace Doxense.Serialization.Asn1
 				return pos + 4;
 			}
 
-			// 5-byte (préfixé par 0x83)
+			// 5-byte (prÃ©fixÃ© par 0x83)
 			dst[pos] = 0x84;
 			dst[pos + 1] = (byte)(length >> 24);
 			dst[pos + 2] = (byte)(length >> 16);
@@ -106,7 +124,7 @@ namespace Doxense.Serialization.Asn1
 
 		/// <summary>Lit un champ longueur depuis un byte[]</summary>
 		/// <param name="src">tableau source</param>
-		/// <param name="pos">offset où l'on trouve le champ a lire</param>
+		/// <param name="pos">offset oÃ¹ l'on trouve le champ a lire</param>
 		/// <returns>la longueur lue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int GetLength(byte[] src, int pos)
@@ -119,7 +137,7 @@ namespace Doxense.Serialization.Asn1
 		[Pure]
 		private static int GetLengthSlow(byte[] src, int pos)
 		{
-			// note: on sait déjà que le premier byte est >= 0x80
+			// note: on sait dÃ©jÃ  que le premier byte est >= 0x80
 			int len = src[pos++] & 0x7f;
 			// note: la valeur est en Big Endian
 			switch (len)
@@ -159,7 +177,7 @@ namespace Doxense.Serialization.Asn1
 		[Pure]
 		private static int ReadLengthSlow(ref SliceReader reader, byte first)
 		{
-			// note: on sait déjà que le premier byte est >= 0x80
+			// note: on sait dÃ©jÃ  que le premier byte est >= 0x80
 			int len = first & 0x7f;
 			// note: la valeur est en Big Endian
 			switch (len)
@@ -196,7 +214,7 @@ namespace Doxense.Serialization.Asn1
 
 		private static int SizeOfOidFragmentSlow(long value)
 		{
-			//note: on sait déjà que ce n'est pas < 0x80
+			//note: on sait dÃ©jÃ  que ce n'est pas < 0x80
 			return (value < 0x4000L) ? 2
 				: (value < 0x200000L) ? 3
 				: (value < 0x10000000L) ? 4
@@ -210,8 +228,8 @@ namespace Doxense.Serialization.Asn1
 		/// <summary>Ecrit un fragment d'oid dans un byte[] selon la norme ASN.1</summary>
 		/// <param name="dst">tableau de destination</param>
 		/// <param name="pos">offset auquel on devra placer le fragment d'oid</param>
-		/// <param name="value">le fragment d'oid a écrire</param>
-		/// <returns>position dans le tableau après écriture</returns>
+		/// <param name="value">le fragment d'oid a Ã©crire</param>
+		/// <returns>position dans le tableau aprÃ¨s Ã©criture</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int PutOidFragment(byte[] dst, int pos, long value)
 		{
@@ -249,7 +267,7 @@ namespace Doxense.Serialization.Asn1
 		/// <summary>Lit un fragment d'oid a partir d'un byte[]</summary>
 		/// <param name="src">tableau source</param>
 		/// <param name="pos">offset auquel on peur trouver le fragment d'oid a lire</param>
-		/// <param name="newpos">reçoit la nouvelle position après lecture</param>
+		/// <param name="newpos">reÃ§oit la nouvelle position aprÃ¨s lecture</param>
 		/// <returns>le fragment d'oid lu</returns>
 		public static unsafe long GetNextOidFragment(byte[] src, int pos, out int newpos)
 		{
@@ -260,8 +278,8 @@ namespace Doxense.Serialization.Asn1
 			fixed (byte* buf = &src[0])
 			{
 				newpos = (int) (ReadNextOidFragment(buf + pos, buf + src.Length, out long res) - buf);
-				// par sécurité, on check si on ne fait pas de conneries
-				// => il vaut mieux balancer une exception (qui sera catchée) que d'écraser la mémoire et crasher le process!
+				// par sÃ©curitÃ©, on check si on ne fait pas de conneries
+				// => il vaut mieux balancer une exception (qui sera catchÃ©e) que d'Ã©craser la mÃ©moire et crasher le process!
 				if (newpos <= pos) throw new InvalidOperationException("Oid fragment parsing error: cursor did not advance");
 				if (newpos > src.Length) throw new InvalidOperationException("Oid fragment parsing error: cursor overshot end of buffer");
 				return res;
@@ -271,7 +289,7 @@ namespace Doxense.Serialization.Asn1
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* ReadNextOidFragment(byte* ptr, byte* stop, out long value)
 		{
-			// la majorité des OID sont < 0x80, donc on fait en sorte que ce soit inliné
+			// la majoritÃ© des OID sont < 0x80, donc on fait en sorte que ce soit inlinÃ©
 			return ptr < stop && (value = *ptr) < 0x80 ? ptr + 1 : ReadNextOidFragmentSlow(ptr, stop, out value);
 		}
 
@@ -288,7 +306,7 @@ namespace Doxense.Serialization.Asn1
 				return ptr;
 			}
 
-			// note: on sait déjà que le premier token est >= 0x80
+			// note: on sait dÃ©jÃ  que le premier token est >= 0x80
 			value = (*ptr++ & 0x7F) << 7;
 
 			int next = 0xFF;
@@ -319,7 +337,7 @@ namespace Doxense.Serialization.Asn1
 			}
 		}
 
-		/// <summary>Retourne la valeur du dernier fragment, où -1 si vide</summary>
+		/// <summary>Retourne la valeur du dernier fragment, oÃ¹ -1 si vide</summary>
 		/// <example>"1.3.6.123.4" => 4</example>
 		public static unsafe long GetLastOidFragment(byte* buffer, uint count)
 		{
@@ -327,7 +345,7 @@ namespace Doxense.Serialization.Asn1
 
 			if (count == 0) return 0; //REVIEW: or bug?
 
-			// cas spécial
+			// cas spÃ©cial
 			if (count == 1)
 			{ // formes courtes: "1.2", "1.3", ...
 				int tok = buffer[0];
@@ -348,7 +366,7 @@ namespace Doxense.Serialization.Asn1
 			return frag;
 		}
 
-		/// <summary>Retourne la valeur de l'avant dernier fragment, où -1 si vide (ou taille 1)</summary>
+		/// <summary>Retourne la valeur de l'avant dernier fragment, oÃ¹ -1 si vide (ou taille 1)</summary>
 		/// <example>"1.3.6.123.4" => 123</example>
 		public static unsafe long GetNextToLastOidFragment(byte* buffer, uint count)
 		{
@@ -358,7 +376,7 @@ namespace Doxense.Serialization.Asn1
 
 			int tok = buffer[0];
 
-			// cas spécial
+			// cas spÃ©cial
 			if (count == 1)
 			{ // formes courtes: "1.2", "1.3", ...
 				if (tok == 0) return -1; // empty
@@ -393,8 +411,8 @@ namespace Doxense.Serialization.Asn1
 		/// <summary>Lit un ulong depuis un byte[]</summary>
 		/// <param name="src">tableau source</param>
 		/// <param name="offset">offset dans ce tableau</param>
-		/// <param name="count">longueur en octets de la donnée a lire</param>
-		/// <returns>la donnée lue</returns>
+		/// <param name="count">longueur en octets de la donnÃ©e a lire</param>
+		/// <returns>la donnÃ©e lue</returns>
 		[Pure]
 		public static ulong GetUInt64Data(byte[] src, int offset, int count)
 		{
@@ -420,9 +438,9 @@ namespace Doxense.Serialization.Asn1
 
 		#region Int32...
 
-		/// <summary>Lit un int32 (signé) depuis un buffer</summary>
+		/// <summary>Lit un int32 (signÃ©) depuis un buffer</summary>
 		/// <param name="data">buffer source</param>
-		/// <returns>la donnée lue</returns>
+		/// <returns>la donnÃ©e lue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int GetInt32Data(Slice data)
 		{
@@ -432,8 +450,8 @@ namespace Doxense.Serialization.Asn1
 		/// <summary>Lit un int (signe) depuis un byte[]</summary>
 		/// <param name="src">tableau source</param>
 		/// <param name="offset">offset dans ce tableau</param>
-		/// <param name="count">longueur en octets de la donnée a lire</param>
-		/// <returns>la donnée lue</returns>
+		/// <param name="count">longueur en octets de la donnÃ©e a lire</param>
+		/// <returns>la donnÃ©e lue</returns>
 		[Pure]
 		public static int GetInt32Data(byte[] src, int offset, int count)
 		{
@@ -459,7 +477,7 @@ namespace Doxense.Serialization.Asn1
 				res = (res << 8) | src[offset++];
 				mul <<= 8;
 			}
-			// rétablit le signe si besoin
+			// rÃ©tablit le signe si besoin
 			if (first >= 0x80) res = res - mul;
 			return (int)res;
 		}
@@ -483,9 +501,9 @@ namespace Doxense.Serialization.Asn1
 
 		/// <summary>PutIntData</summary>
 		/// <param name="dst">tableau de destination</param>
-		/// <param name="offset">offset a partir duquel commencer l'écriture</param>
-		/// <param name="value">int a écrire</param>
-		/// <returns>position dans le tableau après écriture</returns>
+		/// <param name="offset">offset a partir duquel commencer l'Ã©criture</param>
+		/// <param name="value">int a Ã©crire</param>
+		/// <returns>position dans le tableau aprÃ¨s Ã©criture</returns>
 		public static int PutInt32Data(byte[] dst, int offset, int value)
 		{
 			Contract.Debug.Requires(dst != null && (uint) offset < dst.Length);
@@ -500,7 +518,7 @@ namespace Doxense.Serialization.Asn1
 
 		private static int PutInt32DataSlow(byte[] dst, int pos, int src)
 		{
-			//note: on sait déjà que src n'est pas entre -128 et +128
+			//note: on sait dÃ©jÃ  que src n'est pas entre -128 et +128
 			int dataSize = 4;
 			while ((((src & 0xFF800000) == 0) || ((src & 0xFF800000) == 0xFF800000)) && (dataSize > 1))
 			{
@@ -523,20 +541,20 @@ namespace Doxense.Serialization.Asn1
 
 		#region Int64...
 
-		/// <summary>Lit un int64 (signé) depuis un buffer</summary>
+		/// <summary>Lit un int64 (signÃ©) depuis un buffer</summary>
 		/// <param name="data">buffer source</param>
-		/// <returns>la donnée lue</returns>
+		/// <returns>la donnÃ©e lue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long GetInt64Data(Slice data)
 		{
 			return GetInt64Data(data.Array, data.Offset, data.Count);
 		}
 
-		/// <summary>Lit un int64 (signé) depuis un byte[]</summary>
+		/// <summary>Lit un int64 (signÃ©) depuis un byte[]</summary>
 		/// <param name="src">tableau source</param>
 		/// <param name="offset">offset dans ce tableau</param>
-		/// <param name="count">longueur en octets de la donnée a lire</param>
-		/// <returns>la donnée lue</returns>
+		/// <param name="count">longueur en octets de la donnÃ©e a lire</param>
+		/// <returns>la donnÃ©e lue</returns>
 		[Pure]
 		public static long GetInt64Data(byte[] src, int offset, int count)
 		{
@@ -562,7 +580,7 @@ namespace Doxense.Serialization.Asn1
 				res = (res << 8) | src[offset++];
 				mul <<= 8;
 			}
-			// rétabli le signe si besoin
+			// rÃ©tabli le signe si besoin
 			if (first >= 0x80) res = res - mul;
 			return (long) res;
 		}
@@ -571,11 +589,11 @@ namespace Doxense.Serialization.Asn1
 
 		#region String...
 
-		/// <summary>Lit une chaîne depuis un byte[]</summary>
+		/// <summary>Lit une chaÃ®ne depuis un byte[]</summary>
 		/// <param name="src">tableau source</param>
 		/// <param name="offset">offset dans ce tableau</param>
-		/// <param name="count">longueur en octets de la donnée a lire</param>
-		/// <returns>la donnée lue</returns>
+		/// <param name="count">longueur en octets de la donnÃ©e a lire</param>
+		/// <returns>la donnÃ©e lue</returns>
 		public static string? GetStringData(byte[] src, int offset, int count)
 		{
 			Contract.Debug.Requires(src != null && offset >= 0 && count >= 0);
@@ -586,7 +604,7 @@ namespace Doxense.Serialization.Asn1
 
 		public static string RawToString(byte[] raw, int offset, int len)
 		{
-			//TODO: copy de EncodingHelper.RawToString qui était marquée obsolète...
+			//TODO: copy de EncodingHelper.RawToString qui Ã©tait marquÃ©e obsolÃ¨te...
 			
 			Contract.NotNull(raw);
 			int n = raw.Length;
@@ -614,15 +632,15 @@ namespace Doxense.Serialization.Asn1
 			return sz + SizeOfLength(sz);
 		}
 
-		/// <summary>Ecrit une chaîne dans un byte[] selon la norme ASN.1</summary>
+		/// <summary>Ecrit une chaÃ®ne dans un byte[] selon la norme ASN.1</summary>
 		/// <param name="dst">tableau de destination</param>
-		/// <param name="offset">offset a partir duquel commencer l'écriture</param>
-		/// <param name="value">chaîne à écrire</param>
-		/// <returns>position dans le tableau après écriture</returns>
+		/// <param name="offset">offset a partir duquel commencer l'Ã©criture</param>
+		/// <param name="value">chaÃ®ne Ã  Ã©crire</param>
+		/// <returns>position dans le tableau aprÃ¨s Ã©criture</returns>
 		public static int PutStringData(byte[] dst, int offset, string value)
 		{
 			Contract.Debug.Requires(dst != null & offset >= 0);
-			byte[] src = Encoding.Default.GetBytes(value); // BUGBUG: Encoding.Default dépend de la culture de l'OS !
+			byte[] src = Encoding.Default.GetBytes(value); // BUGBUG: Encoding.Default dÃ©pend de la culture de l'OS !
 			offset = PutLength(dst, offset, src.Length);
 			Buffer.BlockCopy(src, 0, dst, offset, src.Length);
 			offset += src.Length;

@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -15,7 +33,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Collections.Caching;
 	using JetBrains.Annotations;
 
-	/// <summary>Paramètres de sérialisation JSON</summary>
+	/// <summary>ParamÃ¨tres de sÃ©rialisation JSON</summary>
 	/// <remarks>Les instances de ce type son immutable</remarks>
 	[DebuggerDisplay("Flags={m_flags.ToString(\"X\")}, Target={TargetLanguage}, Layout={TextLayout}, Dates={DateFormatting}, HideDefault={HideDefaultValues}, ShowNulls={ShowNullMembers}, Large={OptimizeForLargeData}, Interning={InterningMode}")]
 	[DebuggerNonUserCode]
@@ -23,7 +41,7 @@ namespace Doxense.Serialization.Json
 	{
 		#region Nested Enums ...
 
-		/// <summary>Mode de formatage du texte JSON généré</summary>
+		/// <summary>Mode de formatage du texte JSON gÃ©nÃ©rÃ©</summary>
 		public enum Layout
 		{
 			Formatted = 0,
@@ -36,7 +54,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Format d'encodage des dates</summary>
 		public enum DateFormat
 		{
-			// IMPORTANT: maximum 4 valeurs, car cette énumération est stockée avec 2 bits dans les flags ! (sinon, il faudra updater OptionFlags)
+			// IMPORTANT: maximum 4 valeurs, car cette Ã©numÃ©ration est stockÃ©e avec 2 bits dans les flags ! (sinon, il faudra updater OptionFlags)
 
 			Default = 0,
 			TimeStampIso8601 = 1,
@@ -45,34 +63,34 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Mode d'interning des strings</summary>
-		/// <remarks>L'interning permet de réduire la taille occupée par un JSON Object en mémoire, en faisant en sorte que toutes les occurrences d'une même string pointent vers la même variable
-		/// C'est surtout intéressant par exemple pour une Array d'Object, où les noms des propriétés de l'objet est répété N fois en mémoire.
-		/// Interne les valeurs peut être aussi utile s'il y a beaucoup de redondance dans l'espace de valeur possible (mot clé, énumération sous forme chaîne, ...)
-		/// Le parseur doit faire lookup de chaque chaîne dans un dictionnaire, ce qui a un coût si le document est volumineux et avec quasiment aucune redondance...</remarks>
+		/// <remarks>L'interning permet de rÃ©duire la taille occupÃ©e par un JSON Object en mÃ©moire, en faisant en sorte que toutes les occurrences d'une mÃªme string pointent vers la mÃªme variable
+		/// C'est surtout intÃ©ressant par exemple pour une Array d'Object, oÃ¹ les noms des propriÃ©tÃ©s de l'objet est rÃ©pÃ©tÃ© N fois en mÃ©moire.
+		/// Interne les valeurs peut Ãªtre aussi utile s'il y a beaucoup de redondance dans l'espace de valeur possible (mot clÃ©, Ã©numÃ©ration sous forme chaÃ®ne, ...)
+		/// Le parseur doit faire lookup de chaque chaÃ®ne dans un dictionnaire, ce qui a un coÃ»t si le document est volumineux et avec quasiment aucune redondance...</remarks>
 		public enum StringInterning
 		{
-			// IMPORTANT: maximum 4 valeurs, car cette énumération est stockée avec 2 bits dans les flags ! (sinon, il faudra updater OptionFlags)
+			// IMPORTANT: maximum 4 valeurs, car cette Ã©numÃ©ration est stockÃ©e avec 2 bits dans les flags ! (sinon, il faudra updater OptionFlags)
 
-			/// <summary>Seul les noms de propriété d'objets, et les petits nombres (3 caractères ou moins) seront internées</summary>
+			/// <summary>Seul les noms de propriÃ©tÃ© d'objets, et les petits nombres (3 caractÃ¨res ou moins) seront internÃ©es</summary>
 			Default = 0,
-			/// <summary>Aucune string ne sera internée</summary>
+			/// <summary>Aucune string ne sera internÃ©e</summary>
 			Disabled = 1,
-			/// <summary>Même que Default, mais inclue également tout les nombres</summary>
+			/// <summary>MÃªme que Default, mais inclue Ã©galement tout les nombres</summary>
 			IncludeNumbers = 2,
-			/// <summary>Tous les types de champs (nom de propriété, texte, guid, nombres), excluant les dates, seront interned</summary>
+			/// <summary>Tous les types de champs (nom de propriÃ©tÃ©, texte, guid, nombres), excluant les dates, seront interned</summary>
 			IncludeValues = 3, //REVIEW: renommer en "All" ?
-			//README: cette enum ne prend que 2 bits dans le champ "m_flags"! S'il faut rajouter des entrées, il faudra modifier le layout des flags pour rajouter 1 ou plusieurs bits!
+			//README: cette enum ne prend que 2 bits dans le champ "m_flags"! S'il faut rajouter des entrÃ©es, il faudra modifier le layout des flags pour rajouter 1 ou plusieurs bits!
 		}
 
 		public enum FloatFormat
 		{
-			/// <summary>Formatage par défaut, qui est identique à TDB</summary> //TODO: pour l'instant c'est Symbol, mais ca va devenir String!
+			/// <summary>Formatage par dÃ©faut, qui est identique Ã  TDB</summary> //TODO: pour l'instant c'est Symbol, mais ca va devenir String!
 			Default = 0,
-			/// <summary>Utilise les symbols <c>NaN</c>, <c>Infinity</c> ou <c>-Infinity</c>. Note: le JSON généré n'est *PAS* strictement conforme a la RFC7159 qui ne spécifie pas ces symbols!)</summary>
+			/// <summary>Utilise les symbols <c>NaN</c>, <c>Infinity</c> ou <c>-Infinity</c>. Note: le JSON gÃ©nÃ©rÃ© n'est *PAS* strictement conforme a la RFC7159 qui ne spÃ©cifie pas ces symbols!)</summary>
 			Symbol = 1,
-			/// <summary>Utilise les chaînes <c>"NaN"</c>, <c>"Infinity"</c> et <c>"-Infinity"</c>, de manière similaire à JSON.NET. Le JSON généré est conforme à la RFC7159 mais le consommateur doit savoir qu'il peut avoir des strings à la place d'un nombre!</summary>
+			/// <summary>Utilise les chaÃ®nes <c>"NaN"</c>, <c>"Infinity"</c> et <c>"-Infinity"</c>, de maniÃ¨re similaire Ã  JSON.NET. Le JSON gÃ©nÃ©rÃ© est conforme Ã  la RFC7159 mais le consommateur doit savoir qu'il peut avoir des strings Ã  la place d'un nombre!</summary>
 			String = 2,
-			/// <summary>Utilise le token <c>null</c> pour sérialiser <see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/> et <see cref="double.NegativeInfinity"/>. Le JSON généré est conforme à la RFC7159, mais il ne peut plus être utilisé pour faire un roundtrip parfait d'objet .NET (les NaN seront remplacés par null qui sera désérialisé en null ou 0)</summary>
+			/// <summary>Utilise le token <c>null</c> pour sÃ©rialiser <see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/> et <see cref="double.NegativeInfinity"/>. Le JSON gÃ©nÃ©rÃ© est conforme Ã  la RFC7159, mais il ne peut plus Ãªtre utilisÃ© pour faire un roundtrip parfait d'objet .NET (les NaN seront remplacÃ©s par null qui sera dÃ©sÃ©rialisÃ© en null ou 0)</summary>
 			Null = 3,
 			/// <summary>Utilise la notation JavaScript (<c>Number.NaN</c>, <c>Number.POSITIVE_INFINITY</c>, ...)</summary>
 			JavaScript = 4,
@@ -99,21 +117,21 @@ namespace Doxense.Serialization.Json
 			Layout_Indented = 0x100,
 			Layout_Compact = 0x200,
 			Layout_Reserved = 0x300, // NOT USED
-			Layout_Mask = 0x300, // tous les bits à 1
+			Layout_Mask = 0x300, // tous les bits Ã  1
 
 			// DateFormat Enum
 			DateFormat_Default = 0x000,
 			DateFormat_TimeStampIso8601 = 0x400,
 			DateFormat_Microsoft = 0x800,
 			DateFormat_JavaScript = 0xC00,
-			DateFormat_Mask = 0xC00, // tous les bits à 1
+			DateFormat_Mask = 0xC00, // tous les bits Ã  1
 
 			// StringInterning Enum
 			StringInterning_Default = 0x0000,
 			StringInterning_Disabled = 0x1000,
 			StringInterning_IncludeNumbers = 0x2000,
 			StringInterning_IncludeValues = 0x3000,
-			StringInterning_Mask = 0x3000, // tous les bits à 1
+			StringInterning_Mask = 0x3000, // tous les bits Ã  1
 
 			// Target Enum
 			Target_Json = 0x00000,
@@ -133,7 +151,7 @@ namespace Doxense.Serialization.Json
 			FloatFormat_String     = 0x0_2_000000,
 			FloatFormat_Null       = 0x0_3_000000,
 			FloatFormat_JavaScript = 0x0_4_000000,
-			FloatFormat_Mask       = 0x0_7_000000, // tous les bits à 1
+			FloatFormat_Mask       = 0x0_7_000000, // tous les bits Ã  1
 		}
 		// ReSharper restore InconsistentNaming
 
@@ -150,7 +168,7 @@ namespace Doxense.Serialization.Json
 
 		#region Private Members...
 
-		/// <summary>Flags contenant les options de sérialisation de type on/off</summary>
+		/// <summary>Flags contenant les options de sÃ©rialisation de type on/off</summary>
 		private readonly OptionFlags m_flags;
 
 		#endregion
@@ -169,13 +187,13 @@ namespace Doxense.Serialization.Json
 
 		#region Public Properties...
 
-		/// <summary>Flags correspondants au paramétrage</summary>
+		/// <summary>Flags correspondants au paramÃ©trage</summary>
 		public OptionFlags Flags
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return m_flags; } }
 
-		/// <summary>Language cible de la sérialisation (JSON, JavaScript, ...)</summary>
+		/// <summary>Language cible de la sÃ©rialisation (JSON, JavaScript, ...)</summary>
 		public Target TargetLanguage
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -214,7 +232,7 @@ namespace Doxense.Serialization.Json
 			return (flags & ~OptionFlags.DateFormat_Mask) | (OptionFlags)(((int)value & 0x3) << 10);
 		}
 
-		/// <summary>Si true, n'interne pas les noms de propriétés des objets</summary>
+		/// <summary>Si true, n'interne pas les noms de propriÃ©tÃ©s des objets</summary>
 		public StringInterning InterningMode
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -227,7 +245,7 @@ namespace Doxense.Serialization.Json
 			return (flags & ~OptionFlags.StringInterning_Mask) | (OptionFlags) (((int) value & 0x3) << 12);
 		}
 
-		/// <summary>Si true, convertit les noms de propriétés en camelCasing</summary>
+		/// <summary>Si true, convertit les noms de propriÃ©tÃ©s en camelCasing</summary>
 		public bool UseCamelCasingForNames
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -239,7 +257,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.UseCamelCasingForName : flags & ~OptionFlags.UseCamelCasingForName;
 		}
 
-		/// <summary>Si true, ignore la casse sur les noms de champs lors de la désérialisation</summary>
+		/// <summary>Si true, ignore la casse sur les noms de champs lors de la dÃ©sÃ©rialisation</summary>
 		public bool IgnoreCaseForNames
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -251,8 +269,8 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.FieldsIgnoreCase : flags & ~OptionFlags.FieldsIgnoreCase;
 		}
 
-		/// <summary>Si true, sérialise quand même les membres null (class ou Nullable) d'un objet.</summary>
-		/// <remarks>Ignoré si HideDefaultValues = true</remarks>
+		/// <summary>Si true, sÃ©rialise quand mÃªme les membres null (class ou Nullable) d'un objet.</summary>
+		/// <remarks>IgnorÃ© si HideDefaultValues = true</remarks>
 		public bool ShowNullMembers
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -264,7 +282,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.ShowNullMembers : flags & ~OptionFlags.ShowNullMembers;
 		}
 
-		/// <summary>Si true, ne sérialise pas les members égal à default(T) (null, 0, false, DateTime.MinValue, etc..)</summary>
+		/// <summary>Si true, ne sÃ©rialise pas les members Ã©gal Ã  default(T) (null, 0, false, DateTime.MinValue, etc..)</summary>
 		/// <remarks>Override ShowNullMembers si true</remarks>
 		public bool HideDefaultValues
 		{
@@ -277,7 +295,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.HideDefaultValues : flags & ~OptionFlags.HideDefaultValues;
 		}
 
-		/// <summary>Si true, ne sérialise pas les members égal à default(T) (null, 0, false, DateTime.MinValue, etc..)</summary>
+		/// <summary>Si true, ne sÃ©rialise pas les members Ã©gal Ã  default(T) (null, 0, false, DateTime.MinValue, etc..)</summary>
 		public bool EnumsAsString
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -289,7 +307,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.EnumsAsString : flags & ~OptionFlags.EnumsAsString;
 		}
 
-		/// <summary>Si true, convertit les énumérations en camelCasing</summary>
+		/// <summary>Si true, convertit les Ã©numÃ©rations en camelCasing</summary>
 		public bool UseCamelCasingForEnums
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -301,7 +319,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.UseCamelCasingForEnums : flags & ~OptionFlags.UseCamelCasingForEnums;
 		}
 
-		/// <summary>Si true, ne track pas les objets visités (protection contre la récursion)</summary>
+		/// <summary>Si true, ne track pas les objets visitÃ©s (protection contre la rÃ©cursion)</summary>
 		/// <remarks>Il reste toujours la protection contre la profondeur maximale</remarks>
 		public bool DoNotTrackVisitedObjects
 		{
@@ -314,8 +332,8 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.DoNotTrackVisited : flags & ~OptionFlags.DoNotTrackVisited;
 		}
 
-		/// <summary>Si true, on s'attend a ce que le JSON généré soit de taille conséquente.</summary>
-		/// <remarks>Augmente la taille des buffer utilisés pour la sérialisation / désérialisation</remarks>
+		/// <summary>Si true, on s'attend a ce que le JSON gÃ©nÃ©rÃ© soit de taille consÃ©quente.</summary>
+		/// <remarks>Augmente la taille des buffer utilisÃ©s pour la sÃ©rialisation / dÃ©sÃ©rialisation</remarks>
 		public bool OptimizeForLargeData
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -327,7 +345,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.OptimizeForLargeData : flags & ~OptionFlags.OptimizeForLargeData;
 		}
 
-		/// <summary>Si true, ne génère pas l'attribut "_class" dans le JSON généré</summary>
+		/// <summary>Si true, ne gÃ©nÃ¨re pas l'attribut "_class" dans le JSON gÃ©nÃ©rÃ©</summary>
 		public bool HideClassId
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -339,7 +357,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.HideClassId : flags & ~OptionFlags.HideClassId;
 		}
 
-		/// <summary>Si true, interdit les ',' en trops à la fin d'une array ou d'un objet.</summary>
+		/// <summary>Si true, interdit les ',' en trops Ã  la fin d'une array ou d'un objet.</summary>
 		public bool DenyTrailingCommas
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -351,7 +369,7 @@ namespace Doxense.Serialization.Json
 			return value ? flags | OptionFlags.DenyTrailingComma : flags & ~OptionFlags.DenyTrailingComma;
 		}
 
-		/// <summary>Si true, écrase les champs en doublons dans un objet en ne gardant que la dernière valeur. Si false, throw un exception</summary>
+		/// <summary>Si true, Ã©crase les champs en doublons dans un objet en ne gardant que la derniÃ¨re valeur. Si false, throw un exception</summary>
 		public bool OverwriteDuplicateFields
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -447,28 +465,28 @@ namespace Doxense.Serialization.Json
 			return Update(SetShowNullMembers(m_flags, true));
 		}
 
-		/// <summary>Fluent helper pour fixer HideDefaultValues à true</summary>
+		/// <summary>Fluent helper pour fixer HideDefaultValues Ã  true</summary>
 		[Pure]
 		public CrystalJsonSettings WithoutDefaultValues()
 		{
 			return Update(SetHideDefaultValues(m_flags, true));
 		}
 
-		/// <summary>Fluent helper pour fixer HideDefaultValues à false</summary>
+		/// <summary>Fluent helper pour fixer HideDefaultValues Ã  false</summary>
 		[Pure]
 		public CrystalJsonSettings WithDefaultValues(bool show = false)
 		{
 			return Update(SetHideDefaultValues(m_flags, show));
 		}
 
-		/// <summary>Spécifie le format utilisé pour sérialiser les dates</summary>
+		/// <summary>SpÃ©cifie le format utilisÃ© pour sÃ©rialiser les dates</summary>
 		[Pure]
 		public CrystalJsonSettings WithDateFormat(DateFormat format)
 		{
 			return Update(SetDateFormatting(m_flags, format));
 		}
 
-		/// <summary>Sérialise les dates en utilisant le format Iso8601 ("YYYY-MM-DDTHH:mm:ss.ffff+TZ")</summary>
+		/// <summary>SÃ©rialise les dates en utilisant le format Iso8601 ("YYYY-MM-DDTHH:mm:ss.ffff+TZ")</summary>
 		/// <returns></returns>
 		[Pure]
 		public CrystalJsonSettings WithIso8601Dates()
@@ -476,21 +494,21 @@ namespace Doxense.Serialization.Json
 			return Update(SetDateFormatting(m_flags, DateFormat.TimeStampIso8601));
 		}
 
-		/// <summary>Sérialise les dates en utilisant le format Microsoft ("\/Date(xxxxx)\/")</summary>
+		/// <summary>SÃ©rialise les dates en utilisant le format Microsoft ("\/Date(xxxxx)\/")</summary>
 		[Pure]
 		public CrystalJsonSettings WithMicrosoftDates()
 		{
 			return Update(SetDateFormatting(m_flags, DateFormat.Microsoft));
 		}
 
-		/// <summary>Sérialise les dates en utilisant le format JavaScript ("new Date(xxxx)")</summary>
+		/// <summary>SÃ©rialise les dates en utilisant le format JavaScript ("new Date(xxxx)")</summary>
 		[Pure]
 		public CrystalJsonSettings WithJavaScriptDates()
 		{
 			return Update(SetDateFormatting(m_flags, DateFormat.JavaScript));
 		}
 
-		/// <summary>Fluent helper pour passer en mode de sérialisation Javascript (format date, ....)</summary>
+		/// <summary>Fluent helper pour passer en mode de sÃ©rialisation Javascript (format date, ....)</summary>
 		[Pure]
 		public CrystalJsonSettings ForJavaScript()
 		{
@@ -499,35 +517,35 @@ namespace Doxense.Serialization.Json
 			return Update(flags);
 		}
 
-		/// <summary>Sérialise les noms de propriétés en Pascal Case ("FirstName", comme en C#)</summary>
+		/// <summary>SÃ©rialise les noms de propriÃ©tÃ©s en Pascal Case ("FirstName", comme en C#)</summary>
 		[Pure]
 		public CrystalJsonSettings PascalCased()
 		{
 			return Update(SetUseCamelCasingForNames(m_flags, false));
 		}
 
-		/// <summary>Sérialise les noms de propriétés en Camel Case ("firstName", comme en JS)</summary>
+		/// <summary>SÃ©rialise les noms de propriÃ©tÃ©s en Camel Case ("firstName", comme en JS)</summary>
 		[Pure]
 		public CrystalJsonSettings CamelCased()
 		{
 			return Update(SetUseCamelCasingForNames(m_flags, true));
 		}
 
-		/// <summary>Les énumérations doivent être sérialisées sous forme de nombre</summary>
+		/// <summary>Les Ã©numÃ©rations doivent Ãªtre sÃ©rialisÃ©es sous forme de nombre</summary>
 		[Pure]
 		public CrystalJsonSettings WithEnumAsNumbers()
 		{
 			return Update(SetEnumsAsString(m_flags, false));
 		}
 
-		/// <summary>Les énumérations doivent être sérialisées sous forme de chaînes de texte</summary>
+		/// <summary>Les Ã©numÃ©rations doivent Ãªtre sÃ©rialisÃ©es sous forme de chaÃ®nes de texte</summary>
 		[Pure]
 		public CrystalJsonSettings WithEnumAsStrings()
 		{
 			return Update(SetEnumsAsString(m_flags, true));
 		}
 
-		/// <summary>Fluent helper pour fixer EnumAsStrings à true</summary>
+		/// <summary>Fluent helper pour fixer EnumAsStrings Ã  true</summary>
 		/// <param name="camelCased">Indique s'il faut convertir les enumeration en camelCased (true) ou les laisser au format natif</param>
 		[Pure]
 		public CrystalJsonSettings WithEnumAsStrings(bool camelCased)
@@ -537,21 +555,21 @@ namespace Doxense.Serialization.Json
 			return Update(flags);
 		}
 
-		/// <summary>Fluent helper pour fixer DoNotTrackVisitedObjects à true</summary>
+		/// <summary>Fluent helper pour fixer DoNotTrackVisitedObjects Ã  true</summary>
 		[Pure]
 		public CrystalJsonSettings WithoutObjectTracking() //REVIEW: "DisableObjectTracking()" ?
 		{
 			return Update(SetDoNotTrackVisitedObjects(m_flags, true));
 		}
 
-		/// <summary>Fluent helper pour fixer DoNotTrackVisitedObjects à false</summary>
+		/// <summary>Fluent helper pour fixer DoNotTrackVisitedObjects Ã  false</summary>
 		[Pure]
 		public CrystalJsonSettings WithObjectTracking(bool enabled = false)
 		{
 			return Update(SetDoNotTrackVisitedObjects(m_flags, enabled));
 		}
 
-		/// <summary>Configure l'interning de strings, pour réduire la consommation mémoire (suivant les scenario)</summary>
+		/// <summary>Configure l'interning de strings, pour rÃ©duire la consommation mÃ©moire (suivant les scenario)</summary>
 		/// <param name="mode">Mode d'interning des chaines de texte</param>
 		/// <returns></returns>
 		[Pure]
@@ -560,21 +578,21 @@ namespace Doxense.Serialization.Json
 			return Update(SetInterningMode(m_flags, mode));
 		}
 
-		/// <summary>Désactive complètement l'interning des strings</summary>
+		/// <summary>DÃ©sactive complÃ¨tement l'interning des strings</summary>
 		[Pure]
 		public CrystalJsonSettings DisableInterning()
 		{
 			return Update(SetInterningMode(m_flags, StringInterning.Disabled));
 		}
 
-		/// <summary>Active les optimisation pour un résultat JSON de grande taille</summary>
+		/// <summary>Active les optimisation pour un rÃ©sultat JSON de grande taille</summary>
 		[Pure]
 		public CrystalJsonSettings ExpectLargeData()
 		{
 			return Update(SetOptimizeForLargeData(m_flags, true));
 		}
 
-		/// <summary>Active les optimisation pour un résultat JSON de petite taille</summary>
+		/// <summary>Active les optimisation pour un rÃ©sultat JSON de petite taille</summary>
 		/// <returns></returns>
 		[Pure]
 		public CrystalJsonSettings OptimizedFor(bool largeData)
@@ -582,49 +600,49 @@ namespace Doxense.Serialization.Json
 			return Update(SetOptimizeForLargeData(m_flags, largeData));
 		}
 
-		/// <summary>Active ou désactive la génération des attributs "_class" dans le JSON généré</summary>
+		/// <summary>Active ou dÃ©sactive la gÃ©nÃ©ration des attributs "_class" dans le JSON gÃ©nÃ©rÃ©</summary>
 		[Pure]
 		public CrystalJsonSettings WithClassId(bool enabled = false)
 		{
 			return Update(SetHideClassId(m_flags, enabled));
 		}
 
-		/// <summary>Désactive la génération des attributs "_class" dans le JSON généré</summary>
+		/// <summary>DÃ©sactive la gÃ©nÃ©ration des attributs "_class" dans le JSON gÃ©nÃ©rÃ©</summary>
 		[Pure]
 		public CrystalJsonSettings WithoutClassId()
 		{
 			return Update(SetHideClassId(m_flags, true));
 		}
 
-		/// <summary>Rend la désérialisation case-sensitive ou case insensitive sur le nom des champs d'un objet (état par défaut)</summary>
+		/// <summary>Rend la dÃ©sÃ©rialisation case-sensitive ou case insensitive sur le nom des champs d'un objet (Ã©tat par dÃ©faut)</summary>
 		[Pure]
 		public CrystalJsonSettings WithCaseOnFields(bool ignoreCase = false)
 		{
 			return Update(SetIgnoreCaseForNames(m_flags, ignoreCase));
 		}
 
-		/// <summary>Rend la désérialisation case-insensitive sur le nom des champs d'un objet</summary>
+		/// <summary>Rend la dÃ©sÃ©rialisation case-insensitive sur le nom des champs d'un objet</summary>
 		[Pure]
 		public CrystalJsonSettings WithoutCaseOnFields()
 		{
 			return Update(SetIgnoreCaseForNames(m_flags, true));
 		}
 
-		/// <summary>Autorise la présence de virgules supplémentaires en fin d'objet ou d'array (état par défaut)</summary>
+		/// <summary>Autorise la prÃ©sence de virgules supplÃ©mentaires en fin d'objet ou d'array (Ã©tat par dÃ©faut)</summary>
 		[Pure]
 		public CrystalJsonSettings WithTrailingCommas()
 		{
 			return Update(SetDenyTrailingComma(m_flags, false));
 		}
 
-		/// <summary>Interdit la présence de virgules supplémentaires en fin d'objet ou d'array, en les ignorant</summary>
+		/// <summary>Interdit la prÃ©sence de virgules supplÃ©mentaires en fin d'objet ou d'array, en les ignorant</summary>
 		[Pure]
 		public CrystalJsonSettings WithoutTrailingCommas()
 		{
 			return Update(SetDenyTrailingComma(m_flags, true));
 		}
 
-		/// <summary>Si un objet contient plusieurs fois le même champ, seul le dernier est conservé</summary>
+		/// <summary>Si un objet contient plusieurs fois le mÃªme champ, seul le dernier est conservÃ©</summary>
 		/// <returns></returns>
 		[Pure]
 		public CrystalJsonSettings FlattenDuplicateFields()
@@ -632,7 +650,7 @@ namespace Doxense.Serialization.Json
 			return Update(SetOverwriteDuplicateFields(m_flags, true));
 		}
 
-		/// <summary>Si un object contient plusieurs fois le même champ, une exception est générée</summary>
+		/// <summary>Si un object contient plusieurs fois le mÃªme champ, une exception est gÃ©nÃ©rÃ©e</summary>
 		/// <returns></returns>
 		[Pure]
 		public CrystalJsonSettings ThrowOnDuplicateFields()
@@ -640,7 +658,7 @@ namespace Doxense.Serialization.Json
 			return Update(SetOverwriteDuplicateFields(m_flags, false));
 		}
 
-		/// <summary>Défini le format de sérialisation des nombres à virgules</summary>
+		/// <summary>DÃ©fini le format de sÃ©rialisation des nombres Ã  virgules</summary>
 		[Pure]
 		public CrystalJsonSettings WithFloatFormat(FloatFormat format)
 		{
@@ -651,26 +669,26 @@ namespace Doxense.Serialization.Json
 
 		#region Default Globals...
 
-		/// <summary>Sérialization JSON (avec le minimum de formatage)</summary>
+		/// <summary>SÃ©rialization JSON (avec le minimum de formatage)</summary>
 		public static CrystalJsonSettings Json { get; } = new CrystalJsonSettings();
 
-		/// <summary>Sérialization JSON (le plus compact possible)</summary>
+		/// <summary>SÃ©rialization JSON (le plus compact possible)</summary>
 		public static CrystalJsonSettings JsonCompact { get; } = new CrystalJsonSettings(OptionFlags.Target_Json | OptionFlags.Layout_Compact);
 
-		/// <summary>Sérialization JSON (indentée pour être lisible par un être humain)</summary>
+		/// <summary>SÃ©rialization JSON (indentÃ©e pour Ãªtre lisible par un Ãªtre humain)</summary>
 		public static CrystalJsonSettings JsonIndented { get; } = new CrystalJsonSettings(OptionFlags.Target_Json | OptionFlags.Layout_Indented);
 
 		/// <summary>Parsing JSON en mode stricte</summary>
 		/// <remarks>Interdit les trailing commas en fin d'objet ou d'array</remarks>
 		public static CrystalJsonSettings JsonStrict { get; } = new CrystalJsonSettings(OptionFlags.Target_Json | OptionFlags.DenyTrailingComma);
 
-		/// <summary>Sérialization JavaScript optimisée (avec le minimum de formatage)</summary>
+		/// <summary>SÃ©rialization JavaScript optimisÃ©e (avec le minimum de formatage)</summary>
 		public static CrystalJsonSettings JavaScript { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript);
 
-		/// <summary>Sérialization JavaScript (le plus compact possible)</summary>
+		/// <summary>SÃ©rialization JavaScript (le plus compact possible)</summary>
 		public static CrystalJsonSettings JavaScriptCompact { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript | OptionFlags.Layout_Compact);
 
-		/// <summary>Sérialization JavaScript (indentée pour être lisible par un être humain)</summary>
+		/// <summary>SÃ©rialization JavaScript (indentÃ©e pour Ãªtre lisible par un Ãªtre humain)</summary>
 		public static CrystalJsonSettings JavaScriptIndented { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript | OptionFlags.Layout_Indented);
 
 		private static readonly QuasiImmutableCache<int, CrystalJsonSettings> Cached;

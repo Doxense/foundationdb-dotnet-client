@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization
@@ -15,8 +33,8 @@ namespace Doxense.Serialization
 	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Structure qui wrap un object CLR de n'importe quel type</summary>
-	/// <typeparam name="T">Type de l'objet wrappé</typeparam>
-	/// <remarks>Utile pour passer un ref type à une classe générique qui veut des structs, ou contourner certaines limitations des generic type constraints</remarks>
+	/// <typeparam name="T">Type de l'objet wrappÃ©</typeparam>
+	/// <remarks>Utile pour passer un ref type Ã  une classe gÃ©nÃ©rique qui veut des structs, ou contourner certaines limitations des generic type constraints</remarks>
 	[DebuggerDisplay("[{Value}]")]
 	public readonly struct Boxed<T> : IEquatable<Boxed<T>>, IComparable<Boxed<T>>, IEquatable<T>, IComparable<T>
 	{
@@ -33,7 +51,7 @@ namespace Doxense.Serialization
 
 		public T? OrDefault(T? defaultValue)
 		{
-			// R# pense qu'on peut écrire "this.Value ?? defaultValue" ce qui est faux (T est generic sans reftype constraint)
+			// R# pense qu'on peut Ã©crire "this.Value ?? defaultValue" ce qui est faux (T est generic sans reftype constraint)
 			// ReSharper disable once ConvertConditionalTernaryToNullCoalescing
 			return this.Value != null ? this.Value : defaultValue;
 		}

@@ -1,29 +1,27 @@
-#region BSD License
-/* Copyright (c) 2005-2023 Doxense SAS
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-	* Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	* Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	* Neither the name of Doxense nor the
-	  names of its contributors may be used to endorse or promote products
-	  derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to help debug native calls to fdbc.dll
@@ -96,7 +94,7 @@ namespace FoundationDB.Client.Native
 
 			/// <summary>Called to set network options.</summary>
 			/// <remarks>
-			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter <paramref name="value"/> and the parameter value’s <paramref name="length"/>.
+			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter <paramref name="value"/> and the parameter valueÂ’s <paramref name="length"/>.
 			/// If the option is documented as taking an <c>Int</c> parameter, value must point to a signed 64-bit integer (little-endian), and <paramref name="length"/> must be <c>8</c>.
 			/// This memory only needs to be valid until <see cref="fdb_network_set_option"/> returns.
 			/// </remarks>
@@ -171,14 +169,14 @@ namespace FoundationDB.Client.Native
 			/// <summary>Destroys an FDBDatabase object.</summary>
 			/// <remarks>
 			/// It must be called exactly once for each successful call to <see cref="fdb_create_database"/>.
-			/// This function only destroys a handle to the database – your database will be fine!
+			/// This function only destroys a handle to the database Â– your database will be fine!
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_database_destroy(IntPtr database);
 
 			/// <summary>Called to set an option on an <see cref="DatabaseHandle">FDBDatabase</see>.</summary>
 			/// <remarks>
-			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter <paramref name="value"/> and the parameter value’s <paramref name="length"/>.
+			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter <paramref name="value"/> and the parameter valueÂ’s <paramref name="length"/>.
 			/// If the option is documented as taking an Int parameter, <paramref name="value"/> must point to a signed 64-bit integer (little-endian), and <paramref name="length"/> must be <c>8</c>.
 			/// This memory only needs to be valid until <see cref="fdb_database_set_option"/> returns.
 			/// </remarks>
@@ -211,14 +209,14 @@ namespace FoundationDB.Client.Native
 			/// <summary>Destroys an <see cref="TransactionHandle">FDBTransaction</see> object.</summary>
 			/// <remarks>
 			/// It must be called exactly once for each successful call to <see cref="fdb_database_create_transaction"/>.
-			/// Destroying a transaction which has not had <see cref="fdb_transaction_commit"/> called implicitly “rolls back” the transaction (sets and clears do not take effect on the database).
+			/// Destroying a transaction which has not had <see cref="fdb_transaction_commit"/> called implicitly Â“rolls backÂ” the transaction (sets and clears do not take effect on the database).
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_destroy(IntPtr database);
 
 			/// <summary>Called to set an option on an FDBTransaction.</summary>
 			/// <remarks>
-			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter value and the parameter value’s length.
+			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter value and the parameter valueÂ’s length.
 			/// If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8.
 			/// This memory only needs to be valid until fdb_transaction_set_option() returns.
 			/// </remarks>
@@ -316,7 +314,7 @@ namespace FoundationDB.Client.Native
 			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.</summary>
 			/// <remarks>
 			/// The modification affects the actual database only if <paramref name="transaction"/> is later committed with <see cref="fdb_transaction_commit"/>.
-			/// Range clears are efficient with FoundationDB – clearing large amounts of data will be fast.
+			/// Range clears are efficient with FoundationDB Â– clearing large amounts of data will be fast.
 			/// However, this will not immediately free up disk - data for the deleted range is cleaned up in the background.
 			/// For purposes of computing the transaction size, only the begin and end keys of a clear range are counted.
 			/// The size of the data stored in the range does not count against the transaction size limit.
@@ -341,11 +339,11 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_atomic_op(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* param, int paramLength, FdbMutationType operationType);
 
-			/// <summary>Attempts to commit the sets and clears previously applied to the database snapshot represented by transaction to the actual database. The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.</summary>
+			/// <summary>Attempts to commit the sets and clears previously applied to the database snapshot represented by transaction to the actual database. The commit may or may not succeed Â– in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> representing an empty value.</returns>
 			/// <remarks>
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
-			/// <para>It is not necessary to commit a read-only transaction – you can simply call <see cref="fdb_transaction_destroy"/>.</para>
+			/// <para>It is not necessary to commit a read-only transaction Â– you can simply call <see cref="fdb_transaction_destroy"/>.</para>
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_commit(TransactionHandle transaction);
@@ -377,9 +375,9 @@ namespace FoundationDB.Client.Native
 			/// <remarks>
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// <para>
-			/// A watch’s behavior is relative to the transaction that created it.
-			/// A watch will report a change in relation to the key’s value as readable by that transaction.
-			/// The initial value used for comparison is either that of the transaction’s read version or the value as modified by the transaction itself prior to the creation of the watch.
+			/// A watchÂ’s behavior is relative to the transaction that created it.
+			/// A watch will report a change in relation to the keyÂ’s value as readable by that transaction.
+			/// The initial value used for comparison is either that of the transactionÂ’s read version or the value as modified by the transaction itself prior to the creation of the watch.
 			/// If the value changes and then changes back to its initial value, the watch might not report the change.
 			/// </para>
 			/// <para>
@@ -478,7 +476,7 @@ namespace FoundationDB.Client.Native
 
 			/// <summary>Blocks the calling thread until the given <c>Future</c> is ready.</summary>
 			/// <remarks>
-			/// It will return success even if the <c>Future</c> is set to an error – you must call <see cref="fdb_future_get_error"/> to determine that.
+			/// It will return success even if the <c>Future</c> is set to an error Â– you must call <see cref="fdb_future_get_error"/> to determine that.
 			/// <see cref="fdb_future_block_until_ready"/> will return an error only in exceptional conditions (e.g. deadlock detected, out of memory or other operating system resources).
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
@@ -498,7 +496,7 @@ namespace FoundationDB.Client.Native
 			/// If the <c>Future</c> is already ready, the call may occur in the current thread before this function returns (but this behavior is not guaranteed).
 			/// Alternatively, the call may be delayed indefinitely and take place on the thread on which <see cref="fdb_run_network"/> was invoked,
 			/// and the callback is responsible for any necessary thread synchronization (and/or for posting work back to your application
-			/// event loop, thread pool, etc. if your application’s architecture calls for that).
+			/// event loop, thread pool, etc. if your applicationÂ’s architecture calls for that).
 			/// </returns>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_set_callback(FutureHandle future, FdbFutureCallback callback, IntPtr parameter);

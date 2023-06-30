@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 #define USE_FAST_STRING_ALLOCATOR
@@ -22,8 +40,8 @@ namespace Doxense.Serialization
 	[PublicAPI]
 	public static class Base64Encoding
 	{
-		// Encodage similaire à Base64, mais qui remplace '+' et '/' par '-' et '_', avec padding optionnel où '=' est remplacé par '*'
-		// => peut être inséré dans une URL sans nécessiter d'encodage spécifique
+		// Encodage similaire Ã  Base64, mais qui remplace '+' et '/' par '-' et '_', avec padding optionnel oÃ¹ '=' est remplacÃ© par '*'
+		// => peut Ãªtre insÃ©rÃ© dans une URL sans nÃ©cessiter d'encodage spÃ©cifique
 
 		private const int CHARMAP_PAGE_SIZE = 256;
 
@@ -241,16 +259,16 @@ namespace Doxense.Serialization
 
 		#region Common...
 
-		/// <summary>Calcule le nombre exacte de caractères nécessaire pour encoder un buffer en Base64</summary>
-		/// <param name="length">Nombre d'octets source à encoder</param>
-		/// <param name="padded">True s'il y a du padding (résultat multiple de 4).</param>
-		/// <returns>Nombre de caractères nécessaire pour encoder un buffer de taille <paramref name="length"/>, avec ou sans padding</returns>
+		/// <summary>Calcule le nombre exacte de caractÃ¨res nÃ©cessaire pour encoder un buffer en Base64</summary>
+		/// <param name="length">Nombre d'octets source Ã  encoder</param>
+		/// <param name="padded">True s'il y a du padding (rÃ©sultat multiple de 4).</param>
+		/// <returns>Nombre de caractÃ¨res nÃ©cessaire pour encoder un buffer de taille <paramref name="length"/>, avec ou sans padding</returns>
 		[Pure]
 		public static int GetCharsCount(int length, bool padded)
 		{
 			if (length < 0) throw new ArgumentOutOfRangeException(nameof(length), "Buffer length cannot be negative.");
 			if (padded)
-			{ // 3 octets source sont encodés en 4 chars, arrondi au supérieur
+			{ // 3 octets source sont encodÃ©s en 4 chars, arrondi au supÃ©rieur
 				return checked((length + 2) / 3 * 4);
 			}
 			else
@@ -268,7 +286,7 @@ namespace Doxense.Serialization
 		[Pure]
 		public static int EstimateBytesCount(int length)
 		{
-			// 4 chars décodés en 3 bytes, arrondi à l'inférieur
+			// 4 chars dÃ©codÃ©s en 3 bytes, arrondi Ã  l'infÃ©rieur
 			return checked(length / 4 * 3 + 2);
 		}
 
@@ -278,10 +296,10 @@ namespace Doxense.Serialization
 			if (buffer.Length == 0) return string.Empty;
 
 			// note: cette version est 20-25% plus rapide que Convert.ToBase64String() sur ma machine.
-			// La version de la BCL "triche" en pré-allouant la string, et en écrivant directement dedans.
-			// => j'ai essayé d'appeler FastAllocateString() directement, et je passe a 35% plus rapide...
+			// La version de la BCL "triche" en prÃ©-allouant la string, et en Ã©crivant directement dedans.
+			// => j'ai essayÃ© d'appeler FastAllocateString() directement, et je passe a 35% plus rapide...
 
-			// détermine la taille exacte du résultat (incluant le padding si présent)
+			// dÃ©termine la taille exacte du rÃ©sultat (incluant le padding si prÃ©sent)
 			int size = GetCharsCount(buffer.Length, padded);
 
 			unsafe
@@ -301,7 +319,7 @@ namespace Doxense.Serialization
 			Contract.PointerNotNull(buffer);
 			Contract.Positive(count);
 
-			// détermine la taille exacte du résultat (incluant le padding si présent)
+			// dÃ©termine la taille exacte du rÃ©sultat (incluant le padding si prÃ©sent)
 			int size = GetCharsCount(count, padded);
 
 			return EncodeBufferUnsafe(buffer, count, size, padded, urlSafe);
@@ -309,8 +327,8 @@ namespace Doxense.Serialization
 
 		/// <summary>Encode un buffer en base64</summary>
 		/// <param name="buffer">Buffer source</param>
-		/// <param name="count">Nombre d'octets à convertir</param>
-		/// <param name="charCount">Taille du résultat (précalculée via <see cref="GetCharsCount"/>)</param>
+		/// <param name="count">Nombre d'octets Ã  convertir</param>
+		/// <param name="charCount">Taille du rÃ©sultat (prÃ©calculÃ©e via <see cref="GetCharsCount"/>)</param>
 		/// <param name="padded">Si true, pad la fin si pas multiple de 3</param>
 		/// <param name="urlSafe">Si true, utilise le charset web safe</param>
 		/// <returns></returns>
@@ -329,12 +347,12 @@ namespace Doxense.Serialization
 				string s = s_fastStringAllocator(charCount);
 				fixed (char* ptr = s)
 				{
-					// on va écrire directement dans la string (!!)
+					// on va Ã©crire directement dans la string (!!)
 					EncodeBufferUnsafe(ptr, charCount, buffer, count, pMap, padChar);
 				}
 				return s;
 #else
-				// arrondi a 8 supérieur, pour garder un alignement correct sur la stack
+				// arrondi a 8 supÃ©rieur, pour garder un alignement correct sur la stack
 				size = (size + 7) & (~0x7);
 
 				if (size <= MAX_INLINE_SIZE)
@@ -356,23 +374,23 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
-		/// <param name="output">Writer où écrire le texte encodé en Base64</param>
-		/// <param name="buffer">Buffer source contenant les données à encoder</param>
-		/// <param name="padded">Ajoute des caractères de padding (true) ou non (false). Le caractère de padding utilisé dépend de la valeur de <paramref name="urlSafe"/>.</param>
-		/// <param name="urlSafe">Si true, remplace les caractères 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractères classiques ('+' et '/')</param>
-		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractères écrit sera toujours un multiple de 4.</remarks>
+		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodÃ© en Base64</summary>
+		/// <param name="output">Writer oÃ¹ Ã©crire le texte encodÃ© en Base64</param>
+		/// <param name="buffer">Buffer source contenant les donnÃ©es Ã  encoder</param>
+		/// <param name="padded">Ajoute des caractÃ¨res de padding (true) ou non (false). Le caractÃ¨re de padding utilisÃ© dÃ©pend de la valeur de <paramref name="urlSafe"/>.</param>
+		/// <param name="urlSafe">Si true, remplace les caractÃ¨res 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractÃ¨res classiques ('+' et '/')</param>
+		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractÃ¨res Ã©crit sera toujours un multiple de 4.</remarks>
 		public static void EncodeTo(TextWriter output, Slice buffer, bool padded = true, bool urlSafe = false)
 		{
 			EncodeTo(output, buffer.Span, padded, urlSafe);
 		}
 
-		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
-		/// <param name="output">Writer où écrire le texte encodé en Base64</param>
-		/// <param name="buffer">Buffer source contenant les données à encoder</param>
-		/// <param name="padded">Ajoute des caractères de padding (true) ou non (false). Le caractère de padding utilisé dépend de la valeur de <paramref name="urlSafe"/>.</param>
-		/// <param name="urlSafe">Si true, remplace les caractères 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractères classiques ('+' et '/')</param>
-		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractères écrit sera toujours un multiple de 4.</remarks>
+		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodÃ© en Base64</summary>
+		/// <param name="output">Writer oÃ¹ Ã©crire le texte encodÃ© en Base64</param>
+		/// <param name="buffer">Buffer source contenant les donnÃ©es Ã  encoder</param>
+		/// <param name="padded">Ajoute des caractÃ¨res de padding (true) ou non (false). Le caractÃ¨re de padding utilisÃ© dÃ©pend de la valeur de <paramref name="urlSafe"/>.</param>
+		/// <param name="urlSafe">Si true, remplace les caractÃ¨res 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractÃ¨res classiques ('+' et '/')</param>
+		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractÃ¨res Ã©crit sera toujours un multiple de 4.</remarks>
 		public static void EncodeTo(TextWriter output, ReadOnlySpan<byte> buffer, bool padded = true, bool urlSafe = false)
 		{
 			Contract.NotNull(output);
@@ -383,15 +401,15 @@ namespace Doxense.Serialization
 			char padChar = !padded ? '\0' : urlSafe ? Base64UrlPadChar : Base64PadChar;
 			char[] charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
 
-			//TODO: if StringWriter, extraire le StringBuilder, et faire une version qui écrit directement dedans !
+			//TODO: if StringWriter, extraire le StringBuilder, et faire une version qui Ã©crit directement dedans !
 
-			// pour générer 4096 chars, il faut 3 072 bytes
-			// pour générer 65536 chars, il faut 49 152 bytes
+			// pour gÃ©nÃ©rer 4096 chars, il faut 3 072 bytes
+			// pour gÃ©nÃ©rer 65536 chars, il faut 49 152 bytes
 			const int CHARSIZE = 65536;
 			const int BYTESIZE = (CHARSIZE / 4) * 3;
 
 			int bufferSize = Math.Min(size, CHARSIZE);
-			bufferSize = (bufferSize + 7) & (~0x7); // arrondi a 8 supérieur, pour garder un alignement correct
+			bufferSize = (bufferSize + 7) & (~0x7); // arrondi a 8 supÃ©rieur, pour garder un alignement correct
 			var chars = ArrayPool<char>.Shared.Rent(bufferSize);
 
 			unsafe
@@ -422,14 +440,14 @@ namespace Doxense.Serialization
 
 		#region Internal Helpers...
 
-		/// <summary>Encode un segment de données vers un buffer</summary>
-		/// <param name="output">Buffer où écrire le texte encodée. La capacité doit être suffisante!</param>
-		/// <param name="capacity">Capacité du buffer pointé par <paramref name="output"/></param>
-		/// <param name="source">Pointeur vers le début octets à encoder.</param>
-		/// <param name="len">Nombre d'octets à encoder</param>
-		/// <param name="charMap">Pointeur vers la map de conversion Base64 à utiliser (2 x 256 chars)</param>
-		/// <param name="padChar">Caractère de padding utilisé, ou '\0' si pas de padding</param>
-		/// <returns>Nombre de caractères écrits dans <paramref name="output"/>.</returns>
+		/// <summary>Encode un segment de donnÃ©es vers un buffer</summary>
+		/// <param name="output">Buffer oÃ¹ Ã©crire le texte encodÃ©e. La capacitÃ© doit Ãªtre suffisante!</param>
+		/// <param name="capacity">CapacitÃ© du buffer pointÃ© par <paramref name="output"/></param>
+		/// <param name="source">Pointeur vers le dÃ©but octets Ã  encoder.</param>
+		/// <param name="len">Nombre d'octets Ã  encoder</param>
+		/// <param name="charMap">Pointeur vers la map de conversion Base64 Ã  utiliser (2 x 256 chars)</param>
+		/// <param name="padChar">CaractÃ¨re de padding utilisÃ©, ou '\0' si pas de padding</param>
+		/// <returns>Nombre de caractÃ¨res Ã©crits dans <paramref name="output"/>.</returns>
 		internal static unsafe int EncodeBufferUnsafe(char* output, int capacity, byte* source, int len, char* charMap, char padChar)
 		{
 			Contract.Debug.Requires(output != null && capacity >= 0 && source != null && len >= 0 && charMap != null);
@@ -446,7 +464,7 @@ namespace Doxense.Serialization
 			int i, end;
 			uint t1, t2, t3;
 
-			// vérifie que le buffer peut contenir au moins les chunks complets
+			// vÃ©rifie que le buffer peut contenir au moins les chunks complets
 			char* stop = outp + capacity;
 			if (outp + (len / 3 * 4) > stop) ThrowOutputBufferTooSmall();
 
@@ -532,8 +550,8 @@ namespace Doxense.Serialization
 			else
 			{
 #if DEBUG
-				// Si vous arrivez ici, c'est que la méthode String.FastAllocateString() n'existe plus (nouvelle version de .NET Framework?)
-				// => essayez de trouver une solution alternative pour pré-allouer une string à la bonne taille
+				// Si vous arrivez ici, c'est que la mÃ©thode String.FastAllocateString() n'existe plus (nouvelle version de .NET Framework?)
+				// => essayez de trouver une solution alternative pour prÃ©-allouer une string Ã  la bonne taille
 				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
 				return (count) => new string('\0', count);
@@ -542,7 +560,7 @@ namespace Doxense.Serialization
 
 #endif
 
-		/// <summary>Détermine la taille de buffer nécessaire pour encoder un segment de text en Base64</summary>
+		/// <summary>DÃ©termine la taille de buffer nÃ©cessaire pour encoder un segment de text en Base64</summary>
 		/// <param name="s">Segment de texte</param>
 		/// <param name="padChar">Padding character (optionnel)</param>
 		public static int GetBytesCount(ReadOnlySpan<char> s, char padChar = '\0')
@@ -556,9 +574,9 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Détermine la taille de buffer nécessaire pour encoder un segment de text en Base64</summary>
-		/// <param name="src">Pointeur vers le début du segment de texte</param>
-		/// <param name="len">Taille du segment (en caractères)</param>
+		/// <summary>DÃ©termine la taille de buffer nÃ©cessaire pour encoder un segment de text en Base64</summary>
+		/// <param name="src">Pointeur vers le dÃ©but du segment de texte</param>
+		/// <param name="len">Taille du segment (en caractÃ¨res)</param>
 		/// <param name="padChar">Padding character (optionnel)</param>
 		public static unsafe int GetBytesCount(char* src, int len, char padChar)
 		{
@@ -655,7 +673,7 @@ namespace Doxense.Serialization
 			if (padChar != '\0')
 			{
 				if (len < 4 || len % 4 != 0)
-				{ // doit être un multiple de 4
+				{ // doit Ãªtre un multiple de 4
 					throw new FormatException("Invalid padding");
 				}
 				// ne doit pas y avoir plus de 2 pad chars a la fin

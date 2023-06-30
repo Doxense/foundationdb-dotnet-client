@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+Ôªø#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -23,14 +41,14 @@ namespace Doxense.Serialization.Json
 
 		internal static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
-		/// <summary>Indique si le buffer contient un BOM UTF-8 ‡ l'offset indiquÈ</summary>
+		/// <summary>Indique si le buffer contient un BOM UTF-8 √† l'offset indiqu√©</summary>
 		internal static bool IsUtf8Bom(byte[] buffer, int offset, int count)
 		{
 			return count >= 3 && buffer[offset] == 0xEF && buffer[offset + 1] == 0xBB && buffer[offset + 2] == 0xBF;
 		}
 
-		/// <summary>DÈcode un buffer contenant du JSON encodÈ en UTF-8</summary>
-		/// <remarks>Skip automatiquement le BOM si prÈsent</remarks>
+		/// <summary>D√©code un buffer contenant du JSON encod√© en UTF-8</summary>
+		/// <remarks>Skip automatiquement le BOM si pr√©sent</remarks>
 		internal static string ReadUtf8String(byte[]? buffer, int offset, int count)
 		{
 			if (buffer == null || count == 0)
@@ -125,7 +143,7 @@ namespace Doxense.Serialization.Json
 				writer.Write('"');
 			}
 			else
-			{ // chaine qui nÈcessite (a priori) un encoding
+			{ // chaine qui n√©cessite (a priori) un encoding
 				writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
 			}
 		}
@@ -154,14 +172,14 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Encode une chaÓne en JavaSCript</summary>
-		/// <param name="text">ChaÓne ‡ encoder</param>
+		/// <summary>Encode une cha√Æne en JavaSCript</summary>
+		/// <param name="text">Cha√Æne √† encoder</param>
 		/// <returns>"null", "''", "'foo'", "'\''", "'\u0000'", ...</returns>
-		/// <remarks>Chaine correctement encodÈe, avec les quotes ou "null" si text==null</remarks>
+		/// <remarks>Chaine correctement encod√©e, avec les quotes ou "null" si text==null</remarks>
 		/// <example>EncodeJavaScriptString("foo") => "'foo'"</example>
 		public static string EncodeJavaScriptString(string? text)
 		{
-			// on Èvacue tout de suite les cas faciles
+			// on √©vacue tout de suite les cas faciles
 			if (text == null)
 			{ // => null
 				return JsonTokens.Null;
@@ -169,11 +187,11 @@ namespace Doxense.Serialization.Json
 			if (text.Length == 0)
 			{ // => ""
 				return JsonTokens.EmptyString;
-			} // -> premiere passe pour voir s'il y a des caratËres a remplacer..
+			} // -> premiere passe pour voir s'il y a des carat√®res a remplacer..
 			if (JavaScriptEncoding.IsCleanJavaScript(text))
 			{ // rien a modifier, retourne la chaine initiale (fast, no memory used)
 				return String.Concat("'", text, "'");
-			} // -> deuxieme passe: remplace les caractËres invalides (slow, memory used)
+			} // -> deuxieme passe: remplace les caract√®res invalides (slow, memory used)
 			// note: on estime a 6 caracs l'overhead typique d'un encoding (ou deux ou trois \", ou un \uXXXX)
 			return JavaScriptEncoding.EncodeSlow(new StringBuilder(), text, includeQuotes: true).ToString();
 		}
@@ -183,8 +201,8 @@ namespace Doxense.Serialization.Json
 
 		private static int[] ConstructDigitPairs()
 		{
-			// gÈnËre un tableau de int[] o˘ chaque int contient une paire de digits
-			// ex: la pair "42" ie en ASCII '\x34' 'x30' est encodÈe par l'integer 0x3034
+			// g√©n√®re un tableau de int[] o√π chaque int contient une paire de digits
+			// ex: la pair "42" ie en ASCII '\x34' 'x30' est encod√©e par l'integer 0x3034
 
 			const string DIGITS_PAIRS =
 				"00010203040506070809" +
@@ -210,8 +228,8 @@ namespace Doxense.Serialization.Json
 		internal static void WriteUnsignedIntegerUnsafe(TextWriter output, ulong value, char[] buf)
 		{
 #if ENABLE_TIMO_STRING_CONVERTER
-			// Timo: au lieu d'Ècrire les digits un par un ... on les Ècrit deux par deux ! (ohhhoooooooo)
-			const int BUFFER_SIZE = 20 + 4; // max size = 20 char, plus une marge de sÈcuritÈ
+			// Timo: au lieu d'√©crire les digits un par un ... on les √©crit deux par deux ! (ohhhoooooooo)
+			const int BUFFER_SIZE = 20 + 4; // max size = 20 char, plus une marge de s√©curit√©
 			Contract.Debug.Requires(buf.Length >= BUFFER_SIZE); // need 24 chars
 
 			unsafe
@@ -254,8 +272,8 @@ namespace Doxense.Serialization.Json
 		internal static void WriteSignedIntegerUnsafe(TextWriter output, long value, char[] buf)
 		{
 #if ENABLE_TIMO_STRING_CONVERTER
-			// Timo: au lieu d'Ècrire les digits un par un ... on les Ècrit deux par deux ! (ohhhoooooooo)
-			const int BUFFER_SIZE = 20 + 4; // max size = 20 char, plus une marge de sÈcuritÈ
+			// Timo: au lieu d'√©crire les digits un par un ... on les √©crit deux par deux ! (ohhhoooooooo)
+			const int BUFFER_SIZE = 20 + 4; // max size = 20 char, plus une marge de s√©curit√©
 			Contract.Debug.Requires(buf.Length >= BUFFER_SIZE); // need 24 chars
 
 			unsafe
@@ -299,7 +317,7 @@ namespace Doxense.Serialization.Json
 			}
 #else
 			if (value == long.MinValue)
-			{ // note: on doit gÈrer le cas de long.MinValue ‡ part, car sa valeur absolue ne rentrerait pas dans un long !
+			{ // note: on doit g√©rer le cas de long.MinValue √† part, car sa valeur absolue ne rentrerait pas dans un long !
 				output.Write(JsonTokens.LongMinValue);
 				return;
 			}
@@ -321,9 +339,9 @@ namespace Doxense.Serialization.Json
 
 		internal static void WriteFixedIntegerWithDecimalPartUnsafe(TextWriter output, long integer, long decimals, int digits, char[] buf)
 		{
-			// on a un nombre dÈcimale dÈcomposÈ en deux partie: la partie entiËre, et N digits de la partie dÈcimale:
+			// on a un nombre d√©cimale d√©compos√© en deux partie: la partie enti√®re, et N digits de la partie d√©cimale:
 			//
-			// Le nombre X est dÈcomposÈ en (INTEGER, DECIMALS, DIGITS) tel que X = INTEGER + (DECIMALS / 10^DIGITS)
+			// Le nombre X est d√©compos√© en (INTEGER, DECIMALS, DIGITS) tel que X = INTEGER + (DECIMALS / 10^DIGITS)
 
 			//                   <-- 'DIGITS' -->
 			// [  INTEGER  ] '.' [000...DECIMALS]
@@ -332,19 +350,19 @@ namespace Doxense.Serialization.Json
 			// - (integer: 123, dec: 456, digits: 3) => "123.456"
 			// - (integer: 123, dec: 456, digits: 4) => "123.0456"
 			// - (integer: 123, dec: 456, digits: 5) => "123.00456"
-			// - (integer: 123, dec:   1, digits: 3) => "123.001" // on rajoute les '0' entre le '.' et le premier digit non-0 de la partie dÈcimale!
-			// - (integer: 123, dec:  10, digits: 3) => "123.01"  // on tronque les derniers '0' de la partie dÈcimale
-			// - (integer: 123, dec:   0, digits: 3) => "123"     // ici on omet complËtement la partie dÈcimale si 0
+			// - (integer: 123, dec:   1, digits: 3) => "123.001" // on rajoute les '0' entre le '.' et le premier digit non-0 de la partie d√©cimale!
+			// - (integer: 123, dec:  10, digits: 3) => "123.01"  // on tronque les derniers '0' de la partie d√©cimale
+			// - (integer: 123, dec:   0, digits: 3) => "123"     // ici on omet compl√®tement la partie d√©cimale si 0
 
 			int len = buf.Length;
 			int p = buf.Length - 1;
 
-			// partie dÈcimale (si nÈcessaire)
+			// partie d√©cimale (si n√©cessaire)
 			long value = decimals;
 
 			if (value != 0 && digits != 0)
 			{
-				bool allZero = true; // set ‡ false dÈs qu'on trouve un digit non-zero
+				bool allZero = true; // set √† false d√©s qu'on trouve un digit non-zero
 				for (int i = 0; i < digits; i++)
 				{
 					int d = (int) (value % 10);
@@ -362,7 +380,7 @@ namespace Doxense.Serialization.Json
 				buf[p--] = '.';
 			}
 
-			// partie entiËre
+			// partie enti√®re
 			value = integer;
 			bool neg = value < 0;
 			value = Math.Abs(value);
@@ -391,13 +409,13 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (float.IsNaN(value))
-			{ // NaN dÈpend de la configuration
+			{ // NaN d√©pend de la configuration
 				output.Write(GetNaNToken(format)); // "NaN"
 				return;
 			}
 
 			if (float.IsInfinity(value))
-			{ // cas spÈcial pour +/- Infinity
+			{ // cas sp√©cial pour +/- Infinity
 				output.Write(value > 0 ? GetPositiveInfinityToken(format) : GetNegativeInfinityToken(format));
 				return;
 			}
@@ -433,17 +451,17 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			// Gestion des valeurs spÈciales (NaN, Infinity, ...)
+			// Gestion des valeurs sp√©ciales (NaN, Infinity, ...)
 			var dd = new DiyDouble(value);
 			if (dd.IsSpecial)
 			{
 				if (dd.IsNaN)
-				{ // NaN dÈpend de la configuration
+				{ // NaN d√©pend de la configuration
 					output.Write(GetNaNToken(format)); // "NaN"
 					return;
 				}
 				if (dd.IsInfinite)
-				{ // cas spÈcial pour +/- Infinity
+				{ // cas sp√©cial pour +/- Infinity
 					output.Write(value > 0.0 ? GetPositiveInfinityToken(format) : GetNegativeInfinityToken(format));
 					return;
 				}
@@ -523,7 +541,7 @@ namespace Doxense.Serialization.Json
 
 		internal static int FormatIso8601DateTime(char[] output, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')
 		{
-			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractËres dans le buffer
+			// on va utiliser entre 28 et 33 (+2 avec les quotes) caract√®res dans le buffer
 			if (output.Length < ISO8601_MAX_FORMATTED_SIZE) ThrowHelper.ThrowArgumentException(nameof(output), "Output buffer size is too small");
 
 			GetDateParts(date.Ticks, out var year, out var month, out var day, out var hour, out var min, out var sec, out var millis);
@@ -647,7 +665,7 @@ namespace Doxense.Serialization.Json
 			int min = (int)(utcOffset.Ticks / TimeSpan.TicksPerMinute);
 
 			// special case: on affiche quand meme 'Z' pour les DTO avec l'offset GMT, car on ne peut pas les distinguer de DTO version "UTC"
-			// => si un serveur tourne qqpart du cotÈ de Greenwith, on confondra les heures de type locales avec les heures UTC, mais ce n'est pas trËs grave au final...
+			// => si un serveur tourne qqpart du cot√© de Greenwith, on confondra les heures de type locales avec les heures UTC, mais ce n'est pas tr√®s grave au final...
 			if (min == 0 && !forceLocal)
 			{ // "Z"
 				*ptr = 'Z';
@@ -672,7 +690,7 @@ namespace Doxense.Serialization.Json
 
 		public static void GetDateParts(long ticks, out int year, out int month, out int day, out int hour, out int minute, out int second, out int remainder)
 		{
-			// Version modifiÈe de DateTime.GetDatePart(..) qui retourne les 3 valeurs en une seule passe
+			// Version modifi√©e de DateTime.GetDatePart(..) qui retourne les 3 valeurs en une seule passe
 			// comments et noms des variables obtenues via Rotor...
 
 			// n = number of days since 1/1/0001

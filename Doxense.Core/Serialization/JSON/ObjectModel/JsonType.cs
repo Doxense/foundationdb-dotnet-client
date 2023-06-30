@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -13,21 +31,21 @@ namespace Doxense.Serialization.Json
 	/// <summary>Type d'une valeur JSON (String, Number, ...)</summary>
 	public enum JsonType
 	{
-		//note: l'ordre des valeurs influe sur l'ordre de tri de JsonValue de type différents (sauf null qui est toujours dernier)
+		//note: l'ordre des valeurs influe sur l'ordre de tri de JsonValue de type diffÃ©rents (sauf null qui est toujours dernier)
 
-		/// <summary>Représente une valeur null, ou manquante. i.e: l'absence de valeur</summary>
+		/// <summary>ReprÃ©sente une valeur null, ou manquante. i.e: l'absence de valeur</summary>
 		Null,
 		/// <summary>True, ou False.</summary>
 		Boolean,
-		/// <summary>Nombre entier, ou décimal</summary>
+		/// <summary>Nombre entier, ou dÃ©cimal</summary>
 		Number,
-		/// <summary>[EXTENSION] Représente une date (sous forme de <see cref="String"/>). Utilisé uniquement pour optimiser certaines opérations</summary>
+		/// <summary>[EXTENSION] ReprÃ©sente une date (sous forme de <see cref="String"/>). UtilisÃ© uniquement pour optimiser certaines opÃ©rations</summary>
 		DateTime,
-		/// <summary>Représente une chaîne de texte (éventuellement vide, mais pas null)</summary>
+		/// <summary>ReprÃ©sente une chaÃ®ne de texte (Ã©ventuellement vide, mais pas null)</summary>
 		String,
-		/// <summary>Représente une liste de valeurs JSON (éventuellement vide, mais pas null)</summary>
+		/// <summary>ReprÃ©sente une liste de valeurs JSON (Ã©ventuellement vide, mais pas null)</summary>
 		Array,
-		/// <summary>Représente une objet JSON (éventuellement vide, mais pas null)</summary>
+		/// <summary>ReprÃ©sente une objet JSON (Ã©ventuellement vide, mais pas null)</summary>
 		Object,
 	}
 

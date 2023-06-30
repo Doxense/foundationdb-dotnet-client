@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Collections.Lookup
@@ -18,30 +36,30 @@ namespace Doxense.Collections.Lookup
 	using Doxense.Memory;
 	using JetBrains.Annotations;
 
-	/// <summary>Implémentation d'un grouping de plusieurs éléments sous une même clé</summary>
-	/// <typeparam name="TKey">Type des clés</typeparam>
-	/// <typeparam name="TElement">Type des éléments</typeparam>
-	/// <remarks>C'est une clone fonctionnel de System.Linq.Lookup&lt;K, V&gt;.Grouping&lt;K, V&gt; qui est internal et non modifiable depuis l'extérieur.
-	/// A utiliser lorsqu'on a un dictionnaire contenant plusieurs valeurs pour chaque clé. Peut également servir de node dans une liste chainée, ou éventuellement un B-Tree</remarks>
+	/// <summary>ImplÃ©mentation d'un grouping de plusieurs Ã©lÃ©ments sous une mÃªme clÃ©</summary>
+	/// <typeparam name="TKey">Type des clÃ©s</typeparam>
+	/// <typeparam name="TElement">Type des Ã©lÃ©ments</typeparam>
+	/// <remarks>C'est une clone fonctionnel de System.Linq.Lookup&lt;K, V&gt;.Grouping&lt;K, V&gt; qui est internal et non modifiable depuis l'extÃ©rieur.
+	/// A utiliser lorsqu'on a un dictionnaire contenant plusieurs valeurs pour chaque clÃ©. Peut Ã©galement servir de node dans une liste chainÃ©e, ou Ã©ventuellement un B-Tree</remarks>
 	public class Grouping<TKey, TElement> : IGrouping<TKey, TElement>, IList<TElement>
 	{
-		// IMPORTANT: contrairement à l'implémentation dans LINQ (qui est readonly), le contenu est MODIFIABLE !
-		// => il est possible d'ajouter/retirer/filtrer des valeurs de manière dynamique
+		// IMPORTANT: contrairement Ã  l'implÃ©mentation dans LINQ (qui est readonly), le contenu est MODIFIABLE !
+		// => il est possible d'ajouter/retirer/filtrer des valeurs de maniÃ¨re dynamique
 
-		// Autre détail important : l'implémentation de LINQ est faite pour fonctionner avec des Lookup<K, V> qui a sa propre implémentation de Hashtable en utilisant les Grouping<K, V> comme "buckets" (chainage)
-		// => notre implémentation sera plutôt utilisée dans un Dictionary<K, V> ou SortedSet<T> par exemple (RB-Trees).
+		// Autre dÃ©tail important : l'implÃ©mentation de LINQ est faite pour fonctionner avec des Lookup<K, V> qui a sa propre implÃ©mentation de Hashtable en utilisant les Grouping<K, V> comme "buckets" (chainage)
+		// => notre implÃ©mentation sera plutÃ´t utilisÃ©e dans un Dictionary<K, V> ou SortedSet<T> par exemple (RB-Trees).
 
 		#region Private Members...
 
-		// note: ces valeurs sont modifiées directement par le gars qui va nous créer
+		// note: ces valeurs sont modifiÃ©es directement par le gars qui va nous crÃ©er
 
-		/// <summary>Clé du grouping</summary>
+		/// <summary>ClÃ© du grouping</summary>
 		internal TKey m_key;
 
-		/// <summary>Tableau contenant les éléments</summary>
+		/// <summary>Tableau contenant les Ã©lÃ©ments</summary>
 		internal TElement[] m_elements;
 
-		/// <summary>Nombre d'éléments dans le tableau</summary>
+		/// <summary>Nombre d'Ã©lÃ©ments dans le tableau</summary>
 		internal int m_count;
 
 		#endregion
@@ -62,14 +80,14 @@ namespace Doxense.Collections.Lookup
 			get => m_count;
 		}
 
-		/// <summary>Retourne le premier élément du grouping (ou default(T) si vide)</summary>
+		/// <summary>Retourne le premier Ã©lÃ©ment du grouping (ou default(T) si vide)</summary>
 		public TElement? Head
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_count > 0 ? m_elements[0] : default;
 		}
 
-		/// <summary>Retourne le dernier élément du grouping (ou default(T) si vide)</summary>
+		/// <summary>Retourne le dernier Ã©lÃ©ment du grouping (ou default(T) si vide)</summary>
 		public TElement? Last
 		{
 			get => m_count > 0 ? m_elements[m_count - 1] : default;
@@ -91,18 +109,18 @@ namespace Doxense.Collections.Lookup
 
 		#region Public Methods...
 
-		/// <summary>Ajoute un élément dans le grouping</summary>
+		/// <summary>Ajoute un Ã©lÃ©ment dans le grouping</summary>
 		/// <param name="element"></param>
 		public void Add(TElement element)
 		{
 			int count = m_count;
 			if (count == m_elements.Length)
 			{
-				// note: une Array ne peux pas avoir plus de 2^31 (~2 milliards) d'éléments, car 2^32 > int.MaxValue
+				// note: une Array ne peux pas avoir plus de 2^31 (~2 milliards) d'Ã©lÃ©ments, car 2^32 > int.MaxValue
 				Array.Resize(ref m_elements, checked(count * 2));
-				// note: il y a une autre limitation, qui est qu'un objet .NET ne peut pas dépasser 2 Go en mémoire, cad 2^29 éléments pour un tableau d'objets. (cf http://blogs.msdn.com/b/joshwil/archive/2005/08/10/450202.aspx)
+				// note: il y a une autre limitation, qui est qu'un objet .NET ne peut pas dÃ©passer 2 Go en mÃ©moire, cad 2^29 Ã©lÃ©ments pour un tableau d'objets. (cf http://blogs.msdn.com/b/joshwil/archive/2005/08/10/450202.aspx)
 				// le comportement au runtime est inconnu, mais je suppose qu'il va y avoir une OutOfMemoryException ?
-				//NOTE: il est possible d'activer le support d'arrays > 2 Go depuis .NET 4.5 sur 64 bits via gcAllowVeryLargeObjects, mais garde la limite de 2^31 éléments : http://msdn.microsoft.com/en-US/library/hh285054(v=vs.110).aspx
+				//NOTE: il est possible d'activer le support d'arrays > 2 Go depuis .NET 4.5 sur 64 bits via gcAllowVeryLargeObjects, mais garde la limite de 2^31 Ã©lÃ©ments : http://msdn.microsoft.com/en-US/library/hh285054(v=vs.110).aspx
 			}
 			m_elements[count] = element;
 			m_count = count + 1;
@@ -117,23 +135,23 @@ namespace Doxense.Collections.Lookup
 			}
 		}
 
-		/// <summary>Ajoute une liste d'éléments dans le grouping</summary>
-		/// <param name="elements">Séquence de nouveaux éléments (peut être vide)</param>
+		/// <summary>Ajoute une liste d'Ã©lÃ©ments dans le grouping</summary>
+		/// <param name="elements">SÃ©quence de nouveaux Ã©lÃ©ments (peut Ãªtre vide)</param>
 		public void AddRange(IEnumerable<TElement> elements)
 		{
 			if (elements is ICollection<TElement> collection)
-			{ // on connaît le nombre, donc on va pouvoir resizer et copier en une fois
+			{ // on connaÃ®t le nombre, donc on va pouvoir resizer et copier en une fois
 
 				int n = collection.Count;
 				if (n == 0) return;
 
-				// vérifie si on a la capacité nécessaire pour accueillir les éléments
+				// vÃ©rifie si on a la capacitÃ© nÃ©cessaire pour accueillir les Ã©lÃ©ments
 				EnsureCapacity(m_count + n);
 				collection.CopyTo(m_elements, m_count);
 				m_count += n;
 			}
 			else
-			{ // on ne connaît pas le nombre, donc il va falloir les ajouter un par un :(
+			{ // on ne connaÃ®t pas le nombre, donc il va falloir les ajouter un par un :(
 				foreach (var element in elements)
 				{
 					Add(element);
@@ -141,8 +159,8 @@ namespace Doxense.Collections.Lookup
 			}
 		}
 
-		/// <summary>Concatène un grouping à la fin du grouping courant</summary>
-		/// <param name="grouping">Grouping à ajouter en fin de l'instance courante</param>
+		/// <summary>ConcatÃ¨ne un grouping Ã  la fin du grouping courant</summary>
+		/// <param name="grouping">Grouping Ã  ajouter en fin de l'instance courante</param>
 		public void AddRange(Grouping<TKey, TElement> grouping)
 		{
 			Contract.NotNull(grouping);
@@ -150,17 +168,17 @@ namespace Doxense.Collections.Lookup
 			int n = grouping.m_count;
 			if (n == 0) return;
 
-			// ajoutes les éléments à la fin de notre buffer, en se resizant si besoin
+			// ajoutes les Ã©lÃ©ments Ã  la fin de notre buffer, en se resizant si besoin
 			EnsureCapacity(m_count + n);
 			Array.Copy(grouping.m_elements, 0, m_elements, m_count, n);
 			m_count += n;
 		}
 
-		/// <summary>Supprime un élément du grouping</summary>
-		/// <param name="element">Element à supprimer</param>
-		/// <returns>Retourne true si l'élément était présent et a été supprimé, sinon retourne false</returns>
-		/// <remarks>Utilise EqualityComparer&lt;T&gt;.Default pour comparer les éléments.
-		/// ATTENTION: Ne supprime que la première occurence trouvée de l'élément !</remarks>
+		/// <summary>Supprime un Ã©lÃ©ment du grouping</summary>
+		/// <param name="element">Element Ã  supprimer</param>
+		/// <returns>Retourne true si l'Ã©lÃ©ment Ã©tait prÃ©sent et a Ã©tÃ© supprimÃ©, sinon retourne false</returns>
+		/// <remarks>Utilise EqualityComparer&lt;T&gt;.Default pour comparer les Ã©lÃ©ments.
+		/// ATTENTION: Ne supprime que la premiÃ¨re occurence trouvÃ©e de l'Ã©lÃ©ment !</remarks>
 		public bool Remove(TElement element)
 		{
 			if (m_count >= 0)
@@ -175,11 +193,11 @@ namespace Doxense.Collections.Lookup
 			return false;
 		}
 
-		/// <summary>Supprime un élément du grouping, en utilisant un comparer spécifique</summary>
-		/// <param name="element">Element à supprimer</param>
-		/// <param name="comparer">EqualityComparer utilisé pour retrouver l'élément</param>
-		/// <returns>Retourne true si l'élément était présent et a été supprimé, sinon retourne false</returns>
-		/// <remarks>ATTENTION: Ne supprime que la première occurence trouvée de l'élément !</remarks>
+		/// <summary>Supprime un Ã©lÃ©ment du grouping, en utilisant un comparer spÃ©cifique</summary>
+		/// <param name="element">Element Ã  supprimer</param>
+		/// <param name="comparer">EqualityComparer utilisÃ© pour retrouver l'Ã©lÃ©ment</param>
+		/// <returns>Retourne true si l'Ã©lÃ©ment Ã©tait prÃ©sent et a Ã©tÃ© supprimÃ©, sinon retourne false</returns>
+		/// <remarks>ATTENTION: Ne supprime que la premiÃ¨re occurence trouvÃ©e de l'Ã©lÃ©ment !</remarks>
 		public bool Remove(TElement element, IEqualityComparer<TElement> comparer)
 		{
 			Contract.NotNull(comparer);
@@ -197,7 +215,7 @@ namespace Doxense.Collections.Lookup
 			return false;
 		}
 
-		/// <summary>Supprime un élément en fonction de sa position</summary>
+		/// <summary>Supprime un Ã©lÃ©ment en fonction de sa position</summary>
 		/// <param name="index"></param>
 		public void RemoveAt(int index)
 		{
@@ -205,9 +223,9 @@ namespace Doxense.Collections.Lookup
 			RemoveAtInternal(index);
 		}
 
-		/// <summary>Retourne le dernier élément en le retirant du grouping</summary>
-		/// <returns>Dernier élément (qui est supprimé)</returns>
-		/// <exception cref="System.InvalidOperationException">Si le grouping était vide</exception>
+		/// <summary>Retourne le dernier Ã©lÃ©ment en le retirant du grouping</summary>
+		/// <returns>Dernier Ã©lÃ©ment (qui est supprimÃ©)</returns>
+		/// <exception cref="System.InvalidOperationException">Si le grouping Ã©tait vide</exception>
 		public TElement Pop()
 		{
 			if (m_count == 0) throw new InvalidOperationException("Cannot remove last item from an empty grouping");
@@ -217,8 +235,8 @@ namespace Doxense.Collections.Lookup
 			return result;
 		}
 
-		/// <summary>Update le dernier élément, ou crée-le si le grouping était vide</summary>
-		/// <param name="newValue">Nouvelle valeur du dernier élément</param>
+		/// <summary>Update le dernier Ã©lÃ©ment, ou crÃ©e-le si le grouping Ã©tait vide</summary>
+		/// <param name="newValue">Nouvelle valeur du dernier Ã©lÃ©ment</param>
 		public void UpdateLast(TElement newValue)
 		{
 			if (m_count == 0)
@@ -233,47 +251,47 @@ namespace Doxense.Collections.Lookup
 			if (m_count > 0)
 			{
 				if (m_elements.Length <= 4)
-				{ // on peut réutiliser le tableau (en le vidant)
+				{ // on peut rÃ©utiliser le tableau (en le vidant)
 					for (int i = 0; i < m_count; i++)
 					{
 						m_elements[i] = default!;
 					}
 				}
 				else
-				{ // on repart de zéro
+				{ // on repart de zÃ©ro
 					m_elements = new TElement[1];
 				}
 				m_count = 0;
 			}
 		}
 
-		/// <summary>Supprime tout les éléments matchant une condition particulière</summary>
-		/// <param name="match">Fonction qui retourne true pour les éléments à supprimer</param>
-		/// <remarks>Nombre d'éléments qui ont été supprimés</remarks>
+		/// <summary>Supprime tout les Ã©lÃ©ments matchant une condition particuliÃ¨re</summary>
+		/// <param name="match">Fonction qui retourne true pour les Ã©lÃ©ments Ã  supprimer</param>
+		/// <remarks>Nombre d'Ã©lÃ©ments qui ont Ã©tÃ© supprimÃ©s</remarks>
 		public int RemoveAll(Func<TElement, bool> match)
 		{
 			Contract.NotNull(match);
 
-			//note: Implémentation copiée/collée de List<T>.RemoveAll(...) du .NET 4.5.... So sue me !
+			//note: ImplÃ©mentation copiÃ©e/collÃ©e de List<T>.RemoveAll(...) du .NET 4.5.... So sue me !
 			// => l'avantage de cet algo, c'est qu'il effectue le filtrage en une seule passe
 
 			// d'abord on recherche le premier match
-			// => tout le début du tableau sera conservé tel quel
+			// => tout le dÃ©but du tableau sera conservÃ© tel quel
 			int count = m_count;
 			var elements = m_elements;
 			int index = 0;
 			while ((index < count) && !match(elements[index]))
-			{ // ces éléments doivent être conservés
+			{ // ces Ã©lÃ©ments doivent Ãªtre conservÃ©s
 				index++;
 			}
 
 			if (index >= count)
-			{ // aucun élément à supprimer => bye bye
+			{ // aucun Ã©lÃ©ment Ã  supprimer => bye bye
 				return 0;
 			}
 
 			// on va avancer dans le tableau avec 'cursor' qui est la position 'read', et 'index' qui est la position 'write'
-			// a chaque fois qu'on a un match sur T[cursor], on avance 'cursor'. Sinon, on copie l'élément T[cursor] vers T[index] et on avance les deux positions.
+			// a chaque fois qu'on a un match sur T[cursor], on avance 'cursor'. Sinon, on copie l'Ã©lÃ©ment T[cursor] vers T[index] et on avance les deux positions.
 			int cursor = index + 1;
 			while (cursor < count)
 			{
@@ -282,13 +300,13 @@ namespace Doxense.Collections.Lookup
 				{
 					cursor++;
 				}
-				// soit on est a la fin, soit on a un élément a conserver
+				// soit on est a la fin, soit on a un Ã©lÃ©ment a conserver
 				if (cursor < count)
 				{ // on le copie
 					elements[index++] = elements[cursor++];
 				}
 			}
-			// pour éviter les leaks, on va vider la fin du buffer
+			// pour Ã©viter les leaks, on va vider la fin du buffer
 			Array.Clear(elements, index, count - index);
 			int deleted = count - index;
 			m_count = index;
@@ -296,7 +314,7 @@ namespace Doxense.Collections.Lookup
 			return deleted;
 		}
 
-		/// <summary>Suppression d'un élément en fonction de sa position</summary>
+		/// <summary>Suppression d'un Ã©lÃ©ment en fonction de sa position</summary>
 		/// <param name="index"></param>
 		private void RemoveAtInternal(int index)
 		{
@@ -308,17 +326,17 @@ namespace Doxense.Collections.Lookup
 			}
 			--m_count;
 
-			// vide le dernier slot pour éviter les leaks
+			// vide le dernier slot pour Ã©viter les leaks
 			elements[m_count] = default!;
 
 			ShrinkIfNeeded();
 		}
 
-		/// <summary>Essayes de réduire la taille du buffer si c'est possible</summary>
-		/// <remarks>Divise par 2 la taille du buffer si moins d'1/8eme est occupé</remarks>
+		/// <summary>Essayes de rÃ©duire la taille du buffer si c'est possible</summary>
+		/// <remarks>Divise par 2 la taille du buffer si moins d'1/8eme est occupÃ©</remarks>
 		private void ShrinkIfNeeded()
 		{
-			// si on redescend a moins de 1/8eme d'alloué, on shrink le buffer par 50%
+			// si on redescend a moins de 1/8eme d'allouÃ©, on shrink le buffer par 50%
 			int n = m_elements.Length;
 			if (m_count < (n >> 3) && n > 1)
 			{
@@ -374,8 +392,8 @@ namespace Doxense.Collections.Lookup
 			return list;
 		}
 
-		/// <summary>Effectue une action sur chaque élément du grouping</summary>
-		/// <param name="action">Action prenant un élément</param>
+		/// <summary>Effectue une action sur chaque Ã©lÃ©ment du grouping</summary>
+		/// <param name="action">Action prenant un Ã©lÃ©ment</param>
 		public void Visit(Action<TElement> action)
 		{
 			int count = m_count;
@@ -386,8 +404,8 @@ namespace Doxense.Collections.Lookup
 			}
 		}
 
-		/// <summary>Effectue une action sur chaque élément du grouping</summary>
-		/// <param name="action">Action prenant un élément</param>
+		/// <summary>Effectue une action sur chaque Ã©lÃ©ment du grouping</summary>
+		/// <param name="action">Action prenant un Ã©lÃ©ment</param>
 		public void Visit(Action<TKey, TElement> action)
 		{
 			int count = m_count;
@@ -398,9 +416,9 @@ namespace Doxense.Collections.Lookup
 			}
 		}
 
-		/// <summary>Transforme le grouping en une séquence de Key/Value</summary>
-		/// <param name="selector">Filtre optionnel (seul les éléments passant se filtre sont retournés</param>
-		/// <returns>Séquence de KeyValuePair où la Key celle du grouping, et la Value est un élément du grouping</returns>
+		/// <summary>Transforme le grouping en une sÃ©quence de Key/Value</summary>
+		/// <param name="selector">Filtre optionnel (seul les Ã©lÃ©ments passant se filtre sont retournÃ©s</param>
+		/// <returns>SÃ©quence de KeyValuePair oÃ¹ la Key celle du grouping, et la Value est un Ã©lÃ©ment du grouping</returns>
 		public IEnumerable<KeyValuePair<TKey, TElement>> Map(Func<TElement, bool>? selector = null)
 		{
 			int count = m_count;
@@ -419,10 +437,10 @@ namespace Doxense.Collections.Lookup
 		[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 		public struct Enumerator : IEnumerator<TElement>
 		{
-			// Inspiré de List<T>.Enumerator et Dictionary<T>.Enumerator:
+			// InspirÃ© de List<T>.Enumerator et Dictionary<T>.Enumerator:
 			// L'enumerator est un struct, et Grouping<> l'expose directement via le GetEnumerator() public
 			// => si l'appelant fait "foreach(var x in grp)" ou grp est de type Grouping<>, alors le compilateur allouera le struct dans la stack
-			// => si l'appelant passe par IEnumerable<Grouping<>> il aura une version boxée en heap (donc une allocation)
+			// => si l'appelant passe par IEnumerable<Grouping<>> il aura une version boxÃ©e en heap (donc une allocation)
 
 			private readonly Grouping<TKey, TElement> m_grouping;
 			private int m_index;
@@ -526,9 +544,9 @@ namespace Doxense.Collections.Lookup
 		/// <summary>Copie le contenu de ce grouping dans un tableau</summary>
 		/// <param name="array"></param>
 		/// <param name="arrayIndex"></param>
-		/// <remarks>Le tableau de destination doit être assez grand pour recevoir tous les éléments!</remarks>
-		/// <exception cref="System.ArgumentNullException">La paramètre 'array' est null</exception>
-		/// <exception cref="System.InvalidOperationException">Le tableau de destination n'est pas assez grand, ou l'offset est inférieur à 0</exception>
+		/// <remarks>Le tableau de destination doit Ãªtre assez grand pour recevoir tous les Ã©lÃ©ments!</remarks>
+		/// <exception cref="System.ArgumentNullException">La paramÃ¨tre 'array' est null</exception>
+		/// <exception cref="System.InvalidOperationException">Le tableau de destination n'est pas assez grand, ou l'offset est infÃ©rieur Ã  0</exception>
 		public void CopyTo(TElement[] array, int arrayIndex)
 		{
 			// On sous-traite le boulot :)
@@ -663,9 +681,9 @@ namespace Doxense.Collections.Lookup
 	public static class Grouping
 	{
 
-		/// <summary>Crée un nouveau grouping contenant un élément</summary>
-		/// <param name="key">Clé du nouveau grouping</param>
-		/// <param name="element">Element stocké dans le grouping</param>
+		/// <summary>CrÃ©e un nouveau grouping contenant un Ã©lÃ©ment</summary>
+		/// <param name="key">ClÃ© du nouveau grouping</param>
+		/// <param name="element">Element stockÃ© dans le grouping</param>
 		public static Grouping<TKey, TElement> Create<TKey, TElement>(TKey key, TElement element)
 		{
 			return new Grouping<TKey, TElement>
@@ -676,9 +694,9 @@ namespace Doxense.Collections.Lookup
 			};
 		}
 
-		/// <summary>Crée un nouveau grouping contenant une liste d'éléments</summary>
-		/// <param name="key">Clé du nouveau grouping</param>
-		/// <param name="elements">Liste des éléments stockés dans le grouping</param>
+		/// <summary>CrÃ©e un nouveau grouping contenant une liste d'Ã©lÃ©ments</summary>
+		/// <param name="key">ClÃ© du nouveau grouping</param>
+		/// <param name="elements">Liste des Ã©lÃ©ments stockÃ©s dans le grouping</param>
 		public static Grouping<TKey, TElement> Create<TKey, TElement>(TKey key, params TElement[] elements)
 		{
 			return new Grouping<TKey, TElement>
@@ -689,9 +707,9 @@ namespace Doxense.Collections.Lookup
 			};
 		}
 
-		/// <summary>Crée un nouveau grouping contenant une liste d'éléments</summary>
-		/// <param name="key">Clé du nouveau grouping</param>
-		/// <param name="elements">Liste des éléments stockés dans le grouping</param>
+		/// <summary>CrÃ©e un nouveau grouping contenant une liste d'Ã©lÃ©ments</summary>
+		/// <param name="key">ClÃ© du nouveau grouping</param>
+		/// <param name="elements">Liste des Ã©lÃ©ments stockÃ©s dans le grouping</param>
 		public static Grouping<TKey, TElement> Create<TKey, TElement>(TKey key, ICollection<TElement> elements)
 		{
 			return new Grouping<TKey, TElement>
@@ -702,9 +720,9 @@ namespace Doxense.Collections.Lookup
 			};
 		}
 
-		/// <summary>Crée un nouveau grouping contenant une liste d'éléments</summary>
-		/// <param name="key">Clé du nouveau grouping</param>
-		/// <param name="elements">Liste des éléments stockés dans le grouping</param>
+		/// <summary>CrÃ©e un nouveau grouping contenant une liste d'Ã©lÃ©ments</summary>
+		/// <param name="key">ClÃ© du nouveau grouping</param>
+		/// <param name="elements">Liste des Ã©lÃ©ments stockÃ©s dans le grouping</param>
 		public static Grouping<TKey, TElement> Create<TKey, TElement>(TKey key, IEnumerable<TElement> elements)
 		{
 			var t = elements.ToArray();
@@ -717,7 +735,7 @@ namespace Doxense.Collections.Lookup
 		}
 
 		/// <summary>Convertit un IGrouping LINQ</summary>
-		/// <param name="grouping">Grouping LINQ à convertir en Grouping modifiable</param>
+		/// <param name="grouping">Grouping LINQ Ã  convertir en Grouping modifiable</param>
 		public static Grouping<TKey, TElement> Create<TKey, TElement>(IGrouping<TKey, TElement> grouping)
 		{
 			var t = grouping.ToArray();
@@ -729,10 +747,10 @@ namespace Doxense.Collections.Lookup
 			};
 		}
 
-		/// <summary>Crée un nouveau grouping à partir d'un KeyValuePair</summary>
+		/// <summary>CrÃ©e un nouveau grouping Ã  partir d'un KeyValuePair</summary>
 		/// <typeparam name="TKey"></typeparam>
 		/// <typeparam name="TElement"></typeparam>
-		/// <param name="pair">Pair de clé/valeur</param>
+		/// <param name="pair">Pair de clÃ©/valeur</param>
 		/// <returns></returns>
 		public static Grouping<TKey, TElement> FromPair<TKey, TElement>(KeyValuePair<TKey, TElement> pair)
 		{
@@ -744,30 +762,30 @@ namespace Doxense.Collections.Lookup
 			};
 		}
 
-		/// <summary>Crée un nouveau grouping à partir d'un KeyValuePair</summary>
+		/// <summary>CrÃ©e un nouveau grouping Ã  partir d'un KeyValuePair</summary>
 		/// <typeparam name="TKey"></typeparam>
 		/// <typeparam name="TElement"></typeparam>
-		/// <param name="pair">Pair de clé/valeurs</param>
+		/// <param name="pair">Pair de clÃ©/valeurs</param>
 		/// <returns></returns>
 		public static Grouping<TKey, TElement> FromPair<TKey, TElement>(KeyValuePair<TKey, TElement[]> pair)
 		{
 			return Create(pair.Key, pair.Value);
 		}
 
-		/// <summary>Crée un nouveau grouping à partir d'un KeyValuePair</summary>
+		/// <summary>CrÃ©e un nouveau grouping Ã  partir d'un KeyValuePair</summary>
 		/// <typeparam name="TKey"></typeparam>
 		/// <typeparam name="TElement"></typeparam>
-		/// <param name="pair">Pair de clé/valeurs</param>
+		/// <param name="pair">Pair de clÃ©/valeurs</param>
 		/// <returns></returns>
 		public static Grouping<TKey, TElement> FromPair<TKey, TElement>(KeyValuePair<TKey, ICollection<TElement>> pair)
 		{
 			return Create(pair.Key, pair.Value);
 		}
 
-		/// <summary>Crée un nouveau grouping à partir d'un KeyValuePair</summary>
+		/// <summary>CrÃ©e un nouveau grouping Ã  partir d'un KeyValuePair</summary>
 		/// <typeparam name="TKey"></typeparam>
 		/// <typeparam name="TElement"></typeparam>
-		/// <param name="pair">Pair de clé/valeurs</param>
+		/// <param name="pair">Pair de clÃ©/valeurs</param>
 		/// <returns></returns>
 		public static Grouping<TKey, TElement> FromPair<TKey, TElement>(KeyValuePair<TKey, IEnumerable<TElement>> pair)
 		{
@@ -781,7 +799,7 @@ namespace Doxense.Collections.Lookup
 		public static Grouping<TKey, TElement>? FromLinq<TKey, TElement>(IGrouping<TKey, TElement> grouping)
 		{
 			if (grouping == null) return null;
-			// C'est peut être déjà dans le bon type ?
+			// C'est peut Ãªtre dÃ©jÃ  dans le bon type ?
 			return (grouping as Grouping<TKey, TElement>) ?? Create(grouping);
 		}
 	}

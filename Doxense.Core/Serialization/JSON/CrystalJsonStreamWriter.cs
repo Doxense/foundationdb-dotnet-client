@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -17,31 +35,31 @@ namespace Doxense.Serialization.Json
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	/// <summary>Classe capable d'écrire des fragments de JSON, en mode stream</summary>
+	/// <summary>Classe capable d'Ã©crire des fragments de JSON, en mode stream</summary>
 	public sealed class CrystalJsonStreamWriter : IDisposable //TODO: IAsyncDisposable !
 	{
-		// On utiliser un CrystalJsonWriter classique, qui va écrire dans un MemoryStream qui sert de tampon, de manière classique.
-		// Le writer écrit dans un TextWriter, qui lui même flush périodiquement dans le MemoryStream. Jusque la, tout reste en non-async et ne bloque jamais.
-		// Régulièrement, ou lors que le tampon est assez gros, on le flush sur le stream, et cela de manière async.
+		// On utiliser un CrystalJsonWriter classique, qui va Ã©crire dans un MemoryStream qui sert de tampon, de maniÃ¨re classique.
+		// Le writer Ã©crit dans un TextWriter, qui lui mÃªme flush pÃ©riodiquement dans le MemoryStream. Jusque la, tout reste en non-async et ne bloque jamais.
+		// RÃ©guliÃ¨rement, ou lors que le tampon est assez gros, on le flush sur le stream, et cela de maniÃ¨re async.
 
-		/// <summary>Limite de taille du tampon au delà de laquelle on va faire un flush implicite</summary>
-		/// <remarks>Ce n'est qu'une limite indicatif, et non pas une limite absolue! Si un item génère 1GB de JSON d'un seul coup, le tampon devra quand même grossir jusqu'à cette taille.</remarks>
+		/// <summary>Limite de taille du tampon au delÃ  de laquelle on va faire un flush implicite</summary>
+		/// <remarks>Ce n'est qu'une limite indicatif, et non pas une limite absolue! Si un item gÃ©nÃ¨re 1GB de JSON d'un seul coup, le tampon devra quand mÃªme grossir jusqu'Ã  cette taille.</remarks>
 		private const int AUTOFLUSH_THRESHOLD = 256 * 1024;
 
-		/// <summary>Stream sous-jacent (dans lequel on flush le tampon de manière asynchrone)</summary>
+		/// <summary>Stream sous-jacent (dans lequel on flush le tampon de maniÃ¨re asynchrone)</summary>
 		private readonly Stream m_stream;
-		/// <summary>Tampon mémoire</summary>
+		/// <summary>Tampon mÃ©moire</summary>
 		private readonly MemoryStream m_scratch;
-		/// <summary>JSON writer qui écrit dans le tampon</summary>
+		/// <summary>JSON writer qui Ã©crit dans le tampon</summary>
 		private readonly CrystalJsonWriter m_writer;
-		/// <summary>Si true, il faut disposer m_stream lorsque cette instance est elle même disposée</summary>
+		/// <summary>Si true, il faut disposer m_stream lorsque cette instance est elle mÃªme disposÃ©e</summary>
 		private readonly bool m_ownStream;
-		/// <summary>Si true, cette instance a déjà été disposée</summary>
+		/// <summary>Si true, cette instance a dÃ©jÃ  Ã©tÃ© disposÃ©e</summary>
 		private bool m_disposed;
 
-		/// <summary>Dernier type visité (m_visitor contient le delegate en cache)</summary>
+		/// <summary>Dernier type visitÃ© (m_visitor contient le delegate en cache)</summary>
 		private Type? m_lastType;
-		/// <summary>Visiteur en cache pour des éléments du même type que m_lastType</summary>
+		/// <summary>Visiteur en cache pour des Ã©lÃ©ments du mÃªme type que m_lastType</summary>
 		private CrystalJsonTypeVisitor? m_visitor;
 
 		public CrystalJsonStreamWriter(Stream output, CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver = null, bool ownStream = false)
@@ -60,13 +78,13 @@ namespace Doxense.Serialization.Json
 		public CrystalJsonWriter.NodeType CurrentNode => m_writer.CurrentState.Node;
 
 		/// <summary>Retourne une estimation de la position dans le stream source, pour information</summary>
-		/// <remarks>ATTENTION: cette valeur ne peut être considérée comme valide que juste après un Flush!</remarks>
+		/// <remarks>ATTENTION: cette valeur ne peut Ãªtre considÃ©rÃ©e comme valide que juste aprÃ¨s un Flush!</remarks>
 		public long? PositionHint
 		{
 			get
 			{
 				if (m_disposed) ThrowDisposed();
-				//note: s'il n'y a pas eu de flush récent, il peut y avoir des caractères encore en cache dans Writer (pas flushés dans le scratch buffer)
+				//note: s'il n'y a pas eu de flush rÃ©cent, il peut y avoir des caractÃ¨res encore en cache dans Writer (pas flushÃ©s dans le scratch buffer)
 				return m_stream.Position + m_scratch.Length;
 			}
 		}
@@ -106,10 +124,10 @@ namespace Doxense.Serialization.Json
 		#region Objects...
 
 		/// <summary>Ecrit un document top-level de type object, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'objet</param>
+		/// <param name="handler">Handler appelÃ©, chargÃ© d'Ã©crire le contenu de l'objet</param>
 		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'objet a été écrit entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginObjectFragment"/>.</remarks>
+		/// <returns>Task qui se termine quand l'objet a Ã©tÃ© Ã©crit entiÃ¨rement, et aprÃ¨s voir flushÃ© le buffer sur le stream</returns>
+		/// <remarks>Cette mÃ©thode ne doit idÃ©alement Ãªtre utilisÃ© que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginObjectFragment"/>.</remarks>
 		public void WriteObjectFragment([InstantHandle] Action<ObjectStream> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -122,10 +140,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Ecrit un document top-level de type object, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'objet</param>
+		/// <param name="handler">Handler appelÃ©, chargÃ© d'Ã©crire le contenu de l'objet</param>
 		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'objet a été écrit entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginObjectFragment"/>.</remarks>
+		/// <returns>Task qui se termine quand l'objet a Ã©tÃ© Ã©crit entiÃ¨rement, et aprÃ¨s voir flushÃ© le buffer sur le stream</returns>
+		/// <remarks>Cette mÃ©thode ne doit idÃ©alement Ãªtre utilisÃ© que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginObjectFragment"/>.</remarks>
 		public async Task WriteObjectFragmentAsync([InstantHandle] Func<ObjectStream, Task> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -257,8 +275,8 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Démarre manuellement un object, quelque soit le niveau de profondeur actuel</summary>
-		/// <returns>Sous-stream dans lequel écrire le fragment, et qu'il faut Dispose() lorsqu'il est terminé</returns>
+		/// <summary>DÃ©marre manuellement un object, quelque soit le niveau de profondeur actuel</summary>
+		/// <returns>Sous-stream dans lequel Ã©crire le fragment, et qu'il faut Dispose() lorsqu'il est terminÃ©</returns>
 		[Pure]
 		public ObjectStream BeginObjectFragment(CancellationToken cancellationToken = default(CancellationToken))
 		{
@@ -282,10 +300,10 @@ namespace Doxense.Serialization.Json
 		#region Arrays...
 
 		/// <summary>Ecrit un document top-level de type array, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'array</param>
+		/// <param name="handler">Handler appelÃ©, chargÃ© d'Ã©crire le contenu de l'array</param>
 		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'array a été écrite entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
+		/// <returns>Task qui se termine quand l'array a Ã©tÃ© Ã©crite entiÃ¨rement, et aprÃ¨s voir flushÃ© le buffer sur le stream</returns>
+		/// <remarks>Cette mÃ©thode ne doit idÃ©alement Ãªtre utilisÃ© que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
 		public void WriteArrayFragment([InstantHandle] Action<ArrayStream> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -297,10 +315,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Ecrit un document top-level de type array, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'array</param>
+		/// <param name="handler">Handler appelÃ©, chargÃ© d'Ã©crire le contenu de l'array</param>
 		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'array a été écrite entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
+		/// <returns>Task qui se termine quand l'array a Ã©tÃ© Ã©crite entiÃ¨rement, et aprÃ¨s voir flushÃ© le buffer sur le stream</returns>
+		/// <remarks>Cette mÃ©thode ne doit idÃ©alement Ãªtre utilisÃ© que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
 		public void WriteArrayFragment<TState>(TState state, [InstantHandle] Action<TState, ArrayStream> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -312,10 +330,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Ecrit un document top-level de type array, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'array</param>
+		/// <param name="handler">Handler appelÃ©, chargÃ© d'Ã©crire le contenu de l'array</param>
 		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'array a été écrite entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
+		/// <returns>Task qui se termine quand l'array a Ã©tÃ© Ã©crite entiÃ¨rement, et aprÃ¨s voir flushÃ© le buffer sur le stream</returns>
+		/// <remarks>Cette mÃ©thode ne doit idÃ©alement Ãªtre utilisÃ© que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
 		public async Task WriteArrayFragmentAsync([InstantHandle] Func<ArrayStream, Task> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -326,9 +344,9 @@ namespace Doxense.Serialization.Json
 			await FlushInternalAsync(true, cancellationToken).ConfigureAwait(false);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence d'élément une array spécifié, et flush le stream</summary>
+		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la sÃ©quence d'Ã©lÃ©ment une array spÃ©cifiÃ©, et flush le stream</summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
+		/// <param name="items">SÃ©quence de l'intÃ©gralitÃ© des Ã©lÃ©ments constituant l'array</param>
 		/// <param name="cancellationToken"></param>
 		public void WriteArrayFragment<T>(IEnumerable<T> items, CancellationToken cancellationToken)
 		{
@@ -340,9 +358,9 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence d'élément une array spécifié, et flush le stream</summary>
+		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la sÃ©quence d'Ã©lÃ©ment une array spÃ©cifiÃ©, et flush le stream</summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
+		/// <param name="items">SÃ©quence de l'intÃ©gralitÃ© des Ã©lÃ©ments constituant l'array</param>
 		/// <param name="cancellationToken"></param>
 		public async Task WriteArrayFragmentAsync<T>(IEnumerable<T> items, CancellationToken cancellationToken)
 		{
@@ -354,8 +372,8 @@ namespace Doxense.Serialization.Json
 			await FlushInternalAsync(true, cancellationToken).ConfigureAwait(false);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence de valeur JSON, et flush le stream</summary>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
+		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la sÃ©quence de valeur JSON, et flush le stream</summary>
+		/// <param name="items">SÃ©quence de l'intÃ©gralitÃ© des Ã©lÃ©ments constituant l'array</param>
 		/// <param name="cancellationToken"></param>
 		public void WriteArrayFragment(IEnumerable<JsonValue> items, CancellationToken cancellationToken)
 		{
@@ -367,8 +385,8 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence de valeur JSON, et flush le stream</summary>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
+		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la sÃ©quence de valeur JSON, et flush le stream</summary>
+		/// <param name="items">SÃ©quence de l'intÃ©gralitÃ© des Ã©lÃ©ments constituant l'array</param>
 		/// <param name="cancellationToken"></param>
 		public async Task WriteArrayFragmentAsync(IEnumerable<JsonValue> items, CancellationToken cancellationToken)
 		{
@@ -459,9 +477,9 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			/// <summary>Ajoute un élément dans un tableau ouvert</summary>
-			/// <typeparam name="T">Type de l'élément</typeparam>
-			/// <param name="item">Element ajouté</param>
+			/// <summary>Ajoute un Ã©lÃ©ment dans un tableau ouvert</summary>
+			/// <typeparam name="T">Type de l'Ã©lÃ©ment</typeparam>
+			/// <param name="item">Element ajoutÃ©</param>
 			/// <returns></returns>
 			public void WriteItem<T>(T item)
 			{
@@ -476,9 +494,9 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			/// <summary>Ajoute un élément dans un tableau ouvert</summary>
-			/// <typeparam name="T">Type de l'élément</typeparam>
-			/// <param name="item">Element ajouté</param>
+			/// <summary>Ajoute un Ã©lÃ©ment dans un tableau ouvert</summary>
+			/// <typeparam name="T">Type de l'Ã©lÃ©ment</typeparam>
+			/// <param name="item">Element ajoutÃ©</param>
 			/// <returns></returns>
 			public async Task WriteItemAsync<T>(T item)
 			{
@@ -527,7 +545,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			/// <summary>Ajoute plusieurs éléments dans un tableau ouvert</summary>
+			/// <summary>Ajoute plusieurs Ã©lÃ©ments dans un tableau ouvert</summary>
 			public void WriteBatch<T>(IEnumerable<T> items)
 			{
 				Contract.NotNull(items);
@@ -547,7 +565,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			/// <summary>Ajoute plusieurs éléments dans un tableau ouvert</summary>
+			/// <summary>Ajoute plusieurs Ã©lÃ©ments dans un tableau ouvert</summary>
 			public async Task WriteBatchAsync<T>(IEnumerable<T> items)
 			{
 				Contract.NotNull(items);
@@ -567,11 +585,11 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			/// <summary>Ajoute plusieurs éléments dans un tableau ouvert, en appliquant une transformation sur chaque élément</summary>
-			/// <typeparam name="TInput">Type des éléments de la séquence source</typeparam>
-			/// <typeparam name="TOutput">Type des éléments transformés</typeparam>
-			/// <param name="items">Séquence des éléments constituants le batch</param>
-			/// <param name="selector">Transformation appliquée à chaque éléments de <paramref name="items"/></param>
+			/// <summary>Ajoute plusieurs Ã©lÃ©ments dans un tableau ouvert, en appliquant une transformation sur chaque Ã©lÃ©ment</summary>
+			/// <typeparam name="TInput">Type des Ã©lÃ©ments de la sÃ©quence source</typeparam>
+			/// <typeparam name="TOutput">Type des Ã©lÃ©ments transformÃ©s</typeparam>
+			/// <param name="items">SÃ©quence des Ã©lÃ©ments constituants le batch</param>
+			/// <param name="selector">Transformation appliquÃ©e Ã  chaque Ã©lÃ©ments de <paramref name="items"/></param>
 			/// <returns></returns>
 			public void WriteBatch<TInput, TOutput>(IEnumerable<TInput> items, [InstantHandle] Func<TInput, TOutput> selector)
 			{
@@ -593,11 +611,11 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			/// <summary>Ajoute plusieurs éléments dans un tableau ouvert, en appliquant une transformation sur chaque élément</summary>
-			/// <typeparam name="TInput">Type des éléments de la séquence source</typeparam>
-			/// <typeparam name="TOutput">Type des éléments transformés</typeparam>
-			/// <param name="items">Séquence des éléments constituants le batch</param>
-			/// <param name="selector">Transformation appliquée à chaque éléments de <paramref name="items"/></param>
+			/// <summary>Ajoute plusieurs Ã©lÃ©ments dans un tableau ouvert, en appliquant une transformation sur chaque Ã©lÃ©ment</summary>
+			/// <typeparam name="TInput">Type des Ã©lÃ©ments de la sÃ©quence source</typeparam>
+			/// <typeparam name="TOutput">Type des Ã©lÃ©ments transformÃ©s</typeparam>
+			/// <param name="items">SÃ©quence des Ã©lÃ©ments constituants le batch</param>
+			/// <param name="selector">Transformation appliquÃ©e Ã  chaque Ã©lÃ©ments de <paramref name="items"/></param>
 			/// <returns></returns>
 			public async Task WriteBatchAsync<TInput, TOutput>(IEnumerable<TInput> items, [InstantHandle] Func<TInput, TOutput> selector)
 			{
@@ -635,8 +653,8 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Démarre manuellement une array, quelque soit le niveau de profondeur actuel</summary>
-		/// <returns>Sous-stream, qu'il faut Dispose() une fois que l'array est terminée</returns>
+		/// <summary>DÃ©marre manuellement une array, quelque soit le niveau de profondeur actuel</summary>
+		/// <returns>Sous-stream, qu'il faut Dispose() une fois que l'array est terminÃ©e</returns>
 		[Pure]
 		public ArrayStream BeginArrayFragment(CancellationToken cancellationToken = default(CancellationToken))
 		{
@@ -684,25 +702,25 @@ namespace Doxense.Serialization.Json
 			return m_visitor;
 		}
 
-		/// <summary>Indique si le tampon mémoire dépasse la limite de taille acceptable</summary>
+		/// <summary>Indique si le tampon mÃ©moire dÃ©passe la limite de taille acceptable</summary>
 		private bool ShouldFlush
 		{
 			get { return !m_disposed && m_scratch.Length >= AUTOFLUSH_THRESHOLD; }
 		}
 
-		/// <summary>Fait en sorte que toutes les données écrites jusqu'a présent soient flushées dans le stream de destination</summary>
+		/// <summary>Fait en sorte que toutes les donnÃ©es Ã©crites jusqu'a prÃ©sent soient flushÃ©es dans le stream de destination</summary>
 		private async Task FlushInternalAsync(bool flushStream, CancellationToken cancellationToken)
 		{
-			// Flush le TextWriter pour être sûr que tous les caractères écrits arrivent dans le scratch stream!
+			// Flush le TextWriter pour Ãªtre sÃ»r que tous les caractÃ¨res Ã©crits arrivent dans le scratch stream!
 			m_writer.Buffer.Flush();
 
-			// flush le scratch buffer dans le stream de destination si nécessaire
+			// flush le scratch buffer dans le stream de destination si nÃ©cessaire
 			if (m_scratch.Length > 0)
 			{
 				try
 				{
 					m_scratch.Seek(0, SeekOrigin.Begin);
-					//note: MemoryStream.CopyToAsync() est optimisé pour écrire en une seul passe, et ignore la taille du buffer
+					//note: MemoryStream.CopyToAsync() est optimisÃ© pour Ã©crire en une seul passe, et ignore la taille du buffer
 					await m_scratch.CopyToAsync(m_stream, 4096, cancellationToken);
 				}
 				//TODO: si erreur, il faudrait nuker ??
@@ -711,42 +729,42 @@ namespace Doxense.Serialization.Json
 					m_scratch.SetLength(0);
 				}
 			}
-			// force le stream à écrire sur le disque, si demandé par l'appelant
+			// force le stream Ã  Ã©crire sur le disque, si demandÃ© par l'appelant
 			if (flushStream)
 			{
-				//note: même si c'est un FileStream, il n'y a AUCUNE garantie que les données seront durablement sauvées! (write cache de l'OS)
+				//note: mÃªme si c'est un FileStream, il n'y a AUCUNE garantie que les donnÃ©es seront durablement sauvÃ©es! (write cache de l'OS)
 				await m_stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 			}
 		}
 
-		/// <summary>Fait en sorte que toutes les données écrites jusqu'a présent soient flushées dans le stream de destination</summary>
+		/// <summary>Fait en sorte que toutes les donnÃ©es Ã©crites jusqu'a prÃ©sent soient flushÃ©es dans le stream de destination</summary>
 		/// <param name="flushStream"></param>
 		private void FlushInternal(bool flushStream)
 		{
-			// Flush le TextWriter pour être sûr que tous les caractères écrits arrivent dans le scratch stream!
+			// Flush le TextWriter pour Ãªtre sÃ»r que tous les caractÃ¨res Ã©crits arrivent dans le scratch stream!
 			m_writer.Buffer.Flush();
 
-			// flush le scratch buffer dans le stream de destination si nécessaire
+			// flush le scratch buffer dans le stream de destination si nÃ©cessaire
 			if (m_scratch.Length != 0)
 			{
 				try
 				{
 					m_scratch.Seek(0, SeekOrigin.Begin);
-					//note: MemoryStream.CopyTo() est optimisé pour écrire en une seul passe, et ignore la taille du buffer
+					//note: MemoryStream.CopyTo() est optimisÃ© pour Ã©crire en une seul passe, et ignore la taille du buffer
 					m_scratch.CopyTo(m_stream, 4096);
 				}
 				finally
 				{
-					// si la copie throw, Dispose() va être appelé juste après, et ne doit pas retry une deuxième fois!
+					// si la copie throw, Dispose() va Ãªtre appelÃ© juste aprÃ¨s, et ne doit pas retry une deuxiÃ¨me fois!
 					// => on force le buffer a 0, pour que Dispose() ne Flush() rien
 					m_scratch.SetLength(0);
 				}
 			}
 
-			// force le stream à écrire sur le disque, si demandé par l'appelant
+			// force le stream Ã  Ã©crire sur le disque, si demandÃ© par l'appelant
 			if (flushStream)
 			{
-				//note: même si c'est un FileStream, il n'y a AUCUNE garantie que les données seront durablement sauvées! (write cache de l'OS)
+				//note: mÃªme si c'est un FileStream, il n'y a AUCUNE garantie que les donnÃ©es seront durablement sauvÃ©es! (write cache de l'OS)
 				m_stream.Flush();
 			}
 		}
@@ -760,7 +778,7 @@ namespace Doxense.Serialization.Json
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				//note: on ne peut pas fermer la hiérachie automatiquement, car Dispose() peut être appelé suite à une erreur I/O sur le stream lui-même !
+				//note: on ne peut pas fermer la hiÃ©rachie automatiquement, car Dispose() peut Ãªtre appelÃ© suite Ã  une erreur I/O sur le stream lui-mÃªme !
 				try
 				{
 					FlushInternal(true);
@@ -775,13 +793,13 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		//note: en prévision de IAsyncDisposable
+		//note: en prÃ©vision de IAsyncDisposable
 		public async Task DisposeAsync(CancellationToken ct) //REVIEW: pas sur pour le CT...
 		{
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				//note: on ne peut pas fermer la hiérachie automatiquement, car Dispose() peut être appelé suite à une erreur I/O sur le stream lui-même !
+				//note: on ne peut pas fermer la hiÃ©rachie automatiquement, car Dispose() peut Ãªtre appelÃ© suite Ã  une erreur I/O sur le stream lui-mÃªme !
 				try
 				{
 					await FlushInternalAsync(true, ct).ConfigureAwait(true);

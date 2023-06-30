@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -20,7 +38,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerNonUserCode]
 	public sealed class JsonNull : JsonValue, IEquatable<JsonNull>
 	{
-		//REVIEW: il faudrait soit renommer JsonNull en JsonNil, ou alors .Null en .Nil, pour éviter l'ambiguité "JsonNull.Null" et aussi "get_IsNull" qui retourne true aussi pour missing/error
+		//REVIEW: il faudrait soit renommer JsonNull en JsonNil, ou alors .Null en .Nil, pour Ã©viter l'ambiguitÃ© "JsonNull.Null" et aussi "get_IsNull" qui retourne true aussi pour missing/error
 
 		internal enum NullKind
 		{
@@ -81,7 +99,7 @@ namespace Doxense.Serialization.Json
 
 		private static class DefaultCache<T>
 		{
-			//note: je suis quasi certain que j'ai déja un truc équivalent quelquepart! a refactoriser dés que possible!
+			//note: je suis quasi certain que j'ai dÃ©ja un truc Ã©quivalent quelquepart! a refactoriser dÃ©s que possible!
 
 			// ReSharper disable once ExpressionIsAlwaysNull
 			public static readonly T? Instance = (T?) Default(typeof(T))!;
@@ -102,7 +120,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// dans tous les cas, on doit retourner le default du type!
-			// - si c'est un ValueType, on doit créer une version boxée du default(T) sinon on aura une null ref si l'appelant veut le caster en (T) !
+			// - si c'est un ValueType, on doit crÃ©er une version boxÃ©e du default(T) sinon on aura une null ref si l'appelant veut le caster en (T) !
 			if (type?.IsValueType ?? false)
 			{
 				return ValueTypeDefault(type);
@@ -170,7 +188,7 @@ namespace Doxense.Serialization.Json
 
 		public override bool Equals(object? obj)
 		{
-			// default(object) et DBNull sont considérés comme égal à JsonNull
+			// default(object) et DBNull sont considÃ©rÃ©s comme Ã©gal Ã  JsonNull
 			if (obj == null || obj is DBNull) return true;
 
 			return base.Equals(obj);
@@ -178,7 +196,7 @@ namespace Doxense.Serialization.Json
 
 		public override bool Equals(JsonValue value)
 		{
-			// default(object) ('null') est considéré comme égal à JsonNull
+			// default(object) ('null') est considÃ©rÃ© comme Ã©gal Ã  JsonNull
 			if (value == null) return true;
 
 			// si c'est un JsonNull, le type doit matcher
@@ -203,7 +221,7 @@ namespace Doxense.Serialization.Json
 
 		public override int CompareTo(JsonValue value)
 		{
-			// null est toujours plus petit que le reste, sauf lui même
+			// null est toujours plus petit que le reste, sauf lui mÃªme
 			return value == null || value.IsNull ? 0 : -1;
 		}
 

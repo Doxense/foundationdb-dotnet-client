@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 #nullable enable
@@ -43,7 +61,7 @@ namespace Doxense.Testing
 	using NUnit.Framework.Interfaces;
 	using NUnit.Framework.Internal;
 
-	/// <summary>Base classe pour les tests unitaires, fournissant toute une série de services (logging, cancellation, async helpers, ...)</summary>
+	/// <summary>Base classe pour les tests unitaires, fournissant toute une sÃ©rie de services (logging, cancellation, async helpers, ...)</summary>
 	[DebuggerNonUserCode]
 	public abstract class DoxenseTest
 	{
@@ -56,21 +74,21 @@ namespace Doxense.Testing
 		static DoxenseTest()
 		{
 #if !NETFRAMEWORK
-			// nécessaire pour que .NET Core puisse gérer les CodePages windows (1252, ...)
+			// nÃ©cessaire pour que .NET Core puisse gÃ©rer les CodePages windows (1252, ...)
 			System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 #endif
 
-			////note: lorsque le code est lancé via un profiler (ex: dotTrace) la dll est réécrite dans un autre rep que l'original
-			//// j'ai remarqué que GetExecutingAssembly().CodeBase = "file:\C:\path\to\original\bin\Debug\foo.dll" donc je l'utilise comme base
-			//// => on part du principe que les librairies natives ont été copiées dans le même répertoire par msbuild !
+			////note: lorsque le code est lancÃ© via un profiler (ex: dotTrace) la dll est rÃ©Ã©crite dans un autre rep que l'original
+			//// j'ai remarquÃ© que GetExecutingAssembly().CodeBase = "file:\C:\path\to\original\bin\Debug\foo.dll" donc je l'utilise comme base
+			//// => on part du principe que les librairies natives ont Ã©tÃ© copiÃ©es dans le mÃªme rÃ©pertoire par msbuild !
 			//string nativePath = PathEnv.GetAssemblyLocation(Assembly.GetExecutingAssembly());
 			//Debug.WriteLine($"Using the following path for native libraries: {nativePath}");
 			//// %lib% est le path de base....
 			//PathEnv.MapPathVariable("lib", nativePath);
-			//// %lib_arch% est le sous répertoire de ce rep correspondant à l'architecture (en minuscule)
+			//// %lib_arch% est le sous rÃ©pertoire de ce rep correspondant Ã  l'architecture (en minuscule)
 			//PathEnv.MapPathVariable("lib_arch", Path.Combine(nativePath, PathEnv.GetArchitectureName()));
 
-			// warmup stopwatch, utilisé dans les benchs...
+			// warmup stopwatch, utilisÃ© dans les benchs...
 			RobustBenchmark.Warmup(); // StopWatch, RobustBenchmark, ...
 
 			// warmup JSON
@@ -211,7 +229,7 @@ namespace Doxense.Testing
 			get => m_cts?.Token ?? default;
 		}
 
-		/// <summary>Fait en sorte que le token <see cref="Cancellation"/> se déclenche dans le délai indiqué, quoi qu'il se produise pendant l'exécution du test</summary>
+		/// <summary>Fait en sorte que le token <see cref="Cancellation"/> se dÃ©clenche dans le dÃ©lai indiquÃ©, quoi qu'il se produise pendant l'exÃ©cution du test</summary>
 		public void SetExecutionTimeout(TimeSpan delay)
 		{
 			var cts = m_cts ?? throw new InvalidOperationException("Cannot set execution delay outside of a test");
@@ -222,9 +240,9 @@ namespace Doxense.Testing
 			}, TaskContinuationOptions.NotOnCanceled);
 		}
 
-		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
-		/// <param name="handler">Function invoquée</param>
-		/// <returns>Durée d'exécution</returns>
+		/// <summary>Mesure la durÃ©e d'exÃ©cution d'une fonction de test</summary>
+		/// <param name="handler">Function invoquÃ©e</param>
+		/// <returns>DurÃ©e d'exÃ©cution</returns>
 		public static TimeSpan Time(Action  handler)
 		{
 			var sw = Stopwatch.StartNew();
@@ -233,9 +251,9 @@ namespace Doxense.Testing
 			return sw.Elapsed;
 		}
 
-		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
-		/// <param name="handler">Function invoquée</param>
-		/// <returns>Durée d'exécution</returns>
+		/// <summary>Mesure la durÃ©e d'exÃ©cution d'une fonction de test</summary>
+		/// <param name="handler">Function invoquÃ©e</param>
+		/// <returns>DurÃ©e d'exÃ©cution</returns>
 		public static async Task<TimeSpan> Time(Func<Task> handler)
 		{
 			var sw = Stopwatch.StartNew();
@@ -244,10 +262,10 @@ namespace Doxense.Testing
 			return sw.Elapsed;
 		}
 
-		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
-		/// <typeparam name="TResult">Type de résultat de la fonction</typeparam>
-		/// <param name="handler">Function invoquée</param>
-		/// <returns>Tuple contenant le résultat de la fonction, et sa durée d'execution</returns>
+		/// <summary>Mesure la durÃ©e d'exÃ©cution d'une fonction de test</summary>
+		/// <typeparam name="TResult">Type de rÃ©sultat de la fonction</typeparam>
+		/// <param name="handler">Function invoquÃ©e</param>
+		/// <returns>Tuple contenant le rÃ©sultat de la fonction, et sa durÃ©e d'execution</returns>
 		public static (TResult Result, TimeSpan Elapsed) Time<TResult>(Func<TResult> handler)
 		{
 			var sw = Stopwatch.StartNew();
@@ -256,10 +274,10 @@ namespace Doxense.Testing
 			return (result, sw.Elapsed);
 		}
 
-		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
-		/// <typeparam name="TResult">Type de résultat de la fonction</typeparam>
-		/// <param name="handler">Function invoquée</param>
-		/// <returns>Tuple contenant le résultat de la fonction, et sa durée d'execution</returns>
+		/// <summary>Mesure la durÃ©e d'exÃ©cution d'une fonction de test</summary>
+		/// <typeparam name="TResult">Type de rÃ©sultat de la fonction</typeparam>
+		/// <param name="handler">Function invoquÃ©e</param>
+		/// <returns>Tuple contenant le rÃ©sultat de la fonction, et sa durÃ©e d'execution</returns>
 		public static async Task<(TResult Result, TimeSpan Elapsed)> Time<TResult>(Func<Task<TResult>> handler)
 		{
 			var sw = Stopwatch.StartNew();
@@ -268,23 +286,23 @@ namespace Doxense.Testing
 			return (result, sw.Elapsed);
 		}
 
-		/// <summary>Pause l'exécution du test pendant un certain temps</summary>
-		/// <remarks>Le délai est automatiquement interrompu si le timeout d'exécution du test se déclenche</remarks>
+		/// <summary>Pause l'exÃ©cution du test pendant un certain temps</summary>
+		/// <remarks>Le dÃ©lai est automatiquement interrompu si le timeout d'exÃ©cution du test se dÃ©clenche</remarks>
 		[Obsolete("Warning: waiting for a fixed time delay in a test is not good practice!")]
 		public Task Wait(int milliseconds)
 		{
 			return Wait(TimeSpan.FromMilliseconds(milliseconds));
 		}
 
-		/// <summary>Pause l'exécution du test pendant un certain temps</summary>
-		/// <remarks>Le délai est automatiquement interrompu si le timeout d'exécution du test se déclenche</remarks>
+		/// <summary>Pause l'exÃ©cution du test pendant un certain temps</summary>
+		/// <remarks>Le dÃ©lai est automatiquement interrompu si le timeout d'exÃ©cution du test se dÃ©clenche</remarks>
 		[Obsolete("Warning: waiting for a fixed time delay in a test is not good practice!")]
 		public Task Wait(TimeSpan delay)
 		{
 			return Task.Delay(delay, this.Cancellation);
 		}
 
-		/// <summary>Spin de manière asynchrone jusqu'à ce qu'une condition soit réalisée, l'expiration d'un timeout, ou l'annulation du test</summary>
+		/// <summary>Spin de maniÃ¨re asynchrone jusqu'Ã  ce qu'une condition soit rÃ©alisÃ©e, l'expiration d'un timeout, ou l'annulation du test</summary>
 		public Task<TimeSpan> WaitUntil([InstantHandle] Func<bool> condition, TimeSpan timeout, string message, TimeSpan? ticks = null, [CallerArgumentExpression("condition")] string? conditionExpression = null)
 		{
 			return WaitUntil(
@@ -313,7 +331,7 @@ namespace Doxense.Testing
 			);
 		}
 
-		/// <summary>Spin de manière asynchrone jusqu'à ce qu'une condition soit réalisée, l'expiration d'un timeout, ou l'annulation du test</summary>
+		/// <summary>Spin de maniÃ¨re asynchrone jusqu'Ã  ce qu'une condition soit rÃ©alisÃ©e, l'expiration d'un timeout, ou l'annulation du test</summary>
 		public async Task<TimeSpan> WaitUntil([InstantHandle] Func<bool> condition, TimeSpan timeout, Action<TimeSpan, Exception?>  onFail, TimeSpan? ticks = null, [CallerArgumentExpression("condition")] string? conditionExpression = null)
 		{
 			var ct = this.Cancellation;
@@ -369,7 +387,7 @@ namespace Doxense.Testing
 			}
 		}
 
-		/// <summary>Spin de manière asynchrone jusqu'à ce qu'une condition soit réalisée, l'expiration d'un timeout, ou l'annulation du test</summary>
+		/// <summary>Spin de maniÃ¨re asynchrone jusqu'Ã  ce qu'une condition soit rÃ©alisÃ©e, l'expiration d'un timeout, ou l'annulation du test</summary>
 		public async Task<TimeSpan> WaitUntil([InstantHandle] Func<Task<bool>> condition, TimeSpan timeout, string message, TimeSpan? ticks = null, [CallerArgumentExpression("condition")] string conditionExpression = null)
 		{
 			var ct = this.Cancellation;
@@ -433,7 +451,7 @@ namespace Doxense.Testing
 
 		#region Async Stuff...
 
-		/// <summary>Attend que toutes les tasks soient exécutées, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que toutes les tasks soient exÃ©cutÃ©es, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task WhenAll(IEnumerable<Task> tasks, TimeSpan timeout, [CallerArgumentExpression("tasks")] string? tasksExpression = null)
 		{
 			var ts = (tasks as Task[]) ?? tasks.ToArray();
@@ -443,7 +461,7 @@ namespace Doxense.Testing
 			return WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, $"WhenAll({tasksExpression})");
 		}
 
-		/// <summary>Attend que toutes les tasks soient exécutées, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que toutes les tasks soient exÃ©cutÃ©es, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public async Task<TResult[]> WhenAll<TResult>(IEnumerable<Task<TResult>> tasks, TimeSpan timeout, [CallerArgumentExpression("tasks")] string? tasksExpression = null)
 		{
 			var ts = (tasks as Task<TResult>[]) ?? tasks.ToArray();
@@ -458,19 +476,19 @@ namespace Doxense.Testing
 			return res;
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task WaitFor(Task task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task WaitFor(ValueTask task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task WaitFor(Task task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
@@ -478,7 +496,7 @@ namespace Doxense.Testing
 			     : WaitForInternal(task, timeout, throwIfExpired: true, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task WaitFor(ValueTask task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
@@ -486,19 +504,19 @@ namespace Doxense.Testing
 				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task<TResult> WaitFor<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null)
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null)
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task<TResult> WaitFor<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
@@ -506,7 +524,7 @@ namespace Doxense.Testing
 				: WaitForInternal(task, timeout, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Attend que la task s'exÃ©cute, avec un dÃ©lai d'attente maximum, ou que le timeout d'exÃ©cution du test se dÃ©clenche</summary>
 		public Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
@@ -623,11 +641,11 @@ namespace Doxense.Testing
 			return MapPathRelativeToProject(paths.Length == 1 ? paths[0] : Path.Combine(paths), this.GetType().Assembly);
 		}
 
-		/// <summary>[TEST ONLY] Génère le chemin d'un fichier à l'intérieur du projet actuellement en cours de debug dans Visual Studio</summary>
+		/// <summary>[TEST ONLY] GÃ©nÃ¨re le chemin d'un fichier Ã  l'intÃ©rieur du projet actuellement en cours de debug dans Visual Studio</summary>
 		/// <param name="relativePath">Chemin relatif (ex: "Foo/bar.png")</param>
-		/// <param name="assembly">Assembly correspondant au projet (si null, utilise l'Assembly qui appelle cette méthode)</param>
+		/// <param name="assembly">Assembly correspondant au projet (si null, utilise l'Assembly qui appelle cette mÃ©thode)</param>
 		/// <returns>"C:\Path\To\VisualStudio\Solution_X\Project_Y\Foo\bar.png"</returns>
-		/// <remarks>Cette fonction supprime ce qui est après "\bin\..." dans le chemin de l'assembly.</remarks>
+		/// <remarks>Cette fonction supprime ce qui est aprÃ¨s "\bin\..." dans le chemin de l'assembly.</remarks>
 		public string MapPathRelativeToProject(string relativePath, Assembly assembly)
 		{
 			Contract.NotNull(relativePath);
@@ -639,7 +657,7 @@ namespace Doxense.Testing
 			return res;
 		}
 
-		/// <summary>Essayes de déterminer le chemin de le Project Visual Studio actuellement en cours de debuggage</summary>
+		/// <summary>Essayes de dÃ©terminer le chemin de le Project Visual Studio actuellement en cours de debuggage</summary>
 		private static string GetCurrentVsProjectPath(Assembly assembly)
 		{
 			Contract.Debug.Requires(assembly != null);
@@ -689,7 +707,7 @@ namespace Doxense.Testing
 			return path;
 		}
 
-		/// <summary>[TEST ONLY] Génère le chemin vers un fichier, relatif au chemin du fichier source qui appele cette méthode</summary>
+		/// <summary>[TEST ONLY] GÃ©nÃ¨re le chemin vers un fichier, relatif au chemin du fichier source qui appele cette mÃ©thode</summary>
 		/// <param name="relativePath">Path, relative to the current source path, of the target file or folder</param>
 		/// <param name="path">DO NOT SPECIFY!!! Compiler will fill this with the correct path!</param>
 		public string MapPathRelativeToCallerSourcePath(string relativePath, [CallerFilePath] string? path = null)
@@ -699,10 +717,10 @@ namespace Doxense.Testing
 		}
 
 
-		/// <summary>Retourne un chemin vers un répertoire temporaire, utilisable pour ce test</summary>
-		/// <param name="relative">Si non null, nom de fichier ou chemin ajouté au path généra. Par convention, terminer par un '/' si c'est un folder, afin de pouvoir plus facilement s'y retrouver!</param>
-		/// <returns>Chemin vers un répertoire temporaire, qui est garantit comme existant.</returns>
-		/// <remarks>ATTENTION: si vous voulez effacer le répertoire à chaque fois, pensez à passer une chaine unique dans <paramref name="relative"/> pour éviter de vider aussi le rep d'autres test (rend difficile le diag de pb après coup)</remarks>
+		/// <summary>Retourne un chemin vers un rÃ©pertoire temporaire, utilisable pour ce test</summary>
+		/// <param name="relative">Si non null, nom de fichier ou chemin ajoutÃ© au path gÃ©nÃ©ra. Par convention, terminer par un '/' si c'est un folder, afin de pouvoir plus facilement s'y retrouver!</param>
+		/// <returns>Chemin vers un rÃ©pertoire temporaire, qui est garantit comme existant.</returns>
+		/// <remarks>ATTENTION: si vous voulez effacer le rÃ©pertoire Ã  chaque fois, pensez Ã  passer une chaine unique dans <paramref name="relative"/> pour Ã©viter de vider aussi le rep d'autres test (rend difficile le diag de pb aprÃ¨s coup)</remarks>
 		/// <example>
 		/// GetTemporaryPath() => "c:\blah\workdir\testoutput\FooBarFacts"
 		/// GetTemporaryPath("Zorglub") => "c:\blah\workdir\testoutput\FooBarFacts\Zorglub"
@@ -720,7 +738,7 @@ namespace Doxense.Testing
 				basePath = Path.Combine(basePath, "TestOutput");
 			}
 
-			// récupère le nom de la classe courante
+			// rÃ©cupÃ¨re le nom de la classe courante
 			string path = Path.Combine(basePath, this.GetType().Name.Replace(".", "_").Replace("`", "_"));
 
 			if (!string.IsNullOrEmpty(relative))
@@ -786,14 +804,14 @@ namespace Doxense.Testing
 
 		#region Logging...
 
-		// Quand on est exécuté depuis VS en mode debug on préfère écrire dans Trace. Sinon, on écrit dans la Console...
+		// Quand on est exÃ©cutÃ© depuis VS en mode debug on prÃ©fÃ¨re Ã©crire dans Trace. Sinon, on Ã©crit dans la Console...
 		protected static readonly bool AttachedToDebugger = Debugger.IsAttached;
 
 		/// <summary>Force les logs vers Console.Out/Error, plutot que TestContext.Progress</summary>
 		private static TextWriter? ForceToConsole;
 		private static TextWriter? ForceToConsoleError;
 
-		/// <summary>Indique si on fonctionne sous un runner qui préfère utiliser la console pour l'output des logs</summary>
+		/// <summary>Indique si on fonctionne sous un runner qui prÃ©fÃ¨re utiliser la console pour l'output des logs</summary>
 		public static readonly bool MustOutputLogsOnConsole = DetectConsoleTestRunner();
 
 		private static bool DetectConsoleTestRunner()
@@ -817,14 +835,14 @@ namespace Doxense.Testing
 					(ForceToConsole ?? Console.Out).Write(message);
 			}
 			else if (AttachedToDebugger)
-			{ // écrit dans la console 'output' de VS
+			{ // Ã©crit dans la console 'output' de VS
 				if (lineBreak)
 					Trace.WriteLine(message);
 				else
 					Trace.Write(message);
 			}
 			else
-			{ // écrit dans stdout
+			{ // Ã©crit dans stdout
 				//note: avant NUnit 3.6, il fallait XML encoder les logs, mais c'est fixed en 3.6.0 (cf https://github.com/nunit/nunit/issues/1891)
 				//message = message.Replace("&", "&amp;").Replace("<", "&lt;");
 				if (lineBreak)
@@ -846,12 +864,12 @@ namespace Doxense.Testing
 				(ForceToConsoleError ?? Console.Error).WriteLine(message);
 			}
 			else if(AttachedToDebugger)
-			{ // écrit dans la console 'output' de VS
+			{ // Ã©crit dans la console 'output' de VS
 				Trace.WriteLine("ERROR: " + message);
 				TestContext.Error.WriteLine(message);
 			}
 			else
-			{ // écrit dans stderr de NUnit
+			{ // Ã©crit dans stderr de NUnit
 				TestContext.Error.WriteLine(message);
 			}
 		}
@@ -892,7 +910,7 @@ namespace Doxense.Testing
 			return CrystalJson.Serialize(item, CrystalJsonSettings.Json);
 		}
 
-		/// <summary>Retourne une représentation textuelle basique d'un object, tenant sur une seule ligne</summary>
+		/// <summary>Retourne une reprÃ©sentation textuelle basique d'un object, tenant sur une seule ligne</summary>
 		protected static string Stringify(object? item)
 		{
 			switch (item)
@@ -936,7 +954,7 @@ namespace Doxense.Testing
 			// Formattable
 			if (item is IFormattable formattable)
 			{
-				// utilise le format le plus adapté en fonction du type
+				// utilise le format le plus adaptÃ© en fonction du type
 				string? fmt = null;
 				if (item is int || item is uint || item is long || item is ulong)
 				{
@@ -1213,7 +1231,7 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Dump une valeur en JSON dans le log du test</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <remarks>ATTENTION: il faut que le type soit sÃ©rialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des rÃ©fÃ©rences cycliques</remarks>
 		[DebuggerNonUserCode]
 		public static void Dump<T>(T value)
 		{
@@ -1223,7 +1241,7 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Dump une valeur en JSON dans le log du test</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <remarks>ATTENTION: il faut que le type soit sÃ©rialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des rÃ©fÃ©rences cycliques</remarks>
 		[DebuggerNonUserCode]
 		public static void Dump<T>(string label, T value)
 		{
@@ -1231,27 +1249,27 @@ namespace Doxense.Testing
 			WriteToLog(CrystalJson.Serialize<T>(value, CrystalJsonSettings.JsonIndented.WithEnumAsStrings()));
 		}
 
-		/// <summary>Dump une valeur en JSON dans le log du test, de manière compacte</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <summary>Dump une valeur en JSON dans le log du test, de maniÃ¨re compacte</summary>
+		/// <remarks>ATTENTION: il faut que le type soit sÃ©rialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des rÃ©fÃ©rences cycliques</remarks>
 		[DebuggerNonUserCode]
 		public static void DumpCompact<T>(T value)
 		{
 			WriteToLog(CrystalJson.Serialize(value, CrystalJsonSettings.Json));
 		}
 
-		/// <summary>Dump une valeur en JSON dans le log du test, de manière compacte</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <summary>Dump une valeur en JSON dans le log du test, de maniÃ¨re compacte</summary>
+		/// <remarks>ATTENTION: il faut que le type soit sÃ©rialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des rÃ©fÃ©rences cycliques</remarks>
 		[DebuggerNonUserCode]
 		public static void DumpCompact<T>(string label, T value)
 		{
 			WriteToLog($"{label,-10}: {CrystalJson.Serialize(value, CrystalJsonSettings.Json)}");
 		}
 
-		/// <summary>Dump les différences observées entre deux instances d'un même type</summary>
+		/// <summary>Dump les diffÃ©rences observÃ©es entre deux instances d'un mÃªme type</summary>
 		/// <typeparam name="T">Types des objets</typeparam>
-		/// <param name="actual">Objet observé</param>
+		/// <param name="actual">Objet observÃ©</param>
 		/// <param name="expected">Objet attendu</param>
-		/// <returns>Return <c>true</c> si au moins une différence a été observée, ou <c>false</c> si les objets sont équivalent</returns>
+		/// <returns>Return <c>true</c> si au moins une diffÃ©rence a Ã©tÃ© observÃ©e, ou <c>false</c> si les objets sont Ã©quivalent</returns>
 		[DebuggerNonUserCode]
 		public static bool DumpDifferences<T>(T actual, T expected)
 		{
@@ -1321,7 +1339,7 @@ namespace Doxense.Testing
 
 		#region Simple Test Runners...
 
-		// code permettant d'exécuter un test NUnit directement depuis un void Main(), sans devoir passer par un Test Runner externe
+		// code permettant d'exÃ©cuter un test NUnit directement depuis un void Main(), sans devoir passer par un Test Runner externe
 
 		private static void WriteToConsole(TextWriter writer, string msg, ConsoleColor? color = null)
 		{

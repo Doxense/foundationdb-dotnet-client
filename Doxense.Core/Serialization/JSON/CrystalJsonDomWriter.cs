@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json
@@ -25,7 +43,7 @@ namespace Doxense.Serialization.Json
 	public sealed class CrystalJsonDomWriter
 	{
 		//TODO: renommer en Reader? Ou Converter?
-		// => techniquement on *écrit* dans un DOM
+		// => techniquement on *Ã©crit* dans un DOM
 
 		//SAME AS FROM JSONWRITER
 		private readonly CrystalJsonSettings m_settings;
@@ -112,7 +130,7 @@ namespace Doxense.Serialization.Json
 			m_keyComparer = m_settings.IgnoreCaseForNames ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 		}
 
-		/// <summary>Retourne une instance d'un DOM writer, configurée par défaut</summary>
+		/// <summary>Retourne une instance d'un DOM writer, configurÃ©e par dÃ©faut</summary>
 		public static readonly CrystalJsonDomWriter Default = new CrystalJsonDomWriter(CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,10 +141,10 @@ namespace Doxense.Serialization.Json
 
 		public static bool AreDefaultSettings(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			// Pas s'il y a un résolver custom...
+			// Pas s'il y a un rÃ©solver custom...
 			if (resolver != null && resolver != CrystalJson.DefaultResolver) return false;
 
-			// Les options de layout (compact, indenté, ...) n'ont aucun impact en mode DOM!
+			// Les options de layout (compact, indentÃ©, ...) n'ont aucun impact en mode DOM!
 			return (settings?.Flags ?? 0 & ~CrystalJsonSettings.OptionFlags.Layout_Mask) == 0;
 		}
 
@@ -143,8 +161,8 @@ namespace Doxense.Serialization.Json
 		#region Public Methods...
 
 		/// <summary>Transforme un objet CLR quelconque en une JsonValue correspondante</summary>
-		/// <param name="value">Valeur à convertir (primitive, value type ou reference type) </param>
-		/// <param name="declaredType">Type déclaré de la valeur au niveau de son parent (ex: Property/Field dans la classe parente, type d'élement dans une collection, ...), qui peut être différent de <paramref name="runtimeType"/> (interface, classe abstraite, ...). Passer typeof(object) pour un objet dont le contexte n'est pas connu, ou passer la même valeur que <paramref name="runtimeType"/> si le contexte est connu exactement.</param>
+		/// <param name="value">Valeur Ã  convertir (primitive, value type ou reference type) </param>
+		/// <param name="declaredType">Type dÃ©clarÃ© de la valeur au niveau de son parent (ex: Property/Field dans la classe parente, type d'Ã©lement dans une collection, ...), qui peut Ãªtre diffÃ©rent de <paramref name="runtimeType"/> (interface, classe abstraite, ...). Passer typeof(object) pour un objet dont le contexte n'est pas connu, ou passer la mÃªme valeur que <paramref name="runtimeType"/> si le contexte est connu exactement.</param>
 		/// <param name="runtimeType">Si non null, type actuel de l'instance au runtime. Si null, utilise <paramref name="value"/>.GetType().</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue ParseObject(object? value, Type declaredType, Type? runtimeType = null)
@@ -287,10 +305,10 @@ namespace Doxense.Serialization.Json
 			}
 
 #if DEBUG
-			// si vous arrivez ici, c'est que votre type n'implémente pas IJsonBindable!
+			// si vous arrivez ici, c'est que votre type n'implÃ©mente pas IJsonBindable!
 			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
-			//TODO: on pourrait détecter la présence de IJsonSerializable, et si c'est le cas, l'appeler et reparser le texte JSON?
+			//TODO: on pourrait dÃ©tecter la prÃ©sence de IJsonSerializable, et si c'est le cas, l'appeler et reparser le texte JSON?
 			throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(runtimeType ?? declaredType);
 		}
 
@@ -397,7 +415,7 @@ namespace Doxense.Serialization.Json
 					// A ma connaissance, le seul type IsPrimitive/TypeCode.Object est IntPtr
 					if (typeof(IntPtr) == type)
 					{
-						//Note: c'est peut être dangereux de sérialiser des IntPtr qui sont des pointeurs, mais ce n'est pas forcément le cas pour toutes les classes ...
+						//Note: c'est peut Ãªtre dangereux de sÃ©rialiser des IntPtr qui sont des pointeurs, mais ce n'est pas forcÃ©ment le cas pour toutes les classes ...
 						result = JsonNumber.Return(((IntPtr)value).ToInt64());
 						return true;
 					}
@@ -414,7 +432,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(value != null && type != null);
 
-			//TODO: réécrire via une Dictionary<Type, Func<..>> pour éviter le train de if/elseif !
+			//TODO: rÃ©Ã©crire via une Dictionary<Type, Func<..>> pour Ã©viter le train de if/elseif !
 
 			if (typeof(DateTime) == type)
 			{
@@ -463,9 +481,9 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (type.IsEnum)
-			{ // on convertit les énumérations en keyword
+			{ // on convertit les Ã©numÃ©rations en keyword
 				result = EnumStringTable.GetName(type, (Enum) value);
-				//BUGBUG: vérifier m_enumAsString et m_enumCamelCased
+				//BUGBUG: vÃ©rifier m_enumAsString et m_enumCamelCased
 				return true;
 			}
 
@@ -515,8 +533,8 @@ namespace Doxense.Serialization.Json
 
 			#endregion
 
-			// Nullable: l'objet boxé en mémoire sera directement le value type,
-			// on a juste besoin de rerouter vers la bonne méthode
+			// Nullable: l'objet boxÃ© en mÃ©moire sera directement le value type,
+			// on a juste besoin de rerouter vers la bonne mÃ©thode
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{
@@ -524,12 +542,12 @@ namespace Doxense.Serialization.Json
 				{
 					return TryConvertPrimitiveObject(value, nullableType, out result);
 				}
-				// forcément un ValueType
-				// => récursif, mais safe car le underlying type n'est pas nullable (du moins en théorie ....)
+				// forcÃ©ment un ValueType
+				// => rÃ©cursif, mais safe car le underlying type n'est pas nullable (du moins en thÃ©orie ....)
 				return TryConvertValueTypeObject(ref context, value, nullableType, out result);
 			}
 
-			//TODO en attendant d'avoir la version générique , on gère au moins ce cas la
+			//TODO en attendant d'avoir la version gÃ©nÃ©rique , on gÃ¨re au moins ce cas la
 			if (type == typeof(KeyValuePair<string, string>))
 			{
 				result = VisitKeyValuePair((KeyValuePair<string, string>) value);
@@ -571,7 +589,7 @@ namespace Doxense.Serialization.Json
 			}
 #endif
 
-			// les custom struct sont gérée ailleurs (via leur type definition)
+			// les custom struct sont gÃ©rÃ©e ailleurs (via leur type definition)
 			result = null!;
 			return false;
 		}
@@ -601,7 +619,7 @@ namespace Doxense.Serialization.Json
 		private static JsonValue VisitKeyValuePairGeneric<TKey, TValue>(CrystalJsonDomWriter writer, ref VisitingContext context, KeyValuePair<TKey, TValue> value)
 		{
 			return JsonArray.Create(
-				JsonValue.FromValue<TKey>(value.Key), //REVIEW: on suppose que le type de clé est simple!
+				JsonValue.FromValue<TKey>(value.Key), //REVIEW: on suppose que le type de clÃ© est simple!
 				JsonValue.FromValue<TValue>(writer, ref context, value.Value)
 			);
 		}
@@ -664,7 +682,7 @@ namespace Doxense.Serialization.Json
 				elementType = argTypes[1];
 			}
 			else
-			{ // on ne connait ni le type des clés, ni des valeurs
+			{ // on ne connait ni le type des clÃ©s, ni des valeurs
 				stringKeys = false;
 				elementType = typeof(object);
 			}
@@ -733,7 +751,7 @@ namespace Doxense.Serialization.Json
 
 			MarkVisited(ref context, values);
 
-			// on va esayer de terminée la taille de la collection pour pre-size l'array
+			// on va esayer de terminÃ©e la taille de la collection pour pre-size l'array
 			var array = values is ICollection coll ? BeginArray(coll.Count) : BeginArray();
 
 			foreach (var item in values)
@@ -767,18 +785,18 @@ namespace Doxense.Serialization.Json
 			}
 
 			MarkVisited(ref context, value, runtimeType);
-			//note: il y aura en général moins de fields (élimination des null/default), mais de toutes manières le Dictionary<> arrondi au nombre premier supérieur, donc on ne perds pas grand chose.
+			//note: il y aura en gÃ©nÃ©ral moins de fields (Ã©limination des null/default), mais de toutes maniÃ¨res le Dictionary<> arrondi au nombre premier supÃ©rieur, donc on ne perds pas grand chose.
 			var obj = BeginObject(typeDef.Members.Length);
 
-			//COPY/PASTA (a peu près identique à CrystalJsonVisitor.VisitCustomClassOrStruct)
+			//COPY/PASTA (a peu prÃ¨s identique Ã  CrystalJsonVisitor.VisitCustomClassOrStruct)
 			if (!m_discardClass)
 			{
 				// il faut ajouter l'attribut class si 
-				// => le type au runtime n'est pas le même que le type déclaré. Ex: class A { IFoo Foo; } / class B : IFoo { } / new A() { Foo = new B() }
+				// => le type au runtime n'est pas le mÃªme que le type dÃ©clarÃ©. Ex: class A { IFoo Foo; } / class B : IFoo { } / new A() { Foo = new B() }
 
-				//note: dans le cas d'un DOM, on a toujours le runtime type, qui ne peut pas être abstract, MAIS qui n'est pas obligatoirement sealed
+				//note: dans le cas d'un DOM, on a toujours le runtime type, qui ne peut pas Ãªtre abstract, MAIS qui n'est pas obligatoirement sealed
 				if (typeDef.RequiresClassAttribute || (declaredType != runtimeType && !typeDef.IsAnonymousType && !declaredType.IsNullableType() && typeDef.BaseType == null))
-				{ // il faut préciser la class !
+				{ // il faut prÃ©ciser la class !
 					//TODO: auto-aliasing
 					obj[JsonTokens.CustomClassAttribute] = JsonString.Return(typeDef.ClassId);
 				}
@@ -809,14 +827,14 @@ namespace Doxense.Serialization.Json
 
 		#region Copy/Pasta from CrystalJsonWriter
 
-		// code copié tel quel, qui pourrait aller sur une classe abstraite commune aux deux classes...
+		// code copiÃ© tel quel, qui pourrait aller sur une classe abstraite commune aux deux classes...
 
 		private const int MaximumObjectGraphDepth = 16;
 
-		/// <summary>Marque l'objet comme étant déjà traité</summary>
+		/// <summary>Marque l'objet comme Ã©tant dÃ©jÃ  traitÃ©</summary>
 		/// <param name="value">Objet en cours de traitement</param>
 		/// <param name="type"></param>
-		/// <exception cref="System.InvalidOperationException">Si cet objet a déjà été marqué</exception>
+		/// <exception cref="System.InvalidOperationException">Si cet objet a dÃ©jÃ  Ã©tÃ© marquÃ©</exception>
 		internal void MarkVisited(ref VisitingContext context, object? value, Type? type = null)
 		{
 			if (context.ObjectGraphDepth >= MaximumObjectGraphDepth)
@@ -824,7 +842,7 @@ namespace Doxense.Serialization.Json
 				throw CrystalJson.Errors.Serialization_FailTooDeep(context.ObjectGraphDepth, value);
 			}
 			if (m_markVisited && value != null)
-			{ // protection contre les chaînes récursives d'objet (=> stack overflow)
+			{ // protection contre les chaÃ®nes rÃ©cursives d'objet (=> stack overflow)
 				if (!context.Enter(value))
 				{
 					if (!CrystalJsonWriter.TypeSafeForRecursion(type ?? value.GetType()))
@@ -846,9 +864,9 @@ namespace Doxense.Serialization.Json
 			--context.ObjectGraphDepth;
 		}
 
-		/// <summary>Retourne le nom formaté d'un champ</summary>
+		/// <summary>Retourne le nom formatÃ© d'un champ</summary>
 		/// <param name="name">Nom d'un champ (ex: "FooBar")</param>
-		/// <returns>Nom éventuellement formaté ("fooBar" en Camel Casing)</returns>
+		/// <returns>Nom Ã©ventuellement formatÃ© ("fooBar" en Camel Casing)</returns>
 		internal string FormatName(string name)
 		{
 			return m_camelCase ? CrystalJsonWriter.CamelCase(name) : name;
@@ -856,7 +874,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Utilise une méthode d'instance compatible avec la signature de JsonPack</summary>
+		/// <summary>Utilise une mÃ©thode d'instance compatible avec la signature de JsonPack</summary>
 		public bool TryPackViaDuckTyping(object? value, Type declaredType, Type? runtimeType, [MaybeNullWhen(false)] out JsonValue result)
 		{
 			var t = DuckTypedJsonPackMethods.GetOrAdd(runtimeType ?? declaredType);
@@ -868,7 +886,7 @@ namespace Doxense.Serialization.Json
 			result = t.Value(value, this.Settings, this.Resolver);
 
 			//if (runtimeType != declaredType && declaredType != typeof(object))
-			//{ // il faut peut être rajouter l'attribut '_class' ?
+			//{ // il faut peut Ãªtre rajouter l'attribut '_class' ?
 			//	if (result is JsonObject obj && !this.Settings.HideClassId)
 			//	{
 			//TODO: BUGBUG: classId !
@@ -884,7 +902,7 @@ namespace Doxense.Serialization.Json
 
 		private static Maybe<CrystalJsonTypePacker> GetInstanceJsonPackHandler(Type type)
 		{
-			// recherche une méthode d'instance "JsonPack"
+			// recherche une mÃ©thode d'instance "JsonPack"
 			var m = type.GetMethod(nameof(IJsonPackable.JsonPack), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 			if (m != null)
 			{
@@ -894,20 +912,20 @@ namespace Doxense.Serialization.Json
 
 			//TODO: autre approche?
 
-			// aucun trouvé
+			// aucun trouvÃ©
 			return Maybe.Nothing<CrystalJsonTypePacker>();
 		}
 
 		[Pure]
 		private static CrystalJsonTypePacker CreatePackerForJsonPackMethod(Type type, MethodInfo m)
 		{
-			// génère un packer: (value) => ((Type)value).JsonPack(CrystalJsonSettings, ICrystalJsonTypeResolver)
+			// gÃ©nÃ¨re un packer: (value) => ((Type)value).JsonPack(CrystalJsonSettings, ICrystalJsonTypeResolver)
 
 			var prmValue = Expression.Parameter(typeof(object), "value");
 			var prmSettings = Expression.Parameter(typeof(CrystalJsonSettings), "settings");
 			var prmResolver = Expression.Parameter(typeof(ICrystalJsonTypeResolver), "resolver");
 
-			// * Il faut éventuellement caster la valeur de object vers le type attendu par la méthode
+			// * Il faut Ã©ventuellement caster la valeur de object vers le type attendu par la mÃ©thode
 			var castedInstance = prmValue.CastFromObject(type);
 
 			var prms = m.GetParameters();

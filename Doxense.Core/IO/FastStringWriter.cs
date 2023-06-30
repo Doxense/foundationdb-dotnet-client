@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.IO
@@ -17,17 +35,17 @@ namespace Doxense.IO
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 
-	/// <summary>Version "rapide" de StringWriter, moins secure que StringWriter, adaptée dans des scenario spécifique (parsers, ...)</summary>
-	/// <remarks>Il est préférable d'éviter d'exposer cette classe a des consommateurs externes!</remarks>
+	/// <summary>Version "rapide" de StringWriter, moins secure que StringWriter, adaptÃ©e dans des scenario spÃ©cifique (parsers, ...)</summary>
+	/// <remarks>Il est prÃ©fÃ©rable d'Ã©viter d'exposer cette classe a des consommateurs externes!</remarks>
 	public sealed class FastStringWriter : TextWriter
 	{
 		// Version "bare metal" de StringWriter qui:
-		// * Désactive les tests d'ouverture/fermeture du stream (ie: on peut écrire après Dispose!)
-		// * Optimise les cas les plus fréquents dans un parseur (string, nombres, ...)
-		// * Toute les opérations sont en InvariantCulture
+		// * DÃ©sactive les tests d'ouverture/fermeture du stream (ie: on peut Ã©crire aprÃ¨s Dispose!)
+		// * Optimise les cas les plus frÃ©quents dans un parseur (string, nombres, ...)
+		// * Toute les opÃ©rations sont en InvariantCulture
 		// * Si possible, vise l'inlining du code
 
-		// Dans l'absolu, c'est les méthodes du StringBuilder qui feront le check des paramètres
+		// Dans l'absolu, c'est les mÃ©thodes du StringBuilder qui feront le check des paramÃ¨tres
 
 		private readonly StringBuilder m_buffer;
 
@@ -55,23 +73,23 @@ namespace Doxense.IO
 
 		#endregion
 
-		/// <summary>Retourne le buffer utilisé par ce writer</summary>
+		/// <summary>Retourne le buffer utilisÃ© par ce writer</summary>
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public StringBuilder GetStringBuilder()
 		{
 			return m_buffer;
 		}
 
-		/// <summary>Retourne le contenu du buffer sous forme de chaîne</summary>
+		/// <summary>Retourne le contenu du buffer sous forme de chaÃ®ne</summary>
 		/// <returns>Texte contenu dans le buffer</returns>
-		/// <remarks>Attention, il faut éviter d'appeler ToString() puis de continuer a écrire des données, car cela provoque des réallocation mémoire au niveau du StringBuilder interne !</remarks>
+		/// <remarks>Attention, il faut Ã©viter d'appeler ToString() puis de continuer a Ã©crire des donnÃ©es, car cela provoque des rÃ©allocation mÃ©moire au niveau du StringBuilder interne !</remarks>
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override string ToString()
 		{
 			return m_buffer.ToString();
 		}
 
-		/// <summary>Retourne les caractères contenus dans le buffer</summary>
+		/// <summary>Retourne les caractÃ¨res contenus dans le buffer</summary>
 		/// <returns></returns>
 		public char[] ToCharArray()
 		{
@@ -81,7 +99,7 @@ namespace Doxense.IO
 		}
 
 		/// <summary>Retourne le contenu du stream sous forme binaire</summary>
-		/// <param name="encoding">Encoding utilisé (ex: Encoding.UTF8)</param>
+		/// <param name="encoding">Encoding utilisÃ© (ex: Encoding.UTF8)</param>
 		/// <returns>Octets correspondant au contenu du buffer</returns>
 		public byte[] GetBytes(Encoding encoding)
 		{
@@ -89,9 +107,9 @@ namespace Doxense.IO
 		}
 
 		/// <summary>Copie le contenu de ce stream vers un TextWriter</summary>
-		/// <param name="output">Writer dans lequel écrire le contenu de ce stream</param>
-		/// <param name="buffer">Buffer de caractère utilisé pour la copie (ou null)</param>
-		/// <remarks>Effectue une copie "optimisée" en évitant d'allouer la string du StringBuilder</remarks>
+		/// <param name="output">Writer dans lequel Ã©crire le contenu de ce stream</param>
+		/// <param name="buffer">Buffer de caractÃ¨re utilisÃ© pour la copie (ou null)</param>
+		/// <remarks>Effectue une copie "optimisÃ©e" en Ã©vitant d'allouer la string du StringBuilder</remarks>
 		public void CopyTo(TextWriter output, char[]? buffer = null)
 		{
 			Contract.NotNull(output);
@@ -178,7 +196,7 @@ namespace Doxense.IO
 
 		#region Async Implementation...
 
-		// Note: les version Async sont overridable uniquement à partir de .NET 4.5 !
+		// Note: les version Async sont overridable uniquement Ã  partir de .NET 4.5 !
 		public override Task FlushAsync()
 		{
 			return Task.CompletedTask;

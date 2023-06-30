@@ -1,5 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-// See License.MD for license information
+Ôªø#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Runtime
@@ -26,8 +48,8 @@ namespace Doxense.Runtime
 				}
 				catch (PlatformNotSupportedException)
 				{
-					// sous .NET Core (observÈ en 2.2), certains mÈthodes dÈclenchent cette exception, en particulier certains pattern "IAsyncResult BeginXYZ(...)" et "... EndXYZ(IAsyncResult, ....)".
-					// => je n'ai pas vraiment trouvÈ de point distinctif sur les mÈthodes pour les filtrer en amont (comme on le fait pour les mÈthode abstract ou gÈnÈriques)
+					// sous .NET Core (observ√© en 2.2), certains m√©thodes d√©clenchent cette exception, en particulier certains pattern "IAsyncResult BeginXYZ(...)" et "... EndXYZ(IAsyncResult, ....)".
+					// => je n'ai pas vraiment trouv√© de point distinctif sur les m√©thodes pour les filtrer en amont (comme on le fait pour les m√©thode abstract ou g√©n√©riques)
 #if FULL_DEBUG
 					System.Diagnostics.Debug.WriteLine($"// Skipping JIT for unsupported method {m.DeclaringType?.Name}.{m}");
 #endif

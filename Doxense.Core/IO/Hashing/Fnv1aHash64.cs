@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.IO.Hashing
@@ -16,14 +34,14 @@ namespace Doxense.IO.Hashing
 	using Doxense.Memory;
 	using JetBrains.Annotations;
 
-	/// <summary>Calcul de hash FNV-1a sur 64 bits (Fowler–Noll–Vo "Alternatif")</summary>
-	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
+	/// <summary>Calcul de hash FNV-1a sur 64 bits (FowlerÂ–NollÂ–Vo "Alternatif")</summary>
+	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les donnÃ©es hashÃ©es, et ne doit donc pas Ãªtre utilisÃ© publiquement dans un scenario de protection de donnÃ©es! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
 	[PublicAPI]
 	// ReSharper disable once InconsistentNaming
 	public static class Fnv1aHash64
 	{
 
-		// La différence entre FNV-1a et FNV-1 c'est que l'ordre des opérations (MUL et XOR) est inversé !
+		// La diffÃ©rence entre FNV-1a et FNV-1 c'est que l'ordre des opÃ©rations (MUL et XOR) est inversÃ© !
 
 		/* 
 			hash = FNV_offset_basis
@@ -36,11 +54,11 @@ namespace Doxense.IO.Hashing
 		public const ulong FNV1_64_OFFSET_BASIS = 14695981039346656037;
 		public const ulong FNV1_64_PRIME = 1099511628211;
 
-		/// <summary>Calcul le FNV-1a ("Alternative") Hash 64-bit d'un chaîne</summary>
-		/// <param name="text">Chaîne de texte à convertir</param>
-		/// <param name="ignoreCase">Si true, la chaîne est convertie en minuscule avant le calcul</param>
-		/// <param name="encoding">Encoding (optionel, sinon utilise UTF-8 par défaut)</param>
-		/// <returns>Code FNV-1a 64 bit calculé sur la représentation binaire de la chaîne. Attention: N'est pas garantit unique!</returns>
+		/// <summary>Calcul le FNV-1a ("Alternative") Hash 64-bit d'un chaÃ®ne</summary>
+		/// <param name="text">ChaÃ®ne de texte Ã  convertir</param>
+		/// <param name="ignoreCase">Si true, la chaÃ®ne est convertie en minuscule avant le calcul</param>
+		/// <param name="encoding">Encoding (optionel, sinon utilise UTF-8 par dÃ©faut)</param>
+		/// <returns>Code FNV-1a 64 bit calculÃ© sur la reprÃ©sentation binaire de la chaÃ®ne. Attention: N'est pas garantit unique!</returns>
 		public static ulong FromString(string text, bool ignoreCase, Encoding? encoding = null)
 		{
 			if (string.IsNullOrEmpty(text)) return 0;
@@ -69,36 +87,36 @@ namespace Doxense.IO.Hashing
 			}
 		}
 
-		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 64 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(byte[] bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 64 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(ReadOnlySpan<byte> bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 64 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(Slice bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1a sur 64 bit sur un segment de données</summary>
-		/// <param name="buffer">Pointeur vers des données en mémoire</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
+		/// <summary>Calcul le Hash FNV-1a sur 64 bit sur un segment de donnÃ©es</summary>
+		/// <param name="buffer">Pointeur vers des donnÃ©es en mÃ©moire</param>
+		/// <param name="count">Nombre de donnÃ©es du buffer Ã  hasher</param>
 		/// <returns>Hash de la section du buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe ulong FromBytesUnsafe(byte* buffer, int count)
@@ -106,17 +124,17 @@ namespace Doxense.IO.Hashing
 			return ContinueUnsafe(FNV1_64_OFFSET_BASIS, buffer, count);
 		}
 
-		/// <summary>Continue le calcul du Hash FNV-1a ("Alternative") sur 64 bit avec un nouveau bloc de données</summary>
-		/// <param name="hash">Valeur précédente du hash calculé jusqu'a présent</param>
-		/// <param name="bytes">Nouveau bloc de données</param>
+		/// <summary>Continue le calcul du Hash FNV-1a ("Alternative") sur 64 bit avec un nouveau bloc de donnÃ©es</summary>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash calculÃ© jusqu'a prÃ©sent</param>
+		/// <param name="bytes">Nouveau bloc de donnÃ©es</param>
 		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
-		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash64.FromBytesAlternative (pour démarrer la chaine)</remarks>
+		/// <remarks>Le premier bloc doit Ãªtre calculÃ© avec Fnv1Hash64.FromBytesAlternative (pour dÃ©marrer la chaine)</remarks>
 		[Pure]
 		public static ulong Continue(ulong hash, byte[] bytes)
 		{
 			if (bytes == null || bytes.Length == 0) return hash;
 
-			// après pas mal de bench, le bon vieux foreach(...) est presque aussi rapide qu'unroller des boucles en mode unsafe, car il est optimisé par le JIT (qui semble unroller lui meme)
+			// aprÃ¨s pas mal de bench, le bon vieux foreach(...) est presque aussi rapide qu'unroller des boucles en mode unsafe, car il est optimisÃ© par le JIT (qui semble unroller lui meme)
 			// sur mon Core i7 @ 3.4 Ghz, je suis a une moyenne de 3.1-3.4 cycles/byte en unrolled, versus 3.7-3.9 cycles/byte avec le foreach...
 
 			foreach (var b in bytes)
@@ -126,9 +144,9 @@ namespace Doxense.IO.Hashing
 			return hash;
 		}
 
-		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de données</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="bytes">Segment de données en mémoire</param>
+		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de donnÃ©es</summary>
+		/// <param name="hash">Valeur prÃ©cÃ©dÃ©nte du hash</param>
+		/// <param name="bytes">Segment de donnÃ©es en mÃ©moire</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		[Pure]
 		public static ulong Continue(ulong hash, ReadOnlySpan<byte> bytes)
@@ -142,9 +160,9 @@ namespace Doxense.IO.Hashing
 			}
 		}
 
-		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de données</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="bytes">Segment de données en mémoire</param>
+		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de donnÃ©es</summary>
+		/// <param name="hash">Valeur prÃ©cÃ©dÃ©nte du hash</param>
+		/// <param name="bytes">Segment de donnÃ©es en mÃ©moire</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		[Pure]
 		public static ulong Continue(ulong hash, Slice bytes)
@@ -158,10 +176,10 @@ namespace Doxense.IO.Hashing
 			}
 		}
 
-		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de données</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="bytes">Pointeur vers des données en mémoire</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
+		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de donnÃ©es</summary>
+		/// <param name="hash">Valeur prÃ©cÃ©dÃ©nte du hash</param>
+		/// <param name="bytes">Pointeur vers des donnÃ©es en mÃ©moire</param>
+		/// <param name="count">Nombre de donnÃ©es du buffer Ã  hasher</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		[Pure]
 		public static unsafe ulong ContinueUnsafe(ulong hash, byte* bytes, int count)

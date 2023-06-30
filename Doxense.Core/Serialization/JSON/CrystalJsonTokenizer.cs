@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 //#define ENABLE_SOURCE_POSITION
@@ -20,8 +38,8 @@ namespace Doxense.Serialization.Json
 	using Doxense.Text;
 	using JetBrains.Annotations;
 
-	/// <summary>Helper utilisé pour lire et parser un texte JSON</summary>
-	/// <remarks>Doit être alloué sur la stack de l'appelant, et passé "by ref" !</remarks>
+	/// <summary>Helper utilisÃ© pour lire et parser un texte JSON</summary>
+	/// <remarks>Doit Ãªtre allouÃ© sur la stack de l'appelant, et passÃ© "by ref" !</remarks>
 	public struct CrystalJsonTokenizer<TReader> : IDisposable
 		where TReader : struct, IJsonReader
 	{
@@ -35,9 +53,9 @@ namespace Doxense.Serialization.Json
 		/// <summary>Source JSON (si mode Stream)</summary>
 		public TReader Source;
 
-		private char Token; // buffer utilisé pour "push back" un caractère lu du stream
+		private char Token; // buffer utilisÃ© pour "push back" un caractÃ¨re lu du stream
 
-		/// <summary>Paramètres de lecture</summary>
+		/// <summary>ParamÃ¨tres de lecture</summary>
 		public readonly CrystalJsonSettings Settings;
 
 #if ENABLE_SOURCE_POSITION
@@ -48,7 +66,7 @@ namespace Doxense.Serialization.Json
 
 		private readonly CrystalJsonSettings.StringInterning InternMode;
 
-		/// <summary>Comparateur par défaut pour les clés d'un JsonObject</summary>
+		/// <summary>Comparateur par dÃ©faut pour les clÃ©s d'un JsonObject</summary>
 		public readonly IEqualityComparer<string> FieldComparer;
 
 		private StringTable? StringTable;
@@ -88,8 +106,8 @@ namespace Doxense.Serialization.Json
 
 #if DEPRECATED
 		/// <summary>Retourne une estimation de la position dans le stream source, pour information</summary>
-		/// <remarks>ATTENTION: cette valeur ne correspond pas à la position exacte du dernier caractère lu!
-		/// Si le reader JSON utilisé buffer les caractères lu (la majorité du temps), alors la position dans le stream source sera toujours en avance sur la position réelle du reader!
+		/// <remarks>ATTENTION: cette valeur ne correspond pas Ã  la position exacte du dernier caractÃ¨re lu!
+		/// Si le reader JSON utilisÃ© buffer les caractÃ¨res lu (la majoritÃ© du temps), alors la position dans le stream source sera toujours en avance sur la position rÃ©elle du reader!
 		/// </remarks>
 		public long? PositionHint
 		{
@@ -102,13 +120,13 @@ namespace Doxense.Serialization.Json
 #endif
 
 #if ENABLE_SOURCE_POSITION
-		/// <summary>Nombre de charactères lus dans la source</summary>
+		/// <summary>Nombre de charactÃ¨res lus dans la source</summary>
 		public long Offset { get { return m_offset; } }
 
-		/// <summary>Nombre de charactères lus dans la ligne actuelle (commence à 0!)</summary>
+		/// <summary>Nombre de charactÃ¨res lus dans la ligne actuelle (commence Ã  0!)</summary>
 		public long Position { get { return m_position; } }
 
-		/// <summary>Nombre de lignes lues dans la source (commence à 0!)</summary>
+		/// <summary>Nombre de lignes lues dans la source (commence Ã  0!)</summary>
 		public long Line { get { return m_line; } }
 #endif
 
@@ -180,16 +198,16 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Lit le prochain caractère significatif, qui ne soit pas un espace</summary>
-		/// <returns>Prochain caractère, ou EndOfStream si fini</returns>
-		/// <remarks>Si Push(x) a été appelé juste avant, retourne la valeur de x. Sinon lit dans le stream</remarks>
+		/// <summary>Lit le prochain caractÃ¨re significatif, qui ne soit pas un espace</summary>
+		/// <returns>Prochain caractÃ¨re, ou EndOfStream si fini</returns>
+		/// <remarks>Si Push(x) a Ã©tÃ© appelÃ© juste avant, retourne la valeur de x. Sinon lit dans le stream</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal char ReadNextToken()
 		{
-			// il peut y avoir un caractère "pushed back" dans le cache....
+			// il peut y avoir un caractÃ¨re "pushed back" dans le cache....
 			char c = this.Token;
 			if (c == EMPTY_TOKEN)
-			{ // pas de token en cache, on lit le prochain caractère dans le buffer...
+			{ // pas de token en cache, on lit le prochain caractÃ¨re dans le buffer...
 				c = ReadOne();
 			}
 			else
@@ -197,14 +215,14 @@ namespace Doxense.Serialization.Json
 				this.Token = EMPTY_TOKEN;
 			}
 
-			//REVIEW: vérifier si '\xA0' (&#160;) est considéré comme un espace ou non par JSON et JS ?
+			//REVIEW: vÃ©rifier si '\xA0' (&#160;) est considÃ©rÃ© comme un espace ou non par JSON et JS ?
 			return c >= CrystalJsonParser.WHITE_CHAR_MAP ? c : ConsumeWhiteSpaces(c);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private char ConsumeWhiteSpaces(char token)
 		{
-			// skip les espaces éventuels
+			// skip les espaces Ã©ventuels
 			var wc = CrystalJsonParser.WhiteCharsMap;
 			char c = token;
 			while (wc[c])
@@ -217,8 +235,8 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Replace un caractère dans le buffer (consommé par le prochaine ReadNextToken)</summary>
-		/// <param name="c">Char à remettre dans le stream</param>
+		/// <summary>Replace un caractÃ¨re dans le buffer (consommÃ© par le prochaine ReadNextToken)</summary>
+		/// <param name="c">Char Ã  remettre dans le stream</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void Push(char c)
 		{
@@ -226,7 +244,7 @@ namespace Doxense.Serialization.Json
 			this.Token = c;
 		}
 
-		/// <summary>Lit un caractère du stream</summary>
+		/// <summary>Lit un caractÃ¨re du stream</summary>
 		/// <returns>Prochain char, ou EndOfStream si stream fini</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal char ReadOne()
@@ -254,9 +272,9 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-		/// <summary>Vérifie que le stream contient bien les charactères spécifiés</summary>
-		/// <param name="values">Charactères d'un token a lire</param>
-		/// <exception cref="System.FormatException">Si le stream contient autre chose que les charactères, ou s'il est fini prématurément</exception>
+		/// <summary>VÃ©rifie que le stream contient bien les charactÃ¨res spÃ©cifiÃ©s</summary>
+		/// <param name="values">CharactÃ¨res d'un token a lire</param>
+		/// <exception cref="System.FormatException">Si le stream contient autre chose que les charactÃ¨res, ou s'il est fini prÃ©maturÃ©ment</exception>
 		internal void ReadExpectedKeyword(char[] values)
 		{
 			Contract.Debug.Requires(values != null);
@@ -271,7 +289,7 @@ namespace Doxense.Serialization.Json
 					throw FailInvalidSyntax("Invalid character '{0}' found while expecting '{1}'", c, value);
 				}
 			}
-			// normalement juste derrière on doit etre en fin de stream, ou on doit trouver un séparateur ou terminateur
+			// normalement juste derriÃ¨re on doit etre en fin de stream, ou on doit trouver un sÃ©parateur ou terminateur
 			c = ReadOne();
 			if (c == CrystalJsonParser.EndOfStream) return;
 			Push(c); // on le remet dans le stream pour la suite
@@ -308,7 +326,7 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-		/// <summary>Génère une exception correspondant à une fin de stream prématurée</summary>
+		/// <summary>GÃ©nÃ¨re une exception correspondant Ã  une fin de stream prÃ©maturÃ©e</summary>
 		[Pure]
 		internal JsonSyntaxException FailUnexpectedEndOfStream(string? reason)
 		{
@@ -319,9 +337,9 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-		/// <summary>Retourne la StringTable pour la génération de literals, ou null si interning désactivé</summary>
-		/// <param name="kind">Type de literal parsé (nom de champ, string, number, ...)</param>
-		/// <returns>StringTable à utiliser, ou null si pas d'interning pour ce type de literal avec le paramétrage actuel</returns>
+		/// <summary>Retourne la StringTable pour la gÃ©nÃ©ration de literals, ou null si interning dÃ©sactivÃ©</summary>
+		/// <param name="kind">Type de literal parsÃ© (nom de champ, string, number, ...)</param>
+		/// <returns>StringTable Ã  utiliser, ou null si pas d'interning pour ce type de literal avec le paramÃ©trage actuel</returns>
 		internal StringTable? GetStringTable(JsonLiteralKind kind)
 		{
 			switch (this.InternMode)

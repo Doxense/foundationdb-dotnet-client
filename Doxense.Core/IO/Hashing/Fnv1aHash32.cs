@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.IO.Hashing
@@ -15,14 +33,14 @@ namespace Doxense.IO.Hashing
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	/// <summary>Calcul de hash FNV-1a sur 32 bits (Fowler–Noll–Vo "Alternatif")</summary>
-	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
+	/// <summary>Calcul de hash FNV-1a sur 32 bits (FowlerÂ–NollÂ–Vo "Alternatif")</summary>
+	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les donnÃ©es hashÃ©es, et ne doit donc pas Ãªtre utilisÃ© publiquement dans un scenario de protection de donnÃ©es! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
 	[PublicAPI]
 	// ReSharper disable once InconsistentNaming
 	public static class Fnv1aHash32
 	{
 
-		// La différence entre FNV-1a et FNV-1 c'est que l'ordre des opérations (MUL et XOR) est inversé !
+		// La diffÃ©rence entre FNV-1a et FNV-1 c'est que l'ordre des opÃ©rations (MUL et XOR) est inversÃ© !
 
 		/*
 			hash = FNV_offset_basis
@@ -35,11 +53,11 @@ namespace Doxense.IO.Hashing
 		public const uint FNV1_32_OFFSET_BASIS = 2166136261;
 		public const uint FNV1_32_PRIME = 16777619;
 
-		/// <summary>Calcul le FNV-1a Hash 32-bit d'un chaîne (encodée en UTF-8 par défaut)</summary>
-		/// <param name="text">Chaîne de texte à convertir</param>
-		/// <param name="ignoreCase">Si true, la chaîne est convertie en minuscule avant le calcul</param>
+		/// <summary>Calcul le FNV-1a Hash 32-bit d'un chaÃ®ne (encodÃ©e en UTF-8 par dÃ©faut)</summary>
+		/// <param name="text">ChaÃ®ne de texte Ã  convertir</param>
+		/// <param name="ignoreCase">Si true, la chaÃ®ne est convertie en minuscule avant le calcul</param>
 		/// <param name="encoding"></param>
-		/// <returns>Code FNV-1a 32 bit calculé sur la représentation UTF-8 de la chaîne. Attention: N'est pas garantit unique!</returns>
+		/// <returns>Code FNV-1a 32 bit calculÃ© sur la reprÃ©sentation UTF-8 de la chaÃ®ne. Attention: N'est pas garantit unique!</returns>
 		public static uint FromString(string text, bool ignoreCase = false, Encoding? encoding = null)
 		{
 			if (string.IsNullOrEmpty(text)) return 0;
@@ -48,46 +66,46 @@ namespace Doxense.IO.Hashing
 			return Continue(FNV1_32_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 32 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 32 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint FromBytes(byte[] bytes)
 		{
 			return Continue(FNV1_32_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 32 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 32 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint FromBytes(ReadOnlySpan<byte> bytes)
 		{
 			return Continue(FNV1_32_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 32 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 32 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint FromBytes(Slice bytes)
 		{
 			return Continue(FNV1_32_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de données</summary>
-		/// <param name="seed">Seed initiale (si différente de 0)</param>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 32 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le FNV-1a Hash 32-bit d'un bloc de donnÃ©es</summary>
+		/// <param name="seed">Seed initiale (si diffÃ©rente de 0)</param>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 32 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint FromBytes(uint seed, byte[] bytes)
 		{
 			return Continue(seed ^ FNV1_32_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1a sur 32 bit sur un segment de données</summary>
-		/// <param name="buffer">Pointeur vers des données en mémoire</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
+		/// <summary>Calcul le Hash FNV-1a sur 32 bit sur un segment de donnÃ©es</summary>
+		/// <param name="buffer">Pointeur vers des donnÃ©es en mÃ©moire</param>
+		/// <param name="count">Nombre de donnÃ©es du buffer Ã  hasher</param>
 		/// <returns>Hash de la section du buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe uint FromBytesUnsafe(byte* buffer, int count)
@@ -96,16 +114,16 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Continue le calcul du FNV-1a Hash 32-bit</summary>
-		/// <param name="bytes">Nouveau bloc de données</param>
-		/// <param name="hash">Valeur précédente du hash calculé jusqu'a présent</param>
+		/// <param name="bytes">Nouveau bloc de donnÃ©es</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash calculÃ© jusqu'a prÃ©sent</param>
 		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
-		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash32.FromBytesAlternative (pour démarrer la chaine)</remarks>
+		/// <remarks>Le premier bloc doit Ãªtre calculÃ© avec Fnv1Hash32.FromBytesAlternative (pour dÃ©marrer la chaine)</remarks>
 		[Pure]
 		public static uint Continue(uint hash, byte[] bytes)
 		{
 			if (bytes == null || bytes.Length == 0) return hash;
 
-			// après pas mal de bench, le bon vieux foreach(...) est presque aussi rapide qu'unroller des boucles en mode unsafe, car il est optimisé par le JIT (qui semble unroller lui meme)
+			// aprÃ¨s pas mal de bench, le bon vieux foreach(...) est presque aussi rapide qu'unroller des boucles en mode unsafe, car il est optimisÃ© par le JIT (qui semble unroller lui meme)
 			// sur mon Core i7 @ 3.4 Ghz, je suis a une moyenne de 3.1-3.4 cycles/byte en unrolled, versus 3.7-3.9 cycles/byte avec le foreach...
 
 			foreach (var b in bytes)
@@ -158,16 +176,16 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Continue le calcul d'un FNV-1 Hash 32-bit sur une section d'un buffer</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="buffer">Buffer contenant des données à hasher</param>
-		/// <param name="offset">Offset de départ dans le buffer</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dÃ©nte du hash</param>
+		/// <param name="buffer">Buffer contenant des donnÃ©es Ã  hasher</param>
+		/// <param name="offset">Offset de dÃ©part dans le buffer</param>
+		/// <param name="count">Nombre de donnÃ©es du buffer Ã  hasher</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static uint Continue(uint hash, byte[] buffer, int offset, int count)
 		{
 			if (count == 0 || buffer == null) return hash;
 
-			// note: ces tests sont la pour convaincre le JIT de désactiver les checks et unroller la boucle plus bas !!!
+			// note: ces tests sont la pour convaincre le JIT de dÃ©sactiver les checks et unroller la boucle plus bas !!!
 			if (offset < 0 || offset >= buffer.Length) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be within the buffer");
 			int end = offset + count;
 			if (end < 0 || end > buffer.Length) throw ThrowHelper.ArgumentException(nameof(buffer), "The buffer does not have enough data for the specified byte count");
@@ -181,7 +199,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un byte au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">unsigned int8</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -190,35 +208,35 @@ namespace Doxense.IO.Hashing
 			return (hash ^ x) * FNV1_32_PRIME;
 		}
 
-		/// <summary>Génère le HashCode correspondant à un tableau de bytes</summary>
-		/// <returns>Hashcode calculé sur la base du hash FNV1 du buffer, et mélangé pour assurer le plus de diffusion possible des bits</returns>
+		/// <summary>GÃ©nÃ¨re le HashCode correspondant Ã  un tableau de bytes</summary>
+		/// <returns>Hashcode calculÃ© sur la base du hash FNV1 du buffer, et mÃ©langÃ© pour assurer le plus de diffusion possible des bits</returns>
 		public static int GetHashCode(byte[] buffer)
 		{
 			if (buffer == null) return -1;
 			if (buffer.Length == 0) return 0;
 
 			// cf : http://bretm.home.comcast.net/~bretm/hash/6.html
-			// on peut utiliser un hash FNV1, a condition de mixer les bits à la fin
+			// on peut utiliser un hash FNV1, a condition de mixer les bits Ã  la fin
 
 			return Diffuse(Continue(FNV1_32_PRIME, buffer));
 		}
 
-		/// <summary>Génère le HashCode correspondant à un tableau de bytes</summary>
-		/// <returns>Hashcode calculé sur la base du hash FNV1 du buffer, et mélangé pour assurer le plus de diffusion possible des bits</returns>
+		/// <summary>GÃ©nÃ¨re le HashCode correspondant Ã  un tableau de bytes</summary>
+		/// <returns>Hashcode calculÃ© sur la base du hash FNV1 du buffer, et mÃ©langÃ© pour assurer le plus de diffusion possible des bits</returns>
 		[Pure]
 		public static int GetHashCode(byte[] buffer, int offset, int count)
 		{
 			Contract.NotNull(buffer);
 			if (count == 0) return 0;
 
-			// on peut utiliser un hash FNV1, a condition de mixer les bits à la fin
+			// on peut utiliser un hash FNV1, a condition de mixer les bits Ã  la fin
 			// cf : http://bretm.home.comcast.net/~bretm/hash/6.html
 
 			return Diffuse(Continue(FNV1_32_PRIME, buffer, offset, count));
 		}
 
 		/// <summary>Convertit un FNV-1 Hash 32-bit en un Hashcode utilisable avec un Dictionary, ou un IEqualityComparer</summary>
-		/// <param name="hash">FNV-1 Hash 32 bit (calculé avec FromBytes, par exemple)</param>
+		/// <param name="hash">FNV-1 Hash 32 bit (calculÃ© avec FromBytes, par exemple)</param>
 		/// <returns>Version utilisable dans un algorithme de type Hashtable</returns>
 		[Pure]
 		public static int Diffuse(uint hash)

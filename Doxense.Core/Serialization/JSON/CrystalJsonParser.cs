@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 #define ENABLE_TIMO_STRING_CONVERTER
@@ -27,8 +45,8 @@ namespace Doxense.Serialization.Json
 	{
 		Field,
 		Value,
-		Integer, // nombre entier "simple" plus grand (ie: "123", "+123" ou "-123", pas de décimales ou d'exposant)
-		Decimal // nombres décimaux ("1.234"), ou en représentation scientifique ("1234E-3")
+		Integer, // nombre entier "simple" plus grand (ie: "123", "+123" ou "-123", pas de dÃ©cimales ou d'exposant)
+		Decimal // nombres dÃ©cimaux ("1.234"), ou en reprÃ©sentation scientifique ("1234E-3")
 	}
 
 	internal enum JsonTokenType
@@ -158,7 +176,7 @@ namespace Doxense.Serialization.Json
 				{
 					if (string.Equals(literal, "NaN", StringComparison.Ordinal)) return JsonNumber.NaN;
 				}
-				// charactère invalide après un nombre
+				// charactÃ¨re invalide aprÃ¨s un nombre
 				throw InvalidNumberFormat(literal, $"unexpected character '{c}' found)");
 			}
 
@@ -167,12 +185,12 @@ namespace Doxense.Serialization.Json
 				throw InvalidNumberFormat(literal, "truncated");
 			}
 
-			// si on n'a pas vu de points pour d'exposant, et que le nombre de digits <= 16, on est certain que c'est un entier valide, et donc on l'a déja parsé
+			// si on n'a pas vu de points pour d'exposant, et que le nombre de digits <= 16, on est certain que c'est un entier valide, et donc on l'a dÃ©ja parsÃ©
 			if (computed)
 			{
 				if (literal.Length < 4)
 				{
-					if (num == 0) return JsonNumber.Zero; //REVIEW: est-ce qu'on doit gérer "-0" ?
+					if (num == 0) return JsonNumber.Zero; //REVIEW: est-ce qu'on doit gÃ©rer "-0" ?
 					if (num == 1) return negative ? JsonNumber.MinusOne : JsonNumber.One;
 					if (!negative)
 					{
@@ -203,7 +221,7 @@ namespace Doxense.Serialization.Json
 
 			if (!hasDot)
 			{
-				//on sait si c'est négatif, donc on peut directement tenter ulong
+				//on sait si c'est nÃ©gatif, donc on peut directement tenter ulong
 				if (!negative)
 				{ // unsigned
 					if (ulong.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var u64))
@@ -220,12 +238,12 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			else
-			{ // decimal, mais pas forcément
+			{ // decimal, mais pas forcÃ©ment
 				styles |= NumberStyles.AllowDecimalPoint;
 				// maybe it fits in a double..?
 				if (double.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var dbl))
 				{
-					//TODO: detecter si c'est quand même un entier ?
+					//TODO: detecter si c'est quand mÃªme un entier ?
 					return JsonNumber.Parse(dbl, literal);
 				}
 			}
@@ -246,9 +264,9 @@ namespace Doxense.Serialization.Json
 			return new FormatException($"Invalid number '{literal}.' ({reason})");
 		}
 
-		/// <summary>Indique si la string PEUT être une date au format ISO 8601</summary>
+		/// <summary>Indique si la string PEUT Ãªtre une date au format ISO 8601</summary>
 		/// <param name="value">Chaine candidate</param>
-		/// <returns>True si la string ressemble (de loin) à une date ISO</returns>
+		/// <returns>True si la string ressemble (de loin) Ã  une date ISO</returns>
 		[Pure]
 		internal static bool CouldBeIso8601DateTime(string value)
 		{
@@ -302,7 +320,7 @@ namespace Doxense.Serialization.Json
 
 			if (string.IsNullOrEmpty(value) || !CouldBeJsonMicrosoftDateTime(value)) return false;
 
-			//Note: la chaine de texte est déja décodée, donc "\/Date(...)\/" devient "/Date(...)/"
+			//Note: la chaine de texte est dÃ©ja dÃ©codÃ©e, donc "\/Date(...)\/" devient "/Date(...)/"
 			// Microsoft: "/Date(ticks)/" ou "/Date(ticks+HHMM)/"
 
 			bool isLocal = false;
@@ -311,17 +329,17 @@ namespace Doxense.Serialization.Json
 											  // il faut regarder s'il y a une timezone
 			char c = value[endOffset - 5];
 			if (c == '+' || c == '-')
-			{ // on dirait qu'il y a une TimeZone de spécifiée
-			  // TODO: vérifier s'il y a bien 4 digits juste derrière ?
+			{ // on dirait qu'il y a une TimeZone de spÃ©cifiÃ©e
+			  // TODO: vÃ©rifier s'il y a bien 4 digits juste derriÃ¨re ?
 				isLocal = true;
 				endOffset -= 5;
 			}
 			if (!long.TryParse(value.Substring(6, endOffset - 6), out var ticks)) // 6 = "/Date(".Length
 				return false;
 
-			// note: il y a un "bug" dans les sérialisateurs de Microsoft: MinValue/MaxValue sont en LocalTime, et donc
-			// une fois convertis en UTC, ils sont décallés (par ex le nb de ticks est négatif si on est à l'est de GMT, ou légèrement positif si on est à l'ouest)
-			// Pour contrecarrer ça, on "arrondi" à Min ou Max si les ticks sont à moins d'un jour des bornes.
+			// note: il y a un "bug" dans les sÃ©rialisateurs de Microsoft: MinValue/MaxValue sont en LocalTime, et donc
+			// une fois convertis en UTC, ils sont dÃ©callÃ©s (par ex le nb de ticks est nÃ©gatif si on est Ã  l'est de GMT, ou lÃ©gÃ¨rement positif si on est Ã  l'ouest)
+			// Pour contrecarrer Ã§a, on "arrondi" Ã  Min ou Max si les ticks sont Ã  moins d'un jour des bornes.
 
 			const int MillisecondsPerDay = 86400 * 1000;
 			if (ticks < -62135596800000 + MillisecondsPerDay)
@@ -337,9 +355,9 @@ namespace Doxense.Serialization.Json
 				DateTime date = CrystalJson.JavaScriptTicksToDate(ticks);
 				if (isLocal)
 				{
-					// pb: Local ici sera en fct de la TZ du serveur, et non pas celle indiquée dans le JSON
-					// vu que de toutes manières, les ticks sont en UTC, et qu'on ne peut pas créer un DateTime de type Local dans une autre TZ que la notre,
-					// on ne peut pas faire grand chose avec la TZ spécifiée, hormis la garder en mémoire si jamais on doit binder vers un DateTimeOffset
+					// pb: Local ici sera en fct de la TZ du serveur, et non pas celle indiquÃ©e dans le JSON
+					// vu que de toutes maniÃ¨res, les ticks sont en UTC, et qu'on ne peut pas crÃ©er un DateTime de type Local dans une autre TZ que la notre,
+					// on ne peut pas faire grand chose avec la TZ spÃ©cifiÃ©e, hormis la garder en mÃ©moire si jamais on doit binder vers un DateTimeOffset
 					if (!int.TryParse(value.Substring(endOffset + 1, value.Length - endOffset - 3), out var offset))
 						return false;
 					// on a l'offset en "BCD", il faut retransformer en nombre de minutes
@@ -356,29 +374,29 @@ namespace Doxense.Serialization.Json
 
 		#region Deserialization...
 
-		/// <summary>Désérialise une classe ou une struct</summary>
+		/// <summary>DÃ©sÃ©rialise une classe ou une struct</summary>
 		public static object? DeserializeCustomClassOrStruct(JsonObject data, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (type == typeof(object) || type.IsInterface || type.IsClass)
-			{ // il faut regarder dans les propriétés de l'objet pour obtenir le type
+			{ // il faut regarder dans les propriÃ©tÃ©s de l'objet pour obtenir le type
 
 				string? customClass = data.CustomClassName;
 				if (customClass != null)
 				{
 					#region Mitigation pour DOX-430
-					// note: c'est n'est PAS un fix long terme qui corrige 100% le problème!
-					// => le but ici est d'endiguer les payloads les plus classiques qui seraient utilisées par des attaquants qui scannent rapidement a la recherche de services vulnérable et espérer qu'ils passent leur chemin
-					// => un attaquant qui ciblerait spécifiquement cette librairie en ayant le code source sous la main pourra probablement trouver un des nombres types vulnérables du .NET Framework comme proxy pour ce genre d'attaque
+					// note: c'est n'est PAS un fix long terme qui corrige 100% le problÃ¨me!
+					// => le but ici est d'endiguer les payloads les plus classiques qui seraient utilisÃ©es par des attaquants qui scannent rapidement a la recherche de services vulnÃ©rable et espÃ©rer qu'ils passent leur chemin
+					// => un attaquant qui ciblerait spÃ©cifiquement cette librairie en ayant le code source sous la main pourra probablement trouver un des nombres types vulnÃ©rables du .NET Framework comme proxy pour ce genre d'attaque
 
-					// Black list de types dangereux (et qui n'ont rien a faire dans des données JSON de toutes manières!)
+					// Black list de types dangereux (et qui n'ont rien a faire dans des donnÃ©es JSON de toutes maniÃ¨res!)
 					if (customClass.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
-						(  customClass.StartsWith("System.Windows.Data.ObjectDataProvider", StringComparison.OrdinalIgnoreCase) // Cet objet peut exécuter n'importe quelle méthode de n'importe quel instance!
+						(  customClass.StartsWith("System.Windows.Data.ObjectDataProvider", StringComparison.OrdinalIgnoreCase) // Cet objet peut exÃ©cuter n'importe quelle mÃ©thode de n'importe quel instance!
 						|| customClass.StartsWith("System.Management.Automation.", StringComparison.OrdinalIgnoreCase) // techniquement c'est PSObjectXYZ mais on ban le namespace entier
 						|| customClass.StartsWith("System.Security.Principal.WindowsIdentity", StringComparison.OrdinalIgnoreCase) // c'est chaud mais ce type est dangereux
-						|| customClass.StartsWith("System.IdentityModel.Tokens.", StringComparison.OrdinalIgnoreCase) // vulnérabilité dans les secure session tokens
+						|| customClass.StartsWith("System.IdentityModel.Tokens.", StringComparison.OrdinalIgnoreCase) // vulnÃ©rabilitÃ© dans les secure session tokens
 						|| customClass.StartsWith("System.Windows.ResourceDictionary", StringComparison.OrdinalIgnoreCase) // un dictionnaire de resources peut contenir des types dangereux
 						|| customClass.StartsWith("System.Configuration.Install.", StringComparison.OrdinalIgnoreCase) // les Assembly loaders peuvent loader n'importe quel code dans le process!
-						|| customClass.StartsWith("System.Workflow.ComponentModel.Serialization.", StringComparison.OrdinalIgnoreCase) // ActivitySurrogate* peuvent compiler n'importe quel fichier .cs ou exécuter n'importe méthode d'objets
+						|| customClass.StartsWith("System.Workflow.ComponentModel.Serialization.", StringComparison.OrdinalIgnoreCase) // ActivitySurrogate* peuvent compiler n'importe quel fichier .cs ou exÃ©cuter n'importe mÃ©thode d'objets
 						|| customClass.StartsWith("System.Activities.Presentation.WorkflowDesigner.", StringComparison.OrdinalIgnoreCase) // 
 						|| customClass.StartsWith("System.Resources.ResXResource", StringComparison.OrdinalIgnoreCase)) // les ressources peuvent contenir des types arbitraires!
 					)
@@ -400,7 +418,7 @@ namespace Doxense.Serialization.Json
 
 					if (type.IsSealed)
 					{
-						// si le type attendu est sealed, alors la seule solution est que le type spécifié match EXACTEMENT celui attendu!
+						// si le type attendu est sealed, alors la seule solution est que le type spÃ©cifiÃ© match EXACTEMENT celui attendu!
 						if (type != customType)
 						{
 							throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
@@ -409,9 +427,9 @@ namespace Doxense.Serialization.Json
 					
 					if (type != typeof(object))
 					{ 
-						// si le type est donné par l'appelant, on veut vérifier que c'est compatible avec le type attendu
+						// si le type est donnÃ© par l'appelant, on veut vÃ©rifier que c'est compatible avec le type attendu
 						if (!type.IsAssignableFrom(customType))
-						{ // le type donnée par l'appelant n'est pas compatible... c'est peut être une erreur, ou alors une tentative de hack!
+						{ // le type donnÃ©e par l'appelant n'est pas compatible... c'est peut Ãªtre une erreur, ou alors une tentative de hack!
 							throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
 						}
 					}
@@ -424,7 +442,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// récupère les infos sur l'objet
+			// rÃ©cupÃ¨re les infos sur l'objet
 			var typeDef = resolver.ResolveJsonType(type);
 			if (typeDef == null)
 			{ // uhoh, pas normal du tout
@@ -432,29 +450,29 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (typeDef.CustomBinder != null)
-			{ // il y a un custom binder, qui va se charger de créer et remplir l'objet
+			{ // il y a un custom binder, qui va se charger de crÃ©er et remplir l'objet
 			  // => automatiquement le cas pour les IJsonSerializable, ou alors c'est un custom binder fourni par par un CustomTypeResolver
 				return typeDef.CustomBinder(data, type, resolver);
 			}
 
 			if (typeDef.Generator == null)
-			{ // sans générateur, on ne peut pas créer d'instance !
+			{ // sans gÃ©nÃ©rateur, on ne peut pas crÃ©er d'instance !
 				throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeNoBinderOrGenerator(data, type);
 			}
 
-			// crée une nouvelle instance de la class/struct
+			// crÃ©e une nouvelle instance de la class/struct
 			object instance;
 			try
 			{
 				instance = typeDef.Generator();
 			}
 			catch (Exception e) when (!e.IsFatalError())
-			{ // problème lors de la création de l'objet? cela arrive lorsqu'on crée un objet via Reflection, et qu'il n'a pas de constructeur par défaut...
+			{ // problÃ¨me lors de la crÃ©ation de l'objet? cela arrive lorsqu'on crÃ©e un objet via Reflection, et qu'il n'a pas de constructeur par dÃ©faut...
 				throw CrystalJson.Errors.Binding_FailedToConstructTypeInstanceErrorOccurred(data, type, e);
 			}
 
 			if (instance == null)
-			{ // uhoh ? le générateur n'a rien retourné, ce qui peut arriver quand on essaye de faire un "new Interface()" ou un "new AbstractClass()"...
+			{ // uhoh ? le gÃ©nÃ©rateur n'a rien retournÃ©, ce qui peut arriver quand on essaye de faire un "new Interface()" ou un "new AbstractClass()"...
 				throw CrystalJson.Errors.Binding_FailedToConstructTypeInstanceReturnedNull(data, type);
 			}
 
@@ -466,13 +484,13 @@ namespace Doxense.Serialization.Json
 
 				// obtient la valeur du dictionnaire
 				if (!data.TryGetValue(member.Name, out var child))
-					continue; // absent (donc sera égal à la valeur par défaut)
+					continue; // absent (donc sera Ã©gal Ã  la valeur par dÃ©faut)
 
-				// s'il existe mais qu'il contient la valeur par défaut, on le skip aussi
+				// s'il existe mais qu'il contient la valeur par dÃ©faut, on le skip aussi
 				if (child.IsNull)
-					continue; // valeur par défaut ?
+					continue; // valeur par dÃ©faut ?
 
-				// "Transcode" le type JSON vers le type réel du membre (JSON number => int, JSON string => Guid, ...)
+				// "Transcode" le type JSON vers le type rÃ©el du membre (JSON number => int, JSON string => Guid, ...)
 				if (member.Binder == null) throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeNoReaderForMember(child, member, type);
 				object? value;
 				try
@@ -516,7 +534,7 @@ namespace Doxense.Serialization.Json
 		#region Parsing...
 
 		/// <summary>Parse le prochain token JSON dans le reader</summary>
-		/// <returns>Token parsé, ou null si le reader est arrivé en fin de stream</returns>
+		/// <returns>Token parsÃ©, ou null si le reader est arrivÃ© en fin de stream</returns>
 		public static JsonValue? ParseJsonValue(ref CrystalJsonTokenizer<TReader> reader)
 		{
 #if DEBUG_JSON_PARSER
@@ -568,10 +586,10 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (first == CrystalJsonParser.EndOfStream)
-			{ // on considère que c'est null
+			{ // on considÃ¨re que c'est null
 				return null;
-				//REVIEW: ca serait peut être mieux d'avoir un "TryParseJsonValue(...)"?
-				// => on pourrait éviter de devoir retourner 'null' pour signifier "end of stream"
+				//REVIEW: ca serait peut Ãªtre mieux d'avoir un "TryParseJsonValue(...)"?
+				// => on pourrait Ã©viter de devoir retourner 'null' pour signifier "end of stream"
 			}
 
 			// c'est une erreur de syntaxe
@@ -586,7 +604,7 @@ namespace Doxense.Serialization.Json
 					throw reader.FailInvalidSyntax("Unexpected ']' encountered without corresponding '['");
 				}
 				case ',':
-				{ // erreur de syntaxe: séparateur ne faisant pas partie d'un [] ou d'un {} ?
+				{ // erreur de syntaxe: sÃ©parateur ne faisant pas partie d'un [] ou d'un {} ?
 					throw reader.FailInvalidSyntax("Unexpected separator encountered outside of an array or an object");
 				}
 				default:
@@ -602,7 +620,7 @@ namespace Doxense.Serialization.Json
 #if DEBUG_JSON_PARSER
 			System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonStringOrDateTime(" + value + ")");
 #endif
-			//TODO: gérer aussi un cache des *JsonString* elle mêmes, dans le cas où la même chaine est répétée plusieurs fois ?
+			//TODO: gÃ©rer aussi un cache des *JsonString* elle mÃªmes, dans le cas oÃ¹ la mÃªme chaine est rÃ©pÃ©tÃ©e plusieurs fois ?
 			return JsonString.Return(value);
 		}
 
@@ -616,12 +634,12 @@ namespace Doxense.Serialization.Json
 
 		private static unsafe string ParseJsonStringInternal(ref CrystalJsonTokenizer<TReader> reader, StringTable? table)
 		{
-			// note: on a déja lu la quote (")
+			// note: on a dÃ©ja lu la quote (")
 
-			// Optimisation: pour éviter d'allouer un StringBuilder inutilement, on fonctionne d'abord avec un buffer de 16 charactères sur la stack et on switch sur un StringBuilder si ce buffer est trop petit
+			// Optimisation: pour Ã©viter d'allouer un StringBuilder inutilement, on fonctionne d'abord avec un buffer de 16 charactÃ¨res sur la stack et on switch sur un StringBuilder si ce buffer est trop petit
 			// Donc a la fin de la boucle, on est dans trois cas possibles:
 			// * si p = 0, la chaine vide
-			// * si sb == null, elle tient dans le buffer sur la stack et fait 'p' caractères de long
+			// * si sb == null, elle tient dans le buffer sur la stack et fait 'p' caractÃ¨res de long
 			// * sinon, elle est contenue dans le StringBuilder
 
 			const int SIZE = 128;
@@ -634,16 +652,16 @@ namespace Doxense.Serialization.Json
 			{
 				char c = reader.ReadOne();
 
-				// Probabilités décroissantes:
+				// ProbabilitÃ©s dÃ©croissantes:
 				// > du texte classique
 				// > des espaces
 				// > un \ d'escaping
 				// > le " terminal
-				// > EOF (cas très rare)
+				// > EOF (cas trÃ¨s rare)
 
-				if (c == '"') break; // doit être évalué AVANT de parser un '\"'
+				if (c == '"') break; // doit Ãªtre Ã©valuÃ© AVANT de parser un '\"'
 				if (c == '\\')
-				{ // décode le caractère encodé
+				{ // dÃ©code le caractÃ¨re encodÃ©
 					c = ParseEscapedCharacter(ref reader);
 				}
 				if (c == CrystalJsonParser.EndOfStream) throw reader.FailUnexpectedEndOfStream("String is incomplete");
@@ -708,7 +726,7 @@ namespace Doxense.Serialization.Json
 
 		private static char ParseEscapedUnicodeCharacter(ref CrystalJsonTokenizer<TReader> reader)
 		{
-			// Format: \uXXXX   où XXXX = hexa
+			// Format: \uXXXX   oÃ¹ XXXX = hexa
 			int x = 0;
 			for (int i = 0; i < 4; i++)
 			{
@@ -744,7 +762,7 @@ namespace Doxense.Serialization.Json
 			bool incomplete = first < '0' || first > '9';
 			bool computed = negative || !incomplete;
 			ulong num = incomplete ? 0 : (ulong)(first - '0');
-			while (p < MAX_NUMBER_CHARS) // protection contre un trop grand consommation de mémoire
+			while (p < MAX_NUMBER_CHARS) // protection contre un trop grand consommation de mÃ©moire
 			{
 				char c = reader.ReadOne();
 				if (c <= '9' && c >= '0') //TODO: utiliser un bias (uint)
@@ -754,8 +772,8 @@ namespace Doxense.Serialization.Json
 					//REVIEW: fail if more than 17 digits? (ulong.MaxValue) unless we want to handle BigIntegers?
 				}
 				else if (c == ',' || c == '}' || c == ']' || c == ' ' || c == '\n' || c == '\t' || c == '\r')
-				{ // c'est un caractère valide pour une fin de stream
-				  // rembobine le caractère lu
+				{ // c'est un caractÃ¨re valide pour une fin de stream
+				  // rembobine le caractÃ¨re lu
 					reader.Push(c);
 					break;
 				}
@@ -769,7 +787,7 @@ namespace Doxense.Serialization.Json
 				else if (c == 'e' || c == 'E')
 				{ // exposant (forme scientifique)
 					if (hasExponent) throw reader.FailInvalidSyntax("Invalid number '{0}{1}' (duplicate exponent)", new string(buffer, 0, p), c);
-					incomplete = true;  // doit être suivit d'un signe ou d'un digit! ("123E" n'est pas valid)
+					incomplete = true;  // doit Ãªtre suivit d'un signe ou d'un digit! ("123E" n'est pas valid)
 					hasExponent = true;
 					computed = false;
 				}
@@ -777,13 +795,13 @@ namespace Doxense.Serialization.Json
 				{ // signe de l'exposant
 					if (!hasExponent) throw reader.FailInvalidSyntax("Invalid number '{0}{1}' (unexpected sign at this location)", new string(buffer, 0, p), c);
 					if (hasExponentSign) throw reader.FailInvalidSyntax("Invalid number '{0}{1}' (duplicate sign is exponent)", new string(buffer, 0, p), c);
-					incomplete = true; // doit être suivit d'un digit! ("123E-" n'est pas valid)
+					incomplete = true; // doit Ãªtre suivit d'un digit! ("123E-" n'est pas valid)
 					hasExponentSign = true;
 				}
 				else if (c == 'I' && p == 1 && (first == '+' || first == '-'))
 				{ // '+Infinity' / '-Infinity' ?
 					ParseSpecialKeyword(ref reader, c);
-					//HACKHACK: si ca réussi, c'est que le mot clé était bien "Infinity"
+					//HACKHACK: si ca rÃ©ussi, c'est que le mot clÃ© Ã©tait bien "Infinity"
 					return negative ? JsonNumber.NegativeInfinity : JsonNumber.PositiveInfinity;
 				}
 				else if (c == CrystalJsonParser.EndOfStream)
@@ -791,7 +809,7 @@ namespace Doxense.Serialization.Json
 					break;
 				}
 				else
-				{ // caractère invalide après un nombre
+				{ // caractÃ¨re invalide aprÃ¨s un nombre
 					throw reader.FailInvalidSyntax("Invalid number '{0}' (unexpected character '{1}' found)", new string(buffer, 0, p), c);
 				}
 
@@ -803,7 +821,7 @@ namespace Doxense.Serialization.Json
 				throw reader.FailInvalidSyntax("Invalid JSON number (truncated)");
 			}
 
-			// si on n'a pas vu de points pour d'exposant, et que le nombre de digits <= 16, on est certain que c'est un entier valide, et donc on l'a déja parsé
+			// si on n'a pas vu de points pour d'exposant, et que le nombre de digits <= 16, on est certain que c'est un entier valide, et donc on l'a dÃ©ja parsÃ©
 			if (computed && p <= 4)
 			{
 				if (num == 0) return JsonNumber.Zero;
@@ -820,8 +838,8 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// génère le literal
-			// on considère qu'un nombre de 4 ou plus digits est une "valeur", alors qu'en dessous, c'est une "clé"
+			// gÃ©nÃ¨re le literal
+			// on considÃ¨re qu'un nombre de 4 ou plus digits est une "valeur", alors qu'en dessous, c'est une "clÃ©"
 			var table = reader.GetStringTable(computed ? JsonLiteralKind.Integer : JsonLiteralKind.Decimal);
 			string? literal = computed ? null
 				: table != null ? table.Add(new ReadOnlySpan<char>(buffer, p))
@@ -967,7 +985,7 @@ namespace Doxense.Serialization.Json
 								throw reader.FailInvalidSyntax("Unexpected semicolon after field #{0}", index);
 
 							}
-							// immédiatement après, on doit trouver une valeur
+							// immÃ©diatement aprÃ¨s, on doit trouver une valeur
 
 							if (index == props.Length)
 							{
@@ -1021,7 +1039,7 @@ namespace Doxense.Serialization.Json
 			System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonComment(...) [BEGIN]");
 #endif
 
-			// on a déja le premier '/', donc le suivant doit soit être un '/' (single line) ou '*' (multi line)
+			// on a dÃ©ja le premier '/', donc le suivant doit soit Ãªtre un '/' (single line) ou '*' (multi line)
 
 			char c = reader.ReadOne();
 			switch(c)
@@ -1087,7 +1105,7 @@ namespace Doxense.Serialization.Json
 #if DEBUG_JSON_PARSER
 			System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonArray(...) [BEGIN]");
 #endif
-			// on a déjà le ']'
+			// on a dÃ©jÃ  le ']'
 
 			var buffer = reader.AcquireArrayBuffer();
 			Contract.Debug.Requires(buffer != null);

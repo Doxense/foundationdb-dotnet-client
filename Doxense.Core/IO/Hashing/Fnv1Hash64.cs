@@ -1,9 +1,27 @@
-#region Copyright (c) 2005-2023 Doxense SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+ï»¿#region Copyright (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of Doxense nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL DOXENSE BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.IO.Hashing
@@ -14,8 +32,8 @@ namespace Doxense.IO.Hashing
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	/// <summary>Calcul de hash FNV-1 sur 64 bits (Fowler–Noll–Vo)</summary>
-	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
+	/// <summary>Calcul de hash FNV-1 sur 64 bits (FowlerÂ–NollÂ–Vo)</summary>
+	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les donnÃ©es hashÃ©es, et ne doit donc pas Ãªtre utilisÃ© publiquement dans un scenario de protection de donnÃ©es! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
 	[PublicAPI]
 	public static class Fnv1Hash64
 	{
@@ -35,10 +53,10 @@ namespace Doxense.IO.Hashing
 			return hash
 		 */
 
-		/// <summary>Calcul le Hash FNV-1 64-bit d'un chaîne</summary>
-		/// <param name="text">Chaîne de texte à convertir</param>
-		/// <param name="ignoreCase">Si true, la chaîne est convertie en minuscule avant le calcul</param>
-		/// <returns>Code FNV-1 64 bit calculé sur la représentation UTF-8 de la chaîne. Attention: N'est pas garantit unique!</returns>
+		/// <summary>Calcul le Hash FNV-1 64-bit d'un chaÃ®ne</summary>
+		/// <param name="text">ChaÃ®ne de texte Ã  convertir</param>
+		/// <param name="ignoreCase">Si true, la chaÃ®ne est convertie en minuscule avant le calcul</param>
+		/// <returns>Code FNV-1 64 bit calculÃ© sur la reprÃ©sentation UTF-8 de la chaÃ®ne. Attention: N'est pas garantit unique!</returns>
 		public static ulong FromString(string text, bool ignoreCase)
 		{
 			if (string.IsNullOrEmpty(text)) return 0;
@@ -47,8 +65,8 @@ namespace Doxense.IO.Hashing
 			return FromBytes(bytes);
 		}
 
-		/// <summary>Calcul le FNV-1 Hash 64-bit d'un chaîne (encodée en UTF-8 par défaut)</summary>
-		/// <returns>Code FNV-1 64 bit calculé sur la représentation UTF-8 (par défaut) de la chaîne. Attention: N'est pas garantit unique!</returns>
+		/// <summary>Calcul le FNV-1 Hash 64-bit d'un chaÃ®ne (encodÃ©e en UTF-8 par dÃ©faut)</summary>
+		/// <returns>Code FNV-1 64 bit calculÃ© sur la reprÃ©sentation UTF-8 (par dÃ©faut) de la chaÃ®ne. Attention: N'est pas garantit unique!</returns>
 		public static ulong FromChars(char[] buffer, int offset, int count, Encoding? encoding = null)
 		{
 			Contract.DoesNotOverflow(buffer, offset, count);
@@ -57,28 +75,28 @@ namespace Doxense.IO.Hashing
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1 64-bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le Hash FNV-1 64-bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 64 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(byte[] bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1 64-bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Calcul le Hash FNV-1 64-bit d'un bloc de donnÃ©es</summary>
+		/// <param name="bytes">Bloc de donnÃ©es</param>
+		/// <returns>Hash 64 bit calculÃ© sur l'intÃ©gralitÃ© du tableau</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(Slice bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1 64 bit sur un segment de données</summary>
-		/// <param name="bytes">Buffer contenant des données à hasher</param>
-		/// <param name="offset">Offset de départ dans le buffer</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
+		/// <summary>Calcul le Hash FNV-1 64 bit sur un segment de donnÃ©es</summary>
+		/// <param name="bytes">Buffer contenant des donnÃ©es Ã  hasher</param>
+		/// <param name="offset">Offset de dÃ©part dans le buffer</param>
+		/// <param name="count">Nombre de donnÃ©es du buffer Ã  hasher</param>
 		/// <returns>Hash de la section du buffer</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(byte[] bytes, int offset, int count)
@@ -87,17 +105,17 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Continue le calcul du Hash FNV-1 64-bit</summary>
-		/// <param name="hash">Valeur précédente du hash calculé jusqu'a présent</param>
-		/// <param name="bytes">Nouveau bloc de données</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash calculÃ© jusqu'a prÃ©sent</param>
+		/// <param name="bytes">Nouveau bloc de donnÃ©es</param>
 		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
-		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash64.FromBytes (pour démarrer la chaine)</remarks>
+		/// <remarks>Le premier bloc doit Ãªtre calculÃ© avec Fnv1Hash64.FromBytes (pour dÃ©marrer la chaine)</remarks>
 		[Pure]
 		public static ulong Continue(ulong hash, byte[] bytes)
 		{
 			Contract.Debug.Requires(bytes != null);
 			if (bytes.Length == 0) return hash;
 
-			// après pas mal de bench, le bon vieux foreach(...) est presque aussi rapide qu'unroller des boucles en mode unsafe, car il est optimisé par le JIT (qui semble unroller lui meme)
+			// aprÃ¨s pas mal de bench, le bon vieux foreach(...) est presque aussi rapide qu'unroller des boucles en mode unsafe, car il est optimisÃ© par le JIT (qui semble unroller lui meme)
 			// sur mon Core i7 @ 3.4 Ghz, je suis a une moyenne de 3.1-3.4 cycles/byte en unrolled, versus 3.7-3.9 cycles/byte avec le foreach...
 
 			foreach(var b in bytes)
@@ -108,21 +126,21 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Continue le calcul du Hash FNV-1 64-bit</summary>
-		/// <param name="hash">Valeur précédente du hash calculé jusqu'a présent</param>
-		/// <param name="bytes">Nouveau bloc de données</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash calculÃ© jusqu'a prÃ©sent</param>
+		/// <param name="bytes">Nouveau bloc de donnÃ©es</param>
 		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
-		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash64.FromBytes (pour démarrer la chaine)</remarks>
+		/// <remarks>Le premier bloc doit Ãªtre calculÃ© avec Fnv1Hash64.FromBytes (pour dÃ©marrer la chaine)</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong Continue(ulong hash, Slice bytes)
 		{
 			return Continue(hash, bytes.Array, bytes.Offset, bytes.Count);
 		}
 
-		/// <summary>Continue le calcul d'un Hash FNV-1 64-bit sur un nouveau segment de données</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="buffer">Buffer contenant des données à hasher</param>
-		/// <param name="offset">Offset de départ dans le buffer</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
+		/// <summary>Continue le calcul d'un Hash FNV-1 64-bit sur un nouveau segment de donnÃ©es</summary>
+		/// <param name="hash">Valeur prÃ©cÃ©dÃ©nte du hash</param>
+		/// <param name="buffer">Buffer contenant des donnÃ©es Ã  hasher</param>
+		/// <param name="offset">Offset de dÃ©part dans le buffer</param>
+		/// <param name="count">Nombre de donnÃ©es du buffer Ã  hasher</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		[Pure]
 		public static ulong Continue(ulong hash, byte[] buffer, int offset, int count)
@@ -130,7 +148,7 @@ namespace Doxense.IO.Hashing
 			Contract.DoesNotOverflow(buffer, offset, count);
 			if (count == 0) return hash;
 
-			// note: ces tests sont la pour convaincre le JIT de désactiver les checks et unroller la boucle plus bas !!!
+			// note: ces tests sont la pour convaincre le JIT de dÃ©sactiver les checks et unroller la boucle plus bas !!!
 			if (offset < 0 || offset >= buffer.Length) ThrowHelper.ThrowArgumentException(nameof(offset), "Offset must be within the buffer");
 			int end = offset + count;
 			if (end < 0 || end > buffer.Length) ThrowHelper.ThrowArgumentException(nameof(buffer), "The buffer does not have enough data for the specified byte count");
@@ -153,7 +171,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un byte au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">signed int16 (little endian)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -172,7 +190,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un Int16 au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">signed int16 (little endian)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static ulong Continue(ulong hash, short x)
@@ -192,7 +210,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un UInt16 au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">unsigned int16 (little endian)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static ulong Continue(ulong hash, ushort x)
@@ -212,7 +230,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un Int32 au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">signed int32 (little endian)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static ulong Continue(ulong hash, int x)
@@ -237,7 +255,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un UInt32 au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">unsigned int32 (little endian)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static ulong Continue(ulong hash, uint x)
@@ -262,7 +280,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un Int64 au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">signed int64 (little endian)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static ulong Continue(ulong hash, long x)
@@ -295,7 +313,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un UInt64 au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">unsigned int64 (little endian)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static ulong Continue(ulong hash, ulong x)
@@ -319,7 +337,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Calcul le Hash FNV-1 64 bit d'un GUID</summary>
-		/// <param name="value">GUID à hasher</param>
+		/// <param name="value">GUID Ã  hasher</param>
 		/// <returns>Hash du GUID</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromGuid(Guid value)
@@ -328,7 +346,7 @@ namespace Doxense.IO.Hashing
 		}
 
 		/// <summary>Ajoute un GUID au hash</summary>
-		/// <param name="hash">Valeur précédente du hash</param>
+		/// <param name="hash">Valeur prÃ©cÃ©dente du hash</param>
 		/// <param name="x">GUID (128 bits)</param>
 		/// <returns>Nouvelle valeur du hash</returns>
 		public static ulong Continue(ulong hash, Guid x)
@@ -342,11 +360,11 @@ namespace Doxense.IO.Hashing
 		}
 
 #if DEPRECATED
-		/// <summary>Retourne un stream qui calcule le Hash FNV-1 64 bit sur les données lues ou écrites sur un stream</summary>
-		/// <param name="stream">Stream sur lequel les données seront lues ou écrites</param>
+		/// <summary>Retourne un stream qui calcule le Hash FNV-1 64 bit sur les donnÃ©es lues ou Ã©crites sur un stream</summary>
+		/// <param name="stream">Stream sur lequel les donnÃ©es seront lues ou Ã©crites</param>
 		/// <param name="leaveOpen">Si true, laisse le stream ouvert lorsque ce stream est Disposed</param>
-		/// <returns>Stream qui transmet toutes les opérations au stream spécifié, et met à jour le hash à chaque opération de lecture ou écriture</returns>
-		/// <remarks>Note: ne pas oublier d'appeler Reset() après chaque opération de Seek en mode lecture, pour reset le hash !</remarks>
+		/// <returns>Stream qui transmet toutes les opÃ©rations au stream spÃ©cifiÃ©, et met Ã  jour le hash Ã  chaque opÃ©ration de lecture ou Ã©criture</returns>
+		/// <remarks>Note: ne pas oublier d'appeler Reset() aprÃ¨s chaque opÃ©ration de Seek en mode lecture, pour reset le hash !</remarks>
 		public static RollingCrcStream<ulong> WrapStream(Stream stream, bool leaveOpen = false)
 		{
 			return new RollingCrcStream<ulong>(
