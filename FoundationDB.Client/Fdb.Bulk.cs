@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1279,7 +1279,7 @@ namespace FoundationDB.Client
 
 									if (error != null)
 									{
-										if (error.Code == FdbError.PastVersion)
+										if (error.Code == FdbError.TransactionTooOld)
 										{ // this generation lasted too long, we need to start a new one and try again...
 											trans.Reset();
 											ctx.GenerationTimer.Restart();
@@ -1421,7 +1421,7 @@ namespace FoundationDB.Client
 				Func<IFdbReadOnlyTransaction, Task> reset = (tr) =>
 				{
 					// should export be lower priority? TODO: make if configurable!
-					tr.WithPriorityBatch();
+					tr.Options.WithPriorityBatch();
 					return Task.CompletedTask;
 				};
 
@@ -1499,7 +1499,7 @@ namespace FoundationDB.Client
 					}
 					catch (FdbException e)
 					{
-						if (e.Code == FdbError.PastVersion)
+						if (e.Code == FdbError.TransactionTooOld)
 						{
 							tr.Reset();
 						}
@@ -1555,7 +1555,7 @@ namespace FoundationDB.Client
 				Func<IFdbReadOnlyTransaction, Task> reset = async (tr) =>
 				{
 					// should export be lower priority? TODO: make if configurable!
-					tr.WithPriorityBatch();
+					tr.Options.WithPriorityBatch();
 
 					var folder = await path.Resolve(tr);
 					if (previous.IsNull)

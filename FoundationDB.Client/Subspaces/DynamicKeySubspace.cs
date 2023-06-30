@@ -1,5 +1,5 @@
 #region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 			var key = ExtractKey(packedKey, boundCheck: true);
 			if (this.KeyEncoder.TryUnpackKey(key, out var tuple))
 			{
-				return tuple.ToString();
+				return tuple.ToString() ?? string.Empty;
 			}
 			return key.PrettyPrint();
 		}

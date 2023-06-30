@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -484,7 +484,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
-					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+					tr.Options.WithReadYourWritesDisable();
 					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("KGETKEY")));
 				}
 
@@ -737,7 +737,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					await tr.OnErrorAsync(FdbError.PastVersion).ConfigureAwait(false);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld).ConfigureAwait(false);
 					await tr.OnErrorAsync(FdbError.NotCommitted).ConfigureAwait(false);
 				}
 
@@ -754,7 +754,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 						//}
 						//catch(FdbException e)
 						{
-							var code = i > 1 && i < 10 ? FdbError.PastVersion : FdbError.CommitUnknownResult;
+							var code = i > 1 && i < 10 ? FdbError.TransactionTooOld : FdbError.CommitUnknownResult;
 							var sw = Stopwatch.StartNew();
 							await tr.OnErrorAsync(code).ConfigureAwait(false);
 							sw.Stop();

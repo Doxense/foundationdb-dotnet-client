@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,10 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
@@ -47,20 +49,24 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <returns>New transaction instance that can read from the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
-		/// <code>
-		/// using(var tr = db.BeginReadOnlyTransaction(CancellationToken.None))
-		/// {
-		///		var result = await tr.Get(Slice.FromString("Hello"));
-		///		var items = await tr.GetRange(KeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
-		/// }
-		/// </code>
-		/// </example>
 		[Pure]
+		[Obsolete("Use BeginReadOnlyTransaction() instead")]
 		public static async ValueTask<IFdbReadOnlyTransaction> BeginReadOnlyTransactionAsync(this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db);
-			return await db.BeginTransactionAsync(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
+			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
+		}
+
+		/// <summary>Start a new read-only transaction on this database</summary>
+		/// <param name="db">Database instance</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		[Pure]
+		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken ct)
+		{
+			Contract.NotNull(db);
+			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
 		}
 
 		/// <summary>Start a new transaction on this database</summary>
@@ -68,70 +74,182 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
-		/// using(var tr = db.BeginTransaction(CancellationToken.None))
-		/// {
-		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
-		///		tr.Clear(Slice.FromString("OldValue"));
-		///		await tr.CommitAsync();
-		/// }</example>
 		[Pure]
+		[Obsolete("Use BeginTransaction() instead")]
 		public static ValueTask<IFdbTransaction> BeginTransactionAsync(this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db);
-			return db.BeginTransactionAsync(FdbTransactionMode.Default, ct, default(FdbOperationContext));
+			return db.BeginTransactionAsync(FdbTransactionMode.Default, ct);
+		}
+
+		/// <summary>Start a new transaction on this database</summary>
+		/// <param name="db">Database instance</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		[Pure]
+		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken ct)
+		{
+			Contract.NotNull(db);
+			return db.BeginTransaction(FdbTransactionMode.Default, ct);
+		}
+
+		#endregion
+
+		#region Tenants...
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant(this IFdbDatabase db, Slice name)
+		{
+			Contract.NotNull(db);
+			if (name.IsNullOrEmpty) throw new ArgumentException("Tenant name cannot be empty", nameof(name));
+			return db.GetTenant(FdbTenantName.Create(name));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant(this IFdbDatabase db, ReadOnlySpan<byte> name)
+		{
+			Contract.NotNull(db);
+			if (name.Length == 0) throw new ArgumentException("Tenant name cannot be empty", nameof(name));
+			return db.GetTenant(FdbTenantName.Create(name));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<TTuple>(this IFdbDatabase db, TTuple name)
+			where TTuple : IVarTuple
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			if (name.Count == 0) throw new ArgumentException("Tenant name cannot be empty", nameof(name));
+			return db.GetTenant(FdbTenantName.FromTuple(name));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1>(this IFdbDatabase db, ValueTuple<T1> name)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.FromTuple(name));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1, T2>(this IFdbDatabase db, ValueTuple<T1, T2> name)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.FromTuple(name));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1, T2, T3>(this IFdbDatabase db, ValueTuple<T1, T2, T3> name)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.FromTuple(name));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1, T2, T3, T4>(this IFdbDatabase db, ValueTuple<T1, T2, T3, T4> name)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
 		#endregion
 
 		#region Options...
 
-		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="size">Max location cache entries</param>
-		public static void SetLocationCacheSize(this IFdbDatabase db, int size)
+		/// <summary>Set the default Timeout value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultTimeout(this IFdbDatabaseOptions options, TimeSpan timeout)
 		{
-			Contract.NotNull(db);
+			options.DefaultTimeout = timeout == TimeSpan.Zero ? 0 : checked((int) Math.Ceiling(timeout.TotalMilliseconds));
+			return options;
+		}
+
+		/// <summary>Set the default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultTimeout(this IFdbDatabaseOptions options, int timeout)
+		{
+			options.DefaultTimeout = timeout;
+			return options;
+		}
+
+		/// <summary>Set the default Retry Limit value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultRetryLimit(this IFdbDatabaseOptions options, int limit)
+		{
+			options.DefaultRetryLimit = limit;
+			return options;
+		}
+
+		/// <summary>Set the default maximum retry delay value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultMaxRetryDelay(this IFdbDatabaseOptions options, TimeSpan timeout)
+		{
+			options.DefaultMaxRetryDelay = timeout == TimeSpan.Zero ? 0 : checked((int) Math.Ceiling(timeout.TotalMilliseconds));
+			return options;
+		}
+
+		/// <summary>Set the default maximum retry delay value (in milliseconds) for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultMaxRetryDelay(this IFdbDatabaseOptions options, int timeout)
+		{
+			options.DefaultMaxRetryDelay = timeout;
+			return options;
+		}
+
+		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
+		/// <param name="options">Database instance</param>
+		/// <param name="size">Max location cache entries</param>
+		public static IFdbDatabaseOptions WithLocationCacheSize(this IFdbDatabaseOptions options, int size)
+		{
 			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
 
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.LocationCacheSize, size);
+			return options.SetOption(FdbDatabaseOption.LocationCacheSize, size);
 		}
 
 		/// <summary>Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.</summary>
-		/// <param name="db">Database instance</param>
+		/// <param name="options">Database instance</param>
 		/// <param name="count">Max outstanding watches</param>
-		public static void SetMaxWatches(this IFdbDatabase db, int count)
+		public static IFdbDatabaseOptions WithMaxWatches(this IFdbDatabaseOptions options, int count)
 		{
-			Contract.NotNull(db);
 			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
 
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.MaxWatches, count);
+			return options.SetOption(FdbDatabaseOption.MaxWatches, count);
 		}
 
 		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
-		/// <param name="db">Database instance</param>
+		/// <param name="options">Database instance</param>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetMachineId(this IFdbDatabase db, string hexId)
+		public static IFdbDatabaseOptions WithMachineId(this IFdbDatabaseOptions options, string hexId)
 		{
-			Contract.NotNull(db);
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.MachineId, hexId);
+			return options.SetOption(FdbDatabaseOption.MachineId, hexId.AsSpan());
+		}
+
+		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
+		/// <param name="options">Database instance</param>
+		/// <param name="hexId">Hexadecimal ID</param>
+		public static IFdbDatabaseOptions WithMachineId(this IFdbDatabaseOptions options, ReadOnlySpan<char> hexId)
+		{
+			return options.SetOption(FdbDatabaseOption.MachineId, hexId);
 		}
 
 		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
-		/// <param name="db">Database instance</param>
+		/// <param name="options">Database instance</param>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetDataCenterId(this IFdbDatabase db, string hexId)
+		public static IFdbDatabaseOptions WithDataCenterId(this IFdbDatabaseOptions options, string hexId)
 		{
-			Contract.NotNull(db);
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.DataCenterId, hexId);
+			return options.SetOption(FdbDatabaseOption.DataCenterId, hexId.AsSpan());
+		}
+
+		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
+		/// <param name="options">Database instance</param>
+		/// <param name="hexId">Hexadecimal ID</param>
+		public static IFdbDatabaseOptions WithDataCenterId(this IFdbDatabaseOptions options, ReadOnlySpan<char> hexId)
+		{
+			return options.SetOption(FdbDatabaseOption.DataCenterId, hexId);
 		}
 
 		#endregion

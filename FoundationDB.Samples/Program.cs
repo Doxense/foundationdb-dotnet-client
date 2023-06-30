@@ -184,8 +184,8 @@ namespace FoundationDB.Samples
 
 				using (Db)
 				{
-					Db.DefaultTimeout = 30 * 1000;
-					Db.DefaultRetryLimit = 10;
+					Db.Options.DefaultTimeout = 30 * 1000;
+					Db.Options.DefaultRetryLimit = 10;
 
 					Console.WriteLine("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")");
 					Console.WriteLine("Cluster file: " + (clusterFile ?? "<default>"));

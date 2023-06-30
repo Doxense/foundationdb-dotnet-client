@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,10 @@ namespace FoundationDB.Client
 		/// <summary>Local id of the transaction</summary>
 		/// <remarks>This id is only guaranteed unique inside the current AppDomain or process and is reset on every restart. It should only be used for diagnostics and/or logging.</remarks>
 		int Id { get; }
+
+		IFdbDatabase Database { get; }
+
+		IFdbTenant? Tenant { get; }
 
 		/// <summary>Context of this transaction.</summary>
 		FdbOperationContext Context { get; }
@@ -158,6 +162,21 @@ namespace FoundationDB.Client
 		/// <remarks>Depending on the API level or whether database option <see cref="FdbTransactionOption.IncludePortInAddress"/> is set, the returned string may or may not include the port numbers</remarks>
 		Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key);
 
+		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
+		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
+		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize);
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey);
+
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		Task<long> GetReadVersionAsync();
 
@@ -202,41 +221,8 @@ namespace FoundationDB.Client
 		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retry-able.</returns>
 		Task OnErrorAsync(FdbError code);
 
-		/// <summary>Set an option on this transaction that does not take any parameter</summary>
-		/// <param name="option">Option to set</param>
-		void SetOption(FdbTransactionOption option);
-
-		/// <summary>Set an option on this transaction that takes a string value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter (can be null)</param>
-		void SetOption(FdbTransactionOption option, string value);
-
-		void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value);
-
-		/// <summary>Set an option on this transaction that takes an integer value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
-		void SetOption(FdbTransactionOption option, long value);
-
-		/// <summary>Timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
-		/// Valid parameter values are ``[0, int.MaxValue]``.
-		/// If set to 0, will disable all timeouts.
-		/// All pending and any future uses of the transaction will throw an exception.
-		/// The transaction can be used again after it is reset.
-		/// </summary>
-		int Timeout { get; set; }
-
-		/// <summary>Maximum number of retries after which additional calls to onError will throw the most recently seen error code.
-		/// Valid parameter values are ``[-1, int.MaxValue]``.
-		/// If set to -1, will disable the retry limit.
-		/// </summary>
-		int RetryLimit { get; set; }
-
-		/// <summary>Maximum amount of back-off delay incurred in the call to onError if the error is retry-able.
-		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
-		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
-		/// </summary>
-		int MaxRetryDelay { get; set; }
+		/// <summary>Helper that can set options for this transaction</summary>
+		IFdbTransactionOptions Options { get; }
 
 		/// <summary>Log of all operations performed on this transaction (if logging was enabled on the database or transaction)</summary>
 		FdbTransactionLog? Log { get; }

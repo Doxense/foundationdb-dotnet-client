@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -106,6 +106,18 @@ namespace FoundationDB.Client
 			{
 				Contract.Debug.Requires(transaction != null && db != null);
 				return new InvalidOperationException($"Failed to register transaction #{transaction.Id}");
+			}
+
+			internal static Exception FailedToRegisterTenantOnDatabase(IFdbTenant tenant, FdbDatabase db)
+			{
+				Contract.Debug.Requires(tenant!= null && db != null);
+				return new InvalidOperationException($"Failed to register tenant @{tenant.Name}");
+			}
+
+			internal static Exception FailedToRegisterTransactionOnTenant(IFdbTransaction transaction, FdbTenant tenant)
+			{
+				Contract.Debug.Requires(transaction != null && tenant != null);
+				return new InvalidOperationException($"Failed to register transaction #{transaction.Id} on tenant @{tenant.Name}");
 			}
 
 			internal static Exception CannotIncrementKey()

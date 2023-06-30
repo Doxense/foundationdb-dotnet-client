@@ -42,7 +42,7 @@ namespace FoundationDB.Samples.Benchmarks
 			// estimate the number of machines...
 			Console.WriteLine("# Detecting cluster topology...");
 			var servers = await db.QueryAsync(tr => tr
-				.WithReadAccessToSystemKeys()
+				.WithOptions(options => options.WithReadAccessToSystemKeys())
 				.GetRange(KeyRange.StartsWith(Fdb.System.ServerList))
 				.Select(kvp => new
 				{

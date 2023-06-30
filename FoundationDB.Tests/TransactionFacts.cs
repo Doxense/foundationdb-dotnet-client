@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2022, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ namespace FoundationDB.Client.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -113,7 +114,7 @@ namespace FoundationDB.Client.Tests
 					await tr.GetAsync(subspace.Encode("Hello"));
 
 					// any attempt to recast into a writable transaction should fail!
-					var tr2 = (IFdbTransaction)tr;
+					var tr2 = (IFdbTransaction) tr;
 					Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
 					var location = subspace.Partition.ByKey("ReadOnly");
 					Assert.That(() => tr2.Set(location.Encode("Hello"), Slice.Empty), Throws.InvalidOperationException);
@@ -147,17 +148,17 @@ namespace FoundationDB.Client.Tests
 
 					Assert.That(tr1, Is.InstanceOf<FdbTransaction>());
 					Assert.That(tr2, Is.InstanceOf<FdbTransaction>());
-					Assert.That(((FdbTransaction)tr1).Handler, Is.Not.EqualTo(((FdbTransaction)tr2).Handler), "Should have different FDB_FUTURE* handles");
+					Assert.That(((FdbTransaction) tr1).Handler, Is.Not.EqualTo(((FdbTransaction) tr2).Handler), "Should have different FDB_FUTURE* handles");
 
 					// disposing the first should not impact the second
 
 					tr1.Dispose();
 
-					Assert.That(((FdbTransaction)tr1).StillAlive, Is.False, "First transaction should be dead");
-					Assert.That(((FdbTransaction)tr1).Handler.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
+					Assert.That(((FdbTransaction) tr1).StillAlive, Is.False, "First transaction should be dead");
+					Assert.That(((FdbTransaction) tr1).Handler.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
 
-					Assert.That(((FdbTransaction)tr2).StillAlive, Is.True, "Second transaction should still be alive");
-					Assert.That(((FdbTransaction)tr2).Handler.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
+					Assert.That(((FdbTransaction) tr2).StillAlive, Is.True, "Second transaction should still be alive");
+					Assert.That(((FdbTransaction) tr2).Handler.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
 				}
 				finally
 				{
@@ -183,8 +184,8 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 					// => should not fail!
 
-					Assert.That(((FdbTransaction)tr).StillAlive, Is.False);
-					Assert.That(((FdbTransaction)tr).State, Is.EqualTo(FdbTransaction.STATE_COMMITTED));
+					Assert.That(((FdbTransaction) tr).StillAlive, Is.False);
+					Assert.That(((FdbTransaction) tr).State, Is.EqualTo(FdbTransaction.STATE_COMMITTED));
 				}
 			}
 		}
@@ -225,8 +226,8 @@ namespace FoundationDB.Client.Tests
 					tr.Cancel();
 					// => should not fail!
 
-					Assert.That(((FdbTransaction)tr).StillAlive, Is.False);
-					Assert.That(((FdbTransaction)tr).State, Is.EqualTo(FdbTransaction.STATE_CANCELED));
+					Assert.That(((FdbTransaction) tr).StillAlive, Is.False);
+					Assert.That(((FdbTransaction) tr).State, Is.EqualTo(FdbTransaction.STATE_CANCELED));
 				}
 			}
 		}
@@ -316,7 +317,7 @@ namespace FoundationDB.Client.Tests
 
 				var rnd = new Random();
 
-				using(var cts = new CancellationTokenSource())
+				using (var cts = new CancellationTokenSource())
 				using (var tr = await db.BeginTransactionAsync(cts.Token))
 				{
 					var subspace = (await location.Resolve(tr))!;
@@ -429,6 +430,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				#region Insert a bunch of keys ...
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
@@ -442,9 +444,11 @@ namespace FoundationDB.Client.Tests
 					{
 						tr.Set(subspace[i], Value(i.ToString()));
 					}
+
 					tr.Set(subspace.Append(FdbKey.MaxValue), Value("max"));
 					await tr.CommitAsync();
 				}
+
 				#endregion
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -552,7 +556,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(async () => await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 					Assert.That(async () => await tr.GetKeyAsync(KeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 
 					var firstSystemKey = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
@@ -592,6 +596,7 @@ namespace FoundationDB.Client.Tests
 					{
 						tr.Set(subspace[i], Value("#" + i.ToString()));
 					}
+
 					await tr.CommitAsync();
 				}
 
@@ -608,7 +613,7 @@ namespace FoundationDB.Client.Tests
 
 					Log(string.Join(", ", results));
 
-					for (int i = 0; i < ids.Length;i++)
+					for (int i = 0; i < ids.Length; i++)
 					{
 						Assert.That(results[i].ToString(), Is.EqualTo("#" + ids[i].ToString()));
 					}
@@ -621,12 +626,13 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 20;
 
-			using(var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("keys").AsTyped<int>();
 				await CleanLocation(db, location);
 
 				#region Insert a bunch of keys ...
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
@@ -640,9 +646,11 @@ namespace FoundationDB.Client.Tests
 					{
 						tr.Set(subspace[i], Value(i.ToString()));
 					}
+
 					tr.Set(subspace.Append(FdbKey.MaxValue), Value("max"));
 					await tr.CommitAsync();
 				}
+
 				#endregion
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -666,7 +674,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// GetKeysAsync(cast to enumerable)
-					var results2 = await tr.GetKeysAsync((IEnumerable<KeySelector>)selectors);
+					var results2 = await tr.GetKeysAsync((IEnumerable<KeySelector>) selectors);
 					Assert.That(results2, Is.EqualTo(results));
 
 					// GetKeysAsync(real enumerable)
@@ -1163,7 +1171,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Snapshot_Read()
 		{
-			using(var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1815,7 +1823,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = (await location.Resolve(tr))!;
 
-					tr.SetOption(FdbTransactionOption.SnapshotReadYourWriteDisable);
+					tr.Options.WithSnapshotReadYourWritesDisable();
 
 					// check initial state
 					Assert.That((await tr.GetAsync(subspace["A"])).ToStringUtf8(), Is.EqualTo("a"));
@@ -1897,7 +1905,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = (await location.Resolve(tr))!;
 
-					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+					tr.Options.WithReadYourWritesDisable();
 
 					var data = await tr.GetAsync(subspace.Encode("a"));
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
@@ -1991,7 +1999,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					// should succeed once system access has been requested
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 
 					var keys = await tr.GetRange(Slice.FromByteString("\xFF"), Slice.FromByteString("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
@@ -2006,17 +2014,17 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					Assert.That(tr.Timeout, Is.EqualTo(15000), "Timeout (default)");
-					Assert.That(tr.RetryLimit, Is.Zero, "RetryLimit (default)");
-					Assert.That(tr.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(15000), "Timeout (default)");
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "RetryLimit (default)");
+					Assert.That(tr.Options.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
 
-					tr.Timeout = 1000; // 1 sec max
-					tr.RetryLimit = 5; // 5 retries max
-					tr.MaxRetryDelay = 500; // .5 sec max
+					tr.Options.Timeout = 1000; // 1 sec max
+					tr.Options.RetryLimit = 5; // 5 retries max
+					tr.Options.MaxRetryDelay = 500; // .5 sec max
 
-					Assert.That(tr.Timeout, Is.EqualTo(1000), "Timeout");
-					Assert.That(tr.RetryLimit, Is.EqualTo(5), "RetryLimit");
-					Assert.That(tr.MaxRetryDelay, Is.EqualTo(500), "MaxRetryDelay");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(1000), "Timeout");
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(5), "RetryLimit");
+					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(500), "MaxRetryDelay");
 				}
 			}
 		}
@@ -2026,42 +2034,42 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
-				Assert.That(db.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
+				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
+				Assert.That(db.Options.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
+				Assert.That(db.Options.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
 
-				db.DefaultTimeout = 500;
-				db.DefaultRetryLimit = 3;
-				db.DefaultMaxRetryDelay = 600;
+				db.Options.DefaultTimeout = 500;
+				db.Options.DefaultRetryLimit = 3;
+				db.Options.DefaultMaxRetryDelay = 600;
 
-				Assert.That(db.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
-				Assert.That(db.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
-				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(600), "db.DefaultMaxRetryDelay");
+				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
+				Assert.That(db.Options.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
+				Assert.That(db.Options.DefaultMaxRetryDelay, Is.EqualTo(600), "db.DefaultMaxRetryDelay");
 
 				// transaction should be already configured with the default options
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
-					Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
-					Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
+					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.Options.MaxRetryDelay");
 
 					// changing the default on the db should only affect new transactions
 
-					db.DefaultTimeout = 600;
-					db.DefaultRetryLimit = 4;
-					db.DefaultMaxRetryDelay = 700;
+					db.Options.DefaultTimeout = 600;
+					db.Options.DefaultRetryLimit = 4;
+					db.Options.DefaultMaxRetryDelay = 700;
 
 					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						Assert.That(tr2.Timeout, Is.EqualTo(600), "tr2.Timeout");
-						Assert.That(tr2.RetryLimit, Is.EqualTo(4), "tr2.RetryLimit");
-						Assert.That(tr2.MaxRetryDelay, Is.EqualTo(700), "tr2.MaxRetryDelay");
+						Assert.That(tr2.Options.Timeout, Is.EqualTo(600), "tr2.Options.Timeout");
+						Assert.That(tr2.Options.RetryLimit, Is.EqualTo(4), "tr2.Options.RetryLimit");
+						Assert.That(tr2.Options.MaxRetryDelay, Is.EqualTo(700), "tr2.Options.MaxRetryDelay");
 
 						// original tr should not be affected
-						Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
-						Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
-						Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
+						Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
+						Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
+						Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.Options.MaxRetryDelay");
 					}
 				}
 			}
@@ -2073,12 +2081,12 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
+				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
+				Assert.That(db.Options.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 
 				// By default, a transaction that gets reset or retried, clears the RetryLimit and Timeout settings, which needs to be reset everytime.
 				// But if the DefaultRetryLimit and DefaultTimeout are set on the database instance, they should automatically be re-applied inside transaction loops!
-				db.DefaultRetryLimit = 3;
+				db.Options.DefaultRetryLimit = 3;
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
@@ -2094,10 +2102,10 @@ namespace FoundationDB.Client.Tests
 						Assert.Fail("The retry loop was called too many times!");
 					}
 
-					Assert.That(tr.RetryLimit, Is.EqualTo(3));
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
 
 					// simulate a retryable error condition
-					throw new FdbException(FdbError.PastVersion);
+					throw new FdbException(FdbError.TransactionTooOld);
 				}, go.Token);
 
 				try
@@ -2108,8 +2116,9 @@ namespace FoundationDB.Client.Tests
 				catch (AssertionException) { throw; }
 				catch (Exception e)
 				{
-					Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
+					Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.TransactionTooOld));
 				}
+
 				Assert.That(counter, Is.EqualTo(4), "1 first attempt + 3 retries = 4 executions");
 			}
 		}
@@ -2124,25 +2133,25 @@ namespace FoundationDB.Client.Tests
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// simulate a first error
-					tr.RetryLimit = 10;
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
+					tr.Options.RetryLimit = 10;
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// simulate some more errors
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we still haven't failed 10 times..
-					tr.RetryLimit = 10;
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
+					tr.Options.RetryLimit = 10;
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we already have failed 6 times, so this one should abort
-					tr.RetryLimit = 2; // value is too low
-					Assert.That(async () => await tr.OnErrorAsync(FdbError.PastVersion), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
+					tr.Options.RetryLimit = 2; // value is too low
+					Assert.That(async () => await tr.OnErrorAsync(FdbError.TransactionTooOld), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.TransactionTooOld));
 				}
 			}
 		}
@@ -2390,6 +2399,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Addresses_For_Key()
 		{
+			//note: starting from API level 630, options IncludePortInAddress is the default!
+
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("location_api");
@@ -2420,8 +2431,14 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < addresses.Length; i++)
 					{
-						Assert.That(System.Net.IPAddress.TryParse(addresses[i], out IPAddress address), Is.True, "Result address {0} does not seem to be a valid IP address", addresses[i]);
-						Log($"- {address}");
+						var addr = addresses[i];
+						Log($"- {addr}");
+						// we expect "IP:PORT"
+						Assert.That(addr, Is.Not.Null.Or.Empty);
+						Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
+						int p = addr.IndexOf(':');
+						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out IPAddress address), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
+						Assert.That(int.TryParse(addr.Substring(p + 1), out var port), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
 					}
 				}
 
@@ -2438,13 +2455,18 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < addresses.Length; i++)
 					{
-						Assert.That(System.Net.IPAddress.TryParse(addresses[i], out IPAddress address), Is.True, "Result address {0} does not seem to be a valid IP address", addresses[i]);
-						Log($"- {address}");
+						var addr = addresses[i];
+						Log($"- {addr}");
+						// we expect "IP:PORT"
+						Assert.That(addr, Is.Not.Null.Or.Empty);
+						Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
+						int p = addr.IndexOf(':');
+						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out IPAddress address), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
+						Assert.That(int.TryParse(addr.Substring(p + 1), out var port), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
 					}
 
 				}
 			}
-
 		}
 
 		[Test]
@@ -2458,7 +2480,7 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 					// dump nodes
 					Log("Server List:");
 					var servers = await tr.GetRange(Fdb.System.ServerList, Fdb.System.ServerList + Fdb.System.MaxValue)
@@ -2478,6 +2500,7 @@ namespace FoundationDB.Client.Tests
 						Log($"  > machine    = {machineId}");
 						Log($"  > datacenter = {dataCenterId}");
 					}
+
 					Log();
 
 					// dump keyServers
@@ -2501,23 +2524,26 @@ namespace FoundationDB.Client.Tests
 
 						int n = (key.Value.Count - 16) >> 4;
 						if (ids == null || ids.Length != n) ids = new string[n];
-						for(int i=0;i<n;i++)
+						for (int i = 0; i < n; i++)
 						{
 							ids[i] = key.Value.Substring(12 + i * 16, 16).ToHexaString();
 							distinctNodes.Add(ids[i]);
 						}
+
 						replicationFactor = Math.Max(replicationFactor, ids.Length);
 
 						// the node id seems to be at offset 12
 
 						//Log("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
+
 					Log();
 					Log($"Distinct nodes: {distinctNodes.Count}");
-					foreach(var machine in distinctNodes)
+					foreach (var machine in distinctNodes)
 					{
 						Log("- " + machine);
 					}
+
 					Log();
 					Log($"Cluster topology: {distinctNodes.Count} process(es) with {(replicationFactor == 1 ? "single" : replicationFactor == 2 ? "double" : replicationFactor == 3 ? "triple" : replicationFactor.ToString())} replication");
 				}
@@ -2898,7 +2924,7 @@ namespace FoundationDB.Client.Tests
 						case 0:
 						{ // start a new transaction
 							sb.Append('T');
-							var tr = await db.BeginTransactionAsync(FdbTransactionMode.Default, this.Cancellation);
+							var tr = db.BeginTransaction(FdbTransactionMode.Default, this.Cancellation);
 							alive.Add(tr);
 
 							break;
@@ -2927,7 +2953,7 @@ namespace FoundationDB.Client.Tests
 						case 3:
 						{ // GC!
 							sb.Append('C');
-							var tr = await db.BeginTransactionAsync(FdbTransactionMode.ReadOnly, this.Cancellation);
+							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
 							alive.Add(tr);
 							_ = await tr.GetReadVersionAsync();
 							break;
@@ -2952,6 +2978,7 @@ namespace FoundationDB.Client.Tests
 							{
 								sb.Append('!');
 							}
+
 							break;
 						}
 						case 7:
@@ -2971,6 +2998,7 @@ namespace FoundationDB.Client.Tests
 						}
 
 					}
+
 					if ((time++) % 80 == 0)
 					{
 						Log(sb.ToString());
@@ -2983,6 +3011,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 				}
+
 				GC.Collect();
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
@@ -3432,6 +3461,326 @@ namespace FoundationDB.Client.Tests
 					}, this.Cancellation);
 
 					Assert.That(async () => await task, Is.EqualTo("Something"));
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Approximate_Size()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				// GET(KEY)
+				Log("GET(KEY):");
+				await db.ReadWriteAsync(
+					async (tr) =>
+					{
+						// at the start, we expect a size of 0
+						var size = await tr.GetApproximateSizeAsync();
+						Log($"> Size at the start => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						// currently, the formula seems to be: GET(KEY, VALUE) => 25 + (2 * KEY.Length)
+
+						await tr.GetAsync(Slice.Empty);
+						var prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Literal("A"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 'A' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Literal("B"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 'B' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Literal("AB"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 'AB' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Literal(new string('z', 1000)));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 1k*'z' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						// prevent the transaction from commiting !
+						tr.Reset();
+
+						// after the reset, we expect the size to be back at 0
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reset => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						return size;
+					},
+					this.Cancellation);
+
+				// SET(KEY, VALUE)
+				Log("SET(KEY, VALUE):");
+				await db.WriteAsync(
+					async (tr) =>
+					{
+						// at the start, we expect a size of 0
+						var size = await tr.GetApproximateSizeAsync();
+						Log($"> Size at the start => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						// we will NOT commit the transaction, so we can simply write "anywhere"
+
+						// currently, the formula seems to be: SET(KEY, VALUE) => 53 + (3 * KEY.Length) + VALUE.Length
+
+						tr.Set(Slice.Empty, Slice.Empty);
+						var prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing '' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						tr.Set(Literal("A"), Slice.Empty);
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'A' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Literal("B"), Slice.Empty);
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'B' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Literal("AB"), Slice.Empty);
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'AB' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Literal("C"), Value("A"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'C' = 'A' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Literal("D"), Value(new string('z', 1000)));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'D' = 1k * 'z' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						// prevent the transaction from commiting !
+						tr.Reset();
+
+						// after the reset, we expect the size to be back at 0
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reset => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+					},
+					this.Cancellation);
+
+				// SET(KEY, VALUE)
+				Log("CLEAR(KEY):");
+				await db.WriteAsync(
+					async (tr) =>
+					{
+						// at the start, we expect a size of 0
+						var size = await tr.GetApproximateSizeAsync();
+						Log($"> Size at the start => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						// we will NOT commit the transaction, so we can simply write "anywhere"
+
+						// currently, the formula seems to be: CLEAR(KEY) => 50 + (4 * KEY.Length)
+
+						tr.Clear(Slice.Empty);
+						var prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearaing '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						tr.Clear(Literal("A"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 'A' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Clear(Literal("B"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 'B' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Clear(Literal("AB"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 'AB' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Clear(Literal(new string('z', 1000)));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 1k * 'z' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						// prevent the transaction from commiting !
+						tr.Reset();
+
+						// after the reset, we expect the size to be back at 0
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reset => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+					},
+					this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Range_Split_Points()
+		{
+			const int NUM_ITEMS = 100_000;
+			const int VALUE_SIZE = 50;
+			const int CHUNK_SIZE = (NUM_ITEMS * (VALUE_SIZE + 16)) / 100; // we would like to split in ~100 chunks
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("range_split_points");
+				await CleanLocation(db, location);
+
+				// we will setup a list of 1K keys with randomized value size (that we keep track of)
+				var rnd = new Random(123456);
+				var values = Enumerable.Range(0, NUM_ITEMS).Select(i => Slice.Random(rnd, VALUE_SIZE)).ToArray();
+
+				const int BATCH_SIZE = 1_000_000 / VALUE_SIZE;
+				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes ({BATCH_SIZE:N0} per batch)");
+				for (int i = 0; i < values.Length; i += BATCH_SIZE)
+				{
+					await db.WriteAsync(async (tr) =>
+					{
+						var subspace = (await location.Resolve(tr))!;
+
+						// fill the db with keys from (0,) = XXX to (N-1,) = XXX
+						for (int j = 0; j < BATCH_SIZE && i + j < values.Length; j++)
+						{
+							tr.Set(subspace.Encode(i + j), values[i + j]);
+						}
+					}, this.Cancellation);
+				}
+
+				//db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+				Log($"Get split points for chunks of {CHUNK_SIZE:N0} bytes...");
+				var keys = await db.ReadAsync(async (tr) =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+
+					var begin = subspace.Encode(0);
+					var end = subspace.Encode(values.Length);
+
+					var keys = await tr.GetRangeSplitPointsAsync(begin, end, CHUNK_SIZE);
+					Assert.That(keys, Is.Not.Null.Or.Empty);
+					Log($"Found {keys.Length} split points");
+
+					// looking at the implementation, it guarantess that the first and last "split points" will be the bounds of the range repeated (even if the keys do not exist)
+					Assert.That(keys, Has.Length.GreaterThan(2), "We expect at least 1 split point between the bounds of the range!");
+					Assert.That(keys[0], Is.EqualTo(begin), "First key should be the start of the range");
+					Assert.That(keys[keys.Length - 1], Is.EqualTo(end), "Last key should be the end of the range");
+
+					// all keys should be in ascending order
+					for (int i = 1; i < keys.Length; i++)
+					{
+						Assert.That(keys[i], Is.GreaterThan(keys[i - 1]), "Split points should be sorted");
+					}
+					return keys;
+				}, this.Cancellation);
+
+				var chunks = new List<KeyValuePair<Slice, Slice>[]>();
+
+				for(int i = 0; i < keys.Length - 1; i++)
+				{
+					var (chunk, begin, end) = await db.ReadAsync(async tr => 
+					{
+						var subspace = (await location.Resolve(tr))!;
+
+						// we will get all the keys in between and dump some statistics
+						var range = KeyRange.Create(keys[i], keys[i + 1]);
+						var chunk = await tr.GetRange(range).ToArrayAsync();
+
+						return (chunk, subspace.PrettyPrint(range.Begin), subspace.PrettyPrint(range.End));
+					}, this.Cancellation);
+
+					chunks.Add(chunk);
+					Assert.That(chunk, Is.Not.Null.Or.Empty, "There should be at least one key in chunk {0}..{1}", begin, end);
+					var actualChunkSize = chunk.Sum(kv => kv.Key.Count + kv.Value.Count);
+					Log($"> {begin} .. {end}:\t{chunk.Length,6:N0} results, size(k+v) = {actualChunkSize,7:N0} bytes, ratio = {(100.0 * actualChunkSize) / CHUNK_SIZE,6:N0}%");
+
+				}
+
+				Log($"Statistics: smallest = {chunks.Min(c => c.Sum(kv => kv.Value.Count)):N0} bytes, largest = {chunks.Max(c => c.Sum(kv => kv.Value.Count)):N0} bytes, average = {chunks.Average(c => c.Sum(kv => kv.Value.Count)):N0} bytes");
+
+				// we should have read all our keys!
+				Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(NUM_ITEMS), "All keys should be accounted for");
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Estimated_Range_Size_Bytes()
+		{
+			const int NUM_ITEMS = 50_000;
+			const int VALUE_SIZE = 32;
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("range_size_bytes");
+				await CleanLocation(db, location);
+
+				// we will setup a list of N keys with randomized value size (that we keep track of)
+				var rnd = new Random(123456);
+				var values = Enumerable.Range(0, NUM_ITEMS).Select(i => Slice.Random(rnd, VALUE_SIZE)).ToArray();
+
+				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes");
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+
+					// fill the db with keys from (0,) = XXX to (N-1,) = XXX
+					for (int i = 0; i < values.Length; i++)
+					{
+						tr.Set(subspace.Encode(i), values[i]);
+					}
+				}, this.Cancellation);
+
+				Log($"Get estimated ranges size...");
+				for (int i = 0; i < 25; i++)
+				{
+					await db.ReadAsync(async (tr) =>
+					{
+						var subspace = (await location.Resolve(tr))!;
+
+						int x = rnd.Next(NUM_ITEMS);
+						int y = rnd.Next(NUM_ITEMS);
+						if (x == y) y++;
+						if (x > y) { (x, y) = (y, x); }
+
+						var begin = subspace.Encode(x);
+						var end = subspace.Encode(y);
+
+						var estimatedSize = await tr.GetEstimatedRangeSizeBytesAsync(begin, end);
+
+						var exactSize = await tr.GetRange(begin, end).SumAsync(kv => kv.Value.Count + kv.Key.Count);
+
+						Log($"> ({x,6:N0} .. {y,6:N0}): estimated = {estimatedSize,9:N0} bytes, exact(key+value) = {exactSize,9:N0} bytes, ratio = {(100.0 * estimatedSize) / exactSize,6:N1}%");
+						Assert.That(estimatedSize, Is.GreaterThanOrEqualTo(0)); //note: it is _possible_ to have 0 for very small ranges :(
+
+						return estimatedSize;
+					}, this.Cancellation);
 				}
 			}
 		}

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 		internal const int MaxSafeApiVersion = FdbNative.FDB_API_MAX_VERSION;
 
 		/// <summary>Default API version that will be selected, if the application does not specify otherwise.</summary>
-		internal const int DefaultApiVersion = 620; // v6.2.x
+		internal const int DefaultApiVersion = 710; // v7.1.x
 		//INVARIANT: MinSafeApiVersion <= DefaultApiVersion <= MaxSafeApiVersion
 
 		#endregion
@@ -208,53 +208,47 @@ namespace FoundationDB.Client
 			if (max != null && max.Value < version) throw new NotSupportedException($"The current fdb API version is {version}, which is higher than the maximum version {max.Value} required by the caller.");
 		}
 
-		/// <summary>Returns true if the error code represents a success</summary>
+		/// <summary>[DEPRECATED] Returns true if the error code represents a success</summary>
+		[Obsolete("Use FdbNative.Success instead")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool Success(FdbError code)
 		{
 			return code == FdbError.Success;
 		}
 
-		/// <summary>Returns true if the error code represents a failure</summary>
+		/// <summary>[DEPRECATED] Returns true if the error code represents a failure</summary>
+		[Obsolete("Use FdbNative.Failed instead")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool Failed(FdbError code)
 		{
 			return code != FdbError.Success;
 		}
 
-		/// <summary>Throws an exception if the code represents a failure</summary>
+		/// <summary>[DEPRECATED] Throws an exception if the code represents a failure</summary>
+		[Obsolete("Use FdbNative.DieOnError instead")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void DieOnError(FdbError code)
 		{
-			if (Failed(code)) throw MapToException(code)!;
+			FdbNative.DieOnError(code);
 		}
 
-		/// <summary>Return the error message matching the specified error code</summary>
+		/// <summary>[DEPRECATED] Return the error message matching the specified error code</summary>
+		[Obsolete("Use FdbNative.GetErrorMessage instead")]
 		public static string GetErrorMessage(FdbError code)
 		{
-			return FdbNative.GetError(code);
+			//TODO: remove from this type, and move to FdbNativeDatase!
+			return FdbNative.GetErrorMessage(code);
 		}
 
-		/// <summary>Maps an error code into an Exception (to be thrown)</summary>
+		/// <summary>[DEPRECATED] Maps an error code into an Exception (to be thrown)</summary>
 		/// <param name="code">Error code returned by a native fdb operation</param>
 		/// <returns>Exception object corresponding to the error code, or null if the code is not an error</returns>
+		[Obsolete("Use FdbNative.MapToException instead")]
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception? MapToException(FdbError code)
 		{
-			if (code == FdbError.Success) return null;
-
-			string msg = GetErrorMessage(code);
-			if (msg == null) throw new FdbException(code, $"Unexpected error code {(int) code}");
-
-			//TODO: create a custom FdbException to be able to store the error code and error message
-			switch(code)
-			{
-				case FdbError.TimedOut: return new TimeoutException("Operation timed out");
-				case FdbError.LargeAllocFailed: return new OutOfMemoryException("Large block allocation failed");
-				//TODO!
-				default:
-					return new FdbException(code, msg);
-			}
+			//TODO: remove from this type, and move to FdbNativeDatase!
+			return FdbNative.MapToException(code);
 		}
 
 		#region Network Thread / Event Loop...
@@ -390,11 +384,11 @@ namespace FoundationDB.Client
 				{
 					if (s_eventLoopStopRequested || Environment.HasShutdownStarted)
 					{ // this was requested, or can be explained by the computer shutting down...
-						if (Logging.On) Logging.Info(typeof(Fdb), "EventLoop", $"The fdb network thread returned with error code {err}: {GetErrorMessage(err)}");
+						if (Logging.On) Logging.Info(typeof(Fdb), "EventLoop", $"The fdb network thread returned with error code {err}: {FdbNative.GetErrorMessage(err)}");
 					}
 					else
 					{ // this was NOT expected !
-						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", $"The fdb network thread returned with error code {err}: {GetErrorMessage(err)}");
+						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", $"The fdb network thread returned with error code {err}: {FdbNative.GetErrorMessage(err)}");
 #if DEBUG
 						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS FAILED!");
 						Console.Error.WriteLine("=> " + err);
@@ -557,11 +551,11 @@ namespace FoundationDB.Client
 				db = await CreateDatabaseInternalAsync(clusterFile, directory, root, !hasPartition && readOnly, ct).ConfigureAwait(false);
 
 				// set the default options
-				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));
-				if (options.DefaultRetryLimit != 0) db.DefaultRetryLimit = options.DefaultRetryLimit;
-				if (options.DefaultMaxRetryDelay != 0) db.DefaultMaxRetryDelay = options.DefaultMaxRetryDelay;
-				if (options.DataCenterId != null) db.SetDataCenterId(options.DataCenterId);
-				if (options.MachineId != null) db.SetMachineId(options.MachineId);
+				if (options.DefaultTimeout != TimeSpan.Zero) db.Options.WithDefaultTimeout(options.DefaultTimeout);
+				if (options.DefaultRetryLimit != 0) db.Options.WithDefaultRetryLimit(options.DefaultRetryLimit);
+				if (options.DefaultMaxRetryDelay != 0) db.Options.WithDefaultMaxRetryDelay(options.DefaultMaxRetryDelay);
+				if (options.DataCenterId != null) db.Options.WithDataCenterId(options.DataCenterId);
+				if (options.MachineId != null) db.Options.WithMachineId(options.MachineId);
 
 				if (hasPartition)
 				{ // open the partition, and switch the root of the db
@@ -639,7 +633,7 @@ namespace FoundationDB.Client
 					}
 #endif
 				}
-				DieOnError(err);
+				FdbNative.DieOnError(err);
 			}
 			s_apiVersion = apiVersion;
 			s_bindingVersion = bindingVersion;
@@ -652,60 +646,60 @@ namespace FoundationDB.Client
 				// create trace directory if missing...
 				if (!SystemIO.Directory.Exists(Fdb.Options.TracePath)) SystemIO.Directory.CreateDirectory(Fdb.Options.TracePath);
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TraceEnable, Fdb.Options.TracePath));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TraceEnable, Fdb.Options.TracePath));
 			}
 
 			if (Fdb.Options.TlsCertificateBytes.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from memory ({Fdb.Options.TlsCertificateBytes.Count} bytes)");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertBytes, Fdb.Options.TlsCertificateBytes));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertBytes, Fdb.Options.TlsCertificateBytes));
 			}
 			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsCertificatePath))
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from '{Fdb.Options.TlsCertificatePath}'");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertPath, Fdb.Options.TlsCertificatePath));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertPath, Fdb.Options.TlsCertificatePath));
 			}
 
 			if (Fdb.Options.TlsPrivateKeyBytes.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from memory ({Fdb.Options.TlsPrivateKeyBytes.Count} bytes)");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyBytes, Fdb.Options.TlsPrivateKeyBytes));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyBytes, Fdb.Options.TlsPrivateKeyBytes));
 			}
 			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsPrivateKeyPath))
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from '{Fdb.Options.TlsPrivateKeyPath}'");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyPath, Fdb.Options.TlsPrivateKeyPath));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyPath, Fdb.Options.TlsPrivateKeyPath));
 			}
 
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsPassword))
 			{
 				// let's not write the password in the log files :)
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsPassword, Fdb.Options.TlsPassword));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsPassword, Fdb.Options.TlsPassword));
 			}
 
 			if (Fdb.Options.TlsVerificationPattern.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will verify TLS peers with pattern '{Fdb.Options.TlsVerificationPattern}'");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsVerifyPeers, Fdb.Options.TlsVerificationPattern));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsVerifyPeers, Fdb.Options.TlsVerificationPattern));
 			}
 
 			if (Fdb.Options.TlsCaBytes.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS certificate authority bundle from memory ({Fdb.Options.TlsCaBytes.Count} bytes)");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCaBytes, Fdb.Options.TlsCaBytes));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsCaBytes, Fdb.Options.TlsCaBytes));
 			}
 			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsCaPath))
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS certificate authority bundle from '{Fdb.Options.TlsCaPath}'");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCaPath, Fdb.Options.TlsCaPath));
+				FdbNative.DieOnError(SetNetworkOption(FdbNetworkOption.TlsCaPath, Fdb.Options.TlsCaPath));
 			}
 
 			#endregion
@@ -728,7 +722,7 @@ namespace FoundationDB.Client
 
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", "Setting up Network Thread...");
 
-				DieOnError(FdbNative.SetupNetwork());
+				FdbNative.DieOnError(FdbNative.SetupNetwork());
 				s_started = true; //BUGBUG: already set at the start of the method. Maybe we need state flags ?
 			}
 

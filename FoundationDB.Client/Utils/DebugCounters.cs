@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,9 @@ namespace FoundationDB.Client.Utils
 
 		public static long DatabaseHandlesTotal = 0;
 		public static long DatabaseHandles = 0;
+
+		public static long TenantHandlesTotal = 0;
+		public static long TenantHandles = 0;
 
 		public static long TransactionHandlesTotal = 0;
 		public static long TransactionHandles = 0;

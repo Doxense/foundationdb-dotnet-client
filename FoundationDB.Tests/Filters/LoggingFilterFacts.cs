@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -164,7 +164,7 @@ namespace FoundationDB.Filters.Logging.Tests
 						if (tr.Context.Retries == 0)
 						{
 							// make it fail
-							//throw new FdbException(FdbError.PastVersion, "fake timeout");
+							//throw new FdbException(FdbError.TransactionTooOld, "fake timeout");
 						}
 
 					}, this.Cancellation);

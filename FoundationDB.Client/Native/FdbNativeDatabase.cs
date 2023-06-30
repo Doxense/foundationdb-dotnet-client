@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,12 +31,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Core;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
@@ -84,19 +84,19 @@ namespace FoundationDB.Client.Native
 		{
 			if (Fdb.GetMaxApiVersion() < 610)
 			{ // Older version used a different way to create a database handle
+#pragma warning disable CS0618
 				return CreateDatabaseLegacyAsync(clusterFile, ct);
+#pragma warning restore CS0618
 			}
 
 			// Starting from 6.1, creating a database handler can be done directly
 			var err = FdbNative.CreateDatabase(clusterFile, out var handle);
-			if (Fdb.Failed(err))
-			{
-				throw Fdb.MapToException(err)!;
-			}
+			FdbNative.DieOnError(err);
 
 			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile));
 		}
 
+		[Obsolete("Deprecated since API level 610")]
 		private static async ValueTask<IFdbDatabaseHandler> CreateDatabaseLegacyAsync(string? clusterFile, CancellationToken ct)
 		{
 			// In legacy API versions, you first had to create "cluster" handle and then obtain a database handle that that cluster.
@@ -111,10 +111,7 @@ namespace FoundationDB.Client.Native
 					h =>
 					{
 						var err = FdbNative.FutureGetCluster(h, out var handle);
-						if (Fdb.Failed(err))
-						{
-							throw Fdb.MapToException(err)!;
-						}
+						FdbNative.DieOnError(err);
 
 						return handle;
 					},
@@ -125,10 +122,7 @@ namespace FoundationDB.Client.Native
 					h =>
 					{
 						var err = FdbNative.FutureGetDatabase(h, out var handle);
-						if (Fdb.Failed(err))
-						{
-							throw Fdb.MapToException(err)!;
-						}
+						FdbNative.DieOnError(err);
 
 						return handle;
 					}, 
@@ -162,7 +156,7 @@ namespace FoundationDB.Client.Native
 			{
 				fixed (byte* ptr = data)
 				{
-					Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr, data.Length));
+					FdbNative.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr, data.Length));
 				}
 			}
 		}
@@ -173,17 +167,38 @@ namespace FoundationDB.Client.Native
 			try
 			{
 				var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
-				if (Fdb.Failed(err))
-				{
-					throw Fdb.MapToException(err)!;
-				}
-				return new FdbNativeTransaction(this, handle);
+				FdbNative.DieOnError(err);
+
+				return new FdbNativeTransaction(this, null, handle);
 			}
 			catch(Exception)
 			{
 				handle?.Dispose();
 				throw;
 			}
+		}
+
+		public IFdbTenantHandler OpenTenant(FdbTenantName name)
+		{
+			TenantHandle? handle = null;
+
+			try
+			{
+				var err = FdbNative.DatabaseOpenTenant(m_handle, name.Value.Span, out handle);
+				FdbNative.DieOnError(err);
+
+				return new FdbNativeTenant(this, handle);
+			}
+			catch (Exception)
+			{
+				handle?.Dispose();
+				throw;
+			}
+		}
+
+		public double GetMainThreadBusyness()
+		{
+			return FdbNative.GetMainThreadBusyness(m_handle);
 		}
 
 		public void Dispose()

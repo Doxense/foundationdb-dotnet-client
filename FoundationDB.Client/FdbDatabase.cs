@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Concurrent;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -44,7 +45,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
 	[DebuggerDisplay("Root={Root}")]
-	public class FdbDatabase : IFdbDatabase, IFdbDatabaseProvider
+	public class FdbDatabase : IFdbDatabase, IFdbDatabaseOptions, IFdbDatabaseProvider
 	{
 		#region Private Fields...
 
@@ -61,10 +62,14 @@ namespace FoundationDB.Client
 		private volatile bool m_disposed;
 
 		/// <summary>Global counters used to generate the transaction's local id (for debugging purpose)</summary>
-		private static int s_transactionCounter;
+		internal static int TransactionIdCounter;
 
 		/// <summary>List of all "pending" transactions created from this database instance (and that have not yet been disposed)</summary>
+		/// <remarks>Transactions created via a <see cref="FdbTenant">Tenant</see> are stored in this tenant, no here</remarks>
 		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
+
+		/// <summary>List of all opened tenants created from this database instance (and that have not yet been disposed)</summary>
+		private readonly ConcurrentDictionary<FdbTenantName, FdbTenant> m_tenants = new ConcurrentDictionary<FdbTenantName, FdbTenant>(FdbTenantName.Comparer.Default);
 
 		/// <summary>Directory instance corresponding to the root of this database</summary>
 		private FdbDirectoryLayer m_directory;
@@ -127,7 +132,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
-		//REVIEW: rename this to 'Cancellation'? ('Token' is a keyword that may have different meaning in some apps)
 		public CancellationToken Cancellation { get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
@@ -145,6 +149,11 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the currently enforced API version for this database instance.</summary>
 		public int GetApiVersion() => m_handler.GetApiVersion();
+
+		/// <summary>Returns a value between 0 and 1 that reflect the saturation of the client main thread.</summary>
+		/// <returns>Value between 0 (no activity) and 1 (completly saturated)</returns>
+		/// <remarks>The value is updated in the background at regular interval (by default every second).</remarks>
+		public double GetMainThreadBusyness() => m_handler.GetMainThreadBusyness();
 
 		#endregion
 
@@ -165,9 +174,59 @@ namespace FoundationDB.Client
 		/// }</example>
 		public ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
 		{
+			if (ct.IsCancellationRequested)
+			{
+#if NETFRAMEWORK || NETSTANDARD
+				return new ValueTask<IFdbTransaction>(Task.FromCanceled<IFdbTransaction>(ct));
+#else
+				return ValueTask.FromCanceled<IFdbTransaction>(ct);
+#endif
+			}
+
+			try
+			{
+				return new ValueTask<IFdbTransaction>(BeginTransaction(mode, ct, context));
+			}
+			catch (Exception e)
+			{
+#if NETFRAMEWORK || NETSTANDARD
+				return new ValueTask<IFdbTransaction>(Task.FromException<IFdbTransaction>(e));
+#else
+				return ValueTask.FromException<IFdbTransaction>(e);
+#endif
+			}
+		}
+
+		/// <summary>Start a new transaction on this database</summary>
+		/// <param name="mode">Mode of the new transaction (read-only, read-write, ...)</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="context">If not null, attach the new transaction to an existing context.</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
+		{
 			ct.ThrowIfCancellationRequested();
-			if (context == null) context = new FdbOperationContext(this, mode, ct);
-			return new ValueTask<IFdbTransaction>(CreateNewTransaction(context));
+			if (context == null)
+			{
+				context = new FdbOperationContext(this, null, mode, ct);
+			}
+			else
+			{
+				if (context.Database != this) throw new ArgumentException("This operation context was created for a different database instance", nameof(context));
+			}
+			return CreateNewTransaction(context);
+		}
+
+		internal void ConfigureTransactionDefaults(FdbTransaction trans)
+		{
+			// set default options..
+			if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
+			if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
+			if (m_defaultMaxRetryDelay != 0) trans.MaxRetryDelay = m_defaultMaxRetryDelay;
+			if (this.DefaultLogHandler != null)
+			{
+				trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions);
+			}
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
@@ -181,7 +240,7 @@ namespace FoundationDB.Client
 			var mode = context.Mode;
 			if (m_readOnly) mode |= FdbTransactionMode.ReadOnly;
 
-			int id = Interlocked.Increment(ref s_transactionCounter);
+			int id = Interlocked.Increment(ref FdbDatabase.TransactionIdCounter);
 
 			// ensure that if anything happens, either we return a valid Transaction, or we dispose it immediately
 			FdbTransaction? trans = null;
@@ -189,17 +248,10 @@ namespace FoundationDB.Client
 			{
 				var transactionHandler = m_handler.CreateTransaction(context);
 
-				trans = new FdbTransaction(this, context, id, transactionHandler, mode);
+				trans = new FdbTransaction(this, null, context, id, transactionHandler, mode);
 				RegisterTransaction(trans);
 				context.AttachTransaction(trans);
-				// set default options..
-				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
-				if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
-				if (m_defaultMaxRetryDelay != 0) trans.MaxRetryDelay = m_defaultMaxRetryDelay;
-				if (this.DefaultLogHandler != null)
-				{
-					trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions);
-				}
+				ConfigureTransactionDefaults(trans);
 
 				// flag as ready
 				trans.State = FdbTransaction.STATE_READY;
@@ -243,10 +295,92 @@ namespace FoundationDB.Client
 			//do nothing is already disposed
 			if (m_disposed) return;
 
+			// if it belongs to a tenant, forward...
+			if (transaction.Tenant != null)
+			{
+				transaction.Tenant.UnregisterTransaction(transaction);
+				return;
+			}
+
 			// Unregister the transaction. We do not care if it has already been done
-			FdbTransaction _;
+#if NETFRAMEWORK || NETSTANDARD
 			m_transactions.TryRemove(transaction.Id, out _);
 			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
+#else
+			m_transactions.TryRemove(KeyValuePair.Create(transaction.Id, transaction));
+#endif
+		}
+
+		/// <summary>Add a new transaction to the list of tracked transactions</summary>
+		internal void RegisterTenant(FdbTenant tenant)
+		{
+			Contract.Debug.Requires(tenant != null);
+
+			if (!m_tenants.TryAdd(tenant.Name, tenant))
+			{
+				throw Fdb.Errors.FailedToRegisterTenantOnDatabase(tenant, this);
+			}
+		}
+
+		/// <summary>Remove a transaction from the list of tracked transactions</summary>
+		/// <param name="tenant"></param>
+		internal void UnregisterTenant(FdbTenant tenant)
+		{
+			Contract.Debug.Requires(tenant != null);
+
+			//do nothing is already disposed
+			if (m_disposed) return;
+
+			// Unregister the transaction. We do not care if it has already been done
+#if NETFRAMEWORK || NETSTANDARD
+			m_tenants.TryRemove(tenant.Name, out _);
+			//TODO: compare removed value with the specified tenant to ensure it was the correct one?
+#else
+			m_tenants.TryRemove(KeyValuePair.Create(tenant.Name, tenant));
+#endif
+		}
+
+		public IFdbTenant GetTenant(FdbTenantName name)
+		{
+			ThrowIfDisposed();
+
+			return m_tenants.TryGetValue(name, out var tenant) ? tenant : OpenTenant(name);
+		}
+
+		internal FdbTenant OpenTenant(FdbTenantName name)
+		{
+			ThrowIfDisposed();
+
+			var nameCopy = name.Copy();
+
+			FdbTenant? tenant = null;
+			try
+			{
+				var handler = m_handler.OpenTenant(nameCopy);
+				tenant = new FdbTenant(this, handler, nameCopy);
+
+				var actual = m_tenants.GetOrAdd(nameCopy, tenant); //HACKHACK ! :(
+				if (!object.ReferenceEquals(actual, tenant))
+				{
+					tenant.Dispose();
+					tenant = null;
+				}
+
+				return actual;
+			}
+			catch (Exception)
+			{
+				if (tenant != null)
+				{
+#if NETFRAMEWORK || NETSTANDARD
+					m_tenants.TryRemove(nameCopy, out _);
+#else
+					m_tenants.TryRemove(new KeyValuePair<FdbTenantName, FdbTenant>(nameCopy, tenant)); //HACKHACK ! :(
+#endif
+					tenant.Dispose();
+				}
+				throw;
+			}
 		}
 
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
@@ -286,7 +420,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 			ThrowIfDisposed();
 
-			var context = new FdbOperationContext(this, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			var context = new FdbOperationContext(this, null, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
 			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
 		}
 
@@ -349,7 +483,7 @@ namespace FoundationDB.Client
 			ThrowIfDisposed();
 			if (m_readOnly) throw new InvalidOperationException("Cannot mutate a read-only database.");
 
-			var context = new FdbOperationContext(this, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			var context = new FdbOperationContext(this, null, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
 		}
 
@@ -461,34 +595,50 @@ namespace FoundationDB.Client
 
 		#region Database Options...
 
-		/// <summary>Set a parameter-less option on this database</summary>
-		/// <param name="option">Option to set</param>
-		public void SetOption(FdbDatabaseOption option)
+		public IFdbDatabaseOptions Options => this;
+
+		/// <inheritdoc/>
+		int IFdbDatabaseOptions.ApiVersion => GetApiVersion();
+
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option)
 		{
 			ThrowIfDisposed();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option}");
 
 			m_handler.SetOption(option, default);
+
+			return this;
 		}
 
-		/// <summary>Set an option on this database that takes a string value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter (can be null)</param>
-		public void SetOption(FdbDatabaseOption option, string? value)
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option, ReadOnlySpan<char> value)
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value ?? "<null>"}'");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value.ToString()}'");
 
-			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
+			var data = FdbNative.ToNativeString(value, nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
+
+			return this;
 		}
 
-		/// <summary>Set an option on this database that takes an integer value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
-		public void SetOption(FdbDatabaseOption option, long value)
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> value)
+		{
+			ThrowIfDisposed();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{Slice.Dump(value)}'");
+
+			m_handler.SetOption(option, value);
+
+			return this;
+		}
+
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option, long value)
 		{
 			ThrowIfDisposed();
 
@@ -498,6 +648,8 @@ namespace FoundationDB.Client
 			Span<byte> tmp = stackalloc byte[8];
 			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
 			m_handler.SetOption(option, tmp);
+
+			return this;
 		}
 
 		#endregion
@@ -573,9 +725,9 @@ namespace FoundationDB.Client
 				{
 					try
 					{
-						// mark this db has dead, but keep the handle alive until after all the callbacks have fired
+						// mark this db as dead, but keep the handle alive until after all the callbacks have fired
 
-						//TODO: kill all pending transactions on this db?
+						// cancel pending transactions (that don't have a tenant)
 						foreach (var trans in m_transactions.Values)
 						{
 							if (trans != null && trans.StillAlive)
@@ -584,6 +736,16 @@ namespace FoundationDB.Client
 							}
 						}
 						m_transactions.Clear();
+
+						// dispose all tenants (and recursively their own transactions)
+						foreach (var tenant in m_tenants.Values)
+						{
+							if (tenant != null)
+							{
+								tenant.Dispose();
+							}
+						}
+						m_tenants.Clear();
 
 						//note: will block until all the registered callbacks have finished executing
 						using (m_cts)

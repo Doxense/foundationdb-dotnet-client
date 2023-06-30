@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -133,6 +133,23 @@ namespace FoundationDB.Client.Core
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
 		Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key, CancellationToken ct);
+
+		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
+		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
+		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize, CancellationToken ct);
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, CancellationToken ct);
 
 		/// <summary>Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
 		/// The modification affects the actual database only if transaction is later committed with CommitAsync().

@@ -1,5 +1,5 @@
 #region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ namespace FoundationDB.Client.Native
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBCluster*</summary>
+	[Obsolete("Deprecated since API level 610")]
 	internal sealed class ClusterHandle : FdbSafeHandle
 	{
 

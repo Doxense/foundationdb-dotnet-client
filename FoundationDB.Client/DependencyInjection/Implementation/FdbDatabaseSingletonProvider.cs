@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ namespace FoundationDB.DependencyInjection
 	public sealed class FdbDatabaseSingletonProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
-		public FdbDatabaseSingletonProvider(IFdbDatabase db, [AllowNull] TState state, CancellationTokenSource lifetime)
+		public FdbDatabaseSingletonProvider(IFdbDatabase db, TState? state, CancellationTokenSource lifetime)
 		{
 			Contract.Debug.Requires(db != null && lifetime != null);
 			this.Lifetime = lifetime;
@@ -53,10 +53,9 @@ namespace FoundationDB.DependencyInjection
 		{
 			public readonly IFdbDatabase Db;
 
-			[AllowNull]
-			public readonly TState State;
+			public readonly TState? State;
 
-			public Scope(IFdbDatabase db, [AllowNull] TState state)
+			public Scope(IFdbDatabase db, TState? state)
 			{
 				this.Db = db;
 				this.State = state;

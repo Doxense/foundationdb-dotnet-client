@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,12 +114,12 @@ namespace FoundationDB.Client.Native
 
 				// register the callback handler
 				var err = FdbNative.FutureSetCallback(handle, CallbackHandler, prm);
-				if (Fdb.Failed(err))
+				if (err != FdbError.Success)
 				{ // uhoh
 #if DEBUG_FUTURES
 					Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
 #endif
-					throw Fdb.MapToException(err)!;
+					throw FdbNative.CreateExceptionFromError(err);
 				}
 			}
 			catch
@@ -182,14 +182,14 @@ namespace FoundationDB.Client.Native
 					UnregisterCancellationRegistration();
 
 					FdbError err = FdbNative.FutureGetError(handle);
-					if (Fdb.Failed(err))
+					if (err != FdbError.Success)
 					{ // it failed...
 #if DEBUG_FUTURES
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED: " + err);
 #endif
 						if (err != FdbError.OperationCancelled)
 						{ // get the exception from the error code
-							var ex = Fdb.MapToException(err)!;
+							var ex = FdbNative.CreateExceptionFromError(err);
 							TrySetException(ex);
 							return;
 						}

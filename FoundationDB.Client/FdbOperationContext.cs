@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,8 +62,14 @@ namespace FoundationDB.Client
 		private static readonly ActivitySource ActivitySource = new ActivitySource("FoundationDB.Client");
 #endif
 
+
 		/// <summary>The database used by the operation</summary>
-		public IFdbDatabase Database { get; }
+		public IFdbDatabase Database => m_db;
+		private readonly FdbDatabase m_db;
+
+		/// <summary>The tenant used by the operation, if present</summary>
+		public IFdbTenant? Tenant => m_tenant;
+		private readonly FdbTenant? m_tenant;
 
 		/// <summary>Cancellation token associated with the operation</summary>
 		public CancellationToken Cancellation { get; }
@@ -115,13 +121,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
+		/// <param name="tenant">Tenant where the transaction will be be executed</param>
 		/// <param name="mode">Operation mode of the retry loop</param>
 		/// <param name="ct">Optional cancellation token that will abort the retry loop if triggered.</param>
-		public FdbOperationContext(IFdbDatabase db, FdbTransactionMode mode, CancellationToken ct)
+		internal FdbOperationContext(FdbDatabase db, FdbTenant? tenant, FdbTransactionMode mode, CancellationToken ct)
 		{
 			Contract.NotNull(db);
 
-			this.Database = db;
+			m_db = db;
+			m_tenant = tenant;
 			this.Mode = mode;
 			// note: we don't start the clock yet, only when the context starts executing...
 
@@ -705,12 +713,13 @@ namespace FoundationDB.Client
 		#endregion
 
 		/// <summary>Execute a retry loop on this context</summary>
-		internal static async Task<TResult> ExecuteInternal<TState, TIntermediate, TResult>(FdbOperationContext context, [AllowNull] TState state, Delegate handler, Delegate? success)
+		internal static async Task<TResult> ExecuteInternal<TState, TIntermediate, TResult>(FdbOperationContext context, TState? state, Delegate handler, Delegate? success)
 		{
 			Contract.Debug.Requires(context != null && handler != null && context.Shared);
 
-			var db = context.Database;
-			Contract.Debug.Requires(db != null);
+			var db = context.m_db;
+			var tenant = context.m_tenant;
+			Contract.Debug.Requires(tenant != null || db != null);
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
@@ -733,7 +742,7 @@ namespace FoundationDB.Client
 
 				TResult result = default!;
 
-				using (var trans = await db.BeginTransactionAsync(context.Mode, CancellationToken.None, context))
+				using (var trans = tenant != null ? tenant.BeginTransaction(context.Mode, CancellationToken.None, context) : db.BeginTransaction(context.Mode, CancellationToken.None, context))
 				{
 					//note: trans may be different from context.Transaction if it has been filtered!
 					Contract.Debug.Assert(context.Transaction != null);
@@ -1500,7 +1509,7 @@ namespace FoundationDB.Client
 		public IFdbTransactionHandler GetTransactionHandler() => this.Transaction?.Handler ?? throw new InvalidOperationException("Transaction has already been disposed");
 
 		/// <summary>Return the currently enforced API version for the database attached to this transaction.</summary>
-		public int GetApiVersion() => this.Database.GetApiVersion();
+		public int GetApiVersion() => m_db.GetApiVersion();
 
 		public void Dispose()
 		{
@@ -1517,44 +1526,6 @@ namespace FoundationDB.Client
 				}
 			}
 		}
-
-		#region Read-Only operations...
-
-		public static Task<TResult> RunReadAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
-		{
-			Contract.NotNull(db);
-			Contract.NotNull(handler);
-			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
-
-			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
-		}
-
-		#endregion
-
-		#region Read/Write operations...
-
-		public static Task<TResult> RunReadWriteAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbTransaction, TState, TIntermediate> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
-		{
-			Contract.NotNull(db);
-			Contract.NotNull(handler);
-			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
-
-			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
-		}
-
-		public static Task<TResult> RunWriteAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbTransaction, TState, Task<TIntermediate>> handler, Func<TState, TIntermediate, Task<TResult>> success, CancellationToken ct)
-		{
-			Contract.NotNull(db);
-			Contract.NotNull(handler);
-			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
-
-			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
-		}
-
-		#endregion
 
 	}
  

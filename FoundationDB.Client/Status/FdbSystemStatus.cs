@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -250,24 +250,22 @@ namespace FoundationDB.Client.Status
 
 		protected long? GetInt64(string field)
 		{
-			var x = TinyJsonParser.GetNumberField(m_data, field);
-			return x.HasValue ? (long?)x.Value : null;
+			return TinyJsonParser.GetIntegerField(m_data, field);
 		}
 
 		protected long? GetInt64(string field1, string field2)
 		{
-			var x = TinyJsonParser.GetNumberField(TinyJsonParser.GetMapField(m_data, field1), field2);
-			return x.HasValue ? (long?)x.Value : null;
+			return TinyJsonParser.GetIntegerField(TinyJsonParser.GetMapField(m_data, field1), field2);
 		}
 
 		protected double? GetDouble(string field)
 		{
-			return TinyJsonParser.GetNumberField(m_data, field);
+			return TinyJsonParser.GetDecimalField(m_data, field);
 		}
 
 		protected double? GetDouble(string field1, string field2)
 		{
-			return TinyJsonParser.GetNumberField(TinyJsonParser.GetMapField(m_data, field1), field2);
+			return TinyJsonParser.GetDecimalField(TinyJsonParser.GetMapField(m_data, field1), field2);
 		}
 
 		protected bool? GetBoolean(string field)

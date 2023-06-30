@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,14 @@ namespace FoundationDB.Client.Native
 		public uint KeyLength;
 		public IntPtr Value;
 		public uint ValueLength;
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
+	internal struct FdbKey
+	{
+		public IntPtr Key;
+
+		public uint Length;
 	}
 
 }
