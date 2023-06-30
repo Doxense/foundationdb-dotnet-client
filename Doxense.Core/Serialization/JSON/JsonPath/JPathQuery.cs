@@ -88,7 +88,8 @@ namespace Doxense.Serialization.Json.JsonPath
 		{
 			Contract.NotNull(queryText);
 			if (root.IsNullOrMissing()) return Array.Empty<JsonValue>();
-			return ParseExpression(queryText).Iterate(root, root);
+			var expr = ParseExpression(queryText);
+			return expr.Iterate(root, root);
 		}
 
 		[Pure]
@@ -103,7 +104,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		[Pure]
 		public static JPathExpression ParseExpression(string queryText)
 		{
-			var context = new JPathParser { Path = queryText };
+			var context = new JPathParser(queryText.AsSpan());
 			return context.ParseExpression(JPathExpression.Root);
 		}
 

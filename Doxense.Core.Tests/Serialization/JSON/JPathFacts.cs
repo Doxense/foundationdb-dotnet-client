@@ -321,6 +321,10 @@ namespace Doxense.Serialization.Json.Tests
 				JPathExpression.Root.Property("foo").Matching(JPathExpression.Current.Property("bar").GreaterThan(123))
 			);
 			CheckEqual(
+				JPathQuery.Parse("foo[bar>123.4]"),
+				JPathExpression.Root.Property("foo").Matching(JPathExpression.Current.Property("bar").GreaterThan(123.4))
+			);
+			CheckEqual(
 				JPathQuery.Parse("foo[bar>=123]"),
 				JPathExpression.Root.Property("foo").Matching(JPathExpression.Current.Property("bar").GreaterThanOrEqualTo(123))
 			);
@@ -335,6 +339,10 @@ namespace Doxense.Serialization.Json.Tests
 			CheckEqual(
 				JPathQuery.Parse("foo[bar=='hello' && baz>123]"), // && has precedence other comparisons, so (a == b) && (c > d)
 				JPathExpression.Root.Property("foo").Matching(JPathExpression.AndAlso(JPathExpression.Current.Property("bar").EqualTo("hello"), JPathExpression.Current.Property("baz").GreaterThan(123)))
+			);
+			CheckEqual(
+				JPathQuery.Parse("foo[bar=='hello' && baz>123.4]"), // && has precedence other comparisons, so (a == b) && (c > d)
+				JPathExpression.Root.Property("foo").Matching(JPathExpression.AndAlso(JPathExpression.Current.Property("bar").EqualTo("hello"), JPathExpression.Current.Property("baz").GreaterThan(123.4)))
 			);
 			CheckEqual(
 				JPathQuery.Parse("foo[bar=='hello' || baz>123]"), // || has precedence other comparisons, so (a == b) || (c > d)
@@ -594,8 +602,10 @@ namespace Doxense.Serialization.Json.Tests
 			CheckSingle(obj, "store.book[0].title", "Sayings of the Century"); // should return the tite of the first item of the array
 			CheckSingle(obj, "store.book[1].title", "Sword of Honour");
 			CheckSingle(obj, "store.book[-1].title", "The Lord of the Rings");
+			CheckSingle(obj, "store.book[^1].title", "The Lord of the Rings");
 			CheckSingle(obj, "store.book[2].price", 8.99);
 			CheckSingle(obj, "store.book[-1].title", "The Lord of the Rings");
+			CheckSingle(obj, "store.book[^1].title", "The Lord of the Rings");
 
 			CheckSingle(obj, "ztore", JsonNull.Missing);
 			CheckSingle(obj, "Store", JsonNull.Missing);
@@ -604,6 +614,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			CheckSingle(obj, "store.book[42]", JsonNull.Missing);
 			CheckSingle(obj, "store.book[-42]", JsonNull.Missing);
+			CheckSingle(obj, "store.book[^42]", JsonNull.Missing);
 			CheckSingle(obj, "store.book[0].not_found", JsonNull.Missing);
 			CheckSingle(obj, "store.book[0].not_found", JsonNull.Missing);
 
@@ -642,6 +653,7 @@ namespace Doxense.Serialization.Json.Tests
 			CheckMultiple(obj, "store.book[0]", obj["store"]["book"][0]); // should only return the first item
 			CheckMultiple(obj, "store.book[1]", obj["store"]["book"][1]); // should only return the second item
 			CheckMultiple(obj, "store.book[-1]", obj["store"]["book"][3]); // should only return the last item
+			CheckMultiple(obj, "store.book[^1]", obj["store"]["book"][3]); // should only return the last item
 
 			CheckMultiple(obj, "store.book[]", obj["store"]["book"].As<JsonValue[]>()); // should return the items of the array!
 			CheckMultiple(obj, "store.book[].title", "Sayings of the Century", "Sword of Honour", "Moby Dick", "The Lord of the Rings"); // should flatten array of a single JsonArray into an array of all items

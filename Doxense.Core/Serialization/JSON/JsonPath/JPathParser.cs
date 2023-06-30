@@ -35,16 +35,20 @@ namespace Doxense.Serialization.Json.JsonPath
 
 	/// <summary>Parser for JPath expressions</summary>
 	[DebuggerDisplay("Cursor={Cursor}, Start={Start}, SubStart={SubStart}")]
-	internal struct JPathParser
+	internal ref struct JPathParser
 	{
-		public string Path;
+		public readonly ReadOnlySpan<char> Path;
 		public int Cursor;
 		public int Start;
 		public int SubStart;
-		public string Literal;
+		public ReadOnlySpan<char> Literal;
 		public long? Integer;
 		public double? Number;
-		public ExpressionType Operator;
+
+		public JPathParser(ReadOnlySpan<char> path)
+		{
+			this.Path = path;
+		}
 
 		private const char EOF = '\xFFFF';
 
@@ -61,7 +65,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			/// <summary>String literal ("'foo'", "'hello\'world'", ...)</summary>
 			StringLiteral,
 			/// <summary>Integer literal (array indexer)</summary>
-			IntegerLiteral,
+			NumberLiteral,
 			/// <summary>'..' means "any direct or indirect child" </summary>
 			DotDot,
 			/// <summary>'[' starts an array indexing or filter sub-expression</summary>
@@ -111,7 +115,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		private char ReadNextChar()
 		{
 			int p = this.Cursor;
-			string s = this.Path;
+			var s = this.Path;
 			if (p >= s.Length) return EOF;
 			this.Cursor = p + 1;
 			return s[p];
@@ -123,7 +127,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		private char PeekNextChar()
 		{
 			int p = this.Cursor;
-			string s = this.Path;
+			var s = this.Path;
 			return (uint) p >= (uint) s.Length ? EOF : s[p];
 		}
 
@@ -132,7 +136,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		private char PeekPreviousChar()
 		{
 			int p = this.Cursor - 1;
-			string s = this.Path;
+			var s = this.Path;
 			return (uint) p >= (uint) s.Length ? EOF : s[p];
 		}
 
@@ -269,10 +273,24 @@ namespace Doxense.Serialization.Json.JsonPath
 					return Token.End;
 				}
 			}
+
 			if (char.IsDigit(tok) || tok == '-' || tok == '+')
 			{
+				if (PeekPreviousChar() == '[')
+				{
+					ReadInteger();
+				}
+				else
+				{
+					ReadNumber();
+				}
+				return Token.NumberLiteral;
+			}
+
+			if (tok == '^' && PeekPreviousChar() == '[')
+			{ // "^1"
 				ReadInteger();
-				return Token.IntegerLiteral;
+				return Token.NumberLiteral;
 			}
 
 			if (tok == '_' || char.IsLetter(tok) || tok == '$' || tok == '@')
@@ -302,41 +320,31 @@ namespace Doxense.Serialization.Json.JsonPath
 			// Valid: "abc", "_abc", "abc123", "_123", "______"
 			// Invalid: "1abc", "-abc", "@hello", "*abc", ....
 
-			var sb = StringBuilderCache.Acquire(32);
-			char c = ReadNextChar();
-			sb.Append(c);
+			Advance();
+
 			while (true)
 			{
-				c = PeekNextChar();
+				char c = PeekNextChar();
 				if (!char.IsDigit(c) && !char.IsLetter(c) && c != '_' && c != '-')
 				{
 					break;
 				}
-				sb.Append(c);
 				Advance();
 			}
 
-			if (sb.Length == 1)
-			{
-				switch (sb[0])
-				{
-					case '$': this.Literal = "$"; return;
-					case '@': this.Literal = "@"; return;
-				}
-			}
-			this.Literal = StringBuilderCache.GetStringAndRelease(sb);
+			this.Literal = this.Path.Slice(this.SubStart, this.Cursor - this.SubStart);
 		}
 
 		/// <summary>Read an integer (array index) from the string</summary>
 		private void ReadInteger()
 		{
-			// Integers are numbers, with optional '-' sign
-			// Valid: "1", "123456789", "-42"
+			// Integers are numbers, with optional '-' sign. We recognize '^1' as '-1' (to allow c#-like index syntax)
+			// Valid: "1", "123456789", "-42", "^1"
 
 			long value = 0;
 			char c = ReadNextChar();
 
-			bool negative = c == '-';
+			bool negative = c == '-' || c == '^';
 			if (!negative)
 			{
 				value = c - '0';
@@ -375,6 +383,7 @@ namespace Doxense.Serialization.Json.JsonPath
 				if (char.IsDigit(c))
 				{
 					value = value * 10 + (c - '0');
+					Advance();
 					continue;
 				}
 
@@ -382,6 +391,7 @@ namespace Doxense.Serialization.Json.JsonPath
 				{
 					if (hasDot) break;
 					hasDot = true;
+					Advance();
 					continue;
 				}
 				if (c == 'E')
@@ -389,6 +399,7 @@ namespace Doxense.Serialization.Json.JsonPath
 					if (hasExp) break;
 					hasExp = true;
 					hasSign = false;
+					Advance();
 					continue;
 				}
 				if (c == '-' || c == '+')
@@ -396,19 +407,27 @@ namespace Doxense.Serialization.Json.JsonPath
 					if (hasSign) break;
 					hasSign = true;
 					if (!hasExp) value = -value;
+					Advance();
 					continue;
 				}
 
 				if (hasDot || hasExp)
 				{
-					//TODO: PERF: optimze parsing without allocation!
-					string literal = this.Path.Substring(start, this.Cursor - start);
+#if NETFRAMEWORK || NETSTANDARD
+					//TODO: PERF: unfortunaly, we have to allocate :(
+					string literal = this.Path.Slice(start, this.Cursor - start).ToString();
 					this.Number = double.Parse(literal);
+#else
+					var literal = this.Path.Slice(start, this.Cursor - start);
+					this.Number = double.Parse(literal);
+#endif
 				}
 				else
 				{
-					this.Integer = value;
+					this.Integer = hasSign ? -value : value;
 				}
+
+				break;
 			}
 		}
 
@@ -431,7 +450,7 @@ namespace Doxense.Serialization.Json.JsonPath
 					throw SyntaxError("Unterminated string literal");
 				}
 			}
-			this.Literal = this.Path.Substring(start, this.Cursor - start - 1);
+			this.Literal = this.Path.Slice(start, this.Cursor - start - 1);
 		}
 
 		/// <summary>Parse an expression (or sub-expression)</summary>
@@ -469,16 +488,16 @@ namespace Doxense.Serialization.Json.JsonPath
 					{
 						if (state != State.ExpectIdentifier && state != State.Expression)
 						{
-							throw SyntaxError($"Unexpected identifier '{this.Literal}'.");
+							throw SyntaxError($"Unexpected identifier '{this.Literal.ToString()}'.");
 						}
 
-						string name = this.Literal;
+						var name = this.Literal;
 						this.Literal = null;
 
-						if (name == "$" || name == "@")
+						if (name.Length == 1 && (name[0] == '$' || name[0] == '@'))
 						{
-							if (!object.ReferenceEquals(expr, top)) throw SyntaxError($"Special identifier '{name}' is only allowed at the start of an expression of sub-expression!");
-							expr = name == "$" ? JPathExpression.Root : JPathExpression.Current;
+							if (!object.ReferenceEquals(expr, top)) throw SyntaxError($"Special identifier '{name.ToString()}' is only allowed at the start of an expression of sub-expression!");
+							expr = name[0] == '$' ? JPathExpression.Root : JPathExpression.Current;
 							state = State.Expression;
 							continue;
 						}
@@ -490,26 +509,23 @@ namespace Doxense.Serialization.Json.JsonPath
 							this.Start = this.Cursor;
 							var subExpr = ParseExpression(JPathExpression.Current, type: '(');
 							//note: ')' should already have been consumed
-							switch (name)
+							if (name is "not")
 							{
-								case "not":
-								{
-									// not(..) does not have a "source", so it can only be found at the start of an expression
-									if (!(expr is JPathSpecialToken)) throw SyntaxError("Operator not(..) must be at the start of an expression of sub-expression");
-									expr = JPathExpression.Not(subExpr);
-									break;
-								}
-								default:
-								{
-									throw SyntaxError($"Unsupported function '{name}'");
-								}
+								// not(..) does not have a "source", so it can only be found at the start of an expression
+								if (expr is not JPathSpecialToken) throw SyntaxError("Operator not(..) must be at the start of an expression of sub-expression");
+								expr = JPathExpression.Not(subExpr);
+								break;
+							}
+							else 
+							{
+								throw SyntaxError($"Unsupported function '{name.ToString()}'");
 							}
 							this.Start = prevStart;
 							state = State.Expression;
 							break;
 						}
 
-						expr = JPathExpression.Property(expr, name);
+						expr = JPathExpression.Property(expr, name.ToString());
 						state = State.Expression;
 						break;
 					}
@@ -517,12 +533,12 @@ namespace Doxense.Serialization.Json.JsonPath
 					case Token.OpenBracket:
 					{
 						// possibile cases:
-						// - arr index: '...[1]', '...[123]', '...[-1]'
+						// - arr index: '...[1]', '...[123]', '...[-1]', '...[^1]'
 						// - half range: '...[:123]'
 						// - subexpression: '...[(anything else)]'
 						char c = PeekNextChar();
 
-						if (char.IsDigit(c) || c == '-')
+						if (char.IsDigit(c) || c == '-' || c == '^')
 						{ // looks like an array indexer (or the start of a range)
 							state = State.BracketStart;
 							break;
@@ -560,10 +576,21 @@ namespace Doxense.Serialization.Json.JsonPath
 						break;
 					}
 
-					case Token.IntegerLiteral:
+					case Token.NumberLiteral:
 					{
 						if (state == State.BracketStart)
-						{
+						{ // we are parsing an array indexer, like "...[123]"
+							if (!this.Integer.HasValue)
+							{ // We had something like [123.4] which is not legal
+								if (this.Number.HasValue)
+								{
+									throw SyntaxError("Cannot using decimal number as array indexer.");
+								}
+								else
+								{
+									throw SyntaxError("Unexpected array indexer literal.");
+								}
+							}
 							expr = expr.At(checked((int) this.Integer.Value));
 							this.Integer = null;
 							state = State.ExpectCloseBracket;
@@ -572,8 +599,10 @@ namespace Doxense.Serialization.Json.JsonPath
 
 						if (cmpExpr != null)
 						{
-							expr = JPathExpression.BinaryOperator(cmpOp, cmpExpr, this.Integer.Value);
+							if (this.Integer == null && this.Number == null) throw SyntaxError("Unexpected number literal.");
+							expr = JPathExpression.BinaryOperator(cmpOp, cmpExpr, this.Integer != null ? JsonNumber.Return(this.Integer.Value) : JsonNumber.Return(this.Number!.Value));
 							this.Integer = null;
+							this.Number = null;
 							cmpExpr = null;
 							break;
 						}
@@ -583,10 +612,9 @@ namespace Doxense.Serialization.Json.JsonPath
 
 					case Token.StringLiteral:
 					{
-						if (cmpExpr == null) throw SyntaxError("Unexpected string literal.");
 						if (cmpExpr != null)
 						{
-							expr = JPathExpression.BinaryOperator(cmpOp, cmpExpr, this.Literal);
+							expr = JPathExpression.BinaryOperator(cmpOp, cmpExpr, this.Literal.ToString());
 							cmpExpr = null;
 							break;
 						}
@@ -713,7 +741,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			int pos = Math.Max(this.Cursor - 1, 0);
 			var sb = StringBuilderCache.Acquire(64);
 			sb.Append("Syntax error in JPath expression at offset ").Append(pos).Append(": ").Append(message)
-			  .Append("\r\nPath: ").Append(this.Path);
+			  .Append("\r\nPath: ").Append(this.Path.ToString());
 
 			if (pos > 0)
 			{
