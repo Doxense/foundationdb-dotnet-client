@@ -53,7 +53,7 @@ Let say, for example, that we have a `Books` Razor Page, that is reachable via t
 - Inside the `OnGet(...)` action, we can call any of the `ReadAsync`, `ReadWriteAsync` or `WriteAsync` methods on this instance, to start a transaction retry-loop.
 - Inside the retry-loop, we get passed either an `IFdbReadOnlyTransaction` (read-only) or an `IFdbTransaction` (read-write).
 - We use this transaction to read the value of the `("Books", <id>)` key from the database.
-  - Please DO NOT mutable any global state from within the transaction handler! The handler could be called MULTIPLE TIMES if there are any conflicts or retryable errors!
+  - Please DO NOT mutate any global state from within the transaction handler! The handler could be called MULTIPLE TIMES if there are any conflicts or retryable errors!
   - Try to perform any pre-processing or post-processing OUTSIDE of the retry-loop. Remember, the transaction instance is only valid for 5 seconds!
 - After the retry-loop, we can inspect the result:
   - if the key does not exist, then `GetAsync(...)` will return `Slice.Nil`.
