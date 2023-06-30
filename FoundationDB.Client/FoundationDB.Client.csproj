@@ -1,53 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-    <RootNamespace>FoundationDB.Client</RootNamespace>
-    <AssemblyName>FoundationDB.Client</AssemblyName>
-    <LangVersion>11.0</LangVersion>
-    <Nullable>enable</Nullable>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-    <PackageTags>foundationdb fdb nosql</PackageTags>
-    <Description>.NET Binding for FoundationDB</Description>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+		<RootNamespace>FoundationDB.Client</RootNamespace>
+		<AssemblyName>FoundationDB.Client</AssemblyName>
+		<LangVersion>11.0</LangVersion>
+		<Nullable>enable</Nullable>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+		<PackageTags>foundationdb fdb nosql</PackageTags>
+		<Description>.NET Binding for FoundationDB</Description>
+	</PropertyGroup>
 
-  <Import Project="..\Common\VersionInfo.props" />
+	<Import Project="..\Common\VersionInfo.props" />
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<DebugType>full</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1701;1702;1591</NoWarn>
-    <WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
-    <DocumentationFile>bin\Release\$(TargetFramework)\FoundationDB.Client.xml</DocumentationFile>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<NoWarn>1701;1702;1591</NoWarn>
+		<WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
+		<DocumentationFile>bin\Release\$(TargetFramework)\FoundationDB.Client.xml</DocumentationFile>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
-    <DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API;USE_ANNOTATIONS</DefineConstants>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
+		<DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API;USE_ANNOTATIONS</DefineConstants>
+	</PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
-  </ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="System.Memory" Version="4.5.5" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="7.0.0-preview.2.22152.2" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0-preview.18571.3" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="System.Memory" Version="4.5.5" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="7.0.0-preview.2.22152.2" />
+		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0-preview.18571.3" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
+	</ItemGroup>
 
 </Project>

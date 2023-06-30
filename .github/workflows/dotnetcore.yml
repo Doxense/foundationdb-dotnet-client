@@ -16,10 +16,10 @@ jobs:
     - name: Build with dotnet
       run: dotnet build --configuration Release -f net6.0
     - name: Build NuGet Packages
-      run: dotnet pack --configuration Release --output Packages
+      run: dotnet pack --configuration Release --output Redist
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         name: NuGet Packages
-        path: Packages/FoundationDB.*.nupkg
+        path: Redist/*.nupkg
         if-no-files-found: error

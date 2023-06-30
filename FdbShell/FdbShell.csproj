@@ -1,65 +1,65 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFrameworks>net6.0</TargetFrameworks>
-    <LangVersion>11.0</LangVersion>
-    <ProjectGuid>{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}</ProjectGuid>
-    <RestorePackages>true</RestorePackages>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <RootNamespace>FdbShell</RootNamespace>
-    <AssemblyName>FdbShell</AssemblyName>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-	<PublishSingleFile>true</PublishSingleFile>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFrameworks>net6.0</TargetFrameworks>
+		<LangVersion>11.0</LangVersion>
+		<ProjectGuid>{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}</ProjectGuid>
+		<RestorePackages>true</RestorePackages>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<RootNamespace>FdbShell</RootNamespace>
+		<AssemblyName>FdbShell</AssemblyName>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+		<PublishSingleFile>true</PublishSingleFile>
+	</PropertyGroup>
 
-  <Import Project="..\Common\VersionInfo.props" />
+	<Import Project="..\Common\VersionInfo.props" />
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>full</DebugType>
+		<Optimize>false</Optimize>
+		<OutputPath>bin\Debug\</OutputPath>
+		<DefineConstants>TRACE;DEBUG</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+		<Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<DebugType>pdbonly</DebugType>
+		<Optimize>true</Optimize>
+		<OutputPath>bin\Release\</OutputPath>
+		<DefineConstants>TRACE</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+		<Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="ILRepack.MSBuild.Task" Version="1.0.9" />
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="7.0.0-preview.2.22152.2" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="ILRepack.MSBuild.Task" Version="1.0.9" />
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="7.0.0-preview.2.22152.2" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+	</ItemGroup>
 
-  <Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets') AND '$(OS)' == 'Windows_NT'" />
-  <!-- ILRepack -->
-  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release' AND '$(OS)' == 'Windows_NT' AND '$(TargetFramework)'=='net472'">
-    <ItemGroup>
-      <InputAssemblies Include="$(OutputPath)\$(AssemblyName).exe" />
-      <InputAssemblies Include="$(OutputPath)\FoundationDB.Client.dll" />
-    </ItemGroup>
-    <ILRepack Parallel="true" Internalize="true" InternalizeExclude="@(DoNotInternalizeAssemblies)" InputAssemblies="@(InputAssemblies)" TargetKind="Exe" OutputFile="$(OutputPath)\$(AssemblyName).Merged.exe" />
-  </Target>
+	<Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets') AND '$(OS)' == 'Windows_NT'" />
+	<!-- ILRepack -->
+	<Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release' AND '$(OS)' == 'Windows_NT' AND '$(TargetFramework)'=='net472'">
+		<ItemGroup>
+			<InputAssemblies Include="$(OutputPath)\$(AssemblyName).exe" />
+			<InputAssemblies Include="$(OutputPath)\FoundationDB.Client.dll" />
+		</ItemGroup>
+		<ILRepack Parallel="true" Internalize="true" InternalizeExclude="@(DoNotInternalizeAssemblies)" InputAssemblies="@(InputAssemblies)" TargetKind="Exe" OutputFile="$(OutputPath)\$(AssemblyName).Merged.exe" />
+	</Target>
 
 </Project>

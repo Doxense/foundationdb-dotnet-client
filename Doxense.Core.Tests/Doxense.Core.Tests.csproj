@@ -1,37 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Library</OutputType>
-    <TargetFrameworks>net6.0</TargetFrameworks>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <LangVersion>11</LangVersion>
-    <EnablePreviewFeatures>true</EnablePreviewFeatures>
-    <Nullable>enable</Nullable>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <IsTestProject>true</IsTestProject>
-    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFrameworks>net6.0</TargetFrameworks>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<LangVersion>11.0</LangVersion>
+		<EnablePreviewFeatures>true</EnablePreviewFeatures>
+		<Nullable>enable</Nullable>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<IsTestProject>true</IsTestProject>
+		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
 
-  <Import Project="..\Common\VersionInfo.props" />
+	<Import Project="..\Common\VersionInfo.props" />
 
-  <ItemGroup>
-    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
-    <PackageReference Include="System.Threading.Channels" Version="7.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
-    <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.4.0" />
-    <PackageReference Include="NodaTime.Testing" Version="3.1.6" />
-    <PackageReference Include="NUnit" Version="3.13.3" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.3.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="ZstdSharp.Port" Version="0.7.2" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
+		<PackageReference Include="System.Threading.Channels" Version="7.0.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
+		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.4.0" />
+		<PackageReference Include="NodaTime.Testing" Version="3.1.6" />
+		<PackageReference Include="NUnit" Version="3.13.3" />
+		<PackageReference Include="NUnit3TestAdapter" Version="4.3.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="ZstdSharp.Port" Version="0.7.2" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Doxense.Core.Testing.Common\Doxense.Core.Testing.Common.csproj" />
-    <ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Doxense.Core.Testing.Common\Doxense.Core.Testing.Common.csproj" />
+		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
+	</ItemGroup>
 
 </Project>
