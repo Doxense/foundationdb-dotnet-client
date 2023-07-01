@@ -8,7 +8,7 @@
     <PackageIcon>foundationdb.png</PackageIcon>
     <PackageIconUrl>https://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
-    <Copyright>Copyright 2013-2023 Doxense SAS</Copyright>
+    <Copyright>Copyright 2005-2023 Doxense SAS</Copyright>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="" />
