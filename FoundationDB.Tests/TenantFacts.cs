@@ -28,13 +28,10 @@ namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
 	using System.Threading.Tasks;
-	using System.Xml.Linq;
 	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Linq;
-	using FoundationDB.Client.Utils;
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -89,7 +86,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(name.TryGetTuple(out _), Is.False, "Name is not a valid tuple!");
 
 				Assert.That(() => FdbTenantName.Create(Slice.Nil), Throws.InstanceOf<ArgumentException>(), "Cannot use Slice.Nil");
-				Assert.That(() => FdbTenantName.Create(Slice.Empty), Throws.InstanceOf<ArgumentException>(), "Cannot use Slice.Emtpy");
+				Assert.That(() => FdbTenantName.Create(Slice.Empty), Throws.InstanceOf<ArgumentException>(), "Cannot use Slice.Empty");
 				Assert.That(() => FdbTenantName.Create(Slice.FromByte(255)), Throws.InstanceOf<ArgumentException>(), "Cannot start with \xFF");
 				Assert.That(() => FdbTenantName.Create(Slice.FromByteString("\xFFHello")), Throws.InstanceOf<ArgumentException>(), "Cannot start with \xFF");
 			}
@@ -157,8 +154,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_List_Tenants()
 		{
-			var map = TinyJsonParser.ParseObject("{\"x\": 123, \"y\": 123.4 }");
-
 			// ensure that tenants exists
 			Log("Initialize tenants");
 			var acme = await PrepareTestTenant(FdbTenantName.FromParts("Tests", "acme"));
