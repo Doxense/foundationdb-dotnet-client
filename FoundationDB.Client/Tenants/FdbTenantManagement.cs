@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
+	using Doxense.Serialization.Json;
 	using FoundationDB.Client.Utils;
 
 	public enum FdbTenantMode
@@ -95,13 +96,14 @@ namespace FoundationDB.Client
 				// note: the prefix is encoded as a Unicode String, with one "code point" per byte (???) which is weird (it should probably have been encoded as Base64 ??)
 				//       this means that "\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008" represents the prefix '\x01\x02\x03\x04\x05\x06\x07\x08` or <00 01 02 03 04 05 06 07 08>
 
-				var obj = TinyJsonParser.ParseObject(data.Span);
+				var obj = CrystalJson.ParseObject(data);
+				if (obj == null) throw new FormatException("Invalid Tenant Metadata format: required JSON document is missing.");
 
-				var id = TinyJsonParser.GetIntegerField(obj, "id");
-				if (id == null) throw new FormatException("Invalid Tenant Medata format: required 'id' field is missing.");
+				var id = obj.Get<int?>("id");
+				if (id == null) throw new FormatException("Invalid Tenant Metadata format: required 'id' field is missing.");
 
-				var prefixLiteral = TinyJsonParser.GetStringField(obj, "prefix");
-				if (prefixLiteral == null) throw new FormatException("Invalid Tenant Medata format: required 'prefix' field is missing.");
+				var prefixLiteral = obj.Get<string?>("prefix");
+				if (prefixLiteral == null) throw new FormatException("Invalid Tenant Metadata format: required 'prefix' field is missing.");
 
 				// the prefix is encoded _as a string_ in the JSON which is NOT a good idea :(
 				// each character is a unicode value from 0 to FF which corresponds to one byte of the prefix

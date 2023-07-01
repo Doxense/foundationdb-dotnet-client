@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization.Json;
 	using FoundationDB.Client.Status;
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
@@ -105,7 +106,7 @@ namespace FoundationDB.Client
 
 				if (data.IsNullOrEmpty) return null;
 
-				var doc = TinyJsonParser.ParseObject(data);
+				var doc = CrystalJson.ParseObject(data);
 				if (doc == null) return null;
 
 				long rv = 0;
