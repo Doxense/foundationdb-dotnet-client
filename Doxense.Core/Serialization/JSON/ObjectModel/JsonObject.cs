@@ -630,23 +630,41 @@ namespace Doxense.Serialization.Json
 			return TryGetValue(key, out var value) && !value.IsNullOrMissing();
 		}
 
-		//REVIEW: renommer les Get<T>(..) en Value<T>(), et GetArray<T>(..) en Values<T>(..)
-
 		/// <summary>Retourne la valeur d'une propriété de cet objet</summary>
 		/// <param name="key">Nom de la propriété recherchée</param>
 		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriété contient null ou n'existe pas.</returns>
 		/// <example>
-		/// obj.Get&lt;string&gt;"FieldThatExists") // returns the value of the field as an int
-		/// obj.Get&lt;string&gt;"FieldThatIsMissing") // returns null
-		/// obj.Get&lt;string&gt;"FieldThatIsNull") // returns null
-		/// obj.Get&lt;int&gt;"FieldThatIsMissing") // returns 0
-		/// obj.Get&lt;int&gt;"FieldThatIsNull") // returns 0
+		/// obj.Get&lt;string&gt;("FieldThatExists") // returns the value of the field as an int
+		/// obj.Get&lt;string&gt;("FieldThatIsMissing") // returns null
+		/// obj.Get&lt;string&gt;("FieldThatIsNull") // returns null
+		/// obj.Get&lt;int&gt;("FieldThatIsMissing") // returns 0
+		/// obj.Get&lt;int&gt;("FieldThatIsNull") // returns 0
 		/// </example>
-		/// <remarks>Cette méthode est équivalente à <code>obj[key].As&lt;T&gt;()</code></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T? Get<T>(string key)
 		{
 			return this[key].As<T>();
+		}
+
+		/// <summary>Retourne la valeur d'une propriété de cet objet</summary>
+		/// <param name="key">Nom de la propriété recherchée</param>
+		/// <param name="value">Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriété contient null ou n'existe pas.</param>
+		/// <example>
+		/// obj.TryGet&lt;string&gt;("FieldThatExists") // returns the value of the field as an int
+		/// obj.Get&lt;string&gt;("FieldThatIsMissing") // returns null
+		/// obj.Get&lt;string&gt;("FieldThatIsNull") // returns null
+		/// obj.Get&lt;int&gt;("FieldThatIsMissing") // returns 0
+		/// obj.Get&lt;int&gt;("FieldThatIsNull") // returns 0
+		/// </example>
+		public bool TryGet<T>(string key, out T? value)
+		{
+			if (TryGetValue(key, out var item) && !item.IsNullOrMissing())
+			{
+				value = item.As<T>();
+				return true;
+			}
+			value = default;
+			return true;
 		}
 
 		/// <summary>Retourne la valeur d'une propriété de cet objet, avec une contrainte de présence optionnelle</summary>
