@@ -47,7 +47,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			var t0 = STuple.Create();
 			Assert.That(t0.Count, Is.Zero);
-			Assert.That(t0.ToArray(), Is.EqualTo(new object[0]));
+			Assert.That(t0.ToArray(), Is.EqualTo(Array.Empty<object>()));
 			Assert.That(t0.ToString(), Is.EqualTo("()"));
 			Assert.That(t0, Is.InstanceOf<STuple>());
 			Assert.That(((IVarTuple) t0)[0, 0], Is.EqualTo(STuple.Empty));
@@ -298,7 +298,9 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t4.Tail.Item2, Is.False);
 			Assert.That(t4.Tail.Item3, Is.EqualTo(1234L));
 
-			Assert.That(STuple.Create(123, true, "foo", 666).GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true, "foo", 666).Tail.GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666).GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo").Append(666).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666).GetHashCode(), Is.EqualTo(STuple.Create(123, true).Append("foo", 666).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666).GetHashCode(), Is.EqualTo(STuple.Create(123).Concat(STuple.Create(true, "foo", 666)).GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123, true, "foo", 666).GetHashCode(), Is.EqualTo(STuple.Create(123L, 1, "foo", 666UL).GetHashCode()), "Hashcode should be stable");
 
 			// ReSharper disable CannotApplyEqualityOperatorToType
@@ -389,7 +391,10 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t5.Tail.Item3, Is.EqualTo(1234L));
 			Assert.That(t5.Tail.Item4, Is.EqualTo(-1234L));
 
-			Assert.That(STuple.Create(123, true, "foo", 666, false).GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true, "foo", 666, false).Tail.GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false).GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo", 666).Append(false).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false).GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo").Append(666, false).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false).GetHashCode(), Is.EqualTo(STuple.Create(123, true).Concat(STuple.Create("foo", 666, false)).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false).GetHashCode(), Is.EqualTo(STuple.Create(123).Concat(STuple.Create(true, "foo", 666, false)).GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123, true, "foo", 666, false).GetHashCode(), Is.EqualTo(STuple.Create(123L, 1, "foo", 666UL, 0).GetHashCode()), "Hashcode should be stable");
 
 			{ // Deconstruct
@@ -475,6 +480,10 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t6.Tail.Item5, Is.EqualTo("six"));
 
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo", 666, false).Append("bar").GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo", 666).Append(false, "bar").GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo").Concat(STuple.Create(666, false, "bar")).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123, true).Concat(STuple.Create("foo", 666, false, "bar")).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123).Concat(STuple.Create(123, "foo", 666, false, "bar")).GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123L, 1, "foo", 666UL, 0, "bar").GetHashCode()), "Hashcode should be stable");
 
 			{ // Deconstruct
@@ -796,36 +805,36 @@ namespace Doxense.Collections.Tuples.Tests
 			var t1 = STuple.Create(1);
 			Assert.That(t1.First<int>(), Is.EqualTo(1));
 			Assert.That(t1.First<string>(), Is.EqualTo("1"));
-			Assert.That(((IVarTuple)t1).Last<int>(), Is.EqualTo(1));
-			Assert.That(((IVarTuple)t1).Last<string>(), Is.EqualTo("1"));
+			Assert.That(t1.Last<int>(), Is.EqualTo(1));
+			Assert.That(t1.Last<string>(), Is.EqualTo("1"));
 
 			var t2 = STuple.Create(1, 2);
 			Assert.That(t2.First<int>(), Is.EqualTo(1));
 			Assert.That(t2.First<string>(), Is.EqualTo("1"));
 			Assert.That(t2.Last, Is.EqualTo(2));
-			Assert.That(((IVarTuple)t2).Last<int>(), Is.EqualTo(2));
-			Assert.That(((IVarTuple)t2).Last<string>(), Is.EqualTo("2"));
+			Assert.That(t2.Last<int>(), Is.EqualTo(2));
+			Assert.That(t2.Last<string>(), Is.EqualTo("2"));
 
 			var t3 = STuple.Create(1, 2, 3);
 			Assert.That(t3.First<int>(), Is.EqualTo(1));
 			Assert.That(t3.First<string>(), Is.EqualTo("1"));
 			Assert.That(t3.Last, Is.EqualTo(3));
-			Assert.That(((IVarTuple)t3).Last<int>(), Is.EqualTo(3));
-			Assert.That(((IVarTuple)t3).Last<string>(), Is.EqualTo("3"));
+			Assert.That(t3.Last<int>(), Is.EqualTo(3));
+			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
 
 			var t4 = STuple.Create(1, 2, 3, 4);
 			Assert.That(t4.First<int>(), Is.EqualTo(1));
 			Assert.That(t4.First<string>(), Is.EqualTo("1"));
 			Assert.That(t4.Last, Is.EqualTo(4));
-			Assert.That(((IVarTuple)t4).Last<int>(), Is.EqualTo(4));
-			Assert.That(((IVarTuple)t4).Last<string>(), Is.EqualTo("4"));
+			Assert.That(t4.Last<int>(), Is.EqualTo(4));
+			Assert.That(t4.Last<string>(), Is.EqualTo("4"));
 
 			var t5 = STuple.Create(1, 2, 3, 4, 5);
 			Assert.That(t5.First<int>(), Is.EqualTo(1));
 			Assert.That(t5.First<string>(), Is.EqualTo("1"));
 			Assert.That(t5.Last, Is.EqualTo(5));
-			Assert.That(((IVarTuple)t5).Last<int>(), Is.EqualTo(5));
-			Assert.That(((IVarTuple)t5).Last<string>(), Is.EqualTo("5"));
+			Assert.That(t5.Last<int>(), Is.EqualTo(5));
+			Assert.That(t5.Last<string>(), Is.EqualTo("5"));
 
 			var tn = STuple.Create(1, 2, 3, 4, 5, 6);
 			Assert.That(tn.First<int>(), Is.EqualTo(1));
@@ -1840,7 +1849,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(cmp.Equals(STuple.Create("foo", true, 123, -1L, "narf"), STuple.Create("foo", true, 123, -2L, "narf")), Is.False, "('foo',true,123,-1) != ('foo',true,123,-2,'narf')");
 				Assert.That(cmp.Equals(STuple.Create("foo", true, 123, -1L, "narf"), STuple.Create("foo", true, 123, -1L, "zort")), Is.False, "('foo',true,123,-1) != ('foo',true,123,-1,'zort')");
 				Assert.That(cmp.GetHashCode(STuple.Create("foo", true, 123, -1L, "narf")), Is.EqualTo(STuple.Create("foo", true, 123, -1L, "narf").GetHashCode()));
-				Assert.That(cmp.GetHashCode(STuple.Create("foo", true, 123, -1L, "narf")), Is.Not.EqualTo(STuple.Create("foo", true, 456, -1L, "narf").GetHashCode()));
+				Assert.That(cmp.GetHashCode(STuple.Create("foo", true, 123, -1L, "narf")), Is.Not.EqualTo(STuple.Create("foo", true, 123, -1L, "zort").GetHashCode()));
 			}
 
 			{

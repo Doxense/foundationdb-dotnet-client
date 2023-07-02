@@ -36,13 +36,11 @@ namespace Doxense.Collections.Tuples.Encoding
 	public sealed class TupleCodec<T> : TypeCodec<T>, IValueEncoder<T>
 	{
 
-		private static TupleCodec<T>? s_defaultSerializer;
+		public static TupleCodec<T> Default => new(default);
 
-		public static TupleCodec<T> Default => s_defaultSerializer ??= new TupleCodec<T>(default!);
+		private readonly T? m_missingValue;
 
-		private readonly T m_missingValue;
-
-		public TupleCodec(T missingValue)
+		public TupleCodec(T? missingValue)
 		{
 			m_missingValue = missingValue;
 		}
@@ -62,14 +60,14 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public override T? DecodeOrdered(Slice input)
 		{
-			return TuPack.DecodeKey<T>(input);
+			return TuPack.DecodeKey<T?>(input);
 		}
 
 		public override T? DecodeOrderedSelfTerm(ref SliceReader input)
 		{
 			//HACKHACK: we lose the current depth!
 			var reader = new TupleReader(input);
-			bool res = TuPack.DecodeNext<T>(ref reader, out T value);
+			bool res = TuPack.DecodeNext<T?>(ref reader, out var value);
 			input = reader.Input;
 			return res ? value : m_missingValue;
 		}
@@ -83,6 +81,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			return DecodeUnordered(encoded);
 		}
+
 	}
 
 }

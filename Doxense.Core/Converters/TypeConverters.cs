@@ -569,7 +569,7 @@ namespace Doxense.Runtime.Converters
 		/// <returns>Converted value</returns>
 		[Pure, ContractAnnotation("null=>null")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TOutput? Convert<TInput, TOutput>(TInput? value)
+		public static TOutput Convert<TInput, TOutput>(TInput value)
 		{
 #if !DEBUG
 			//note: we expect that, in a lot of calls, TInput == TOutput so expect the JIT to optimize this away completely (only in Release builds)
@@ -596,7 +596,7 @@ namespace Doxense.Runtime.Converters
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static T? ConvertBoxed<T>(object? value)
+		public static T ConvertBoxed<T>(object? value)
 		{
 			if (value == null) return default!;
 			var type = value.GetType();

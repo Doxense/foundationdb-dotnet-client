@@ -39,6 +39,7 @@ namespace Doxense.Collections.Tuples
 	[PublicAPI]
 	public static class TupleComparisons
 	{
+
 		/// <summary>Tuple comparer that treats similar values as equal ("123" = 123 = 123L = 123.0d)</summary>
 		public static readonly EqualityComparer Default = new (SimilarValueComparer.Default);
 

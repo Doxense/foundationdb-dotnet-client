@@ -53,14 +53,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1>(ref SliceWriter writer, T1? item1)
+		public void EncodeKey<T1>(ref SliceWriter writer, T1 item1)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2)
+		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1 item1, T2 item2)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -68,7 +68,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3)
+		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -77,7 +77,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4)
+		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -87,7 +87,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
+		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -98,7 +98,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
+		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -110,7 +110,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
+		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -123,7 +123,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
+		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -164,7 +164,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.DecodeLast<T>(packed);
 		}
 
-		public (T1, T2) DecodeKey<T1, T2>(Slice packed)
+		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2>(packed);
 		}

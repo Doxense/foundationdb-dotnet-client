@@ -30,7 +30,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
@@ -90,17 +89,17 @@ namespace Doxense.Collections.Tuples.Encoding
 
 #endif
 
-		public T? Get<T>(int index)
+		public T Get<T>(int index)
 		{
 			return m_items.Get<T>(index);
 		}
 
-		public T? Last<T>()
+		public T Last<T>()
 		{
 			return m_items.Last<T>();
 		}
 
-		IVarTuple IVarTuple.Append<T>(T? value)
+		IVarTuple IVarTuple.Append<T>(T value)
 			where T : default
 		{
 			return Append<T>(value);
@@ -111,7 +110,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Concat(tuple);
 		}
 
-		public PrefixedTuple Append<T>(T? value)
+		public PrefixedTuple Append<T>(T value)
 		{
 			return new PrefixedTuple(m_prefix, m_items.Append<T>(value));
 		}
@@ -197,6 +196,11 @@ namespace Doxense.Collections.Tuples.Encoding
 				m_prefix.GetHashCode(),
 				comparer.GetHashCode(m_items)
 			);
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			return m_items.GetItemHashCode(index, comparer);
 		}
 
 	}

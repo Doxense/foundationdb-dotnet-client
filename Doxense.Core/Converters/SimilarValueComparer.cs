@@ -34,7 +34,7 @@ namespace Doxense.Runtime.Converters
 
 	/// <summary>Object comparer that returns true if both values are "similar"</summary>
 	/// <remarks>This comparer SHOULD NOT be used in a Dictionary, because it violates on of the conditions: Two objects could be considered equal, but have different hashcode!</remarks>
-	public sealed class SimilarValueComparer : IEqualityComparer<object>, IEqualityComparer
+	public sealed class SimilarValueComparer : IEqualityComparer<object?>, IEqualityComparer
 	{
 
 		public static readonly IEqualityComparer Default = new SimilarValueComparer();
@@ -42,17 +42,17 @@ namespace Doxense.Runtime.Converters
 		private SimilarValueComparer()
 		{ }
 
-		bool IEqualityComparer<object>.Equals(object x, object y)
+		bool IEqualityComparer<object?>.Equals(object? x, object? y)
 		{
 			return ComparisonHelper.AreSimilar(x, y);
 		}
 
-		int IEqualityComparer<object>.GetHashCode(object obj)
+		int IEqualityComparer<object?>.GetHashCode(object? obj)
 		{
 			return obj?.GetHashCode() ?? -1;
 		}
 
-		bool IEqualityComparer.Equals(object x, object y)
+		bool IEqualityComparer.Equals(object? x, object? y)
 		{
 			return ComparisonHelper.AreSimilar(x, y);
 		}

@@ -41,17 +41,17 @@ namespace FoundationDB.Layers.Indexing
 	{
 
 		public FdbIndex(ISubspaceLocation path, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
-			: this(path.AsTyped<TValue, TId>(), valueComparer, indexNullValues)
+			: this(path.AsTyped<TValue?, TId>(), valueComparer, indexNullValues)
 		{ }
 
-		public FdbIndex(TypedKeySubspaceLocation<TValue, TId> subspace, IEqualityComparer<TValue>? valueComparer, bool indexNullValues)
+		public FdbIndex(TypedKeySubspaceLocation<TValue?, TId> subspace, IEqualityComparer<TValue>? valueComparer, bool indexNullValues)
 		{
 			this.Location = subspace ?? throw new ArgumentNullException(nameof(subspace));
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
 		}
 
-		public TypedKeySubspaceLocation<TValue, TId> Location { get; }
+		public TypedKeySubspaceLocation<TValue?, TId> Location { get; }
 
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
@@ -66,15 +66,15 @@ namespace FoundationDB.Layers.Indexing
 			public FdbIndex<TId, TValue> Schema { get; }
 
 			/// <summary>Resolved subspace containing the index</summary>
-			public ITypedKeySubspace<TValue, TId> Subspace { get; }
+			public ITypedKeySubspace<TValue?, TId> Subspace { get; }
 
-			public State(FdbIndex<TId, TValue> schema, ITypedKeySubspace<TValue, TId> subspace)
+			public State(FdbIndex<TId, TValue> schema, ITypedKeySubspace<TValue?, TId> subspace)
 			{
 				this.Schema = schema;
 				this.Subspace = subspace;
 			}
 
-			public bool Add(IFdbTransaction trans, TId id, TValue value)
+			public bool Add(IFdbTransaction trans, TId id, TValue? value)
 			{
 				if (this.Schema.IndexNullValues || value != null)
 				{
@@ -85,7 +85,7 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Update the indexed values of an entity</summary>
-			public bool Update(IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+			public bool Update(IFdbTransaction trans, TId id, TValue? newValue, TValue? previousValue)
 			{
 				if (!this.Schema.ValueComparer.Equals(newValue, previousValue))
 				{
@@ -108,13 +108,13 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Remove an entity from the index</summary>
-			public void Remove(IFdbTransaction trans, TId id, TValue value)
+			public void Remove(IFdbTransaction trans, TId id, TValue? value)
 			{
 				trans.Clear(this.Subspace[value, id]);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have the specified <paramref name="value"/></summary>
-			public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
+			public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 			{
 				var prefix = this.Subspace.EncodePartial(value);
 
@@ -173,7 +173,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
 		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValues"/> is false)</returns>
-		public async Task<bool> AddAsync(IFdbTransaction trans, TId id, TValue value)
+		public async Task<bool> AddAsync(IFdbTransaction trans, TId id, TValue? value)
 		{
 			var state = await Resolve(trans);
 			return state.Add(trans, id, value);
@@ -186,7 +186,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="previousValue">New value of this entity in the index</param>
 		/// <returns>True if a change was performed in the index; otherwise false (if <paramref name="previousValue"/> and <paramref name="newValue"/>)</returns>
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
-		public async Task<bool> UpdateAsync(IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+		public async Task<bool> UpdateAsync(IFdbTransaction trans, TId id, TValue? newValue, TValue? previousValue)
 		{
 			var state = await Resolve(trans);
 			return state.Update(trans, id, newValue, previousValue);
@@ -196,7 +196,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has been deleted</param>
 		/// <param name="value">Previous value of the entity in the index</param>
-		public async Task RemoveAsync(IFdbTransaction trans, TId id, TValue value)
+		public async Task RemoveAsync(IFdbTransaction trans, TId id, TValue? value)
 		{
 			var state = await Resolve(trans);
 			state.Remove(trans, id, value);
@@ -207,7 +207,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>List of the ids of entities that match the value</returns>
-		public IAsyncEnumerable<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
+		public IAsyncEnumerable<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			return AsyncEnumerable.Defer<TId, FdbRangeQuery<TId>>((_) => CreateLookupQuery(trans, value, reverse));
@@ -218,7 +218,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
-		public async Task<FdbRangeQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
+		public async Task<FdbRangeQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 		{
 			var state = await Resolve(trans);
 			return state.Lookup(trans, value, reverse);

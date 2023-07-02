@@ -29,7 +29,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Runtime.Converters;
@@ -106,7 +105,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuplePacker<T>.Deserialize(GetSlice(index));
 		}
 
-		public T? Last<T>()
+		public T Last<T>()
 		{
 			int count = m_slices.Length;
 			if (count == 0) throw new InvalidOperationException("Tuple is empty");
@@ -131,8 +130,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 #endif
 
-		IVarTuple IVarTuple.Append<T>(T? value)
-			where T : default
+		IVarTuple IVarTuple.Append<T>(T value)
 		{
 			throw new NotSupportedException();
 		}
@@ -225,6 +223,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			if (canUseCache) m_hashCode = h;
 			return h;
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			var slice = m_slices.Span[index];
+			return comparer.GetHashCode(slice);
 		}
 
 	}

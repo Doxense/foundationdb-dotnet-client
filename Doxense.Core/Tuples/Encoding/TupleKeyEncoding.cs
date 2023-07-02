@@ -92,4 +92,5 @@ namespace Doxense.Collections.Tuples.Encoding
 		#endregion
 
 	}
+
 }

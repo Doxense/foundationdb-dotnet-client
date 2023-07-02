@@ -797,14 +797,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty or has more than one element.</remarks>
-		public static void DecodeKey<T1>(Slice packedKey, out ValueTuple<T1?> tuple)
+		public static void DecodeKey<T1>(Slice packedKey, out ValueTuple<T1> tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack a single value out of an empty tuple");
 
 			var slice = TuplePackers.UnpackSingle(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack singleton tuple");
 
-			tuple = new ValueTuple<T1?>(TuplePacker<T1>.Deserialize(slice));
+			tuple = new ValueTuple<T1>(TuplePacker<T1>.Deserialize(slice));
 		}
 
 		/// <summary>Unpack the value of a singleton tuple</summary>
@@ -850,7 +850,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 
-		public static void DecodeKey<T1, T2>(ref TupleReader reader, out T1? item1, out T2? item2)
+		public static void DecodeKey<T1, T2>(ref TupleReader reader, out T1 item1, out T2 item2)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -877,7 +877,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than three items");
 		}
 
-		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3)
+		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -906,7 +906,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -937,7 +937,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
+		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -975,7 +975,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="input">Reader positioned at the start of the next item to read</param>
 		/// <param name="value">If decoding succeeded, receives the decoded value.</param>
 		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
-		public static bool DecodeNext<T>(ref TupleReader input, out T? value)
+		public static bool DecodeNext<T>(ref TupleReader input, out T value)
 		{
 			if (!input.Input.HasMore)
 			{
@@ -1011,14 +1011,14 @@ namespace Doxense.Collections.Tuples.Encoding
 				TupleEncoder.WriteKeysTo(ref writer, key);
 			}
 
-			public void ReadKeyFrom(ref SliceReader reader, out T? key)
+			public void ReadKeyFrom(ref SliceReader reader, out T key)
 			{
 				key = !reader.HasMore
 					? default! //BUGBUG
 					: TuPack.DecodeKey<T>(reader.ReadToEnd())!;
 			}
 
-			public bool TryReadKeyFrom(ref SliceReader reader, out T? key)
+			public bool TryReadKeyFrom(ref SliceReader reader, out T key)
 			{
 				return TuPack.TryDecodeKey<T>(reader.ReadToEnd(), out key);
 			}
@@ -1028,7 +1028,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				return TupleEncoder.EncodeKey(default(Slice), key);
 			}
 
-			public T? DecodeValue(Slice encoded)
+			public T DecodeValue(Slice encoded)
 			{
 				if (encoded.IsNullOrEmpty) return default!; //BUGBUG
 				return TuPack.DecodeKey<T>(encoded);

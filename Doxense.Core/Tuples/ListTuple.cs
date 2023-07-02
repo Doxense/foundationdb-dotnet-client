@@ -151,18 +151,18 @@ namespace Doxense.Collections.Tuples
 
 #endif
 
-		public TItem? Get<TItem>(int index)
+		public TItem Get<TItem>(int index)
 		{
 			return TypeConverters.ConvertBoxed<TItem>(this[index]);
 		}
 
-		public TItem? First<TItem>()
+		public TItem First<TItem>()
 		{
 			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
 			return TypeConverters.ConvertBoxed<TItem>(m_items.Span[0]);
 		}
 
-		public TItem? Last<TItem>()
+		public TItem Last<TItem>()
 		{
 			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
 #if USE_RANGE_API
@@ -173,7 +173,7 @@ namespace Doxense.Collections.Tuples
 			return TypeConverters.ConvertBoxed<TItem>(value);
 		}
 
-		public IVarTuple Append<TItem>(TItem? value)
+		public IVarTuple Append<TItem>(TItem value)
 		{
 			return new LinkedTuple<TItem>(this, value);
 		}
@@ -273,7 +273,7 @@ namespace Doxense.Collections.Tuples
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
-		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			// the cached hashcode is only valid for the default comparer!
 			bool canUseCache = object.ReferenceEquals(comparer, SimilarValueComparer.Default);
@@ -282,13 +282,21 @@ namespace Doxense.Collections.Tuples
 				return m_hashCode.Value;
 			}
 
-			int h = 0;
-			foreach(var item in m_items.Span)
+			var items = m_items.Span;
+			var h = items.Length switch
 			{
-				h = HashCodes.Combine(h, comparer.GetHashCode(item));
-			}
+				0 => 0,
+				1 => TupleHelpers.ComputeHashCode(items[0], comparer),
+				2 => TupleHelpers.CombineHashCodes(TupleHelpers.ComputeHashCode(items[0], comparer), TupleHelpers.ComputeHashCode(items[1], comparer)),
+				_ => TupleHelpers.CombineHashCodes(items.Length, TupleHelpers.ComputeHashCode(items[0], comparer), TupleHelpers.ComputeHashCode(items[items.Length - 2], comparer), TupleHelpers.ComputeHashCode(items[items.Length - 1], comparer))
+			};
 			if (canUseCache) m_hashCode = h;
 			return h;
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			return TupleHelpers.ComputeHashCode(m_items.Span[index], comparer);
 		}
 
 	}

@@ -36,6 +36,7 @@ namespace Doxense.Collections.Tuples
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
+	using System.Collections;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
@@ -49,32 +50,32 @@ namespace Doxense.Collections.Tuples
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
 		/// <summary>Value of the last element of the tuple</summary>
-		public readonly T? Tail;
+		public readonly T Tail;
 
 		/// <summary>Link to the parent tuple that contains the head.</summary>
 		public readonly IVarTuple Head;
 
 		/// <summary>Cached size of the size of the Head tuple. Add 1 to get the size of this tuple.</summary>
-		public readonly int Depth;
+		private readonly int HeadCount;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
-		public LinkedTuple(IVarTuple head, T? tail)
+		public LinkedTuple(IVarTuple head, T tail)
 		{
 			Contract.NotNull(head);
 
 			this.Head = head;
 			this.Tail = tail;
-			this.Depth = head.Count;
+			this.HeadCount = head.Count;
 		}
 
 		/// <summary>Returns the number of elements in this tuple</summary>
-		public int Count => this.Depth + 1;
+		public int Count => this.HeadCount + 1;
 
 		public object? this[int index]
 		{
 			get
 			{
-				if (index == this.Depth || index == -1) return this.Tail;
+				if (index == this.HeadCount || index == -1) return this.Tail;
 				if (index < -1) index++;
 				return this.Head[index];
 			}
@@ -88,8 +89,8 @@ namespace Doxense.Collections.Tuples
 		{
 			get
 			{
-				int p = TupleHelpers.MapIndex(index, this.Depth + 1);
-				if (p == this.Depth) return this.Tail;
+				int p = TupleHelpers.MapIndex(index, this.HeadCount + 1);
+				if (p == this.HeadCount) return this.Tail;
 				return this.Head[p];
 			}
 		}
@@ -98,7 +99,7 @@ namespace Doxense.Collections.Tuples
 		{
 			get
 			{
-				int d = this.Depth;
+				int d = this.HeadCount;
 				(int offset, int count) = range.GetOffsetAndLength(d + 1);
 				if (count == 0) return STuple.Empty;
 				if (count == 1 && offset == d) return new STuple<T>(this.Tail);
@@ -113,9 +114,9 @@ namespace Doxense.Collections.Tuples
 
 #endif
 
-		public TItem? Get<TItem>(int index)
+		public TItem Get<TItem>(int index)
 		{
-			if (index == this.Depth || index == -1) return TypeConverters.Convert<T, TItem>(this.Tail);
+			if (index == this.HeadCount || index == -1) return TypeConverters.Convert<T, TItem>(this.Tail);
 			if (index < -1) index++;
 			return this.Head.Get<TItem>(index);
 		}
@@ -124,12 +125,12 @@ namespace Doxense.Collections.Tuples
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			[return: MaybeNull]
-			get => this.Tail!;
+			get => this.Tail;
 		}
 
-		public IVarTuple Append<TItem>(TItem? value)
+		public IVarTuple Append<TItem>(TItem value)
 		{
-			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail!, value));
+			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail, value));
 		}
 
 		public IVarTuple Concat(IVarTuple tuple)
@@ -140,7 +141,7 @@ namespace Doxense.Collections.Tuples
 		public void CopyTo(object?[] array, int offset)
 		{
 			this.Head.CopyTo(array, offset);
-			array[offset + this.Depth] = this.Tail;
+			array[offset + this.HeadCount] = this.Tail;
 		}
 
 		public IEnumerator<object?> GetEnumerator()
@@ -197,13 +198,25 @@ namespace Doxense.Collections.Tuples
 
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return HashCodes.Combine(
-				HashCodes.Compute(this.Head, comparer),
-				comparer.GetHashCode(this.Tail)
-			);
+			int hc = this.Head.Count;
+			return hc switch
+			{
+				0 => TupleHelpers.ComputeHashCode(this.Tail, comparer),
+				1 => TupleHelpers.CombineHashCodes(this.Head.GetItemHashCode(0, comparer), TupleHelpers.ComputeHashCode(this.Tail, comparer)),
+				_ => TupleHelpers.CombineHashCodes(this.Count, this.Head.GetItemHashCode(0, comparer), this.Head.GetItemHashCode(hc - 1, comparer), TupleHelpers.ComputeHashCode(this.Tail, comparer))
+			};
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			int hc = this.Head.Count;
+			if (index < hc) return this.Head.GetItemHashCode(index, comparer);
+			if (index == hc) return TupleHelpers.ComputeHashCode(this.Tail, comparer);
+			throw new IndexOutOfRangeException();
 		}
 
 	}
+
 }
 
 #endif

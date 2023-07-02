@@ -49,10 +49,10 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First and only item in the tuple</summary>
-		public readonly T1? Item1;
+		public readonly T1 Item1;
 
 		[DebuggerStepThrough]
-		public STuple(T1? item1)
+		public STuple(T1 item1)
 		{
 			this.Item1 = item1;
 		}
@@ -96,13 +96,13 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem? Get<TItem>(int index)
+		public TItem Get<TItem>(int index)
 		{
 			if (index > 0 || index < -1) return TupleHelpers.FailIndexOutOfRange<TItem>(index, 1);
 			return TypeConverters.Convert<T1, TItem>(this.Item1);
 		}
 
-		IVarTuple IVarTuple.Append<T2>(T2? value) where T2 : default
+		IVarTuple IVarTuple.Append<T2>(T2 value) where T2 : default
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
@@ -112,7 +112,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2> Append<T2>(T2? value)
+		public STuple<T1, T2> Append<T2>(T2 value)
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
@@ -123,7 +123,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3> Append<T2, T3>(T2? value1, T3? value2)
+		public STuple<T1, T2, T3> Append<T2, T3>(T2 value1, T3 value2)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, value1, value2);
 		}
@@ -162,7 +162,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct(out T1? item1)
+		public void Deconstruct(out T1 item1)
 		{
 			item1 = this.Item1;
 		}
@@ -170,7 +170,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void With(Action<T1?> lambda)
+		public void With(Action<T1> lambda)
 		{
 			lambda(this.Item1);
 		}
@@ -179,7 +179,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TItem With<TItem>(Func<T1?, TItem> lambda)
+		public TItem With<TItem>(Func<T1, TItem> lambda)
 		{
 			return lambda(this.Item1);
 		}
@@ -223,7 +223,16 @@ namespace Doxense.Collections.Tuples
 
 		public override int GetHashCode()
 		{
-			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+			return TupleHelpers.ComputeHashCode(this.Item1, SimilarValueComparer.Default);
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			switch (index)
+			{
+				case 0: return TupleHelpers.ComputeHashCode(this.Item1, comparer);
+				default: throw new IndexOutOfRangeException();
+			}
 		}
 
 		public static bool operator ==(STuple<T1> left, STuple<T1> right)
@@ -252,7 +261,7 @@ namespace Doxense.Collections.Tuples
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
-			return comparer.GetHashCode(this.Item1);
+			return TupleHelpers.ComputeHashCode(this.Item1, comparer);
 		}
 
 		[Pure]
@@ -368,7 +377,7 @@ namespace Doxense.Collections.Tuples
 
 		public sealed class Comparer : IComparer<STuple<T1>>
 		{
-			public static Comparer Default { get; } = new Comparer();
+			public static Comparer Default { get; } = new();
 
 			private static readonly Comparer<T1> Comparer1 = Comparer<T1>.Default;
 
@@ -382,7 +391,7 @@ namespace Doxense.Collections.Tuples
 
 		public sealed class EqualityComparer : IEqualityComparer<STuple<T1>>
 		{
-			public static EqualityComparer Default { get; } = new EqualityComparer();
+			public static EqualityComparer Default { get; } = new();
 
 			private static readonly EqualityComparer<T1> Comparer1 = EqualityComparer<T1>.Default;
 
@@ -395,7 +404,7 @@ namespace Doxense.Collections.Tuples
 
 			public int GetHashCode(STuple<T1> obj)
 			{
-				return Comparer1.GetHashCode(obj.Item1);
+				return obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1;
 			}
 
 		}

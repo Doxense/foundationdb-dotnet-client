@@ -38,7 +38,7 @@ namespace Doxense.Serialization.Encoders
 	{
 
 		/// <summary>Encode a single value into a compact binary representation</summary>
-		TStorage EncodeValue(TValue? value);
+		TStorage EncodeValue(TValue value);
 
 		/// <summary>Decode a single value from a compact binary representation</summary>
 		/// <param name="encoded">Packed value</param>

@@ -27,7 +27,6 @@
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
-	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
@@ -35,6 +34,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
+	using System.Threading;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
@@ -47,7 +47,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Serializers...
 
-		public delegate void Encoder<in T>(ref TupleWriter writer, T? value);
+		public delegate void Encoder<in T>(ref TupleWriter writer, T value);
 
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
@@ -65,7 +65,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		private static Encoder<T> MakeNotSupportedSerializer<T>()
 		{
-			return (ref TupleWriter writer, T value) => throw new InvalidOperationException($"Does not know how to serialize values of type '{typeof(T).Name}' into keys");
+			return (ref TupleWriter _, T _) => throw new InvalidOperationException($"Does not know how to serialize values of type '{typeof(T).Name}' into keys");
 		}
 
 		private static Delegate? GetSerializerFor(Type type)
@@ -168,7 +168,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return null;
 		}
 
-		private static MethodInfo FindSTupleSerializerMethod(Type[] args)
+		private static MethodInfo? FindSTupleSerializerMethod(Type[] args)
 		{
 			//note: we want to find the correct SerializeSTuple<...>(ref TupleWriter, (...,), but this cannot be done with Type.GetMethod(...) directly
 			// => we have to scan for all methods with the correct name, and the same number of Type Arguments than the ValueTuple.
@@ -177,7 +177,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				   .SingleOrDefault(m => m.Name == nameof(SerializeSTupleTo) && m.GetGenericArguments().Length == args.Length);
 		}
 
-		private static MethodInfo FindValueTupleSerializerMethod(Type[] args)
+		private static MethodInfo? FindValueTupleSerializerMethod(Type[] args)
 		{
 			//note: we want to find the correct SerializeValueTuple<...>(ref TupleWriter, (...,), but this cannot be done with Type.GetMethod(...) directly
 			// => we have to scan for all methods with the correct name, and the same number of Type Arguments than the ValueTuple.
@@ -187,7 +187,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void SerializeTo<T>(ref TupleWriter writer, T? value)
+		internal static void SerializeTo<T>(ref TupleWriter writer, T value)
 		{
 			//<JIT_HACK>
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
@@ -288,25 +288,41 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static Encoder<object> GetBoxedEncoder(Type type)
 		{
-			if (!BoxedEncoders.TryGetValue(type, out var encoder))
+			var encoders = TuplePackers.BoxedEncoders;
+			if (!encoders.TryGetValue(type, out var encoder))
 			{
-				encoder = CreateBoxedEncoder(type);
-				BoxedEncoders.TryAdd(type, encoder);
+				return GetBoxedEncoderSlow(type);
 			}
 			return encoder;
+
+			static Encoder<object> GetBoxedEncoderSlow(Type type)
+			{
+				var encoder = CreateBoxedEncoder(type);
+				while (true)
+				{
+					var encoders = TuplePackers.BoxedEncoders;
+					var updated = new Dictionary<Type, Encoder<object>>(encoders) { [type] = encoder };
+
+					if (Interlocked.CompareExchange(ref TuplePackers.BoxedEncoders, updated, encoders) == encoders)
+					{
+						break;
+					}
+				}
+				return encoder;
+			}
 		}
 
-		private static ConcurrentDictionary<Type, Encoder<object>> BoxedEncoders { get; } = GetDefaultBoxedEncoders();
+		private static Dictionary<Type, Encoder<object>> BoxedEncoders = GetDefaultBoxedEncoders();
 
-		private static ConcurrentDictionary<Type, Encoder<object>> GetDefaultBoxedEncoders()
+		private static Dictionary<Type, Encoder<object>> GetDefaultBoxedEncoders()
 		{
-			var encoders = new ConcurrentDictionary<Type, Encoder<object>>
+			var encoders = new Dictionary<Type, Encoder<object>>(TypeEqualityComparer.Default)
 			{
 				[typeof(bool)] = (ref TupleWriter writer, object value) => TupleParser.WriteBool(ref writer, (bool) value),
 				[typeof(bool?)] = (ref TupleWriter writer, object value) => TupleParser.WriteBool(ref writer, (bool?) value),
 				[typeof(char)] = (ref TupleWriter writer, object value) => TupleParser.WriteChar(ref writer, (char) value),
 				[typeof(char?)] = (ref TupleWriter writer, object value) => TupleParser.WriteChar(ref writer, (char?) value),
-				[typeof(string)] = (ref TupleWriter writer, object value) => TupleParser.WriteString(ref writer, (string) value),
+				[typeof(string)] = (ref TupleWriter writer, object value) => TupleParser.WriteString(ref writer, (string?) value),
 				[typeof(sbyte)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (sbyte) value),
 				[typeof(sbyte?)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (sbyte?) value),
 				[typeof(short)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (short) value),
@@ -352,7 +368,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(DateTimeOffset?)] = (ref TupleWriter writer, object value) => TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset?) value),
 				[typeof(IVarTuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (IVarTuple) value),
 				//TODO: add System.Runtime.CompilerServices.ITuple for net471+
-				[typeof(DBNull)] = (ref TupleWriter writer, object value) => TupleParser.WriteNil(ref writer)
+				[typeof(DBNull)] = (ref TupleWriter writer, object _) => TupleParser.WriteNil(ref writer)
 			};
 
 			return encoders;
@@ -551,7 +567,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Writes an IP Address as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value) => TupleParser.WriteBytes(ref writer, value?.GetAddressBytes());
+		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress? value) => TupleParser.WriteBytes(ref writer, value?.GetAddressBytes());
 
 		/// <summary>Serialize an embedded tuples</summary>
 		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
@@ -1900,6 +1916,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Unpack a tuple from a buffer</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
 		/// <param name="embedded"></param>
+		/// <param name="tuple"></param>
 		/// <returns>Decoded tuple</returns>
 		internal static bool TryUnpack(Slice buffer, bool embedded, [NotNullWhen(true)] out IVarTuple? tuple)
 		{
@@ -1919,7 +1936,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			int p = 0;
 			while (true)
 			{
-				(var item, var error) = TupleParser.ParseNext(ref reader);
+				var (item, error) = TupleParser.ParseNext(ref reader);
 				if (error != null) throw error;
 				if (!item.HasValue) break;
 
@@ -1943,7 +1960,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			int p = 0;
 			while (true)
 			{
-				(var item, var error) = TupleParser.ParseNext(ref reader);
+				var (item, error) = TupleParser.ParseNext(ref reader);
 				if (error != null)
 				{
 					tuple = null;
@@ -1976,7 +1993,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var slicer = new TupleReader(buffer);
 
-			(var current, var error) = TupleParser.ParseNext(ref slicer);
+			var (current, error) = TupleParser.ParseNext(ref slicer);
 			if (error != null) throw error;
 			if (slicer.Input.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
 
@@ -1985,12 +2002,13 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
 		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
-		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
+		/// <param name="token">Decoded slice of the single element in the singleton tuple</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked.</returns>
 		public static bool TryUnpackSingle(Slice buffer, out Slice token)
 		{
 			var slicer = new TupleReader(buffer);
 
-			(var current, var error) = TupleParser.ParseNext(ref slicer);
+			var (current, error) = TupleParser.ParseNext(ref slicer);
 			if (error == null || current.IsNull || slicer.Input.HasMore)
 			{
 				token = default;
@@ -2008,20 +2026,20 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var slicer = new TupleReader(buffer);
 
-			(var token, var error) = TupleParser.ParseNext(ref slicer);
+			var (token, error) = TupleParser.ParseNext(ref slicer);
 			if (error != null) throw error;
 			return token;
 		}
 
 		/// <summary>Only returns the first item of a packed tuple</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
-		/// <returns>Raw slice corresponding to the first element of the tuple</returns>
+		/// <param name="token">Raw slice corresponding to the first element of the tuple</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked.</returns>
 		public static bool TryUnpackFirst(Slice buffer, out Slice token)
 		{
 			var slicer = new TupleReader(buffer);
 
-			Exception? error;
-			(token, error) = TupleParser.ParseNext(ref slicer);
+			(token, Exception? error) = TupleParser.ParseNext(ref slicer);
 			return error == null && !token.IsNull;
 		}
 
@@ -2036,7 +2054,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			while (true)
 			{
-				(var current, var error) = TupleParser.ParseNext(ref slicer);
+				var (current, error) = TupleParser.ParseNext(ref slicer);
 				if (error != null) throw error;
 				if (!current.HasValue) break;
 				item = current;
@@ -2048,7 +2066,8 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Only returns the last item of a packed tuple</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
-		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
+		/// <param name="token">Raw slice corresponding to the last element of the tuple</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
 		public static bool TryUnpackLast(Slice buffer, out Slice token)
 		{
 			var slicer = new TupleReader(buffer);
@@ -2080,4 +2099,5 @@ namespace Doxense.Collections.Tuples.Encoding
 		#endregion
 
 	}
+
 }

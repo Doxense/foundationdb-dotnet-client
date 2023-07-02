@@ -29,6 +29,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
@@ -83,7 +84,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T1>(T1? value) => new STuple<T1>(value);
+		public IVarTuple Append<T1>(T1 value) => new STuple<T1>(value);
 
 		public IVarTuple Concat(IVarTuple tuple)
 		{
@@ -135,6 +136,11 @@ namespace Doxense.Collections.Tuples
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
 			return 0;
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			return index == 0 ? 0 : throw new IndexOutOfRangeException();
 		}
 
 		void ITupleSerializable.PackTo(ref TupleWriter writer)

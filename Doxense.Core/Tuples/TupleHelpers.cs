@@ -72,7 +72,7 @@ namespace Doxense.Collections.Tuples
 					{
 						items[p] = tuple[q++];
 					}
-					return new ListTuple<object>(items.AsMemory());
+					return new ListTuple<object?>(items.AsMemory());
 				}
 			}
 		}
@@ -245,17 +245,16 @@ namespace Doxense.Collections.Tuples
 		{
 			Contract.Debug.Requires(x != null && y != null && comparer != null);
 
-			using (var xs = x.GetEnumerator())
-			using (var ys = y.GetEnumerator())
-			{
-				while (xs.MoveNext())
-				{
-					if (!ys.MoveNext()) return false;
-					if (!comparer.Equals(xs.Current, ys.Current)) return false;
-				}
+			using var xs = x.GetEnumerator();
+			using var ys = y.GetEnumerator();
 
-				return !ys.MoveNext();
+			while (xs.MoveNext())
+			{
+				if (!ys.MoveNext()) return false;
+				if (!comparer.Equals(xs.Current, ys.Current)) return false;
 			}
+
+			return !ys.MoveNext();
 		}
 
 		public static int StructuralGetHashCode(IVarTuple? tuple, IEqualityComparer comparer)
@@ -283,21 +282,49 @@ namespace Doxense.Collections.Tuples
 			if (x ==  null) return -1;
 			if (y == null) return +1;
 
-			using (var xs = x.GetEnumerator())
-			using (var ys = y.GetEnumerator())
+			using var xs = x.GetEnumerator();
+			using var ys = y.GetEnumerator();
+
+			while (xs.MoveNext())
 			{
-				while (xs.MoveNext())
-				{
-					if (!ys.MoveNext()) return 1;
+				if (!ys.MoveNext()) return 1;
 
-					int cmp = comparer.Compare(xs.Current, ys.Current);
-					if (cmp != 0) return cmp;
+				int cmp = comparer.Compare(xs.Current, ys.Current);
+				if (cmp != 0) return cmp;
 
-				}
-				return ys.MoveNext() ? -1 : 0;
 			}
+
+			return ys.MoveNext() ? -1 : 0;
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static int ComputeHashCode<T>(T? value, IEqualityComparer comparer)
+		{
+			return value is not null ? comparer.GetHashCode(value) : -1;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static int CombineHashCodes(int h1, int h2)
+		{
+#if NETFRAMEWORK || NETSTANDARD
+			return HashCodes.Combine(2, h1, h2);
+#else
+			return HashCode.Combine(2, h1, h2);
+#endif
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static int CombineHashCodes(int count, int h1, int h2, int h3)
+		{
+#if NETFRAMEWORK || NETSTANDARD
+			return HashCodes.Combine(count, h1, h2, h3);
+#else
+			return HashCode.Combine(count, h1, h2, h3);
+#endif
+		}
+
 	}
+
 }
 
 #endif

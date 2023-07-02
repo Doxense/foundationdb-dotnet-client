@@ -29,6 +29,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.ComponentModel;
 
@@ -92,7 +93,7 @@ namespace Doxense.Collections.Tuples
 		/// ("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"
 		/// </example>
 		[JetBrains.Annotations.Pure]
-		TItem? Get<TItem>(int index);
+		TItem Get<TItem>(int index);
 
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="TItem">Type of the new value</typeparam>
@@ -101,7 +102,7 @@ namespace Doxense.Collections.Tuples
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
 		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></remarks>
 		[JetBrains.Annotations.Pure]
-		IVarTuple Append<TItem>(TItem? value);
+		IVarTuple Append<TItem>(TItem value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
@@ -117,6 +118,8 @@ namespace Doxense.Collections.Tuples
 		/// ("Hello", "World", 123,).CopyTo(tmp, 0);
 		/// </example>
 		void CopyTo(object?[] array, int offset);
+
+		int GetItemHashCode(int index, IEqualityComparer comparer);
 
 	}
 

@@ -59,11 +59,11 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(codec, Is.Not.Null);
 
 			Assert.That(codec.EncodeOrdered("héllø Wörld"), Is.EqualTo(TuPack.EncodeKey("héllø Wörld")));
-			Assert.That(codec.EncodeOrdered(String.Empty), Is.EqualTo(TuPack.EncodeKey("")));
+			Assert.That(codec.EncodeOrdered(string.Empty), Is.EqualTo(TuPack.EncodeKey("")));
 			Assert.That(codec.EncodeOrdered(null), Is.EqualTo(TuPack.EncodeKey(default(string))));
 
 			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey("héllø Wörld")), Is.EqualTo("héllø Wörld"));
-			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(String.Empty)), Is.EqualTo(""));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(string.Empty)), Is.EqualTo(""));
 			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(default(string))), Is.Null);
 		}
 
@@ -95,4 +95,5 @@ namespace Doxense.Collections.Tuples.Tests
 		}
 
 	}
+
 }

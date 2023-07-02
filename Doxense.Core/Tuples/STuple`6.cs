@@ -55,26 +55,26 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the tuple</summary>
-		public readonly T1? Item1;
+		public readonly T1 Item1;
 
 		/// <summary>Second element of the tuple</summary>
-		public readonly T2? Item2;
+		public readonly T2 Item2;
 
 		/// <summary>Third element of the tuple</summary>
-		public readonly T3? Item3;
+		public readonly T3 Item3;
 
 		/// <summary>Fourth element of the tuple</summary>
-		public readonly T4? Item4;
+		public readonly T4 Item4;
 
 		/// <summary>Fifth element of the tuple</summary>
-		public readonly T5? Item5;
+		public readonly T5 Item5;
 
 		/// <summary>Sixth and last element of the tuple</summary>
-		public readonly T6? Item6;
+		public readonly T6 Item6;
 
 		/// <summary>Create a tuple containing for items</summary>
 		[DebuggerStepThrough]
-		public STuple(T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
+		public STuple(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -179,17 +179,17 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem? Get<TItem>(int index)
+		public TItem Get<TItem>(int index)
 		{
 			switch(index)
 			{
-					case 0: case -6: return TypeConverters.Convert<T1, TItem>(this.Item1);
-					case 1: case -5: return TypeConverters.Convert<T2, TItem>(this.Item2);
-					case 2: case -4: return TypeConverters.Convert<T3, TItem>(this.Item3);
-					case 3: case -3: return TypeConverters.Convert<T4, TItem>(this.Item4);
-					case 4: case -2: return TypeConverters.Convert<T5, TItem>(this.Item5);
-					case 5: case -1: return TypeConverters.Convert<T6, TItem>(this.Item6);
-					default: return TupleHelpers.FailIndexOutOfRange<TItem>(index, 6);
+				case 0: case -6: return TypeConverters.Convert<T1, TItem>(this.Item1);
+				case 1: case -5: return TypeConverters.Convert<T2, TItem>(this.Item2);
+				case 2: case -4: return TypeConverters.Convert<T3, TItem>(this.Item3);
+				case 3: case -3: return TypeConverters.Convert<T4, TItem>(this.Item4);
+				case 4: case -2: return TypeConverters.Convert<T5, TItem>(this.Item5);
+				case 5: case -1: return TypeConverters.Convert<T6, TItem>(this.Item6);
+				default: return TupleHelpers.FailIndexOutOfRange<TItem>(index, 6);
 			}
 		}
 
@@ -205,7 +205,7 @@ namespace Doxense.Collections.Tuples
 		public STuple<T2, T3, T4, T5, T6> Tail
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new STuple<T2, T3, T4, T5, T6>(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6);
+			get => new(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6);
 		}
 
 		/// <summary>Appends a single new item at the end of the current tuple.</summary>
@@ -213,7 +213,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T7>(T7? value)
+		public IVarTuple Append<T7>(T7 value)
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will loose type information.
 			// but, by returning a LinkedTuple<T6>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
@@ -242,7 +242,7 @@ namespace Doxense.Collections.Tuples
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct(out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
+		public void Deconstruct(out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6)
 		{
 			item1 = this.Item1;
 			item2 = this.Item2;
@@ -321,12 +321,13 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(STuple<T1, T2, T3, T4, T5, T6> other)
 		{
-			return SimilarValueComparer.Default.Equals(this.Item1, other.Item1)
-				&& SimilarValueComparer.Default.Equals(this.Item2, other.Item2)
-				&& SimilarValueComparer.Default.Equals(this.Item3, other.Item3)
-				&& SimilarValueComparer.Default.Equals(this.Item4, other.Item4)
-				&& SimilarValueComparer.Default.Equals(this.Item5, other.Item5)
-				&& SimilarValueComparer.Default.Equals(this.Item6, other.Item6);
+			var comparer = SimilarValueComparer.Default;
+			return comparer.Equals(this.Item1, other.Item1)
+				&& comparer.Equals(this.Item2, other.Item2)
+				&& comparer.Equals(this.Item3, other.Item3)
+				&& comparer.Equals(this.Item4, other.Item4)
+				&& comparer.Equals(this.Item5, other.Item5)
+				&& comparer.Equals(this.Item6, other.Item6);
 		}
 
 		public override int GetHashCode()
@@ -358,39 +359,37 @@ namespace Doxense.Collections.Tuples
 
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
-			if (other == null) return false;
-			if (other is STuple<T1, T2, T3, T4, T5, T6> stuple)
+			return other switch
 			{
-				return comparer.Equals(this.Item1, stuple.Item1)
-					&& comparer.Equals(this.Item2, stuple.Item2)
-					&& comparer.Equals(this.Item3, stuple.Item3)
-					&& comparer.Equals(this.Item4, stuple.Item4)
-					&& comparer.Equals(this.Item5, stuple.Item5)
-					&& comparer.Equals(this.Item6, stuple.Item6);
-			}
-			if (other is ValueTuple<T1, T2, T3, T4, T5, T6> vtuple)
-			{
-				return comparer.Equals(this.Item1, vtuple.Item1)
-					&& comparer.Equals(this.Item2, vtuple.Item2)
-					&& comparer.Equals(this.Item3, vtuple.Item3)
-					&& comparer.Equals(this.Item4, vtuple.Item4)
-					&& comparer.Equals(this.Item5, vtuple.Item5)
-					&& comparer.Equals(this.Item6, vtuple.Item6);
-			}
-			return TupleHelpers.Equals(this, other, comparer);
+				null => false,
+				STuple<T1, T2, T3, T4, T5, T6> t => comparer.Equals(this.Item1, t.Item1) && comparer.Equals(this.Item2, t.Item2) && comparer.Equals(this.Item3, t.Item3) && comparer.Equals(this.Item4, t.Item4) && comparer.Equals(this.Item5, t.Item5) && comparer.Equals(this.Item6, t.Item6),
+				ValueTuple<T1, T2, T3, T4, T5, T6> t => comparer.Equals(this.Item1, t.Item1) && comparer.Equals(this.Item2, t.Item2) && comparer.Equals(this.Item3, t.Item3) && comparer.Equals(this.Item4, t.Item4) && comparer.Equals(this.Item5, t.Item5) && comparer.Equals(this.Item6, t.Item6),
+				_ => TupleHelpers.Equals(this, other, comparer)
+			};
 		}
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
-			int h = HashCodes.Combine(
-				comparer.GetHashCode(this.Item1),
-				comparer.GetHashCode(this.Item2),
-				comparer.GetHashCode(this.Item3)
+			return TupleHelpers.CombineHashCodes(
+				6,
+				TupleHelpers.ComputeHashCode(this.Item1, comparer),
+				TupleHelpers.ComputeHashCode(this.Item5, comparer),
+				TupleHelpers.ComputeHashCode(this.Item6, comparer)
 			);
-			h = HashCodes.Combine(h, comparer.GetHashCode(this.Item4));
-			h = HashCodes.Combine(h, comparer.GetHashCode(this.Item5));
-			h = HashCodes.Combine(h, comparer.GetHashCode(this.Item6));
-			return h;
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			switch (index)
+			{
+				case 0: return TupleHelpers.ComputeHashCode(this.Item1, comparer);
+				case 1: return TupleHelpers.ComputeHashCode(this.Item2, comparer);
+				case 2: return TupleHelpers.ComputeHashCode(this.Item3, comparer);
+				case 3: return TupleHelpers.ComputeHashCode(this.Item4, comparer);
+				case 4: return TupleHelpers.ComputeHashCode(this.Item5, comparer);
+				case 5: return TupleHelpers.ComputeHashCode(this.Item6, comparer);
+				default: throw new IndexOutOfRangeException();
+			}
 		}
 
 		[Pure]
@@ -441,52 +440,57 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		bool IEquatable<(T1, T2, T3, T4, T5, T6)>.Equals((T1, T2, T3, T4, T5, T6) other)
 		{
-			return SimilarValueComparer.Default.Equals(this.Item1, this.Item1)
-				&& SimilarValueComparer.Default.Equals(this.Item2, this.Item2)
-				&& SimilarValueComparer.Default.Equals(this.Item3, this.Item3)
-				&& SimilarValueComparer.Default.Equals(this.Item4, this.Item4)
-				&& SimilarValueComparer.Default.Equals(this.Item5, this.Item5)
-				&& SimilarValueComparer.Default.Equals(this.Item6, this.Item6);
+			var comparer = SimilarValueComparer.Default;
+			return comparer.Equals(this.Item1, this.Item1)
+				&& comparer.Equals(this.Item2, this.Item2)
+				&& comparer.Equals(this.Item3, this.Item3)
+				&& comparer.Equals(this.Item4, this.Item4)
+				&& comparer.Equals(this.Item5, this.Item5)
+				&& comparer.Equals(this.Item6, this.Item6);
 		}
 
 		public static bool operator ==(STuple<T1, T2, T3, T4, T5, T6> left, (T1, T2, T3, T4, T5, T6) right)
 		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
-				&& SimilarValueComparer.Default.Equals(left.Item3, right.Item3)
-				&& SimilarValueComparer.Default.Equals(left.Item4, right.Item4)
-				&& SimilarValueComparer.Default.Equals(left.Item5, right.Item5)
-				&& SimilarValueComparer.Default.Equals(left.Item6, right.Item6);
+			var comparer = SimilarValueComparer.Default;
+			return comparer.Equals(left.Item1, right.Item1)
+				&& comparer.Equals(left.Item2, right.Item2)
+				&& comparer.Equals(left.Item3, right.Item3)
+				&& comparer.Equals(left.Item4, right.Item4)
+				&& comparer.Equals(left.Item5, right.Item5)
+				&& comparer.Equals(left.Item6, right.Item6);
 		}
 
 		public static bool operator ==((T1, T2, T3, T4, T5, T6) left, STuple<T1, T2, T3, T4, T5, T6> right)
 		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
-				&& SimilarValueComparer.Default.Equals(left.Item3, right.Item3)
-				&& SimilarValueComparer.Default.Equals(left.Item4, right.Item4)
-				&& SimilarValueComparer.Default.Equals(left.Item5, right.Item5)
-				&& SimilarValueComparer.Default.Equals(left.Item6, right.Item6);
+			var comparer = SimilarValueComparer.Default;
+			return comparer.Equals(left.Item1, right.Item1)
+				&& comparer.Equals(left.Item2, right.Item2)
+				&& comparer.Equals(left.Item3, right.Item3)
+				&& comparer.Equals(left.Item4, right.Item4)
+				&& comparer.Equals(left.Item5, right.Item5)
+				&& comparer.Equals(left.Item6, right.Item6);
 		}
 
 		public static bool operator !=(STuple<T1, T2, T3, T4, T5, T6> left, (T1, T2, T3, T4, T5, T6) right)
 		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
-				|| !SimilarValueComparer.Default.Equals(left.Item3, right.Item3)
-				|| !SimilarValueComparer.Default.Equals(left.Item4, right.Item4)
-				|| !SimilarValueComparer.Default.Equals(left.Item5, right.Item5)
-				|| !SimilarValueComparer.Default.Equals(left.Item6, right.Item6);
+			var comparer = SimilarValueComparer.Default;
+			return !comparer.Equals(left.Item1, right.Item1)
+				|| !comparer.Equals(left.Item2, right.Item2)
+				|| !comparer.Equals(left.Item3, right.Item3)
+				|| !comparer.Equals(left.Item4, right.Item4)
+				|| !comparer.Equals(left.Item5, right.Item5)
+				|| !comparer.Equals(left.Item6, right.Item6);
 		}
 
 		public static bool operator !=((T1, T2, T3, T4, T5, T6) left, STuple<T1, T2, T3, T4, T5, T6> right)
 		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
-				|| !SimilarValueComparer.Default.Equals(left.Item3, right.Item3)
-				|| !SimilarValueComparer.Default.Equals(left.Item4, right.Item4)
-				|| !SimilarValueComparer.Default.Equals(left.Item5, right.Item5)
-				|| !SimilarValueComparer.Default.Equals(left.Item6, right.Item6);
+			var comparer = SimilarValueComparer.Default;
+			return !comparer.Equals(left.Item1, right.Item1)
+				|| !comparer.Equals(left.Item2, right.Item2)
+				|| !comparer.Equals(left.Item3, right.Item3)
+				|| !comparer.Equals(left.Item4, right.Item4)
+				|| !comparer.Equals(left.Item5, right.Item5)
+				|| !comparer.Equals(left.Item6, right.Item6);
 		}
 
 		public sealed class Comparer : IComparer<STuple<T1, T2, T3, T4, T5, T6>>
@@ -542,19 +546,17 @@ namespace Doxense.Collections.Tuples
 
 			public int GetHashCode(STuple<T1, T2, T3, T4, T5, T6> obj)
 			{
-				int h = HashCodes.Combine(
-					Comparer1.GetHashCode(obj.Item1),
-					Comparer2.GetHashCode(obj.Item2),
-					Comparer3.GetHashCode(obj.Item3)
+				return TupleHelpers.CombineHashCodes(
+					6,
+					obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1,
+					obj.Item5 is not null ? Comparer5.GetHashCode(obj.Item5) : -1,
+					obj.Item6 is not null ? Comparer6.GetHashCode(obj.Item6) : -1
 				);
-				h = HashCodes.Combine(h, Comparer4.GetHashCode(obj.Item4));
-				h = HashCodes.Combine(h, Comparer5.GetHashCode(obj.Item5));
-				h = HashCodes.Combine(h, Comparer6.GetHashCode(obj.Item6));
-				return h;
 			}
 		}
 
 	}
+
 }
 
 #endif

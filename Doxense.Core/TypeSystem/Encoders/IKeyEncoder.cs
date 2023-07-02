@@ -41,12 +41,12 @@ namespace Doxense.Serialization.Encoders
 	public interface IKeyEncoder<T1> : IKeyEncoder
 	{
 		/// <summary>Encode a single value</summary>
-		void WriteKeyTo(ref SliceWriter writer, T1? value);
+		void WriteKeyTo(ref SliceWriter writer, T1 value);
 
 		/// <summary>Decode a single value</summary>
-		void ReadKeyFrom(ref SliceReader reader, out T1? value);
+		void ReadKeyFrom(ref SliceReader reader, out T1 value);
 
-		bool TryReadKeyFrom(ref SliceReader reader, out T1? value);
+		bool TryReadKeyFrom(ref SliceReader reader, out T1 value);
 	}
 
 	public class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding

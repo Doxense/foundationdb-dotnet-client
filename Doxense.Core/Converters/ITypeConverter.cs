@@ -54,7 +54,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="value">Value to convert</param>
 		/// <returns>Converted value</returns>
 		[Pure]
-		TDestination? Convert(TSource? value);
+		TDestination Convert(TSource value);
 	}
 
 }

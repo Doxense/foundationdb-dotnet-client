@@ -51,13 +51,13 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the pair</summary>
-		public readonly T1? Item1;
+		public readonly T1 Item1;
 
 		/// <summary>Second element of the pair</summary>
-		public readonly T2? Item2;
+		public readonly T2 Item2;
 
 		[DebuggerStepThrough]
-		public STuple(T1? item1, T2? item2)
+		public STuple(T1 item1, T2 item2)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -92,7 +92,7 @@ namespace Doxense.Collections.Tuples
 		{
 			0 => this.Item1,
 			1 => this.Item2,
-			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 2)
+			_ => TupleHelpers.FailIndexOutOfRange<object?>(index.Value, 2)
 		};
 
 		public IVarTuple this[Range range]
@@ -115,7 +115,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem? Get<TItem>(int index)
+		public TItem Get<TItem>(int index)
 		{
 			return index switch
 			{
@@ -139,10 +139,10 @@ namespace Doxense.Collections.Tuples
 		public STuple<T2> Tail
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new STuple<T2>(this.Item2);
+			get => new(this.Item2);
 		}
 
-		IVarTuple IVarTuple.Append<T3>(T3? value) where T3 : default
+		IVarTuple IVarTuple.Append<T3>(T3 value) where T3 : default
 		{
 			return new STuple<T1, T2, T3>(this.Item1, this.Item2, value);
 		}
@@ -152,7 +152,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3> Append<T3>(T3? value)
+		public STuple<T1, T2, T3> Append<T3>(T3 value)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, this.Item2, value);
 			// Note: By create a STuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types).
@@ -166,7 +166,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with two extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3, T4> Append<T3, T4>(T3? value1, T4? value2)
+		public STuple<T1, T2, T3, T4> Append<T3, T4>(T3 value1, T4 value2)
 		{
 			return new STuple<T1, T2, T3, T4>(this.Item1, this.Item2, value1, value2);
 			// Note: By create a STuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types).
@@ -203,7 +203,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct(out T1? item1, out T2? item2)
+		public void Deconstruct(out T1 item1, out T2 item2)
 		{
 			item1 = this.Item1;
 			item2 = this.Item2;
@@ -212,7 +212,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void With(Action<T1?, T2?> lambda)
+		public void With(Action<T1, T2> lambda)
 		{
 			lambda(this.Item1, this.Item2);
 		}
@@ -221,7 +221,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TItem With<TItem>(Func<T1?, T2?, TItem> lambda)
+		public TItem With<TItem>(Func<T1, T2, TItem> lambda)
 		{
 			return lambda(this.Item1, this.Item2);
 		}
@@ -305,10 +305,20 @@ namespace Doxense.Collections.Tuples
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
-			return HashCodes.Combine(
-				comparer.GetHashCode(this.Item1),
-				comparer.GetHashCode(this.Item2)
+			return TupleHelpers.CombineHashCodes(
+				TupleHelpers.ComputeHashCode(this.Item1, comparer),
+				TupleHelpers.ComputeHashCode(this.Item2, comparer)
 			);
+		}
+
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		{
+			switch (index)
+			{
+				case 0: return TupleHelpers.ComputeHashCode(this.Item1, comparer);
+				case 1: return TupleHelpers.ComputeHashCode(this.Item2, comparer);
+				default: throw new IndexOutOfRangeException();
+			}
 		}
 
 		[Pure]
@@ -409,7 +419,7 @@ namespace Doxense.Collections.Tuples
 		public sealed class Comparer : IComparer<STuple<T1, T2>>
 		{
 
-			public static Comparer Default { get; } = new Comparer();
+			public static Comparer Default { get; } = new();
 
 			private static readonly Comparer<T1> Comparer1 = Comparer<T1>.Default;
 			private static readonly Comparer<T2> Comparer2 = Comparer<T2>.Default;
@@ -428,7 +438,7 @@ namespace Doxense.Collections.Tuples
 		public sealed class EqualityComparer : IEqualityComparer<STuple<T1, T2>>
 		{
 
-			public static EqualityComparer Default { get; } = new EqualityComparer();
+			public static EqualityComparer Default { get; } = new();
 
 			private static readonly EqualityComparer<T1> Comparer1 = EqualityComparer<T1>.Default;
 			private static readonly EqualityComparer<T2> Comparer2 = EqualityComparer<T2>.Default;
@@ -443,9 +453,9 @@ namespace Doxense.Collections.Tuples
 
 			public int GetHashCode(STuple<T1, T2> obj)
 			{
-				return HashCodes.Combine(
-					Comparer1.GetHashCode(obj.Item1),
-					Comparer2.GetHashCode(obj.Item2)
+				return TupleHelpers.CombineHashCodes(
+					obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1,
+					obj.Item2 is not null ? Comparer2.GetHashCode(obj.Item2) : -1
 				);
 			}
 
