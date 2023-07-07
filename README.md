@@ -12,7 +12,6 @@ How to use
 You will need to install two things:
 - A copy of the FoundationDB client library, available at https://github.com/apple/foundationdb/releases
 - A reference to the `FoundationDB.Client` package.
-- A reference to the `FoundationDB.DependencyInjection` package (optionnal)
 
 #### Using Dependency Injection
 
@@ -238,7 +237,7 @@ Hosting
 
 #### Hosting on ASP.NET Core / Kestrel
 
-* The simplest solution is to use the `FoundationDB.DependencyInjection` package, and inject an instance of `IFdbDatabaseProvider` in all your controllers, pages and services.
+* The simplest solution is to inject an instance of `IFdbDatabaseProvider` in all your controllers, pages and services.
 * The .NET Binding can be configured from your Startup or Program class, by reading configuration from your `appsettings.json` or by environment variable at runtime.
 * If you are publishing your web application as Docker images, you have to inject the `fdb_c.dll` or `libfdb_c.so` binary in your docket image.
 
