@@ -165,7 +165,7 @@ namespace FdbShell
 				var folder = await db.DirectoryLayer.TryOpenAsync(tr, path);
 				if (folder == null)
 				{
-					Program.Error(log, $"# Directory {path} does not exist");
+					Program.Error(log, $"# Directory {path} does not exist!");
 					return false;
 				}
 
@@ -570,7 +570,7 @@ namespace FdbShell
 				var folder = await db.DirectoryLayer.TryOpenAsync(tr, path);
 				if (folder == null)
 				{
-					log.WriteLine("Folder does not exists");
+					log.WriteLine("Folder does not exist");
 					return;
 				}
 

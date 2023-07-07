@@ -124,8 +124,8 @@ namespace FoundationDB.Client
 		/// <exception cref="NotSupportedException">If the max safe version is lower than <paramref name="minVersion"/> or higher than <paramref name="maxVersion"/></exception>
 		public static int GetMaxSafeApiVersion(int minVersion, int? maxVersion = null)
 		{
-			//TODO: add overload that takes a Range? (C# 8.0)
-			int version = Math.Min(MaxSafeApiVersion, GetMaxApiVersion());
+			int maxSupported = GetMaxApiVersion();
+			int version = Math.Min(MaxSafeApiVersion, maxSupported);
 			EnsureApiVersion(version, minVersion, maxVersion);
 			return version;
 		}

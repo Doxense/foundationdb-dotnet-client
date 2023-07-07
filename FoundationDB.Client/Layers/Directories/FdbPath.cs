@@ -320,6 +320,8 @@ namespace FoundationDB.Client
 				// Can only add relative to an absolute
 				if (path.IsAbsolute)
 				{
+					// we only allow Fdb.Root[absolutePath] as a convenience
+					if (this.IsRoot) return path;
 #if DEBUG
 					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif

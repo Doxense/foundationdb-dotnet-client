@@ -172,7 +172,7 @@ namespace FdbShell
 
 			try
 			{
-				Fdb.Start(Fdb.GetMaxSafeApiVersion(200, Fdb.GetDefaultApiVersion()));
+				Fdb.Start(620);
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();
@@ -850,7 +850,7 @@ namespace FdbShell
 		{
 			Debug.Assert(path.IsAbsolute, "Path must be absolute");
 
-			var segments = new Stack<FdbPathSegment>(path.Count);
+			var segments = new List<FdbPathSegment>(path.Count);
 			foreach (var seg in path.Segments.Span)
 			{
 				if (seg.Name == ".") continue;
@@ -860,20 +860,24 @@ namespace FdbShell
 					{
 						throw new InvalidOperationException("The specified path is invalid.");
 					}
-					segments.Pop();
+					segments.RemoveAt(segments.Count - 1);
 					continue;
 				}
-				segments.Push(seg);
+				segments.Add(seg);
 			}
-			return FdbPath.Absolute(segments.ToArray());
+			return FdbPath.Absolute(segments);
 		}
 
 		private static FdbPath CombinePath(FdbPath parent, string children)
 		{
 			if (string.IsNullOrEmpty(children) || children == ".") return parent;
 
-			var p = FdbPath.Parse(children);
+			if (children == ".." && parent.IsAbsolute && parent.Count > 0)
+			{
+				return parent.GetParent();
+			}
 
+			var p = FdbPath.Parse(children);
 			if (!p.IsAbsolute) p = parent[p];
 			if (HasIndirection(p)) p = RemoveIndirection(p);
 			return p;
