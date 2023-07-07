@@ -24,12 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using JetBrains.Annotations;
 
 	public sealed class BinaryEncoding : IValueEncoding, IKeyEncoding,
 		IValueEncoder<Slice>,
@@ -139,5 +136,3 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
-
-#endif

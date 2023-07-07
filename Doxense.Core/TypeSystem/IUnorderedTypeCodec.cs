@@ -24,12 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 
 	/// <summary>Represents a codec that can produce keys or values without any ordering guarantees</summary>
@@ -45,5 +42,3 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
-
-#endif

@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
@@ -35,7 +33,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
-	using JetBrains.Annotations;
 
 	/// <summary>Base class for all async iterators</summary>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
@@ -317,5 +314,3 @@ namespace Doxense.Linq.Async.Iterators
 	}
 
 }
-
-#endif

@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace System.Collections.Generic
 {
 	using System;
@@ -44,5 +42,3 @@ namespace System.Collections.Generic
 	}
 
 }
-
-#endif

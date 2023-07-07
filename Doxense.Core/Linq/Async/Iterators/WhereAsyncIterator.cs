@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
@@ -34,7 +32,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
-	using Doxense.Threading.Tasks;
 
 	/// <summary>Filters an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
@@ -219,5 +216,3 @@ namespace Doxense.Linq.Async.Iterators
 	}
 
 }
-
-#endif

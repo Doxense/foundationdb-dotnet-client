@@ -24,12 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Runtime.Converters
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using JetBrains.Annotations;
 
 	/// <summary>Base class of all value converters</summary>
@@ -58,5 +55,3 @@ namespace Doxense.Runtime.Converters
 	}
 
 }
-
-#endif

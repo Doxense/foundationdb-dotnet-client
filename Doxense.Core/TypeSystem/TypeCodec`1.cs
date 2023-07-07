@@ -24,12 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 
 	public abstract class TypeCodec<T> : IOrderedTypeCodec<T>, IUnorderedTypeCodec<T>
@@ -78,5 +75,3 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
-
-#endif

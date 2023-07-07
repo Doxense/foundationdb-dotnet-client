@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace System
 {
 	using System;
@@ -818,5 +816,3 @@ namespace System
 	}
 
 }
-
-#endif

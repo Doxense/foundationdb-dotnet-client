@@ -34,8 +34,6 @@
 // - the ctor Vector<byte>(byte* ptr, int offset) is currently private, which means that we cannot use it with unsafe pointers yet
 // - there does not seem to be any SIMD way to implement memcmp with the current Vector<T> API, unless doing some trickery with substracting and looking for 0s
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Memory
 {
 	using System;
@@ -3199,5 +3197,3 @@ namespace Doxense.Memory
 	}
 
 }
-
-#endif

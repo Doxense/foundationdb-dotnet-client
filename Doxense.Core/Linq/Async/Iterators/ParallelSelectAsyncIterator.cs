@@ -26,8 +26,6 @@
 
 //#define FULL_DEBUG
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
@@ -37,7 +35,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading.Tasks;
 	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Threading.Tasks;
 
 	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
@@ -192,5 +189,3 @@ namespace Doxense.Linq.Async.Iterators
 	}
 
 }
-
-#endif

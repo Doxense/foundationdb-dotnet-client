@@ -24,14 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Linq
 {
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	public static partial class AsyncEnumerable
 	{
@@ -191,5 +188,3 @@ namespace Doxense.Linq
 
 	}
 }
-
-#endif

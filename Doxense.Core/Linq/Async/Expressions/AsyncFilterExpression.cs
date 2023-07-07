@@ -24,15 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Linq.Async.Expressions
 {
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	/// <summary>Expression that evaluate a condition on each item</summary>
@@ -179,5 +176,3 @@ namespace Doxense.Linq.Async.Expressions
 	}
 
 }
-
-#endif

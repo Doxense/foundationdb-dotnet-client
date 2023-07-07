@@ -24,12 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Class that know how to encode and decode values of a fixed type into a lower format</summary>
 	/// <typeparam name="TValue">Type of the values</typeparam>
@@ -56,5 +53,3 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
-
-#endif

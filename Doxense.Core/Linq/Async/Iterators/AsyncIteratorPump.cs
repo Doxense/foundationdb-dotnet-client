@@ -26,8 +26,6 @@
 
 //#define FULL_DEBUG
 
-#if !USE_SHARED_FRAMEWORK
-
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
@@ -148,5 +146,3 @@ namespace Doxense.Linq.Async.Iterators
 	}
 
 }
-
-#endif
