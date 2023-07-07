@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net6.0;netstandard2.0</TargetFrameworks>
 		<RootNamespace>FoundationDB.Client</RootNamespace>
 		<AssemblyName>FoundationDB.Client</AssemblyName>
 		<LangVersion>11.0</LangVersion>
@@ -29,7 +29,7 @@
 		<DocumentationFile>bin\Release\$(TargetFramework)\FoundationDB.Client.xml</DocumentationFile>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
+	<PropertyGroup Condition="'$(TargetFramework)'!='netstandard2.0'">
 		<DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API;USE_ANNOTATIONS</DefineConstants>
 	</PropertyGroup>
 
@@ -42,7 +42,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
+		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0-preview.5.23280.8" />
 		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

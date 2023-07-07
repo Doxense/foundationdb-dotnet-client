@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net6.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net6.0</TargetFrameworks>
 		<RootNamespace>FoundationDB.Tests</RootNamespace>
 		<AssemblyName>FoundationDB.Layers.Experimental.Tests</AssemblyName>
 		<LangVersion>11.0</LangVersion>
@@ -36,15 +36,15 @@
 		<ProjectReference Include="..\FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj" />
 		<ProjectReference Include="..\FoundationDB.Tests\FoundationDB.Tests.csproj" />
 		<PackageReference Include="MathNet.Numerics.Signed" Version="5.0.0" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.0-preview.23280.1" />
 		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="NUnit" Version="3.13.3" />
-		<PackageReference Include="NUnit3TestAdapter" Version="4.3.1" />
-		<PackageReference Include="protobuf-net" Version="3.0.0-alpha.122" />
+		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+		<PackageReference Include="protobuf-net" Version="3.2.26" />
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="7.0.0-preview.2.22152.2" />
 	</ItemGroup>
 

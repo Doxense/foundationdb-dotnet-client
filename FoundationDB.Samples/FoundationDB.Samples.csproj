@@ -1,53 +1,53 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFrameworks>net6.0</TargetFrameworks>
-    <ProjectGuid>{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}</ProjectGuid>
-    <RestorePackages>true</RestorePackages>
-    <RootNamespace>FoundationDB.Samples</RootNamespace>
-    <AssemblyName>FoundationDB.Samples</AssemblyName>
-    <LangVersion>11.0</LangVersion>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFrameworks>net8.0;net6.0</TargetFrameworks>
+		<ProjectGuid>{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}</ProjectGuid>
+		<RestorePackages>true</RestorePackages>
+		<RootNamespace>FoundationDB.Samples</RootNamespace>
+		<AssemblyName>FoundationDB.Samples</AssemblyName>
+		<LangVersion>11.0</LangVersion>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+	</PropertyGroup>
 
-  <Import Project="..\Common\VersionInfo.props" />
+	<Import Project="..\Common\VersionInfo.props" />
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>full</DebugType>
+		<Optimize>false</Optimize>
+		<OutputPath>bin\Debug\</OutputPath>
+		<DefineConstants>DEBUG;TRACE</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+		<Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<DebugType>pdbonly</DebugType>
+		<Optimize>true</Optimize>
+		<OutputPath>bin\Release\</OutputPath>
+		<DefineConstants>TRACE</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+		<Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
-    <ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj" />
-    <ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+		<ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj" />
+		<ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj" />
+	</ItemGroup>
 
 </Project>

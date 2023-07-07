@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net6.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net6.0</TargetFrameworks>
 		<LangVersion>11.0</LangVersion>
 		<ProjectGuid>{60049BA1-A95F-4127-BAC5-74AF023D3082}</ProjectGuid>
 		<RestorePackages>true</RestorePackages>
@@ -39,7 +39,7 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'!='net472'">
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="6.0.1" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0-preview.5.23280.8" />
 	</ItemGroup>
 
 	<ItemGroup>
