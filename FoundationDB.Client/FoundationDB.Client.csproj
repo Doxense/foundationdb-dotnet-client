@@ -10,6 +10,7 @@
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<PackageTags>foundationdb fdb nosql</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>.NET Binding for FoundationDB</Description>
 	</PropertyGroup>
 
@@ -34,6 +35,10 @@
 
 	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="../README.md" Pack="true" Visible="false" PackagePath="/" />
 	</ItemGroup>
 
 	<ItemGroup>

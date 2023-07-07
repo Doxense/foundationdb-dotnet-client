@@ -1,1 +1,0 @@
-This project contains the core binding assembly, that implements the basic FoundationDB API, the Tuple and Directory layers, as well as a basic implemention of async LINQ queries.
