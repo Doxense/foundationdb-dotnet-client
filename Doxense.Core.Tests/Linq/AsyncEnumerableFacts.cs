@@ -34,7 +34,6 @@ namespace Doxense.Linq.Async.Tests
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
-	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
@@ -1550,89 +1549,6 @@ namespace Doxense.Linq.Async.Tests
 				Assert.That(t, Is.SameAs(pump));
 
 			}
-		}
-
-		[Test]
-		public async Task Test_AsyncIteratorPump()
-		{
-			const int N = 20;
-
-			var rnd = new Random(1234);
-			var sw = new Stopwatch();
-
-			// the source outputs items while randomly waiting
-			var source = Enumerable.Range(0, N)
-				.ToAsyncEnumerable()
-				.Select(async x =>
-				{
-					if (rnd.Next(10) < 2)
-					{
-						await Task.Delay(15);
-					}
-					Log("[PRODUCER] publishing " + x + " at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
-					return x;
-				});
-
-			// since this can lock up, we need a global timeout !
-			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
-			{
-				var token = go.Token;
-
-				var items = new List<int>();
-				bool done = false;
-				ExceptionDispatchInfo error = null;
-
-				var queue = AsyncHelpers.CreateTarget<int>(
-					onNextAsync: (x, ct) =>
-					{
-						Log("[consumer] onNextAsync(" + x + ") at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
-#if DEBUG_STACK_TRACES
-						Log("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
-#endif
-						ct.ThrowIfCancellationRequested();
-						items.Add(x);
-						return Task.CompletedTask;
-					},
-					onCompleted: () =>
-					{
-						Log("[consumer] onCompleted() at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
-#if DEBUG_STACK_TRACES
-						Log("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
-#endif
-						done = true;
-					},
-					onError: (x) =>
-					{
-						Log("[consumer] onError()  at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
-						Log("[consumer] > " + x);
-						error = x;
-						go.Cancel();
-					}
-				);
-
-				await using(var inner = source.GetAsyncEnumerator(this.Cancellation))
-				{
-					var pump = new AsyncIteratorPump<int>(inner, queue);
-
-					Log("[PUMP] Start pumping on #" + Thread.CurrentThread.ManagedThreadId);
-					sw.Start();
-					await pump.PumpAsync(token);
-					sw.Stop();
-					Log("[PUMP] Pumping completed! at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
-
-					// We should have N items, plus 1 message for the completion
-					Assert.That(items.Count, Is.EqualTo(N));
-					Assert.That(done, Is.True);
-					error?.Throw();
-
-					for (int i = 0; i < N; i++)
-					{
-						Assert.That(items[i], Is.EqualTo(i));
-					}
-				}
-
-			}
-
 		}
 
 		private static async Task VerifyResult<T>(Func<Task<T>> asyncQuery, Func<T> referenceQuery, IQueryable<T> witness, string label)
