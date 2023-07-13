@@ -731,12 +731,13 @@ namespace FdbShell
 
 			Program.StdOut(log, "Listing all shards...");
 
+			var dirLayer = path.Count > 0 ? folder.DirectoryLayer : db.DirectoryLayer;
 			// note: this may break in future versions of the DL! Maybe we need a custom API to get a flat list of all directories in a DL that span a specific range ?
-			var span = await db.ReadAsync(async tr => (await folder.DirectoryLayer.Content.Resolve(tr)).ToRange(), ct);
+			var span = await db.ReadAsync(async tr => (await dirLayer.Content.Resolve(tr))!.ToRange(), ct);
 
 			var shards = await Fdb.System.GetChunksAsync(db, span, ct);
 			int totalShards = shards.Count;
-			Program.StdOut(log, $"> Found {totalShards} shard(s) in partition {folder.DirectoryLayer.FullName}", ConsoleColor.Gray);
+			Program.StdOut(log, $"> Found {totalShards} shard(s) in partition {dirLayer.FullName}", ConsoleColor.Gray);
 
 			Program.StdOut(log, "Listing all directories...");
 			var map = new Dictionary<string, int>(StringComparer.Ordinal);
