@@ -149,7 +149,7 @@ namespace FoundationDB.Client.Native
 		private static void FutureCompletionCallback(IntPtr futureHandle, IntPtr parameter)
 		{
 #if DEBUG_FUTURES
-			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Environment.CurrentManagedThreadId.ToString());
 #endif
 
 			var future = (FdbFutureSingle<T>?) GetFutureFromCallbackParameter(parameter);

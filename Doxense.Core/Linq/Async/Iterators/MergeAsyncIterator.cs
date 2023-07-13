@@ -75,9 +75,9 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override async ValueTask<bool> OnFirstAsync()
 		{
-			if (m_remaining != null && m_remaining.Value < 0)
+			if (m_remaining is < 0)
 			{ // empty list ??
-				return await Completed();
+				return await Completed().ConfigureAwait(false);
 			}
 
 			// even if the caller only wants the first, we will probably need to read more than that...
@@ -109,7 +109,7 @@ namespace Doxense.Linq.Async.Iterators
 				// dispose already opened iterators
 				var tmp = iterators;
 				iterators = null;
-				try { await Cleanup(tmp); } catch { }
+				try { await Cleanup(tmp).ConfigureAwait(false); } catch { }
 				throw;
 			}
 			finally
@@ -121,9 +121,9 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Finds the next smallest item from all the active iterators</summary>
 		protected override async ValueTask<bool> OnNextAsync()
 		{
-			if (m_remaining != null && m_remaining.Value <= 0)
+			if (m_remaining is <= 0)
 			{
-				return await Completed();
+				return await Completed().ConfigureAwait(false);
 			}
 
 			int index;
@@ -143,7 +143,7 @@ namespace Doxense.Linq.Async.Iterators
 					{
 						if (!await iterators[i].Next.ConfigureAwait(false))
 						{ // this one is done, remove it
-							await iterators[i].Iterator.DisposeAsync();
+							await iterators[i].Iterator.DisposeAsync().ConfigureAwait(false);
 							iterators[i] = default;
 							continue;
 						}
@@ -157,7 +157,7 @@ namespace Doxense.Linq.Async.Iterators
 				// find the next value to advance
 				if (!FindNext(out index, out current))
 				{ // nothing left anymore ?
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 			}
 			while(index < 0);
@@ -195,13 +195,13 @@ namespace Doxense.Linq.Async.Iterators
 
 				for (int i = 0; i < iterators.Length; i++)
 				{
-					if (iterators[i].Active && iterators[i].Iterator != null)
+					if (iterators[i].Active)
 					{
 						try
 						{
 							var iterator = iterators[i].Iterator;
 							iterators[i] = new IteratorState();
-							await iterator.DisposeAsync();
+							await iterator.DisposeAsync().ConfigureAwait(false);
 						}
 						catch (Exception e)
 						{
@@ -218,7 +218,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			try
 			{
-				await Cleanup(m_iterators);
+				await Cleanup(m_iterators).ConfigureAwait(false);
 			}
 			finally
 			{

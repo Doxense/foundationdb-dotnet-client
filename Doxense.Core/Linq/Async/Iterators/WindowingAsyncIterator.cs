@@ -126,7 +126,7 @@ namespace Doxense.Linq.Async.Iterators
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)
 			{ // read the next item from the inner iterator
-				if (m_innerHasCompleted) return await Completed();
+				if (m_innerHasCompleted) return await Completed().ConfigureAwait(false);
 				ft = iterator.MoveNextAsync().AsTask();
 			}
 
@@ -164,7 +164,7 @@ namespace Doxense.Linq.Async.Iterators
 				if (buffer.Count == 0)
 				{ // that was the last batch!
 					//Console.WriteLine("# we got nothing ! :(");
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 			}
 

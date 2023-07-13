@@ -73,7 +73,7 @@ namespace Doxense.Linq.Async.Iterators
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					m_set = null;
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 
 				if (ct.IsCancellationRequested) break;
@@ -88,7 +88,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 
 			m_set = null;
-			return await Canceled();
+			return await Canceled().ConfigureAwait(false);
 		}
 
 		public override async Task ExecuteAsync(Action<TSource> handler, CancellationToken ct)

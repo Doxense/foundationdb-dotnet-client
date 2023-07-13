@@ -75,7 +75,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (m_innerHasCompleted)
 			{
-				return await Completed();
+				return await Completed().ConfigureAwait(false);
 			}
 
 			var iterator = m_iterator;
@@ -95,10 +95,10 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (!hasMore)
 			{
-				await MarkInnerAsCompleted();
+				await MarkInnerAsCompleted().ConfigureAwait(false);
 				if (buffer.Count == 0)
 				{ // no more items
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 			}
 
@@ -113,4 +113,5 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 	}
+
 }

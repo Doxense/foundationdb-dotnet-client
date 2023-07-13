@@ -373,7 +373,7 @@ namespace FoundationDB.Client
 			{
 				s_eventLoopRunning = true;
 
-				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
+				s_eventLoopThreadId = Environment.CurrentManagedThreadId;
 
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", $"FDB Event Loop running on thread #{Fdb.s_eventLoopThreadId.Value}...");
 
@@ -456,7 +456,7 @@ namespace FoundationDB.Client
 			get
 			{
 				var eventLoopThreadId = s_eventLoopThreadId;
-				return eventLoopThreadId.HasValue && Thread.CurrentThread.ManagedThreadId == eventLoopThreadId.Value;
+				return eventLoopThreadId.HasValue && Environment.CurrentManagedThreadId == eventLoopThreadId.Value;
 			}
 		}
 
@@ -467,7 +467,7 @@ namespace FoundationDB.Client
 #if DEBUG_THREADS
 			if (Logging.On && Logging.IsVerbose)
 			{
-				Logging.Verbose(null, callerMethod, String.Format("[Executing on thread #{0}]", Thread.CurrentThread.ManagedThreadId));
+				Logging.Verbose(null, callerMethod, String.Format("[Executing on thread #{0}]", Environment.CurrentManagedThreadId));
 			}
 #endif
 

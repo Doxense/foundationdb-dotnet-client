@@ -336,36 +336,17 @@ namespace FoundationDB.Filters.Logging
 
 		internal bool RequiresVersionStamp { get; set; }
 
-		internal static long GetTimestamp()
-		{
-			return Stopwatch.GetTimestamp();
-		}
+		internal static long GetTimestamp() => Stopwatch.GetTimestamp();
 
-		internal TimeSpan GetTimeOffset()
-		{
-			return GetDuration(GetTimestamp() - this.StartTimestamp);
-		}
+		internal TimeSpan GetTimeOffset() => GetDuration(GetTimestamp() - this.StartTimestamp);
 
-		internal static TimeSpan GetDuration(long elapsed)
-		{
-			return TimeSpan.FromTicks((long)Math.Round(((double)elapsed / Stopwatch.Frequency) * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero));
-		}
+		internal static TimeSpan GetDuration(long elapsed) => TimeSpan.FromTicks((long)Math.Round(((double)elapsed / Stopwatch.Frequency) * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero));
 
 		/// <summary>Total duration of the transaction</summary>
 		/// <remarks>If the transaction has not yet ended, returns the time elapsed since the start.</remarks>
-		public TimeSpan TotalDuration
-		{
-			get
-			{
-				if (this.StopTimestamp == 0)
-					return GetTimeOffset();
-				else
-					return GetDuration(this.StopTimestamp - this.StartTimestamp);
-			}
-		}
+		public TimeSpan TotalDuration => this.StopTimestamp == 0 ? GetTimeOffset() : GetDuration(this.StopTimestamp - this.StartTimestamp);
 
 		/// <summary>Marks the start of the transaction</summary>
-		/// <param name="trans"></param>
 		internal void Start(IFdbTransaction trans)
 		{
 			Contract.Debug.Requires(trans != null);
@@ -409,7 +390,7 @@ namespace FoundationDB.Filters.Logging
 			cmd.StartOffset = ts;
 			cmd.Step = step;
 			cmd.EndOffset = cmd.StartOffset;
-			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
+			cmd.ThreadId = Environment.CurrentManagedThreadId;
 			if (this.ShouldCaptureOperationStackTrace) cmd.CallSite = CaptureStackTrace(1);
 			if (countAsOperation) Interlocked.Increment(ref m_operations);
 			this.Commands.Enqueue(cmd);
@@ -425,7 +406,7 @@ namespace FoundationDB.Filters.Logging
 
 			cmd.StartOffset = ts;
 			cmd.Step = step;
-			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
+			cmd.ThreadId = Environment.CurrentManagedThreadId;
 			if (this.ShouldCaptureOperationStackTrace) cmd.CallSite = CaptureStackTrace(2);
 			if (cmd.ArgumentBytes.HasValue) Interlocked.Add(ref m_writeSize, cmd.ArgumentBytes.Value);
 			Interlocked.Increment(ref m_operations);
@@ -457,9 +438,14 @@ namespace FoundationDB.Filters.Logging
 
 			sb.Append(FormattableString.Invariant($"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {cmds.Length} operations, started {this.StartedUtc.TimeOfDay}Z"));
 			if (this.StoppedUtc.HasValue)
+			{
 				sb.Append(FormattableString.Invariant($", ended {this.StoppedUtc.Value.TimeOfDay}Z)"));
+			}
 			else
+			{
 				sb.Append(", did not finish)");
+			}
+
 			sb.AppendLine();
 
 			int reads = 0, writes = 0;

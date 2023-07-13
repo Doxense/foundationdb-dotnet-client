@@ -70,7 +70,7 @@ namespace Doxense.Linq.Async.Iterators
 
 					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
-						return await Completed();
+						return await Completed().ConfigureAwait(false);
 					}
 
 					if (m_ct.IsCancellationRequested) break;
@@ -100,7 +100,7 @@ namespace Doxense.Linq.Async.Iterators
 				return Publish(m_batch.Current);
 			}
 
-			return await Canceled();
+			return await Canceled().ConfigureAwait(false);
 		}
 
 		protected override async ValueTask Cleanup()
@@ -112,7 +112,7 @@ namespace Doxense.Linq.Async.Iterators
 			finally
 			{
 				m_batch = null;
-				await base.Cleanup();
+				await base.Cleanup().ConfigureAwait(false);
 			}
 		}
 	}
@@ -125,7 +125,7 @@ namespace Doxense.Linq.Async.Iterators
 	{
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TCollection>> m_collectionSelector;
 		private readonly Func<TSource, TCollection, TResult> m_resultSelector;
-		private TSource m_sourceCurrent;
+		private TSource? m_sourceCurrent;
 		private IEnumerator<TCollection>? m_batch;
 
 		public SelectManyAsyncIterator(
@@ -162,7 +162,7 @@ namespace Doxense.Linq.Async.Iterators
 
 					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
-						return await Completed();
+						return await Completed().ConfigureAwait(false);
 					}
 
 					if (m_ct.IsCancellationRequested) break;
@@ -189,14 +189,14 @@ namespace Doxense.Linq.Async.Iterators
 				{ // the current batch is exhausted, move to the next
 					batch.Dispose();
 					m_batch = null;
-					m_sourceCurrent = default!;
+					m_sourceCurrent = default;
 					continue;
 				}
 
-				return Publish(m_resultSelector(m_sourceCurrent, batch.Current));
+				return Publish(m_resultSelector(m_sourceCurrent!, batch.Current));
 			}
 
-			return await Canceled();
+			return await Canceled().ConfigureAwait(false);
 		}
 
 		protected override async ValueTask Cleanup()
@@ -208,7 +208,7 @@ namespace Doxense.Linq.Async.Iterators
 			finally
 			{
 				m_batch = null;
-				await base.Cleanup();
+				await base.Cleanup().ConfigureAwait(false);
 			}
 		}
 

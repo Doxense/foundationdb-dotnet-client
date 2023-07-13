@@ -80,9 +80,9 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override async ValueTask<bool> OnNextAsync()
 		{
-			if (m_remaining != null && m_remaining.Value <= 0)
+			if (m_remaining is <= 0)
 			{ // reached limit!
-				return await Completed();
+				return await Completed().ConfigureAwait(false);
 			}
 
 			var iterator = m_iterator;
@@ -92,7 +92,7 @@ namespace Doxense.Linq.Async.Iterators
 			{
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 				if (m_ct.IsCancellationRequested) break;
 
@@ -153,7 +153,7 @@ namespace Doxense.Linq.Async.Iterators
 				#endregion
 			}
 
-			return await Canceled();
+			return await Canceled().ConfigureAwait(false);
 		}
 
 		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
@@ -332,6 +332,7 @@ namespace Doxense.Linq.Async.Iterators
 					{
 						if (!filter.Async)
 						{
+							// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 							if (!filter.Invoke(current)) continue;
 						}
 						else
@@ -358,6 +359,7 @@ namespace Doxense.Linq.Async.Iterators
 					TResult result;
 					if (!m_transform.Async)
 					{
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 						result = m_transform.Invoke(current);
 					}
 					else
@@ -400,6 +402,7 @@ namespace Doxense.Linq.Async.Iterators
 					{
 						if (!filter.Async)
 						{
+							// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 							if (!filter.Invoke(current)) continue;
 						}
 						else
@@ -426,6 +429,7 @@ namespace Doxense.Linq.Async.Iterators
 					TResult result;
 					if (!m_transform.Async)
 					{
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 						result = m_transform.Invoke(current);
 					}
 					else

@@ -63,7 +63,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override async ValueTask<bool> OnFirstAsync()
 		{
-			var sequence = await this.Generator(m_ct);
+			var sequence = await this.Generator(m_ct).ConfigureAwait(false);
 			if (sequence == null) throw new InvalidOperationException("Deferred generator cannot return a null async sequence.");
 
 			this.Inner = sequence.GetAsyncEnumerator(m_ct);
@@ -77,9 +77,9 @@ namespace Doxense.Linq.Async.Iterators
 			var inner = this.Inner;
 			if (inner == null) throw ThrowHelper.ObjectDisposedException(this);
 
-			if (!(await inner.MoveNextAsync()))
+			if (!(await inner.MoveNextAsync().ConfigureAwait(false)))
 			{
-				return await Completed();
+				return await Completed().ConfigureAwait(false);
 			}
 			return Publish(inner.Current);
 		}

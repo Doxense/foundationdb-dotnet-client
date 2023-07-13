@@ -33,14 +33,14 @@ namespace Doxense.Linq
 		public QueryStatistics()
 		{ }
 
-		public QueryStatistics(TData value)
+		public QueryStatistics(TData? value)
 		{
 			this.Value = value;
 		}
 
-		public TData Value { get; protected set; }
+		public TData? Value { get; protected set; }
 
-		public void Update(TData newValue)
+		public void Update(TData? newValue)
 		{
 			this.Value = newValue;
 		}
@@ -81,6 +81,7 @@ namespace Doxense.Linq
 			this.Count++;
 			this.Size = checked(size + this.Size);
 		}
+
 	}
 
 }

@@ -313,7 +313,7 @@ namespace FoundationDB.Client.Native
 			if (state is FdbFuture<T> future)
 			{
 #if DEBUG_FUTURES
-				Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+				Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Environment.CurrentManagedThreadId.ToString());
 #endif
 				future.Cancel();
 			}

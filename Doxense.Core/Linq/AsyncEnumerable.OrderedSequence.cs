@@ -139,7 +139,7 @@ namespace Doxense.Linq
 			private TSource[]? m_items;
 			private int[]? m_map;
 			private int m_offset;
-			private TSource m_current;
+			private TSource? m_current;
 			private readonly CancellationToken m_ct;
 
 			public OrderedEnumerator(IAsyncEnumerator<TSource> enumerator, SequenceSorter<TSource> sorter, CancellationToken ct)
@@ -217,14 +217,14 @@ namespace Doxense.Linq
 
 			private void Completed()
 			{
-				m_current = default!;
+				m_current = default;
 				m_offset = -1;
 				m_items = null;
 				m_map = null;
 
 			}
 
-			public TSource Current => m_current;
+			public TSource Current => m_current!;
 
 			public ValueTask DisposeAsync()
 			{

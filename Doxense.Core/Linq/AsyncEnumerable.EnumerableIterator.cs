@@ -44,7 +44,7 @@ namespace Doxense.Linq
 			private IEnumerator<TSource>? m_iterator;
 			private Func<TSource, Task<TResult>>? m_transform;
 			private bool m_disposed;
-			private TResult m_current;
+			private TResult? m_current;
 			private CancellationToken m_ct;
 
 			public EnumerableIterator(IEnumerator<TSource> iterator, Func<TSource, Task<TResult>> transform, CancellationToken ct)
@@ -66,9 +66,9 @@ namespace Doxense.Linq
 
 				m_ct.ThrowIfCancellationRequested();
 
-				if (m_iterator.MoveNext())
+				if (m_iterator!.MoveNext())
 				{
-					m_current = await m_transform(m_iterator.Current).ConfigureAwait(false);
+					m_current = await m_transform!(m_iterator.Current).ConfigureAwait(false);
 					return true;
 				}
 
@@ -82,7 +82,7 @@ namespace Doxense.Linq
 				get
 				{
 					if (m_disposed) throw new InvalidOperationException();
-					return m_current;
+					return m_current!;
 				}
 			}
 
@@ -92,7 +92,7 @@ namespace Doxense.Linq
 				m_iterator = null;
 				m_transform = null;
 				m_disposed = true;
-				m_current = default!;
+				m_current = default;
 				m_ct = default;
 				return default;
 			}
@@ -100,4 +100,5 @@ namespace Doxense.Linq
 		}
 
 	}
+
 }

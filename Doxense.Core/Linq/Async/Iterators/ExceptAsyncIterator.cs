@@ -119,7 +119,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			if (limit < 0) throw new ArgumentOutOfRangeException(nameof(limit), "Value cannot be less than zero");
 
-			if (m_limit != null && m_limit < limit) return this;
+			if (m_limit < limit) return this;
 
 			return new ExceptAsyncIterator<TSource, TKey, TResult>(
 				m_sources,
@@ -131,4 +131,5 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 	}
+
 }

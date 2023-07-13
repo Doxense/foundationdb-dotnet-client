@@ -624,6 +624,7 @@ namespace Doxense.Linq
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
 		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
+			where TKey: notnull
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(keySelector);
@@ -638,6 +639,7 @@ namespace Doxense.Linq
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function, a comparer, and an element selector function.</summary>
 		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, [InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
+			where TKey: notnull
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(keySelector);
@@ -653,6 +655,7 @@ namespace Doxense.Linq
 
 		/// <summary>Creates a Dictionary from an async sequence of pairs of keys and values.</summary>
 		public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
+			where TKey: notnull
 		{
 			Contract.NotNull(source);
 			ct.ThrowIfCancellationRequested();
@@ -753,7 +756,7 @@ namespace Doxense.Linq
 			Contract.NotNull(resultSelector);
 
 			var accumulate = seed;
-			await ForEachAsync(source, (x) => aggregator(accumulate, x), ct);
+			await ForEachAsync(source, (x) => aggregator(accumulate, x), ct).ConfigureAwait(false);
 			return resultSelector(accumulate);
 		}
 

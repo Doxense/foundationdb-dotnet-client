@@ -76,9 +76,7 @@ namespace Doxense.Linq
 						if (i > j) break;
 						if (i < j)
 						{
-							int temp = map[i];
-							map[i] = map[j];
-							map[j] = temp;
+							(map[i], map[j]) = (map[j], map[i]);
 						}
 						i++;
 						j--;
@@ -106,7 +104,7 @@ namespace Doxense.Linq
 			private readonly bool m_descending;
 
 			private readonly SequenceSorter<TSource>? m_next;
-			private TSource[] m_items;
+			private TSource[]? m_items;
 
 			public SequenceByElementSorter(IComparer<TSource> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
@@ -124,6 +122,7 @@ namespace Doxense.Linq
 
 			internal override int CompareKeys(int index1, int index2)
 			{
+				Contract.Debug.Requires(m_items != null);
 				var items = m_items;
 				int c = m_comparer.Compare(items[index1], items[index2]);
 				if (c == 0)
@@ -146,7 +145,7 @@ namespace Doxense.Linq
 			private readonly bool m_descending;
 
 			private readonly SequenceSorter<TSource>? m_next;
-			private TKey[] m_keys;
+			private TKey[]? m_keys;
 
 			public SequenceByKeySorter(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, SequenceSorter<TSource>? next)
 			{

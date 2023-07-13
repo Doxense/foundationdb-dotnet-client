@@ -204,7 +204,7 @@ namespace FoundationDB.Client.Native
 		private static void FutureCompletionCallback(IntPtr futureHandle, IntPtr parameter)
 		{
 #if DEBUG_FUTURES
-			System.Diagnostics.Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+			System.Diagnostics.Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Environment.CurrentManagedThreadId.ToString());
 #endif
 
 			var future = (FdbFutureArray<T>?) GetFutureFromCallbackParameter(parameter);
@@ -238,7 +238,7 @@ namespace FoundationDB.Client.Native
 			}
 
 #if DEBUG_FUTURES
-			System.Diagnostics.Debug.WriteLine("FutureArray<" + typeof(T).Name + ">.Callback(...) handling completion on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+			System.Diagnostics.Debug.WriteLine("FutureArray<" + typeof(T).Name + ">.Callback(...) handling completion on thread #" + Environment.CurrentManagedThreadId.ToString());
 #endif
 
 			try

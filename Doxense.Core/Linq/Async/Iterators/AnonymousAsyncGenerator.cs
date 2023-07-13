@@ -86,11 +86,11 @@ namespace Doxense.Linq.Async.Iterators
 			Maybe<TOutput> res;
 			if (m_generator is Func<long, CancellationToken, Task<Maybe<TOutput>>> genT)
 			{
-				res = await genT(index, m_ct);
+				res = await genT(index, m_ct).ConfigureAwait(false);
 			}
 			else if (m_generator is Func<long, CancellationToken, ValueTask<Maybe<TOutput>>> genV)
 			{
-				res = await genV(index, m_ct);
+				res = await genV(index, m_ct).ConfigureAwait(false);
 			}
 			else
 			{
@@ -98,7 +98,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 
 			if (res.Failed) res.ThrowForNonSuccess();
-			if (res.IsEmpty) return await Completed();
+			if (res.IsEmpty) return await Completed().ConfigureAwait(false);
 			m_index = checked(index + 1);
 			return Publish(res.Value);
 		}
@@ -108,5 +108,7 @@ namespace Doxense.Linq.Async.Iterators
 			m_index = -1;
 			return default;
 		}
+
 	}
+
 }

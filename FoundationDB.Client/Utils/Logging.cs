@@ -31,7 +31,6 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Security;
-	using System.Threading;
 
 	internal static class Logging
 	{
@@ -136,7 +135,7 @@ namespace FoundationDB.Client
 		{
 			if (s_traceSource != null)
 			{
-				s_traceSource.TraceEvent(eventType, id, "[" + Thread.CurrentThread.ManagedThreadId.ToString("d4", CultureInfo.InvariantCulture) + "] " + msg);
+				s_traceSource.TraceEvent(eventType, id, "[" + Environment.CurrentManagedThreadId.ToString("d4", CultureInfo.InvariantCulture) + "] " + msg);
 			}
 		}
 

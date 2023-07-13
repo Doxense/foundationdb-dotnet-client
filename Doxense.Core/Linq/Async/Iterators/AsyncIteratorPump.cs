@@ -83,9 +83,13 @@ namespace Doxense.Linq.Async.Iterators
 			if (m_state != STATE_IDLE)
 			{
 				if (m_state >= STATE_FAILED)
+				{
 					throw new InvalidOperationException("The iterator pump has already completed once");
+				}
 				else
+				{
 					throw new InvalidOperationException("The iterator pump is already running");
+				}
 			}
 
 			try

@@ -60,7 +60,7 @@ namespace Doxense.Linq.Async.Iterators
 			{
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 
 				if (m_ct.IsCancellationRequested) break;
@@ -68,12 +68,12 @@ namespace Doxense.Linq.Async.Iterators
 				TSource current = iterator.Current;
 				if (!m_condition(current))
 				{ // we need to stop
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 
 				return Publish(current);
 			}
-			return await Canceled();
+			return await Canceled().ConfigureAwait(false);
 		}
 
 	}

@@ -47,7 +47,7 @@ namespace Doxense.Linq.Async.Iterators
 		private const int STATE_COMPLETED = 3;
 		private const int STATE_DISPOSED = -1;
 
-		protected TResult m_current;
+		protected TResult? m_current;
 		protected int m_state;
 		protected AsyncIterationHint m_mode;
 		protected CancellationToken m_ct;
@@ -87,7 +87,7 @@ namespace Doxense.Linq.Async.Iterators
 			get
 			{
 				if (Volatile.Read(ref m_state) != STATE_ITERATING) EnsureIsIterating();
-				return m_current;
+				return m_current!;
 			}
 		}
 
@@ -107,7 +107,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (m_ct.IsCancellationRequested)
 			{
-				return await Canceled();
+				return await Canceled().ConfigureAwait(false);
 			}
 
 			try
@@ -116,7 +116,7 @@ namespace Doxense.Linq.Async.Iterators
 				{
 					if (!await OnFirstAsync().ConfigureAwait(false))
 					{ // did not start at all ?
-						return await Completed();
+						return await Completed().ConfigureAwait(false);
 					}
 
 					if (Interlocked.CompareExchange(ref m_state, STATE_ITERATING, STATE_INIT) != STATE_INIT)
@@ -129,7 +129,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			catch (Exception)
 			{
-				await MarkAsFailed();
+				await MarkAsFailed().ConfigureAwait(false);
 				throw;
 			}
 		}
@@ -248,7 +248,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			else if (Interlocked.CompareExchange(ref m_state, STATE_COMPLETED, STATE_ITERATING) == STATE_ITERATING)
 			{ // the iterator has done at least something, so we can clean it up
-				await Cleanup();
+				await Cleanup().ConfigureAwait(false);
 			}
 			return false;
 		}
@@ -263,7 +263,7 @@ namespace Doxense.Linq.Async.Iterators
 		protected async ValueTask<bool> Canceled()
 		{
 			//TODO: store the state "canceled" somewhere?
-			await DisposeAsync();
+			await DisposeAsync().ConfigureAwait(false);
 			m_ct.ThrowIfCancellationRequested(); // should throw here!
 			return false; //note: should not be reached
 		}
@@ -301,7 +301,7 @@ namespace Doxense.Linq.Async.Iterators
 			{
 				try
 				{
-					await Cleanup();
+					await Cleanup().ConfigureAwait(false);
 				}
 				finally
 				{

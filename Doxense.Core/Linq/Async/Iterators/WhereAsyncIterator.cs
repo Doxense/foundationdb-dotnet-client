@@ -63,7 +63,7 @@ namespace Doxense.Linq.Async.Iterators
 			{
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 
 				if (ct.IsCancellationRequested) break;
@@ -71,6 +71,7 @@ namespace Doxense.Linq.Async.Iterators
 				TSource current = iterator.Current;
 				if (!filter.Async)
 				{
+					// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 					if (!filter.Invoke(current))
 					{
 						continue;
@@ -87,7 +88,7 @@ namespace Doxense.Linq.Async.Iterators
 				return Publish(current);
 			}
 
-			return await Canceled();
+			return await Canceled().ConfigureAwait(false);
 		}
 
 		public override AsyncIterator<TSource> Where(Func<TSource, bool> predicate)
@@ -155,6 +156,7 @@ namespace Doxense.Linq.Async.Iterators
 					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
 					{
 						var current = iter.Current;
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 						if (filter.Invoke(current))
 						{
 							handler(current);
@@ -191,6 +193,7 @@ namespace Doxense.Linq.Async.Iterators
 					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
 					{
 						var current = iter.Current;
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 						if (filter.Invoke(current))
 						{
 							await asyncHandler(current, ct).ConfigureAwait(false);

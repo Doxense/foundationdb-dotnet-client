@@ -107,7 +107,7 @@ namespace Doxense.Linq.Async.Expressions
 				}
 				else
 				{ // next one is async
-					var g = right.m_asyncFilter;
+					var g = right.m_asyncFilter!;
 					return new AsyncFilterExpression<TSource>((x, ct) => f(x) ? g(x, ct) : Task.FromResult(false));
 				}
 			}

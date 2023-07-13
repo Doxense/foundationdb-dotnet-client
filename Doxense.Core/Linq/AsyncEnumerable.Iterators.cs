@@ -431,7 +431,7 @@ namespace Doxense.Linq
 
 			if (this.Count == 0)
 			{ // empty
-				return new T[0];
+				return Array.Empty<T>();
 			}
 			else if (this.Chunks.Length == 1)
 			{ // everything fits in a single chunk
@@ -449,7 +449,7 @@ namespace Doxense.Linq
 		{
 			if (this.Count == 0)
 			{ // empty sequence
-				return new T[0];
+				return Array.Empty<T>();
 			}
 			else if (this.Chunks.Length == 1 && this.Current.Length == this.Count)
 			{ // a single buffer page was used

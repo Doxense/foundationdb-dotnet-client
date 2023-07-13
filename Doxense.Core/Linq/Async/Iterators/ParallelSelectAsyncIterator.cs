@@ -82,7 +82,7 @@ namespace Doxense.Linq.Async.Iterators
 		}
 		protected override async ValueTask<bool> OnFirstAsync()
 		{
-			if (!await base.OnFirstAsync())
+			if (!await base.OnFirstAsync().ConfigureAwait(false))
 			{
 				return false;
 			}
@@ -104,7 +104,7 @@ namespace Doxense.Linq.Async.Iterators
 			m_pumpTask = m_pump.PumpAsync(m_token).ContinueWith((t) =>
 			{
 				// ReSharper disable once RedundantAssignment
-				var e = t.Exception; // observe the exception
+				var e = t.Exception!; // observe the exception
 				LogDebug($"Pump stopped with error: {e.Message}");
 			}, TaskContinuationOptions.OnlyOnFaulted);
 
@@ -119,7 +119,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			try
 			{
-				LogDebug($"[OnNextAsync] #{Thread.CurrentThread.ManagedThreadId}");
+				LogDebug($"[OnNextAsync] #{Environment.CurrentManagedThreadId}");
 
 				if (m_done) return false;
 
@@ -135,14 +135,14 @@ namespace Doxense.Linq.Async.Iterators
 						LogDebug("[OnNextAsync] received failure");
 						// we want to make sure that the exception callstack is as clean as possible,
 						// so we rely on Maybe<T>.ThrowIfFailed() to do the correct thing!
-						await MarkAsFailed();
+						await MarkAsFailed().ConfigureAwait(false);
 						next.ThrowForNonSuccess();
 						return false;
 					}
 					else
 					{
 						LogDebug("[OnNextAsync] received completion");
-						return await Completed();
+						return await Completed().ConfigureAwait(false);
 					}
 				}
 				LogDebug($"[OnNextAsync] received value {next.Value}");
@@ -158,7 +158,7 @@ namespace Doxense.Linq.Async.Iterators
 #if FULL_DEBUG
 			finally
 			{
-				LogDebug("[/OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
+				LogDebug("[/OnNextAsync] " + Environment.CurrentManagedThreadId);
 			}
 #endif
 		}

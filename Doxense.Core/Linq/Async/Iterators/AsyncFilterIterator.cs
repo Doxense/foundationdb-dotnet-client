@@ -89,7 +89,7 @@ namespace Doxense.Linq.Async.Iterators
 				// whatever happens, make sure that we released the iterator...
 				if (iterator != null)
 				{
-					await iterator.DisposeAsync();
+					await iterator.DisposeAsync().ConfigureAwait(false);
 					iterator = null;
 				}
 				throw;
@@ -118,7 +118,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			finally
 			{
-				await MarkInnerAsCompleted();
+				await MarkInnerAsCompleted().ConfigureAwait(false);
 			}
 		}
 

@@ -53,16 +53,19 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override async ValueTask<bool> OnNextAsync()
 		{
+			var iterator = m_iterator;
+			Contract.Debug.Requires(iterator != null);
+
 			while (!m_ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 
 				if (m_ct.IsCancellationRequested) break;
 
-				TSource current = m_iterator.Current;
+				TSource current = iterator.Current;
 				if (!m_observer.Async)
 				{
 					m_observer.Invoke(current);
@@ -75,7 +78,7 @@ namespace Doxense.Linq.Async.Iterators
 				return Publish(current);
 			}
 
-			return await Canceled();
+			return await Canceled().ConfigureAwait(false);
 		}
 	}
 

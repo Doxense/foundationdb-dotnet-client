@@ -76,7 +76,7 @@ namespace Doxense.Linq.Async.Iterators
 		protected override ValueTask<bool> OnNextAsync()
 		{
 			var buffer = m_buffer;
-			if (buffer != null && buffer.Count > 0)
+			if (buffer is { Count: > 0 })
 			{
 				var nextTask = m_nextTask;
 				if (nextTask == null || !nextTask.IsCompleted)
@@ -97,7 +97,7 @@ namespace Doxense.Linq.Async.Iterators
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)
 			{ // read the next item from the inner iterator
-				if (m_innerHasCompleted) return await Completed();
+				if (m_innerHasCompleted) return await Completed().ConfigureAwait(false);
 				ft = iterator.MoveNextAsync().AsTask();
 			}
 
@@ -127,10 +127,10 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (!hasMore)
 			{
-				await MarkInnerAsCompleted();
+				await MarkInnerAsCompleted().ConfigureAwait(false);
 				if (m_buffer == null || m_buffer.Count == 0)
 				{ // that was the last batch!
-					return await Completed();
+					return await Completed().ConfigureAwait(false);
 				}
 			}
 
@@ -147,4 +147,5 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 	}
+
 }

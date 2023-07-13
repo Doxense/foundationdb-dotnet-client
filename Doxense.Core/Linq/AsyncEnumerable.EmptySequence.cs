@@ -93,7 +93,7 @@ namespace Doxense.Linq
 				private CancellationToken m_ct;
 				private readonly Delegate m_lambda;
 				private bool m_called;
-				private TElement m_current;
+				private TElement? m_current;
 
 				public Enumerator(Delegate lambda, CancellationToken ct)
 				{
@@ -134,15 +134,18 @@ namespace Doxense.Linq
 					throw new InvalidOperationException("Unsupported delegate type");
 				}
 
-				public TElement Current => m_current;
+				public TElement Current => m_current!;
 
 				public ValueTask DisposeAsync()
 				{
 					m_called = true;
-					m_current = default!;
+					m_current = default;
 					return default;
 				}
 			}
+
 		}
+
 	}
+
 }

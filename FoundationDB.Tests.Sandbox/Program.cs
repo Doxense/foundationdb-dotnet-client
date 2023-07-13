@@ -342,7 +342,7 @@ namespace FoundationDB.Tests.Sandbox
 			}
 			var min = times.Min();
 			var avg = times.Sum(x => x.TotalMilliseconds)/times.Count;
-			Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] Took {min.TotalSeconds.ToString("N3", CultureInfo.InvariantCulture)} sec to insert {N} {size}-bytes items (min={FormatTimeMicro(min.TotalMilliseconds / N)}/write, avg={FormatTimeMicro(avg)}/write)");
+			Console.WriteLine($"[{Environment.CurrentManagedThreadId}] Took {min.TotalSeconds.ToString("N3", CultureInfo.InvariantCulture)} sec to insert {N} {size}-bytes items (min={FormatTimeMicro(min.TotalMilliseconds / N)}/write, avg={FormatTimeMicro(avg)}/write)");
 			Console.WriteLine();
 		}
 

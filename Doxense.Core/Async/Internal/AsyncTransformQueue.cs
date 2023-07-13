@@ -40,8 +40,8 @@ namespace Doxense.Async
 	public class AsyncTransformQueue<TInput, TOutput> : IAsyncBuffer<TInput, TOutput>
 	{
 		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
-		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new Queue<Task<Maybe<TOutput>>>();
-		private readonly object m_lock = new object();
+		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new();
+		private readonly object m_lock = new();
 		private readonly int m_capacity;
 		private AsyncCancelableMutex? m_blockedProducer;
 		private AsyncCancelableMutex? m_blockedConsumer;
@@ -111,11 +111,11 @@ namespace Doxense.Async
 
 		#region IAsyncTarget<TInput>...
 
-		private static async Task<Maybe<TOutput>> ProcessItemHandler(object state)
+		private static async Task<Maybe<TOutput>> ProcessItemHandler(object? state)
 		{
 			try
 			{
-				var prms = (Tuple<AsyncTransformQueue<TInput, TOutput>, TInput, CancellationToken>)state;
+				var prms = (Tuple<AsyncTransformQueue<TInput, TOutput>, TInput, CancellationToken>) state!;
 				var task = prms.Item1.m_transform(prms.Item2, prms.Item3);
 				if (!task.IsCompleted)
 				{
@@ -129,7 +129,7 @@ namespace Doxense.Async
 			}
 		}
 
-		private static readonly Func<object, Task<Maybe<TOutput>>> s_processItemHandler = ProcessItemHandler;
+		private static readonly Func<object?, Task<Maybe<TOutput>>> s_processItemHandler = ProcessItemHandler;
 
 		public async Task OnNextAsync(TInput value, CancellationToken ct)
 		{

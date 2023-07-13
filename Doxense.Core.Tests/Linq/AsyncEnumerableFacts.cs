@@ -1054,10 +1054,10 @@ namespace Doxense.Linq.Async.Tests
 			}
 
 			// overflow detection
-			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => int.MaxValue), Throws.InstanceOf<OverflowException>());
-			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => uint.MaxValue), Throws.InstanceOf<OverflowException>());
-			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => long.MaxValue), Throws.InstanceOf<OverflowException>());
-			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => ulong.MaxValue), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(_ => int.MaxValue), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(_ => uint.MaxValue), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(_ => long.MaxValue), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(_ => ulong.MaxValue), Throws.InstanceOf<OverflowException>());
 		}
 
 		[Test]
@@ -1182,7 +1182,7 @@ namespace Doxense.Linq.Async.Tests
 
 			// generate a source that stalls every 13 items, from 0 to 49
 
-			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
+			var source = new AnonymousAsyncGenerator<int>((index, _) =>
 			{
 				if (index >= 50) return Task.FromResult(Maybe.Nothing<int>());
 				if (index % 13 == 0) return Task.Delay(100, this.Cancellation).ContinueWith((_) => Maybe.Return((int)index));
@@ -1229,7 +1229,7 @@ namespace Doxense.Linq.Async.Tests
 			Log("CONSTANT LATENCY GENERATOR:");
 
 			// this iterator waits on each item produced
-			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
+			var source = new AnonymousAsyncGenerator<int>((index, _) =>
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
@@ -1279,7 +1279,7 @@ namespace Doxense.Linq.Async.Tests
 			Log("BURSTY GENERATOR:");
 
 			// this iterator produce burst of items
-			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
+			var source = new AnonymousAsyncGenerator<int>((index, _) =>
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
@@ -1433,7 +1433,7 @@ namespace Doxense.Linq.Async.Tests
 						await Task.Delay(ms, this.Cancellation);
 						return x;
 					})
-					.SelectAsync(async (x, ct) =>
+					.SelectAsync(async (x, _) =>
 					{
 						try
 						{
@@ -1637,11 +1637,11 @@ namespace Doxense.Linq.Async.Tests
 
 		private static async Task VerifyResult<T>(Func<Task<T>> asyncQuery, Func<T> referenceQuery, IQueryable<T> witness, string label)
 		{
-			Exception asyncError = null;
-			Exception referenceError = null;
+			Exception? asyncError = null;
+			Exception? referenceError = null;
 
-			T asyncResult = default(T);
-			T referenceResult = default(T);
+			T? asyncResult = default;
+			T? referenceResult = default;
 
 			try { asyncResult = await asyncQuery().ConfigureAwait(false); }
 			catch (Exception e) { asyncError = e; }
@@ -1675,11 +1675,11 @@ namespace Doxense.Linq.Async.Tests
 		private static async Task VerifySequence<T, TSeq>(Func<Task<TSeq>> asyncQuery, Func<TSeq> referenceQuery, IQueryable<T> witness, string label)
 			where TSeq : class, IEnumerable<T>
 		{
-			Exception asyncError = null;
-			Exception referenceError = null;
+			Exception? asyncError = null;
+			Exception? referenceError = null;
 
-			TSeq asyncResult = null;
-			TSeq referenceResult = null;
+			TSeq? asyncResult = null;
+			TSeq? referenceResult = null;
 
 			try { asyncResult = await asyncQuery().ConfigureAwait(false); }
 			catch (Exception e) { asyncError = e; }
@@ -1746,8 +1746,8 @@ namespace Doxense.Linq.Async.Tests
 					}
 					case 1:
 					{ // keep no items at all
-						query = query.Where(x => false);
-						reference = reference.Where(x => false);
+						query = query.Where(_ => false);
+						reference = reference.Where(_ => false);
 						witness = witness.Where(x => false);
 						break;
 					}
@@ -1908,17 +1908,11 @@ namespace Doxense.Linq.Async.Tests
 		[Test]
 		public async Task Test_Record_Items()
 		{
-
 			var items = Enumerable.Range(0, 10);
 			var source = items.ToAsyncEnumerable();
 
 			var before = new List<int>();
 			var after = new List<int>();
-
-			var a = source.Observe((x) => before.Add(x));
-			var b = a.Where((x) => x % 2 == 1);
-			var c = b.Observe((x) => after.Add(x));
-			var d = c.Select((x) => x + 1);
 
 			var query = source
 				.Observe((x) => before.Add(x))
@@ -1938,8 +1932,8 @@ namespace Doxense.Linq.Async.Tests
 			Assert.That(before, Is.EqualTo(Enumerable.Range(0, 10).ToList()));
 			Assert.That(after, Is.EqualTo(Enumerable.Range(0, 10).Where(x => x % 2 == 1).ToList()));
 			Assert.That(results, Is.EqualTo(Enumerable.Range(1, 5).Select(x => x * 2).ToList()));
-
 		}
+
 	}
 
 }
