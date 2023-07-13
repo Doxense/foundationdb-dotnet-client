@@ -457,6 +457,146 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 		#region Signed...
 
+		#region 16-bits
+
+		#region Little-Endian
+
+		[Test]
+		public void Test_Slice_FromInt16()
+		{
+			// 16-bit integers should be encoded in little endian, and with 1 or 2 bytes
+
+			void Verify(short value, string expected)
+			{
+				Assert.That(Slice.FromInt16(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+			}
+
+			Verify(0x12, "12");
+			Verify(0x1234, "3412");
+
+			Verify(0, "00");
+			Verify(1, "01");
+			Verify(255, "FF");
+			Verify(256, "0001");
+			Verify(short.MaxValue, "FF7F");
+			Verify(short.MinValue, "0080");
+		}
+
+		[Test]
+		public void Test_Slice_FromFixed16()
+		{
+			// FromFixed64 always produce 2 bytes and uses Little Endian
+
+			Assert.That(Slice.FromFixed16(0).GetBytes(), Is.EqualTo(new byte[2]));
+			Assert.That(Slice.FromFixed16(1).GetBytes(), Is.EqualTo(new byte[] { 1, 0 }));
+			Assert.That(Slice.FromFixed16(256).GetBytes(), Is.EqualTo(new byte[] { 0, 1 }));
+			Assert.That(Slice.FromFixed16(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 127 }));
+
+			Assert.That(Slice.FromFixed16(-1).GetBytes(), Is.EqualTo(new byte[] { 255, 255 }));
+			Assert.That(Slice.FromFixed16(-256).GetBytes(), Is.EqualTo(new byte[] { 0, 255  }));
+			Assert.That(Slice.FromFixed16(short.MinValue).GetBytes(), Is.EqualTo(new byte[] { 0, 128 }));
+
+			var rnd = new Random();
+			for (int i = 0; i < 1000; i++)
+			{
+				short x = (short) rnd.Next(-32768, 32767);
+				var s = Slice.FromFixed16(x);
+				Assert.That(s.Count, Is.EqualTo(2));
+				Assert.That(s.ToInt16(), Is.EqualTo(x));
+			}
+		}
+
+		[Test]
+		public void Test_Slice_ToInt16()
+		{
+			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt16(), Is.EqualTo(0x12));
+			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToInt16(), Is.EqualTo(0x1234));
+
+			Assert.That(new byte[] { }.AsSlice().ToInt16(), Is.EqualTo(0));
+			Assert.That(new byte[] { 0 }.AsSlice().ToInt16(), Is.EqualTo(0));
+			Assert.That(new byte[] { 255 }.AsSlice().ToInt16(), Is.EqualTo(255));
+			Assert.That(new byte[] { 0, 1 }.AsSlice().ToInt16(), Is.EqualTo(256));
+			Assert.That(new byte[] { 255, 127 }.AsSlice().ToInt16(), Is.EqualTo(32767));
+			Assert.That(new byte[] { 0, 128 }.AsSlice().ToInt16(), Is.EqualTo(-32768));
+			Assert.That(new byte[] { 0, 255 }.AsSlice().ToInt16(), Is.EqualTo(-256));
+			Assert.That(new byte[] { 255, 255 }.AsSlice().ToInt16(), Is.EqualTo(-1));
+
+			Assert.That(() => new byte[3].AsSlice().ToInt16(), Throws.InstanceOf<FormatException>());
+		}
+
+		#endregion
+
+		#region Big Endian
+
+		[Test]
+		public void Test_Slice_FromInt16BE()
+		{
+			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
+
+			void Verify(short value, string expected)
+			{
+				Assert.That(Slice.FromInt16BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+			}
+
+			Verify(0x12, "12");
+			Verify(0x1234, "1234");
+
+			Verify(0, "00");
+			Verify(1, "01");
+			Verify(255, "FF");
+			Verify(256, "0100");
+			Verify(-1, "FFFF");
+			Verify(-256, "FF00");
+			Verify(short.MaxValue, "7FFF");
+			Verify(short.MinValue, "8000");
+		}
+
+		[Test]
+		public void Test_Slice_FromFixed16BE()
+		{
+			// FromFixed32 always produce 4 bytes and uses Little Endian
+
+			Assert.That(Slice.FromFixed16BE(0).GetBytes(), Is.EqualTo(new byte[2]));
+			Assert.That(Slice.FromFixed16BE(1).GetBytes(), Is.EqualTo(new byte[] { 0, 1 }));
+			Assert.That(Slice.FromFixed16BE(256).GetBytes(), Is.EqualTo(new byte[] { 1, 0 }));
+			Assert.That(Slice.FromFixed16BE(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 127, 255 }));
+
+			Assert.That(Slice.FromFixed16BE(-1).GetBytes(), Is.EqualTo(new byte[] { 255, 255 }));
+			Assert.That(Slice.FromFixed16BE(-256).GetBytes(), Is.EqualTo(new byte[] { 255, 0 }));
+			Assert.That(Slice.FromFixed16BE(short.MinValue).GetBytes(), Is.EqualTo(new byte[] { 128, 0 }));
+
+			var rnd = new Random();
+			for (int i = 0; i < 1000; i++)
+			{
+				short x = (short) rnd.Next(-32768, 32767);
+				var s = Slice.FromFixed16BE(x);
+				Assert.That(s.Count, Is.EqualTo(2));
+				Assert.That(s.ToInt16BE(), Is.EqualTo(x));
+			}
+		}
+
+		[Test]
+		public void Test_Slice_ToInt16BE()
+		{
+			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt16BE(), Is.EqualTo(0x12));
+			Assert.That(new byte[] { 0x12, 0x34 }.AsSlice().ToInt16BE(), Is.EqualTo(0x1234));
+
+			Assert.That(new byte[] { }.AsSlice().ToInt16BE(), Is.EqualTo(0));
+			Assert.That(new byte[] { 0 }.AsSlice().ToInt16BE(), Is.EqualTo(0));
+			Assert.That(new byte[] { 255 }.AsSlice().ToInt16BE(), Is.EqualTo(255));
+			Assert.That(new byte[] { 1, 0 }.AsSlice().ToInt16BE(), Is.EqualTo(256));
+			Assert.That(new byte[] { 127, 255 }.AsSlice().ToInt16BE(), Is.EqualTo(32767));
+			Assert.That(new byte[] { 128, 0 }.AsSlice().ToInt16BE(), Is.EqualTo(-32768));
+			Assert.That(new byte[] { 255, 0 }.AsSlice().ToInt16BE(), Is.EqualTo(-256));
+			Assert.That(new byte[] { 255, 255 }.AsSlice().ToInt16BE(), Is.EqualTo(-1));
+
+			Assert.That(() => new byte[5].AsSlice().ToInt16BE(), Throws.InstanceOf<FormatException>());
+		}
+
+		#endregion
+
+		#endregion
+
 		#region 24-bits
 
 		#region Little-Endian

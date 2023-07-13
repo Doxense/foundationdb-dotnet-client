@@ -28,6 +28,7 @@ namespace Doxense.Memory
 {
 	using System;
 	using System.Buffers;
+	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
@@ -884,120 +885,68 @@ namespace Doxense.Memory
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		public void WriteFixed16(short value)
 		{
-			int p = this.Position;
-			unsafe
-			{
-				fixed (byte* ptr = &EnsureBytes(2)[p])
-				{
-					UnsafeHelpers.StoreInt16LE(ptr, value);
-				}
-			}
-			this.Position = p + 2;
+			BinaryPrimitives.WriteInt16LittleEndian(AllocateSpan(2), value);
 		}
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		public void WriteFixed16(ushort value)
 		{
-			int p = this.Position;
-			unsafe
-			{
-				fixed (byte* ptr = &EnsureBytes(2)[p])
-				{
-					UnsafeHelpers.StoreUInt16LE(ptr, value);
-				}
-			}
-			this.Position = p + 2;
+			BinaryPrimitives.WriteUInt16LittleEndian(AllocateSpan(2), value);
 		}
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		public void WriteFixed24(int value)
 		{
-			int p = this.Position;
 			unsafe
 			{
-				fixed (byte* ptr = &EnsureBytes(3)[p])
+				fixed (byte* ptr = AllocateSpan(3))
 				{
 					UnsafeHelpers.StoreUInt24LE(ptr, (uint) value);
 				}
 			}
-			this.Position = p + 3;
 		}
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		public void WriteFixed24(uint value)
 		{
-			int p = this.Position;
 			unsafe
 			{
-				fixed (byte* ptr = &EnsureBytes(3)[p])
+				fixed (byte* ptr = AllocateSpan(3))
 				{
 					UnsafeHelpers.StoreUInt24LE(ptr, value);
 				}
 			}
-			this.Position = p + 3;
 		}
 
 		/// <summary>Writes a 32-bit signed integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		public void WriteFixed32(int value)
 		{
-			int p = this.Position;
-			unsafe
-			{
-				fixed (byte* ptr = &EnsureBytes(4)[p])
-				{
-					UnsafeHelpers.WriteFixed32Unsafe(ptr, (uint) value);
-				}
-			}
-			this.Position = p + 4;
+			BinaryPrimitives.WriteInt32LittleEndian(AllocateSpan(4), value);
 		}
 
 		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		public void WriteFixed32(uint value)
 		{
-			int p = this.Position;
-			unsafe
-			{
-				fixed (byte* ptr = &EnsureBytes(4)[p])
-				{
-					UnsafeHelpers.WriteFixed32Unsafe(ptr, value);
-				}
-			}
-			this.Position = p + 4;
+			BinaryPrimitives.WriteUInt32LittleEndian(AllocateSpan(4), value);
 		}
 
 		/// <summary>Writes a 64-bit signed integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		public void WriteFixed64(long value)
 		{
-			int p = this.Position;
-			unsafe
-			{
-				fixed (byte* ptr = &EnsureBytes(8)[p])
-				{
-					UnsafeHelpers.WriteFixed64Unsafe(ptr, (ulong) value);
-				}
-			}
-			this.Position = p + 8;
+			BinaryPrimitives.WriteInt64LittleEndian(AllocateSpan(8), value);
 		}
 
 		/// <summary>Writes a 64-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		public void WriteFixed64(ulong value)
 		{
-			int p = this.Position;
-			unsafe
-			{
-				fixed (byte* ptr = &EnsureBytes(8)[p])
-				{
-					UnsafeHelpers.WriteFixed64Unsafe(ptr, value);
-				}
-			}
-			this.Position = p + 8;
+			BinaryPrimitives.WriteUInt64LittleEndian(AllocateSpan(8), value);
 		}
 
 		#endregion
@@ -1006,116 +955,70 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a 16-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
-		public void WriteFixed16BE(int value)
+		public void WriteFixed16BE(short value)
 		{
-			var buffer = EnsureBytes(2);
-			int p = this.Position;
-			buffer[p] = (byte)(value >> 8);
-			buffer[p + 1] = (byte)value;
-			this.Position = p + 2;
+			BinaryPrimitives.WriteInt16BigEndian(AllocateSpan(2), value);
 		}
 
 		/// <summary>Writes a 16-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
-		public void WriteFixed16BE(uint value)
+		public void WriteFixed16BE(ushort value)
 		{
-			var buffer = EnsureBytes(2);
-			int p = this.Position;
-			buffer[p] = (byte)(value >> 8);
-			buffer[p + 1] = (byte)value;
-			this.Position = p + 2;
+			BinaryPrimitives.WriteUInt16BigEndian(AllocateSpan(2), value);
 		}
 
 		/// <summary>Writes a 24-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		public void WriteFixed24BE(int value)
 		{
-			var buffer = EnsureBytes(3);
-			int p = this.Position;
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[p])
+				fixed (byte* ptr = AllocateSpan(3))
 				{
 					UnsafeHelpers.StoreInt24BE(ptr, value);
 				}
 			}
-			this.Position = p + 3;
 		}
 
 		/// <summary>Writes a 24-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 3 bytes</remarks>
 		public void WriteFixed24BE(uint value)
 		{
-			var buffer = EnsureBytes(3);
-			int p = this.Position;
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[p])
+				fixed (byte* ptr = AllocateSpan(3))
 				{
 					UnsafeHelpers.StoreUInt24BE(ptr, value);
 				}
 			}
-			this.Position = p + 3;
 		}
 
 		/// <summary>Writes a 32-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		public void WriteFixed32BE(int value)
 		{
-			var buffer = EnsureBytes(4);
-			int p = this.Position;
-			buffer[p] = (byte)(value >> 24);
-			buffer[p + 1] = (byte)(value >> 16);
-			buffer[p + 2] = (byte)(value >> 8);
-			buffer[p + 3] = (byte)(value);
-			this.Position = p + 4;
+			BinaryPrimitives.WriteInt32BigEndian(AllocateSpan(4), value);
 		}
 
 		/// <summary>Writes a 32-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		public void WriteFixed32BE(uint value)
 		{
-			var buffer = EnsureBytes(4);
-			int p = this.Position;
-			buffer[p] = (byte)(value >> 24);
-			buffer[p + 1] = (byte)(value >> 16);
-			buffer[p + 2] = (byte)(value >> 8);
-			buffer[p + 3] = (byte)(value);
-			this.Position = p + 4;
+			BinaryPrimitives.WriteUInt32BigEndian(AllocateSpan(4), value);
 		}
 
 		/// <summary>Writes a 64-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		public void WriteFixed64BE(long value)
 		{
-			var buffer = EnsureBytes(8);
-			int p = this.Position;
-			buffer[p] = (byte)(value >> 56);
-			buffer[p + 1] = (byte)(value >> 48);
-			buffer[p + 2] = (byte)(value >> 40);
-			buffer[p + 3] = (byte)(value >> 32);
-			buffer[p + 4] = (byte)(value >> 24);
-			buffer[p + 5] = (byte)(value >> 16);
-			buffer[p + 6] = (byte)(value >> 8);
-			buffer[p + 7] = (byte)(value);
-			this.Position = p + 8;
+			BinaryPrimitives.WriteInt64BigEndian(AllocateSpan(8), value);
 		}
 
 		/// <summary>Writes a 64-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		public void WriteFixed64BE(ulong value)
 		{
-			var buffer = EnsureBytes(8);
-			int p = this.Position;
-			buffer[p] = (byte)(value >> 56);
-			buffer[p + 1] = (byte)(value >> 48);
-			buffer[p + 2] = (byte)(value >> 40);
-			buffer[p + 3] = (byte)(value >> 32);
-			buffer[p + 4] = (byte)(value >> 24);
-			buffer[p + 5] = (byte)(value >> 16);
-			buffer[p + 6] = (byte)(value >> 8);
-			buffer[p + 7] = (byte)(value);
-			this.Position = p + 8;
+			BinaryPrimitives.WriteUInt64BigEndian(AllocateSpan(8), value);
 		}
 
 		#endregion
@@ -1124,60 +1027,68 @@ namespace Doxense.Memory
 
 		public void WriteSingle(float value)
 		{
-			var buffer = EnsureBytes(4);
-			int p = this.Position;
+#if NETFRAMEWORK || NETSTANDARD
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[p])
+				fixed (byte* ptr = AllocateSpan(4))
 				{
 					*((int*)ptr) = *(int*)(&value);
 				}
 			}
-			this.Position = p + 4;
+#else
+			BinaryPrimitives.WriteSingleLittleEndian(AllocateSpan(4), value);
+#endif
 		}
 
 		public void WriteSingle(byte prefix, float value)
 		{
-			var buffer = EnsureBytes(5);
-			int p = this.Position;
+#if NETFRAMEWORK || NETSTANDARD
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[p])
+				fixed (byte* ptr = AllocateSpan(5))
 				{
 					ptr[0] = prefix;
-					*((int*)(ptr + 1)) = *(int*)(&value);
+					*((int*) (ptr + 1)) = *(int*)(&value);
 				}
 			}
-			this.Position = p + 5;
+#else
+			var buffer = AllocateSpan(5);
+			buffer[0] = prefix;
+			BinaryPrimitives.WriteSingleLittleEndian(buffer.Slice(1), value);
+#endif
 		}
 
 		public void WriteDouble(double value)
 		{
-			var buffer = EnsureBytes(8);
-			int p = this.Position;
+#if NETFRAMEWORK || NETSTANDARD
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[p])
+				fixed (byte* ptr = AllocateSpan(8))
 				{
 					*((long*)ptr) = *(long*)(&value);
 				}
 			}
-			this.Position = p + 8;
+#else
+			BinaryPrimitives.WriteDoubleLittleEndian(AllocateSpan(8), value);
+#endif
 		}
 
 		public void WriteDouble(byte prefix, double value)
 		{
-			var buffer = EnsureBytes(9);
-			int p = this.Position;
+#if NETFRAMEWORK || NETSTANDARD
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[p])
+				fixed (byte* ptr = AllocateSpan(9))
 				{
 					ptr[0] = prefix;
-					*((long*)(ptr + 1)) = *(long*)(&value);
+					*((long*) (ptr + 1)) = *(long*)(&value);
 				}
 			}
-			this.Position = p + 9;
+#else
+			var buffer = AllocateSpan(9);
+			buffer[0] = prefix;
+			BinaryPrimitives.WriteDoubleLittleEndian(buffer.Slice(1), value);
+#endif
 		}
 
 		#endregion
@@ -1284,14 +1195,16 @@ namespace Doxense.Memory
 			const uint MASK = 128;
 			// max encoded size is 10 bytes
 			var buffer = EnsureBytes(UnsafeHelpers.SizeOfVarInt(value));
-			int p = this.Position;
+			ref byte start = ref buffer[this.Position];
+			ref byte ptr = ref start;
 			while (value >= MASK)
 			{
-				buffer[p++] = (byte) ((value & (MASK - 1)) | MASK);
+				ptr = (byte) ((value & (MASK - 1)) | MASK);
 				value >>= 7;
+				ptr = ref Unsafe.Add(ref ptr, 1);
 			}
-			buffer[p++] = (byte) value;
-			this.Position = p;
+			ptr = (byte) value;
+			this.Position = Unsafe.ByteOffset(ref start, ref ptr).ToInt32() + 1;
 		}
 
 		#endregion
@@ -1840,7 +1753,7 @@ namespace Doxense.Memory
 
 		#region Patching
 
-		#region 8-bits...
+		#region Bytes...
 
 		/// <summary>Overwrite a section of the buffer that was already written, with the specified data</summary>
 		/// <param name="index">Offset from the start of the buffer where to start replacing</param>
@@ -1863,6 +1776,16 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Overwrite a section of the buffer that was already written, with the specified data</summary>
+		/// <param name="index">Offset from the start of the buffer where to start replacing</param>
+		/// <param name="data">Data that will overwrite the buffer at the specified <paramref name="index"/></param>
+		/// <remarks>You must ensure that replaced section does not overlap with the current position!</remarks>
+		public void PatchBytes(int index, ReadOnlyMemory<byte> data)
+		{
+			if (index + data.Length > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			data.Span.CopyTo(this.Buffer.AsSpan(index));
+		}
+
+		/// <summary>Overwrite a section of the buffer that was already written, with the specified data</summary>
 		/// <remarks>You must ensure that replaced section does not overlap with the current position!</remarks>
 		[Obsolete("Use ReadOnlySpan<byte> instead.")]
 		public void PatchBytes(int index, byte[] buffer, int offset, int count)
@@ -1871,6 +1794,10 @@ namespace Doxense.Memory
 			buffer.AsSpan(offset, count).CopyTo(this.Buffer.AsSpan(index));
 		}
 
+		#endregion
+
+		#region 8-bits...
+
 		/// <summary>Overwrite a byte of the buffer that was already written</summary>
 		/// <remarks>You must ensure that replaced byte is before the current position!</remarks>
 		public void PatchByte(int index, byte value)
@@ -1878,6 +1805,15 @@ namespace Doxense.Memory
 			var buffer = this.Buffer;
 			if ((uint) index >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			buffer[index] = value;
+		}
+
+		/// <summary>Overwrite a byte of the buffer that was already written</summary>
+		/// <remarks>You must ensure that replaced byte is before the current position!</remarks>
+		public void PatchByte(int index, sbyte value)
+		{
+			var buffer = this.Buffer;
+			if ((uint) index >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			buffer[index] = (byte) value;
 		}
 
 		/// <summary>Overwrite a byte of the buffer that was already written</summary>
@@ -1900,13 +1836,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed16Unsafe(ptr, (ushort) value);
-				}
-			}
+			BinaryPrimitives.WriteInt16LittleEndian(buffer.AsSpan(index, 2), value);
 		}
 
 		/// <summary>Overwrite a word of the buffer that was already written</summary>
@@ -1915,13 +1845,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed16Unsafe(ptr, value);
-				}
-			}
+			BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(index, 2), value);
 		}
 
 		/// <summary>Overwrite a word of the buffer that was already written</summary>
@@ -1930,13 +1854,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed16BEUnsafe(ptr, (ushort) value);
-				}
-			}
+			BinaryPrimitives.WriteInt16BigEndian(buffer.AsSpan(index, 2), value);
 		}
 
 		/// <summary>Overwrite a word of the buffer that was already written</summary>
@@ -1945,11 +1863,69 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt16BigEndian(buffer.AsSpan(index, 2), value);
+		}
+
+		#endregion
+
+		#region 24-bits...
+
+		/// <summary>Overwrite a word of the buffer that was already written</summary>
+		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
+		public void PatchInt24(int index, int value)
+		{
+			var buffer = this.Buffer;
+			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &buffer[index])
 				{
-					UnsafeHelpers.WriteFixed16BEUnsafe(ptr, value);
+					UnsafeHelpers.StoreInt24LE(ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Overwrite a word of the buffer that was already written</summary>
+		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
+		public void PatchUInt24(int index, uint value)
+		{
+			var buffer = this.Buffer;
+			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[index])
+				{
+					UnsafeHelpers.StoreUInt24LE(ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Overwrite a word of the buffer that was already written</summary>
+		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
+		public void PatchInt24BE(int index, int value)
+		{
+			var buffer = this.Buffer;
+			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[index])
+				{
+					UnsafeHelpers.StoreInt24BE(ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Overwrite a word of the buffer that was already written</summary>
+		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
+		public void PatchUInt24BE(int index, uint value)
+		{
+			var buffer = this.Buffer;
+			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[index])
+				{
+					UnsafeHelpers.StoreUInt24BE(ptr, value);
 				}
 			}
 		}
@@ -1964,13 +1940,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed32Unsafe(ptr, (uint) value);
-				}
-			}
+			BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(index, 4), value);
 		}
 
 		/// <summary>Overwrite a dword of the buffer that was already written</summary>
@@ -1979,13 +1949,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed32Unsafe(ptr, value);
-				}
-			}
+			BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(index, 4), value);
 		}
 
 		/// <summary>Overwrite a dword of the buffer that was already written</summary>
@@ -1994,13 +1958,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed32BEUnsafe(ptr, (uint) value);
-				}
-			}
+			BinaryPrimitives.WriteInt32BigEndian(buffer.AsSpan(index, 4), value);
 		}
 
 		/// <summary>Overwrite a dword of the buffer that was already written</summary>
@@ -2009,13 +1967,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed32BEUnsafe(ptr, value);
-				}
-			}
+			BinaryPrimitives.WriteUInt32BigEndian(buffer.AsSpan(index, 4), value);
 		}
 
 		#endregion
@@ -2028,13 +1980,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed64Unsafe(ptr, (ulong) value);
-				}
-			}
+			BinaryPrimitives.WriteInt64LittleEndian(buffer.AsSpan(index, 8), value);
 		}
 
 		/// <summary>Overwrite a qword of the buffer that was already written</summary>
@@ -2043,13 +1989,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed64Unsafe(ptr, value);
-				}
-			}
+			BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(index, 8), value);
 		}
 
 		/// <summary>Overwrite a qword of the buffer that was already written</summary>
@@ -2058,13 +1998,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed64BEUnsafe(ptr, (ulong) value);
-				}
-			}
+			BinaryPrimitives.WriteInt64BigEndian(buffer.AsSpan(index, 8), value);
 		}
 
 		/// <summary>Overwrite a qword of the buffer that was already written</summary>
@@ -2073,13 +2007,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[index])
-				{
-					UnsafeHelpers.WriteFixed64BEUnsafe(ptr, value);
-				}
-			}
+			BinaryPrimitives.WriteUInt64BigEndian(buffer.AsSpan(index, 8), value);
 		}
 
 		#endregion

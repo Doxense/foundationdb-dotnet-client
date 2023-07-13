@@ -28,6 +28,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Buffers;
+	using System.Buffers.Binary;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
@@ -672,7 +673,7 @@ namespace FoundationDB.Client
 			else
 			{
 				Span<byte> tmp = stackalloc byte[4];
-				UnsafeHelpers.WriteFixed32(tmp, (uint) value);
+				BinaryPrimitives.WriteInt32LittleEndian(tmp, value);
 				trans.Atomic(key, tmp, FdbMutationType.Add);
 			}
 		}
@@ -704,7 +705,7 @@ namespace FoundationDB.Client
 			else
 			{
 				Span<byte> tmp = stackalloc byte[4];
-				UnsafeHelpers.WriteFixed32(tmp, value);
+				BinaryPrimitives.WriteUInt32LittleEndian(tmp, value);
 				trans.Atomic(key, tmp, FdbMutationType.Add);
 			}
 		}
@@ -736,7 +737,7 @@ namespace FoundationDB.Client
 			else
 			{
 				Span<byte> tmp = stackalloc byte[8];
-				UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
+				BinaryPrimitives.WriteInt64LittleEndian(tmp, value);
 				trans.Atomic(key, tmp, FdbMutationType.Add);
 			}
 		}
@@ -768,7 +769,7 @@ namespace FoundationDB.Client
 			else
 			{
 				Span<byte> tmp = stackalloc byte[8];
-				UnsafeHelpers.WriteFixed64(tmp, value);
+				BinaryPrimitives.WriteUInt64LittleEndian(tmp, value);
 				trans.Atomic(key, tmp, FdbMutationType.Add);
 			}
 		}

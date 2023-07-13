@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Buffers.Binary;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -644,7 +645,7 @@ namespace FoundationDB.Client
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			Span<byte> tmp = stackalloc byte[8];
-			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
+			BinaryPrimitives.WriteInt64LittleEndian(tmp, value);
 			m_handler.SetOption(option, tmp);
 
 			return this;

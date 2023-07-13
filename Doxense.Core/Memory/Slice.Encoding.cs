@@ -27,6 +27,7 @@
 namespace System
 {
 	using System;
+	using System.Buffers.Binary;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -76,14 +77,26 @@ namespace System
 		{
 			if (value >= 0)
 			{
-				if (value <= 255)
-				{
-					return Slice.FromByte((byte)value);
-				}
-				return new Slice(new byte[] { (byte)value, (byte)(value >> 8) }, 0, 2);
+				return value <= 255
+					? Slice.FromByte((byte) value)
+					: new Slice(new byte[] { (byte) (value & 0xFF), (byte) (value >> 8) }, 0, 2);
 			}
 
 			return FromFixed16(value);
+		}
+
+		/// <summary>Encode a signed 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
+		[Pure]
+		public static Slice FromInt16BE(short value)
+		{
+			if (value >= 0)
+			{
+				return value <= 255
+					? Slice.FromByte((byte) value)
+					: new Slice(new byte[] { (byte) (value >> 8), (byte) (value & 0xFF) }, 0, 2);
+			}
+
+			return FromFixed16BE(value);
 		}
 
 		/// <summary>Encode a signed 16-bit integer into a 2-byte slice in little-endian</summary>
@@ -91,6 +104,13 @@ namespace System
 		public static Slice FromFixed16(short value)
 		{
 			return new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
+		}
+
+		/// <summary>Encode a signed 16-bit integer into a 2-byte slice in little-endian</summary>
+		[Pure]
+		public static Slice FromFixed16BE(short value)
+		{
+			return new Slice(new byte[2] { (byte) (value >> 8), (byte) (value & 0xFF) }, 0, 2);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
@@ -107,12 +127,26 @@ namespace System
 			}
 		}
 
+		/// <summary>Encode an unsigned 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
+		[Pure]
+		public static Slice FromUInt16BE(ushort value)
+		{
+			if (value <= 255)
+			{
+				return FromByte((byte)value);
+			}
+			else
+			{
+				return FromFixedU16BE(value);
+			}
+		}
+
 		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in little-endian</summary>
 		/// <remarks>0x1122 => 11 22</remarks>
 		[Pure]
 		public static Slice FromFixedU16(ushort value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
+			return new Slice(new byte[2] { (byte) (value & 0xFF), (byte) (value >> 8) }, 0, 2);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in big-endian</summary>
@@ -120,7 +154,7 @@ namespace System
 		[Pure]
 		public static Slice FromFixedU16BE(ushort value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 4);
+			return new Slice(new byte[2] { (byte) (value >> 8), (byte) (value & 0xFF) }, 0, 4);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into 7-bit encoded unsigned int (aka 'Varint16')</summary>
@@ -1446,74 +1480,49 @@ namespace System
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public short ToInt16()
+		public short ToInt16() => this.Count switch
 		{
-			switch (this.Count)
-			{
-				case 0: return 0;
-				case 1: return this.Array[this.Offset];
-				case 2: return (short)(this.Array[this.Offset] | (this.Array[this.Offset + 1] << 8));
-				default:
-					if (this.Count < 0) throw UnsafeHelpers.Errors.SliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2);
-			}
-		}
+			0 => 0,
+			1 => this.Array[this.Offset],
+			2 => BinaryPrimitives.ReadInt16LittleEndian(this.Array.AsSpan(this.Offset, 2)),
+			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
+		};
 
 		/// <summary>Converts a slice into a big-endian encoded, signed 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public short ToInt16BE()
+		public short ToInt16BE() => this.Count switch
 		{
-			EnsureSliceIsValid();
-			switch (this.Count)
-			{
-				case 0: return 0;
-				case 1: return this.Array[this.Offset];
-				case 2: return (short)(this.Array[this.Offset + 1] | (this.Array[this.Offset] << 8));
-				default:
-					if (this.Count < 0) throw UnsafeHelpers.Errors.SliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2);
-
-			}
-		}
+			0 => 0,
+			1 => this.Array[this.Offset],
+			2 => BinaryPrimitives.ReadInt16BigEndian(this.Array.AsSpan(this.Offset, 2)),
+			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
+		};
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public ushort ToUInt16()
+		public ushort ToUInt16() => this.Count switch
 		{
-			EnsureSliceIsValid();
-			switch (this.Count)
-			{
-				case 0: return 0;
-				case 1: return this.Array[this.Offset];
-				case 2: return (ushort)(this.Array[this.Offset] | (this.Array[this.Offset + 1] << 8));
-				default:
-					if (this.Count < 0) throw UnsafeHelpers.Errors.SliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2);
-			}
-		}
+			0 => 0,
+			1 => this.Array[this.Offset],
+			2 => BinaryPrimitives.ReadUInt16LittleEndian(this.Array.AsSpan(this.Offset, 2)),
+			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
+		};
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public ushort ToUInt16BE()
+		public ushort ToUInt16BE() => this.Count switch
 		{
-			EnsureSliceIsValid();
-			switch (this.Count)
-			{
-				case 0: return 0;
-				case 1: return this.Array[this.Offset];
-				case 2: return (ushort)(this.Array[this.Offset + 1] | (this.Array[this.Offset] << 8));
-				default:
-					if (this.Count < 0) throw UnsafeHelpers.Errors.SliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2);
-
-			}
-		}
+			0 => 0,
+			1 => this.Array[this.Offset],
+			2 => BinaryPrimitives.ReadUInt16BigEndian(this.Array.AsSpan(this.Offset, 2)),
+			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
+		};
 
 		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
 		/// <param name="offset">Relative offset of the first byte</param>
