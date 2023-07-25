@@ -462,14 +462,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
-		public static TFirst? DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
+		public static TFirst DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyFirst<TFirst>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
-		public static TLast? DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
+		public static TLast DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyLast<TLast>(self.ExtractKey(packedKey));
 		}
