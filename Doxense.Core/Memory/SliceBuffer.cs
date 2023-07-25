@@ -58,7 +58,7 @@ namespace Doxense.Memory
 		/// <summary>Running total of the number of bytes stored in the previously used buffers, excluding the size of the current buffer</summary>
 		private int m_used;
 		/// <summary>Pool for buffers</summary>
-		private ArrayPool<byte>? m_pool;
+		private readonly ArrayPool<byte>? m_pool;
 
 		/// <summary>Create a new slice buffer with the default page size</summary>
 		public SliceBuffer()

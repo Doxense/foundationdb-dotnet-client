@@ -168,14 +168,21 @@ namespace System
 			return new Span<byte>(value.Array, value.Offset, value.Count);
 		}
 
-		/// <summary>Returns a writable Span that wraps the content of this slice</summary>
+		/// <summary>Returns a writable <see cref="Span{T}"><c>Span&lt;byte&gt;</c></see> that wraps the content of this slice</summary>
 		public Span<byte> Span
 		{
 			[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Count != 0 ? new Span<byte>(this.Array, this.Offset, this.Count) : default;
 		}
 
-		/// <summary>Returns a read-only Slice that wraps the content of this slice</summary>
+		/// <summary>Returns a writable <see cref="Memory{T}"><c>Memory&lt;byte&gt;</c></see> that wraps the content of this slice</summary>
+		public Memory<byte> Memory
+		{
+			[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Count != 0 ? new Memory<byte>(this.Array, this.Offset, this.Count) : default;
+		}
+
+		/// <summary>Returns a read-only <see cref="Slice"/> that wraps the content of this slice</summary>
 		public Slice Slice
 		{
 			[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
