@@ -1380,8 +1380,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			int type = slice[0];
 			if (type <= TupleTypes.IntPos8)
 			{
-				if (type >= TupleTypes.IntZero) return (ulong)TupleParser.ParseInt64(type, slice);
-				if (type < TupleTypes.IntZero) throw new OverflowException(); // negative values
+				if (type >= TupleTypes.IntZero) return checked((ulong) TupleParser.ParseInt64(type, slice));
+				if (type >= TupleTypes.IntNeg8) throw new OverflowException(); // negative values
 
 				switch (type)
 				{
