@@ -2119,53 +2119,94 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("1"));
+			Assert.That(() => TuPack.DecodeFirst<int, int>(packed), Throws.Exception);
+			Assert.That(() => TuPack.DecodeLast<int, int>(packed), Throws.Exception);
+			Assert.That(() => TuPack.DecodeFirst<int, int, int>(packed), Throws.Exception);
+			Assert.That(() => TuPack.DecodeLast<int, int, int>(packed), Throws.Exception);
 
 			packed = TuPack.EncodeKey(1, 2);
 			Assert.That(TuPack.DecodeFirst<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(TuPack.DecodeFirst<int, int>(packed), Is.EqualTo((1, 2)));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(2));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("2"));
+			Assert.That(TuPack.DecodeLast<int, int>(packed), Is.EqualTo((1, 2)));
+			Assert.That(() => TuPack.DecodeFirst<int, int, int>(packed), Throws.Exception);
+			Assert.That(() => TuPack.DecodeLast<int, int, int>(packed), Throws.Exception);
 
 			packed = TuPack.EncodeKey(1, 2, 3);
 			Assert.That(TuPack.DecodeFirst<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(TuPack.DecodeFirst<int, int>(packed), Is.EqualTo((1, 2)));
+			Assert.That(TuPack.DecodeFirst<int, int, int>(packed), Is.EqualTo((1, 2, 3)));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(3));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("3"));
+			Assert.That(TuPack.DecodeLast<int, int>(packed), Is.EqualTo((2, 3)));
+			Assert.That(TuPack.DecodeLast<int, int, int>(packed), Is.EqualTo((1, 2, 3)));
 
 			packed = TuPack.EncodeKey(1, 2, 3, 4);
 			Assert.That(TuPack.DecodeFirst<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(TuPack.DecodeFirst<int, int>(packed), Is.EqualTo((1, 2)));
+			Assert.That(TuPack.DecodeFirst<int, int, int>(packed), Is.EqualTo((1, 2, 3)));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(4));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("4"));
+			Assert.That(TuPack.DecodeLast<int, int>(packed), Is.EqualTo((3, 4)));
+			Assert.That(TuPack.DecodeLast<int, int, int>(packed), Is.EqualTo((2, 3, 4)));
 
 			packed = TuPack.EncodeKey(1, 2, 3, 4, 5);
 			Assert.That(TuPack.DecodeFirst<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(TuPack.DecodeFirst<int, int>(packed), Is.EqualTo((1, 2)));
+			Assert.That(TuPack.DecodeFirst<int, int, int>(packed), Is.EqualTo((1, 2, 3)));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(5));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("5"));
+			Assert.That(TuPack.DecodeLast<int, int>(packed), Is.EqualTo((4, 5)));
+			Assert.That(TuPack.DecodeLast<int, int, int>(packed), Is.EqualTo((3, 4, 5)));
 
 			packed = TuPack.EncodeKey(1, 2, 3, 4, 5, 6);
 			Assert.That(TuPack.DecodeFirst<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(TuPack.DecodeFirst<int, int>(packed), Is.EqualTo((1, 2)));
+			Assert.That(TuPack.DecodeFirst<int, int, int>(packed), Is.EqualTo((1, 2, 3)));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(6));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("6"));
+			Assert.That(TuPack.DecodeLast<int, int>(packed), Is.EqualTo((5, 6)));
+			Assert.That(TuPack.DecodeLast<int, int, int>(packed), Is.EqualTo((4, 5, 6)));
 
 			packed = TuPack.EncodeKey(1, 2, 3, 4, 5, 6, 7);
 			Assert.That(TuPack.DecodeFirst<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(TuPack.DecodeFirst<int, int>(packed), Is.EqualTo((1, 2)));
+			Assert.That(TuPack.DecodeFirst<int, int, int>(packed), Is.EqualTo((1, 2, 3)));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(7));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("7"));
+			Assert.That(TuPack.DecodeLast<int, int>(packed), Is.EqualTo((6, 7)));
+			Assert.That(TuPack.DecodeLast<int, int, int>(packed), Is.EqualTo((5, 6, 7)));
 
 			packed = TuPack.EncodeKey(1, 2, 3, 4, 5, 6, 7, 8);
 			Assert.That(TuPack.DecodeFirst<int>(packed), Is.EqualTo(1));
 			Assert.That(TuPack.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(TuPack.DecodeFirst<int, int>(packed), Is.EqualTo((1, 2)));
+			Assert.That(TuPack.DecodeFirst<int, int, int>(packed), Is.EqualTo((1, 2, 3)));
 			Assert.That(TuPack.DecodeLast<int>(packed), Is.EqualTo(8));
 			Assert.That(TuPack.DecodeLast<string>(packed), Is.EqualTo("8"));
+			Assert.That(TuPack.DecodeLast<int, int>(packed), Is.EqualTo((7, 8)));
+			Assert.That(TuPack.DecodeLast<int, int, int>(packed), Is.EqualTo((6, 7, 8)));
 
+			// empty
 			Assert.That(() => TuPack.DecodeFirst<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => TuPack.DecodeFirst<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeFirst<string, string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeFirst<string, string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeFirst<string, string, string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeFirst<string, string, string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => TuPack.DecodeLast<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => TuPack.DecodeLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeLast<string, string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeLast<string, string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeLast<string, string, string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeLast<string, string, string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 
 		}
 

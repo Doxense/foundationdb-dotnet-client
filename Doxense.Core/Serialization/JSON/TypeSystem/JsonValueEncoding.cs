@@ -357,160 +357,71 @@ namespace Doxense.Serialization.Encoders
 
 		#region IDynamicKeyEncoder...
 
-		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple
-		{
-			throw new NotImplementedException();
-		}
+		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple => throw new NotImplementedException();
 
-		public void EncodeKey<T1>(ref SliceWriter writer, T1 item1)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1>(ref SliceWriter writer, T1 item1) => throw new NotImplementedException();
 
-		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1 item1, T2 item2)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1 item1, T2 item2) => throw new NotImplementedException();
 
-		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3) => throw new NotImplementedException();
 
-		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4) => throw new NotImplementedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => throw new NotImplementedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => throw new NotImplementedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => throw new NotImplementedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
-		{
-			throw new NotImplementedException();
-		}
+		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => throw new NotImplementedException();
 
-		public IVarTuple UnpackKey(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public IVarTuple UnpackKey(Slice packed) => throw new NotImplementedException();
 
-		public bool TryUnpackKey(Slice packed, out IVarTuple? tuple)
-		{
-			throw new NotImplementedException();
-		}
+		public bool TryUnpackKey(Slice packed, out IVarTuple tuple) => throw new NotImplementedException();
 
-		public T1 DecodeKey<T1>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public T1 DecodeKey<T1>(Slice packed) => throw new NotImplementedException();
 
-		public T1 DecodeKeyFirst<T1>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public T1 DecodeKeyFirst<T1>(Slice packed) => throw new NotImplementedException();
 
-		public T1 DecodeKeyLast<T1>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2) DecodeKeyFirst<T1, T2>(Slice packed) => throw new NotImplementedException();
 
-		public (T1, T2) DecodeKey<T1, T2>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2, T3) DecodeKeyFirst<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
 
-		public (T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public T1 DecodeKeyLast<T1>(Slice packed) => throw new NotImplementedException();
 
-		public (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2) DecodeKeyLast<T1, T2>(Slice packed) => throw new NotImplementedException();
 
-		public (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2, T3) DecodeKeyLast<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
 
-		public (T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2) DecodeKey<T1, T2>(Slice packed) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToRange(Slice prefix = default)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple items)
-			where TTuple : IVarTuple
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1>(Slice prefix, T1 item1)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
-		{
-			throw new NotImplementedException();
-		}
+		public (T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
-		{
-			throw new NotImplementedException();
-		}
+		public (Slice Begin, Slice End) ToRange(Slice prefix = default) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
-		{
-			throw new NotImplementedException();
-		}
+		public (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple items) where TTuple : IVarTuple => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
-		{
-			throw new NotImplementedException();
-		}
+		public (Slice Begin, Slice End) ToKeyRange<T1>(Slice prefix, T1 item1) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
-		{
-			throw new NotImplementedException();
-		}
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
-		{
-			throw new NotImplementedException();
-		}
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3) => throw new NotImplementedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(
-			Slice prefix,
-			T1 item1,
-			T2 item2,
-			T3 item3,
-			T4 item4,
-			T5 item5,
-			T6 item6,
-			T7 item7,
-			T8 item8)
-		{
-			throw new NotImplementedException();
-		}
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4) => throw new NotImplementedException();
+
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => throw new NotImplementedException();
+
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => throw new NotImplementedException();
+
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => throw new NotImplementedException();
+
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => throw new NotImplementedException();
 
 		#endregion
 	}

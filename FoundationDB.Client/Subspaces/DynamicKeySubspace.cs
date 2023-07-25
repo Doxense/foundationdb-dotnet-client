@@ -455,6 +455,7 @@ namespace FoundationDB.Client
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 		}
 
+		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
 		public static STuple<T1, T2, T3, T4, T5, T6> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));

@@ -194,54 +194,54 @@ namespace Doxense.Collections.Tuples.Encoding
 			// - In Debug builds, we have to disabled this, because it would be too slow
 			//IMPORTANT: only ValueTypes and they must have a corresponding Write$TYPE$(ref TupleWriter, $TYPE) in TupleParser!
 #if !DEBUG
-			if (typeof(T) == typeof(bool)) { TupleParser.WriteBool(ref writer, (bool) (object) value); return; }
-			if (typeof(T) == typeof(int)) { TupleParser.WriteInt32(ref writer, (int) (object) value); return; }
-			if (typeof(T) == typeof(long)) { TupleParser.WriteInt64(ref writer, (long) (object) value); return; }
-			if (typeof(T) == typeof(uint)) { TupleParser.WriteUInt32(ref writer, (uint) (object) value); return; }
-			if (typeof(T) == typeof(ulong)) { TupleParser.WriteUInt64(ref writer, (ulong) (object) value); return; }
-			if (typeof(T) == typeof(short)) { TupleParser.WriteInt32(ref writer, (short) (object) value); return; }
-			if (typeof(T) == typeof(ushort)) { TupleParser.WriteUInt32(ref writer, (ushort) (object) value); return; }
-			if (typeof(T) == typeof(sbyte)) { TupleParser.WriteInt32(ref writer, (sbyte) (object) value); return; }
-			if (typeof(T) == typeof(byte)) { TupleParser.WriteUInt32(ref writer, (byte) (object) value); return; }
-			if (typeof(T) == typeof(float)) { TupleParser.WriteSingle(ref writer, (float) (object) value); return; }
-			if (typeof(T) == typeof(double)) { TupleParser.WriteDouble(ref writer, (double) (object) value); return; }
-			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value); return; }
-			if (typeof(T) == typeof(char)) { TupleParser.WriteChar(ref writer, (char) (object) value); return; }
-			if (typeof(T) == typeof(TimeSpan)) { TupleParser.WriteTimeSpan(ref writer, (TimeSpan) (object) value); return; }
-			if (typeof(T) == typeof(DateTime)) { TupleParser.WriteDateTime(ref writer, (DateTime) (object) value); return; }
-			if (typeof(T) == typeof(DateTimeOffset)) { TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset) (object) value); return; }
-			if (typeof(T) == typeof(Guid)) { TupleParser.WriteGuid(ref writer, (Guid) (object) value); return; }
-			if (typeof(T) == typeof(Uuid128)) { TupleParser.WriteUuid128(ref writer, (Uuid128) (object) value); return; }
-			if (typeof(T) == typeof(Uuid96)) { TupleParser.WriteUuid96(ref writer, (Uuid96) (object) value); return; }
-			if (typeof(T) == typeof(Uuid80)) { TupleParser.WriteUuid80(ref writer, (Uuid80) (object) value); return; }
-			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value); return; }
-			if (typeof(T) == typeof(VersionStamp)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp) (object) value); return; }
-			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value); return; }
-			if (typeof(T) == typeof(MutableSlice)) { TupleParser.WriteBytes(ref writer, (MutableSlice) (object) value); return; }
-			if (typeof(T) == typeof(ArraySegment<byte>)) { TupleParser.WriteBytes(ref writer, (ArraySegment<byte>) (object) value); return; }
+			if (typeof(T) == typeof(bool)) { TupleParser.WriteBool(ref writer, (bool) (object) value!); return; }
+			if (typeof(T) == typeof(int)) { TupleParser.WriteInt32(ref writer, (int) (object) value!); return; }
+			if (typeof(T) == typeof(long)) { TupleParser.WriteInt64(ref writer, (long) (object) value!); return; }
+			if (typeof(T) == typeof(uint)) { TupleParser.WriteUInt32(ref writer, (uint) (object) value!); return; }
+			if (typeof(T) == typeof(ulong)) { TupleParser.WriteUInt64(ref writer, (ulong) (object) value!); return; }
+			if (typeof(T) == typeof(short)) { TupleParser.WriteInt32(ref writer, (short) (object) value!); return; }
+			if (typeof(T) == typeof(ushort)) { TupleParser.WriteUInt32(ref writer, (ushort) (object) value!); return; }
+			if (typeof(T) == typeof(sbyte)) { TupleParser.WriteInt32(ref writer, (sbyte) (object) value!); return; }
+			if (typeof(T) == typeof(byte)) { TupleParser.WriteUInt32(ref writer, (byte) (object) value!); return; }
+			if (typeof(T) == typeof(float)) { TupleParser.WriteSingle(ref writer, (float) (object) value!); return; }
+			if (typeof(T) == typeof(double)) { TupleParser.WriteDouble(ref writer, (double) (object) value!); return; }
+			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value!); return; }
+			if (typeof(T) == typeof(char)) { TupleParser.WriteChar(ref writer, (char) (object) value!); return; }
+			if (typeof(T) == typeof(TimeSpan)) { TupleParser.WriteTimeSpan(ref writer, (TimeSpan) (object) value!); return; }
+			if (typeof(T) == typeof(DateTime)) { TupleParser.WriteDateTime(ref writer, (DateTime) (object) value!); return; }
+			if (typeof(T) == typeof(DateTimeOffset)) { TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset) (object) value!); return; }
+			if (typeof(T) == typeof(Guid)) { TupleParser.WriteGuid(ref writer, (Guid) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid128)) { TupleParser.WriteUuid128(ref writer, (Uuid128) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid96)) { TupleParser.WriteUuid96(ref writer, (Uuid96) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid80)) { TupleParser.WriteUuid80(ref writer, (Uuid80) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value!); return; }
+			if (typeof(T) == typeof(VersionStamp)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp) (object) value!); return; }
+			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value!); return; }
+			if (typeof(T) == typeof(MutableSlice)) { TupleParser.WriteBytes(ref writer, (MutableSlice) (object) value!); return; }
+			if (typeof(T) == typeof(ArraySegment<byte>)) { TupleParser.WriteBytes(ref writer, (ArraySegment<byte>) (object) value!); return; }
 
-			if (typeof(T) == typeof(bool?)) { TupleParser.WriteBool(ref writer, (bool?) (object) value); return; }
-			if (typeof(T) == typeof(int?)) { TupleParser.WriteInt32(ref writer, (int?) (object) value); return; }
-			if (typeof(T) == typeof(long?)) { TupleParser.WriteInt64(ref writer, (long?) (object) value); return; }
-			if (typeof(T) == typeof(uint?)) { TupleParser.WriteUInt32(ref writer, (uint?) (object) value); return; }
-			if (typeof(T) == typeof(ulong?)) { TupleParser.WriteUInt64(ref writer, (ulong?) (object) value); return; }
-			if (typeof(T) == typeof(short?)) { TupleParser.WriteInt32(ref writer, (short?) (object) value); return; }
-			if (typeof(T) == typeof(ushort?)) { TupleParser.WriteUInt32(ref writer, (ushort?) (object) value); return; }
-			if (typeof(T) == typeof(sbyte?)) { TupleParser.WriteInt32(ref writer, (sbyte?) (object) value); return; }
-			if (typeof(T) == typeof(byte?)) { TupleParser.WriteUInt32(ref writer, (byte?) (object) value); return; }
-			if (typeof(T) == typeof(float?)) { TupleParser.WriteSingle(ref writer, (float?) (object) value); return; }
-			if (typeof(T) == typeof(double?)) { TupleParser.WriteDouble(ref writer, (double?) (object) value); return; }
-			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value); return; }
-			if (typeof(T) == typeof(char?)) { TupleParser.WriteChar(ref writer, (char?) (object) value); return; }
-			if (typeof(T) == typeof(TimeSpan?)) { TupleParser.WriteTimeSpan(ref writer, (TimeSpan?) (object) value); return; }
-			if (typeof(T) == typeof(DateTime?)) { TupleParser.WriteDateTime(ref writer, (DateTime?) (object) value); return; }
-			if (typeof(T) == typeof(DateTimeOffset?)) { TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset?) (object) value); return; }
-			if (typeof(T) == typeof(Guid?)) { TupleParser.WriteGuid(ref writer, (Guid?) (object) value); return; }
-			if (typeof(T) == typeof(Uuid128?)) { TupleParser.WriteUuid128(ref writer, (Uuid128?) (object) value); return; }
-			if (typeof(T) == typeof(Uuid96?)) { TupleParser.WriteUuid96(ref writer, (Uuid96?) (object) value); return; }
-			if (typeof(T) == typeof(Uuid80?)) { TupleParser.WriteUuid80(ref writer, (Uuid80?) (object) value); return; }
-			if (typeof(T) == typeof(Uuid64?)) { TupleParser.WriteUuid64(ref writer, (Uuid64?) (object) value); return; }
-			if (typeof(T) == typeof(VersionStamp?)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp?) (object) value); return; }
+			if (typeof(T) == typeof(bool?)) { TupleParser.WriteBool(ref writer, (bool?) (object) value!); return; }
+			if (typeof(T) == typeof(int?)) { TupleParser.WriteInt32(ref writer, (int?) (object) value!); return; }
+			if (typeof(T) == typeof(long?)) { TupleParser.WriteInt64(ref writer, (long?) (object) value!); return; }
+			if (typeof(T) == typeof(uint?)) { TupleParser.WriteUInt32(ref writer, (uint?) (object) value!); return; }
+			if (typeof(T) == typeof(ulong?)) { TupleParser.WriteUInt64(ref writer, (ulong?) (object) value!); return; }
+			if (typeof(T) == typeof(short?)) { TupleParser.WriteInt32(ref writer, (short?) (object) value!); return; }
+			if (typeof(T) == typeof(ushort?)) { TupleParser.WriteUInt32(ref writer, (ushort?) (object) value!); return; }
+			if (typeof(T) == typeof(sbyte?)) { TupleParser.WriteInt32(ref writer, (sbyte?) (object) value!); return; }
+			if (typeof(T) == typeof(byte?)) { TupleParser.WriteUInt32(ref writer, (byte?) (object) value!); return; }
+			if (typeof(T) == typeof(float?)) { TupleParser.WriteSingle(ref writer, (float?) (object) value!); return; }
+			if (typeof(T) == typeof(double?)) { TupleParser.WriteDouble(ref writer, (double?) (object) value!); return; }
+			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value!); return; }
+			if (typeof(T) == typeof(char?)) { TupleParser.WriteChar(ref writer, (char?) (object) value!); return; }
+			if (typeof(T) == typeof(TimeSpan?)) { TupleParser.WriteTimeSpan(ref writer, (TimeSpan?) (object) value!); return; }
+			if (typeof(T) == typeof(DateTime?)) { TupleParser.WriteDateTime(ref writer, (DateTime?) (object) value!); return; }
+			if (typeof(T) == typeof(DateTimeOffset?)) { TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset?) (object) value!); return; }
+			if (typeof(T) == typeof(Guid?)) { TupleParser.WriteGuid(ref writer, (Guid?) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid128?)) { TupleParser.WriteUuid128(ref writer, (Uuid128?) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid96?)) { TupleParser.WriteUuid96(ref writer, (Uuid96?) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid80?)) { TupleParser.WriteUuid80(ref writer, (Uuid80?) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid64?)) { TupleParser.WriteUuid64(ref writer, (Uuid64?) (object) value!); return; }
+			if (typeof(T) == typeof(VersionStamp?)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp?) (object) value!); return; }
 #endif
 			//</JIT_HACK>
 
@@ -805,7 +805,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
 			var body = Expression.Condition(
 				// IsNilSegment(slice) ?
-				Expression.Call(typeof(TuplePackers).GetMethod(nameof(IsNilSegment), BindingFlags.Static | BindingFlags.NonPublic), prmSlice),
+				Expression.Call(typeof(TuplePackers).GetMethod(nameof(IsNilSegment), BindingFlags.Static | BindingFlags.NonPublic)!, prmSlice),
 				// True => default(Nullable<T>)
 				Expression.Default(nullableType),
 				// False => decoder(slice)
@@ -1354,21 +1354,21 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static byte DeserializeByte(Slice slice)
 		{
-			return checked((byte)DeserializeUInt64(slice));
+			return checked((byte) DeserializeUInt64(slice));
 		}
 
 		/// <summary>Deserialize a tuple segment into an UInt32</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static ushort DeserializeUInt16(Slice slice)
 		{
-			return checked((ushort)DeserializeUInt64(slice));
+			return checked((ushort) DeserializeUInt64(slice));
 		}
 
 		/// <summary>Deserialize a slice into an UInt32</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static uint DeserializeUInt32(Slice slice)
 		{
-			return checked((uint)DeserializeUInt64(slice));
+			return checked((uint) DeserializeUInt64(slice));
 		}
 
 		/// <summary>Deserialize a tuple segment into an UInt64</summary>
@@ -2035,12 +2035,155 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
 		/// <param name="token">Raw slice corresponding to the first element of the tuple</param>
 		/// <returns><c>true</c> if the buffer was successfully unpacked.</returns>
-		public static bool TryUnpackFirst(Slice buffer, out Slice token)
+		public static bool TryUnpackFirst(Slice buffer, out Slice token, out Exception? error)
 		{
 			var slicer = new TupleReader(buffer);
 
-			(token, Exception? error) = TupleParser.ParseNext(ref slicer);
+			(token, error) = TupleParser.ParseNext(ref slicer);
 			return error == null && !token.IsNull;
+		}
+
+		/// <summary>Only returns the last 2 items of a packed tuple, without decoding them.</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 2 elements</param>
+		/// <param name="token1">Raw slice corresponding to the next to last element of the tuple</param>
+		/// <param name="token2">Raw slice corresponding to the last element of the tuple</param>
+		/// <param name="error">Receive an exception if the parsing failed</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
+		public static bool TryUnpackFirst(Slice buffer, out Slice token1, out Slice token2, out Exception? error)
+		{
+			var slicer = new TupleReader(buffer);
+
+			token1 = default;
+			token2 = default;
+
+			int n = 0;
+
+			while (n < 2)
+			{
+				(var current, error) = TupleParser.ParseNext(ref slicer);
+				if (error != null)
+				{ // malformed token
+					return false;
+				}
+
+				if (!current.HasValue)
+				{ // no more tokens
+					error = new InvalidOperationException("Tuple has less elements than expected");
+					return false;
+				}
+
+				if (n == 0)
+				{
+					token1 = current;
+				}
+				else if (n == 1)
+				{
+					token2 = current;
+				}
+				++n;
+			}
+
+			error = null;
+			return true;
+		}
+
+		/// <summary>Only returns the last 3 items of a packed tuple, without decoding them.</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 3 elements</param>
+		/// <param name="token1">Raw slice corresponding to the third element from the end of the tuple</param>
+		/// <param name="token2">Raw slice corresponding to the second element from the end of the tuple</param>
+		/// <param name="token3">Raw slice corresponding to the last element of the tuple</param>
+		/// <param name="error">Receive an exception if the parsing failed</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
+		public static bool TryUnpackFirst(Slice buffer, out Slice token1, out Slice token2, out Slice token3, out Exception? error)
+		{
+			var slicer = new TupleReader(buffer);
+
+			token1 = default;
+			token2 = default;
+			token3 = default;
+
+			int n = 0;
+
+			while (n < 3)
+			{
+				(var current, error) = TupleParser.ParseNext(ref slicer);
+				if (error != null)
+				{ // malformed token
+					return false;
+				}
+
+				if (!current.HasValue)
+				{ // no more tokens
+					error = new InvalidOperationException("Tuple has less elements than expected.");
+					return false;
+				}
+
+				if (n == 0)
+				{
+					token1 = current;
+				}
+				else if (n == 1)
+				{
+					token2 = current;
+				}
+				else if (n == 2)
+				{
+					token3 = current;
+				}
+
+				++n;
+			}
+
+			error = null;
+			return true;
+		}
+
+		/// <summary>Only returns the last N items of a packed tuple, without decoding them.</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 3 elements</param>
+		/// <param name="tokens">Raw slice corresponding to the third element from the end of the tuple</param>
+		/// <param name="error">Receive an exception if the parsing failed</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
+		public static bool TryUnpackFirst(Slice buffer, Span<Slice> tokens, out Exception? error)
+		{
+			var slicer = new TupleReader(buffer);
+
+			int n = 0;
+
+			while (true)
+			{
+				(var current, error) = TupleParser.ParseNext(ref slicer);
+				if (error != null)
+				{ // malformed token
+					tokens.Clear();
+					return false;
+				}
+
+				if (!current.HasValue)
+				{ // no more tokens
+					break;
+				}
+
+				if (n < tokens.Length)
+				{
+					tokens[n++] = current;
+				}
+				else
+				{
+					error = new InvalidOperationException("Tuple has more elements than expected.");
+					tokens.Clear();
+					return false;
+				}
+			}
+
+			if (n != tokens.Length || slicer.Input.HasMore)
+			{ // tuple has less elements than expected or has extra bytes.
+				error = new InvalidOperationException("Tuple has less elements than expected.");
+				tokens.Clear();
+				return false;
+			}
+
+			error = null;
+			return true;
 		}
 
 		/// <summary>Only returns the last item of a packed tuple</summary>
@@ -2064,11 +2207,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return item;
 		}
 
-		/// <summary>Only returns the last item of a packed tuple</summary>
-		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
+		/// <summary>Only returns the last item of a packed tuple, without decoding it.</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 1 element</param>
 		/// <param name="token">Raw slice corresponding to the last element of the tuple</param>
+		/// <param name="error">Receive an exception if the parsing failed</param>
 		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
-		public static bool TryUnpackLast(Slice buffer, out Slice token)
+		public static bool TryUnpackLast(Slice buffer, out Slice token, out Exception? error)
 		{
 			var slicer = new TupleReader(buffer);
 
@@ -2076,23 +2220,233 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			while (true)
 			{
-				var (current, error) = TupleParser.ParseNext(ref slicer);
+				(var current, error) = TupleParser.ParseNext(ref slicer);
 				if (error != null)
-				{
+				{ // malformed token
 					token = default;
 					return false;
 				}
-				if (!current.HasValue) break;
+				if (!current.HasValue)
+				{ // no more tokens
+					break;
+				}
+
 				item = current;
 			}
 
 			if (item.IsNull || slicer.Input.HasMore)
-			{
+			{ // tuple is empty or has extra bytes
 				token = default;
 				return false;
 			}
 
 			token = item;
+			error = null;
+			return true;
+		}
+
+		/// <summary>Only returns the last 2 items of a packed tuple, without decoding them.</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 2 elements</param>
+		/// <param name="token1">Raw slice corresponding to the next to last element of the tuple</param>
+		/// <param name="token2">Raw slice corresponding to the last element of the tuple</param>
+		/// <param name="error">Receive an exception if the parsing failed</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
+		public static bool TryUnpackLast(Slice buffer, out Slice token1, out Slice token2, out Exception? error)
+		{
+			var slicer = new TupleReader(buffer);
+
+			Slice item1 = default;
+			Slice item2 = default;
+			int n = 0; // size mod 2
+
+			while (true)
+			{
+				(var current, error) = TupleParser.ParseNext(ref slicer);
+				if (error != null)
+				{ // malformed token
+					goto invalid;
+				}
+
+				if (!current.HasValue)
+				{ // no more tokens
+					break;
+				}
+
+				if (n == 0)
+				{
+					item1 = current;
+					n = 1;
+				}
+				else
+				{
+					item2 = current;
+					n = 0;
+				}
+			}
+
+			if (item1.IsNull || item2.IsNull || slicer.Input.HasMore)
+			{ // tuple has less then 2 elements, or extra bytes
+				goto invalid;
+			}
+
+			if (n == 0)
+			{ // even number of items
+				token1 = item1;
+				token2 = item2;
+			}
+			else
+			{ // odd number of items
+				token1 = item2;
+				token2 = item1;
+			}
+			error = null;
+			return true;
+
+		invalid:
+			token1 = default;
+			token2 = default;
+			return false;
+		}
+
+		/// <summary>Only returns the last 3 items of a packed tuple, without decoding them.</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 3 elements</param>
+		/// <param name="token1">Raw slice corresponding to the third element from the end of the tuple</param>
+		/// <param name="token2">Raw slice corresponding to the second element from the end of the tuple</param>
+		/// <param name="token3">Raw slice corresponding to the last element of the tuple</param>
+		/// <param name="error">Receive an exception if the parsing failed</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
+		public static bool TryUnpackLast(Slice buffer, out Slice token1, out Slice token2, out Slice token3, out Exception? error)
+		{
+			var slicer = new TupleReader(buffer);
+
+			Slice item1 = default;
+			Slice item2 = default;
+			Slice item3 = default;
+			int n = 0; // size mod 3
+
+			while (true)
+			{
+				(var current, error) = TupleParser.ParseNext(ref slicer);
+				if (error != null)
+				{ // malformed token
+					goto invalid;
+				}
+
+				if (!current.HasValue)
+				{ // no more tokens
+					break;
+				}
+
+				switch(n % 3)
+				{
+					case 0:
+					{
+						item1 = current;
+						break;
+					}
+					case 1:
+					{
+						item2 = current;
+						break;
+					}
+					default:
+					{
+						item3 = current;
+						break;
+					}
+				}
+
+				++n;
+			}
+
+			if (n < 3 || slicer.Input.HasMore)
+			{ // tuple has less then 3 elements, or extra bytes
+				goto invalid;
+			}
+
+			// we have to put them back in the correct order
+			switch (n % 3)
+			{
+				case 0: // multiple of 3
+				{
+					token1 = item1;
+					token2 = item2;
+					token3 = item3;
+					break;
+				}
+				case 1: // one more
+				{
+					token1 = item2;
+					token2 = item3;
+					token3 = item1;
+					break;
+				}
+				default: // two more
+				{
+					token1 = item3;
+					token2 = item1;
+					token3 = item2;
+					break;
+				}
+			}
+			error = null;
+			return true;
+
+		invalid:
+			token1 = default;
+			token2 = default;
+			token3 = default;
+			return false;
+		}
+
+		/// <summary>Only returns the last N items of a packed tuple, without decoding them.</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 3 elements</param>
+		/// <param name="tokens">Array that will receive the last N raw slice corresponding to the each of the last N elements</param>
+		/// <param name="error">Receive an exception if the parsing failed</param>
+		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
+		public static bool TryUnpackLast(Slice buffer, Span<Slice> tokens, out Exception? error)
+		{
+			var slicer = new TupleReader(buffer);
+
+			int n = 0;
+			var tail = tokens.Slice(1);
+
+			while (true)
+			{
+				(var current, error) = TupleParser.ParseNext(ref slicer);
+				if (error != null)
+				{ // malformed token
+					tokens.Clear();
+					return false;
+				}
+
+				if (!current.HasValue)
+				{ // no more tokens
+					break;
+				}
+
+				if (n < tokens.Length)
+				{
+					tokens[n] = current;
+				}
+				else
+				{
+					// slide to the left
+					tail.CopyTo(tokens);
+					// append last
+					tokens[tokens.Length - 1] = current;
+				}
+				++n;
+			}
+
+			if (n < tokens.Length || slicer.Input.HasMore)
+			{ // tuple has less elements than expected or has extra bytes
+				error = new InvalidOperationException("Tuple has less elements than expected.");
+				tokens.Clear();
+				return false;
+			}
+
+			error = null;
 			return true;
 		}
 

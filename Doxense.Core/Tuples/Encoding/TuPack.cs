@@ -1074,33 +1074,109 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
-		/// <typeparam name="T">Type of the first value in the decoded tuple</typeparam>
+		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		[Pure]
-		public static T DecodeFirst<T>(Slice packedKey)
+		public static T1 DecodeFirst<T1>(Slice packedKey)
 		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack the first element of an empty tuple");
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			var slice = TuplePackers.UnpackFirst(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
 
-			return TuplePacker<T>.Deserialize(slice);
+			return TuplePacker<T1>.Deserialize(slice);
+		}
+
+		/// <summary>Unpack a tuple and only return its first 2 elements</summary>
+		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 2 elements</param>
+		/// <returns>Decoded values of the last two elements in the tuple</returns>
+		[Pure]
+		public static (T1, T2) DecodeFirst<T1, T2>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			if (!TuplePackers.TryUnpackFirst(packedKey, out var slice1, out var slice2, out var error))
+			{
+				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+			}
+
+			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2));
+		}
+
+		/// <summary>Unpack a tuple and only return its first 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 3 elements</param>
+		/// <returns>Decoded values of the last three elements in the tuple</returns>
+		[Pure]
+		public static (T1, T2, T3) DecodeFirst<T1, T2, T3>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			if (!TuplePackers.TryUnpackFirst(packedKey, out var slice1, out var slice2, out var slice3, out var error))
+			{
+				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+			}
+
+			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2), TuplePacker<T3>.Deserialize(slice3));
 		}
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least one element</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure]
 		public static T DecodeLast<T>(Slice packedKey)
 		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack the last element of an empty tuple");
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
-			var slice = TuplePackers.UnpackLast(packedKey);
-			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
+			if (!TuplePackers.TryUnpackLast(packedKey, out var slice, out var error))
+			{
+				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+			}
 
 			return TuplePacker<T>.Deserialize(slice);
+		}
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 2 elements</param>
+		/// <returns>Decoded values of the last two elements in the tuple</returns>
+		[Pure]
+		public static (T1, T2) DecodeLast<T1, T2>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			if (!TuplePackers.TryUnpackLast(packedKey, out var slice1, out var slice2, out var error))
+			{
+				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+			}
+
+			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2));
+		}
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 3 elements</param>
+		/// <returns>Decoded values of the last three elements in the tuple</returns>
+		[Pure]
+		public static (T1, T2, T3) DecodeLast<T1, T2, T3>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			if (!TuplePackers.TryUnpackLast(packedKey, out var slice1, out var slice2, out var slice3, out var error))
+			{
+				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+			}
+
+			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2), TuplePacker<T3>.Deserialize(slice3));
 		}
 
 		/// <summary>Unpack the value of a singleton tuple</summary>
