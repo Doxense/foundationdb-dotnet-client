@@ -523,6 +523,173 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			get => Percentile(50);
 		}
 
+		#region Unit Conversions...
+
+		#region Time...
+
+		/// <summary>Convert a measured value into seconds (s)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into seconds</returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToSeconds(double value) => value * GetScaleFactor(this.Scale);
+
+		/// <summary>Convert a measured value into seconds with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into seconds and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToSeconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale), precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into milliseconds (ms)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into milliseconds</returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToMilliseconds(double value) => value * GetScaleFactor(this.Scale) * 1E3;
+
+		/// <summary>Convert a measured value into milliseconds (ms) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into milliseconds and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToMilliseconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E3, precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into microseconds (µs)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into microseconds</returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToMicroseconds(double value) => value * GetScaleFactor(this.Scale) * 1E6;
+
+		/// <summary>Convert a measured value into microseconds (µs) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into microseconds and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToMicroseconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E6, precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into nanoseconds (ns)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into nanoseconds</returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToNanoseconds(double value) => value * GetScaleFactor(this.Scale) * 1E9;
+
+		/// <summary>Convert a measured value into nanoseconds (ns) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into nanoseconds and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double ToNanoseconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E9, precision, MidpointRounding.AwayFromZero);
+
+		#endregion
+
+		#region Bytes...
+
+		/// <summary>Convert a measured value into bytes</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into bytes</returns>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToBytes(double value) => value * GetScaleFactor(this.Scale);
+
+		/// <summary>Convert a measured value into bytes with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into bytes and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale), precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into kilobytes (10^3 or 1,000 bytes)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into kilobytes</returns>
+		/// <remarks>If you want kibibytes (1,024 bytes), please call <see cref="ToKibiBytes(double)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToKiloBytes(double value) => value * GetScaleFactor(this.Scale) * 1E-3;
+
+		/// <summary>Convert a measured value into kilobytes (10^3 or 1,000 bytes) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into kilobytes and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>If you want kibibytes (1,024 bytes), please call <see cref="ToKibiBytes(double, int)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		public double ToKiloBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E-3, precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into kibibytes (2^10 or 1024 bytes)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into kibibytes</returns>
+		/// <remarks>If you want kilobytes (1,000 bytes), please call <see cref="ToKiloBytes(double)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToKibiBytes(double value) => value * GetScaleFactor(this.Scale) / 1024;
+
+		/// <summary>Convert a measured value into kibibytes (2^10 or 1024 bytes) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into kibibytes and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>If you want kilobytes (1,000 bytes), please call <see cref="ToKiloBytes(double, int)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		public double ToKibiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1024, precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into megabytes (10^6 or 1,000,000 bytes)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into megabytes</returns>
+		/// <remarks>If you want mebibytes (2^20 bytes), please call <see cref="ToKibiBytes(double)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToMegaBytes(double value) => value * GetScaleFactor(this.Scale) * 1E-6;
+
+		/// <summary>Convert a measured value into megabytes (10^6 or 1,000,000 bytes) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into megabytes and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>If you want mebibytes (2^20 bytes), please call <see cref="ToKibiBytes(double, int)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		public double ToMegaBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E-6, precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into mebibytes (2^20 or 1,048,576 bytes)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into mebibytes</returns>
+		/// <remarks>If you want megabytes (10^6 bytes), please call <see cref="ToKiloBytes(double)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToMebiBytes(double value) => value * GetScaleFactor(this.Scale) / 1_048_576;
+
+		/// <summary>Convert a measured value into mebibytes (2^20 or 1,048,576 bytes) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into mebibytes and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>If you want megabytes (10^6 bytes), please call <see cref="ToKiloBytes(double, int)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		public double ToMebiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1_048_576, precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into megabytes (10^9 or 1,000,000,000 bytes)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into gigabytes</returns>
+		/// <remarks>If you want mebibytes (2^30 bytes), please call <see cref="ToGibiBytes(double)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToGigaBytes(double value) => value * GetScaleFactor(this.Scale) * 1E-9;
+
+		/// <summary>Convert a measured value into megabytes (10^9 or 1,000,000,000 bytes) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into gigabytes and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>If you want mebibytes (2^30 bytes), please call <see cref="ToGibiBytes(double, int)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		public double ToGigaBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E-9, precision, MidpointRounding.AwayFromZero);
+
+		/// <summary>Convert a measured value into mebibytes (2^30 or 1,073,741,824 bytes)</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <returns><paramref name="value"/> converted into gibibytes</returns>
+		/// <remarks>If you want megabytes (10^9 bytes), please call <see cref="ToGigaBytes(double)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		public double ToGibiBytes(double value) => value * GetScaleFactor(this.Scale) / 1_073_741_824;
+
+		/// <summary>Convert a measured value into mebibytes (2^30 or 1,073,741,824 bytes) with a given precision</summary>
+		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
+		/// <param name="precision">Number of digits for rounding</param>
+		/// <returns><paramref name="value"/> converted into gibibytes and rounded to the specified <paramref name="precision"/></returns>
+		/// <remarks>If you want megabytes (10^9 bytes), please call <see cref="ToGigaBytes(double, int)"/> instead.</remarks>
+		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		public double ToGibiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1_073_741_824, precision, MidpointRounding.AwayFromZero);
+
+		#endregion
+
+		#endregion
+
 		/// <summary>Retourne la valeur du percentile <paramref name="p"/> (entre 0 et 100)</summary>
 		/// <param name="p">Valeur du percentile, entre 0 et 100 (ex: 50 pour la médiane)</param>
 		/// <returns>Valeur du percentile correspondante</returns>
