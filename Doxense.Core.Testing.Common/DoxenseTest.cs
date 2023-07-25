@@ -938,6 +938,8 @@ namespace Doxense.Testing
 					return "{" + g.ToString() + "}";
 				case JsonValue json:
 					return json.ToJson();
+				case StringBuilder sb:
+					return sb.ToString();
 			}
 
 			var type = item.GetType();
