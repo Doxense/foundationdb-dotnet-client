@@ -27,7 +27,6 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -48,7 +47,7 @@ namespace FoundationDB.DependencyInjection
 
 		public Exception Error { get; private set; }
 
-		public TState? GetState() => default!;
+		public TState? GetState() => default;
 
 		private CancellationTokenSource Lifetime { get; }
 
@@ -91,21 +90,21 @@ namespace FoundationDB.DependencyInjection
 			);
 		}
 
-		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
+		public ValueTask<TState?> GetState(IFdbReadOnlyTransaction tr)
 		{
-			return new ValueTask<TState>(
-				tr.Cancellation.IsCancellationRequested ? Task.FromCanceled<TState>(tr.Cancellation)
-				: m_disposed ? Task.FromException<TState>(ThrowHelper.ObjectDisposedException(this))
-				: Task.FromException<TState>(this.Error)
+			return new ValueTask<TState?>(
+				tr.Cancellation.IsCancellationRequested ? Task.FromCanceled<TState?>(tr.Cancellation)
+				: m_disposed ? Task.FromException<TState?>(ThrowHelper.ObjectDisposedException(this))
+				: Task.FromException<TState?>(this.Error)
 			);
 		}
 
-		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct)
+		public ValueTask<(IFdbDatabase Database, TState? State)> GetDatabaseAndState(CancellationToken ct)
 		{
-			return new ValueTask<(IFdbDatabase, TState)>(
-				ct.IsCancellationRequested ? Task.FromCanceled<(IFdbDatabase, TState)>(ct)
-				: m_disposed ? Task.FromException<(IFdbDatabase, TState)>(ThrowHelper.ObjectDisposedException(this))
-				: Task.FromException<(IFdbDatabase, TState)>(this.Error)
+			return new ValueTask<(IFdbDatabase, TState?)>(
+				ct.IsCancellationRequested ? Task.FromCanceled<(IFdbDatabase, TState?)>(ct)
+				: m_disposed ? Task.FromException<(IFdbDatabase, TState?)>(ThrowHelper.ObjectDisposedException(this))
+				: Task.FromException<(IFdbDatabase, TState?)>(this.Error)
 			);
 		}
 
@@ -118,4 +117,5 @@ namespace FoundationDB.DependencyInjection
 		public bool IsAvailable => false;
 
 	}
+
 }

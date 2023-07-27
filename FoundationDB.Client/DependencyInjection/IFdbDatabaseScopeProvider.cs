@@ -26,10 +26,12 @@
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	[PublicAPI]
 	public interface IFdbDatabaseScopeProvider : IDisposable
 	{
 
@@ -57,13 +59,14 @@ namespace FoundationDB.Client
 
 	}
 
+	[PublicAPI]
 	public interface IFdbDatabaseScopeProvider<TState> : IFdbDatabaseScopeProvider
 	{
 		/// <summary>Return both the underlying database and the scope's State, once they are ready</summary>
-		ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default);
+		ValueTask<(IFdbDatabase Database, TState? State)> GetDatabaseAndState(CancellationToken ct = default);
 
 		/// <summary>Return the scope's State, once it is ready.</summary>
-		ValueTask<TState> GetState(IFdbReadOnlyTransaction tr);
+		ValueTask<TState?> GetState(IFdbReadOnlyTransaction tr);
 	}
 
 }

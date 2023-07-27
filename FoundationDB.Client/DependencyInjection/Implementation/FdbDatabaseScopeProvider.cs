@@ -27,7 +27,6 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -93,7 +92,7 @@ namespace FoundationDB.DependencyInjection
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private (IFdbDatabase? Database, TState State, Exception? error) ReadInternalState()
+		private (IFdbDatabase? Database, TState? State, Exception? error) ReadInternalState()
 		{
 			this.Lock.EnterReadLock();
 			try
@@ -113,10 +112,9 @@ namespace FoundationDB.DependencyInjection
 			{
 				var db = await this.Parent.GetDatabase(ct).ConfigureAwait(false);
 				ct.ThrowIfCancellationRequested();
-				TState state;
-				(db, state) = await this.Handler(db, ct).ConfigureAwait(false);
+				(db, var state) = await this.Handler(db, ct).ConfigureAwait(false);
 				Contract.Debug.Assert(db != null);
-				UpdateInternalState(db,  state, null);
+				UpdateInternalState(db, state, null);
 			}
 			catch (Exception e)
 			{
@@ -138,7 +136,7 @@ namespace FoundationDB.DependencyInjection
 		/// <inheritdoc />
 		public bool IsAvailable => this.DbTask.IsValueCreated && this.DbTask.Value.Status == TaskStatus.RanToCompletion;
 
-		private async ValueTask<(IFdbDatabase? Database, TState state, Exception? error)> EnsureInitialized(CancellationToken ct)
+		private async ValueTask<(IFdbDatabase? Database, TState? state, Exception? error)> EnsureInitialized(CancellationToken ct)
 		{
 			if (this.LifeTime.IsCancellationRequested) throw ThrowHelper.ObjectDisposedException(this);
 			var t = this.DbTask.Value;
@@ -166,9 +164,9 @@ namespace FoundationDB.DependencyInjection
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private async ValueTask<(IFdbDatabase, TState)> GetDatabaseAndStateSlow(CancellationToken ct)
+		private async ValueTask<(IFdbDatabase, TState?)> GetDatabaseAndStateSlow(CancellationToken ct)
 		{
-			(var db, var state, _) = await EnsureInitialized(ct);
+			var (db, state, _) = await EnsureInitialized(ct);
 			Contract.Debug.Assert(db != null);
 			return (db!, state);
 		}
@@ -177,30 +175,30 @@ namespace FoundationDB.DependencyInjection
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
 		{
 			//BUGBUG: what if the parent scope has been shut down?
-			(var db, _, _) = ReadInternalState();
+			var (db, _, _) = ReadInternalState();
 			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
 		{
-			(var db, _, _) = await EnsureInitialized(ct);
+			var (db, _, _) = await EnsureInitialized(ct);
 			Contract.Debug.Assert(db != null);
 			return db;
 		}
 
 		/// <inheritdoc />
-		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
+		public ValueTask<TState?> GetState(IFdbReadOnlyTransaction tr)
 		{
 			tr.Cancellation.ThrowIfCancellationRequested();
-			(var db, var state, _) = ReadInternalState();
-			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<TState>(state) : GetStateSlow(tr);
+			var (db, state, _) = ReadInternalState();
+			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<TState?>(state) : GetStateSlow(tr);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private async ValueTask<TState> GetStateSlow(IFdbReadOnlyTransaction tr)
+		private async ValueTask<TState?> GetStateSlow(IFdbReadOnlyTransaction tr)
 		{
-			(_, var state, _) = await EnsureInitialized(tr.Cancellation);
+			var (_, state, _) = await EnsureInitialized(tr.Cancellation);
 			return state;
 		}
 
@@ -211,6 +209,7 @@ namespace FoundationDB.DependencyInjection
 				this.LifeTime.Cancel();
 			}
 		}
+
 	}
 
 }

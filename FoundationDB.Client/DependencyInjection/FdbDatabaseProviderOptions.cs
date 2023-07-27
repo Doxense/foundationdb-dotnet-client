@@ -29,7 +29,9 @@ namespace FoundationDB.DependencyInjection
 	using System;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public sealed class FdbDatabaseProviderOptions
 	{
 

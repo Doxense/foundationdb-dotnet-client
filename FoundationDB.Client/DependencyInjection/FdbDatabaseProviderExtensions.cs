@@ -31,7 +31,6 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Linq;
 	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
 
@@ -144,10 +143,10 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static async Task<TResult> ReadAsync<TState, TResult>(
 			this IFdbDatabaseScopeProvider<TState> provider,
-			[InstantHandle] Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler,
+			[InstantHandle] Func<IFdbReadOnlyTransaction, TState?, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
 			return await db.ReadAsync(state, handler, ct).ConfigureAwait(false);
 		}
 
@@ -215,10 +214,10 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static async Task<TResult> ReadWriteAsync<TState, TResult>(
 			this IFdbDatabaseScopeProvider<TState> provider,
-			[InstantHandle] Func<IFdbTransaction, TState, Task<TResult>> handler,
+			[InstantHandle] Func<IFdbTransaction, TState?, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
 			return await db.ReadWriteAsync(state, handler, ct).ConfigureAwait(false);
 		}
 
@@ -253,10 +252,10 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static async Task WriteAsync<TState>(
 			this IFdbDatabaseScopeProvider<TState> provider,
-			[InstantHandle] Func<IFdbTransaction, TState, Task> handler,
+			[InstantHandle] Func<IFdbTransaction, TState?, Task> handler,
 			CancellationToken ct)
 		{
-			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
 			await db.WriteAsync((tr) => handler(tr, state), ct).ConfigureAwait(false);
 		}
 
@@ -289,12 +288,13 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static async Task WriteAsync<TState>(
 			this IFdbDatabaseScopeProvider<TState> provider,
-			[InstantHandle] Action<IFdbTransaction, TState> handler,
+			[InstantHandle] Action<IFdbTransaction, TState?> handler,
 			CancellationToken ct)
 		{
-			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
 			await db.WriteAsync((tr) => handler(tr, state), ct).ConfigureAwait(false);
 		}
 
 	}
+
 }

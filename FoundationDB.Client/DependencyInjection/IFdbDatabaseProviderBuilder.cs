@@ -27,8 +27,10 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
+	[PublicAPI]
 	public interface IFdbDatabaseProviderBuilder
 	{
 

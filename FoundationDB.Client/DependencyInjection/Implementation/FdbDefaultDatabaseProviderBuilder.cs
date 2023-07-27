@@ -39,4 +39,5 @@ namespace FoundationDB.DependencyInjection
 		public IServiceCollection Services { get; }
 
 	}
+
 }

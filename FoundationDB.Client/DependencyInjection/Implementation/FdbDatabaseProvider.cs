@@ -31,8 +31,10 @@ namespace FoundationDB.DependencyInjection
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.Options;
 
+	[PublicAPI]
 	public sealed class FdbDatabaseProvider : IFdbDatabaseProvider
 	{
 
@@ -46,7 +48,7 @@ namespace FoundationDB.DependencyInjection
 
 		private Task<IFdbDatabase> DbTask;
 
-		private CancellationTokenSource LifeTime { get; } = new CancellationTokenSource();
+		private CancellationTokenSource LifeTime { get; } = new();
 
 		private Exception? Error { get; set;}
 
@@ -110,7 +112,7 @@ namespace FoundationDB.DependencyInjection
 
 		public void Stop()
 		{
-			this.LifeTime?.Cancel();
+			this.LifeTime.Cancel();
 			Interlocked.Exchange(ref this.InitTask, null)?.TrySetCanceled();
 			SetDatabase(null, null);
 		}
@@ -199,4 +201,5 @@ namespace FoundationDB.DependencyInjection
 		}
 
 	}
+
 }

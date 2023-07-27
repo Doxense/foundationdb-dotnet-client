@@ -27,7 +27,6 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -102,18 +101,18 @@ namespace FoundationDB.DependencyInjection
 		}
 
 		/// <inheritdoc />
-		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
+		public ValueTask<TState?> GetState(IFdbReadOnlyTransaction tr)
 		{
 			tr.Cancellation.ThrowIfCancellationRequested();
 			var scope = EnsureReady();
-			return new ValueTask<TState>(scope.State);
+			return new ValueTask<TState?>(scope.State);
 		}
 
 		/// <inheritdoc />
-		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default)
+		public ValueTask<(IFdbDatabase Database, TState? State)> GetDatabaseAndState(CancellationToken ct = default)
 		{
 			var scope = EnsureReady();
-			return new ValueTask<(IFdbDatabase, TState)>((scope.Db, scope.State));
+			return new ValueTask<(IFdbDatabase, TState?)>((scope.Db, scope.State));
 		}
 
 		/// <inheritdoc />
