@@ -39,7 +39,7 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'!='net472'">
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0-preview.5.23280.8" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0-preview.6.23329.7" />
 	</ItemGroup>
 
 	<ItemGroup>
