@@ -29,7 +29,6 @@ namespace Doxense.Networking
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
 	using System.Net;
 	using System.Net.Http;
@@ -110,11 +109,11 @@ namespace Doxense.Networking
 					PhysicalAddress = x.GetPhysicalAddress()?.ToString(),
 					DnsSuffix = props.DnsSuffix,
 					UnicastAddresses = props.UnicastAddresses
-						.Select(x => new NetworkAdaptorDescriptor.UnicastAddressDescriptor()
+						.Select(info => new NetworkAdaptorDescriptor.UnicastAddressDescriptor()
 						{
-							Address = x.Address,
-							IPv4Mask = x.IPv4Mask,
-							PrefixLength = x.PrefixLength,
+							Address = info.Address,
+							IPv4Mask = info.IPv4Mask,
+							PrefixLength = info.PrefixLength,
 						})
 						.ToArray(),
 					Speed = x.Speed > 0 ? x.Speed : null,

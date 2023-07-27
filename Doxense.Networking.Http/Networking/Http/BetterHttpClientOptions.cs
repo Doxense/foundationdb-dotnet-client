@@ -28,20 +28,12 @@ namespace Doxense.Networking.Http
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.IO;
-	using System.Linq;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.Security;
-	using System.Net.Sockets;
-	using System.Runtime.ExceptionServices;
 	using System.Security.Authentication;
 	using System.Security.Cryptography.X509Certificates;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Tools;
 
 	/// <summary>Base class of generic options for <see cref="BetterHttpClient">HTTP clients</see></summary>
 	public record BetterHttpClientOptions

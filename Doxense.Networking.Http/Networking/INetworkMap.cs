@@ -28,7 +28,6 @@ namespace Doxense.Networking
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
@@ -75,28 +74,28 @@ namespace Doxense.Networking
 
 	public sealed record NetworkAdaptorDescriptor
 	{
-		public string Id { get; init; }
+		public required string Id { get; init; }
 
-		public int Index { get; init; }
+		public required int Index { get; init; }
 
-		public NetworkInterfaceType Type { get; init; }
+		public required NetworkInterfaceType Type { get; init; }
 
-		public string Name { get; init; }
+		public required string Name { get; init; }
 
-		public string Description { get; init; }
+		public required string Description { get; init; }
 
 		public string? PhysicalAddress { get; init; }
 
-		public string DnsSuffix { get; init; }
+		public string? DnsSuffix { get; init; }
 
-		public UnicastAddressDescriptor[] UnicastAddresses { get; init; }
+		public required UnicastAddressDescriptor[] UnicastAddresses { get; init; }
 
 		public long? Speed { get; init; }
 
 		public sealed record UnicastAddressDescriptor
 		{
 
-			public IPAddress Address { get; init; }
+			public required IPAddress Address { get; init; }
 
 			public IPAddress? IPv4Mask { get; init; }
 

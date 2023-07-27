@@ -28,7 +28,6 @@ namespace Doxense.Networking.Http
 {
 	using System;
 	using System.Net.Sockets;
-	using System.Runtime.ExceptionServices;
 
 	public interface IBetterHttpHooks
 	{

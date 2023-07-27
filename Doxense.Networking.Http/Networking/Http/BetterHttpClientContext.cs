@@ -38,7 +38,6 @@ namespace Doxense.Networking.Http
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.IO;
 	using Doxense.Serialization.Json;
 	using Microsoft.IO;
 	using OpenTelemetry.Trace;
