@@ -141,36 +141,3 @@ namespace Doxense.Diagnostics.Contracts
 	}
 
 }
-
-#if NETFRAMEWORK || NETSTANDARD2_0 || NETSTANDARD2_1
-
-// shim CallerArgumentExpressionAttribute introduced in .NET 6
-//note: compiler will recognize it correctly and add the expression string automatically even when building for older frameworks!
-
-namespace System.Runtime.CompilerServices
-{
-	using System.ComponentModel;
-
-	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
-	internal sealed class CallerArgumentExpressionAttribute : Attribute
-	{
-		public CallerArgumentExpressionAttribute(string parameterName)
-		{
-			ParameterName = parameterName;
-		}
-
-		public string ParameterName { get; }
-	}
-
-	/// <summary>
-	/// Reserved to be used by the compiler for tracking metadata.
-	/// This class should not be used by developers in source code.
-	/// This dummy class is required to compile records when targeting .NET Standard
-	/// </summary>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	public static class IsExternalInit { }
-
-}
-
-#endif
-
