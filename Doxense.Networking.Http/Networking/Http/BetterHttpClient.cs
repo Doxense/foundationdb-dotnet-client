@@ -142,6 +142,7 @@ namespace Doxense.Networking.Http
 
 			this.Logger = logger;
 			this.Clock = clock ?? NodaTime.SystemClock.Instance;
+			this.CreatedAt = this.Clock.GetCurrentInstant();
 
 			this.Client = CreateClientState();
 		}
