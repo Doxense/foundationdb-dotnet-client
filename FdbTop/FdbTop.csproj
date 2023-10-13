@@ -12,6 +12,7 @@
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<PublishSingleFile>true</PublishSingleFile>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
@@ -25,7 +26,6 @@
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Prefer32Bit>false</Prefer32Bit>
 	</PropertyGroup>
 
@@ -37,7 +37,6 @@
 		<DefineConstants>TRACE</DefineConstants>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Prefer32Bit>false</Prefer32Bit>
 	</PropertyGroup>
 
@@ -51,17 +50,5 @@
 	<ItemGroup>
 		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
 	</ItemGroup>
-
-	<Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets') AND '$(OS)' == 'Windows_NT'" />
-	<!-- ILRepack -->
-	<Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release' AND '$(OS)' == 'Windows_NT' AND '$(TargetFramework)'=='net461'">
-		<ItemGroup>
-			<InputAssemblies Include="$(OutputPath)\$(AssemblyName).exe" />
-			<InputAssemblies Include="$(OutputPath)\FoundationDB.Client.dll" />
-			<InputAssemblies Include="$(OutputPath)\System.ValueTuple.dll" />
-			<InputAssemblies Include="$(OutputPath)\System.Runtime.InteropServices.RuntimeInformation.dll" />
-		</ItemGroup>
-		<ILRepack Parallel="true" Internalize="true" InternalizeExclude="@(DoNotInternalizeAssemblies)" InputAssemblies="@(InputAssemblies)" TargetKind="Exe" OutputFile="$(OutputPath)\$(AssemblyName).Merged.exe" />
-	</Target>
 
 </Project>
