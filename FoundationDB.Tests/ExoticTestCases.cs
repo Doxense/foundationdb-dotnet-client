@@ -45,7 +45,7 @@
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.Set(subspace.Encode("AAA"), Value("111"));
@@ -63,7 +63,7 @@
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.ClearRange(subspace.Encode("AAA"), Value("ZZZ"));
@@ -82,7 +82,7 @@
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.ClearRange(subspace.Encode("AAA"), Value("BBB"));
@@ -99,7 +99,7 @@
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 
@@ -134,7 +134,7 @@
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.Set(subspace.Encode("AAA"), Value("111"));
@@ -154,7 +154,7 @@
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 
@@ -184,7 +184,7 @@
 				var init = Slice.Repeat(0xCC, 9);
 				var mask = Slice.Repeat(0xAA, 9);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 
@@ -199,7 +199,7 @@
 					await tr.CommitAsync();
 				}
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 
@@ -228,7 +228,7 @@
 
 				var location = db.Root;
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -317,7 +317,7 @@
 
 				for (int i = 0; i < 100; i++)
 				{
-					using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
 						var subspace = await db.Root.Resolve(tr);
 						var res = await tr.GetAsync(subspace.Encode("K" + i.ToString("D4")));
@@ -352,14 +352,14 @@
 					tr.Set(subspace.Encode("K0789"), Value("V0789"));
 				}, this.Cancellation);
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					await tr.GetValuesAsync(subspace.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
 				}
 
 				// once more with feelings
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					await tr.GetValuesAsync(subspace.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
@@ -385,7 +385,7 @@
 					}
 				}, this.Cancellation);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.ClearRange(subspace.Encode("K0010"), subspace.Encode("K0020"));
@@ -422,7 +422,7 @@
 					}
 				}, this.Cancellation);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -443,7 +443,7 @@
 					//no commit
 				}
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -468,7 +468,7 @@
 
 				var location = db.Root;
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 					await tr.GetAsync(subspace.Encode("KGET"));
@@ -479,14 +479,14 @@
 				}
 
 				// once more with feelings
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Options.WithReadYourWritesDisable();
 					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("KGETKEY")));
 				}
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 					tr.AddReadConflictRange(subspace.Encode("KRC0"), subspace.Encode("KRC1"));
@@ -525,7 +525,7 @@
 					tr.Set(subspace.Encode("K~~~"), Value("END"));
 				}, this.Cancellation);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -559,7 +559,7 @@
 					tr.Set(subspace.Encode("K~~~"), Value("END"));
 				}, this.Cancellation);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -601,7 +601,7 @@
 					tr.Set(subspace.Encode("K~~~"), Value("END"));
 				}, this.Cancellation);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -634,14 +634,14 @@
 				//return;
 
 				// set the key
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.Set(subspace.Encode("KAAA"), Value("VALUE_AAA"));
 					await tr.CommitAsync();
 				}
 				// set the key
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
 					await tr.GetAsync(subspace.Encode("KAAA"));
@@ -650,8 +650,8 @@
 				await Task.Delay(500);
 
 				// first: concurrent trans, set only, no conflict
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
-				using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
 					await Task.WhenAll(tr1.GetReadVersionAsync(), tr2.GetReadVersionAsync());
 
@@ -669,8 +669,8 @@
 				await Task.Delay(500);
 
 				// first: concurrent trans, read + set, no conflict
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
-				using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace1 = await db.Root.Resolve(tr1);
 					var subspace2 = await db.Root.Resolve(tr2);
@@ -691,8 +691,8 @@
 				await Task.Delay(500);
 
 				// first: concurrent trans, read + set, conflict
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
-				using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace1 = await db.Root.Resolve(tr1);
 					var subspace2 = await db.Root.Resolve(tr2);
@@ -733,14 +733,14 @@
 				// "future_version": ALWAYS ~10 ms
 				// "not_committed": start with 5, 10, 15, etc... but after 4 or 5, then transition into a random number between 0 and 1 sec
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					await tr.OnErrorAsync(FdbError.TransactionTooOld).ConfigureAwait(false);
 					await tr.OnErrorAsync(FdbError.NotCommitted).ConfigureAwait(false);
 				}
 
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					for (int i = 0; i < 20; i++)
 					{

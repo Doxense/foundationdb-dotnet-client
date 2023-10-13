@@ -138,7 +138,7 @@ namespace FoundationDB.Layers.Messaging
 				Func<string, Task> dump = async (label) =>
 				{
 					Console.WriteLine($"<dump label=\'{label}\' key=\'{location.GetPrefix():P}\'>");
-					using (var tr = await db.BeginTransactionAsync(ct))
+					using (var tr = db.BeginTransaction(ct))
 					{
 						await tr.Snapshot
 							.GetRange(KeyRange.StartsWith(location.GetPrefix()))

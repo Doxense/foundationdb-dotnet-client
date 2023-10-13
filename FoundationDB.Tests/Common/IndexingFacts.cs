@@ -70,7 +70,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 				// lookup values
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var reds = await index.Lookup(tr, "red").ToListAsync();
 					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 				// check values
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var reds = await index.Lookup(tr, "red").ToListAsync();
 					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
@@ -167,7 +167,7 @@ namespace FoundationDB.Layers.Tables.Tests
 #endif
 
 				// super hereos only (sorry Batman!)
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var superHeroes = await indexSuperHero.Lookup(tr, value: true).ToListAsync();
 					Log("SuperHeroes: " + string.Join(", ", superHeroes));
@@ -175,7 +175,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 				// Versus !
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var dc = await indexBrand.Lookup(tr, value: "DC").ToListAsync();
 					Log("DC: " + string.Join(", ", dc));
@@ -187,7 +187,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 				// Vilains with superpowers are the worst
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var first = indexAlignment.Lookup(tr, value: true);
 					var second = indexSuperHero.Lookup(tr, value: true);

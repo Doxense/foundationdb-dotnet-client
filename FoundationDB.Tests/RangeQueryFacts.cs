@@ -89,7 +89,7 @@ namespace FoundationDB.Client.Tests
 				Log($"> Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
 
 				// Read All
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 
@@ -176,7 +176,7 @@ namespace FoundationDB.Client.Tests
 
 				// GetRange values
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 
@@ -599,7 +599,7 @@ namespace FoundationDB.Client.Tests
 				KeyValuePair<Slice, Slice> res;
 
 				// A: more then one item
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
 
@@ -633,7 +633,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// B: exactly one item
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fb = await b.Resolve(tr);
 
@@ -671,7 +671,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// C: no items
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fc = await c.Resolve(tr);
 
@@ -703,7 +703,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// A: with a size limit
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
 
@@ -721,7 +721,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// A: with an offset
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
 
@@ -769,7 +769,7 @@ namespace FoundationDB.Client.Tests
 
 				// Take(5) should return the first 5 items
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
 
@@ -789,7 +789,7 @@ namespace FoundationDB.Client.Tests
 
 				// Take(12) should return only the 10 items
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
 
@@ -809,7 +809,7 @@ namespace FoundationDB.Client.Tests
 
 				// Take(0) should return nothing
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
 
@@ -847,7 +847,7 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// from the start
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
@@ -877,7 +877,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// from the end
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
@@ -907,7 +907,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// from both sides
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
@@ -946,7 +946,7 @@ namespace FoundationDB.Client.Tests
 					}
 				}, this.Cancellation);
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 
@@ -961,7 +961,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Count, Is.EqualTo(10));
 				}
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 
@@ -1001,7 +1001,7 @@ namespace FoundationDB.Client.Tests
 
 				for (int k = 0; k < K; k++)
 				{
-					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						var folder = await location.Resolve(tr);
 
@@ -1017,7 +1017,7 @@ namespace FoundationDB.Client.Tests
 				// MergeSorting all lists together should produce all integers from 0 to (K*N)-1, in order
 				// we use the last part of the key for sorting
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 
@@ -1073,7 +1073,7 @@ namespace FoundationDB.Client.Tests
 				for (int k = 0; k < K; k++)
 				{
 					//Log("> k = " + k);
-					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						var folder = await location.Resolve(tr);
 						var list = GetList(folder, k);
@@ -1094,7 +1094,7 @@ namespace FoundationDB.Client.Tests
 				var expected = xs.ToArray();
 				Log($"Expected: {string.Join(", ", expected)}");
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
@@ -1151,7 +1151,7 @@ namespace FoundationDB.Client.Tests
 				for (int k = 0; k < K; k++)
 				{
 					//Log("> k = " + k);
-					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						var folder = await location.Resolve(tr);
 						var list = GetList(folder, k);
@@ -1172,7 +1172,7 @@ namespace FoundationDB.Client.Tests
 				var expected = xs.ToArray();
 				Log($"Expected: {string.Join(", ", expected)}");
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();

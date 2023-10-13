@@ -385,7 +385,7 @@ namespace FoundationDB.Client
 				var batch = new List<TSource>(batchCount);
 				long itemCount = 0;
 
-				using (var trans = await db.BeginTransactionAsync(ct))
+				using (var trans = db.BeginTransaction(ct))
 				{
 					var timer = Stopwatch.StartNew();
 
@@ -703,7 +703,7 @@ namespace FoundationDB.Client
 				var chunk = new List<TSource>(batchCount); // holds all the items processed in the current transaction cycle
 				long itemCount = 0; // total number of items processed
 
-				using (var trans = await db.BeginTransactionAsync(ct))
+				using (var trans = db.BeginTransaction(ct))
 				{
 					var timer = Stopwatch.StartNew();
 
@@ -1193,7 +1193,7 @@ namespace FoundationDB.Client
 				{
 					var totalTimer = Stopwatch.StartNew();
 
-					using (var trans = await db.BeginReadOnlyTransactionAsync(ct))
+					using (var trans = db.BeginReadOnlyTransaction(ct))
 					{
 						var ctx = new BatchOperationContext(trans, batchSize, totalTimer, Stopwatch.StartNew());
 
@@ -1423,7 +1423,7 @@ namespace FoundationDB.Client
 					return Task.CompletedTask;
 				};
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(ct))
+				using (var tr = db.BeginReadOnlyTransaction(ct))
 				{
 					await reset(tr);
 
@@ -1576,7 +1576,7 @@ namespace FoundationDB.Client
 					}
 				};
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(ct))
+				using (var tr = db.BeginReadOnlyTransaction(ct))
 				{
 					await reset(tr);
 

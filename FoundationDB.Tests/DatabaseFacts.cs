@@ -188,7 +188,7 @@ namespace FoundationDB.Client.Tests
 
 				// in order to verify the value, we need to check ourselves by reading from the cluster config
 				Slice actual;
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					tr.Options.WithReadAccessToSystemKeys();
 					actual = await tr.GetAsync(Slice.FromByteString("\xFF/conf/storage_engine"));
@@ -266,7 +266,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(dl.Content, Is.Not.Null);
 				Assert.That(dl.Content, Is.EqualTo(SubspaceLocation.Root), "Root DL should be located at the top");
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var root = await db.Root.Resolve(tr);
 					Assert.That(root, Is.Not.Null);
@@ -290,7 +290,7 @@ namespace FoundationDB.Client.Tests
 				var err = FdbError.Success;
 				try
 				{
-					using(var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+					using(var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
 						tr.Options.Timeout = 250; // ms
 						Log("check ...");

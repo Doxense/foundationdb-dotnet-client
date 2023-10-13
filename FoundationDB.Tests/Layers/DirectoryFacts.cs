@@ -116,7 +116,7 @@ namespace FoundationDB.Client.Tests
 				// first call should create a new subspace (with a random prefix)
 				FdbDirectorySubspace foo;
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					foo = await dl.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo"));
 					await tr.CommitAsync();
@@ -253,7 +253,7 @@ namespace FoundationDB.Client.Tests
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
 				var dl = FdbDirectoryLayer.Create(location);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await dl.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz"));
 					Assert.That(folder, Is.Not.Null);
@@ -297,7 +297,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(baz.Descriptor.ValidationChain[2].Value, Is.EqualTo(baz.GetPrefixUnsafe()));
 
 				// We can also access /Foo/Bar via 'Foo'
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					foo = await dl.OpenAsync(tr, FdbPath.Parse("/Foo"));
 					Assert.That(foo, Is.Not.Null);
@@ -933,7 +933,7 @@ namespace FoundationDB.Client.Tests
 
 				var dl = FdbDirectoryLayer.Create(location);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var segFoo = FdbPathSegment.Partition("Foo$");
 					var segBar = FdbPathSegment.Partition("Bar$");
@@ -997,7 +997,7 @@ namespace FoundationDB.Client.Tests
 
 				var dl = FdbDirectoryLayer.Create(location);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var segFoo = FdbPathSegment.Partition("foo");
 
@@ -1189,8 +1189,8 @@ namespace FoundationDB.Client.Tests
 				{
 					FdbDirectoryLayer.AnnotateTransactions = true;
 
-					using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr1 = db.BeginTransaction(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 
 						await Task.WhenAll(
@@ -1250,8 +1250,8 @@ namespace FoundationDB.Client.Tests
 				{
 					FdbDirectoryLayer.AnnotateTransactions = true;
 
-					using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr1 = db.BeginTransaction(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 
 						await Task.WhenAll(

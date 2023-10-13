@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var vector = new FdbVector<Slice>(location, Slice.Empty, BinaryEncoding.SliceEncoder);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var xs = await vector.Resolve(tr);
 

@@ -551,7 +551,7 @@ namespace FoundationDB.Client
 				var cursor = beginInclusive.Memoize();
 				var end = endExclusive.Memoize();
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(ct))
+				using (var tr = db.BeginReadOnlyTransaction(ct))
 				{
 #if TRACE_COUNTING
 					tr.Annotate("Estimating number of keys in range {0}", KeyRange.Create(beginInclusive, endExclusive));

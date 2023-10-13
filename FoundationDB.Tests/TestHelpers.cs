@@ -118,7 +118,7 @@ namespace FoundationDB.Client.Tests
 		{
 			Assert.That(db, Is.Not.Null);
 
-			using (var tr = await db.BeginTransactionAsync(ct))
+			using (var tr = db.BeginTransaction(ct))
 			{
 				tr.StopLogging();
 				await DumpSubspace(tr, subspace).ConfigureAwait(false);
@@ -129,7 +129,7 @@ namespace FoundationDB.Client.Tests
 		{
 			Assert.That(db, Is.Not.Null);
 
-			using (var tr = await db.BeginTransactionAsync(ct))
+			using (var tr = db.BeginTransaction(ct))
 			{
 				tr.StopLogging();
 

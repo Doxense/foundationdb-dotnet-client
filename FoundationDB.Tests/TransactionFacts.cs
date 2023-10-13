@@ -50,7 +50,7 @@ namespace FoundationDB.Client.Tests
 			{
 				Assert.That(db, Is.InstanceOf<FdbDatabase>(), "This test only works directly on FdbDatabase");
 
-				using (var tr = (FdbTransaction) await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = (FdbTransaction) db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
 					Assert.That(tr.State == FdbTransaction.STATE_READY, "Transaction should be in ready state");
@@ -79,7 +79,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
 					Assert.That(tr.IsSnapshot, Is.False, "Transaction is not in snapshot mode by default");
@@ -102,7 +102,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null);
 
@@ -136,8 +136,8 @@ namespace FoundationDB.Client.Tests
 				{
 					// concurrent transactions should have separate FDB_FUTURE* handles
 
-					tr1 = await db.BeginTransactionAsync(this.Cancellation);
-					tr2 = await db.BeginTransactionAsync(this.Cancellation);
+					tr1 = db.BeginTransaction(this.Cancellation);
+					tr2 = db.BeginTransaction(this.Cancellation);
 
 					Assert.That(tr1, Is.Not.Null);
 					Assert.That(tr2, Is.Not.Null);
@@ -174,7 +174,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
 
@@ -195,7 +195,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// do nothing with it
 					tr.Reset();
@@ -216,7 +216,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
 
@@ -240,7 +240,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -272,7 +272,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -316,7 +316,7 @@ namespace FoundationDB.Client.Tests
 				var rnd = new Random();
 
 				using (var cts = new CancellationTokenSource())
-				using (var tr = await db.BeginTransactionAsync(cts.Token))
+				using (var tr = db.BeginTransaction(cts.Token))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -347,7 +347,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					long ver = await tr.GetReadVersionAsync();
 					Assert.That(ver, Is.GreaterThan(0), "Read version should be > 0");
@@ -376,7 +376,7 @@ namespace FoundationDB.Client.Tests
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// write a bunch of keys
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -391,7 +391,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// read them back
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -429,7 +429,7 @@ namespace FoundationDB.Client.Tests
 
 				#region Insert a bunch of keys ...
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -451,7 +451,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -529,7 +529,7 @@ namespace FoundationDB.Client.Tests
 			};
 			using (var db = await Fdb.OpenAsync(options, this.Cancellation))
 			{
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					// before <00>
 					key = await tr.GetKeyAsync(KeySelector.LastLessThan(FdbKey.MinValue));
@@ -586,7 +586,7 @@ namespace FoundationDB.Client.Tests
 
 				var ids = new[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -600,7 +600,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -631,7 +631,7 @@ namespace FoundationDB.Client.Tests
 
 				#region Insert a bunch of keys ...
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -653,7 +653,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -710,7 +710,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// hello should only be equal to 'World!', not any other value, empty or nil
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -722,7 +722,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// foo should only be equal to Empty, *not* Nil or any other value
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -733,7 +733,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// not_found should only be equal to Nil, *not* Empty or any other value
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -744,7 +744,7 @@ namespace FoundationDB.Client.Tests
 
 				// checking, changing and checking again: 2nd check should see the modified value!
 				// not_found should only be equal to Nil, *not* Empty or any other value
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -780,21 +780,21 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// set key = x
-			using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				tr.Set(key, Slice.FromFixed32(x));
 				await tr.CommitAsync();
 			}
 
 			// atomic key op y
-			using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				tr.Atomic(key, Slice.FromFixed32(y), type);
 				await tr.CommitAsync();
 			}
 
 			// read key
-			using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				var data = await tr.GetAsync(key);
 				Assert.That(data.Count, Is.EqualTo(4), "data.Count");
@@ -868,7 +868,7 @@ namespace FoundationDB.Client.Tests
 				else
 				{
 					// calling with an unsupported mutation type should fail
-					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						key = await ResolveKey("invalid");
 						Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), FdbMutationType.Max), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidMutationType));
@@ -876,7 +876,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// calling with an invalid mutation type should fail
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					key = await ResolveKey("invalid");
 					Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), (FdbMutationType) 42), Throws.InstanceOf<NotSupportedException>());
@@ -1185,7 +1185,7 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// read them using snapshot
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -1207,7 +1207,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
@@ -1236,7 +1236,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// take the read version (to compare with the committed version below)
 					long readVersion = await tr.GetReadVersionAsync();
@@ -1268,7 +1268,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// take the read version (to compare with the committed version below)
 					long rv1 = await tr.GetReadVersionAsync();
@@ -1319,8 +1319,8 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var trA = await db.BeginTransactionAsync(this.Cancellation))
-				using (var trB = await db.BeginTransactionAsync(this.Cancellation))
+				using (var trA = db.BeginTransaction(this.Cancellation))
+				using (var trB = db.BeginTransaction(this.Cancellation))
 				{
 					var subspaceA = (await location.Resolve(trA))!;
 					var subspaceB = (await location.Resolve(trB))!;
@@ -1361,8 +1361,8 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace["foo"], Value("foo"));
 				}, this.Cancellation);
 
-				using (var trA = await db.BeginTransactionAsync(this.Cancellation))
-				using (var trB = await db.BeginTransactionAsync(this.Cancellation))
+				using (var trA = db.BeginTransaction(this.Cancellation))
+				using (var trB = db.BeginTransaction(this.Cancellation))
 				{
 					var subspaceA = (await location.Resolve(trA))!;
 					var subspaceB = (await location.Resolve(trB))!;
@@ -1401,7 +1401,7 @@ namespace FoundationDB.Client.Tests
 				// but another transaction will insert 42, in effect changing the result of our range
 				// => this should conflict the GetRange
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 
@@ -1412,7 +1412,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(kvp.Key, Is.EqualTo(subspace.Encode("foo", 50)));
 
 					// 42 < 50 > conflict !!!
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 						tr2.Set(subspace2.Encode("foo", 42), Value("forty-two"));
@@ -1436,7 +1436,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 
@@ -1447,7 +1447,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(kvp.Key, Is.EqualTo(subspace.Encode("foo", 50)));
 
 					// 77 > 50 => no conflict
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 						tr2.Set(subspace2.Encode("foo", 77), Value("docm"));
@@ -1482,7 +1482,7 @@ namespace FoundationDB.Client.Tests
 
 				// we will ask for the first key from >= 0, expecting 50, but if another transaction inserts something BEFORE 50, our key selector would have returned a different result, causing a conflict
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 					// fGE{0} => 50
@@ -1490,7 +1490,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(key, Is.EqualTo(subspace.Encode("foo", 50)));
 
 					// 42 < 50 => conflict !!!
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 						tr2.Set(subspace2.Encode("foo", 42), Value("forty-two"));
@@ -1512,7 +1512,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 					// fGE{0} => 50
@@ -1520,7 +1520,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(key, Is.EqualTo(subspace.Encode("foo", 50)));
 
 					// 77 > 50 => no conflict
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 						tr2.Set(subspace2.Encode("foo", 77), Value("docm"));
@@ -1544,7 +1544,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Encode("foo", 100), Value("one hundred"));
 				}, this.Cancellation);
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 
@@ -1553,7 +1553,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(key, Is.EqualTo(subspace.Encode("foo", 100)));
 
 					// 77 between 50 and 100 => conflict !!!
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 						tr2.Set(subspace2.Encode("foo", 77), Value("docm"));
@@ -1577,7 +1577,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Encode("foo", 100), Value("one hundred"));
 				}, this.Cancellation);
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 					// fGT{50} => 100
@@ -1585,7 +1585,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(key, Is.EqualTo(subspace.Encode("foo", 100)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 						tr2.Set(subspace2.Encode("foo", 100), Value("cent"));
@@ -1609,7 +1609,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Encode("foo", 100), Value("one hundred"));
 				}, this.Cancellation);
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 					// lLT{100} => 50
@@ -1617,7 +1617,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(key, Is.EqualTo(subspace.Encode("foo", 50)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 						tr2.Clear(subspace2.Encode("foo", 100));
@@ -1659,7 +1659,7 @@ namespace FoundationDB.Client.Tests
 					var subspace = (await db.Root.Resolve(tr))!;
 					tr.Set(subspace.Encode("test", "A"), Slice.FromInt32(1));
 				}, this.Cancellation);
-				using(var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using(var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// make sure that T1 has seen the db BEFORE T2 gets executed, or else it will not really be initialized until after the first read or commit
 					await tr1.GetReadVersionAsync();
@@ -1697,7 +1697,7 @@ namespace FoundationDB.Client.Tests
 					var subspace = (await db.Root.Resolve(tr))!;
 					tr.Set(subspace.Encode("test", "A"), Slice.FromInt32(1));
 				}, this.Cancellation);
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					//do NOT use T1 yet
 
@@ -1755,7 +1755,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -1817,7 +1817,7 @@ namespace FoundationDB.Client.Tests
 				Log("Initial db state:");
 				await DumpSubspace(db, location);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -1872,7 +1872,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Encode("b", 20), Value("GOTO 10"));
 				}, this.Cancellation);
 
-				using(var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -1899,7 +1899,7 @@ namespace FoundationDB.Client.Tests
 
 				// The ReadYourWritesDisable option cause reads to always return the value in the database
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -1943,7 +1943,7 @@ namespace FoundationDB.Client.Tests
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// create first version
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 					tr1.Set(subspace["concurrent"], Slice.FromByte(1));
@@ -1954,7 +1954,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// mutate in another transaction
-				using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr2))!;
 					tr2.Set(subspace["concurrent"], Slice.FromByte(2));
@@ -1962,7 +1962,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// read the value with TR1's committed version
-				using (var tr3 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr3 = db.BeginTransaction(this.Cancellation))
 				{
 					tr3.SetReadVersion(committedVersion);
 
@@ -1985,7 +1985,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 
 					// should fail if access to system keys has not been requested
@@ -2010,7 +2010,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr.Options.Timeout, Is.EqualTo(15000), "Timeout (default)");
 					Assert.That(tr.Options.RetryLimit, Is.Zero, "RetryLimit (default)");
@@ -2046,7 +2046,7 @@ namespace FoundationDB.Client.Tests
 
 				// transaction should be already configured with the default options
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
 					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
@@ -2058,7 +2058,7 @@ namespace FoundationDB.Client.Tests
 					db.Options.DefaultRetryLimit = 4;
 					db.Options.DefaultMaxRetryDelay = 700;
 
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						Assert.That(tr2.Options.Timeout, Is.EqualTo(600), "tr2.Options.Timeout");
 						Assert.That(tr2.Options.RetryLimit, Is.EqualTo(4), "tr2.Options.RetryLimit");
@@ -2128,7 +2128,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// simulate a first error
 					tr.Options.RetryLimit = 10;
@@ -2164,7 +2164,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 
@@ -2174,7 +2174,7 @@ namespace FoundationDB.Client.Tests
 					// but add the second as a conflict range
 					tr1.AddReadConflictKey(subspace[2]);
 
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 
@@ -2205,7 +2205,7 @@ namespace FoundationDB.Client.Tests
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
 
@@ -2214,7 +2214,7 @@ namespace FoundationDB.Client.Tests
 					// and writes to key1
 					tr1.Set(subspace.Encode(1), Value("hello"));
 
-					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace2 = (await location.Resolve(tr2))!;
 
@@ -2259,7 +2259,7 @@ namespace FoundationDB.Client.Tests
 					FdbWatch w1;
 					FdbWatch w2;
 
-					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						var subspace = (await location.Resolve(tr))!;
 						w1 = tr.Watch(subspace.Encode("watched"), cts.Token);
@@ -2306,7 +2306,7 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("test", "bigbrother");
 				await CleanLocation(db, location);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 					var key = subspace.Encode("watched");
@@ -2413,7 +2413,7 @@ namespace FoundationDB.Client.Tests
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// look for the address of key1
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -2441,7 +2441,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// do the same but for a key that does not exist
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -2476,7 +2476,7 @@ namespace FoundationDB.Client.Tests
 			};
 			using (var db = await Fdb.OpenAsync(options, this.Cancellation))
 			{
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					tr.Options.WithReadAccessToSystemKeys();
 					// dump nodes
@@ -2555,7 +2555,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// should return a 80-bit incomplete stamp, using a random token
 					var x = tr.CreateVersionStamp();
@@ -2635,7 +2635,7 @@ namespace FoundationDB.Client.Tests
 				VersionStamp vsActual; // will contain the actual version stamp used by the database
 
 				Log("Inserting keys with version stamps:");
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -2674,7 +2674,7 @@ namespace FoundationDB.Client.Tests
 				await DumpSubspace(db, location);
 
 				Log("Checking database content:");
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
 					{

@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 		/// </code>
 		/// </example>
 		[Pure]
-		public static IFdbReadOnlyTransaction BeginReadOnlyTransactionAsync(this IFdbTenant tenant, CancellationToken ct)
+		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbTenant tenant, CancellationToken ct)
 		{
 			Contract.NotNull(tenant);
 			return tenant.BeginTransaction(FdbTransactionMode.ReadOnly | FdbTransactionMode.UseTenant, ct);
