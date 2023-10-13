@@ -12,6 +12,8 @@
 		<PackageTags>foundationdb fdb nosql</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>.NET Binding for FoundationDB</Description>
+		<Deterministic>true</Deterministic>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />

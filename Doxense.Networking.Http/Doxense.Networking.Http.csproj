@@ -13,6 +13,8 @@
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<Description>.NET Core SDK for FoundationDB</Description>
+		<Deterministic>true</Deterministic>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />

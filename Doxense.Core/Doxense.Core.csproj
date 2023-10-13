@@ -12,6 +12,8 @@
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<Description>.NET Core SDK for FoundationDB</Description>
+		<Deterministic>true</Deterministic>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)'!='netstandard2.0'">
