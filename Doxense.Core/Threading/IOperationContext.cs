@@ -81,29 +81,15 @@ namespace Doxense.Threading.Operations
 
 		IDisposable ExecuteStep(string id, string? label = null);
 
-		Task<OperationResult<TOtherResult>> ExecuteSubOperation<TOtherState, TOtherResult>(IOperationContext<TOtherState, TOtherResult> operation, Func<IOperationContext<TOtherState, TOtherResult>, Task<OperationResult<TOtherResult>>> handler);
+		Task<OperationResult<TResult>> ExecuteSubOperation<TResult>(IOperationContext operation, Func<IOperationContext, Task<OperationResult<TResult>>> handler);
 		
 		Activity? Activity { get; }
 		
-	}
+		OperationFailed Failed(OperationError error);
 
-	public interface IOperationContext<TResult> : IOperationContext
-	{
+		OperationResult<TResult?> Success<TResult>(TResult? result);
 
-		OperationResult<TResult> Failed(OperationError error);
-
-		OperationResult<TResult> Success(TResult? result);
-
-		bool TryGetResult([MaybeNullWhen(false)] out TResult result);
-
-	}
-
-	/// <summary>Représente le contexte d'exécution d'une opération asynchrone, prenant des paramètres.</summary>
-	public interface IOperationContext<out TParameters, TResult> : IOperationContext<TResult>
-	{
-
-		/// <summary>Paramètres de l'opération</summary>
-		TParameters Parameters { get; }
+		bool TryGetResult<TResult>([MaybeNullWhen(false)] out TResult result);
 
 	}
 
@@ -213,6 +199,25 @@ namespace Doxense.Threading.Operations
 			return true;
 		}
 
+		public static implicit operator OperationResult<TResult>(OperationFailed failed)
+		{
+			return new OperationResult<TResult>(failed.Context);
+		}
+
+	}
+
+	public readonly struct OperationFailed
+	{
+
+		public readonly IOperationContext Context;
+
+		public OperationFailed(IOperationContext context)
+		{
+			this.Context = context;
+		}
+
+		public OperationError Error => this.Context.Error!;
+
 	}
 
 	public sealed record OperationError
@@ -280,9 +285,9 @@ namespace Doxense.Threading.Operations
 		where TWorkflow: OperationWorflowBase<TWorkflow, TParameter, TResult>
 	{
 
-		protected IOperationContext<TParameter, TResult> Context { get; }
+		protected IOperationContext Context { get; }
 
-		protected OperationWorflowBase(IOperationContext<TParameter, TResult> context)
+		protected OperationWorflowBase(IOperationContext context)
 		{
 			this.Context = context;
 		}
@@ -317,11 +322,11 @@ namespace Doxense.Threading.Operations
 
 		public static TWorkflow CreateInstance(IServiceProvider services, string name, IOperationOverlord overlord, TParameter req, CancellationToken ct)
         {
-			var ctx = overlord.Create<TParameter, TResult>(name, null, req, null, ct);
+			var ctx = overlord.Create(name, null, null, ct);
 			return CreateInstance(services, ctx);
 		}
 
-		public static TWorkflow CreateInstance(IServiceProvider services, IOperationContext<TParameter, TResult> ctx)
+		public static TWorkflow CreateInstance(IServiceProvider services, IOperationContext ctx)
 		{
 			return ActivatorUtilities.CreateInstance<TWorkflow>(services, ctx); //TODO: comment régler le pb du type generique de l'executor?
 		}
@@ -345,13 +350,13 @@ namespace Doxense.Threading.Operations
 			return services;
 		}
 
-		public static Task<OperationResult<TResult>> ExecuteOperation<TParameters, TResult>(this IOperationOverlord overlord, string type, string? key, TParameters state, Func<IOperationContext<TParameters, TResult>, Task<OperationResult<TResult>>> handler, CancellationToken ct)
+		public static Task<OperationResult<TResult>> ExecuteOperation<TResult>(this IOperationOverlord overlord, string type, string? key, Func<IOperationContext, Task<OperationResult<TResult>>> handler, CancellationToken ct)
 		{
-			var context = overlord.Create<TParameters, TResult>(type, key, state, null, ct);
+			var context = overlord.Create(type, key, null, ct);
 			return overlord.ExecuteOperation(context, handler);
 		}
 
-		public static Task<OperationResult<TResult>> ExecuteSubOperation<TOtherState, TResult>(this IOperationContext parent, string type, string? key, TOtherState state, Func<IOperationContext<TOtherState, TResult>, Task<OperationResult<TResult>>> handler)
+		public static Task<OperationResult<TResult>> ExecuteSubOperation<TResult>(this IOperationContext parent, string type, string? key, Func<IOperationContext, Task<OperationResult<TResult>>> handler)
 		{
 			//REVIEW: BUGBUG: je sais pas trop quelle est la meilleur manière de combiner les keys avec le parent?
 			if (key == null)
@@ -363,13 +368,19 @@ namespace Doxense.Threading.Operations
 				key = parent.Key != null ? parent.Key + ":" + key : key;
 			}
 
-			var subContext = parent.Overlord.Create<TOtherState, TResult>(type, key, state, parent, parent.Cancellation);
+			var subContext = parent.Overlord.Create(type, key, parent, parent.Cancellation);
 			return parent.Overlord.ExecuteOperation(subContext, handler);
 		}
 
 		#region OperationResult factories...
 
-		public static OperationResult<TResult> Cancelled<TParameters, TResult>(this IOperationContext<TParameters, TResult> context)
+		public static OperationResult<TResult> Cancelled<TResult>(this IOperationContext context)
+		{
+			var cancelled = Cancelled(context);
+			return (OperationResult<TResult>) cancelled;
+		}
+
+		public static OperationFailed Cancelled(this IOperationContext context)
 		{
 			Contract.Debug.Requires(context.Cancellation.IsCancellationRequested);
 			return context.Failed(new OperationError
@@ -380,7 +391,7 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
-		public static OperationResult<TResult> MissingParameters<TParameters, TResult>(this IOperationContext<TParameters, TResult> context, string paramName)
+		public static OperationFailed MissingParameters(this IOperationContext context, string paramName)
 		{
 			return context.Failed(new OperationError
 			{
@@ -390,7 +401,7 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
-		public static OperationResult<TResult> InvalidParameter<TParameters, TResult>(this IOperationContext<TParameters, TResult> context, string paramName)
+		public static OperationFailed InvalidParameter(this IOperationContext context, string paramName)
 		{
 			return context.Failed(new OperationError
 			{
@@ -400,7 +411,7 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
-		public static OperationResult<TResult> Throw<TParameters, TResult>(this IOperationContext<TParameters, TResult> context, Exception exception)
+		public static OperationFailed Throw(this IOperationContext context, Exception exception)
 		{
 			if (exception is OperationErrorException opEx)
 			{
@@ -414,7 +425,7 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
-		public static OperationResult<TResult> AccountLinkError<TParameters, TResult>(this IOperationContext<TParameters, TResult> context, string providerId, string? message = null)
+		public static OperationFailed AccountLinkError(this IOperationContext context, string providerId, string? message = null)
 		{
 			return context.Failed(new OperationError
 			{
@@ -424,7 +435,7 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
-		public static OperationResult<TResult> RemoteStoreError<TParameters, TResult>(this IOperationContext<TParameters, TResult> context, string providerId, string? message = null)
+		public static OperationFailed RemoteStoreError(this IOperationContext context, string providerId, string? message = null)
 		{
 			return context.Failed(new OperationError
 			{
@@ -434,7 +445,7 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
-		public static OperationResult<TResult> PathNotFoundError<TParameters, TResult>(this IOperationContext<TParameters, TResult> context, string providerId, string path, object? details = null)
+		public static OperationFailed PathNotFoundError(this IOperationContext context, string providerId, string path, object? details = null)
 		{
 			return context.Failed(new OperationError
 			{
@@ -482,10 +493,10 @@ namespace Doxense.Threading.Operations
 	}
 
 	[DebuggerDisplay("Type={Type}, Key={Key}, Id={Id}, State={State}")]
-	public class OperationContext<TParameters, TResult> : IOperationContext<TParameters, TResult>
+	public class OperationContext : IOperationContext
 	{
 
-		public OperationContext(OperationOverlord overlord, string id, OperationState state, string type, string? key, TParameters parameters, IOperationContext? parent, CancellationTokenSource cts)
+		public OperationContext(OperationOverlord overlord, string id, OperationState state, string type, string? key, IOperationContext? parent, CancellationTokenSource cts)
 		{
 			Contract.NotNull(overlord);
 
@@ -494,7 +505,6 @@ namespace Doxense.Threading.Operations
 			this.State = state;
 			this.Type = type;
 			this.Key = key;
-			this.Parameters = parameters;
 			this.Parent = parent;
 			this.Lifetime = cts;
 		}
@@ -511,13 +521,11 @@ namespace Doxense.Threading.Operations
 
 		public CancellationToken Cancellation => this.Lifetime.Token;
 
-		public TParameters Parameters { get; }
-
 		public IOperationContext? Parent { get; }
 
 		public bool HasResult { get; private set; }
 
-		public TResult? Result { get; private set; }
+		public object? Result { get; private set; }
 
 		public OperationError? Error { get; private set; }
 
@@ -551,7 +559,7 @@ namespace Doxense.Threading.Operations
 
 			try
 			{
-				await handler(this);
+				await handler(this).ConfigureAwait(false);
 			}
 			catch (Exception e)
 			{
@@ -588,7 +596,7 @@ namespace Doxense.Threading.Operations
 			return true;
 		}
 
-		public bool TryGetResult([MaybeNullWhen(false)] out TResult result)
+		public bool TryGetResult<TResult>([MaybeNullWhen(false)] out TResult result)
 		{
 			if (!this.HasResult || this.State != OperationState.Completed)
 			{
@@ -596,11 +604,17 @@ namespace Doxense.Threading.Operations
 				return false;
 			}
 
-			result = this.Result!;
+			if (this.Result is not TResult r)
+			{
+				result = default;
+				return false;
+			}
+
+			result = r;
 			return true;
 		}
 
-		public OperationResult<TResult> Success(TResult? result)
+		public OperationResult<TResult> Success<TResult>(TResult? result)
 		{
 			//REVIEW: est-ce qu'on autorise a Success() apres avoir appelé Failed() ?
 			lock (this) //TODO: lock?
@@ -613,7 +627,13 @@ namespace Doxense.Threading.Operations
 			return new OperationResult<TResult>(this);
 		}
 
-		public OperationResult<TResult> Failed(OperationError error)
+		public OperationResult<TResult> Failed<TResult>(OperationError error)
+		{
+			var failed = Failed(error);
+			return (OperationResult<TResult>) failed;
+		}
+
+		public OperationFailed Failed(OperationError error)
 		{
 			//REVIEW: est-ce qu'on autorise a Failed() apres avoir appelé Success() ?
 			Contract.NotNull(error);
@@ -634,7 +654,7 @@ namespace Doxense.Threading.Operations
 				}
 
 			}
-			return new OperationResult<TResult>(this);
+			return new OperationFailed(this);
 		}
 
 		public void Dispatch(IEvent evt)
@@ -653,9 +673,9 @@ namespace Doxense.Threading.Operations
 			return Disposable.Empty();
 		}
 
-		public Task<OperationResult<TSubResult>> ExecuteSubOperation<TSubParameters, TSubResult>(
-			IOperationContext<TSubParameters, TSubResult> operation,
-			Func<IOperationContext<TSubParameters, TSubResult>, Task<OperationResult<TSubResult>>> handler)
+		public Task<OperationResult<TSubResult>> ExecuteSubOperation<TSubResult>(
+			IOperationContext operation,
+			Func<IOperationContext, Task<OperationResult<TSubResult>>> handler)
 		{
 			//TOOD: param check?
 			return this.Overlord.ExecuteOperation(operation, handler);
@@ -686,9 +706,11 @@ namespace Doxense.Threading.Operations
 
 		//bool TryGetOperationByKey(string key, out IOperationContext? context);
 
-		IOperationContext<TParameters, TResult> Create<TParameters, TResult>(string type, string? key, TParameters state, IOperationContext? parent = null, CancellationToken ct = default);
+		IOperationContext Create(string type, string? key, IOperationContext? parent = null, CancellationToken ct = default);
 
-		Task<OperationResult<TResult>> ExecuteOperation<TParameters, TResult>(IOperationContext<TParameters, TResult> context, Func<IOperationContext<TParameters, TResult>, Task<OperationResult<TResult>>> handler);
+		//Task<OperationResult<TResult>> ExecuteOperation<TParameters, TResult>(IOperationContext<TParameters, TResult> context, Func<IOperationContext<TParameters, TResult>, Task<OperationResult<TResult>>> handler);
+
+		Task<OperationResult<TResult>> ExecuteOperation<TResult>(IOperationContext context, Func<IOperationContext, Task<OperationResult<TResult>>> handler);
 
 		void Log(IOperationContext context, LogLevel level, Exception? exception, string message, object[]? args = null);
 
@@ -732,27 +754,27 @@ namespace Doxense.Threading.Operations
 			return false;
 		}
 
-		public IOperationContext<TParameters, TResult> Create<TParameters, TResult>(string type, string? key, TParameters state, IOperationContext? parent = null, CancellationToken ct = default)
+		public IOperationContext Create(string type, string? key, IOperationContext? parent = null, CancellationToken ct = default)
 		{
 			var cts = CancellationTokenSource.CreateLinkedTokenSource(this.Lifetime.Token, ct);
-			return new OperationContext<TParameters, TResult>(this, NewId(), OperationState.Pending, type, key, state, parent, cts);
+			return new OperationContext(this, NewId(), OperationState.Pending, type, key, parent, cts);
 		}
 
-		private OperationResult<TResult> HandleCancellation<TParameters, TResult>(IOperationContext<TParameters, TResult> context)
+		private OperationFailed HandleCancellation(IOperationContext context)
 		{
 			Contract.Debug.Requires(context.Cancellation.IsCancellationRequested);
-			if (context.Error != null) return new OperationResult<TResult>(context);
+			if (context.Error != null) return new OperationFailed(context);
 			return context.Cancelled();
 		}
 
-		public async Task<OperationResult<TResult>> ExecuteOperation<TParameters, TResult>(IOperationContext<TParameters, TResult> context, Func<IOperationContext<TParameters, TResult>, Task<OperationResult<TResult>>> handler)
+		public async Task<OperationResult<TResult>> ExecuteOperation<TResult>(IOperationContext context, Func<IOperationContext, Task<OperationResult<TResult>>> handler)
 		{
 			Contract.NotNull(context);
 			Contract.NotNull(handler);
 
 			using var activity = ActivitySource.StartActivity(context.Type + " execute");
 
-			if (activity != null && context is OperationContext<TParameters, TResult> ctx)
+			if (activity != null && context is OperationContext ctx)
 			{
 				ctx.SetActivity(activity);
 			}
@@ -764,7 +786,7 @@ namespace Doxense.Threading.Operations
 
 			try
 			{
-				return await handler(context);
+				return await handler(context).ConfigureAwait(false);
 			}
 			catch (OperationErrorException e)
 			{
@@ -782,15 +804,15 @@ namespace Doxense.Threading.Operations
 			}
 		}
 
-		public void Log(IOperationContext context, LogLevel level, Exception? exception, string message, object[]? args = null)
+		public void Log(IOperationContext context, LogLevel level, Exception? exception, string message, object?[]? args = null)
 		{
 			if (exception == null)
 			{
-				this.Logger.Log(level, $"{context.Id}: {message}", args);
+				this.Logger.Log(level, $"{context.Id}: {message}", args ?? Array.Empty<object?>());
 			}
 			else
 			{
-				this.Logger.Log(level, exception, $"{context.Id}: {message}", args);
+				this.Logger.Log(level, exception, $"{context.Id}: {message}", args ?? Array.Empty<object?>());
 			}
 		}
 
