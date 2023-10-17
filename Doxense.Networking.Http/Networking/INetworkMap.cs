@@ -224,6 +224,8 @@ namespace Doxense.Networking
 		/// <returns>List of matching hosts, or an empty array if none were found</returns>
 		(string Id, string? Argument)[] BrowseNetworkService(string serviceType);
 
+		IVirtualNetworkHost AddHostPassthrough(string id, VirtualHostIdentity identity);
+
 	}
 
 	public interface IVirtualNetworkHost : IEquatable<IVirtualNetworkHost>

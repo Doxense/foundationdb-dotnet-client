@@ -244,6 +244,14 @@ namespace Doxense.Networking
 				return new VirtualNetworkMap(this.Topology, host);
 			}
 
+			IVirtualNetworkHost IVirtualNetworkLocation.AddHostPassthrough(string id, VirtualHostIdentity identity) => AddHostPassthrough(id, identity);
+
+			public SimulatedHost AddHostPassthrough(string id, VirtualHostIdentity identity)
+			{
+				identity.PassthroughToPhysicalNetwork = true;
+				return this.Topology.RegisterHost(this, id, identity);
+			}
+
 			public IVirtualNetworkHost? GetHost(string id)
 			{
 				return this.HostsById.TryGetValue(id, out var host) ? host : null;
