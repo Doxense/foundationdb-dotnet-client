@@ -87,7 +87,7 @@ namespace Doxense.Threading.Operations
 		
 		OperationFailed Failed(OperationError error);
 
-		OperationResult<TResult?> Success<TResult>(TResult? result);
+		OperationResult<TResult> Success<TResult>(TResult result);
 
 		bool TryGetResult<TResult>([MaybeNullWhen(false)] out TResult result);
 
