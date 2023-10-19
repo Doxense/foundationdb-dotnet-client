@@ -372,6 +372,11 @@ namespace Doxense.Threading.Operations
 			return parent.Overlord.ExecuteOperation(subContext, handler);
 		}
 
+		public static void ThrowIfCancellationRequested(this IOperationContext context)
+		{
+			context.Cancellation.ThrowIfCancellationRequested();
+		}
+
 		#region OperationResult factories...
 
 		public static OperationResult<TResult> Cancelled<TResult>(this IOperationContext context)
