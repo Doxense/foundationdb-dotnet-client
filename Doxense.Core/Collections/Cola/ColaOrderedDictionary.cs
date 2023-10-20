@@ -24,22 +24,22 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-//README: Importé de l'ancien FoundationDB.Storage.Memory
-//TODO: => pourrait être remplacé par les RangeSet de PoneyDB!
-
 namespace Doxense.Collections.Generic
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
+	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered set of key/value pairs, stored in a Cache Oblivious Lookahead Array</summary>
 	/// <typeparam name="TKey">Type of ordered keys stored in the dictionary.</typeparam>
 	/// <typeparam name="TValue">Type of values stored in the dictionary.</typeparam>
+	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}"), DebuggerTypeProxy(typeof(ColaOrderedDictionary<,>.DebugView))]
 	public class ColaOrderedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
 	{
@@ -123,27 +123,21 @@ namespace Doxense.Collections.Generic
 
 		#region Public Properties...
 
-		public int Count
-		{
-			get { return m_items.Count; }
-		}
+		public int Count => m_items.Count;
 
-		public int Capacity
-		{
-			get { return m_items.Capacity; }
-		}
+		public int Capacity => m_items.Capacity;
 
 		public TValue this[TKey key]
 		{
-			get { return GetValue(key); }
-			set { SetItem(key, value); }
+			get => GetValue(key);
+			set => SetItem(key, value);
 		}
 
 		#endregion
 
 		public void Clear()
 		{
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			m_items.Clear();
 		}
 
@@ -161,10 +155,10 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(key);
 
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			if (!m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: false))
 			{
-				--m_version;
+				Interlocked.Decrement(ref m_version);
 				throw ErrorKeyAlreadyExists();
 			}
 		}
@@ -175,7 +169,7 @@ namespace Doxense.Collections.Generic
 		public void SetItem(TKey key, TValue value)
 		{
 			Contract.NotNullAllowStructs(key);
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: true);
 		}
 
@@ -187,16 +181,16 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(key);
 
-			int offset, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out offset, out var entry);
+			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out int offset, out var entry);
 			if (level >= 0)
 			{ // already exists
 				// keep the old key, and update the value
-				++m_version;
+				Interlocked.Increment(ref m_version);
 				m_items.SetAt(level, offset, new KeyValuePair<TKey, TValue>(entry.Key, value));
 				return false;
 			}
 
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			m_items.Insert(new KeyValuePair<TKey, TValue>(key, value));
 			return true;
 		}
@@ -210,14 +204,14 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(key);
 
-			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out var entry);
+			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
 			if (level >= 0)
 			{ // already exists
 				actualValue = entry.Value;
 				return false;
 			}
 
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			m_items.Insert(new KeyValuePair<TKey, TValue>(key, value));
 			actualValue = value;
 			return true;
@@ -227,7 +221,7 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(key);
 
-			return m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out _) >= 0;
+			return m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out _) >= 0;
 		}
 
 		public bool ContainsValue(TValue value)
@@ -247,8 +241,7 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(equalKey);
 
-			KeyValuePair<TKey, TValue> entry;
-			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(equalKey, default(TValue)), out _, out entry);
+			int level = m_items.Find(new KeyValuePair<TKey, TValue>(equalKey, default!), out _, out var entry);
 			if (level < 0)
 			{
 				actualKey = equalKey;
@@ -262,14 +255,14 @@ namespace Doxense.Collections.Generic
 		/// <param name="key">The key to search for.</param>
 		/// <param name="value"></param>
 		/// <returns>true if a match for <paramref name="key"/> is found; otherwise, false.</returns>
-		public bool TryGetValue(TKey key, out TValue value)
+		public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
 			Contract.NotNullAllowStructs(key);
 
-			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out var entry);
+			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
 			if (level < 0)
 			{
-				value = default(TValue);
+				value = default!;
 				return false;
 			}
 			value = entry.Value;
@@ -281,7 +274,7 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(key);
 
-			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out var entry);
+			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
 			if (level < 0)
 			{
 				throw ErrorKeyNotFound();
@@ -297,7 +290,7 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(key);
 
-			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out entry);
+			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out entry);
 			return level >= 0;
 		}
 
@@ -309,12 +302,11 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNullAllowStructs(key);
 
-			KeyValuePair<TKey, TValue> _;
-			int offset, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out offset, out _);
+			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out int offset, out _);
 
 			if (level >= 0)
 			{
-				++m_version;
+				Interlocked.Increment(ref m_version);
 				m_items.RemoveAt(level, offset);
 				return true;
 			}
@@ -450,7 +442,7 @@ namespace Doxense.Collections.Generic
 			=> new (m_items, reverse: false);
 
 		public IEnumerable<KeyValuePair<TKey, TValue>> IterateOrdered()
-			=> m_items.IterateOrdered(false);
+			=> m_items.IterateOrdered();
 
 		IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
 			=> this.GetEnumerator();
@@ -481,7 +473,7 @@ namespace Doxense.Collections.Generic
 		public void Debug_Dump()
 		{
 #if DEBUG
-			Trace.WriteLine("Dumping ColaOrderedDictionary<" + typeof(TKey).Name + ", " + typeof(TValue).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
+			System.Diagnostics.Trace.WriteLine("Dumping ColaOrderedDictionary<" + typeof(TKey).Name + ", " + typeof(TValue).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
 #endif
 		}
@@ -500,11 +492,12 @@ namespace Doxense.Collections.Generic
 				m_iterator = new ColaStore.Enumerator<KeyValuePair<TKey, TValue>>(parent.m_items, reverse);
 			}
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool MoveNext()
 			{
 				if (m_version != m_parent.m_version)
 				{
-					ColaStore.ThrowStoreVersionChanged();
+					throw ColaStore.ErrorStoreVersionChanged();
 				}
 
 				return m_iterator.MoveNext();
@@ -523,7 +516,7 @@ namespace Doxense.Collections.Generic
 			{
 				if (m_version != m_parent.m_version)
 				{
-					ColaStore.ThrowStoreVersionChanged();
+					throw ColaStore.ErrorStoreVersionChanged();
 				}
 				m_iterator = new ColaStore.Enumerator<KeyValuePair<TKey, TValue>>(m_parent.m_items, m_iterator.Reverse);
 			}
@@ -531,4 +524,5 @@ namespace Doxense.Collections.Generic
 		}
 
 	}
+
 }

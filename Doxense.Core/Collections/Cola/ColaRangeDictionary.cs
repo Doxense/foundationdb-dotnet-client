@@ -24,9 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-//README: Importé de l'ancien FoundationDB.Storage.Memory
-//TODO: => pourrait être remplacé par les RangeSet de PoneyDB!
-
 // enables consitency checks after each operation to the set
 //#define ENFORCE_INVARIANTS
 
@@ -39,10 +36,12 @@ namespace Doxense.Collections.Generic
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
-	/// <summary>Represent an ordered list of ranges, each associated with a specific value, stored in a Cache Oblivous Lookup Array</summary>
+	/// <summary>Represent an ordered list of ranges, each associated with a specific value, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="TKey">Type of the keys stored in the set</typeparam>
 	/// <typeparam name="TValue">Type of the values associated with each range</typeparam>
+	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
 	public sealed class ColaRangeDictionary<TKey, TValue> : IEnumerable<ColaRangeDictionary<TKey, TValue>.Entry>
 	{

@@ -24,9 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-//README: Importé de l'ancien FoundationDB.Storage.Memory
-//TODO: => pourrait être remplacé par les RangeSet de PoneyDB!
-
 // enables consitency checks after each operation to the set
 //#define ENFORCE_INVARIANTS
 
@@ -41,9 +38,12 @@ namespace Doxense.Collections.Generic
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Store elements in a list of ordered levels</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>
+	[PublicAPI]
+	[DebuggerDisplay("Count={m_count}, Depth={m_levels.Length}")]
 	public sealed class ColaStore<T>
 	{
 
@@ -383,7 +383,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
 		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int FindPrevious(T value, bool orEqual, IComparer<T> comparer, out int offset, out T result)
+		public int FindPrevious(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T result)
 		{
 			return ColaStore.FindPrevious<T>(m_levels, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
 		}
@@ -767,7 +767,6 @@ namespace Doxense.Collections.Generic
 
 		public bool RemoveItem(T item)
 		{
-			T _;
 			int level = Find(item, out var offset, out _);
 			if (level < 0) return false;
 			_ = RemoveAt(level, offset);
@@ -1121,21 +1120,21 @@ namespace Doxense.Collections.Generic
 		public void Debug_Dump(Func<T, string>? dump = null)
 		{
 #if DEBUG
-			Trace.WriteLine("> " + m_levels.Length + " levels:");
+			System.Diagnostics.Trace.WriteLine("> " + m_levels.Length + " levels:");
 			for(int i = 0; i < m_levels.Length; i++)
 			{
-				string s = dump == null ? String.Join(", ", m_levels[i]) : String.Join(", ", m_levels[i].Select(dump));
-				Trace.WriteLine(String.Format(CultureInfo.InvariantCulture, "  - {0,2}|{1}: {2}", i, IsFree(i) ? "_" : "#", s));
+				string s = dump == null ? string.Join(", ", m_levels[i]) : string.Join(", ", m_levels[i].Select(dump));
+				System.Diagnostics.Trace.WriteLine(string.Format(CultureInfo.InvariantCulture, "  - {0,2}|{1}: {2}", i, IsFree(i) ? "_" : "#", s));
 			}
 #if false
-			Trace.WriteLine("> " + m_spares.Length + " spares:");
+			System.Diagnostics.Trace.WriteLine("> " + m_spares.Length + " spares:");
 			for (int i = 0; i < m_spares.Length; i++)
 			{
 				var spare = m_spares[i];
-				Trace.WriteLine(String.Format(CultureInfo.InvariantCulture, "> {0,2}: {1}", i, spare == null ? "<unallocated>" : String.Join(", ", spare)));
+				System.Diagnostics.Trace.WriteLine(string.Format(CultureInfo.InvariantCulture, "> {0,2}: {1}", i, spare == null ? "<unallocated>" : String.Join(", ", spare)));
 			}
 #endif
-			Trace.WriteLine("> " + m_count + " items");
+			System.Diagnostics.Trace.WriteLine("> " + m_count + " items");
 #endif
 		}
 
@@ -1175,19 +1174,19 @@ namespace Doxense.Collections.Generic
 			private void Debug_Dump(string? label = null)
 			{
 #if FULL_DEBUG
-				Trace.WriteLine("* Cursor State: " + label);
+				System.Diagnostics.Trace.WriteLine("* Cursor State: " + label);
 				for (int i = m_min; i < m_cursors.Length; i++)
 				{
 					if (ColaStore.IsFree(i, m_count))
 					{
-						Trace.WriteLine("  - L" + i + ": unallocated");
+						System.Diagnostics.Trace.WriteLine("  - L" + i + ": unallocated");
 						continue;
 					}
 
 					int p = m_cursors[i];
-					Trace.WriteLine("  - L" + i + ": " + p + " [" + (1 << i) + "] = " + (p < 0 ? "<BEFORE>" : (p >= (1 << i)) ? "<AFTER>" : ("" + m_levels[i][p])));
+					System.Diagnostics.Trace.WriteLine("  - L" + i + ": " + p + " [" + (1 << i) + "] = " + (p < 0 ? "<BEFORE>" : (p >= (1 << i)) ? "<AFTER>" : ("" + m_levels[i][p])));
 				}
-				Trace.WriteLine(" > Current at " + m_currentLevel + " : " + m_current);
+				System.Diagnostics.Trace.WriteLine(" > Current at " + m_currentLevel + " : " + m_current);
 #endif
 			}
 

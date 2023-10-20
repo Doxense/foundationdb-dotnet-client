@@ -24,14 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-//README: Importé de l'ancien FoundationDB.Storage.Memory
-//TODO: => pourrait être remplacé par les RangeSet de PoneyDB!
-
 namespace Doxense.Collections.Generic
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
@@ -70,6 +66,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="index">Absolute index in a COLA array where 0 is the root, 1 is the first item of level 1, and so on</param>
 		/// <param name="offset">Receive the offset in the level that contains <paramref name="index"/> is located</param>
 		/// <returns>Level that contains the specified location.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int FromIndex(int index, out int offset)
 		{
 			Contract.Debug.Requires(index >= 0);
@@ -84,9 +81,11 @@ namespace Doxense.Collections.Generic
 		/// <param name="level">Level of the location (0 for the root)</param>
 		/// <param name="offset">Offset within the level of the location</param>
 		/// <returns>Absolute index where 0 is the root, 1 is the first item of level 1, and so on</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int ToIndex(int level, int offset)
 		{
 			Contract.Debug.Requires(level >= 0 && level < 31 && offset >= 0 && offset < (1 << level));
+
 			int index = (1 << level) - 1 + offset;
 			Contract.Debug.Ensures(index >= 0 && index < 1 << level);
 			return index;
@@ -128,11 +127,11 @@ namespace Doxense.Collections.Generic
 		/// <summary>Computes the (level, offset) pair from a value offset (in the allocated levels)</summary>
 		/// <param name="count">Number of items in the COLA array</param>
 		/// <param name="arrayIndex">Offset of the value in the allocated levels of the COLA array, with 0 being the oldest (first item of the last allocated level)</param>
+		/// <param name="offset"></param>
 		/// <returns>Absolute index of the location where that value would be stored in the COLA array (from the top)</returns>
 		public static int MapOffsetToLocation(int count, int arrayIndex, out int offset)
 		{
-			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
-			if (arrayIndex < 0 || arrayIndex >= count) throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index is outside the array");
+			Contract.Debug.Requires(count >= 0 && arrayIndex >= 0 && arrayIndex < count);
 
 			if (count == 0)
 			{ // special case for the empty array
@@ -168,7 +167,6 @@ namespace Doxense.Collections.Generic
 		public static int MapLocationToOffset(int count, int level, int offset)
 		{
 			Contract.Debug.Assert(count >= 0 && level >= 0 && offset >= 0 && offset < 1 << level);
-			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
 
 			if (count == 0)
 			{ // special case for the empty array
@@ -190,9 +188,10 @@ namespace Doxense.Collections.Generic
 			return p + offset;
 		}
 
-		internal static void ThrowDuplicateKey<T>(T value)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		internal static InvalidOperationException ErrorDuplicateKey<T>(T value)
 		{
-			throw new InvalidOperationException(String.Format("Cannot insert '{0}' because the key already exists in the set", value));
+			return new InvalidOperationException($"Cannot insert '{value}' because the key already exists in the set");
 		}
 
 		internal static int BinarySearch<T>(T[] array, int offset, int count, T value, IComparer<T> comparer)
@@ -257,7 +256,7 @@ namespace Doxense.Collections.Generic
 			Contract.Debug.Requires(segment != null && segment.Length == 2);
 
 			int c = comparer.Compare(left, right);
-			if (c == 0) ThrowDuplicateKey(right);
+			if (c == 0) throw ErrorDuplicateKey(right);
 			else if (c < 0)
 			{
 				segment[0] = left;
@@ -283,7 +282,7 @@ namespace Doxense.Collections.Generic
 			int p = BinarySearch(segment, 0, segment.Length, value, comparer);
 			if (p >= 0)
 			{ // this is not supposed to happen!
-				ThrowDuplicateKey(value);
+				throw ErrorDuplicateKey(value);
 			}
 
 			int index = (~p);
@@ -480,7 +479,7 @@ namespace Doxense.Collections.Generic
 				if (IsFree(i, count)) continue;
 
 				var segment = levels[i];
-				int pos = ColaStore.BinarySearch<T>(segment, 0, segment.Length, value, comparer);
+				int pos = BinarySearch<T>(segment, 0, segment.Length, value, comparer);
 				if (pos >= 0)
 				{ // we found an exact match in this segment
 					if (orEqual)
@@ -529,10 +528,10 @@ namespace Doxense.Collections.Generic
 			// scan each segment for a value that would be smaller, keep track of the smallest found
 			for (int i = 0; i < levels.Length; i++)
 			{
-				if (ColaStore.IsFree(i, count)) continue;
+				if (IsFree(i, count)) continue;
 
 				var segment = levels[i];
-				int pos = ColaStore.BinarySearch<T>(segment, 0, segment.Length, value, comparer);
+				int pos = BinarySearch<T>(segment, 0, segment.Length, value, comparer);
 				// the previous item in this segment should be smaller
 				if (pos < 0)
 				{ // it is not 
@@ -569,11 +568,11 @@ namespace Doxense.Collections.Generic
 			{
 				for (int i = 0; i < levels.Length; i++)
 				{
-					if (ColaStore.IsFree(i, count)) continue;
+					if (IsFree(i, count)) continue;
 
 					var segment = levels[i];
 
-					int to = ColaStore.BinarySearch<T>(segment, 0, segment.Length, end, comparer);
+					int to = BinarySearch<T>(segment, 0, segment.Length, end, comparer);
 					if (to >= 0)
 					{
 						if (!endOrEqual)
@@ -587,7 +586,7 @@ namespace Doxense.Collections.Generic
 					}
 					if (to < 0 || to >= segment.Length) continue;
 
-					int from = ColaStore.BinarySearch<T>(segment, 0, segment.Length, begin, comparer);
+					int from = BinarySearch<T>(segment, 0, segment.Length, begin, comparer);
 					if (from >= 0)
 					{
 						if (!beginOrEqual)
@@ -624,11 +623,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>The index of the level that returned the value, or -1 if all levels are done</returns>
 		internal static int IterateFindNext<T>(T[][] inputs, int[] cursors, int min, int max, IComparer<T> comparer, out T result)
 		{
-			Contract.Debug.Requires(inputs != null);
-			Contract.Debug.Requires(cursors != null);
-			Contract.Debug.Requires(min >= 0);
-			Contract.Debug.Requires(max >= min, $"{max} >= {min}");
-			Contract.Debug.Requires(comparer != null);
+			Contract.Debug.Requires(inputs != null && cursors != null && min >= 0 && max >= min && comparer != null);
 
 			int index = NOT_FOUND;
 			int pos = NOT_FOUND;
@@ -663,7 +658,7 @@ namespace Doxense.Collections.Generic
 				return index;
 			}
 
-			result = default(T);
+			result = default;
 			return NOT_FOUND;
 		}
 
@@ -715,7 +710,7 @@ namespace Doxense.Collections.Generic
 				return index;
 			}
 
-			result = default(T);
+			result = default;
 			return NOT_FOUND;
 		}
 
@@ -739,15 +734,15 @@ namespace Doxense.Collections.Generic
 				var cursors = new int[inputs.Length];
 				for (int i = 0; i < cursors.Length; i++)
 				{
-					if (ColaStore.IsFree(i, count))
+					if (IsFree(i, count))
 					{
 						cursors[i] = NOT_FOUND;
 					}
 				}
 
 				// pre compute the first/last active level
-				int min = ColaStore.LowestBit(count);
-				int max = ColaStore.HighestBit(count);
+				int min = LowestBit(count);
+				int max = HighestBit(count);
 
 				while (count-- > 0)
 				{
@@ -789,7 +784,7 @@ namespace Doxense.Collections.Generic
 
 			for (int i = 0; i < inputs.Length; i++)
 			{
-				if (ColaStore.IsFree(i, count)) continue;
+				if (IsFree(i, count)) continue;
 				var segment = inputs[i];
 				Contract.Debug.Assert(segment != null && segment.Length == 1 << i);
 				for (int j = 0; j < segment.Length; j++)
@@ -799,9 +794,10 @@ namespace Doxense.Collections.Generic
 			}
 		}
 
-		internal static void ThrowStoreVersionChanged()
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		internal static InvalidOperationException ErrorStoreVersionChanged()
 		{
-			throw new InvalidOperationException("The version of the store has changed. This usually means that the collection has been modified while it was being enumerated");
+			return new InvalidOperationException("The version of the store has changed. This usually means that the collection has been modified while it was being enumerated");
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
@@ -818,9 +814,9 @@ namespace Doxense.Collections.Generic
 			{
 				m_items = items;
 				m_reverse = reverse;
-				m_cursors = ColaStore.CreateCursors(m_items.Count, out m_min);
+				m_cursors = CreateCursors(m_items.Count, out m_min);
 				m_max = m_cursors.Length - 1;
-				m_current = default(T);
+				m_current = default;
 				Contract.Ensures(m_max >= m_min);
 			}
 
@@ -834,11 +830,11 @@ namespace Doxense.Collections.Generic
 				int pos;
 				if (m_reverse)
 				{
-					pos = ColaStore.IterateFindPrevious(m_items.Levels, m_cursors, m_min, m_max, m_items.Comparer, out m_current);
+					pos = IterateFindPrevious(m_items.Levels, m_cursors, m_min, m_max, m_items.Comparer, out m_current);
 				}
 				else
 				{
-					pos = ColaStore.IterateFindNext(m_items.Levels, m_cursors, m_min, m_max, m_items.Comparer, out m_current);
+					pos = IterateFindNext(m_items.Levels, m_cursors, m_min, m_max, m_items.Comparer, out m_current);
 				}
 
 				if (pos == NOT_FOUND)
@@ -874,14 +870,11 @@ namespace Doxense.Collections.Generic
 				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...
 			}
 
-			object System.Collections.IEnumerator.Current
-			{
-				get { return m_current; }
-			}
+			object System.Collections.IEnumerator.Current => m_current;
 
 			void System.Collections.IEnumerator.Reset()
 			{
-				m_cursors = ColaStore.CreateCursors(m_items.Count, out m_min);
+				m_cursors = CreateCursors(m_items.Count, out m_min);
 				m_max = m_cursors.Length - 1;
 				m_current = default(T);
 				Contract.Ensures(m_max >= m_min);

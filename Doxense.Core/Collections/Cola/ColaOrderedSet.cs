@@ -24,20 +24,21 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-//README: Importé de l'ancien FoundationDB.Storage.Memory
-//TODO: => pourrait être remplacé par les RangeSet de PoneyDB!
-
 namespace Doxense.Collections.Generic
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
-	/// <summary>Represent an ordered set of elements, stored in a Cache Oblivous Lookup Array</summary>
+	/// <summary>Represent an ordered set of elements, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>
 	/// <remarks>Inserts are in O(LogN) amortized. Lookups are in O(Log(N))</remarks>
+	[PublicAPI]
+	[DebuggerDisplay("Count={m_items.Count}"), DebuggerTypeProxy(typeof(ColaOrderedSet<>.DebugView))]
 	public class ColaOrderedSet<T> : IEnumerable<T>
 	{
 		private const int NOT_FOUND = -1;
@@ -241,6 +242,28 @@ namespace Doxense.Collections.Generic
 #endif
 		}
 
+		/// <summary>Debug view helper</summary>
+		private sealed class DebugView
+		{
+			private readonly ColaOrderedSet<T> m_set;
+
+			public DebugView(ColaOrderedSet<T> set)
+			{
+				m_set = set;
+			}
+
+			[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+			public T[] Items
+			{
+				get
+				{
+					var tmp = new T[m_set.Count];
+					m_set.CopyTo(tmp, 0);
+					return tmp;
+				}
+			}
+		}
+
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Enumerator : IEnumerator<T>, IDisposable
 		{
@@ -255,11 +278,12 @@ namespace Doxense.Collections.Generic
 				m_iterator = new ColaStore.Enumerator<T>(parent.m_items, reverse);
 			}
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool MoveNext()
 			{
 				if (m_version != m_parent.m_version)
 				{
-					ColaStore.ThrowStoreVersionChanged();
+					throw ColaStore.ErrorStoreVersionChanged();
 				}
 
 				return m_iterator.MoveNext();
@@ -272,13 +296,13 @@ namespace Doxense.Collections.Generic
 				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...
 			}
 
-			object System.Collections.IEnumerator.Current => m_iterator.Current;
+			object? System.Collections.IEnumerator.Current => m_iterator.Current;
 
 			void System.Collections.IEnumerator.Reset()
 			{
 				if (m_version != m_parent.m_version)
 				{
-					ColaStore.ThrowStoreVersionChanged();
+					throw ColaStore.ErrorStoreVersionChanged();
 				}
 				m_iterator = new ColaStore.Enumerator<T>(m_parent.m_items, m_iterator.Reverse);
 			}
