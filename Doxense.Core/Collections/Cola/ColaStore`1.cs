@@ -1224,15 +1224,18 @@ namespace Doxense.Collections.Generic
 				int minLevel = NOT_FOUND;
 
 				var cursors = m_cursors;
+				var levels = m_levels;
+				var cmp = m_comparer;
+				var count = m_count;
 
 				for (int i = m_min; i < cursors.Length; i++)
 				{
-					if (ColaStore.IsFree(i, m_count)) continue;
+					if (ColaStore.IsFree(i, count)) continue;
 
 					cursors[i] = 0;
-					var segment = m_levels[i];
+					var segment = levels[i];
 					Contract.Debug.Assert(segment != null && segment.Length == 1 << i);
-					if (minLevel < 0 || m_comparer.Compare(segment[0], min) < 0)
+					if (minLevel < 0 || cmp.Compare(segment[0], min) < 0)
 					{
 						min = segment[0];
 						minLevel = i;
@@ -1278,8 +1281,6 @@ namespace Doxense.Collections.Generic
 
 				return maxLevel >= 0;
 			}
-
-
 
 			/// <summary>Seek the iterator at the smallest value that is less (or equal) to the desired item</summary>
 			/// <param name="item">Item to seek to</param>
@@ -1365,6 +1366,7 @@ namespace Doxense.Collections.Generic
 				if (m_currentLevel < 0) return false;
 
 				var cursors = m_cursors;
+				var levels = m_levels;
 				var count = m_count;
 
 				var prev = m_current;
@@ -1382,11 +1384,15 @@ namespace Doxense.Collections.Generic
 					// we know that the current is the largest value of all the current cursors. Since we want even larger than that, we have to increment ALL the cursors
 					for (int i = m_min; i < cursors.Length; i++)
 					{
-						if (!ColaStore.IsFree(i, count) && ((pos = cursors[i]) < m_levels[i].Length)) cursors[i] = pos + 1;
+						if (!ColaStore.IsFree(i, count) && ((pos = cursors[i]) < levels[i].Length))
+						{
+							cursors[i] = pos + 1;
+						}
 					}
 					Debug_Dump("Next:reverse");
 				}
 
+				var cmp = m_comparer;
 				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (ColaStore.IsFree(i, count)) continue;
@@ -1394,16 +1400,16 @@ namespace Doxense.Collections.Generic
 					pos = cursors[i];
 					if (pos < 0) continue; //??
 
-					var segment = m_levels[i];
+					var segment = levels[i];
 
 					var x = default(T);
-					while(pos < segment.Length && m_comparer.Compare((x = segment[pos]), prev) < 0)
+					while(pos < segment.Length && cmp.Compare((x = segment[pos]), prev) < 0)
 					{ // cannot be less than the previous value
 						cursors[i] = ++pos;
 					}
 					if (pos >= segment.Length) continue;
 
-					if (minLevel < 0 || m_comparer.Compare(x, min) < 0)
+					if (minLevel < 0 || cmp.Compare(x, min) < 0)
 					{ // new minimum
 						min = x;
 						minLevel = i;
@@ -1423,6 +1429,7 @@ namespace Doxense.Collections.Generic
 				if (m_currentLevel < 0) return false;
 
 				var cursors = m_cursors;
+				var levels = m_levels;
 				var count = m_count;
 
 				var prev = m_current;
@@ -1440,27 +1447,31 @@ namespace Doxense.Collections.Generic
 					// we know that the current is the smallest value of all the current cursors. Since we want even smaller than that, we have to decrement ALL the cursors
 					for (int i = m_min; i < cursors.Length; i++)
 					{
-						if (!ColaStore.IsFree(i, count) && ((pos = cursors[i]) >= 0)) cursors[i] = pos - 1;
+						if (!ColaStore.IsFree(i, count) && ((pos = cursors[i]) >= 0))
+						{
+							cursors[i] = pos - 1;
+						}
 					}
 					Debug_Dump("Previous:reverse");
 				}
 
+				var cmp = m_comparer;
 				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (ColaStore.IsFree(i, count)) continue;
 
 					pos = cursors[i];
-					var segment = m_levels[i];
+					var segment = levels[i];
 					if (pos >= segment.Length) continue; //??
 
 					var x = default(T);
-					while (pos >= 0 && m_comparer.Compare((x = segment[pos]), prev) > 0)
+					while (pos >= 0 && cmp.Compare((x = segment[pos]), prev) > 0)
 					{ // cannot be more than the previous value
 						cursors[i] = --pos;
 					}
 					if (pos < 0) continue;
 
-					if (maxLevel < 0 || m_comparer.Compare(x, max) > 0)
+					if (maxLevel < 0 || cmp.Compare(x, max) > 0)
 					{ // new maximum
 						max = x;
 						maxLevel = i;
@@ -1481,8 +1492,12 @@ namespace Doxense.Collections.Generic
 
 			/// <summary>Direction of the last operation</summary>
 			public int Direction => m_direction;
-		}
 
+			/// <summary>Current position of the cursor</summary>
+			/// <remarks>This can be used to efficiently "remove" an item if we already know its location</remarks>
+			internal (int Level, int Offset) Position => (m_currentLevel, m_cursors[m_currentLevel]);
+
+		}
 
 	}
 

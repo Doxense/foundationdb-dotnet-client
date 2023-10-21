@@ -771,7 +771,76 @@ namespace Doxense.Collections.Generic
 								//   [-------)..           [-------)..
 								// + [=======)        + [==========)
 								// = [=======)..      = [==========)..
+
 								cursor.Set(entry);
+
+								// It is possible that we just "repainted" a gap with the same color has the preceding and/or following entry.
+								// We will attempt to merge these entry back into a single entry (to prevent fragmentation)
+
+								// capture current position (allow faster deletion later on)
+								var pos = iterator.Position;
+
+								if (iterator.Previous())
+								{
+									var prev = iterator.Current;
+									Entry? next = null;
+
+									// we want to check also the one after us, which require jump back 2 slots
+									//TODO: having the ability to "snapshot" the level cursors inside the iterator would be helpful here!
+									if (iterator.Next() && iterator.Next())
+									{
+										next = iterator.Current;
+									}
+
+									if (prev != null && cmp.Compare(prev.End, begin) == 0 && m_valueComparer.Equals(prev.Value, value))
+									{ // the previous is contiguous and with the same value, it can be merged!
+										if (next != null && cmp.Compare(next.Begin, end) == 0 && m_valueComparer.Equals(next.Value, value))
+										{ // merge all three into a single contiguous
+
+											//   [=======)       [=====)..
+											// +         [=======)
+											// = [=====================)..
+
+											prev.End = next.End;
+											m_items.RemoveAt(pos.Level, pos.Offset);
+											m_items.RemoveItem(next);
+										}
+										else
+										{ // only merge with the previous
+
+											//   [=======)          [=====)..       [=======)       [-------)..
+											// +         [=======)                          [=======)
+											// = [===============)  [=====)..       [===============|-------)..
+
+											prev.End = end;
+											m_items.RemoveAt(pos.Level, pos.Offset);
+										}
+									}
+									else if (next != null && cmp.Compare(next.Begin, end) == 0 && m_valueComparer.Equals(next.Value, value))
+									{ // the next one is contigious and with the same value, it can be merged!
+
+										//   [=======)          [=====)..       [-------)       [=====)..
+										// +            [=======)                       [=======)
+										// = [=======)  [=============)..       [-------|=============)
+
+										next.Begin = begin;
+										m_items.RemoveAt(pos.Level, pos.Offset);
+									}
+								}
+								else if (iterator.SeekFirst() && iterator.Next())
+								{ // there was no previous entry, but still check the next one
+									var next = iterator.Current;
+									if (next != null && cmp.Compare(next.Begin, end) == 0 && m_valueComparer.Equals(next.Value, value))
+									{ // the next one is contigious and with the same value, it can be merged!
+
+										//   x        [=====)..
+										// + x[=======)
+										// = x[=============)..
+
+										next.Begin = begin;
+										m_items.RemoveAt(pos.Level, pos.Offset);
+									}
+								}
 								return;
 							}
 
@@ -860,7 +929,7 @@ namespace Doxense.Collections.Generic
 							}
 
 							// cursor: existing range that we need to either delete or mutate
-							cursor = iterator.Current;
+							cursor = iterator.Current!;
 
 							c1 = cmp.Compare(cursor.Begin, end);
 							if (c1 == 0)
@@ -877,7 +946,7 @@ namespace Doxense.Collections.Generic
 											entry.End = cursor.End;
 										}
 										//note: we can't really delete while iterating with a cursor, so just mark it for deletion
-										if (deleted == null) deleted = new List<Entry>();
+										deleted ??= new List<Entry>();
 										deleted.Add(cursor);
 									}
 									else
@@ -922,9 +991,8 @@ namespace Doxense.Collections.Generic
 								else
 								{
 									//note: we can't really delete while iterating with a cursor, so just mark it for deletion
-									if (deleted == null) deleted = new List<Entry>();
+									deleted ??= new List<Entry>();
 									deleted.Add(cursor);
-
 								}
 							}
 							else
@@ -939,7 +1007,7 @@ namespace Doxense.Collections.Generic
 							}
 						}
 
-						if (deleted != null && deleted.Count > 0)
+						if (deleted is { Count: > 0 })
 						{
 							m_items.RemoveItems(deleted);
 						}

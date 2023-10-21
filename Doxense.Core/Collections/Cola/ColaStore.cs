@@ -51,7 +51,6 @@ namespace Doxense.Collections.Generic
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static bool IsFree(int level, int count)
 		{
-			Contract.Debug.Requires(level >= 0 && count >= 0);
 			return (count & (1 << level)) == 0;
 		}
 
