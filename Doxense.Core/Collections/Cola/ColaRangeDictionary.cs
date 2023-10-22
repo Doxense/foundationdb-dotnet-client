@@ -1155,9 +1155,8 @@ namespace Doxense.Collections.Generic
 		/// <summary>Checks if there is at least one range in the dictionary that intersects with the specified range, and matches the predicate</summary>
 		/// <param name="begin">Lower bound of the intersection</param>
 		/// <param name="end">Higher bound (excluded) of the intersection</param>
-		/// <param name="arg">Value that is passed as the second argument to <paramref name="predicate"/></param>
 		/// <param name="predicate">Predicate called for each intersected range.</param>
-		/// <param name="match"></param>
+		/// <param name="match">Receives the first matching entry, if there is one.</param>
 		/// <returns>True if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
 		public bool Intersect(TKey begin, TKey end, Func<TValue?, bool> predicate, [MaybeNullWhen(false)] out Entry match)
 		{
@@ -1203,7 +1202,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="end">Higher bound (excluded) of the intersection</param>
 		/// <param name="arg">Value that is passed as the second argument to <paramref name="predicate"/></param>
 		/// <param name="predicate">Predicate called for each intersected range.</param>
-		/// <param name="match"></param>
+		/// <param name="match">Receives the first matching entry, if there is one.</param>
 		/// <returns>True if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
 		public bool Intersect<TArg>(TKey begin, TKey end, TArg arg, Func<TValue?, TArg, bool> predicate, [MaybeNullWhen(false)] out Entry match)
 		{
@@ -1242,6 +1241,42 @@ namespace Doxense.Collections.Generic
 			while(iterator.Next());
 
 			return false;
+		}
+
+		/// <summary>Enumerate all the keys in the dictionary that are in the specified range</summary>
+		/// <param name="begin">Start of the range</param>
+		/// <param name="end">End of the range</param>
+		/// <returns>Sequence of the all the ranges in the dictionary that intersect the specified range.</returns>
+		/// <remarks>The dictionary should not be modified while iterating over the sequence.</remarks>
+		public IEnumerable<(TKey Begin, TKey End, TValue Value)> Scan(TKey begin, TKey end)
+		{
+			// return the unordered list of all the keys that are between the begin/end pair.
+			// each bound is included in the list if its corresponding 'orEqual' is set to true
+
+			if (m_items.Count > 0)
+			{
+				var iter = m_items.GetIterator();
+				if (!iter.Seek(new Entry(begin, default, default), orEqual: true))
+				{ // starts before
+					iter.SeekFirst();
+				}
+
+				do
+				{
+					var cursor = iter.Current!;
+					if (m_keyComparer.Compare(cursor.End, begin) <= 0)
+					{ // ends before the end of the range
+						yield break;
+					}
+					if (m_keyComparer.Compare(cursor.Begin, end) >= 0)
+					{ // starts after the end of the range
+						yield break;
+					}
+
+					yield return (cursor.Begin!, cursor.End!, cursor.Value!);
+				}
+				while (iter.Next());
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
