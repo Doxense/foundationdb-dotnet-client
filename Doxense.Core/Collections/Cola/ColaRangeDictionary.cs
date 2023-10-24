@@ -873,8 +873,11 @@ namespace Doxense.Collections.Generic
 								//       [========)
 								// = [---|========)
 
-								cursor.End = begin;
-								m_items.Insert(entry);
+								if (!m_valueComparer.Equals(cursor.Value, value))
+								{
+									cursor.End = begin;
+									m_items.Insert(entry);
+								}
 								return;
 							}
 
@@ -884,9 +887,12 @@ namespace Doxense.Collections.Generic
 								//       [=====)
 								// = [---|=====|--)
 
-								var tmp = new Entry(end, cursor.End, cursor.Value);
-								cursor.End = begin;
-								m_items.InsertItems(entry, tmp);
+								if (!m_valueComparer.Equals(cursor.Value, value))
+								{
+									var tmp = new Entry(end, cursor.End, cursor.Value);
+									cursor.End = begin;
+									m_items.InsertItems(entry, tmp);
+								}
 								return;
 							}
 
