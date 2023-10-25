@@ -27,6 +27,7 @@
 namespace Doxense.IO.Hashing
 {
 	using System;
+	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
@@ -155,7 +156,7 @@ namespace Doxense.IO.Hashing
 			byte* p = input;
 			if (p == null)
 			{
-				// autorise le null pointer (UNIQUEMENT si len == 0)!
+				// only allow a null pointer if length is 0
 				if (len > 0) throw new ArgumentNullException(nameof(input));
 				p = (byte*) 16;
 			}
@@ -231,6 +232,193 @@ namespace Doxense.IO.Hashing
 			h64 ^= h64 >> 29;
 			h64 *= PRIME64_3;
 			h64 ^= h64 >> 32;
+			return h64;
+		}
+
+		/// <summary>Context for computing the hash in a streaming scenario</summary>
+		[DebuggerDisplay("Total={Total}, Seed={Seed}")]
+		public struct StreamContext
+		{
+
+			public StreamContext(ulong seed)
+			{
+				this.Seed = seed;
+				this.Total = 0;
+				this.V1 = seed + PRIME64_1 + PRIME64_2;
+				this.V2 = seed + PRIME64_2;
+				this.V3 = seed + 0;
+				this.V4 = seed - PRIME64_1;
+			}
+
+			/// <summary>Seed for this hash computation</summary>
+			public readonly ulong Seed;
+
+			/// <summary>Number of bytes written to this context</summary>
+			public ulong Total;
+
+			// internal coefficient updated when appending chunks of at least 32 bytes
+
+			internal ulong V1;
+			internal ulong V2;
+			internal ulong V3;
+			internal ulong V4;
+
+		}
+
+		/// <summary>Start a new streaming context</summary>
+		/// <param name="seed">Seed for the computation</param>
+		/// <returns>Instance that should be passed by reference to <see cref="AppendData"/> or <see cref="CompleteStream"/></returns>
+		public static StreamContext StartStream(ulong seed)
+		{
+			return new StreamContext(seed);
+		}
+
+		/// <summary>Append the next chunk of data to a running hash computation</summary>
+		/// <param name="state">Streaming context (created by <see cref="StartStream"/>)</param>
+		/// <param name="input">New chunk of data to append</param>
+		/// <returns>Number of bytes consumed from <paramref name="input"/>.</returns>
+		/// <remarks>
+		/// <para>This method will only consume multiples of 32 bytes chunks.</para>
+		/// <para>If <see cref="input"/> is smaller than 32 bytes, nothing will be done and the method will return 0.</para>
+		/// <para>If the method returns less than the size of <paramref name="input"/>, the caller is responsible for keeping track the extra bytes that were not consume, and present them again on the next call, once more data is available.</para>
+		/// </remarks>
+		public static unsafe int AppendData(ref StreamContext state, ReadOnlySpan<byte> input)
+		{
+			fixed (byte* pInput = input)
+			{
+				return (int) AppendDataUnsafe(ref state, pInput, (uint) input.Length);
+			}
+		}
+
+		internal static unsafe uint AppendDataUnsafe(ref StreamContext state, byte* input, uint len)
+		{
+			Contract.Debug.Requires(input != null || len == 0);
+			Contract.Debug.Requires(BitConverter.IsLittleEndian, "Not implemented for Big Endian architectures !");
+
+			if (input == null) throw new ArgumentNullException(nameof(input));
+
+			byte* p = input;
+			byte* bEnd = input + len;
+
+			if (len < 32) return 0;
+
+			ulong* p64 = (ulong*) p;
+			ulong* limit = (ulong*) (bEnd - 32);
+			ulong v1 = state.V1;
+			ulong v2 = state.V2;
+			ulong v3 = state.V3;
+			ulong v4 = state.V4;
+
+			do
+			{
+				// for(# in 1..4) => v# += XXH_get64bits(p) * PRIME64_2; p+=8; v# = XXH_rotl64(v#, 31); v# *= PRIME64_1;
+				v1 += *(p64 + 0) * PRIME64_2;
+				v1 = ((v1 << 31) | (v1 >> (64 - 31))) * PRIME64_1;
+				v2 += *(p64 + 1) * PRIME64_2;
+				v2 = ((v2 << 31) | (v2 >> (64 - 31))) * PRIME64_1;
+				v3 += *(p64 + 2) * PRIME64_2;
+				v3 = ((v3 << 31) | (v3 >> (64 - 31))) * PRIME64_1;
+				v4 += *(p64 + 3) * PRIME64_2;
+				v4 = ((v4 << 31) | (v4 >> (64 - 31))) * PRIME64_1;
+				p64 += 4; // note: 4 x sizeof(ulong) == 32
+			} while (p64 <= limit);
+
+			state.V1 = v1;
+			state.V2 = v2;
+			state.V3 = v3;
+			state.V4 = v4;
+
+			state.Total += len & 0xFFFFFFE0;
+
+			return len & 0xFFFFFFE0;
+		}
+
+		/// <summary>Append the last chunk of data and complete the hash computation for a stream</summary>
+		/// <param name="state">Streaming context (created by <see cref="StartStream"/>, and updated by calling <see cref="AppendData"/>)</param>
+		/// <param name="final">Final chunk of data that MUST be smaller than 32 bytes.</param>
+		/// <returns>Hashcode for the stream.</returns>
+		public static unsafe ulong CompleteStream(ref StreamContext state, ReadOnlySpan<byte> final)
+		{
+			fixed (byte* pInput = final)
+			{
+				return CompleteStreamUnsafe(ref state, pInput, (uint) final.Length);
+			}
+		}
+
+		internal static unsafe ulong CompleteStreamUnsafe(ref StreamContext state, byte* input, uint len)
+		{
+			state.Total += len;
+			ulong totalLength = state.Total;
+
+			byte* p = input;
+			if (p == null)
+			{
+				// only allow a null pointer if length is 0
+				if (len > 0) throw new ArgumentNullException(nameof(input));
+				p = (byte*) 16;
+			}
+
+			byte* bEnd = p + len;
+			ulong h64;
+
+			if (totalLength >= 32)
+			{
+				ulong* p64 = (ulong*) p;
+				ulong* limit = (ulong*) (bEnd - 32);
+				var v1 = state.V1;
+				var v2 = state.V2;
+				var v3 = state.V3;
+				var v4 = state.V4;
+
+				// h64 = XXH_rotl64(v1, 1) + XXH_rotl64(v2, 7) + XXH_rotl64(v3, 12) + XXH_rotl64(v4, 18)
+				h64 = ((v1 << 1) | (v1 >> (64 - 1))) + ((v2 << 7) | (v2 >> (64 - 7))) + ((v3 << 12) | (v3 >> (64 - 12))) + ((v4 << 18) | (v4 >> (64 - 18)));
+
+				// for(# in 1..4) =>
+				//	v# *= PRIME64_2; v# = XXH_rotl64(v#, 31); v# *= PRIME64_1; h64 ^= v#;
+				//	h64 = h64 * PRIME64_1 + PRIME64_4;
+
+				v1 *= PRIME64_2; v1 = ((v1 << 31) | (v1 >> (64 - 31))) * PRIME64_1; h64 ^= v1; h64 = h64 * PRIME64_1 + PRIME64_4;
+				v2 *= PRIME64_2; v2 = ((v2 << 31) | (v2 >> (64 - 31))) * PRIME64_1; h64 ^= v2; h64 = h64 * PRIME64_1 + PRIME64_4;
+				v3 *= PRIME64_2; v3 = ((v3 << 31) | (v3 >> (64 - 31))) * PRIME64_1; h64 ^= v3; h64 = h64 * PRIME64_1 + PRIME64_4;
+				v4 *= PRIME64_2; v4 = ((v4 << 31) | (v4 >> (64 - 31))) * PRIME64_1; h64 ^= v4; h64 = h64 * PRIME64_1 + PRIME64_4;
+
+				p = (byte*) p64;
+			}
+			else
+			{
+				h64 = state.Seed + PRIME64_5;
+			}
+
+			h64 += (ulong) totalLength;
+
+			while (p <= bEnd - 8)
+			{
+				ulong k1;
+				k1 = *((ulong*) p) * PRIME64_2; k1 = ((k1 << 31) | (k1 >> (64 - 31))) * PRIME64_1; h64 ^= k1;
+				h64 = ((h64 << 27) | (h64 >> (64 - 27))) * PRIME64_1 + PRIME64_4;
+				p += 8;
+			}
+
+			if (p <= bEnd - 4)
+			{
+				h64 ^= *((uint*) p) * PRIME64_1;
+				h64 = ((h64 << 23) | (h64 >> (64 - 23))) * PRIME64_2 + PRIME64_3;
+				p += 4;
+			}
+
+			while (p < bEnd)
+			{
+				h64 ^= (*p) * PRIME64_5;
+				h64 = ((h64 << 11) | (h64 >> (64 - 11))) * PRIME64_1;
+				p++;
+			}
+
+			h64 ^= h64 >> 33;
+			h64 *= PRIME64_2;
+			h64 ^= h64 >> 29;
+			h64 *= PRIME64_3;
+			h64 ^= h64 >> 32;
+
 			return h64;
 		}
 
