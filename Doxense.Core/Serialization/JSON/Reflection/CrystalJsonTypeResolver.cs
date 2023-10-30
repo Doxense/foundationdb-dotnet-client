@@ -291,7 +291,11 @@ namespace Doxense.Serialization.Json
 			return DefaultArrayBinders.GetOrAdd(type ?? typeof(object), JsonArrayBinderCallback)(this, array);
 		}
 
-		public static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder(Type? type)
+		public static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
+#endif
+			Type? type)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindArray(" + type + ", " + array + ")");
@@ -675,36 +679,36 @@ namespace Doxense.Serialization.Json
 			Attribute? attr;
 			if (hasDataContract)
 			{ // il doit avoir l'attribute "DataMember" pour etre sélectionné
-				if (!member.TryGetCustomAttribute("DataMemberAttribute", true, out attr) || attr == null)
+				if (!member.TryGetCustomAttribute(nameof(System.Runtime.Serialization.DataMemberAttribute), true, out attr) || attr == null)
 				{ // skip!
 					return false;
 				}
 				// regarde s'il override le nom...
-				name = attr.GetProperty<string>("Name") ?? name;
+				name = attr.GetProperty<string>(nameof(System.Runtime.Serialization.DataMemberAttribute.Name)) ?? name;
 			}
 			else
 			{ // regarde du coté des attributs de sérialisation XML
 
 				// il ne doit pas avoir l'attribute "XmlIgnore"
-				if (member.TryGetCustomAttribute("XmlIgnoreAttribute", true, out attr) && attr != null)
+				if (member.TryGetCustomAttribute(nameof(System.Xml.Serialization.XmlIgnoreAttribute), true, out attr) && attr != null)
 				{ // skip!
 					return false;
 				}
 
-				// il ne doit pas avoir d'attribut "JsonIgnore"
+				// il ne doit pas avoir d'attribut "JsonIgnore" (from JSON.NET)
 				if (member.TryGetCustomAttribute("JsonIgnoreAttribute", true, out attr) && attr != null)
 				{ // skip!
 					return false;
 				}
 
 				// recherche un attribut qui contiendrait le nom désiré
-				if (member.TryGetCustomAttribute("XmlElementAttribute", true, out attr) && attr != null)
+				if (member.TryGetCustomAttribute(nameof(System.Xml.Serialization.XmlElementAttribute), true, out attr) && attr != null)
 				{ // [XmlElement(ElementName="xxx")]
-					name = attr.GetProperty<string>("ElementName") ?? name;
+					name = attr.GetProperty<string>(nameof(System.Xml.Serialization.XmlElementAttribute.ElementName)) ?? name;
 				}
-				else if (member.TryGetCustomAttribute("XmlAttributeAttribute", true, out attr) && attr != null)
+				else if (member.TryGetCustomAttribute(nameof(System.Xml.Serialization.XmlAttributeAttribute), true, out attr) && attr != null)
 				{ // [XmlAttribute(AttributeName="xxx")]
-					name = attr.GetProperty<string>("AttributeName") ?? name;
+					name = attr.GetProperty<string>(nameof(System.Xml.Serialization.XmlAttributeAttribute.AttributeName)) ?? name;
 				}
 			}
 			return true;
@@ -759,7 +763,11 @@ namespace Doxense.Serialization.Json
 		}
 
 
-		public static CrystalJsonMemberDefinition[] GetMembersFromReflection(Type type)
+		public static CrystalJsonMemberDefinition[] GetMembersFromReflection(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
+#endif
+			Type type)
 		{
 			var members = new List<CrystalJsonMemberDefinition>();
 
@@ -987,7 +995,13 @@ namespace Doxense.Serialization.Json
 			return generator;
 		}
 
-		private static CrystalJsonTypeBinder? FindCustomBinder(Type type, out Func<object>? generator, CrystalJsonMemberDefinition[] members)
+		private static CrystalJsonTypeBinder? FindCustomBinder(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
+#endif
+			Type type,
+			out Func<object>? generator,
+			CrystalJsonMemberDefinition[] members)
 		{
 			generator = null;
 			CrystalJsonTypeBinder? binder;
@@ -1061,7 +1075,11 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		private static ConstructorInfo? FindJsonConstructor(Type type)
+		private static ConstructorInfo? FindJsonConstructor(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+#endif
+			Type type)
 		{
 			foreach (var ctor in type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
 			{
@@ -1092,7 +1110,12 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		private static CrystalJsonTypeBinder? CreateBinderForAnonymousType(Type type, CrystalJsonMemberDefinition[] members)
+		private static CrystalJsonTypeBinder? CreateBinderForAnonymousType(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+#endif
+			Type type,
+			CrystalJsonMemberDefinition[] members)
 		{
 			// récupère la liste des propriétés
 			var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(prop => prop.CanRead && !prop.CanWrite).ToArray();
@@ -1505,7 +1528,11 @@ namespace Doxense.Serialization.Json
 			return new InvalidOperationException($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonObject");
 		}
 
-		private static CrystalJsonTypeBinder? CreateBinderForKeyValuePair(Type type)
+		private static CrystalJsonTypeBinder? CreateBinderForKeyValuePair(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+			Type type)
 		{
 			var args = type.GetGenericArguments();
 			if (args.Length != 2) return null; // <= on ne supporte que les KeyValuePair<K, V>

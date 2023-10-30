@@ -31,6 +31,7 @@ namespace Doxense.Diagnostics.Contracts
 	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
@@ -550,7 +551,11 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception? TryMapToComplexException(Type exceptionType, string message, string? paramName)
+		public static Exception? TryMapToComplexException(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+			Type exceptionType, string message, string? paramName)
 		{
 			ConstructorInfo? constructor;
 

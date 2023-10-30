@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
@@ -83,7 +84,12 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Type déclaré par l'objet parent</param>
 		/// <param name="atRuntime">Si true, <paramref name="type"/> est le type réel de l'instance. Si false, c'est potentiellement un type de base, tel que déclaré dans le Field ou Property du parent</param>
 		/// <returns>Delegate capable de sérialiser ce type en JSON</returns>
-		private static CrystalJsonTypeVisitor CreateVisitorForType(Type type, bool atRuntime)
+		private static CrystalJsonTypeVisitor CreateVisitorForType(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.Interfaces)]
+#endif
+			Type type,
+			bool atRuntime)
 		{
 			//	Type		Primitive	ValueType	Class	Enum	Interface
 			// string		   _           _          X       _
@@ -124,7 +130,7 @@ namespace Doxense.Serialization.Json
 				// ie: le writer de la classe va regarder le type de l'objet au moment de la sérialisation, et
 				// reswitcher vers le bon writer. Si c'est vraiment un object (cad un new object()), la on écrit "{ }".
 				if (atRuntime)
-					return (v, t, r, writer) => { writer.WriteEmptyObject(); };
+					return (_, _, _, writer) => { writer.WriteEmptyObject(); };
 				else
 					return VisitObjectAtRuntime;
 			}
@@ -156,7 +162,7 @@ namespace Doxense.Serialization.Json
 
 			if (type.IsInstanceOf<System.Xml.XmlNode>())
 			{
-				return (v, t, r, writer) => writer.WriteValue(((System.Xml.XmlNode?) v)?.OuterXml);
+				return (v, _, r, writer) => writer.WriteValue(((System.Xml.XmlNode?) v)?.OuterXml);
 			}
 
 			if (type.IsInstanceOf<System.Collections.IEnumerable>())
@@ -167,7 +173,7 @@ namespace Doxense.Serialization.Json
 			if (type.IsInterface)
 			{ // pour les interfaces, il faut consulter le type au runtime, et sérialiser CELUI LA !
 				if (atRuntime)
-					return (v, t, r, writer) => writer.WriteEmptyObject();
+					return (_, _, _, writer) => writer.WriteEmptyObject();
 				else
 					return VisitInterfaceAtRuntime;
 			}
@@ -176,38 +182,38 @@ namespace Doxense.Serialization.Json
 
 			if (typeof(System.Text.StringBuilder) == type)
 			{
-				return (v, t, r, writer) => writer.WriteValue(v as System.Text.StringBuilder);
+				return (v, _, _, writer) => writer.WriteValue(v as System.Text.StringBuilder);
 			}
 
 			if (typeof(System.Net.IPAddress) == type)
 			{
-				return (v, t, r, writer) => writer.WriteValue(v as System.Net.IPAddress);
+				return (v, _, _, writer) => writer.WriteValue(v as System.Net.IPAddress);
 			}
 
 			if (typeof(System.Version) == type)
 			{
-				return (v, t, r, writer) => writer.WriteValue(v as System.Version);
+				return (v, _, _, writer) => writer.WriteValue(v as System.Version);
 			}
 
 			if (typeof(System.Uri) == type)
 			{
-				return (v, t, r, writer) => writer.WriteValue(v as System.Uri);
+				return (v, _, _, writer) => writer.WriteValue(v as System.Uri);
 			}
 
 			// obligé de faire un IsAssignableFrom il y a plein de types dérivés pour tous les différents types de timezone...
 			if (typeof(NodaTime.DateTimeZone).IsAssignableFrom(type))
 			{
-				return (v, t, r, writer) => writer.WriteValue(v as NodaTime.DateTimeZone);
+				return (v, _, _, writer) => writer.WriteValue(v as NodaTime.DateTimeZone);
 			}
 			// obligé de faire un IsAssignableFrom il y a plein de types dérivés pour tous les différents types de timezone...
 			if (typeof(NodaTime.DateTimeZone).IsAssignableFrom(type))
 			{
-				return (v, t, r, writer) => writer.WriteValue(v as NodaTime.DateTimeZone);
+				return (v, _, _, writer) => writer.WriteValue(v as NodaTime.DateTimeZone);
 			}
 
 			if (typeof(Type).IsAssignableFrom(type))
 			{
-				return (v, t, r, writer) => writer.WriteValue(((JsonString) JsonString.Return((Type) v!)).Value);
+				return (v, _, _, writer) => writer.WriteValue(((JsonString) JsonString.Return((Type) v!)).Value);
 			}
 			#endregion
 
@@ -220,7 +226,11 @@ namespace Doxense.Serialization.Json
 			writer.WriteValue(value as string);
 		}
 
-		private static CrystalJsonTypeVisitor? TryGetSerializeMethodVisitor(Type type)
+		private static CrystalJsonTypeVisitor? TryGetSerializeMethodVisitor(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
+#endif
+			Type type)
 		{
 			//Duck Typing: on reconnaît les patterns suivants
 			// - static JsonSerialize(T, CrystalJsonWriter) => JsonValue (ou dérivée)
@@ -243,7 +253,11 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		private static CrystalJsonTypeVisitor? TryGetBindableMethodVisitor(Type type)
+		private static CrystalJsonTypeVisitor? TryGetBindableMethodVisitor(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
+#endif
+			Type type)
 		{
 			//Duck Typing: on reconnaît les patterns suivants
 			// - static JsonPack(T instance, ...) => JsonValue (ou dérivée)
@@ -272,60 +286,60 @@ namespace Doxense.Serialization.Json
 		{
 			if (typeof (bool) == type)
 			{ // Boolean
-				return (v, t, r, writer) => writer.WriteValue((bool) v!);
+				return (v, _, _, writer) => writer.WriteValue((bool) v!);
 			}
 			if (typeof(byte) == type)
 			{ // UInt8
-				return (v, t, r, writer) => writer.WriteValue((int) (byte) v!);
+				return (v, _, _, writer) => writer.WriteValue((int) (byte) v!);
 			}
 			if (typeof(sbyte) == type)
 			{ // Int8
-				return (v, t, r, writer) => writer.WriteValue((sbyte) v!);
+				return (v, _, _, writer) => writer.WriteValue((sbyte) v!);
 			}
 			if (typeof (short) == type)
 			{ // Int16
-				return (v, t, r, writer) => writer.WriteValue((short) v!);
+				return (v, _, _, writer) => writer.WriteValue((short) v!);
 			}
 			if (typeof (ushort) == type)
 			{ // UInt16
-				return (v, t, r, writer) => writer.WriteValue((uint) (ushort) v!);
+				return (v, _, _, writer) => writer.WriteValue((uint) (ushort) v!);
 			}
 			if (typeof (int) == type)
 			{ // Int32
-				return (v, t, r, writer) => writer.WriteValue((int) v!);
+				return (v, _, _, writer) => writer.WriteValue((int) v!);
 			}
 			if (typeof (uint) == type)
 			{ // Int32
-				return (v, t, r, writer) => writer.WriteValue((uint) v!);
+				return (v, _, _, writer) => writer.WriteValue((uint) v!);
 			}
 			if (typeof (long) == type)
 			{ // Int64
-				return (v, t, r, writer) => writer.WriteValue((long) v!);
+				return (v, _, _, writer) => writer.WriteValue((long) v!);
 			}
 			if (typeof (ulong) == type)
 			{ // Int64
-				return (v, t, r, writer) => writer.WriteValue((ulong) v!);
+				return (v, _, _, writer) => writer.WriteValue((ulong) v!);
 			}
 			if (typeof (float) == type)
 			{ // Single
-				return (v, t, r, writer) => writer.WriteValue((float) v!);
+				return (v, _, _, writer) => writer.WriteValue((float) v!);
 			}
 			if (typeof (double) == type)
 			{ // Double
-				return (v, t, r, writer) => writer.WriteValue((double) v!);
+				return (v, _, _, writer) => writer.WriteValue((double) v!);
 			}
 			if (typeof (char) == type)
 			{ // char
-				return (v, t, r, writer) => writer.WriteValue((char) v!);
+				return (v, _, _, writer) => writer.WriteValue((char) v!);
 			}
 
 			if (type.IsInstanceOf<IConvertible>())
 			{ // le type sait se convertir tout seul !
-				return (v, t, r, writer) => writer.WriteRaw(((IConvertible) v!).ToString(CultureInfo.InvariantCulture));
+				return (v, _, _, writer) => writer.WriteRaw(((IConvertible) v!).ToString(CultureInfo.InvariantCulture));
 			}
 
 			// ramasse miette pour les sbyte, uint64 et autres ...
-			return (v, t, r, writer) => writer.WriteRaw(v!.ToString()!);
+			return (v, _, _, writer) => writer.WriteRaw(v!.ToString()!);
 		}
 
 		/// <summary>Génère le convertisseur pour un Nullable&lt;T&gt; (int?, bool?, TimeSpan?, Enum?, ...)</summary>
@@ -338,7 +352,7 @@ namespace Doxense.Serialization.Json
 			var visitor = GetVisitorForType(realType, atRuntime: false);
 			if (visitor == null) throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeNullableType(type);
 			// note: pour éviter de tout dupliquer, on utiliser un delegate avec une closure (donc il sera pas static comme les autres :( )
-			return (v, t, r, writer) =>
+			return (v, _, r, writer) =>
 			{
 				if (v == null)
 					writer.WriteNull(); // "null"
@@ -456,7 +470,7 @@ namespace Doxense.Serialization.Json
 
 			if (args[0] == typeof(byte))
 			{ // byte => Base64
-				return (v, t, r, w) => w.WriteBuffer(((ArraySegment<byte>) v!).AsSlice());
+				return (v, _, _, w) => w.WriteBuffer(((ArraySegment<byte>) v!).AsSlice());
 			}
 			else
 			{ // T => array
@@ -505,47 +519,47 @@ namespace Doxense.Serialization.Json
 		{
 			if (type == typeof (DateTime))
 			{ // DateTime
-				return (v, t, r, writer) => writer.WriteValue((DateTime) v!);
+				return (v, _, _, writer) => writer.WriteValue((DateTime) v!);
 			}
 
 			if (type == typeof (TimeSpan))
 			{
-				return (v, t, r, writer) => writer.WriteValue((TimeSpan) v!);
+				return (v, _, _, writer) => writer.WriteValue((TimeSpan) v!);
 			}
 
 			if (type == typeof (Guid))
 			{ // Guid
-				return (v, t, r, writer) => writer.WriteValue((Guid) v!);
+				return (v, _, _, writer) => writer.WriteValue((Guid) v!);
 			}
 
 			if (type == typeof (DateTimeOffset))
 			{ // DateTime
-				return (v, t, r, writer) => writer.WriteValue((DateTimeOffset) v!);
+				return (v, _, _, writer) => writer.WriteValue((DateTimeOffset) v!);
 			}
 
 			if (type == typeof (decimal))
 			{ // decimal (mais peut être n'importe quoi dans la pratique !)
-				return (v, t, r, writer) => writer.WriteValue((decimal) v!);
+				return (v, _, _, writer) => writer.WriteValue((decimal) v!);
 			}
 
 			if (type == typeof(Uuid128))
 			{ // 128-bit UUID
-				return (v, t, r, writer) => writer.WriteValue((Uuid128) v!);
+				return (v, _, _, writer) => writer.WriteValue((Uuid128) v!);
 			}
 
 			if (type == typeof(Uuid96))
 			{ // 96-bit UUID
-				return (v, t, r, writer) => writer.WriteValue((Uuid96) v!);
+				return (v, _, _, writer) => writer.WriteValue((Uuid96) v!);
 			}
 
 			if (type == typeof(Uuid80))
 			{ // 80-bit UUID
-				return (v, t, r, writer) => writer.WriteValue((Uuid80) v!);
+				return (v, _, _, writer) => writer.WriteValue((Uuid80) v!);
 			}
 
 			if (type == typeof(Uuid64))
 			{ // 64-bit UUID
-				return (v, t, r, writer) => writer.WriteValue((Uuid64) v!);
+				return (v, _, _, writer) => writer.WriteValue((Uuid64) v!);
 			}
 
 
@@ -570,7 +584,7 @@ namespace Doxense.Serialization.Json
 				}
 				else
 				{ // sinon on va passer par le chemin classique (plus lent)
-					return (v, t, r, writer) => writer.WriteEnum((Enum) v!);
+					return (v, _, _, writer) => writer.WriteEnum((Enum) v!);
 				}
 			}
 
@@ -588,16 +602,16 @@ namespace Doxense.Serialization.Json
 
 			if (type == typeof(Slice))
 			{
-				return (v, t, r, writer) => writer.WriteBuffer((Slice) v!);
+				return (v, _, _, writer) => writer.WriteBuffer((Slice) v!);
 			}
 
 			if (type == typeof (System.Drawing.Color))
 			{ // Color => on sérialise le ".Name"
 #if !NET461 && !NET472
 				//TODO: HACKHACK: how to convert color into HTML name in .NET Standard 2.0 ?
-				return (v, t, r, writer) => writer.WriteValue(((System.Drawing.Color) v!).ToString());
+				return (v, _, _, writer) => writer.WriteValue(((System.Drawing.Color) v!).ToString());
 #else
-				return (v, t, r, writer) => writer.WriteValue(System.Drawing.ColorTranslator.ToHtml((System.Drawing.Color) v));
+				return (v, _, _, writer) => writer.WriteValue(System.Drawing.ColorTranslator.ToHtml((System.Drawing.Color) v));
 #endif
 			}
 
@@ -605,35 +619,35 @@ namespace Doxense.Serialization.Json
 
 			if (type == typeof (NodaTime.Instant))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.Instant) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.Instant) v!);
 			}
 			if (type == typeof (NodaTime.Duration))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.Duration) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.Duration) v!);
 			}
 			if (type == typeof (NodaTime.LocalDateTime))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.LocalDateTime) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.LocalDateTime) v!);
 			}
 			if (type == typeof (NodaTime.ZonedDateTime))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.ZonedDateTime) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.ZonedDateTime) v!);
 			}
 			if (type == typeof (NodaTime.Offset))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.Offset) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.Offset) v!);
 			}
 			if (type == typeof (NodaTime.OffsetDateTime))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.OffsetDateTime) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.OffsetDateTime) v!);
 			}
 			if (type == typeof (NodaTime.LocalDate))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.LocalDate) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.LocalDate) v!);
 			}
 			if (type == typeof (NodaTime.LocalTime))
 			{
-				return (v, t, r, writer) => writer.WriteValue((NodaTime.LocalTime) v!);
+				return (v, _, _, writer) => writer.WriteValue((NodaTime.LocalTime) v!);
 			}
 
 			#endregion
@@ -645,22 +659,26 @@ namespace Doxense.Serialization.Json
 		private static CrystalJsonTypeVisitor CreateCachedEnumVisitor(Type type)
 		{
 			var cache = EnumStringTable.GetCacheForType(type);
-			return (v, t, r, writer) => writer.WriteEnum((Enum) v!, cache);
+			return (v, _, _, writer) => writer.WriteEnum((Enum) v!, cache);
 		}
 
 		/// <summary>Génère le convertisseur pour un type énumérable (tableau, liste, dictionnaire, ...)</summary>
 		/// <param name="type">Type implémentant IEnumerable</param>
 		/// <returns>Delegate capable de sérialiser ce type en JSON</returns>
-		private static CrystalJsonTypeVisitor CreateVisitorForEnumerableType(Type type)
+		private static CrystalJsonTypeVisitor CreateVisitorForEnumerableType(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+#endif
+			Type type)
 		{
 			if (type.IsInstanceOf<ICollection<KeyValuePair<string, string>>>())
 			{ // Key/Value store
-				return (v, t, r, writer) => VisitStringDictionary(v as ICollection<KeyValuePair<string, string>>, writer);
+				return (v, _, _, writer) => VisitStringDictionary(v as ICollection<KeyValuePair<string, string>>, writer);
 			}
 
 			if (type.IsInstanceOf<ICollection<KeyValuePair<string, object>>>())
 			{ // Key/Value store / ExpandoObject
-				return (v, t, r, writer) => VisitGenericObjectDictionary(v as ICollection<KeyValuePair<string, object>>, writer);
+				return (v, _, _, writer) => VisitGenericObjectDictionary(v as ICollection<KeyValuePair<string, object>>, writer);
 			}
 
 			if (type.IsInstanceOf<IVarTuple>())
@@ -701,12 +719,12 @@ namespace Doxense.Serialization.Json
 			if (type.IsArray)
 			{ // c'est un tableau : T[]
 				var elemType = type.GetElementType() ?? throw new InvalidOperationException("Failed to get array element type for " + type.Name);
-				return CompileGenericVisitorMethod(nameof(VisitArrayInternal), "VisitArray", elemType);
+				return CompileGenericVisitorMethod(nameof(VisitArrayInternal), nameof(VisitArray), elemType);
 			}
 
 			if (type.IsInstanceOf<IEnumerable<string>>())
 			{ // Enumeration de strings
-				return (v, t, r, writer) => VisitEnumerableOfString((IEnumerable<string>?) v, writer);
+				return (v, _, _, writer) => VisitEnumerableOfString((IEnumerable<string>?) v, writer);
 			}
 
 			// est-ce un IEnumerable<T> ?
@@ -742,39 +760,39 @@ namespace Doxense.Serialization.Json
 
 		private static CrystalJsonTypeVisitor CreateIEnumerableVisitor(Type itemType)
 		{
-			return (v, t, r, writer) => VisitEnumerable(v as IEnumerable, itemType, writer);
+			return (v, _, _, writer) => VisitEnumerable(v as IEnumerable, itemType, writer);
 		}
 
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor(Type keyType, Type valueType)
 		{
-			return (v, t, r, writer) => VisitDictionary((IDictionary?) v, keyType, valueType, writer);
+			return (v, _, _, writer) => VisitDictionary((IDictionary?) v, keyType, valueType, writer);
 		}
 
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_StringKeyAndValue()
 		{
-			return (v, t, r, writer) => VisitDictionary_StringKeyAndValue((IDictionary<string, string>?) v , writer);
+			return (v, _, _, writer) => VisitDictionary_StringKeyAndValue((IDictionary<string, string>?) v , writer);
 		}
 
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_StringKey(Type valueType)
 		{
 			var visitor = GetVisitorForType(valueType, atRuntime: false);
-			return (v, t, r, writer) => VisitDictionary_StringKey(v as IDictionary, valueType, visitor, writer);
+			return (v, _, _, writer) => VisitDictionary_StringKey(v as IDictionary, valueType, visitor, writer);
 		}
 		
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_Int32Key_StringValue()
 		{
-			return (v, t, r, writer) => VisitDictionary_Int32Key_StringValue((IDictionary<int, string>?) v, writer);
+			return (v, _, _, writer) => VisitDictionary_Int32Key_StringValue((IDictionary<int, string>?) v, writer);
 		}
 		
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_Int32Key(Type valueType)
 		{
 			var visitor = GetVisitorForType(valueType, atRuntime: false);
-			return (v, t, r, writer) => VisitDictionary_Int32Key(v as IDictionary, valueType, visitor, writer);
+			return (v, _, _, writer) => VisitDictionary_Int32Key(v as IDictionary, valueType, visitor, writer);
 		}
 		
 		private static CrystalJsonTypeVisitor CreateByteBufferVisitor()
 		{
-			return (v, t, r, writer) => writer.WriteBuffer(v as byte[]);
+			return (v, _, _, writer) => writer.WriteBuffer(v as byte[]);
 		}
 
 		/// <summary>Génère le convertisseur pour un type respectant le pattern JsonSerializable static</summary>
@@ -1044,7 +1062,7 @@ namespace Doxense.Serialization.Json
 
 		private static CrystalJsonTypeVisitor CompileGenericVisitorMethod(string methodName, string visitorName, Type type)
 		{
-			var method = typeof(CrystalJsonVisitor).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic)!;
+			var method = typeof(CrystalJsonVisitor).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
 			Contract.Debug.Assert(method != null);
 			method = method!.MakeGenericMethod(type);
 			var prms = new[] {
@@ -1076,7 +1094,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			var elemType = typeof(T);
-			var visitor = GetVisitorForType(elemType, false);
+			var visitor = GetVisitorForType(elemType, atRuntime: false);
 
 			// dans notre cas, on contient des string donc il n'y a pas de risque d'appels récursifs!
 			var state = writer.BeginArray();
@@ -1175,21 +1193,21 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(enumerable);
 
 			// il va falloir convertir les valeur en string ...
-			var enmr = enumerable.GetEnumerator();
+			var iter = enumerable.GetEnumerator();
 
 			try
 			{
-				if (enmr.MoveNext())
+				if (iter.MoveNext())
 				{
 					var state = writer.BeginArray();
 					// premier élément
 					writer.WriteHeadSeparator();
-					VisitValue(enmr.Current, elementType, writer);
+					VisitValue(iter.Current, elementType, writer);
 					// reste de la liste
-					while (enmr.MoveNext())
+					while (iter.MoveNext())
 					{
 						writer.WriteTailSeparator();
-						VisitValue(enmr.Current, elementType, writer);
+						VisitValue(iter.Current, elementType, writer);
 					}
 					writer.EndArray(state);
 				}
@@ -1201,7 +1219,7 @@ namespace Doxense.Serialization.Json
 			finally
 			{
 				// tous les IEnumerator ne sont pas disposables, mais tous les IEnumerator<T> le sont!
-				(enmr as IDisposable)?.Dispose();
+				(iter as IDisposable)?.Dispose();
 			}
 
 			writer.Leave(enumerable);
@@ -2055,7 +2073,7 @@ namespace Doxense.Serialization.Json
 							string name = child.Name;
 
 							// s'il y a deja un child avec le même nom, on va transformer en List
-							if (obj.TryGetValue(name, out JsonValue previous))
+							if (obj.TryGetValue(name, out var previous))
 							{
 								if (previous.IsArray)
 								{

@@ -116,7 +116,11 @@ namespace Doxense.Serialization
 		/// <param name="type">Type de l'objet à créer</param>
 		/// <returns>Fonction qui créer l'objet via un constructeur par défaut (sans paramètre), ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
 		[Pure]
-		public static Func<object>? CompileGenerator(this Type type)
+		public static Func<object>? CompileGenerator(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+#endif
+			this Type type)
 		{
 			Contract.Debug.Requires(type != null);
 			if (type.IsInterface || type.IsAbstract)
@@ -517,15 +521,16 @@ namespace Doxense.Serialization
 		/// <param name="name">Nom de la propriété de l'attribut recherchée</param>
 		/// <returns>Valeur de cette propriété, ou null</returns>
 		[Pure]
-		[return:MaybeNull]
-		public static T GetProperty<T>(this Attribute attribute, string name)
+		public static T? GetProperty<T>(
+			this Attribute attribute,
+			string name)
 		{
 			Contract.Debug.Requires(attribute != null && name != null);
 			var prop = attribute.GetType().GetProperty(name);
 			if (prop == null) return default!;
 			var get = prop.GetGetMethod();
 			if (get == null) return default!;
-			return (T) (get.Invoke(attribute, null));
+			return (T?) (get.Invoke(attribute, null));
 		}
 
 		#region Type Extension Methods..
@@ -555,7 +560,11 @@ namespace Doxense.Serialization
 		/// <param name="type">Type à instantier</param>
 		/// <returns>null, 0, false, DateTime.MinValue, ...</returns>
 		[Pure]
-		public static object? GetDefaultValue(this Type type)
+		public static object? GetDefaultValue(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+#endif
+			this Type type)
 		{
 			if (type.IsValueType)
 				return Activator.CreateInstance(type);
@@ -717,7 +726,15 @@ namespace Doxense.Serialization
 		/// <param name="types">Types arguments de la méthode générique</param>
 		/// <returns>Methode générique prête à l'emploi</returns>
 		[Pure]
-		public static MethodInfo? MakeGenericMethod(this Type type, string name, BindingFlags flags, params Type[] types)
+		public static MethodInfo? MakeGenericMethod(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
+#endif
+			this Type type,
+			string name,
+			BindingFlags flags,
+			params Type[] types
+		)
 		{
 			Contract.Debug.Requires(type != null && name != null && types != null && types.Length > 0);
 			var mi = type.GetMethod(name, flags);
@@ -747,7 +764,11 @@ namespace Doxense.Serialization
 		/// typeof(HashSet&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == false
 		/// </code></example>
 		[Pure]
-		public static bool IsGenericInstanceOf(this Type type, Type genericType)
+		public static bool IsGenericInstanceOf(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+#endif
+			this Type type, Type genericType)
 		{
 			return FindGenericType(type, genericType) != null;
 		}
@@ -757,7 +778,13 @@ namespace Doxense.Serialization
 		/// <param name="genericType">Type ou interface générique recherché (ex: IList&lt;&gt;)</param>
 		/// <returns>Version du type implémentée par cet objet (ex: IList&lt;string&gt;) ou null si cet objet n'implémente pas ce type</returns>
 		[Pure]
-		public static Type? FindGenericType(this Type type, Type genericType)
+		public static Type? FindGenericType(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+#endif
+			this Type type,
+			Type genericType
+		)
 		{
 			Contract.NotNull(genericType);
 

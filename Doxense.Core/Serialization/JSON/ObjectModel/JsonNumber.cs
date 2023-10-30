@@ -31,6 +31,7 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -1217,7 +1218,12 @@ namespace Doxense.Serialization.Json
 			return m_value.ToObject(m_kind);
 		}
 
-		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(
+#if USE_ANNOTATIONS
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+#endif
+			Type? type,
+			ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (type == null || type == typeof(object))
 			{
