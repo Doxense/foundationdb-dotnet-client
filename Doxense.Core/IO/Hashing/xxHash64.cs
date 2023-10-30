@@ -292,10 +292,14 @@ namespace Doxense.IO.Hashing
 
 		internal static unsafe uint AppendDataUnsafe(ref StreamContext state, byte* input, uint len)
 		{
-			Contract.Debug.Requires(input != null || len == 0);
 			Contract.Debug.Requires(BitConverter.IsLittleEndian, "Not implemented for Big Endian architectures !");
+			if (state is { V1: ulong.MaxValue, V2: ulong.MaxValue, V3: ulong.MaxValue, V4: ulong.MaxValue })
+			{
+				throw new InvalidOperationException("Streaming hash context has already been completed");
+			}
 
-			if (input == null) throw new ArgumentNullException(nameof(input));
+			if (len == 0) return 0;
+			Contract.PointerNotNull(input);
 
 			byte* p = input;
 			byte* bEnd = input + len;
@@ -347,8 +351,10 @@ namespace Doxense.IO.Hashing
 
 		internal static unsafe ulong CompleteStreamUnsafe(ref StreamContext state, byte* input, uint len)
 		{
-			state.Total += len;
-			ulong totalLength = state.Total;
+			if (state is { V1: ulong.MaxValue, V2: ulong.MaxValue, V3: ulong.MaxValue, V4: ulong.MaxValue })
+			{
+				throw new InvalidOperationException("Streaming hash context has already been completed");
+			}
 
 			byte* p = input;
 			if (p == null)
@@ -360,6 +366,9 @@ namespace Doxense.IO.Hashing
 
 			byte* bEnd = p + len;
 			ulong h64;
+
+			state.Total += len;
+			ulong totalLength = state.Total;
 
 			if (totalLength >= 32)
 			{
@@ -419,6 +428,10 @@ namespace Doxense.IO.Hashing
 			h64 *= PRIME64_3;
 			h64 ^= h64 >> 32;
 
+			state.V1 = ulong.MaxValue;
+			state.V2 = ulong.MaxValue;
+			state.V3 = ulong.MaxValue;
+			state.V4 = ulong.MaxValue;
 			return h64;
 		}
 
