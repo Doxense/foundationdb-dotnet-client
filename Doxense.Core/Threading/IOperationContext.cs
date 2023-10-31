@@ -175,7 +175,7 @@ namespace Doxense.Threading.Operations
 				return false;
 			}
 
-			if (!typeof(TResult).IsAssignableFrom(type))
+			if (value is not null && !typeof(TResult).IsAssignableFrom(type))
 			{
 				result = default;
 				error = new OperationError
