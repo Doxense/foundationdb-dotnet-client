@@ -659,13 +659,22 @@ namespace Doxense.Collections.Generic
 							}
 							else if (c2 < 0)
 							{
-								//   [----------)
-								// + [======)
-								// = [======|---)
 								if (!m_valueComparer.Equals(cursor.Value, value))
 								{
+									//   [----------)
+									// + [======)
+									// = [======|---)
+
 									cursor.Begin = end;
 									m_items.Insert(entry);
+								}
+								else
+								{
+									//   [==========)
+									// + [======)
+									// = [==========)
+
+									// no-op !
 								}
 							}
 							else
@@ -681,22 +690,44 @@ namespace Doxense.Collections.Generic
 						{ // entry is to the right
 							if (c2 >= 0)
 							{
-								//   [------)
-								// +     [=======)
-								// = [---|=======)
-
-								cursor.End = begin;
-								m_items.Insert(entry);
-								if (c2 > 0) m_bounds.End = end;
+								if (!m_valueComparer.Equals(value, cursor.Value))
+								{
+									//   [------)
+									// +     [=======)
+									// = [---|=======)
+									cursor.End = begin;
+									m_items.Insert(entry);
+									if (c2 > 0) m_bounds.End = end;
+								}
+								else
+								{
+									//   [======)
+									// +     [=======)
+									// = [===========)
+									cursor.End = end;
+									m_bounds.End = end;
+								}
 							}
 							else
 							{
-								//   [-----------)
-								// +     [====)
-								// = [---|====|--)
-								var tmp = new Entry(end, cursor.End, cursor.Value);
-								cursor.End = begin;
-								m_items.InsertItems(entry, tmp);
+								if (!m_valueComparer.Equals(value, cursor.Value))
+								{
+									//   [-----------)
+									// +     [====)
+									// = [---|====|--)
+
+									var tmp = new Entry(end, cursor.End, cursor.Value);
+									cursor.End = begin;
+									m_items.InsertItems(entry, tmp);
+								}
+								else
+								{
+									//   [===========)
+									// +     [====)
+									// = [===========)
+
+									// no-op!
+								}
 							}
 						}
 						else
