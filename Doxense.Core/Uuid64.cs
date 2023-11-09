@@ -380,11 +380,11 @@ namespace System
 			{
 				case "D":
 				{ // Default format is "xxxxxxxx-xxxxxxxx"
-					return Encode16(m_value, separator: true, quotes: false, upper: true);
+					return EncodeTwoParts(m_value, separator: '-', quotes: false, upper: true);
 				}
 				case "d":
 				{ // Default format is "xxxxxxxx-xxxxxxxx"
-					return Encode16(m_value, separator: true, quotes: false, upper: false);
+					return EncodeTwoParts(m_value, separator: '-', quotes: false, upper: false);
 				}
 
 				case "C":
@@ -407,22 +407,41 @@ namespace System
 				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "N":
 				{ // "XXXXXXXXXXXXXXXX"
-					return Encode16(m_value, separator: false, quotes: false, upper: true);
+					return EncodeOnePart(m_value, quotes: false, upper: true);
 				}
 				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "n":
 				{ // "xxxxxxxxxxxxxxxx"
-					return Encode16(m_value, separator: false, quotes: false, upper: false);
+					return EncodeOnePart(m_value, quotes: false, upper: false);
 				}
 
 				case "B":
-				{ // "{xxxxxxxx-xxxxxxxx}"
-					return Encode16(m_value, separator: true, quotes: true, upper: true);
+				{ // "{XXXXXXXX-XXXXXXXX}"
+					return EncodeTwoParts(m_value, separator: '-', quotes: true, upper: true);
 				}
 				case "b":
 				{ // "{xxxxxxxx-xxxxxxxx}"
-					return Encode16(m_value, separator: true, quotes: true, upper: false);
+					return EncodeTwoParts(m_value, separator: '-', quotes: true, upper: false);
 				}
+
+				case "V":
+				{ // "XX-XX-XX-XX-XX-XX-XX-XX"
+					return EncodeEightParts(m_value, separator: '-', quotes: false, upper: true);
+				}
+				case "v":
+				{ // "xx-xx-xx-xx-xx-xx-xx-xx"
+					return EncodeEightParts(m_value, separator: '-', quotes: false, upper: false);
+				}
+
+				case "M":
+				{ // "XX:XX:XX:XX:XX:XX:XX:XX"
+					return EncodeEightParts(m_value, separator: ':', quotes: false, upper: true);
+				}
+				case "m":
+				{ // "xx:xx:xx:xx:xx:xx:xx:xx"
+					return EncodeEightParts(m_value, separator: ':', quotes: false, upper: false);
+				}
+
 				default:
 				{
 					throw new FormatException("Invalid " + nameof(Uuid64) + " format specification.");
@@ -472,7 +491,15 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'a') : (char)(a + '0');
 		}
 
-		private static unsafe char* HexsToLowerChars(char* ptr, int a)
+		private static unsafe char* Hex8ToLowerChars(char* ptr, byte a)
+		{
+			Contract.Debug.Requires(ptr != null);
+			ptr[0] = HexToLowerChar(a >> 4);
+			ptr[1] = HexToLowerChar(a);
+			return ptr + 2;
+		}
+
+		private static unsafe char* Hex32ToLowerChars(char* ptr, int a)
 		{
 			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
@@ -493,7 +520,15 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'A') : (char)(a + '0');
 		}
 
-		private static unsafe char* HexsToUpperChars(char* ptr, int a)
+		private static unsafe char* Hex8ToUpperChars(char* ptr, int a)
+		{
+			Contract.Debug.Requires(ptr != null);
+			ptr[0] = HexToUpperChar(a >> 4);
+			ptr[1] = HexToUpperChar(a);
+			return ptr + 2;
+		}
+
+		private static unsafe char* Hex32ToUpperChars(char* ptr, int a)
 		{
 			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);
@@ -508,20 +543,99 @@ namespace System
 		}
 
 		[Pure]
-		private static unsafe string Encode16(ulong value, bool separator, bool quotes, bool upper)
+		private static unsafe string EncodeOnePart(ulong value, bool quotes, bool upper)
 		{
-			int size = 16 + (separator ? 1 : 0) + (quotes ? 2 : 0);
-			char* buffer = stackalloc char[24]; // max 19 mais on arrondi a 24
+			int size = 16 + (quotes ? 2 : 0);
+			char* buffer = stackalloc char[24]; // max 18 but round up to 24
 
 			char* ptr = buffer;
 			if (quotes) *ptr++ = '{';
-			ptr = upper
-				? HexsToUpperChars(ptr, (int)(value >> 32))
-				: HexsToLowerChars(ptr, (int)(value >> 32));
-			if (separator) *ptr++ = '-';
-			ptr = upper
-				? HexsToUpperChars(ptr, (int)(value & 0xFFFFFFFF))
-				: HexsToLowerChars(ptr, (int)(value & 0xFFFFFFFF));
+			if (upper)
+			{
+				ptr = Hex32ToUpperChars(ptr, (int) (value >> 32));
+				ptr = Hex32ToUpperChars(ptr, (int) (value & 0xFFFFFFFF));
+			}
+			else
+			{
+				ptr = Hex32ToLowerChars(ptr, (int) (value >> 32));
+				ptr = Hex32ToLowerChars(ptr, (int) (value & 0xFFFFFFFF));
+			}
+			if (quotes) *ptr++ = '}';
+
+			Contract.Debug.Ensures(ptr == buffer + size);
+			return new string(buffer, 0, size);
+		}
+
+		[Pure]
+		private static unsafe string EncodeTwoParts(ulong value, char separator, bool quotes, bool upper)
+		{
+			int size = 16 + 1 + (quotes ? 2 : 0);
+			char* buffer = stackalloc char[24]; // max 19 but round up to 24
+
+			char* ptr = buffer;
+			if (quotes) *ptr++ = '{';
+			if (upper)
+			{
+				ptr = Hex32ToUpperChars(ptr, (int) (value >> 32));
+				*ptr++ = separator;
+				ptr = Hex32ToUpperChars(ptr, (int) (value & 0xFFFFFFFF));
+			}
+			else
+			{
+				ptr = Hex32ToLowerChars(ptr, (int) (value >> 32));
+				*ptr++ = separator;
+				ptr = Hex32ToLowerChars(ptr, (int) (value & 0xFFFFFFFF));
+			}
+			if (quotes) *ptr++ = '}';
+
+			Contract.Debug.Ensures(ptr == buffer + size);
+			return new string(buffer, 0, size);
+		}
+
+		[Pure]
+		private static unsafe string EncodeEightParts(ulong value, char separator, bool quotes, bool upper)
+		{
+			int size = 16 + 7 + (quotes ? 2 : 0);
+			char* buffer = stackalloc char[32]; // max 25 but round up to 32
+
+			char* ptr = buffer;
+			if (quotes) *ptr++ = '{';
+			if (upper)
+			{
+				ptr = Hex8ToUpperChars(ptr, (byte) (value >> 56));
+				*ptr++ = separator;
+				ptr = Hex8ToUpperChars(ptr, (byte) (value >> 48));
+				*ptr++ = separator;
+				ptr = Hex8ToUpperChars(ptr, (byte) (value >> 40));
+				*ptr++ = separator;
+				ptr = Hex8ToUpperChars(ptr, (byte) (value >> 32));
+				*ptr++ = separator;
+				ptr = Hex8ToUpperChars(ptr, (byte) (value >> 24));
+				*ptr++ = separator;
+				ptr = Hex8ToUpperChars(ptr, (byte) (value >> 16));
+				*ptr++ = separator;
+				ptr = Hex8ToUpperChars(ptr, (byte) (value >> 8));
+				*ptr++ = separator;
+				ptr = Hex8ToUpperChars(ptr, (byte) value);
+			}
+			else
+			{
+				ptr = Hex8ToLowerChars(ptr, (byte) (value >> 56));
+				*ptr++ = separator;
+				ptr = Hex8ToLowerChars(ptr, (byte) (value >> 48));
+				*ptr++ = separator;
+				ptr = Hex8ToLowerChars(ptr, (byte) (value >> 40));
+				*ptr++ = separator;
+				ptr = Hex8ToLowerChars(ptr, (byte) (value >> 32));
+				*ptr++ = separator;
+				ptr = Hex8ToLowerChars(ptr, (byte) (value >> 24));
+				*ptr++ = separator;
+				ptr = Hex8ToLowerChars(ptr, (byte) (value >> 16));
+				*ptr++ = separator;
+				ptr = Hex8ToLowerChars(ptr, (byte) (value >> 8));
+				*ptr++ = separator;
+				ptr = Hex8ToLowerChars(ptr, (byte) value);
+			}
 			if (quotes) *ptr++ = '}';
 
 			Contract.Debug.Ensures(ptr == buffer + size);
