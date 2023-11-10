@@ -193,7 +193,7 @@ namespace Doxense.Memory
 			else
 			{
 				double x = this.Value * ByteSize.GetUnitRatio(this.Unit);
-				return x.ToString("R", CultureInfo.InvariantCulture) + " " + this.Unit.ToString();
+				return x.ToString("R", CultureInfo.InvariantCulture) + " " + GetUnitLiteral(this.Unit);
 			}
 		}
 

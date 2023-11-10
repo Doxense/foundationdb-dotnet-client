@@ -268,7 +268,7 @@ namespace Doxense.IO.Hashing
 		/// <summary>Start a new streaming context</summary>
 		/// <param name="seed">Seed for the computation</param>
 		/// <returns>Instance that should be passed by reference to <see cref="AppendData"/> or <see cref="CompleteStream"/></returns>
-		public static StreamContext StartStream(ulong seed)
+		public static StreamContext StartStream(ulong seed = INITIAL_SEED)
 		{
 			return new StreamContext(seed);
 		}
