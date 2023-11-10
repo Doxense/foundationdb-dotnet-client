@@ -18,10 +18,10 @@
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0-rc.2.23479.6" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="8.0.0-rc.2.23479.6" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23503-02" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23531-01" />
 		<PackageReference Include="NETStandard.Library" Version="2.0.3" />
 		<PackageReference Include="NodaTime.Testing" Version="3.1.9" />
-		<PackageReference Include="NUnit" Version="3.13.3" />
+		<PackageReference Include="NUnit" Version="3.14.0" />
 		<PackageReference Include="NUnit.Console" Version="3.16.3" />
 		<PackageReference Include="NUnit.ConsoleRunner" Version="3.16.3" />
 		<PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0-rc.2.23479.6" />
