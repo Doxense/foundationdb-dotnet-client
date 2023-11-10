@@ -20,8 +20,13 @@
 		<DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API;USE_ANNOTATIONS</DefineConstants>
 	</PropertyGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+	</ItemGroup>
+	
 	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
 	</ItemGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
@@ -34,7 +39,6 @@
 		<PackageReference Include="OpenTelemetry.Api" Version="1.6.0" />
 		<PackageReference Include="System.IO.Pipelines" Version="8.0.0-rc.2.23479.6" />
 		<PackageReference Include="System.Reflection.Metadata" Version="8.0.0-rc.2.23479.6" />
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="7.0.0-preview.2.22152.2" />
 		<PackageReference Include="System.Threading.Channels" Version="8.0.0-rc.2.23479.6" />
 	</ItemGroup>
 
