@@ -16,8 +16,8 @@
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<ItemGroup>
-		<PackageReference Include="System.Collections.Immutable" Version="8.0.0-rc.2.23479.6" />
-		<PackageReference Include="System.Threading.Channels" Version="8.0.0-rc.2.23479.6" />
+		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
+		<PackageReference Include="System.Threading.Channels" Version="8.0.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23531-01" />
 		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.9.0-preview-23531-01" />
 		<PackageReference Include="NodaTime.Testing" Version="3.1.9" />
