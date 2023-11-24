@@ -844,6 +844,53 @@ namespace System
 			return this.Span.IndexOfAny(values);
 		}
 
+#if NET8_0_OR_GREATER
+
+		/// <summary>Searches for the first index of any byte other than the specified <paramref name="values" />.</summary>
+		/// <param name="values">The values to avoid.</param>
+		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all of the byte are in <paramref name="values" />, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int IndexOfAnyExcept(ReadOnlySpan<byte> values)
+		{
+			return this.Span.IndexOfAnyExcept(values);
+		}
+
+		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int IndexOfAny(SearchValues<byte> values)
+		{
+			return this.Span.IndexOfAny(values);
+		}
+
+		/// <summary>Searches for the first index of any byte other than the specified <paramref name="values" />.</summary>
+		/// <param name="values">The values to avoid.</param>
+		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all of the byte are in <paramref name="values" />, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int IndexOfAnyExcept(SearchValues<byte> values)
+		{
+			return this.Span.IndexOfAnyExcept(values);
+		}
+
+		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool ContainsAny(SearchValues<byte> values)
+		{
+			return this.Span.ContainsAny(values);
+		}
+
+		/// <summary>Searches for the first index of any byte other than the specified <paramref name="values" />.</summary>
+		/// <param name="values">The values to avoid.</param>
+		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all of the byte are in <paramref name="values" />, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool ContainsAnyExcept(SearchValues<byte> values)
+		{
+			return this.Span.ContainsAnyExcept(values);
+		}
+
+#endif
+
 		/// <summary>Determines whether the beginning of this slice instance matches a specified slice.</summary>
 		/// <param name="value">The slice to compare. <see cref="Slice.Nil"/> is not allowed.</param>
 		/// <returns><b>true</b> if <paramref name="value"/> matches the beginning of this slice; otherwise, <b>false</b></returns>

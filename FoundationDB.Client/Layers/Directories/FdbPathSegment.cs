@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Buffers;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using JetBrains.Annotations;
@@ -61,7 +62,11 @@ namespace FoundationDB.Client
 
 		public bool IsEmpty => string.IsNullOrEmpty(this.Name);
 
+#if NET8_0_OR_GREATER
+		private static readonly SearchValues<char> EscapedLiterals = SearchValues.Create("\\/[]");
+#else
 		private static readonly char[] EscapedLiterals = "\\/[]".ToCharArray();
+#endif
 
 		private static string Escape(string value)
 		{
