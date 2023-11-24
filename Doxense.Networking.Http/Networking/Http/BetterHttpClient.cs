@@ -64,6 +64,8 @@ namespace Doxense.Networking.Http
 
 		public IClock Clock { get; }
 
+		public IServiceProvider Services { get; }
+
 		internal static readonly HttpRequestOptionsKey<BetterHttpClientContext> OptionKey = new ("BetterHttp");
 
 		internal sealed class MagicalHandler : DelegatingHandler
@@ -132,7 +134,8 @@ namespace Doxense.Networking.Http
 			BetterHttpClientOptions options,
 			HttpMessageHandler handler,
 			ILogger<BetterHttpClient> logger,
-			NodaTime.IClock? clock)
+			NodaTime.IClock? clock,
+			IServiceProvider services)
 		{
 			this.Id = CorrelationIdGenerator.GetNextId(); //BUGBUG: ca doit etre par requête! (le client est un singleton réutilisé plein de fois!)
 			this.HostAddress = hostAddress;
@@ -143,6 +146,7 @@ namespace Doxense.Networking.Http
 			this.Logger = logger;
 			this.Clock = clock ?? NodaTime.SystemClock.Instance;
 			this.CreatedAt = this.Clock.GetCurrentInstant();
+			this.Services = services;
 
 			this.Client = CreateClientState();
 		}
@@ -166,7 +170,19 @@ namespace Doxense.Networking.Http
 
 		private HttpClient CreateClient(HttpMessageHandler handler)
 		{
-			var client = new HttpClient(new MagicalHandler(handler), disposeHandler: true)
+			// add our own delegating handler that will be able to hook into the request lifecycle
+			handler = new MagicalHandler(handler);
+
+			// add any optional wrappers on top of that
+			if (this.Options.Handlers?.Count > 0)
+			{
+				foreach (var factory in this.Options.Handlers)
+				{
+					handler = factory(handler, this.Services);
+				}
+			}
+
+			var client = new HttpClient(handler, disposeHandler: true)
 			{
 				BaseAddress = this.HostAddress,
 				DefaultRequestVersion = this.Options.DefaultRequestVersion,

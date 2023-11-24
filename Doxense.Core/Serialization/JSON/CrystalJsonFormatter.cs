@@ -197,6 +197,7 @@ namespace Doxense.Serialization.Json
 		}
 
 
+#if ENABLE_TIMO_STRING_CONVERTER
 		private static readonly int[] s_digitPairs = ConstructDigitPairs();
 
 		private static int[] ConstructDigitPairs()
@@ -224,6 +225,7 @@ namespace Doxense.Serialization.Json
 			}
 			return map;
 		}
+#endif
 
 		internal static void WriteUnsignedIntegerUnsafe(TextWriter output, ulong value, char[] buf)
 		{

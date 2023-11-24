@@ -44,12 +44,15 @@ namespace Doxense.Networking.Http
 
 		private NodaTime.IClock Clock { get; }
 
-		public DefaultBetterHttpClientFactory(INetworkMap? map, IOptions<BetterHttpClientOptionsBuilder> optionsBuilder, ILogger<BetterHttpClient>? logger, NodaTime.IClock? clock)
+		private IServiceProvider Services { get; }
+
+		public DefaultBetterHttpClientFactory(INetworkMap? map, IOptions<BetterHttpClientOptionsBuilder> optionsBuilder, ILogger<BetterHttpClient>? logger, NodaTime.IClock? clock, IServiceProvider services)
 		{
 			this.Map = map;
 			this.Builder = optionsBuilder.Value;
 			this.Logger = logger ?? NullLogger<BetterHttpClient>.Instance;
 			this.Clock = clock ?? NodaTime.SystemClock.Instance;
+			this.Services = services;
 		}
 
 		public BetterHttpClient CreateClient(Uri hostAddress, BetterHttpClientOptions options, HttpMessageHandler? handler = null)
@@ -58,6 +61,7 @@ namespace Doxense.Networking.Http
 			Contract.NotNull(options);
 
 			options.Filters.AddRange(this.Builder.GlobalFilters);
+			options.Handlers.AddRange(this.Builder.GlobalHandlers);
 			this.Builder.Configure?.Invoke(options);
 
 			if (handler == null)
@@ -72,7 +76,8 @@ namespace Doxense.Networking.Http
 				options,
 				handler,
 				this.Logger,
-				this.Clock
+				this.Clock,
+				this.Services
 			);
 		}
 

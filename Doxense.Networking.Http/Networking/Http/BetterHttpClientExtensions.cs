@@ -29,6 +29,7 @@ namespace Doxense.Networking.Http
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Net.Http;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -37,7 +38,9 @@ namespace Doxense.Networking.Http
 
 		public Action<BetterHttpClientOptions>? Configure { get; set; }
 
-		public List<IBetterHttpFilter> GlobalFilters { get; set; } = new List<IBetterHttpFilter>();
+		public List<IBetterHttpFilter> GlobalFilters { get; set; } = new();
+
+		public List<Func<HttpMessageHandler, IServiceProvider, HttpMessageHandler>> GlobalHandlers { get; set; } = new();
 
 	}
 
@@ -52,7 +55,10 @@ namespace Doxense.Networking.Http
 				.AddOptions<BetterHttpClientOptionsBuilder>()
 				.Configure(options =>
 				{
-					if (configure != null) options.Configure += configure;
+					if (configure != null)
+					{
+						options.Configure += configure;
+					}
 				});
 			return services;
 		}
@@ -73,6 +79,18 @@ namespace Doxense.Networking.Http
 					var filter = sp.GetRequiredService<TFilter>();
 					configure?.Invoke(filter);
 					options.GlobalFilters.Add(filter);
+				});
+			return services;
+		}
+
+		/// <summary>Add a global HTTP message handler filter to all clients used by this process</summary>
+		public static IServiceCollection AddGlobalHttpHandler(this IServiceCollection services, Func<HttpMessageHandler, IServiceProvider, HttpMessageHandler> factory)
+		{
+			services
+				.AddOptions<BetterHttpClientOptionsBuilder>()
+				.Configure<IServiceProvider>((options, _) =>
+				{
+					options.GlobalHandlers.Add(factory);
 				});
 			return services;
 		}

@@ -39,26 +39,41 @@ namespace Doxense.Networking.Http
 	public record BetterHttpClientOptions
 	{
 
+		/// <summary>Optional hooks</summary>
+		/// <remarks>Mostly used for unit testing or low-level debugging</remarks>
 		public IBetterHttpHooks? Hooks { get; set; }
 
+		/// <summary>Default initial HTTP version for all requests</summary>
 		public Version DefaultRequestVersion { get; set; } = HttpVersion.Version11;
 
+		/// <summary>Default policy for selecting the HTTP version of a request</summary>
 		public HttpVersionPolicy DefaultVersionPolicy { get; set; } = HttpVersionPolicy.RequestVersionOrHigher;
 
-		public List<IBetterHttpFilter> Filters { get; } = new List<IBetterHttpFilter>();
+		/// <summary>List of filters that will be able to intercept and or modify the request and response</summary>
+		public List<IBetterHttpFilter> Filters { get; } = new();
 
-		public BetterDefaultHeaders DefaultRequestHeaders { get; set; } = new BetterDefaultHeaders();
+		/// <summary>List of wrappers that can be applied to the underlying HTTP message handler</summary>
+		public List<Func<HttpMessageHandler, IServiceProvider, HttpMessageHandler>> Handlers { get; set; } = new();
 
+		/// <summary>List of default headers applied to each requests</summary>
+		public BetterDefaultHeaders DefaultRequestHeaders { get; set; } = new();
+
+		/// <summary>Specifies whether the client should follow redirection responses.</summary>
 		public bool? AllowAutoRedirect { get; set; }
 
+		/// <summary>Specifies the type of decompression method used by the handler for automatic decompression of the HTTP content response.</summary>
 		public DecompressionMethods? AutomaticDecompression { get; set; }
 
+		/// <summary>Default cookie container that will be used by each requests.</summary>
 		public CookieContainer? Cookies { get; set; }
 
+		/// <summary>Default credentials that will be used by each requests.</summary>
 		public ICredentials? Credentials { get; set; }
 
+		/// <summary>Specifies whether default credentials are sent with requests by the client.</summary>
 		public bool? UseDefaultCredentials { get; set; }
 
+		/// <summary>Specifies the proxy information used by the client.</summary>
 		public IWebProxy? Proxy { get; set; }
 
 		public ICredentials? DefaultProxyCredentials { get; set; }
@@ -180,4 +195,5 @@ namespace Doxense.Networking.Http
 		}
 
 	}
+
 }
