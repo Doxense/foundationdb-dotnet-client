@@ -157,12 +157,27 @@ namespace FoundationDB.DependencyInjection
 
 		public void Dispose()
 		{
+			this.LifeTime.Cancel();
 			this.IsAvailable = false;
 			this.Db?.Dispose();
 			this.Db = null;
 			this.Error = new ObjectDisposedException("Database has been shut down.");
 			this.DbTask = Task.FromException<IFdbDatabase>(this.Error);
 			Interlocked.Exchange(ref this.InitTask, null)?.TrySetCanceled();
+
+			if (this.Options.AutoStop)
+			{
+				// Stop the network thread as well
+				// note: this is irreversible!
+				try
+				{
+					Fdb.Stop();
+				}
+				catch
+				{
+					// swallow all exceptions, since the process is likely being terminated anyway...
+				}
+			}
 		}
 
 		IFdbDatabaseScopeProvider? IFdbDatabaseScopeProvider.Parent => null;

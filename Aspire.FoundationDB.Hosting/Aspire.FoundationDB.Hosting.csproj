@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFrameworks>net8.0</TargetFrameworks>
+		<LangVersion>12.0</LangVersion>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+		<PackageTags>foundationdb fdb nosql aspire</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Description>A generic FoundationDB host that integrates with Aspire, including health checks, logging, and telemetry</Description>
+		<Deterministic>true</Deterministic>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+	</PropertyGroup>
+
+	<Import Project="..\Common\VersionInfo.props" />
+
+	<ItemGroup>
+		<PackageReference Include="Aspire.Hosting" Version="8.0.0-preview.2.23572.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\FoundationDb.Client\FoundationDb.Client.csproj" />
+	</ItemGroup>
+
+</Project>
