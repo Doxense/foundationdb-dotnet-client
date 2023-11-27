@@ -48,7 +48,7 @@ This will register an instance of the `IFdbDatabaseProvider` singleton, that you
 
 Let say, for example, that we have a `Books` Razor Page, that is reachable via the `/Books/{id}` route:
 
-- We first inject an instance of the IFdbDatabaseProvider via the constructor.
+- We first inject an instance of the `IFdbDatabaseProvider` via the constructor.
 - Inside the `OnGet(...)` action, we can call any of the `ReadAsync`, `ReadWriteAsync` or `WriteAsync` methods on this instance, to start a transaction retry-loop.
 - Inside the retry-loop, we get passed either an `IFdbReadOnlyTransaction` (read-only) or an `IFdbTransaction` (read-write).
 - We use this transaction to read the value of the `("Books", <id>)` key from the database.
@@ -116,11 +116,11 @@ namespace MyWebApp.Pages
             // if the key does not exist in the database, GetAsync(...) will return Slice.Nil
 			if (jsonBytes.IsNull)
 			{
-                // This book does not exist, return a 404 page to the browser!
+				// This book does not exist, return a 404 page to the browser!
 				return NotFound();
 			}
 
-            // If the key exists, then GetAsync(...) will return its value as bytes, that can be deserialized
+			// If the key exists, then GetAsync(...) will return its value as bytes, that can be deserialized
 			Book book = JsonSerializer.Deserialize<Book>(jsonBytes.Span);
 
 			// perform any checks and validation here, like converting the Model (from the database) into a ViewModel (for the razor template)
@@ -130,6 +130,66 @@ namespace MyWebApp.Pages
 	}
 }
 ```
+
+#### Using Aspire
+
+***Note: Aspire is currently in preview, so things may change at any time!**
+
+It is possible to add a FoundationDB cluster resource to your Aspire application model, and pass a reference to this cluster to the projects that need it.
+
+For local development, a local FoundationdDB node will be started using the `foundationdb/foundationdb` Docker image, and all projects that use the cluster reference will have a temporary Cluster file pointing to the local instance.
+
+In the Program.cs of you ApprHost project:
+```c#
+private static void Main(string[] args)
+{
+    var builder = DistributedApplication.CreateBuilder(args);
+
+    // Define a local FoundationDB cluster
+    var fdb = builder
+        .AddFdbCluster("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterVersion: "7.2.5", rollForward: FdbVersionPolicy.Exact);
+
+    // Project that needs a reference to this cluster
+    var backend = builder
+        .AddProject<Projects.AwesomeWebApiBackend>("backend")
+        .WithReference(fdb); // <-- hooks up the cluster connection string with this project
+
+    // ...
+}
+```
+
+For testing, or "non local" development, it is also possible to configure a FoundationDB connection resource that will pass the specified Cluster file to the projects that reference the cluster resource.
+
+In the Program.cs of your AppHost project:
+```c#
+private static void Main(string[] args)
+{
+    var builder = DistributedApplication.CreateBuilder(args);
+
+    // Define an external FoundationDB cluster
+    var fdb = builder
+        .AddFdbConnection("fdb", clusterFile: "/SOME/PATH/TO/testing.cluster", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterVersion: "7.2.5", rollForward: FdbVersionPolicy.Exact);
+
+    // ...
+}
+```
+
+Then, in the Program.cs, or where you are declaring your services with the DI, use the following extension method to add support for FoundationDB:
+
+```c#
+var builder = WebApplication.CreateBuilder(args);
+
+// setup Aspire services...
+builder.AddServiceDefaults();
+//...
+
+// hookup the FoundationDB component
+builder.AddFoundationDb("fdb"); // "fdb" is the same name we used in AddFdbCluster(...) in the AppHost above.
+
+// ...rest of the startup logic....
+```
+
+This will automatically register an instance of the `IFdbDatabaseProvider` service, automatically configured to connect the FDB local or external cluster defined in the AppHost.
 
 #### Using the Directory Layer
 
