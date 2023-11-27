@@ -13,7 +13,9 @@ You will need to install two things:
 - A copy of the FoundationDB client library, available at https://github.com/apple/foundationdb/releases
 - A reference to the `FoundationDB.Client` package.
 
-#### Using Dependency Injection
+### Using Dependency Injection
+
+#### Manual configuration
 
 In your Program.cs, you should register FoundationDB with the DI container:
 
@@ -139,7 +141,7 @@ It is possible to add a FoundationDB cluster resource to your Aspire application
 
 For local development, a local FoundationdDB node will be started using the `foundationdb/foundationdb` Docker image, and all projects that use the cluster reference will have a temporary Cluster file pointing to the local instance.
 
-In the Program.cs of you ApprHost project:
+In the Program.cs of you AppHost project:
 ```c#
 private static void Main(string[] args)
 {
@@ -191,7 +193,7 @@ builder.AddFoundationDb("fdb"); // "fdb" is the same name we used in AddFdbClust
 
 This will automatically register an instance of the `IFdbDatabaseProvider` service, automatically configured to connect the FDB local or external cluster defined in the AppHost.
 
-#### Using the Directory Layer
+### Using the Directory Layer
 
 Please note that in real use case, it is highly encourage to use the Directory Layer to generate a prefix for the keys, instead of simply using the `("Books", ...)` prefix.
 
@@ -256,7 +258,7 @@ public class BooksModel : PageModel
 }
 ```
 
-#### Access the underlying `IFdbDatabase` singleton
+### Access the underlying `IFdbDatabase` singleton
 
 The `IFdbDatabaseProvider` also has a `GetDatabase(...)` method that can be used to obtain an instance of the `IFdbDatabase` singleton, that can then be used directly, or passed to any other Layer or library.
 
@@ -295,7 +297,7 @@ public class FooBarModel : PageModel
 Hosting
 -------
 
-#### Hosting on ASP.NET Core / Kestrel
+### Hosting on ASP.NET Core / Kestrel
 
 * The simplest solution is to inject an instance of `IFdbDatabaseProvider` in all your controllers, pages and services.
 * The .NET Binding can be configured from your Startup or Program class, by reading configuration from your `appsettings.json` or by environment variable at runtime.
@@ -322,7 +324,7 @@ COPY . /App
 ENTRYPOINT ["dotnet", "MyWebApp.dll"]
 ```
 
-#### Hosting on IIS
+### Hosting on IIS
 
 
 * The .NET API is async-only, and should only be called inside async methods. You should NEVER write something like `tr.GetAsync(...).Wait()` or `tr.GetAsync(...).Result` because it will GREATLY degrade performances and prevent you from scaling up past a few concurrent requests.
@@ -331,7 +333,7 @@ ENTRYPOINT ["dotnet", "MyWebApp.dll"]
 * The fdb_c.dll library can only be started once per process. This makes impractical to run an web application running inside a dedicated Application Domain alongside other application, on a shared host process. The only current workaround is to have a dedicated host process for this application, by making it run inside its own Application Pool.
 * If you don't use the host's CancellationToken for transactions and retry loops, deadlock can occur if the FoundationDB cluster is unavailable or under very heavy load. Please consider also using safe values for the DefaultTimeout and DefaultRetryLimit settings.
 
-#### Hosting on OWIN
+### Hosting on OWIN
 
 * There are no particular restrictions, apart from requiring a 64-bit OWIN host.
 * You should explicitly call Fdb.Stop() when your OWIN host process shuts down, in order to ensure that any pending transaction gets cancelled properly.
@@ -339,9 +341,9 @@ ENTRYPOINT ["dotnet", "MyWebApp.dll"]
 How to build
 ------------
 
-#### Visual Studio Solution
+### Visual Studio Solution
 
-You will need Visual Studio 2022 version 17.5 or above to build the solution (C# 11 and .NET 6.0 support is required).
+You will need Visual Studio 2022 version 17.5 or above to build the solution (C# 12 and .NET 8.0 support is required).
 
 You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.org website, by installing the client SDK:
 
