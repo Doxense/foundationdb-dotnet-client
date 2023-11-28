@@ -71,7 +71,7 @@ namespace FoundationDB.Samples.Benchmarks
 					{
 						Console.WriteLine("T+s | " + RobustHistogram.GetDistributionScale(RobustHistogram.HorizontalScale, 1, 5000 - 1) + " | ");
 					}
-					Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.000})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MedianAbsoluteDeviation()));
+					Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.000})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MAD()));
 					if (log != Console.Out) log.WriteLine(histo.GetReport(false));
 					return false;
 				}

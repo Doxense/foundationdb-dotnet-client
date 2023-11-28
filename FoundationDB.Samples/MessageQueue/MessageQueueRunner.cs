@@ -35,7 +35,7 @@ namespace FoundationDB.Samples.Tutorials
 				TimeSpan.FromSeconds(5),
 				onCompleted: (histo, idx) =>
 				{
-					Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.0})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MedianAbsoluteDeviation()));
+					Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.0})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MAD()));
 					if (idx % 30 == 29)
 					{
 						Console.WriteLine(this.TimeLine.MergeResults().GetReport(true));
