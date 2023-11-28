@@ -7,9 +7,7 @@
 		<LangVersion>11.0</LangVersion>
 		<Nullable>enable</Nullable>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
-		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<Description>.NET Core SDK for FoundationDB</Description>
