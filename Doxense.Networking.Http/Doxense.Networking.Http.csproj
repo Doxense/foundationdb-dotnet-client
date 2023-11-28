@@ -26,7 +26,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.3.2" />
-		<PackageReference Include="OpenTelemetry.Api" Version="1.6.0" />
+		<PackageReference Include="OpenTelemetry.Api" Version="1.7.0-alpha.1" />
 	</ItemGroup>
 
 	<ItemGroup>
