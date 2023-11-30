@@ -35,7 +35,7 @@ namespace Doxense.Mathematics.Statistics
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	/// <summary>Helper pour gÃ©nÃ©rer des XY Plots en ASCII Art</summary>
+	/// <summary>Generates ASCII Art that look like plots</summary>
 	public static class RobustChart
 	{
 
@@ -94,11 +94,11 @@ namespace Doxense.Mathematics.Statistics
 		public readonly struct FrameBuffer : IFormattable
 		{
 
-			// Frame contenant une grille de "texel" (~ pixel reprÃ©sentÃ©s par des caractÃ¨res ASCII)
-			// - Width et Height correspondant Ã  la larger et hauteur du buffer en texel
-			// - L'axe X va de droite Ã  gauche
-			// - L'axe Y va de bas en haut (inversÃ© par rpt Ã  une bitmap classique, mais dans le "bon sens" pour des graphes)
-			// => (0, 0) correspond au texel en bas a gauche, (Width-1, Height-1) au texel en haut Ã  droite
+			// Frame contenant une grille de "texel" (~ pixel représentés par des caractères ASCII)
+			// - Width et Height correspondant à la larger et hauteur du buffer en texel
+			// - L'axe X va de droite à gauche
+			// - L'axe Y va de bas en haut (inversé par rpt à une bitmap classique, mais dans le "bon sens" pour des graphes)
+			// => (0, 0) correspond au texel en bas a gauche, (Width-1, Height-1) au texel en haut à droite
 
 			/// <summary>Largeur du buffer (en texels)</summary>
 			public readonly int Width;
@@ -107,7 +107,7 @@ namespace Doxense.Mathematics.Statistics
 			public readonly int Height;
 
 			/// <summary>Tableau contenant les texels, lignes par lignes, DE HAUT EN BAS!</summary>
-			/// <remarks>Le texel (X, Y) est situÃ© Ã  l'offset (HEIGHT - Y - 1) * WIDTH + X</remarks>
+			/// <remarks>Le texel (X, Y) est situé à l'offset (HEIGHT - Y - 1) * WIDTH + X</remarks>
 			public readonly char[] Buffer;
 
 			public FrameBuffer(int width, int height)
@@ -134,31 +134,31 @@ namespace Doxense.Mathematics.Statistics
 				this.Buffer = buffer;
 			}
 
-			/// <summary>Convertit une coordonnÃ©e X vers l'Ã©chelle du buffer</summary>
-			/// <param name="x">CoordonnÃ©e 0 &lt;= x &lt; WIDTH</param>
-			/// <returns>CoordonnÃ©e X arrondi en entier, dans l'espace du buffer</returns>
+			/// <summary>Convertit une coordonnée X vers l'échelle du buffer</summary>
+			/// <param name="x">Coordonnée 0 &lt;= x &lt; WIDTH</param>
+			/// <returns>Coordonnée X arrondi en entier, dans l'espace du buffer</returns>
 			[Pure]
 			private int RoundX(double x) => Math.Min(this.Width - 1, Math.Max(0, (int)Math.Floor(x)));
 
-			/// <summary>Convertit une coordonnÃ©e Y vers l'Ã©chelle du buffer</summary>
-			/// <param name="y">CoordonnÃ©e 0 &lt;= y &lt; HEIGHT (0 en bas)</param>
-			/// <returns>CoordonnÃ©e Y arrondi en entier, dans l'espace du buffer (0 en haut)</returns>
+			/// <summary>Convertit une coordonnée Y vers l'échelle du buffer</summary>
+			/// <param name="y">Coordonnée 0 &lt;= y &lt; HEIGHT (0 en bas)</param>
+			/// <returns>Coordonnée Y arrondi en entier, dans l'espace du buffer (0 en haut)</returns>
 			[Pure]
 			private int RoundY(double y) => this.Height - 1 - Math.Min(this.Height - 1, Math.Max(0, (int)Math.Floor(y)));
 
-			/// <summary>Clip une coordonnÃ©e X en fonction de la largeur du buffer</summary>
+			/// <summary>Clip une coordonnée X en fonction de la largeur du buffer</summary>
 			/// <returns>0 si <paramref name="x"/> &lt; 0, ou WIDTH-1 si <paramref name="x"/> &gt;= WIDTH</returns>
 			[Pure]
 			private int BoundX(int x) => Math.Min(this.Width - 1, Math.Max(0, x));
 
-			/// <summary>Clip une coordonnÃ©e Y en fonction de la hauteur du buffer</summary>
+			/// <summary>Clip une coordonnée Y en fonction de la hauteur du buffer</summary>
 			/// <returns>0 si <paramref name="y"/> &lt; 0, ou HEIGHT-1 si <paramref name="y"/> &gt;= HEIGHT</returns>
 			[Pure]
 			private int BoundY(int y) => this.Height - 1 - Math.Min(this.Height - 1, Math.Max(0, y));
 
-			/// <summary>Modifie la valeur d'un texel aux coordonnÃ©es indiquÃ©es</summary>
-			/// <param name="x">CoordonnÃ©e X (0 Ã  gauche), qui sera arrondie vers la gauche</param>
-			/// <param name="y">CoordonnÃ©e Y (0 en bas), qui sera arrondie vers la bas</param>
+			/// <summary>Modifie la valeur d'un texel aux coordonnées indiquées</summary>
+			/// <param name="x">Coordonnée X (0 à gauche), qui sera arrondie vers la gauche</param>
+			/// <param name="y">Coordonnée Y (0 en bas), qui sera arrondie vers la bas</param>
 			/// <param name="c">"Couleur" du texel</param>
 			public void Set(double x, double y, char c)
 			{
@@ -171,9 +171,9 @@ namespace Doxense.Mathematics.Statistics
 				}
 			}
 
-			/// <summary>Modifie la valeur d'un texel aux coordonnÃ©es indiquÃ©es</summary>
-			/// <param name="x">CoordonnÃ©e X (0 Ã  gauche)</param>
-			/// <param name="y">CoordonnÃ©e Y (0 en bas)</param>
+			/// <summary>Modifie la valeur d'un texel aux coordonnées indiquées</summary>
+			/// <param name="x">Coordonnée X (0 à gauche)</param>
+			/// <param name="y">Coordonnée Y (0 en bas)</param>
 			/// <param name="c">"Couleur" du texel</param>
 			public void Set(int x, int y, char c)
 			{
@@ -186,9 +186,9 @@ namespace Doxense.Mathematics.Statistics
 			}
 
 			/// <summary>Dessine une ligne horizontale</summary>
-			/// <param name="x0">CoordonnÃ©e X gauche</param>
-			/// <param name="y0">CoordonnÃ©e Y</param>
-			/// <param name="x1">CoordonnÃ©e Y droite</param>
+			/// <param name="x0">Coordonnée X gauche</param>
+			/// <param name="y0">Coordonnée Y</param>
+			/// <param name="x1">Coordonnée Y droite</param>
 			/// <param name="c">"Couleur" de la ligne</param>
 			public void HorizontalLine(double x0, double y0, double x1, char c = '.')
 			{
@@ -207,9 +207,9 @@ namespace Doxense.Mathematics.Statistics
 			}
 
 			/// <summary>Dessine une ligne horizontale</summary>
-			/// <param name="x0">CoordonnÃ©e X</param>
-			/// <param name="y0">CoordonnÃ©e Y basse</param>
-			/// <param name="y1">CoordonnÃ©e Y haute</param>
+			/// <param name="x0">Coordonnée X</param>
+			/// <param name="y0">Coordonnée Y basse</param>
+			/// <param name="y1">Coordonnée Y haute</param>
 			/// <param name="c">"Couleur" de la ligne</param>
 			public void VerticalLine(double x0, double y0, double y1, char c = ':')
 			{
@@ -309,8 +309,8 @@ namespace Doxense.Mathematics.Statistics
 
 			/// <summary>Ecrit le buffer dans une StringBuilder</summary>
 			/// <param name="output"></param>
-			/// <param name="prefix">Texte ajoutÃ© au dÃ©but de chaque ligne (utilisÃ© pour simuler une indentation)</param>
-			/// <param name="suffix">Texte ajoutÃ© en fin de chaque ligne (utilisÃ© pour injecter une frame et/ou une fin de ligne spÃ©cifique)</param>
+			/// <param name="prefix">Texte ajouté au début de chaque ligne (utilisé pour simuler une indentation)</param>
+			/// <param name="suffix">Texte ajouté en fin de chaque ligne (utilisé pour injecter une frame et/ou une fin de ligne spécifique)</param>
 			public void Output(StringBuilder output, string? prefix = null, string suffix = "\r\n")
 			{
 				Contract.Debug.Requires(output != null);
@@ -349,12 +349,12 @@ namespace Doxense.Mathematics.Statistics
 			}
 		}
 
-		/// <summary>SÃ©rie de valeurs</summary>
+		/// <summary>Série de valeurs</summary>
 		[DebuggerDisplay("Count={Count}; Name={Name}")]
 		public readonly struct Data
 		{
 
-			/// <summary>Liste des valeurs de cette sÃ©rie</summary>
+			/// <summary>Liste des valeurs de cette série</summary>
 			public readonly double?[] Values;
 
 			public readonly string? Name;
@@ -367,7 +367,7 @@ namespace Doxense.Mathematics.Statistics
 				this.Name = null;
 			}
 
-			/// <summary>Convertit une sÃ©quence d'Ã©lÃ©ments en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'éléments en série de données</summary>
 			[Pure]
 			public static Data Convert<T>(IEnumerable<T> values, [InstantHandle] Func<T, double> transform, string? name = null)
 			{
@@ -395,7 +395,7 @@ namespace Doxense.Mathematics.Statistics
 				}
 			}
 
-			/// <summary>Convertit une sÃ©quence d'Ã©lÃ©ments en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'éléments en série de données</summary>
 			[Pure]
 			public static Data Convert<T>(IEnumerable<T> values, [InstantHandle] Func<T, double?> transform, string? name = null)
 			{
@@ -416,7 +416,7 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(values.Select(transform).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(int[] values, string? name = null)
 			{
@@ -428,14 +428,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<int> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(int?[] values, string? name = null)
 			{
@@ -447,14 +447,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<int?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(uint[] values, string? name = null)
 			{
@@ -466,14 +466,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<uint> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(uint?[] values, string? name = null)
 			{
@@ -485,14 +485,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<uint?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(long[] values, string? name = null)
 			{
@@ -504,14 +504,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<long> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(long?[] values, string? name = null)
 			{
@@ -523,14 +523,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<long?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(ulong[] values, string? name = null)
 			{
@@ -542,14 +542,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<ulong> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(ulong?[] values, string? name = null)
 			{
@@ -561,14 +561,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence d'entiers en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence d'entiers en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<ulong?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence de nombres dÃ©cimaux en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
 			[Pure]
 			public static Data Convert(double[] values, string? name = null)
 			{
@@ -580,14 +580,14 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence de nombres dÃ©cimaux en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<double> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une sÃ©quence de nombres dÃ©cimaux en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
 			[Pure]
 			public static Data Convert(double?[] values, string? name = null)
 			{
@@ -596,7 +596,7 @@ namespace Doxense.Mathematics.Statistics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une sÃ©quence de nombres dÃ©cimaux en sÃ©rie de donnÃ©es</summary>
+			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<double?> values, string? name = null)
 			{
@@ -656,8 +656,8 @@ namespace Doxense.Mathematics.Statistics
 				return false;
 			}
 
-			/// <summary>GÃ©nÃ¨re une nouvelle sÃ©rie de donnÃ©s contenant la dÃ©rivÃ©e de cette sÃ©rie</summary>
-			/// <returns>SÃ©rie de donnÃ©es de taille N-1, ou RESULT[i] = THIS[i+1] - THIS[i]</returns>
+			/// <summary>Génère une nouvelle série de donnés contenant la dérivée de cette série</summary>
+			/// <returns>Série de données de taille N-1, ou RESULT[i] = THIS[i+1] - THIS[i]</returns>
 			[Pure]
 			public Data Derive()
 			{
@@ -732,10 +732,10 @@ namespace Doxense.Mathematics.Statistics
 			}
 		}
 
-		/// <summary>Arrondi un valeur vers le bas, en fonction de l'arrondi sÃ©lectionnÃ©</summary>
-		/// <param name="x">Valeur Ã  arrondir</param>
-		/// <param name="digits">Si positif, nombre de dÃ©cimales. Si nÃ©gatif, nombre de digits entiers supprimÃ©s</param>
-		/// <returns>Nombre &lt;= Ã  <paramref name="x"/></returns>
+		/// <summary>Arrondi un valeur vers le bas, en fonction de l'arrondi sélectionné</summary>
+		/// <param name="x">Valeur à arrondir</param>
+		/// <param name="digits">Si positif, nombre de décimales. Si négatif, nombre de digits entiers supprimés</param>
+		/// <returns>Nombre &lt;= à <paramref name="x"/></returns>
 		/// <example>
 		/// - SigFloor(PI, 2) => 3.14
 		/// - SigFloor(123456789, 3) => 123,456,000
@@ -756,10 +756,10 @@ namespace Doxense.Mathematics.Statistics
 			return Math.Floor(x);
 		}
 
-		/// <summary>Calcule la valeur vers le haut, en fonction de l'arrondi sÃ©lectionnÃ©</summary>
-		/// <param name="x">Valeur Ã  arrondir</param>
-		/// <param name="digits">Si positif, nombre de dÃ©cimales. Si nÃ©gatif, nombre de digits entiers supprimÃ©s</param>
-		/// <returns>Nombre &gt;= Ã  <paramref name="x"/></returns>
+		/// <summary>Calcule la valeur vers le haut, en fonction de l'arrondi sélectionné</summary>
+		/// <param name="x">Valeur à arrondir</param>
+		/// <param name="digits">Si positif, nombre de décimales. Si négatif, nombre de digits entiers supprimés</param>
+		/// <returns>Nombre &gt;= à <paramref name="x"/></returns>
 		/// <example>
 		/// - SigCeiling(PI, 2) => 3.15
 		/// - SigCeiling(123456789, 3) => 123,457,000
@@ -781,8 +781,8 @@ namespace Doxense.Mathematics.Statistics
 		}
 
 		/// <summary>Formate un nombre, avec gestion d'arrondi</summary>
-		/// <param name="x">Valeur Ã  formatter</param>
-		/// <param name="digits">Si positif, nombre de dÃ©cimales. Si nÃ©gatif, nombre de digits entiers supprimÃ©s</param>
+		/// <param name="x">Valeur à formatter</param>
+		/// <param name="digits">Si positif, nombre de décimales. Si négatif, nombre de digits entiers supprimés</param>
 		/// <example>
 		/// - SigFormat(PI, 3) => "3.145"
 		/// - SigFormat(123456789, -3) => "123,456,000"
@@ -802,45 +802,45 @@ namespace Doxense.Mathematics.Statistics
 			return x.ToString("N0", CultureInfo.InvariantCulture);
 		}
 
-		/// <summary>Render un Plot Ã  partir d'une sÃ©ries de donnÃ©es</summary>
+		/// <summary>Render un Plot à partir d'une séries de données</summary>
 		/// <param name="ys">Valeurs sur l'axe Y des points pour chaque X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractÃ¨res) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractÃ¨res) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisÃ© pour l'arrondi. Si positif, nombre de dÃ©cimales. Si nÃ©gatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="c">CaractÃ¨re utilisÃ©s pour le dessin des points de la sÃ©rie</param>
-		/// <returns>Texte correspondant au graph gÃ©nÃ©rÃ©</returns>
+		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
+		/// <param name="c">Caractère utilisés pour le dessin des points de la série</param>
+		/// <returns>Texte correspondant au graph généré</returns>
 		[Pure]
 		public static string Render(Data ys, int width, int height, double? min = null, double? max = null, [Positive] int digits = 0, char c = '#')
 		{
 			return RenderFrame(ys, width, height, min, max, digits, c).ToString();
 		}
 
-		/// <summary>Render un Plot Ã  partir d'une liste de sÃ©ries de donnÃ©es</summary>
-		/// <param name="series">Liste des sÃ©ries de donnÃ©es. chaque sÃ©rie contient les valeurs sur l'axe Y des points pour X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractÃ¨res) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractÃ¨res) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisÃ© pour l'arrondi. Si positif, nombre de dÃ©cimales. Si nÃ©gatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="chars">String contenant les caractÃ¨res utilisÃ©s pour le dessin des points de chaque sÃ©rie. <paramref name="chars"/>[0] est utilisÃ© pour dessiner <paramref name="series"/>[0], etc... (modulo si pas assez de caractÃ¨res)</param>
-		/// <returns>Texte correspondant au graph gÃ©nÃ©rÃ©</returns>
+		/// <summary>Render un Plot à partir d'une liste de séries de données</summary>
+		/// <param name="series">Liste des séries de données. chaque série contient les valeurs sur l'axe Y des points pour X dans l'ensemble { 0, 1, .., N-1 }</param>
+		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
+		/// <param name="chars">String contenant les caractères utilisés pour le dessin des points de chaque série. <paramref name="chars"/>[0] est utilisé pour dessiner <paramref name="series"/>[0], etc... (modulo si pas assez de caractères)</param>
+		/// <returns>Texte correspondant au graph généré</returns>
 		[Pure]
 		public static string Render(Data[] series, int width, int height, double? min = null, double? max = null, int digits = 0, string? chars = null)
 		{
 			return RenderFrame(series, width, height, min, max, digits, chars).ToString();
 		}
 
-		/// <summary>Render un Plot Ã  partir d'une sÃ©ries de donnÃ©es</summary>
+		/// <summary>Render un Plot à partir d'une séries de données</summary>
 		/// <param name="ys">Valeurs sur l'axe Y des points pour chaque X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractÃ¨res) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractÃ¨res) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisÃ© pour l'arrondi. Si positif, nombre de dÃ©cimales. Si nÃ©gatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="c">CaractÃ¨re utilisÃ©s pour le dessin des points de la sÃ©rie</param>
-		/// <returns>Buffer contenant le graph gÃ©nÃ©rÃ©</returns>
+		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
+		/// <param name="c">Caractère utilisés pour le dessin des points de la série</param>
+		/// <returns>Buffer contenant le graph généré</returns>
 		[Pure]
 		public static FrameBuffer RenderFrame(Data ys, int width, int height, double? min = null, double? max = null, [Positive] int digits = 0, char c = '#')
 		{
@@ -849,15 +849,15 @@ namespace Doxense.Mathematics.Statistics
 			return RenderFrame(new[] {ys}, width, height, yMin, yMax, digits, new string(c, 1));
 		}
 
-		/// <summary>Render un Plot Ã  partir d'une liste de sÃ©ries de donnÃ©es</summary>
-		/// <param name="series">Liste des sÃ©ries de donnÃ©es. chaque sÃ©rie contient les valeurs sur l'axe Y des points pour chaque X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractÃ¨res) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractÃ¨res) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisÃ© pour l'arrondi. Si positif, nombre de dÃ©cimales. Si nÃ©gatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="chars">String contenant les caractÃ¨res utilisÃ©s pour le dessin des points de chaque sÃ©rie. <paramref name="chars"/>[0] est utilisÃ© pour dessiner <paramref name="series"/>[0], etc... (modulo si pas assez de caractÃ¨res)</param>
-		/// <returns>Buffer contenant le graph gÃ©nÃ©rÃ©</returns>
+		/// <summary>Render un Plot à partir d'une liste de séries de données</summary>
+		/// <param name="series">Liste des séries de données. chaque série contient les valeurs sur l'axe Y des points pour chaque X dans l'ensemble { 0, 1, .., N-1 }</param>
+		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
+		/// <param name="chars">String contenant les caractères utilisés pour le dessin des points de chaque série. <paramref name="chars"/>[0] est utilisé pour dessiner <paramref name="series"/>[0], etc... (modulo si pas assez de caractères)</param>
+		/// <returns>Buffer contenant le graph généré</returns>
 		[Pure]
 		public static FrameBuffer RenderFrame(Data[] series, int width, int height, double? min = null, double? max = null, int digits = 0, string? chars = null)
 		{
@@ -904,18 +904,18 @@ namespace Doxense.Mathematics.Statistics
 			return frame;
 		}
 
-		/// <summary>Render un XY Plot Ã  partir d'une sÃ©rie de donnÃ©es (x, y)</summary>
-		/// <param name="xs">Liste des coordonnÃ©es X des points</param>
-		/// <param name="ys">Liste des coordonnÃ©es Y des points</param>
-		/// <param name="width">Largeur (en caractÃ¨res) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractÃ¨res) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="xMin">Valeur mini sur l'axe X, ou calculÃ© automatiquement si null</param>
-		/// <param name="xMax">Valeur maxi sur l'axe X, ou calculÃ© automatiquement si null</param>
-		/// <param name="yMin">Valeur mini sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="yMax">Valeur maxi sur l'axe Y, ou calculÃ© automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisÃ© pour l'arrondi. Si positif, nombre de dÃ©cimales. Si nÃ©gatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="c">CaractÃ¨re utilisÃ© pour le dessin des points</param>
-		/// <returns>Buffer contenant le graph gÃ©nÃ©rÃ©</returns>
+		/// <summary>Render un XY Plot à partir d'une série de données (x, y)</summary>
+		/// <param name="xs">Liste des coordonnées X des points</param>
+		/// <param name="ys">Liste des coordonnées Y des points</param>
+		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
+		/// <param name="xMin">Valeur mini sur l'axe X, ou calculé automatiquement si null</param>
+		/// <param name="xMax">Valeur maxi sur l'axe X, ou calculé automatiquement si null</param>
+		/// <param name="yMin">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="yMax">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
+		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
+		/// <param name="c">Caractère utilisé pour le dessin des points</param>
+		/// <returns>Buffer contenant le graph généré</returns>
 		[Pure]
 		public static FrameBuffer RenderFrame(Data xs, Data ys, int width, int height, double? xMin = null, double? xMax = null, double? yMin = null, double? yMax = null, int digits = 0, char c = '#')
 		{
@@ -961,4 +961,3 @@ namespace Doxense.Mathematics.Statistics
 
 	}
 }
-
