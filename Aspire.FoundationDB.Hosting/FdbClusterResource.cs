@@ -13,41 +13,10 @@ namespace Aspire.Hosting.ApplicationModel
 	using System.Data.Common;
 	using System.Globalization;
 	using System.Linq;
+	using System.Net;
 	using FoundationDB.Client;
 
-	public enum FdbVersionPolicy
-    {
-        /// <summary>Use the exact version specified</summary>
-        Exact = 0,
-
-        /// <summary>Select the latest version published to the docker registry.</summary>
-        /// <remarks>Please note that there is no guarantee that the latest version is stable or is compatible with the selected API level.</remarks>
-        Latest,
-
-        /// <summary>Select the latest compatible version published to the docker registry, that is greater than or equal to the version requested.</summary>
-        /// <remarks>
-        /// <para>For example, if version <c>6.0.3</c> is requested, but <c>7.3.5</c> is currently available, it will be used instead.</para>
-        /// <para>If a newer version is available, but is known to break compatiblity (by removing support for the API level selected), then it will not be included in the selection process.</para>
-        /// </remarks>
-        LatestMajor,
-
-        /// <summary>Select the latest compatible minor version published to the docker registry, that is greater than or equal to the version requested.</summary>
-        /// <remarks>
-        /// <para>For example, if version <c>6.0.3</c> is requested, but <c>6.2.7</c> is the latest <c>6.x</c> version available, it will be used even if there is a more recent <c>7.x</c> version.</para>
-        /// <para>If a newer version is available, but is known to break compatiblity (by removing support for the API level selected), then it will not be included in the selection process.</para>
-        /// </remarks>
-        LatestMinor,
-        
-        /// <summary>Select the latest stable patch version available for the minor version requested.</summary>
-        /// <remarks>
-        /// <para>For example, if version <c>6.0.3</c> is requested, but <c>6.0.7</c> is the latest <c>6.0.x</c> version available, it will be used even if there is a more recent <c>6.1.x</c> or <c>7.x</c> version.</para>
-        /// <para>If a newer version is available, but is known to break compatiblity (by removing support for the API level selected), then it will not be included in the selection process.</para>
-        /// </remarks>
-        LatestPatch,
-
-    }
-
-    public class FdbClusterResource : Resource, IFdbResource
+	public class FdbClusterResource : Resource, IFdbResource
     {
 
         public FdbClusterResource(string name) : base(name) { }
@@ -63,19 +32,20 @@ namespace Aspire.Hosting.ApplicationModel
         /// <remarks>The strategy works similarily to the <c>rollForward</c> property of the <c>global.json</c> file, see https://learn.microsoft.com/en-us/dotnet/core/tools/global-json.</remarks>
         public required FdbVersionPolicy RollForward { get; set; }
 
-        public List<FdbContainerResource> Containers { get; set; } = new();
+        public required string DockerTag { get; set; }
 
-        public int PortStart { get; set; } = 4550;
+		public FdbPath Root { get; set; } = FdbPath.Root;
 
-        public FdbPath Root { get; set; } = FdbPath.Root;
+		public string? ClusterDescription { get; set; } = "docker";
 
-        public string? ClusterDescription { get; set; } = "docker";
+		public string? ClusterId { get; set; } = "docker";
 
-        public string? ClusterId { get; set; } = "docker";
+		public int PortStart { get; set; } = 4550;
+
+        internal List<FdbContainerResource> Containers { get; set; } = new();
+		//REVIEW: can we get rid of this and use the app builder to find resources of type FdbContainerResource when we need them?
 
         internal int? LastPort { get; set; }
-
-        internal string DockerTag { get; set; }
 
         public int GetNextPort()
         {
@@ -130,15 +100,45 @@ namespace Aspire.Hosting.ApplicationModel
                 throw new DistributedApplicationException("There must be at least one fdb container available on the cluster!");
             }
 
-            var ep = coordinator.GetAllocatedEndpoint();
+            string clusterDesc = this.ClusterDescription ?? this.Name;
+            string clusterId = this.ClusterId ?? this.Name;
+            string coordinatorHost;
+            int coordinatorPort;
 
-            string clusterFileContents = (this.ClusterDescription ?? this.Name) + ":" + (this.ClusterId ?? this.Name) + "@" + ep.Address.ToString() + ":" + ep.Port.ToString(CultureInfo.InvariantCulture);
+            var ep = coordinator.GetEndpoint();
+            switch (ep)
+            {
+	            case IPEndPoint ip:
+	            {
+		            coordinatorHost = ip.Address.ToString();
+		            coordinatorPort = ip.Port;
+		            break;
+	            }
+	            case DnsEndPoint dns:
+	            {
+		            coordinatorHost = dns.Host.ToString();
+		            coordinatorPort = dns.Port;
+		            break;
+	            }
+	            default:
+				{
+					throw new InvalidOperationException("Coordinator endpoint type not supported");
+				}
+            }
 
-            var builder = new DbConnectionStringBuilder();
-            builder["ApiVersion"] = this.ApiVersion;
-            builder["Root"] = this.Root.ToString();
-            builder["ClusterFileContents"] = clusterFileContents;
-            builder["ClientVersion"] = this.ClusterVersion?.ToString();
+			// Cluster File format: "<DESC>:<ID>@<HOST1>:<PORT1>[,<HOST2>:<PORT2>,...]"
+			// By default, the docker image uses "docker:docker@127.0.0.1:4550"
+
+            string contents = $"{clusterDesc}:{clusterId}@{coordinatorHost}:{coordinatorPort.ToString(CultureInfo.InvariantCulture)}";
+
+            var builder = new DbConnectionStringBuilder
+            {
+	            ["ApiVersion"] = this.ApiVersion,
+	            ["Root"] = this.Root.ToString(),
+	            ["ClusterFileContents"] = contents,
+	            ["ClusterVersion"] = this.ClusterVersion.ToString(),
+				//TODO: more options? Debug? TraceId? Timeout? ...
+            };
             return builder.ConnectionString;
         }
 

@@ -28,7 +28,7 @@ namespace Aspire.Hosting.ApplicationModel
 
         public string? ProcessClass { get; set; }
 
-        internal IPEndPoint GetAllocatedEndpoint()
+        internal EndPoint GetEndpoint()
         {
             if (!this.TryGetServiceBindings(out var bindings))
             {

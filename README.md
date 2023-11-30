@@ -135,11 +135,15 @@ namespace MyWebApp.Pages
 
 #### Using Aspire
 
-***Note: Aspire is currently in preview, so things may change at any time!**
+***Note: Aspire is currently in preview, so things may change at any time!***
+
+_At the time of this writing, you need at least version 8.0.0-preview.2.23576.2 of the Aspire SDK !_
 
 It is possible to add a FoundationDB cluster resource to your Aspire application model, and pass a reference to this cluster to the projects that need it.
 
 For local development, a local FoundationdDB node will be started using the `foundationdb/foundationdb` Docker image, and all projects that use the cluster reference will have a temporary Cluster file pointing to the local instance.
+
+Note: you will need to install Docker on your development machine, as explained in https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app#prerequisites
 
 In the Program.cs of you AppHost project:
 ```c#
@@ -147,20 +151,21 @@ private static void Main(string[] args)
 {
     var builder = DistributedApplication.CreateBuilder(args);
 
-    // Define a local FoundationDB cluster
+    // Define a locally hosted FoundationDB cluster
     var fdb = builder
-        .AddFdbCluster("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterVersion: "7.2.5", rollForward: FdbVersionPolicy.Exact);
+        .AddFoundationDbCluster("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterVersion: "7.2.5", rollForward: FdbVersionPolicy.Exact);
 
     // Project that needs a reference to this cluster
     var backend = builder
         .AddProject<Projects.AwesomeWebApiBackend>("backend")
-        .WithReference(fdb); // <-- hooks up the cluster connection string with this project
+		//...
+        .WithReference(fdb); // register the fdb cluster connection
 
     // ...
 }
 ```
 
-For testing, or "non local" development, it is also possible to configure a FoundationDB connection resource that will pass the specified Cluster file to the projects that reference the cluster resource.
+For testing/staging/production, or "non local" development, it is also possible to configure a FoundationDB connection resource that will pass the specified Cluster file to the projects that reference the cluster resource.
 
 In the Program.cs of your AppHost project:
 ```c#
@@ -168,9 +173,15 @@ private static void Main(string[] args)
 {
     var builder = DistributedApplication.CreateBuilder(args);
 
-    // Define an external FoundationDB cluster
+    // Define an external FoundationDB cluster connection
     var fdb = builder
-        .AddFdbConnection("fdb", clusterFile: "/SOME/PATH/TO/testing.cluster", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterVersion: "7.2.5", rollForward: FdbVersionPolicy.Exact);
+        .AddFoundationDbConnection("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterFile: "/SOME/PATH/TO/testing.cluster")		;
+
+    // Project that needs a reference to this cluster
+    var backend = builder
+        .AddProject<Projects.AwesomeWebApiBackend>("backend")
+		//...
+        .WithReference(fdb); // register the fdb cluster connection
 
     // ...
 }
@@ -186,7 +197,7 @@ builder.AddServiceDefaults();
 //...
 
 // hookup the FoundationDB component
-builder.AddFoundationDb("fdb"); // "fdb" is the same name we used in AddFdbCluster(...) in the AppHost above.
+builder.AddFoundationDb("fdb"); // "fdb" is the same name we used in AddFoundationDbCluster(...) in the AppHost above.
 
 // ...rest of the startup logic....
 ```

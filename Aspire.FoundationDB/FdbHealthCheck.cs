@@ -1,3 +1,10 @@
+#region Copyright (c) 2023-2023 SnowBank SAS
+//
+// All rights are reserved. Reproduction or transmission in whole or in part, in
+// any form or by any means, electronic, mechanical or otherwise, is prohibited
+// without the prior written consent of the copyright owner.
+//
+#endregion
 
 namespace Microsoft.Extensions.Hosting
 {
@@ -8,21 +15,21 @@ namespace Microsoft.Extensions.Hosting
     using FoundationDB.Client;
     using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-    internal sealed record FoundationDbHealthCheckOptions
+    internal sealed record FdbHealthCheckOptions
     {
 
         public required IFdbDatabaseProvider Provider { get; set; }
 
     }
 
-    internal sealed class FoundationDbHealthCheck : IHealthCheck
+    internal sealed class FdbHealthCheck : IHealthCheck
     {
-        public FoundationDbHealthCheck(FoundationDbHealthCheckOptions options)
+        public FdbHealthCheck(FdbHealthCheckOptions options)
         {
             this.Options = options;
         }
 
-        public FoundationDbHealthCheckOptions Options { get; set; }
+        public FdbHealthCheckOptions Options { get; set; }
 
         public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = new CancellationToken())
         {

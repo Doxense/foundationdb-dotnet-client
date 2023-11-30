@@ -27,38 +27,120 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.IO;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
+	using Microsoft.Extensions.Options;
 
 	[PublicAPI]
 	public static class FdbDatabaseServiceCollectionExtensions
 	{
 
-		public static IFdbDatabaseProviderBuilder AddFoundationDb(this IServiceCollection services, int apiVersion)
+		/// <summary>Add a <see cref="IFdbDatabaseProvider">FoundationDB database provider</see> to the list of services</summary>
+		/// <param name="services">Service collection</param>
+		/// <param name="apiVersion">Selected API version level</param>
+		/// <param name="configure">Optional callback used to configure the database provider options</param>
+		/// <returns>FoundationDB database provider builder</returns>
+		public static IFdbDatabaseProviderBuilder AddFoundationDb(this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions>? configure = null)
 		{
 			Contract.NotNull(services);
 			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
 
-			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
-			services.Configure<FdbDatabaseProviderOptions>(c => c.ApiVersion = apiVersion);
-			return new FdbDefaultDatabaseProviderBuilder(services);
+			return AddFoundationDb(services, (options) =>
+			{
+				options.ApiVersion = apiVersion;
+				configure?.Invoke(options);
+			});
 		}
 
-		public static IServiceCollection AddFoundationDb(this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions> configure)
+		/// <summary>Add a <see cref="IFdbDatabaseProvider">FoundationDB database provider</see> to the list of services</summary>
+		/// <param name="services">Service collection</param>
+		/// <param name="apiVersion">Selected API version level</param>
+		/// <param name="clusterFile">Path to the cluster file, or <c>null</c> to use the system default location</param>
+		/// <param name="configure">Optional callback used to configure the database provider options</param>
+		/// <returns>FoundationDB database provider builder</returns>
+		public static IFdbDatabaseProviderBuilder AddFoundationDb(this IServiceCollection services, int apiVersion, string? clusterFile, Action<FdbDatabaseProviderOptions>? configure = null)
 		{
 			Contract.NotNull(services);
 			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
+
+			return AddFoundationDb(services, (options) =>
+			{
+				options.ApiVersion = apiVersion;
+				options.ConnectionOptions.ClusterFile = clusterFile;
+				configure?.Invoke(options);
+			});
+		}
+
+		/// <summary>Add a <see cref="IFdbDatabaseProvider">FoundationDB database provider</see> to the list of services</summary>
+		/// <param name="services">Service collection</param>
+		/// <param name="configure">Callback used to configure the database provider options</param>
+		/// <returns>FoundationDB database provider builder</returns>
+		public static IFdbDatabaseProviderBuilder AddFoundationDb(this IServiceCollection services, Action<FdbDatabaseProviderOptions> configure)
+		{
+			Contract.NotNull(services);
 			Contract.NotNull(configure);
 
 			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
-			services.Configure<FdbDatabaseProviderOptions>(c =>
-			{
-				c.ApiVersion = apiVersion;
-				configure(c);
-			});
-			return services;
+			services.AddOptionsWithValidateOnStart<FdbDatabaseProviderOptions, FdbDatabaseProviderOptionsValidator>()
+				.Configure(configure);
+
+			return new FdbDefaultDatabaseProviderBuilder(services);
+		}
+
+	}
+
+	/// <summary>Validates an instance of <see cref="FdbDatabaseProviderOptions"/></summary>
+	internal sealed class FdbDatabaseProviderOptionsValidator : IValidateOptions<FdbDatabaseProviderOptions>
+	{
+
+		public ValidateOptionsResult Validate(string? name, FdbDatabaseProviderOptions options)
+		{
+			var res = new ValidateOptionsResultBuilder();
+
+			// ApiVersion
+			if (options.ApiVersion == 0)
+			{ // must be specified
+				res.AddError("API version must be specified", nameof(options.ApiVersion));
+			}
+			else if (options.ApiVersion < 0)
+			{ // cannot be negative
+				res.AddError("API version must be a positive value", nameof(options.ApiVersion));
+			}
+			else if (options.ApiVersion < Fdb.MinSafeApiVersion)
+			{ // cannot be less than minimum supported
+				res.AddError($"API version can be less than the minimum supported API version of {Fdb.MinSafeApiVersion}", nameof(options.ApiVersion));
+			}
+
+			if (!string.IsNullOrEmpty(options.ConnectionOptions.ClusterFile))
+			{ // must be a valid path!
+
+				//note: at the moment I don't know of any method in the BCL that checks a path for validity (!= existence), but calling the ctor of FileInfo will throw if there is something is wrong with it!
+				FileInfo? fi;
+				try { fi = new FileInfo(options.ConnectionOptions.ClusterFile); } catch { fi = null; }
+
+				if (fi == null)
+				{
+					res.AddError("Invalid or malformed cluster file path", nameof(options.ConnectionOptions.ClusterFile));
+				}
+			}
+
+			if (options.ConnectionOptions.DefaultMaxRetryDelay < 0)
+			{ // cannot be negative
+				res.AddError("Default maximum retry delay must be a positive value", nameof(options.ConnectionOptions.DefaultMaxRetryDelay));
+			}
+			if (options.ConnectionOptions.DefaultRetryLimit < 0)
+			{ // cannot be negative
+				res.AddError("Default maximum retry limit must be a positive value", nameof(options.ConnectionOptions.DefaultRetryLimit));
+			}
+			if (options.ConnectionOptions.DefaultTimeout < TimeSpan.Zero)
+			{ // cannot be negative
+				res.AddError("Default transaction timeout must be a positive value", nameof(options.ConnectionOptions.DefaultTimeout));
+			}
+
+			return res.Build();
 		}
 
 	}

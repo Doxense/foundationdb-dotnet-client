@@ -72,13 +72,11 @@ namespace FoundationDB.Client
 		/// <summary>If set, specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
 		public string? MachineId { get; set; }
 
-
 		public override string ToString()
 		{
 			var sb = new StringBuilder();
 			AddKeyValue(sb, "cluster_file", this.ClusterFile ?? "default");
 			if (this.Root != null) AddKeyValue(sb, "root", this.Root.ToString());
-			//REVIEW: cannot serialize subspace into a string ! :(
 			if (this.ReadOnly) AddKeyword(sb, "readonly");
 			if (this.DefaultTimeout > TimeSpan.Zero) AddKeyValue(sb, "timeout", this.DefaultTimeout.TotalSeconds);
 			if (this.DefaultRetryLimit > 0) AddKeyValue(sb, "retry_limit", this.DefaultRetryLimit);
