@@ -27,7 +27,6 @@
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Buffers;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -40,15 +39,16 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>
 	{
 		/// <summary>The "empty" path</summary>
 		/// <remarks>This path is relative</remarks>
-		public static readonly FdbPath Empty = new FdbPath(default, absolute: false);
+		public static readonly FdbPath Empty = new(default, absolute: false);
 
 		/// <summary>The "root" path ("/").</summary>
 		/// <remarks>This path is absolute</remarks>
-		public static readonly FdbPath Root = new FdbPath(default, absolute: true);
+		public static readonly FdbPath Root = new(default, absolute: true);
 
 		/// <summary>Segments of this path</summary>
 		public readonly ReadOnlyMemory<FdbPathSegment> Segments;
@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a sub-section of the current path</summary>
-		public FdbPath this[Range range] => new FdbPath(this.Segments[range], this.IsAbsolute && range.GetOffsetAndLength(this.Count).Offset == 0);
+		public FdbPath this[Range range] => new(this.Segments[range], this.IsAbsolute && range.GetOffsetAndLength(this.Count).Offset == 0);
 
 #endif
 
@@ -130,6 +130,10 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Return the same path, but with the specified Layer Id</summary>
+		/// <param name="layerId">Layer Id value for this path</param>
+		/// <returns>New path that points to the same location, but with the attached Layer Id metadata</returns>
+		/// <exception cref="InvalidOperationException">If the path already has an explicit Layer Id</exception>
 		public FdbPath WithLayer(string? layerId)
 		{
 			layerId ??= string.Empty;
@@ -147,13 +151,15 @@ namespace FoundationDB.Client
 		/// <summary>Return the equivalent relative path, using the same path segments.</summary>
 		/// <returns>The relative version of this path</returns>
 		/// <example>"/Foo/Bar".AsRelative() == "Foo/Bar"; "Foo/Bar".AsRelative() == "Foo/Bar"</example>
-		public FdbPath AsRelative() => new FdbPath(this.Segments, absolute: false);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbPath AsRelative() => new(this.Segments, absolute: false);
 
 		/// <summary>Return the equivalent absolute path, using the same path segments.</summary>
 		/// <returns>The absolute version of this path</returns>
 		/// <example>"Foo/Bar".AsAbsolute() == "/Foo/Bar"; "/Foo/Bar".AsAbsolute() == "/Foo/Bar"</example>
 		/// <remarks>This is the equivalent of adding this path to the <see cref="Root"/> path</remarks>
-		public FdbPath AsAbsolute() => new FdbPath(this.Segments, absolute: true);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbPath AsAbsolute() => new(this.Segments, absolute: true);
 
 		/// <summary>Return the relative path that, if added to <paramref name="parent"/>, would be equal to the current path.</summary>
 		/// <param name="parent">Parent path. Must be of the same type (absolute/relative) as the current path.</param>
@@ -194,7 +200,11 @@ namespace FoundationDB.Client
 				return true;
 			}
 
+#if USE_RANGE_API
+			relative = new FdbPath(this.Segments[parent.Count..], absolute: false);
+#else
 			relative = new FdbPath(this.Segments.Slice(parent.Count), absolute: false);
+#endif
 			return true;
 		}
 
@@ -643,25 +653,46 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Parse(ReadOnlySpan<char> path)
 		{
-			if (path.Length == 0) return Empty;
-			if (path.Length == 1 && path[0] == '/') return FdbPath.Root;
-
-			if (path.Length < 1024)
-			{ // for small path, use the stack as buffer
-				Span<char> buf = stackalloc char[path.Length];
-				return ParseInternal(path, buf);
-			}
-			else
-			{ // else rent a buffer from a pool
-				char[] buf = ArrayPool<char>.Shared.Rent(path.Length);
-				var res = ParseInternal(path, buf);
-				ArrayPool<char>.Shared.Return(buf);
-				return res;
-			}
+			return path.Length switch
+			{
+				0 => Empty,
+				1 when path[0] == '/' => Root,
+				_ => ParseInternal(path)
+			};
 		}
 
-		private static FdbPath ParseInternal(ReadOnlySpan<char> path, Span<char> buffer)
+		private static FdbPath ParseInternal(ReadOnlySpan<char> path)
 		{
+			return path.Length switch
+			{
+				0 => Empty,
+				1 when path[0] == '/' => Root,
+				_ => TryParseInternal(null, path, withException: true, out var res, out var error) ? res : throw error!
+			};
+		}
+
+		public static bool TryParse(ReadOnlySpan<char> path, out FdbPath result)
+		{
+			if (path.Length == 0)
+			{
+				result = Empty;
+				return true;
+			}
+
+			if (path.Length == 1 && path[0] == '/')
+			{
+				result = Root;
+				return true;
+			}
+
+			return TryParseInternal(null, path, withException: false, out result, out _);
+		}
+
+		internal static bool TryParseInternal(StringBuilder? sb, ReadOnlySpan<char> path, bool withException, out FdbPath result, out Exception? error)
+		{
+			//TODO: version that takes a Span<char> instead of StringBuilder !
+			sb ??= new StringBuilder(path.Length);
+
 			var segments = new List<FdbPathSegment>();
 
 			// the main loop only only attempts to split the segments by finding valid '/' separators (note that '/' can be escaped (via '\/') and is NOT a segment separator)
@@ -671,6 +702,7 @@ namespace FoundationDB.Client
 			bool escaped = false;
 			int start = 0;
 			int pos = 0;
+
 			foreach (var c in path)
 			{
 				switch (c)
@@ -699,10 +731,20 @@ namespace FoundationDB.Client
 								start = 1;
 								continue;
 							}
-							throw new FormatException("Invalid directory path: segment cannot be empty.");
+
+							result = default;
+							error = new FormatException("Invalid directory path: segment cannot be empty.");
+							return false;
 						}
 
-						segments.Add(FdbPathSegment.Parse(path.Slice(start, pos - start)));
+						sb.Clear();
+						if (!FdbPathSegment.TryParse(sb, path.Slice(start, pos - start), withException, out var segment, out error))
+						{
+							result = default;
+							return false;
+						}
+
+						segments.Add(segment);
 						++pos;
 						start = pos;
 						break;
@@ -725,10 +767,14 @@ namespace FoundationDB.Client
 			}
 			else if (segments.Count > 0 && path[path.Length - 1] == '/')
 			{ // extra '/' at the end !
-				throw new FormatException("Invalid directory path: last segment cannot be empty.");
+				result = default;
+				error = withException ? new FormatException("Invalid directory path: last segment cannot be empty.") : null;
+				return false;
 			}
 
-			return new FdbPath(segments.ToArray(), absolute);
+			result = new FdbPath(segments.ToArray(), absolute);
+			error = null;
+			return true;
 		}
 
 		#endregion
@@ -752,7 +798,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is FdbPath other && Equals(other);
 		}

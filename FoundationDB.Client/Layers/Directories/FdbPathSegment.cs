@@ -28,8 +28,10 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Buffers;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>
@@ -53,6 +55,9 @@ namespace FoundationDB.Client
 		/// <summary>Id of the layer used by the corresponding directory; or <c>null</c> if it is not specified</summary>
 		/// <remarks>If present: when opening a directory, its layer id will compared to this value; when creating a directory, this value will be used as its layer id.</remarks>
 		public readonly string LayerId;
+
+		/// <summary>Empty segment</summary>
+		public static readonly FdbPathSegment Empty = default;
 
 		public FdbPathSegment(string name, string? layerId = null)
 		{
@@ -139,7 +144,34 @@ namespace FoundationDB.Client
 		/// <example>Parse("Foo") == FdbPathSegment.Create("Foo"); Parse("Foo[SomeLayer]") == FdbPathSegment.Create("Foo", "SomeLayer")</example>
 		public static FdbPathSegment Parse(ReadOnlySpan<char> value)
 		{
-			var sb = new StringBuilder(value.Length);
+			if (value.Length == 0)
+			{
+				return Empty;
+			}
+
+			if (!TryParse(null, value, withException: true, out var segment, out var error))
+			{
+				throw error ?? new ArgumentException("Invalid path segment", nameof(value));
+			}
+			return segment;
+		}
+
+		public static bool TryParse(ReadOnlySpan<char> value, out FdbPathSegment segment)
+		{
+			if (value.Length == 0)
+			{
+				segment = Empty;
+				return true;
+			}
+
+			return TryParse(null, value, withException: false, out segment, out _);
+		}
+
+		internal static bool TryParse(StringBuilder? sb, ReadOnlySpan<char> value, bool withException, out FdbPathSegment segment, out Exception? error)
+		{
+			//REVIEW: use a Span<char> instead of StringBuilder !
+			sb ??= new StringBuilder(value.Length);
+
 			bool escaped = false;
 			bool inLayer = false;
 
@@ -171,7 +203,12 @@ namespace FoundationDB.Client
 							escaped = false;
 							break;
 						}
-						if (inLayer) throw new FormatException("Invalid path segment: unescaped '[' inside layer keyword");
+						if (inLayer)
+						{
+							segment = default;
+							error = withException ? new FormatException("Invalid path segment: unescaped '[' inside layer keyword") : null;
+							return false;
+						}
 						name = sb.ToString();
 						sb.Clear();
 						inLayer = true;
@@ -205,9 +242,16 @@ namespace FoundationDB.Client
 				name = sb.ToString();
 			}
 
-			if (string.IsNullOrEmpty(name)) throw new FormatException("Invalid path segment: name cannot be empty");
+			if (string.IsNullOrEmpty(name))
+			{
+				segment = default;
+				error = withException ? new FormatException("Invalid path segment: name cannot be empty") : null;
+				return false;
+			}
 
-			return new FdbPathSegment(name, layerId);
+			segment = new FdbPathSegment(name, layerId);
+			error = null;
+			return true;
 		}
 
 		/// <summary>Return an encoded string representation of this path segment</summary>
