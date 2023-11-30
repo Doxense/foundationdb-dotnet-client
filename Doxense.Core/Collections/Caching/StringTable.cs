@@ -83,7 +83,11 @@ namespace Doxense.Text
 						hashCode = unchecked((hashCode ^ b) * FNV_PRIME);
 					}
 
+#if NET8_0_OR_GREATER
+					isAscii = Ascii.IsValid(asciiMask);
+#else
 					isAscii = (asciiMask & 0x80) == 0;
+#endif
 					return hashCode;
 				}
 			}

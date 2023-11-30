@@ -822,15 +822,27 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		public static Slice FromString(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		public static Slice FromString(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
-			if (value.Length == 0) return Empty;
+			if (value.Length == 0)
+			{
+				return Empty;
+			}
+
+#if NET8_0_OR_GREATER
+			if (Ascii.IsValid(value))
+			{
+				return ConvertByteStringNoCheck(value, ref buffer);
+			}
+#else
 			if (UnsafeHelpers.IsAsciiString(value))
 			{
 				return ConvertByteStringNoCheck(value, ref buffer);
 			}
+#endif
+			return FromStringSlow(value, ref buffer);
 
-			unsafe
+			static unsafe Slice FromStringSlow(ReadOnlySpan<char> value, ref byte[]? buffer)
 			{
 				fixed (char* chars = &MemoryMarshal.GetReference(value))
 				{
@@ -1062,34 +1074,42 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromChar(char value)
 		{
-			if (value < 128)
-			{ // ASCII
-				return FromByte((byte)value);
-			}
+#if NET8_0_OR_GREATER
+			return Ascii.IsValid(value) ? FromByte((byte) value) : FromCharSlow(value);
+#else
+			return value < 128 ? FromByte((byte) value) : FromCharSlow(value);
+#endif
 
-			byte[]? _ = null;
-			return FromChar(value, ref _);
+			static Slice FromCharSlow(char value)
+			{
+				byte[]? _ = null;
+				return FromChar(value, ref _);
+			}
 		}
 
 		/// <summary>Create a slice that holds the UTF-8 encoded representation of <paramref name="value"/></summary>
 		/// <returns>The returned slice is only guaranteed to hold 1 byte for ASCII chars (0..127). For non-ASCII chars, the size can be from 1 to 6 bytes.
 		/// If you need to use ASCII chars, you should use Slice.FromByte() instead</returns>
 		[Pure]
-		public static Slice FromChar(char value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		public static Slice FromChar(char value, ref byte[]? buffer)
 		{
-			if (value < 128)
-			{ // ASCII
-				return FromByte((byte)value);
-			}
+#if NET8_0_OR_GREATER
+			return Ascii.IsValid(value) ? FromByte((byte) value) : FromCharSlow(value, ref buffer);
+#else
+			return value < 128 ? FromByte((byte) value) : FromCharSlow(value, ref buffer);
+#endif
 
-			// note: Encoding.UTF8.GetMaxByteCount(1) returns 6, but allocate 8 to stay aligned
-			var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, 8);
-			unsafe
+			static Slice FromCharSlow(char value, ref byte[]? buffer)
 			{
-				fixed (byte* ptr = &tmp[0])
+				// note: Encoding.UTF8.GetMaxByteCount(1) returns 6, but allocate 8 to stay aligned
+				var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, 8);
+				unsafe
 				{
-					int n = Utf8NoBomEncoding.GetBytes(&value, 1, ptr, tmp.Length);
-					return n == 1 ? FromByte(tmp[0]) : new Slice(tmp, 0, n);
+					fixed (byte* ptr = &tmp[0])
+					{
+						int n = Utf8NoBomEncoding.GetBytes(&value, 1, ptr, tmp.Length);
+						return n == 1 ? FromByte(tmp[0]) : new Slice(tmp, 0, n);
+					}
 				}
 			}
 		}
@@ -1100,7 +1120,11 @@ namespace System
 		[Pure]
 		public static Slice FromHexa(string? hexaString)
 		{
-			if (string.IsNullOrEmpty(hexaString)) return hexaString == null ? default : Empty;
+			if (string.IsNullOrEmpty(hexaString))
+			{
+				return hexaString == null ? default : Empty;
+			}
+
 			byte[]? buffer = null;
 			int written = UnsafeHelpers.FromHexa(hexaString.AsSpan(), ref buffer);
 			return new Slice(buffer, 0, written);
@@ -1112,7 +1136,11 @@ namespace System
 		[Pure]
 		public static Slice FromHexa(ReadOnlySpan<char> hexaString)
 		{
-			if (hexaString.Length == 0) return Empty;
+			if (hexaString.Length == 0)
+			{
+				return Empty;
+			}
+
 			byte[]? buffer = null;
 			int written = UnsafeHelpers.FromHexa(hexaString, ref buffer);
 			return new Slice(buffer, 0, written);
@@ -1122,7 +1150,11 @@ namespace System
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
 		public static Slice Unescape(string? value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
 		{
-			if (string.IsNullOrEmpty(value)) return value == null ? default : Empty;
+			if (string.IsNullOrEmpty(value))
+			{
+				return value == null ? default : Empty;
+			}
+
 			byte[]? buffer = null;
 			int written = UnsafeHelpers.Unescape(value.AsSpan(), ref buffer);
 			return new Slice(buffer, 0, written);
@@ -1132,7 +1164,11 @@ namespace System
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
 		public static Slice Unescape(ReadOnlySpan<char> value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
 		{
-			if (value.Length == 0) return Empty;
+			if (value.Length == 0)
+			{
+				return Empty;
+			}
+
 			byte[]? buffer = null;
 			int written = UnsafeHelpers.Unescape(value, ref buffer);
 			return new Slice(buffer, 0, written);
@@ -1176,10 +1212,20 @@ namespace System
 			{
 				return this.Array != null ? string.Empty : null;
 			}
-			if (UnsafeHelpers.IsAsciiBytes(this.Span))
+
+			var span = this.Span;
+#if NET8_0_OR_GREATER
+			if (Ascii.IsValid(span))
 			{
-				return UnsafeHelpers.ConvertToByteString(this.Span);
+				return UnsafeHelpers.ConvertToByteString(span);
 			}
+#else
+			if (UnsafeHelpers.IsAsciiBytes(span))
+			{
+				return UnsafeHelpers.ConvertToByteString(span);
+			}
+#endif
+
 			throw new DecoderFallbackException("The slice contains at least one non-ASCII character");
 		}
 
@@ -1203,13 +1249,20 @@ namespace System
 		[Pure]
 		public string? ToUnicode() //REVIEW: rename this to ToStringUnicode() ?
 		{
-			return this.Count == 0 ? (this.Array != null ? string.Empty : null)
-				: UnsafeHelpers.IsAsciiBytes(this.Span) ? UnsafeHelpers.ConvertToByteString(this.Span)
+			var span = this.Span;
+			return span.Length == 0 ? (this.Array != null ? string.Empty : null)
+#if NET8_0_OR_GREATER
+				: System.Text.Ascii.IsValid(span) ? UnsafeHelpers.ConvertToByteString(span) : Utf8NoBomEncoding.GetString(span);
+#else
+				: UnsafeHelpers.IsAsciiBytes(span) ? UnsafeHelpers.ConvertToByteString(span)
 #if !NETFRAMEWORK && !NETSTANDARD
-				: Utf8NoBomEncoding.GetString(this.Span);
+				: Utf8NoBomEncoding.GetString(span);
 #else
 				: DecodeStringUtf8(this.Span);
+#endif
+#endif
 
+#if NETFRAMEWORK || NETSTANDARD
 			static string DecodeStringUtf8(ReadOnlySpan<byte> span)
 			{
 				unsafe 

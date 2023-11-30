@@ -87,10 +87,18 @@ namespace System
 		{
 			if (span.Length == 0) return string.Empty;
 
+#if NET8_0_OR_GREATER
+			if (System.Text.Ascii.IsValid(span))
+			{
+				return UnsafeHelpers.ConvertToByteString(span);
+			}
+#else
 			if (UnsafeHelpers.IsAsciiBytes(span))
 			{
 				return UnsafeHelpers.ConvertToByteString(span);
 			}
+#endif
+
 			throw new DecoderFallbackException("The span contains at least one non-ASCII character");
 		}
 
@@ -121,7 +129,19 @@ namespace System
 		public static string ToStringUnicode(this ReadOnlySpan<byte> span)
 		{
 			if (span.Length == 0) return string.Empty;
-			if (UnsafeHelpers.IsAsciiBytes(span)) return UnsafeHelpers.ConvertToByteString(span);
+
+#if NET8_0_OR_GREATER
+			if (System.Text.Ascii.IsValid(span))
+			{
+				return UnsafeHelpers.ConvertToByteString(span);
+			}
+#else
+			if (UnsafeHelpers.IsAsciiBytes(span))
+			{
+				return UnsafeHelpers.ConvertToByteString(span);
+			}
+#endif
+
 #if USE_SPAN_API
 			return Slice.Utf8NoBomEncoding.GetString(span);
 #else

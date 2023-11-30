@@ -2103,8 +2103,14 @@ namespace Doxense.Memory
 
 		/// <summary>Check if a section of a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
+#if NET8_0_OR_GREATER
+		[Obsolete("System.Text.Ascii.IsValid(...) instead")]
+#endif
 		public static bool IsAsciiString(ReadOnlySpan<char> value)
 		{
+#if NET8_0_OR_GREATER
+			return value.Length == 0 || System.Text.Ascii.IsValid(value);
+#else
 			if (value.Length == 0) return true;
 			unsafe
 			{
@@ -2113,11 +2119,13 @@ namespace Doxense.Memory
 					return IsAsciiString(pChars, value.Length);
 				}
 			}
+#endif
 		}
 
+#if !NET8_0_OR_GREATER
 		/// <summary>Check if a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
-		public static unsafe bool IsAsciiString(char* pChars, int numChars)
+		internal static unsafe bool IsAsciiString(char* pChars, int numChars)
 		{
 			Contract.Debug.Requires(pChars != null);
 			// we test if each char has at least one bit set above bit 7, ie: (char & 0xFF80) != 0
@@ -2221,11 +2229,18 @@ namespace Doxense.Memory
 			// there is one character that is >= 0x80 in the string
 			return false;
 		}
+#endif
 
 		/// <summary>Check if a memory region only contains bytes between 0 and 127 (7-bit ASCII)</summary>
 		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
+#if NET8_0_OR_GREATER
+		[Obsolete("Use System.Text.Ascii.IsValid(...) instead")]
+#endif
 		public static bool IsAsciiBytes(ReadOnlySpan<byte> buffer)
 		{
+#if NET8_0_OR_GREATER
+			return buffer.Length == 0 || System.Text.Ascii.IsValid(buffer);
+#else
 			if (buffer.Length == 0) return true;
 			unsafe
 			{
@@ -2234,12 +2249,15 @@ namespace Doxense.Memory
 					return IsAsciiBytes(pBytes, checked((uint) buffer.Length));
 				}
 			}
+#endif
 		}
+
+#if !NET8_0_OR_GREATER
 		
 		/// <summary>Check if a memory region only contains bytes between 0 and 127 (7-bit ASCII)</summary>
 		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
 		[Pure]
-		public static unsafe bool IsAsciiBytes(byte* buffer, uint count)
+		internal static unsafe bool IsAsciiBytes(byte* buffer, uint count)
 		{
 			Contract.Debug.Requires(buffer != null);
 
@@ -2300,6 +2318,8 @@ namespace Doxense.Memory
 		INVALID:
 			return false;
 		}
+
+#endif
 
 		/// <summary>Convert a byte stream into a .NET string by expanding each byte to 16 bits characters</summary>
 		/// <returns>Equivalent .NET string</returns>

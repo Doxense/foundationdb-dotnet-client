@@ -974,6 +974,9 @@ namespace System
 		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
 		public bool Equals(ReadOnlySpan<char> asciiString)
 		{
+#if NET8_0_OR_GREATER
+			return Ascii.Equals(this.Span, asciiString);
+#else
 			var span = this.Span;
 			if (span.Length < asciiString.Length) return false;
 			for (int i = 0; i < asciiString.Length; i++)
@@ -982,6 +985,7 @@ namespace System
 				if (span[i] != asciiString[i]) return false;
 			}
 			return true;
+#endif
 		}
 
 		/// <summary>Determines whether the beginning of this slice instance matches a specified ASCII keyword</summary>
