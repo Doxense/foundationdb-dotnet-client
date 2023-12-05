@@ -31,7 +31,6 @@ namespace Doxense.Runtime.Comparison
 	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
@@ -194,7 +193,7 @@ namespace Doxense.Runtime.Comparison
 		private static (Delegate Comparer, Delegate HashFunction, MemberInfo[]? Members) CreateTypedPair(Type type)
 		{
 			Contract.Debug.Requires(type != null);
-			if (type == typeof(object)) throw new InvalidOleVariantTypeException("Cannot create comparer for type object!");
+			if (type == typeof(object)) throw new InvalidOperationException("Cannot create comparer for type object!");
 
 			// génère la comparison function
 			var expr = ModelComparerExpressionBuilder.GetTypedComparer(type);
@@ -1275,6 +1274,5 @@ namespace Doxense.Runtime.Comparison
 		}
 
 	}
-
 
 }
