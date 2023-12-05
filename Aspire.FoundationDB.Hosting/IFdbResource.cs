@@ -8,12 +8,12 @@
 
 namespace Aspire.Hosting.ApplicationModel
 {
-    using System;
+	using System;
 
-    /// <summary>Represents a FoundationDB resource that requires a cluster file.</summary>
-    public interface IFdbResource : IResourceWithConnectionString
-    {
+	/// <summary>Represents a FoundationDB resource that requires a cluster file.</summary>
+	public interface IFdbResource : IResourceWithConnectionString
+	{
 
-    }
+	}
 
 }

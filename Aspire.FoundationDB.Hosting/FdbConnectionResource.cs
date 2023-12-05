@@ -12,15 +12,15 @@ namespace Aspire.Hosting.ApplicationModel
 	using FoundationDB.Client;
 
 	public class FdbConnectionResource : Resource, IFdbResource
-    {
+	{
 
-        public FdbConnectionResource(string name) : base(name) { }
+		public FdbConnectionResource(string name) : base(name) { }
 
-        public int ApiVersion { get; set; }
+		public int ApiVersion { get; set; }
 
 		public FdbPath Root { get; set; }
 
-        public string? ClusterFile { get; set; }
+		public string? ClusterFile { get; set; }
 
 		public string? ClusterContents { get; set; }
 
@@ -28,35 +28,35 @@ namespace Aspire.Hosting.ApplicationModel
 
 		//TODO: more options? Debug? TraceId? Timeout? ....
 
-        public string? GetConnectionString()
-        {
-	        var builder = new DbConnectionStringBuilder();
+		public string? GetConnectionString()
+		{
+			var builder = new DbConnectionStringBuilder();
 
-	        builder["ApiVersion"] = this.ApiVersion;
+			builder["ApiVersion"] = this.ApiVersion;
 
-	        if (!this.Root.IsEmpty)
-	        {
-		        builder["Root"] = this.Root.ToString();
-	        }
+			if (!this.Root.IsEmpty)
+			{
+				builder["Root"] = this.Root.ToString();
+			}
 
-	        if (!string.IsNullOrWhiteSpace(this.ClusterFile))
-	        {
-		        builder["ClusterFile"] = this.ClusterFile;
-	        }
+			if (!string.IsNullOrWhiteSpace(this.ClusterFile))
+			{
+				builder["ClusterFile"] = this.ClusterFile;
+			}
 
-	        if (!string.IsNullOrWhiteSpace(this.ClusterContents))
-	        {
-		        builder["ClusterFileContents"] = this.ClusterContents;
-	        }
+			if (!string.IsNullOrWhiteSpace(this.ClusterContents))
+			{
+				builder["ClusterFileContents"] = this.ClusterContents;
+			}
 
-	        if (this.ClusterVersion != null)
-	        {
-		        builder["ClusterVersion"] = this.ClusterVersion.ToString();
-	        }
+			if (this.ClusterVersion != null)
+			{
+				builder["ClusterVersion"] = this.ClusterVersion.ToString();
+			}
 
-	        return builder.ConnectionString;
-        }
+			return builder.ConnectionString;
+		}
 
-    }
+	}
 
 }

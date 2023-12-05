@@ -32,7 +32,7 @@ namespace Aspire.Hosting.ApplicationModel
 		/// <para>If a newer version is available, but is known to break compatiblity (by removing support for the API level selected), then it will not be included in the selection process.</para>
 		/// </remarks>
 		LatestMinor,
-        
+		
 		/// <summary>Select the latest stable patch version available for the minor version requested.</summary>
 		/// <remarks>
 		/// <para>For example, if version <c>6.0.3</c> is requested, but <c>6.0.7</c> is the latest <c>6.0.x</c> version available, it will be used even if there is a more recent <c>6.1.x</c> or <c>7.x</c> version.</para>

@@ -11,43 +11,43 @@ namespace Aspire.Hosting.ApplicationModel
 	using System.Linq;
 	using System.Net;
 
-    public class FdbContainerResource : ContainerResource, IFdbResource, IResourceWithParent<FdbClusterResource>
-    {
-        public FdbContainerResource(string name, FdbClusterResource parent) : base(name)
-        {
-            this.Parent = parent;
-        }
+	public class FdbContainerResource : ContainerResource, IFdbResource, IResourceWithParent<FdbClusterResource>
+	{
+		public FdbContainerResource(string name, FdbClusterResource parent) : base(name)
+		{
+			this.Parent = parent;
+		}
 
-        public FdbClusterResource Parent { get; }
+		public FdbClusterResource Parent { get; }
 
-        public required int Port { get; set; }
+		public required int Port { get; set; }
 
-        public required bool IsCoordinator { get; set; }
+		public required bool IsCoordinator { get; set; }
 
-        public required string DockerTag { get; set; }
+		public required string DockerTag { get; set; }
 
-        public string? ProcessClass { get; set; }
+		public string? ProcessClass { get; set; }
 
-        internal EndPoint GetEndpoint()
-        {
-            if (!this.TryGetServiceBindings(out var bindings))
-            {
-                throw new DistributedApplicationException("Expected allocated endpoints!");
-            }
+		internal EndPoint GetEndpoint()
+		{
+			if (!this.TryGetServiceBindings(out var bindings))
+			{
+				throw new DistributedApplicationException("Expected allocated endpoints!");
+			}
 
-            var allocatedEndpoint = bindings.Single();
+			var allocatedEndpoint = bindings.Single();
 
-            var addr = IPAddress.Loopback;
-            var port = allocatedEndpoint.Port ?? this.Port;
+			var addr = IPAddress.Loopback;
+			var port = allocatedEndpoint.Port ?? this.Port;
 
-            return new IPEndPoint(addr, port);
-        }
+			return new IPEndPoint(addr, port);
+		}
 
-        public string? GetConnectionString()
-        {
-            return this.Parent.GetConnectionString();
-        }
+		public string? GetConnectionString()
+		{
+			return this.Parent.GetConnectionString();
+		}
 
-    }
+	}
 
 }
