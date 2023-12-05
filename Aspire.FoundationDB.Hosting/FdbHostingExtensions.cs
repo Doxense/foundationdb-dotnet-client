@@ -15,6 +15,7 @@ namespace Aspire.Hosting
     using System.Text;
     using System.Text.Json;
     using Aspire.Hosting.ApplicationModel;
+    using Aspire.Hosting.Publishing;
     using Doxense.Diagnostics.Contracts;
     using FoundationDB.Client;
     using JetBrains.Annotations;
@@ -69,7 +70,7 @@ namespace Aspire.Hosting
 
             return builder
                 .AddResource(fdbConn)
-                .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WriteFdbConnectionToManifest(json, fdbConn)))
+                .WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbConnectionToManifest(ctx, fdbConn)))
             ;
         }
 
@@ -205,7 +206,7 @@ namespace Aspire.Hosting
 
             var cluster = builder
                 .AddResource(fdbCluster)
-                .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WriteFdbClusterToManifest(json, fdbCluster)))
+                .WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbClusterToManifest(ctx, fdbCluster)))
             ;
 
             // Create the first node. By convention, this will also be the coordinator for the cluster
@@ -221,7 +222,7 @@ namespace Aspire.Hosting
         private static IResourceBuilder<FdbContainerResource> ConfigureContainer(IResourceBuilder<FdbContainerResource> container, FdbContainerResource? coordinator)
         {
             return container
-                .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WriteFdbContainerToManifest(json, container.Resource)))
+                .WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbContainerToManifest(ctx, container.Resource)))
                 .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: container.Resource.Port, containerPort: 4550)) // default container port is set to 4550
                 .WithAnnotation(new ContainerImageAnnotation { Image = "foundationdb/foundationdb", Tag = container.Resource.DockerTag })
                 .WithVolumeMount("fdb_data", "/var/fdb/data", VolumeMountType.Named, isReadOnly: false) //HACKHACK: TODO: make this configurable!
@@ -283,8 +284,9 @@ namespace Aspire.Hosting
 
 		#endregion
 
-        private static void WriteFdbClusterToManifest(Utf8JsonWriter jsonWriter, FdbClusterResource cluster)
+        private static void WriteFdbClusterToManifest(ManifestPublishingContext context, FdbClusterResource cluster)
         {
+	        var jsonWriter = context.Writer;
             jsonWriter.WriteString("type", "fdb.cluster.v0");
             jsonWriter.WriteNumber("apiVersion", cluster.ApiVersion);
 			jsonWriter.WriteString("root", cluster.Root.ToString());
@@ -295,8 +297,9 @@ namespace Aspire.Hosting
 			jsonWriter.WriteNumber("portStart", cluster.PortStart);
         }
 
-        private static void WriteFdbContainerToManifest(Utf8JsonWriter jsonWriter, FdbContainerResource container)
+        private static void WriteFdbContainerToManifest(ManifestPublishingContext context, FdbContainerResource container)
         {
+	        var jsonWriter = context.Writer;
             jsonWriter.WriteString("type", "fdb.container.v0");
             jsonWriter.WriteString("parent", container.Parent.Name);
             if (container.IsCoordinator)
@@ -314,8 +317,9 @@ namespace Aspire.Hosting
             }
         }
 
-        private static void WriteFdbConnectionToManifest(Utf8JsonWriter jsonWriter, FdbConnectionResource connection)
+        private static void WriteFdbConnectionToManifest(ManifestPublishingContext context, FdbConnectionResource connection)
         {
+	        var jsonWriter = context.Writer;
             jsonWriter.WriteString("type", "fdb.connection.v0");
             jsonWriter.WriteNumber("apiVersion", connection.ApiVersion);
             jsonWriter.WriteString("root", connection.Root.ToString());

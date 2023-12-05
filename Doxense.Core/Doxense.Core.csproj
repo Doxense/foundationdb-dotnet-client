@@ -36,7 +36,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
 		<PackageReference Include="NodaTime" Version="3.1.9" />
-		<PackageReference Include="OpenTelemetry.Api" Version="1.7.0-alpha.1" />
+		<PackageReference Include="OpenTelemetry.Api" Version="1.7.0-rc.1" />
 		<PackageReference Include="System.IO.Pipelines" Version="8.0.0" />
 		<PackageReference Include="System.Reflection.Metadata" Version="8.0.0" />
 		<PackageReference Include="System.Threading.Channels" Version="8.0.0" />
