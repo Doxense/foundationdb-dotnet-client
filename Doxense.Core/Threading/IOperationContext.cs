@@ -343,7 +343,7 @@ namespace Doxense.Threading.Operations
 		//TOD: les autres!
 
 		public static TWorkflow CreateInstance(IServiceProvider services, string name, IOperationScheduler scheduler, TParameter req, CancellationToken ct)
-        {
+		{
 			var ctx = scheduler.Create<TResult>(name, null, null, ct);
 			return CreateInstance(services, ctx);
 		}
@@ -374,8 +374,34 @@ namespace Doxense.Threading.Operations
 
 		public static Task<OperationResult<TResult>> Run<TResult>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> handler, CancellationToken ct)
 		{
-			var context = scheduler.Create<TResult>(type, key, null, ct);
-			return scheduler.ExecuteOperation(context, handler);
+			Contract.NotNull(scheduler);
+			Contract.NotNull(type);
+			Contract.NotNull(handler);
+			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), handler);
+		}
+
+		public static Task<OperationResult<TResult>> Run<TResult, T0>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, T0, Task<OperationResult<TResult>>> handler, T0 arg0, CancellationToken ct)
+		{
+			Contract.NotNull(scheduler);
+			Contract.NotNull(type);
+			Contract.NotNull(handler);
+			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), (ctx) => handler(ctx, arg0));
+		}
+
+		public static Task<OperationResult<TResult>> Run<TResult, T0, T1>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, T0, T1, Task<OperationResult<TResult>>> handler, T0 arg0, T1 arg1, CancellationToken ct)
+		{
+			Contract.NotNull(scheduler);
+			Contract.NotNull(type);
+			Contract.NotNull(handler);
+			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), (ctx) => handler(ctx, arg0, arg1));
+		}
+
+		public static Task<OperationResult<TResult>> Run<TResult, T0, T1, T2>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, T0, T1, T2, Task<OperationResult<TResult>>> handler, T0 arg0, T1 arg1, T2 arg2, CancellationToken ct)
+		{
+			Contract.NotNull(scheduler);
+			Contract.NotNull(type);
+			Contract.NotNull(handler);
+			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), (ctx) => handler(ctx, arg0, arg1, arg2));
 		}
 
 		public static Task<OperationResult<TResult>> Run<TResult>(this IOperationContext parent, string type, string? key, Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> handler)
@@ -887,6 +913,294 @@ namespace Doxense.Threading.Operations
 		{
 			this.EventBus.Dispatch(evt);
 		}
+
+	}
+
+	public sealed class OperationActionAttribute : Attribute
+	{
+
+		public string? Type { get; }
+
+		public OperationActionAttribute() { }
+
+		public OperationActionAttribute(string type) { this.Type = type; }
+
+	}
+
+	public sealed class OperationInvokerAttribute<TService> : Attribute
+	{
+
+		public string Type { get; set; }
+
+		public OperationInvokerAttribute(string type)
+		{
+			this.Type = type;
+		}
+
+	}
+
+	public interface IOperationInvoker<out TService>
+	{
+		IOperationScheduler GetScheduler();
+
+		TService GetInstance();
+	}
+
+	public sealed class OperationCallSite<TResult, T0>
+	{
+		public IOperationScheduler Scheduler { get; }
+
+		public string Type { get; }
+
+		public Func<IOperationContext<TResult>, T0, Task<OperationResult<TResult>>> Handler { get; }
+
+		public OperationCallSite(IOperationScheduler scheduler, string type, Func<IOperationContext<TResult>, T0, Task<OperationResult<TResult>>> handler)
+		{
+			this.Scheduler = scheduler;
+			this.Type = type;
+			this.Handler = handler;
+		}
+
+		private Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> MakeCallback(T0 arg0)
+			=> (ctx) => this.Handler(ctx, arg0);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(string? key, T0 arg0, CancellationToken ct)
+			=> this.Scheduler.Run<TResult>(this.Type, key, MakeCallback(arg0), ct);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(IOperationContext parent, string? key, T0 arg0)
+			=> parent.Run<TResult>(this.Type, key, MakeCallback(arg0));
+
+	}
+
+	public sealed class OperationCallSite<TResult, T0, T1>
+	{
+
+		public IOperationScheduler Scheduler { get; }
+
+		public string Type { get; }
+
+		public Func<IOperationContext<TResult>, T0, T1, Task<OperationResult<TResult>>> Handler { get; }
+
+		public OperationCallSite(IOperationScheduler scheduler, string type, Func<IOperationContext<TResult>, T0, T1, Task<OperationResult<TResult>>> handler)
+		{
+			this.Scheduler = scheduler;
+			this.Type = type;
+			this.Handler = handler;
+		}
+
+		private Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> MakeCallback(T0 arg0, T1 arg1)
+			=> (ctx) => this.Handler(ctx, arg0, arg1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(string? key, T0 arg0, T1 arg1, CancellationToken ct)
+			=> this.Scheduler.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1), ct);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(IOperationContext parent, string? key, T0 arg0, T1 arg1)
+			=> parent.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1));
+
+	}
+
+	public sealed class OperationCallSite<TResult, T0, T1, T2>
+	{
+
+		public IOperationScheduler Scheduler { get; }
+
+		public string Type { get; }
+
+		public Func<IOperationContext<TResult>, T0, T1, T2, Task<OperationResult<TResult>>> Handler { get; }
+
+		public OperationCallSite(IOperationScheduler scheduler, string type, Func<IOperationContext<TResult>, T0, T1, T2, Task<OperationResult<TResult>>> handler)
+		{
+			this.Scheduler = scheduler;
+			this.Type = type;
+			this.Handler = handler;
+		}
+
+		private Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> MakeCallback(T0 arg0, T1 arg1, T2 arg2)
+			=> (ctx) => this.Handler(ctx, arg0, arg1, arg2);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(string? key, T0 arg0, T1 arg1, T2 arg2, CancellationToken ct)
+			=> this.Scheduler.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2), ct);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(IOperationContext parent, string? key, T0 arg0, T1 arg1, T2 arg2)
+			=> parent.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2));
+
+	}
+
+	public sealed class OperationCallSite<TResult, T0, T1, T2, T3>
+	{
+
+		public IOperationScheduler Scheduler { get; }
+
+		public string Type { get; }
+
+		public Func<IOperationContext<TResult>, T0, T1, T2, T3, Task<OperationResult<TResult>>> Handler { get; }
+
+		public OperationCallSite(IOperationScheduler scheduler, string type, Func<IOperationContext<TResult>, T0, T1, T2, T3, Task<OperationResult<TResult>>> handler)
+		{
+			this.Scheduler = scheduler;
+			this.Type = type;
+			this.Handler = handler;
+		}
+
+		private Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> MakeCallback(T0 arg0, T1 arg1, T2 arg2, T3 arg3)
+			=> (ctx) => this.Handler(ctx, arg0, arg1, arg2, arg3);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(string? key, T0 arg0, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct)
+			=> this.Scheduler.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2, arg3), ct);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(IOperationContext parent, string? key, T0 arg0, T1 arg1, T2 arg2, T3 arg3)
+			=> parent.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2, arg3));
+
+	}
+
+	public sealed class OperationCallSite<TResult, T0, T1, T2, T3, T4>
+	{
+
+		public IOperationScheduler Scheduler { get; }
+
+		public string Type { get; }
+
+		public Func<IOperationContext<TResult>, T0, T1, T2, T3, T4, Task<OperationResult<TResult>>> Handler { get; }
+
+		public OperationCallSite(IOperationScheduler scheduler, string type, Func<IOperationContext<TResult>, T0, T1, T2, T3, T4, Task<OperationResult<TResult>>> handler)
+		{
+			this.Scheduler = scheduler;
+			this.Type = type;
+			this.Handler = handler;
+		}
+
+		private Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> MakeCallback(T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+			=> (ctx) => this.Handler(ctx, arg0, arg1, arg2, arg3, arg4);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(string? key, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct)
+			=> this.Scheduler.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2, arg3, arg4), ct);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(IOperationContext parent, string? key, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+			=> parent.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2, arg3, arg4));
+
+	}
+
+	public sealed class OperationCallSite<TResult, T0, T1, T2, T3, T4, T5>
+	{
+
+		public IOperationScheduler Scheduler { get; }
+
+		public string Type { get; }
+
+		public Func<IOperationContext<TResult>, T0, T1, T2, T3, T4, T5, Task<OperationResult<TResult>>> Handler { get; }
+
+		public OperationCallSite(IOperationScheduler scheduler, string type, Func<IOperationContext<TResult>, T0, T1, T2, T3, T4, T5, Task<OperationResult<TResult>>> handler)
+		{
+			this.Scheduler = scheduler;
+			this.Type = type;
+			this.Handler = handler;
+		}
+
+		private Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> MakeCallback(T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+			=> (ctx) => this.Handler(ctx, arg0, arg1, arg2, arg3, arg4, arg5);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(string? key, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct)
+			=> this.Scheduler.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2, arg3, arg4, arg5), ct);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Task<OperationResult<TResult>> Execute(IOperationContext parent, string? key, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+			=> parent.Run<TResult>(this.Type, key, MakeCallback(arg0, arg1, arg2, arg3, arg4, arg5));
+
+	}
+
+	public static class OperationInvokerExtensions
+	{
+
+		#region <T0>
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0>(this OperationCallSite<TResult, T0> operation, T0 arg0, CancellationToken ct)
+			=> operation.Execute(null, arg0, ct);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0>(this OperationCallSite<TResult, T0> operation, string key, T0 arg0, CancellationToken ct)
+			=> operation.Execute(key, arg0, ct);
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0>(this OperationCallSite<TResult, T0> operation, IOperationContext parent, T0 arg0)
+			=> operation.Execute(parent, null, arg0);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0>(this OperationCallSite<TResult, T0> operation, string key, IOperationContext parent, T0 arg0)
+			=> operation.Execute(parent, key, arg0);
+
+		#endregion
+
+		#region <T0, T1>
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1>(this OperationCallSite<TResult, T0, T1> operation, T0 arg0, T1 arg1, CancellationToken ct)
+			=> operation.Execute(null, arg0, arg1, ct);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1>(this OperationCallSite<TResult, T0, T1> operation, string key, T0 arg0, T1 arg1, CancellationToken ct)
+			=> operation.Execute(key, arg0, arg1, ct);
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1>(this OperationCallSite<TResult, T0, T1> operation, IOperationContext parent, T0 arg0, T1 arg1)
+			=> operation.Execute(parent, null, arg0, arg1);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1>(this OperationCallSite<TResult, T0, T1> operation, string key, IOperationContext parent, T0 arg0, T1 arg1)
+			=> operation.Execute(parent, key, arg0, arg1);
+
+		#endregion
+
+		#region <T0, T1, T2>
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1, T2>(this OperationCallSite<TResult, T0, T1, T2> operation, T0 arg0, T1 arg1, T2 arg2, CancellationToken ct)
+			=> operation.Execute(null, arg0, arg1, arg2, ct);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1, T2>(this OperationCallSite<TResult, T0, T1, T2> operation, string key, T0 arg0, T1 arg1, T2 arg2, CancellationToken ct)
+			=> operation.Execute(key, arg0, arg1, arg2, ct);
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1, T2>(this OperationCallSite<TResult, T0, T1, T2> operation, IOperationContext parent, T0 arg0, T1 arg1, T2 arg2)
+			=> operation.Execute(parent, null, arg0, arg1, arg2);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1, T2>(this OperationCallSite<TResult, T0, T1, T2> operation, string key, IOperationContext parent, T0 arg0, T1 arg1, T2 arg2)
+			=> operation.Execute(parent, key, arg0, arg1, arg2);
+
+		#endregion
+
+		#region <T0, T1, T2, T3>
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1, T2, T3>(this OperationCallSite<TResult, T0, T1, T2, T3> operation, T0 arg0, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct)
+			=> operation.Execute(null, arg0, arg1, arg2, arg3, ct);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1, T2, T3>(this OperationCallSite<TResult, T0, T1, T2, T3> operation, string key, T0 arg0, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct)
+			=> operation.Execute(key, arg0, arg1, arg2, arg3, ct);
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1, T2, T3>(this OperationCallSite<TResult, T0, T1, T2, T3> operation, IOperationContext parent, T0 arg0, T1 arg1, T2 arg2, T3 arg3)
+			=> operation.Execute(parent, null, arg0, arg1, arg2, arg3);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1, T2, T3>(this OperationCallSite<TResult, T0, T1, T2, T3> operation, string key, IOperationContext parent, T0 arg0, T1 arg1, T2 arg2, T3 arg3)
+			=> operation.Execute(parent, key, arg0, arg1, arg2, arg3);
+
+		#endregion
+
+		#region <T0, T1, T2, T3, T4>
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1, T2, T3, T4>(this OperationCallSite<TResult, T0, T1, T2, T3, T4> operation, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct)
+			=> operation.Execute(null, arg0, arg1, arg2, arg3, arg4, ct);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1, T2, T3, T4>(this OperationCallSite<TResult, T0, T1, T2, T3, T4> operation, string key, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct)
+			=> operation.Execute(key, arg0, arg1, arg2, arg3, arg4, ct);
+
+		public static Task<OperationResult<TResult>> Invoke<TResult, T0, T1, T2, T3, T4>(this OperationCallSite<TResult, T0, T1, T2, T3, T4> operation, IOperationContext parent, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+			=> operation.Execute(parent, null, arg0, arg1, arg2, arg3, arg4);
+
+		public static Task<OperationResult<TResult>> InvokeWithKey<TResult, T0, T1, T2, T3, T4>(this OperationCallSite<TResult, T0, T1, T2, T3, T4> operation, string key, IOperationContext parent, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+			=> operation.Execute(parent, key, arg0, arg1, arg2, arg3, arg4);
+
+		#endregion
 
 	}
 
