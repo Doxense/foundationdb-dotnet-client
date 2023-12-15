@@ -1,14 +1,14 @@
 <Project>
   <PropertyGroup>
     <VersionPrefix>7.2.0</VersionPrefix>
-    <VersionSuffix>preview2</VersionSuffix>
-    <Authors>Doxense</Authors>
+    <VersionSuffix>preview3</VersionSuffix>
+    <Authors>Snowbank SAS</Authors>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
     <PackageIcon>foundationdb.png</PackageIcon>
     <PackageIconUrl>https://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
-    <Copyright>Copyright 2005-2023 Doxense SAS</Copyright>
+    <Copyright>Copyright (c) 2023 Snowbank SAS, (c) 2005-2023 Doxense SAS</Copyright>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="" />
