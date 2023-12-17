@@ -116,9 +116,13 @@ namespace FoundationDB.Tests.Sandbox
 			AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
 			{
 				if (e.IsTerminating)
+				{
 					Console.Error.WriteLine("Fatal unhandled exception: " + e.ExceptionObject);
+				}
 				else
+				{
 					Console.Error.WriteLine("Unhandled exception: " + e.ExceptionObject);
+				}
 			};
 
 			using (var go = new CancellationTokenSource())
@@ -129,7 +133,11 @@ namespace FoundationDB.Tests.Sandbox
 				}
 				catch (Exception e)
 				{
-					if (e is AggregateException) e = (e as AggregateException).Flatten().InnerException;
+					if (e is AggregateException aggEx)
+					{
+						e = aggEx.Flatten().InnerException;
+					}
+
 					Console.Error.WriteLine("Oops! something went wrong:");
 					Console.Error.WriteLine(e.ToString());
 					go.Cancel();
@@ -181,12 +189,12 @@ namespace FoundationDB.Tests.Sandbox
 
 					// get coordinators
 					var cf = await Fdb.System.GetCoordinatorsAsync(db, ct);
-					Console.WriteLine("Coordinators: " + cf.ToString());
+					Console.WriteLine($"Coordinators: {cf}");
 
 					// clear everything
-					using (var tr = await db.BeginTransactionAsync(ct))
+					using (var tr = db.BeginTransaction(ct))
 					{
-						Console.WriteLine("Clearing subspace " + db.Root + " ...");
+						Console.WriteLine($"Clearing subspace {db.Root} ...");
 						var subspace = await db.Root.Resolve(tr);
 						tr.ClearRange(subspace);
 						await tr.CommitAsync();
@@ -253,11 +261,11 @@ namespace FoundationDB.Tests.Sandbox
 		{
 
 			// Connect to the "DB" database on the local cluster
-			using (var db = await Fdb.OpenAsync())
+			using (var db = await Fdb.OpenAsync(ct))
 			{
 
 				// Writes some data in to the database
-				using (var tr = await db.BeginTransactionAsync(ct))
+				using (var tr = db.BeginTransaction(ct))
 				{
 					tr.Set(TuPack.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
 					tr.Set(TuPack.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
@@ -272,7 +280,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("=== TestSimpleTransaction() ===");
 
 			Console.WriteLine("Starting new transaction...");
-			using (var trans = await db.BeginTransactionAsync(ct))
+			using (var trans = db.BeginTransaction(ct))
 			{
 				Console.WriteLine("> Transaction ready");
 
@@ -325,7 +333,7 @@ namespace FoundationDB.Tests.Sandbox
 			for (int k = 0; k <= 4; k++)
 			{
 				var sw = Stopwatch.StartNew();
-				using (var trans = await db.BeginTransactionAsync(ct))
+				using (var trans = db.BeginTransaction(ct))
 				{
 					var subspace = await location.Resolve(trans);
 
@@ -386,7 +394,7 @@ namespace FoundationDB.Tests.Sandbox
 					sem.Wait();
 
 					var x = Stopwatch.StartNew();
-					using (var trans = await db.BeginTransactionAsync(ct))
+					using (var trans = db.BeginTransaction(ct))
 					{
 						x.Stop();
 						//Console.WriteLine($"> [{offset}] got transaction in {FormatTimeMilli(x.Elapsed.TotalMilliseconds)}");
@@ -448,7 +456,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					if (trans == null)
 					{
-						trans = await db.BeginTransactionAsync(ct);
+						trans = db.BeginTransaction(ct);
 						subspace = await location.Resolve(trans);
 					}
 					trans.Set(subspace.Encode(i), Slice.FromInt32(i));
@@ -482,7 +490,7 @@ namespace FoundationDB.Tests.Sandbox
 			var sw = Stopwatch.StartNew();
 			for (int k = 0; k < N; k += 1000)
 			{
-				using (var trans = await db.BeginTransactionAsync(ct))
+				using (var trans = db.BeginTransaction(ct))
 				{
 					var subspace = await location.Resolve(trans);
 					for (int i = k; i < N && i < k + 1000; i++)
@@ -508,7 +516,7 @@ namespace FoundationDB.Tests.Sandbox
 			var location = db.Root.ByKey("hello").AsTyped<int>();
 
 			var sw = Stopwatch.StartNew();
-			using (var trans = await db.BeginTransactionAsync(ct))
+			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
 				_ = await Task.WhenAll(Enumerable
@@ -521,7 +529,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine();
 
 			sw = Stopwatch.StartNew();
-			using (var trans = await db.BeginTransactionAsync(ct))
+			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
 				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace[i]));
@@ -540,7 +548,7 @@ namespace FoundationDB.Tests.Sandbox
 			var location = db.Root.ByKey(Slice.FromStringAscii("hello"));
 
 			var sw = Stopwatch.StartNew();
-			using (var trans = await db.BeginTransactionAsync(ct))
+			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
 				for (int i = 0; i < N; i++)
@@ -567,7 +575,7 @@ namespace FoundationDB.Tests.Sandbox
 			for (int i = 0; i < N; i++)
 			{
 				list[i] = (byte)i;
-				using (var trans = await db.BeginTransactionAsync(ct))
+				using (var trans = db.BeginTransaction(ct))
 				{
 					var subspace = await db.Root.Resolve(trans);
 					trans.Set(subspace.Encode("list"), list.AsSlice());
@@ -595,7 +603,7 @@ namespace FoundationDB.Tests.Sandbox
 			var segment = new byte[60];
 
 			for (int i = 0; i < (segment.Length >> 1); i++) segment[i] = (byte) rnd.Next(256);
-			using (var trans = await db.BeginTransactionAsync(ct))
+			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
 				for (int i = 0; i < N; i += 1000)
@@ -611,7 +619,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"\rChanging one byte in each of the {N:N0} keys...");
 			var sw = Stopwatch.StartNew();
-			using (var trans = await db.BeginTransactionAsync(ct))
+			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
 
@@ -649,7 +657,7 @@ namespace FoundationDB.Tests.Sandbox
 			var location = db.Root.ByKey("BulkInsert");
 
 			// cleanup everything
-			using (var tr = await db.BeginTransactionAsync(ct))
+			using (var tr = db.BeginTransaction(ct))
 			{
 				tr.ClearRange(await location.Resolve(tr));
 				await tr.CommitAsync();
@@ -671,7 +679,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					foreach (var chunk in worker)
 					{
-						using (var tr = await db.BeginTransactionAsync(ct))
+						using (var tr = db.BeginTransaction(ct))
 						{
 							var subspace = await location.Resolve(tr);
 							int z = 0;
@@ -720,7 +728,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			// Read values
 
-			using (var tr = await db.BeginTransactionAsync(ct))
+			using (var tr = db.BeginTransaction(ct))
 			{
 				Console.WriteLine("Reading all keys...");
 				var subspace = await location.Resolve(tr);
@@ -752,7 +760,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.Write($"> Inserting {(K * N):N0} items... ");
 			foreach (var source in sources)
 			{
-				using (var tr = await db.BeginTransactionAsync(ct))
+				using (var tr = db.BeginTransaction(ct))
 				{
 					var list = await location.ByKey(source).Resolve(tr);
 					for (int i = 0; i < N; i++)
@@ -766,7 +774,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			// merge/sort them to get only one (hopefully sorted) list
 
-			using (var tr = await db.BeginTransactionAsync(ct))
+			using (var tr = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(tr);
 
