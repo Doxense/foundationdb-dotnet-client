@@ -84,12 +84,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Type déclaré par l'objet parent</param>
 		/// <param name="atRuntime">Si true, <paramref name="type"/> est le type réel de l'instance. Si false, c'est potentiellement un type de base, tel que déclaré dans le Field ou Property du parent</param>
 		/// <returns>Delegate capable de sérialiser ce type en JSON</returns>
-		private static CrystalJsonTypeVisitor CreateVisitorForType(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.Interfaces)]
-#endif
-			Type type,
-			bool atRuntime)
+		private static CrystalJsonTypeVisitor CreateVisitorForType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type type, bool atRuntime)
 		{
 			//	Type		Primitive	ValueType	Class	Enum	Interface
 			// string		   _           _          X       _
@@ -226,11 +221,7 @@ namespace Doxense.Serialization.Json
 			writer.WriteValue(value as string);
 		}
 
-		private static CrystalJsonTypeVisitor? TryGetSerializeMethodVisitor(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
-#endif
-			Type type)
+		private static CrystalJsonTypeVisitor? TryGetSerializeMethodVisitor([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
 		{
 			//Duck Typing: on reconnaît les patterns suivants
 			// - static JsonSerialize(T, CrystalJsonWriter) => JsonValue (ou dérivée)
@@ -253,11 +244,7 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		private static CrystalJsonTypeVisitor? TryGetBindableMethodVisitor(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
-#endif
-			Type type)
+		private static CrystalJsonTypeVisitor? TryGetBindableMethodVisitor([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
 		{
 			//Duck Typing: on reconnaît les patterns suivants
 			// - static JsonPack(T instance, ...) => JsonValue (ou dérivée)
@@ -665,11 +652,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Génère le convertisseur pour un type énumérable (tableau, liste, dictionnaire, ...)</summary>
 		/// <param name="type">Type implémentant IEnumerable</param>
 		/// <returns>Delegate capable de sérialiser ce type en JSON</returns>
-		private static CrystalJsonTypeVisitor CreateVisitorForEnumerableType(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
-#endif
-			Type type)
+		private static CrystalJsonTypeVisitor CreateVisitorForEnumerableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
 		{
 			if (type.IsInstanceOf<ICollection<KeyValuePair<string, string>>>())
 			{ // Key/Value store

@@ -900,11 +900,7 @@ namespace Doxense.Serialization.Json
 
 		private static QuasiImmutableCache<Type, Maybe<CrystalJsonTypePacker>> DuckTypedJsonPackMethods { get; } = new QuasiImmutableCache<Type, Maybe<CrystalJsonTypePacker>>(GetInstanceJsonPackHandler, TypeEqualityComparer.Default);
 
-		private static Maybe<CrystalJsonTypePacker> GetInstanceJsonPackHandler(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
-#endif
-			Type type)
+		private static Maybe<CrystalJsonTypePacker> GetInstanceJsonPackHandler([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
 		{
 			// recherche une méthode d'instance "JsonPack"
 			var m = type.GetMethod(nameof(IJsonPackable.JsonPack), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);

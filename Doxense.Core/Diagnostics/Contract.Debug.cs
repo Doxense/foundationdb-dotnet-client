@@ -54,9 +54,7 @@ namespace Doxense.Diagnostics.Contracts
 			[AssertionMethod]
 			public static void Requires(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
-#if USE_ANNOTATIONS
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
-#endif
 				bool condition,
 				string? userMessage = null,
 				[CallerArgumentExpression("condition")] string? conditionText = null
@@ -76,9 +74,7 @@ namespace Doxense.Diagnostics.Contracts
 			[AssertionMethod]
 			public static void Assert(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
-#if USE_ANNOTATIONS
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
-#endif
 				bool condition,
 				string? userMessage = null,
 				[CallerArgumentExpression("condition")] string? conditionText = null)
@@ -97,9 +93,7 @@ namespace Doxense.Diagnostics.Contracts
 			[AssertionMethod]
 			public static void Ensures(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
-#if USE_ANNOTATIONS
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
-#endif
 				bool condition,
 				string? userMessage = null,
 				[CallerArgumentExpression("condition")] string? conditionText = null
@@ -119,9 +113,7 @@ namespace Doxense.Diagnostics.Contracts
 			[AssertionMethod]
 			public static void Invariant(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
-#if USE_ANNOTATIONS
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
-#endif
 				bool condition,
 				string? userMessage = null,
 				[CallerArgumentExpression("condition")] string? conditionText = null

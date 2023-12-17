@@ -14,7 +14,6 @@
 		<Description>.NET Binding for FoundationDB</Description>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
-		<DefineConstants>$(DefineConstants);USE_ANNOTATIONS</DefineConstants>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />

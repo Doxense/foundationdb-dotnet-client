@@ -76,11 +76,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, ContractAnnotation("=> null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static object? Default(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-#endif
-			Type type)
+		public static object? Default([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
 		{
 			if (type.IsValueType) return ValueTypeDefault(type);
 			if (typeof(JsonValue) == type || typeof(JsonNull) == type)
@@ -91,11 +87,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static object ValueTypeDefault(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-#endif
-			Type type)
+		internal static object? ValueTypeDefault([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
 		{
 			// on ne peut retourner de singletons que pour des "structs" immutable!
 			if (type == typeof(int)) return BoxedZeroInt32;
@@ -120,12 +112,7 @@ namespace Doxense.Serialization.Json
 
 		public override object? ToObject() => null;
 
-		public override object? Bind(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-#endif
-			Type? type,
-			ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			// Si on bind vers JsonValue (ou JsonNull) on doit garder le singleton JsonNull.Null
 			if (type == typeof(JsonValue) || type == typeof(JsonNull))

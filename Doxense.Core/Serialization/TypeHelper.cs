@@ -116,11 +116,7 @@ namespace Doxense.Serialization
 		/// <param name="type">Type de l'objet à créer</param>
 		/// <returns>Fonction qui créer l'objet via un constructeur par défaut (sans paramètre), ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
 		[Pure]
-		public static Func<object>? CompileGenerator(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-#endif
-			this Type type)
+		public static Func<object>? CompileGenerator([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]this Type type)
 		{
 			Contract.Debug.Requires(type != null);
 			if (type.IsInterface || type.IsAbstract)
@@ -560,16 +556,11 @@ namespace Doxense.Serialization
 		/// <param name="type">Type à instantier</param>
 		/// <returns>null, 0, false, DateTime.MinValue, ...</returns>
 		[Pure]
-		public static object? GetDefaultValue(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-#endif
-			this Type type)
+		public static object? GetDefaultValue([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] this Type type)
 		{
-			if (type.IsValueType)
-				return Activator.CreateInstance(type);
-			else
-				return null; // Reference Type / Interface
+			return type.IsValueType
+				? Activator.CreateInstance(type)
+				: null; // Reference Type / Interface
 		}
 
 		/// <summary>Retourne la valeur par défaut (null, 0, false, ...) d'un paramètre d'une méthode</summary>
@@ -727,10 +718,7 @@ namespace Doxense.Serialization
 		/// <returns>Methode générique prête à l'emploi</returns>
 		[Pure]
 		public static MethodInfo? MakeGenericMethod(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
-#endif
-			this Type type,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] this Type type,
 			string name,
 			BindingFlags flags,
 			params Type[] types
@@ -764,11 +752,7 @@ namespace Doxense.Serialization
 		/// typeof(HashSet&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == false
 		/// </code></example>
 		[Pure]
-		public static bool IsGenericInstanceOf(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
-#endif
-			this Type type, Type genericType)
+		public static bool IsGenericInstanceOf([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, Type genericType)
 		{
 			return FindGenericType(type, genericType) != null;
 		}
@@ -778,13 +762,7 @@ namespace Doxense.Serialization
 		/// <param name="genericType">Type ou interface générique recherché (ex: IList&lt;&gt;)</param>
 		/// <returns>Version du type implémentée par cet objet (ex: IList&lt;string&gt;) ou null si cet objet n'implémente pas ce type</returns>
 		[Pure]
-		public static Type? FindGenericType(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
-#endif
-			this Type type,
-			Type genericType
-		)
+		public static Type? FindGenericType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, Type genericType)
 		{
 			Contract.NotNull(genericType);
 

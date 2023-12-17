@@ -55,12 +55,7 @@ namespace Doxense.Tools
 		/// <param name="self">Exception à tester</param>
 		/// <returns>True s'il s'agit d'une ThreadAbortException, OutOfMemoryException ou StackOverflowException, ou une AggregateException qui contient une de ces erreurs</returns>
 		[Pure]
-		public static bool IsFatalError(
-#if USE_ANNOTATIONS
-			[System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-#endif
-			this Exception? self
-		)
+		public static bool IsFatalError([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] this Exception? self)
 		{
 			return self is System.Threading.ThreadAbortException || self is OutOfMemoryException || self is StackOverflowException || (self is AggregateException && IsFatalError(self.InnerException));
 		}
@@ -68,12 +63,7 @@ namespace Doxense.Tools
 		/// <summary>Détermine s'il s'agit d'une erreur "interessante" pour le diagnostique de crash, et qui mérite d'écrire une stack-trace entière dans les logs</summary>
 		/// <returns>Si true, il s'agit d'une erreur de type <see cref="NullReferenceException"/>, <see cref="ArgumentNullException"/>, <see cref="ArgumentOutOfRangeException"/>, <see cref="IndexOutOfRangeException"/> (ou similaire) qui justifie de tracer l'exception entière dans les logs.</returns>
 		/// <remarks>Les erreurs "plus grave" (ex: <see cref="OutOfMemoryException"/>, <see cref="StackOverflowException"/>, ...) sont gérées par <see cref="IsFatalError"/>!)</remarks>
-		public static bool IsLikelyBug(
-#if USE_ANNOTATIONS
-			[System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-#endif
-			this Exception? self
-		)
+		public static bool IsLikelyBug([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] this Exception? self)
 		{
 			return self is NullReferenceException or ArgumentException or IndexOutOfRangeException or KeyNotFoundException || (self is AggregateException && IsLikelyBug(self.InnerException));
 		}
@@ -137,9 +127,7 @@ namespace Doxense.Tools
 		/// <summary>Rethrow la première exception non-aggregate trouvée, en jetant les autres s'il y en a</summary>
 		/// <param name="self">AggregateException racine</param>
 		[ContractAnnotation("self:null => null")]
-#if USE_ANNOTATIONS
 		[return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("self")]
-#endif
 		public static Exception? Unwrap(
 			this AggregateException? self)
 		{
