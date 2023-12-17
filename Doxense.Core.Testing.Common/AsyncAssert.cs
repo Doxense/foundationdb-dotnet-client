@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if DEPRECATED // scream-test to check if people still using it can easily rewrite to a more modern version
+
 namespace Doxense
 {
 	using Doxense.Tools;
@@ -165,3 +167,5 @@ namespace Doxense
 	}
 
 }
+
+#endif

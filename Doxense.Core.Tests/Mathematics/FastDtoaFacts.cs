@@ -74,57 +74,58 @@ namespace Doxense.Mathematics.Test
 		[Test]
 		public void Test_DiyDouble_Properties()
 		{
-
-			Func<double, DiyDouble> test = (value) =>
+			static void Check(double value)
 			{
 				DiyDouble d = value;
 				Log(d);
 
-				Assert.That(d.Value, Is.EqualTo(value), "Value {0}", d);
+				Assert.That(d.Value, Is.EqualTo(value), $"Value {d}");
 				ulong r;
-				unsafe { r = *((ulong*)(&d)); }
-				Assert.That(d.Raw, Is.EqualTo(r), "Raw {0}", d);
+				unsafe
+				{
+					r = *((ulong*) (&d));
+				}
 
-				Assert.That(d.IsNaN, Is.EqualTo(double.IsNaN(value)), "NaN? {0}", d);
-				Assert.That(d.IsInfinite, Is.EqualTo(double.IsInfinity(value)), "Infinity? {0}", d);
-				Assert.That(d.Sign, Is.EqualTo(value >= 0 ? +1 : -1), "Sign? {0}", d);
+				Assert.That(d.Raw, Is.EqualTo(r), $"Raw {d}");
 
-				Assert.That(d.IsInteger, Is.EqualTo(!double.IsInfinity(value) && !double.IsNaN(value) && (value - Math.Truncate(value)) == 0.0), "Integer? {0}", d);
+				Assert.That(d.IsNaN, Is.EqualTo(double.IsNaN(value)), $"NaN? {d}");
+				Assert.That(d.IsInfinite, Is.EqualTo(double.IsInfinity(value)), $"Infinity? {d}");
+				Assert.That(d.Sign, Is.EqualTo(value >= 0 ? +1 : -1), $"Sign? {d}");
 
-				return d;
-			};
+				Assert.That(d.IsInteger, Is.EqualTo(!double.IsInfinity(value) && !double.IsNaN(value) && (value - Math.Truncate(value)) == 0.0), $"Integer? {d}");
+			}
 
-			test(0.0);
-			test(double.Epsilon);
-			test(1.0);
-			test(-1.0);
-			test(double.NaN);
-			test(double.PositiveInfinity);
-			test(double.NegativeInfinity);
-			test((double)int.MaxValue);
-			test((double)long.MaxValue);
-			test(Math.PI);
-			test(Math.E);
-			test(1.0 / 3.0);
-			test(11.0 / 10.0);
-			test(1025.0 / 1024.0);
+			Check(0.0);
+			Check(double.Epsilon);
+			Check(1.0);
+			Check(-1.0);
+			Check(double.NaN);
+			Check(double.PositiveInfinity);
+			Check(double.NegativeInfinity);
+			Check((double)int.MaxValue);
+			Check((double)long.MaxValue);
+			Check(Math.PI);
+			Check(Math.E);
+			Check(1.0 / 3.0);
+			Check(11.0 / 10.0);
+			Check(1025.0 / 1024.0);
 
 			var rnd = new Random(7654321);
 			for (int i = 0; i < 10; i++)
 			{
-				test(rnd.NextDouble());
+				Check(rnd.NextDouble());
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				test((double)rnd.Next());
+				Check((double)rnd.Next());
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				test(0.5d + (double)rnd.Next());
+				Check(0.5d + (double)rnd.Next());
 			}
 			for (int i = 0; i < 63; i++)
 			{
-				test(rnd.NextDouble() * (1UL << i));
+				Check(rnd.NextDouble() * (1UL << i));
 			}
 
 		}
@@ -132,55 +133,56 @@ namespace Doxense.Mathematics.Test
 		[Test]
 		public void Test_DiySingle_Properties()
 		{
-
-			Func<float, DiySingle> test = (value) =>
+			static void Check(float value)
 			{
 				DiySingle d = value;
 				Log(d);
 
-				Assert.That(d.Value, Is.EqualTo(value), "Value {0}", d);
+				Assert.That(d.Value, Is.EqualTo(value), $"Value {d}");
 				uint r;
-				unsafe { r = *((uint*)(&d)); }
-				Assert.That(d.Raw, Is.EqualTo(r), "Raw {0}", d);
+				unsafe
+				{
+					r = *((uint*) (&d));
+				}
 
-				Assert.That(d.IsNaN, Is.EqualTo(float.IsNaN(value)), "NaN? {0}", d);
-				Assert.That(d.IsInfinite, Is.EqualTo(float.IsInfinity(value)), "Infinity? {0}", d);
-				Assert.That(d.Sign, Is.EqualTo(value >= 0 ? +1 : -1), "Sign? {0}", d);
+				Assert.That(d.Raw, Is.EqualTo(r), $"Raw {d}");
 
-				Assert.That(d.IsInteger, Is.EqualTo(!float.IsInfinity(value) && !float.IsNaN(value) && (value - (float)(int)value) == 0), "Integer? {0}", d);
+				Assert.That(d.IsNaN, Is.EqualTo(float.IsNaN(value)), $"NaN? {d}");
+				Assert.That(d.IsInfinite, Is.EqualTo(float.IsInfinity(value)), $"Infinity? {d}");
+				Assert.That(d.Sign, Is.EqualTo(value >= 0 ? +1 : -1), $"Sign? {d}");
 
-				return d;
-			};
+				Assert.That(d.IsInteger, Is.EqualTo(!float.IsInfinity(value) && !float.IsNaN(value) && (value - (float) (int) value) == 0), $"Integer? {d}");
+			}
 
-			test(0.0f);
-			test(float.Epsilon);
-			test(1.0f);
-			test(-1.0f);
-			test(float.NaN);
-			test(float.PositiveInfinity);
-			test(float.NegativeInfinity);
-			test((float)Math.PI);
-			test((float)Math.E);
-			test(1.0f / 3.0f);
-			test(11.0f / 10.0f);
-			test(1025.0f / 1024.0f);
+			Check(0.0f);
+			Check(float.Epsilon);
+			Check(1.0f);
+			Check(-1.0f);
+			Check(float.NaN);
+			Check(float.PositiveInfinity);
+			Check(float.NegativeInfinity);
+			Check((float)Math.PI);
+			Check((float)Math.E);
+			Check(1.0f / 3.0f);
+			Check(11.0f / 10.0f);
+			Check(1025.0f / 1024.0f);
 
 			var rnd = new Random(7654321);
 			for (int i = 0; i < 10; i++)
 			{
-				test((float)rnd.NextDouble());
+				Check((float)rnd.NextDouble());
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				test((float)rnd.Next());
+				Check((float)rnd.Next());
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				test(0.5f + (float)rnd.Next());
+				Check(0.5f + (float)rnd.Next());
 			}
 			for (int i = 0; i < 31; i++)
 			{
-				test((float)(rnd.NextDouble() * (1U << i)));
+				Check((float)(rnd.NextDouble() * (1U << i)));
 			}
 
 		}
@@ -190,7 +192,7 @@ namespace Doxense.Mathematics.Test
 		{
 			var chars = new char[32];
 
-			Func<double, string, string> test = (d, expected) =>
+			string Check(double d, string expected)
 			{
 				Array.Clear(chars, 0, chars.Length);
 				string s = FastDtoa.FormatDouble(d);
@@ -198,50 +200,50 @@ namespace Doxense.Mathematics.Test
 				Assert.That(s.Length, Is.GreaterThan(0));
 				//Log("dtoa({0}) => \"{1}\" [{2}]", d.ToString("R", CultureInfo.InvariantCulture), s, n);
 
-				Assert.That(s, Is.EqualTo(expected), "ToShortest({0:R}, {0:G17}, (0x{1:X16})", d, BitConverter.DoubleToInt64Bits(d));
+				Assert.That(s, Is.EqualTo(expected), $"ToShortest({d:R}, {d:G17}, (0x{BitConverter.DoubleToInt64Bits(d):X16})");
 
 				double roundTrip = Double.Parse(s, CultureInfo.InvariantCulture);
 				Log("0x{4:X16} : {0:R} ~> \"{1}\" ~> 0x{5:X16} : {2:R} => {3}", d, s, roundTrip, d == roundTrip, BitConverter.DoubleToInt64Bits(d), BitConverter.DoubleToInt64Bits(roundTrip));
-				Assert.That(roundTrip, Is.EqualTo(d), "MISTMATCH {0:X16} -> {1} -> {2:X16}", BitConverter.DoubleToInt64Bits(d), s, BitConverter.DoubleToInt64Bits(roundTrip));
+				Assert.That(roundTrip, Is.EqualTo(d), $"MISTMATCH {BitConverter.DoubleToInt64Bits(d):X16} -> {s} -> {BitConverter.DoubleToInt64Bits(roundTrip):X16}");
 
 				return s;
-			};
+			}
 
-			test(0.0, "0");
-			test(1.0, "1");
-			test(1.23, "1.23");
-			test(12345.0, "12345");
-			test(12345e23, "1.2345E+27");
-			test(1.0 / 3.0, "0.3333333333333333");
-			test(10.0 / 11.0, "0.9090909090909091");
-			test(Math.PI, "3.141592653589793");
-			test(Math.E, "2.718281828459045");
-			test(1e21, "1E+21");
-			test(1e20, "100000000000000000000");
-			test(111111111111111111111.0, "111111111111111110000");
-			test(1111111111111111111111.0, "1.1111111111111111E+21");
-			test(11111111111111111111111.0, "1.1111111111111111E+22");
-			test(-0.00001, "-0.00001");
-			test(-0.000001, "-0.000001");
-			test(-0.0000001, "-1E-7");
-			test(-0.0, "0");
-			test(5e-324, "5E-324");
-			test(double.MaxValue, "1.7976931348623157E+308");
-			test(double.MinValue, "-1.7976931348623157E+308");
-			test(2147483648.0, "2147483648");
-			test(4294967272.0, "4294967272");
-			test(4.1855804968213567e298, "4.185580496821357E+298");
+			Check(0.0, "0");
+			Check(1.0, "1");
+			Check(1.23, "1.23");
+			Check(12345.0, "12345");
+			Check(12345e23, "1.2345E+27");
+			Check(1.0 / 3.0, "0.3333333333333333");
+			Check(10.0 / 11.0, "0.9090909090909091");
+			Check(Math.PI, "3.141592653589793");
+			Check(Math.E, "2.718281828459045");
+			Check(1e21, "1E+21");
+			Check(1e20, "100000000000000000000");
+			Check(111111111111111111111.0, "111111111111111110000");
+			Check(1111111111111111111111.0, "1.1111111111111111E+21");
+			Check(11111111111111111111111.0, "1.1111111111111111E+22");
+			Check(-0.00001, "-0.00001");
+			Check(-0.000001, "-0.000001");
+			Check(-0.0000001, "-1E-7");
+			Check(-0.0, "0");
+			Check(5e-324, "5E-324");
+			Check(double.MaxValue, "1.7976931348623157E+308");
+			Check(double.MinValue, "-1.7976931348623157E+308");
+			Check(2147483648.0, "2147483648");
+			Check(4294967272.0, "4294967272");
+			Check(4.1855804968213567e298, "4.185580496821357E+298");
 
 			// corner cases
-			test(3.5844466002796428e+298, "3.5844466002796428E+298"); //BUGBUG: BCL rajoute le '+' pour l'exponent
+			Check(3.5844466002796428e+298, "3.5844466002796428E+298"); //BUGBUG: BCL rajoute le '+' pour l'exponent
 
 
 			// x86/x64 rounding mode differences
 			if (IntPtr.Size == 4)
 			{
 				//BUGBUG: ces valeurs ne roundtrippent pas exactement en x64 ! :(
-				test(1.0000000012588799, "1.00000000125888");
-				test(5.5626846462680035e-309, "5.562684646268003E-309");
+				Check(1.0000000012588799, "1.00000000125888");
+				Check(5.5626846462680035e-309, "5.562684646268003E-309");
 			}
 
 		}
@@ -249,7 +251,7 @@ namespace Doxense.Mathematics.Test
 		[Test, Category("LongRunning")]
 		public void Test_All_The_Things()
 		{
-			Log("Test running in " + (IntPtr.Size == 4 ? "x86" : "x64"));
+			Log($"Test running in {(IntPtr.Size == 4 ? "x86" : "x64")}");
 			long b = BitConverter.DoubleToInt64Bits(1);
 			int num = 0;
 			int notParsed = 0;
@@ -262,27 +264,36 @@ namespace Doxense.Mathematics.Test
 				var s = FastDtoa.FormatDouble(d);
 				double dd;
 				++num;
-				if (!Double.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out dd))
+				if (!double.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out dd))
 				{
 					++notParsed;
 				}
 				else if (d != dd)
 				{
 					if (Math.Abs(BitConverter.DoubleToInt64Bits(dd) - BitConverter.DoubleToInt64Bits(d)) <= 1)
+					{
 						++notEqualOneUlp;
+					}
 					else
+					{
 						++notEqual;
+					}
 					Log(d.ToString("R") + " / " + s);
 				}
 			}
-			Log("{0} tests: {1} failed to parse, {2} != more than 1 ULP, {3} != by exactly 1 ULP", num, notParsed, notEqual, notEqualOneUlp);
+
+			Log($"{num} tests: {notParsed} failed to parse, {notEqual} != more than 1 ULP, {notEqualOneUlp} != by exactly 1 ULP");
 			Assert.That(notParsed, Is.EqualTo(0), "Numbers that failed parsing should be 0");
 			Assert.That(notEqual, Is.EqualTo(0), "Numbers that differ from more than one ULP after roundtripping");
 			// le rounding mode de x64 n'est pas le même que x86, ce qui entraine des différences de 1 ULP dans certaisn cas en x86
 			if (IntPtr.Size == 4)
+			{
 				Assert.That(notEqualOneUlp, Is.EqualTo(0), "Numbers that differ by only one ULP after roundtripping (x86)");
+			}
 			else
+			{
 				Assert.That(notEqualOneUlp, Is.LessThanOrEqualTo(227), "Numbers that differ by only one ULP after roundtripping (x64)");
+			}
 		}
 
 		[Test]
@@ -317,7 +328,7 @@ namespace Doxense.Mathematics.Test
 				RUNS,
 				ITER
 			);
-			Log("Int64.ToString()    : Med={0:N1}, Best={1:N1}, StdDev={2:N2}, GCs={3} / {4} / {5}", report.MedianIterationsNanos / 5, report.BestIterationsNanos / 5, report.StdDevIterationNanos / 5, report.GC0, report.GC1, report.GC2);
+			Log($"Int64.ToString()    : Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 
 			// Double Baseline
 			report = RobustBenchmark.Run(
@@ -336,7 +347,7 @@ namespace Doxense.Mathematics.Test
 				RUNS,
 				ITER
 			);
-			Log("Double.ToString('R'): Med={0:N1}, Best={1:N1}, StdDev={2:N2}, GCs={3} / {4} / {5}", report.MedianIterationsNanos / 5, report.BestIterationsNanos / 5, report.StdDevIterationNanos / 5, report.GC0, report.GC1, report.GC2);
+			Log($"Double.ToString('R'): Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 
 			// Double Baseline (no decimals)
 			report = RobustBenchmark.Run(
@@ -355,7 +366,7 @@ namespace Doxense.Mathematics.Test
 				RUNS,
 				ITER
 			);
-			Log("  (integer)         : Med={0:N1}, Best={1:N1}, StdDev={2:N2}, GCs={3} / {4} / {5}", report.MedianIterationsNanos / 5, report.BestIterationsNanos / 5, report.StdDevIterationNanos / 5, report.GC0, report.GC1, report.GC2);
+			Log($"  (integer)         : Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 
 			// Grisu3 ToString()
 			report = RobustBenchmark.Run(
@@ -374,7 +385,7 @@ namespace Doxense.Mathematics.Test
 				RUNS,
 				ITER
 			);
-			Log("Grisu3 string       : Med={0:N1}, Best={1:N1}, StdDev={2:N2}, GCs={3} / {4} / {5}", report.MedianIterationsNanos / 5, report.BestIterationsNanos / 5, report.StdDevIterationNanos / 5, report.GC0, report.GC1, report.GC2);
+			Log($"Grisu3 string       : Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 
 			// Grisu3 ToString() (no decimals)
 			report = RobustBenchmark.Run(
@@ -393,7 +404,7 @@ namespace Doxense.Mathematics.Test
 				RUNS,
 				ITER
 			);
-			Log("  (integer)         : Med={0:N1}, Best={1:N1}, StdDev={2:N2}, GCs={3} / {4} / {5}", report.MedianIterationsNanos / 5, report.BestIterationsNanos / 5, report.StdDevIterationNanos / 5, report.GC0, report.GC1, report.GC2);
+			Log($"  (integer)         : Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 
 			// Grisu3 ToBuffer()
 			var chars = new char[32];
@@ -416,7 +427,7 @@ namespace Doxense.Mathematics.Test
 			);
 
 			// Grisu3 ToBuffer() (no decimals)
-			Log("Grisu3 char[]       : Med={0:N1}, Best={1:N1}, StdDev={2:N2}, GCs={3} / {4} / {5}", report.MedianIterationsNanos / 5, report.BestIterationsNanos / 5, report.StdDevIterationNanos / 5, report.GC0, report.GC1, report.GC2);
+			Log($"Grisu3 char[]       : Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 			report = RobustBenchmark.Run(
 				() => nums,
 				(t, i) =>
@@ -434,8 +445,7 @@ namespace Doxense.Mathematics.Test
 				RUNS,
 				ITER
 			);
-			Log("  (integer)         : Med={0:N1}, Best={1:N1}, StdDev={2:N2}, GCs={3} / {4} / {5}", report.MedianIterationsNanos / 5, report.BestIterationsNanos / 5, report.StdDevIterationNanos / 5, report.GC0, report.GC1, report.GC2);
-
+			Log($"  (integer)         : Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 		}
 
 	}

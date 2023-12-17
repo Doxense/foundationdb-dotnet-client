@@ -225,7 +225,7 @@ namespace Doxense.Core.Tests
 			ulong val = 1;
 			for (int i = 0; i <= 10; i++)
 			{
-				Assert.That(new Uuid64(val).ToString("C"), Is.EqualTo("1" + new string('0', i)), "62^{0}", i);
+				Assert.That(new Uuid64(val).ToString("C"), Is.EqualTo("1" + new string('0', i)), $"62^{i}");
 				val *= 62;
 			}
 
@@ -234,7 +234,7 @@ namespace Doxense.Core.Tests
 			for (int i = 1; i <= 10; i++)
 			{
 				val += 61;
-				Assert.That(new Uuid64(val).ToString("C"), Is.EqualTo(new string('z', i)), "62^{0} - 1", i);
+				Assert.That(new Uuid64(val).ToString("C"), Is.EqualTo(new string('z', i)), $"62^{i} - 1");
 				val *= 62;
 			}
 
@@ -298,7 +298,7 @@ namespace Doxense.Core.Tests
 			Assert.That(() => Uuid64.FromBase62("LygHa16AHYG"), Throws.InstanceOf<OverflowException>(), "ulong.MaxValue + 1 => OVERFLOW");
 
 			// invalid length
-			Assert.That(() => Uuid64.FromBase62(default(string)), Throws.ArgumentNullException);
+			Assert.That(() => Uuid64.FromBase62(default(string)!), Throws.ArgumentNullException);
 			Assert.That(() => Uuid64.FromBase62("100000000000"), Throws.InstanceOf<FormatException>(), "62^11 => TOO BIG");
 
 		}
@@ -316,7 +316,7 @@ namespace Doxense.Core.Tests
 			for (int i = 0; i < N; i++)
 			{
 				var uid = Uuid64.NewUuid();
-				if (uids.Contains(uid.ToUInt64())) Assert.Fail("Duplicate Uuid64 generated: {0}", uid);
+				if (uids.Contains(uid.ToUInt64())) Assert.Fail($"Duplicate Uuid64 generated: {uid}");
 				uids.Add(uid.ToUInt64());
 			}
 			Assert.That(uids.Count, Is.EqualTo(N));
@@ -338,7 +338,7 @@ namespace Doxense.Core.Tests
 			for (int i = 0; i < N; i++)
 			{
 				var uid = gen.NewUuid();
-				if (uids.Contains(uid.ToUInt64())) Assert.Fail("Duplicate Uuid64 generated: {0}", uid);
+				if (uids.Contains(uid.ToUInt64())) Assert.Fail($"Duplicate Uuid64 generated: {uid}");
 				uids.Add(uid.ToUInt64());
 			}
 			Assert.That(uids.Count, Is.EqualTo(N));

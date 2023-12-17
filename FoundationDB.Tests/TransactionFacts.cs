@@ -705,8 +705,8 @@ namespace FoundationDB.Client.Tests
 					Log($"Check {key} == {expected} ?");
 					var res = await tr.CheckValueAsync(key, expected);
 					Log($"> [{res.Result}], {res.Actual:V}");
-					Assert.That(res.Actual, Is.EqualTo(actual), "Check({0} == {1}) => ({2}, {3}).Actual was {4}", key, expected, result, actual, res.Actual);
-					Assert.That(res.Result, Is.EqualTo(result), "Check({0} == {1}) => ({2}, {3}).Result was {4}", key, expected, result, actual, res.Result);
+					Assert.That(res.Actual, Is.EqualTo(actual), $"Check({key} == {expected}) => ({result}, {actual}).Actual was {res.Actual}");
+					Assert.That(res.Result, Is.EqualTo(result), $"Check({key} == {expected}) => ({result}, {actual}).Result was {res.Result}");
 				}
 
 				// hello should only be equal to 'World!', not any other value, empty or nil
@@ -799,7 +799,7 @@ namespace FoundationDB.Client.Tests
 				var data = await tr.GetAsync(key);
 				Assert.That(data.Count, Is.EqualTo(4), "data.Count");
 
-				Assert.That(data.ToInt32(), Is.EqualTo(expected), "0x{0:X8} {1} 0x{2:X8} = 0x{3:X8}", x, type, y, expected);
+				Assert.That(data.ToInt32(), Is.EqualTo(expected), $"0x{x:X8} {type} 0x{y:X8} = 0x{expected:X8}");
 			}
 		}
 

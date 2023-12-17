@@ -77,7 +77,7 @@ namespace FoundationDB.Client.Tests
 					if (ids.Contains(id))
 					{
 						await DumpSubspace(db, location);
-						Assert.Fail("Duplicate key allocated: {0} (#{1})", id, i);
+						Assert.Fail($"Duplicate key allocated: {id} (#{i})");
 					}
 
 					ids.Add(id);
@@ -375,37 +375,37 @@ namespace FoundationDB.Client.Tests
 				Log($"- {outer} @ {outer.GetPrefixUnsafe()}");
 				Assert.That(outer.FullName, Is.EqualTo("/Outer"));
 				Assert.That(outer.Layer, Is.EqualTo("partition"));
-				Assert.That(outer.GetPrefixUnsafe().StartsWith(location.Prefix), Is.True, "Outer prefix {0} MUST starts with DL content location prefix {1} because it is contained in that partition", outer.GetPrefixUnsafe(), dl.Content.Prefix);
+				Assert.That(outer.GetPrefixUnsafe().StartsWith(location.Prefix), Is.True, $"Outer prefix {outer.GetPrefixUnsafe()} MUST starts with DL content location prefix {dl.Content.Prefix} because it is contained in that partition");
 
 				var foo = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo")), this.Cancellation);
 				Assert.That(foo, Is.Not.Null);
 				Log($"- {foo} @ {foo.GetPrefixUnsafe()}");
 				Assert.That(foo.FullName, Is.EqualTo("/Outer/Foo"));
 				Assert.That(foo.Layer, Is.EqualTo(string.Empty));
-				Assert.That(foo.GetPrefixUnsafe().StartsWith(outer.GetPrefixUnsafe()), Is.True, "Foo prefix {0} MUST starts with outer prefix {1} because it is contained in that partition", foo.GetPrefixUnsafe(), outer.GetPrefixUnsafe());
+				Assert.That(foo.GetPrefixUnsafe().StartsWith(outer.GetPrefixUnsafe()), Is.True, $"Foo prefix {foo.GetPrefixUnsafe()} MUST starts with outer prefix {outer.GetPrefixUnsafe()} because it is contained in that partition");
 
 				var inner = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo/Inner")), this.Cancellation);
 				Assert.That(inner, Is.Not.Null);
 				Log($"- {inner} @ {inner.GetPrefixUnsafe()}");
 				Assert.That(inner.FullName, Is.EqualTo("/Outer/Foo/Inner"));
 				Assert.That(inner.Layer, Is.EqualTo("partition"));
-				Assert.That(inner.GetPrefixUnsafe().StartsWith(outer.GetPrefixUnsafe()), Is.True, "Inner prefix {0} MUST starts with outer prefix {1} because it is contained in that partition", inner.GetPrefixUnsafe(), outer.GetPrefixUnsafe());
-				Assert.That(inner.GetPrefixUnsafe().StartsWith(foo.GetPrefixUnsafe()), Is.False, "Inner prefix {0} MUST NOT starts with foo prefix {1} because they are both in the same partition", inner.GetPrefixUnsafe(), foo.GetPrefixUnsafe());
+				Assert.That(inner.GetPrefixUnsafe().StartsWith(outer.GetPrefixUnsafe()), Is.True, "Inner prefix {inner.GetPrefixUnsafe()} MUST starts with outer prefix {outer.GetPrefixUnsafe()} because it is contained in that partition");
+				Assert.That(inner.GetPrefixUnsafe().StartsWith(foo.GetPrefixUnsafe()), Is.False, "Inner prefix {inner.GetPrefixUnsafe()} MUST NOT starts with foo prefix {foo.GetPrefixUnsafe()} because they are both in the same partition");
 
 				var bar = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo/Inner/Bar")), this.Cancellation);
 				Assert.That(bar, Is.Not.Null);
 				Log($"- {bar} @ {bar.GetPrefixUnsafe()}");
 				Assert.That(bar.FullName, Is.EqualTo("/Outer/Foo/Inner/Bar"));
 				Assert.That(bar.Layer, Is.EqualTo("BarLayer"));
-				Assert.That(bar.GetPrefixUnsafe().StartsWith(inner.GetPrefixUnsafe()), Is.True, "Bar prefix {0} MUST starts with inner prefix {1} because it is contained in that partition", bar.GetPrefixUnsafe(), inner.GetPrefixUnsafe());
+				Assert.That(bar.GetPrefixUnsafe().StartsWith(inner.GetPrefixUnsafe()), Is.True, $"Bar prefix {bar.GetPrefixUnsafe()} MUST starts with inner prefix {inner.GetPrefixUnsafe()} because it is contained in that partition");
 
 				var baz = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo/Inner/Bar/Baz")), this.Cancellation);
 				Assert.That(baz, Is.Not.Null);
 				Log($"- {baz} @ {baz.GetPrefixUnsafe()}");
 				Assert.That(baz.FullName, Is.EqualTo("/Outer/Foo/Inner/Bar/Baz"));
 				Assert.That(baz.Layer, Is.EqualTo("BazLayer"));
-				Assert.That(baz.GetPrefixUnsafe().StartsWith(inner.GetPrefixUnsafe()), Is.True, "Baz prefix {0} MUST starts with inner prefix {1} because it is contained in that partition", baz.GetPrefixUnsafe(), inner.GetPrefixUnsafe());
-				Assert.That(baz.GetPrefixUnsafe().StartsWith(bar.GetPrefixUnsafe()), Is.False, "Baz prefix {0} MUST NOT starts with Bar prefix {1} because they are both in the same partition", baz.GetPrefixUnsafe(), bar.GetPrefixUnsafe());
+				Assert.That(baz.GetPrefixUnsafe().StartsWith(inner.GetPrefixUnsafe()), Is.True, $"Baz prefix {baz.GetPrefixUnsafe()} MUST starts with inner prefix {inner.GetPrefixUnsafe()} because it is contained in that partition");
+				Assert.That(baz.GetPrefixUnsafe().StartsWith(bar.GetPrefixUnsafe()), Is.False, $"Baz prefix {baz.GetPrefixUnsafe()} MUST NOT starts with Bar prefix {bar.GetPrefixUnsafe()} because they are both in the same partition");
 
 #if ENABLE_LOGGING
 				foreach (var log in list)
@@ -750,8 +750,8 @@ namespace FoundationDB.Client.Tests
 					await DumpSubspace(tr, location);
 					Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
 					Assert.That(bar.Path, Is.EqualTo(FdbPath.Absolute(segFoo, FdbPathSegment.Create("Bar"))), "Path of directories under a partition should be absolute");
-					Assert.That(bar.GetPrefix(), Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", bar, partition);
-					Assert.That(bar.GetPrefix().StartsWith(partitionKey), Is.True, "{0} should be located under {1}", bar, partition);
+					Assert.That(bar.GetPrefix(), Is.Not.EqualTo(partitionKey), $"{bar} should be located under {partition}");
+					Assert.That(bar.GetPrefix().StartsWith(partitionKey), Is.True, $"{bar} should be located under {partition}");
 
 					Log("Creating sub-directory /Foo$/Baz starting from the root...");
 					var baz = await dl.CreateAsync(tr, FdbPath.Absolute(segFoo, FdbPathSegment.Create("Baz")));
@@ -760,8 +760,8 @@ namespace FoundationDB.Client.Tests
 					Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
 					Assert.That(baz.FullName, Is.EqualTo("/Foo$/Baz"));
 					Assert.That(baz.Path, Is.EqualTo(FdbPath.Absolute(segFoo, FdbPathSegment.Create("Baz"))), "Path of directories under a partition should be absolute");
-					Assert.That(baz.GetPrefix(), Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", baz, partition);
-					Assert.That(baz.GetPrefix().StartsWith(partitionKey), Is.True, "{0} should be located under {1}", baz, partition);
+					Assert.That(baz.GetPrefix(), Is.Not.EqualTo(partitionKey), $"{baz} should be located under {partition}");
+					Assert.That(baz.GetPrefix().StartsWith(partitionKey), Is.True, $"{baz} should be located under {partition}");
 
 					// Rename 'Bar' to 'BarBar'
 					Log("Renaming /Foo$/Bar to /Foo$/BarBar...");

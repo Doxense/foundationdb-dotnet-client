@@ -79,9 +79,9 @@ namespace FoundationDB.Client.Tests
 			{ // Create
 				var name = FdbTenantName.Create(Literal("Hello, there!"));
 				Log($"> {name} ({name.Value:X})");
-				Assert.That(name.IsValid, Is.True, "{0}.IsValid", name);
-				Assert.That(name.ToSlice(), Is.EqualTo(Literal("Hello, there!")), "{0}.ToSlice()", name);
-				Assert.That(name.ToString(), Is.EqualTo("'Hello, there!'"), "{0}.ToString()", name);
+				Assert.That(name.IsValid, Is.True, $"{name}.IsValid");
+				Assert.That(name.ToSlice(), Is.EqualTo(Literal("Hello, there!")), $"{name}.ToSlice()");
+				Assert.That(name.ToString(), Is.EqualTo("'Hello, there!'"), $"{name}.ToString()");
 
 				Assert.That(name.TryGetTuple(out _), Is.False, "Name is not a valid tuple!");
 
@@ -93,18 +93,18 @@ namespace FoundationDB.Client.Tests
 			{ // From Parts
 				var name = FdbTenantName.FromParts("Hello", "There");
 				Log($"> {name} ({name.Value:X})");
-				Assert.That(name.IsValid, Is.True, "{0}.IsValid", name);
-				Assert.That(name.ToSlice(), Is.EqualTo(TuPack.EncodeKey("Hello", "There")), "{0}.ToSlice()", name);
-				Assert.That(name.ToString(), Is.EqualTo("(\"Hello\", \"There\")"), "{0}.ToString()", name);
+				Assert.That(name.IsValid, Is.True, $"{name}.IsValid");
+				Assert.That(name.ToSlice(), Is.EqualTo(TuPack.EncodeKey("Hello", "There")), $"{name}.ToSlice()");
+				Assert.That(name.ToString(), Is.EqualTo("(\"Hello\", \"There\")"), $"{name}.ToString()");
 				Assert.That(name.TryGetTuple(out var tuple), Is.True, "Name is a valid tuple!");
 				Assert.That(tuple, Is.Not.Null.And.EqualTo(("Hello", "There")));
 			}
 			{ // From Tuple
 				var name = FdbTenantName.FromTuple(("Hello", "There"));
 				Log($"> {name} ({name.Value:X})");
-				Assert.That(name.IsValid, Is.True, "{0}.IsValid", name);
-				Assert.That(name.ToSlice(), Is.EqualTo(TuPack.EncodeKey("Hello", "There")), "{0}.ToSlice()", name);
-				Assert.That(name.ToString(), Is.EqualTo("(\"Hello\", \"There\")"), "{0}.ToString()", name);
+				Assert.That(name.IsValid, Is.True, $"{name}.IsValid");
+				Assert.That(name.ToSlice(), Is.EqualTo(TuPack.EncodeKey("Hello", "There")), $"{name}.ToSlice()");
+				Assert.That(name.ToString(), Is.EqualTo("(\"Hello\", \"There\")"), $"{name}.ToString()");
 				Assert.That(name.TryGetTuple(out var tuple), Is.True, "Name is a valid tuple!");
 				Assert.That(tuple, Is.Not.Null.And.EqualTo(("Hello", "There")));
 
@@ -169,8 +169,8 @@ namespace FoundationDB.Client.Tests
 
 			// it is possible that there are other tenants from other tests, we will ensure we can find both in the list
 
-			Assert.That(tenants, Does.ContainKey(acme.Name), "Should have found tenant {0} in the list", acme.Name);
-			Assert.That(tenants, Does.ContainKey(contoso.Name), "Should have found tenant {0} in the list", contoso.Name);
+			Assert.That(tenants, Does.ContainKey(acme.Name), $"Should have found tenant {acme.Name} in the list");
+			Assert.That(tenants, Does.ContainKey(contoso.Name), $"Should have found tenant {contoso.Name} in the list");
 
 			Assert.That(tenants[acme.Name], Is.EqualTo(acme));
 			Assert.That(tenants[contoso.Name], Is.EqualTo(contoso));
@@ -194,7 +194,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(tr.Tenant, Is.Not.Null, "tr.Tenant should not be null");
 				Assert.That(tr.Tenant.Name, Is.EqualTo(acme.Name), "tr.Tenant.Name should be valid");
 				Assert.That(tr.Database, Is.Not.Null.And.SameAs(this.Db), "tr.Database should be the same db objet that was used to create the tenant");
-				Assert.That(tr.Context.Mode.HasFlag(FdbTransactionMode.UseTenant), Is.True, "tr.Mode flag UseTenant should be set, but was {0}", tr.Context.Mode);
+				Assert.That(tr.Context.Mode.HasFlag(FdbTransactionMode.UseTenant), Is.True, $"tr.Mode flag UseTenant should be set, but was {tr.Context.Mode}");
 
 				Log("Read a key from this transaction...");
 				var value = await tr.GetAsync(Pack(("tests", "hello")));
@@ -249,7 +249,7 @@ namespace FoundationDB.Client.Tests
 				Log($"> Append({key:K}) => {encoded}");
 
 				var expected = subspace.Metadata.Prefix + key;
-				Assert.That(encoded, Is.EqualTo(expected), "Key '{0}' does not match expected encoding in tenant subspace {1}", key, subspace.Name);
+				Assert.That(encoded, Is.EqualTo(expected), $"Key '{key}' does not match expected encoding in tenant subspace {subspace.Name}");
 
 				var decoded = subspace.ExtractKey(encoded);
 				Assert.That(decoded, Is.EqualTo(key), "Key does not extract back to the original in tenant subspace");
@@ -264,7 +264,7 @@ namespace FoundationDB.Client.Tests
 				Log($"> Pack({key}) => {encoded}");
 
 				var expected = subspace.Metadata.Prefix + raw;
-				Assert.That(encoded, Is.EqualTo(expected), "Key '{0}' does not match expected encoding in tenant subspace {1}", key, subspace.Name);
+				Assert.That(encoded, Is.EqualTo(expected), $"Key '{key}' does not match expected encoding in tenant subspace {subspace.Name}");
 
 				var decoded = subspace.Unpack(encoded);
 				Assert.That(decoded, Is.EqualTo(key), "Key does not unpack to the original in tenant subspace");
@@ -277,8 +277,8 @@ namespace FoundationDB.Client.Tests
 				await GlobalVerify(async tr =>
 				{
 					var metadata = await Fdb.Tenants.GetTenantMetadata(tr, tenant.Name);
-					Assert.That(metadata, Is.Not.Null, "Tenant {0} should exist!", tenant.Name);
-					Assert.That(metadata.Prefix.Count, Is.GreaterThan(0), "Tenant {0} should have a non-empty prefix!", tenant.Name);
+					Assert.That(metadata, Is.Not.Null, $"Tenant {tenant.Name} should exist!");
+					Assert.That(metadata.Prefix.Count, Is.GreaterThan(0), $"Tenant {tenant.Name} should have a non-empty prefix!");
 
 					var subspace = metadata.GetSubspace();
 					Assert.That(subspace, Is.Not.Null);
@@ -312,7 +312,7 @@ namespace FoundationDB.Client.Tests
 			{ // clear this tenant
 
 				Assume.That(tenant.Name, Is.EqualTo(name));
-				Assume.That(tenant.Prefix.Count, Is.EqualTo(8), "Prefix of tenants should be exactly 8 bytes: {0}", tenant.Prefix); //note: as of version 7.x !
+				Assume.That(tenant.Prefix.Count, Is.EqualTo(8), $"Prefix of tenants should be exactly 8 bytes: {tenant.Prefix}"); //note: as of version 7.x !
 				//Log($"Found test tenant {name} with id #{tenant.Id} and prefix {tenant.Prefix}");
 				await this.Db.WriteAsync(async tr =>
 				{
@@ -330,7 +330,7 @@ namespace FoundationDB.Client.Tests
 				await this.Db.WriteAsync(tr => Fdb.Tenants.CreateTenant(tr, name), this.Cancellation);
 
 				tenant = await this.Db.ReadAsync(tr => Fdb.Tenants.GetTenantMetadata(tr, name), this.Cancellation);
-				Assume.That(tenant, Is.Not.Null, "Could not create test tenant {0}", name);
+				Assume.That(tenant, Is.Not.Null, $"Could not create test tenant {name}");
 			}
 
 			return tenant;

@@ -323,7 +323,7 @@ namespace Doxense.IO.Tests
 #endif
 				if (actual != expect)
 				{
-					Assert.That(actual, Is.EqualTo(expect), "Invalid result in range {0} <= idx < {1}", start, end);
+					Assert.That(actual, Is.EqualTo(expect), $"Invalid result in range {start} <= idx < {end}");
 				}
 			};
 
@@ -425,7 +425,7 @@ namespace Doxense.IO.Tests
 				for (int i = 0; i < 256; i++)
 				{
 					Assert.That(it.MoveNext(), Is.True);
-					Assert.That(it.Current, Is.EqualTo(map[i]), "#{0}", i);
+					Assert.That(it.Current, Is.EqualTo(map[i]), $"#{i}");
 				}
 				Assert.That(it.MoveNext(), Is.False, "Should be done after 256 bits");
 			}
@@ -438,7 +438,7 @@ namespace Doxense.IO.Tests
 			Assert.That(bits.Length, Is.EqualTo(256));
 			for (int i = 0; i < bits.Length; i++)
 			{
-				Assert.That(bits[i], Is.EqualTo(map[i]), "#{0}", i);
+				Assert.That(bits[i], Is.EqualTo(map[i]), $"#{i}");
 			}
 
 		}

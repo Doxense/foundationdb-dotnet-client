@@ -173,8 +173,8 @@ namespace FoundationDB.Client.Tests
 					// > count should always be 20
 					// > offset should always be a multiple of 20
 					// > there should never be any overlap between workers
-					Assert.That(chunk.Value, Is.EqualTo(B), "{0}:{1}", chunk.Key, chunk.Value);
-					Assert.That(chunk.Key % B, Is.EqualTo(0), "{0}:{1}", chunk.Key, chunk.Value);
+					Assert.That(chunk.Value, Is.EqualTo(B), $"{chunk.Key}:{chunk.Value}");
+					Assert.That(chunk.Key % B, Is.EqualTo(0), $"{chunk.Key}:{chunk.Value}");
 
 					lock (used)
 					{
@@ -182,7 +182,7 @@ namespace FoundationDB.Client.Tests
 						{
 
 							if (used[i])
-								Assert.Fail("Duplicate index {0} chunk {1}:{2} for worker {3}", i, chunk.Key, chunk.Value, id);
+								Assert.Fail($"Duplicate index {i} chunk {chunk.Key}:{chunk.Value} for worker {id}");
 							else
 								used[i] = true;
 						}

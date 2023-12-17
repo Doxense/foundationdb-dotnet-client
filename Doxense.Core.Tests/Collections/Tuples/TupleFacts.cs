@@ -559,7 +559,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item8, Is.EqualTo(Math.PI));
 			}
 
-			Assert.That(tn.Concat(STuple.Create("foo", "bar")), Is.EqualTo(STuple.Create(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI, "foo", "bar" })));
+			Assert.That(tn.Concat(STuple.Create("foo", "bar")), Is.EqualTo(STuple.Create(new object?[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI, "foo", "bar" })));
 		}
 
 		[Test]
@@ -842,8 +842,8 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tn.Last<int>(), Is.EqualTo(6));
 			Assert.That(tn.Last<string>(), Is.EqualTo("6"));
 
-			Assert.That(() => ((IVarTuple) STuple.Empty).First<string>(), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => ((IVarTuple) STuple.Empty).Last<string>(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => STuple.Empty.First<string>(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => STuple.Empty.Last<string>(), Throws.InstanceOf<InvalidOperationException>());
 		}
 
 		[Test]
@@ -851,7 +851,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			IVarTuple tuple;
 
-			tuple = STuple.CreateBoxed(default(object));
+			tuple = STuple.CreateBoxed(default);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.Null);
 
@@ -881,8 +881,8 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// (A,B).Append((C,D)) should return (A,B,(C,D)) (length 3) and not (A,B,C,D) (length 4)
 
-			STuple<string, string> x = STuple.Create("A", "B");
-			STuple<string, string> y = STuple.Create("C", "D");
+			var x = STuple.Create("A", "B");
+			var y = STuple.Create("C", "D");
 
 			// using the instance method that returns a STuple<T1, T2, T3>
 			IVarTuple z = x.Append(y);
@@ -943,7 +943,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(a, Is.EqualTo(123));
 				return 42;
 			}), Is.EqualTo(42));
-			Assert.That(() => t.With((int a) => throw new InvalidOperationException("BOOM")), Throws.InvalidOperationException.With.Message.EqualTo("BOOM"));
+			Assert.That(() => t.With((int _) => throw new InvalidOperationException("BOOM")), Throws.InvalidOperationException.With.Message.EqualTo("BOOM"));
 
 			// Size 2
 
@@ -1325,7 +1325,7 @@ namespace Doxense.Collections.Tuples.Tests
 			var b1 = (Tuple<string>) t1; // explicit
 			Assert.That(b1, Is.Not.Null);
 			Assert.That(b1.Item1, Is.EqualTo("Hello"));
-			STuple<string> r1 = t1; // implicit
+			ValueTuple<string> r1 = t1; // implicit
 			Assert.That(r1.Item1, Is.EqualTo("Hello"));
 
 			var t2 = STuple.Create("Hello", 123);
@@ -1333,7 +1333,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(b2, Is.Not.Null);
 			Assert.That(b2.Item1, Is.EqualTo("Hello"));
 			Assert.That(b2.Item2, Is.EqualTo(123));
-			STuple<string, int> r2 = t2; // implicit
+			ValueTuple<string, int> r2 = t2; // implicit
 			Assert.That(r2.Item1, Is.EqualTo("Hello"));
 			Assert.That(r2.Item2, Is.EqualTo(123));
 
@@ -1343,7 +1343,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(b3.Item1, Is.EqualTo("Hello"));
 			Assert.That(b3.Item2, Is.EqualTo(123));
 			Assert.That(b3.Item3, Is.False);
-			STuple<string, int, bool> r3 = t3; // implicit
+			ValueTuple<string, int, bool> r3 = t3; // implicit
 			Assert.That(r3.Item1, Is.EqualTo("Hello"));
 			Assert.That(r3.Item2, Is.EqualTo(123));
 			Assert.That(r3.Item3, Is.False);
@@ -1355,21 +1355,21 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(b4.Item2, Is.EqualTo(123));
 			Assert.That(b4.Item3, Is.False);
 			Assert.That(b4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
-			STuple<string, int, bool, TimeSpan> r4 = t4; // implicit
+			ValueTuple<string, int, bool, TimeSpan> r4 = t4; // implicit
 			Assert.That(r4.Item1, Is.EqualTo("Hello"));
 			Assert.That(r4.Item2, Is.EqualTo(123));
 			Assert.That(r4.Item3, Is.False);
 			Assert.That(r4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
 
 			var t5 = STuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
-			var b5 = (Tuple<string, int, bool, TimeSpan, string>)t5;	// explicit
+			var b5 = (Tuple<string?, int, bool, TimeSpan, string?>) t5;	// explicit
 			Assert.That(b5, Is.Not.Null);
 			Assert.That(b5.Item1, Is.EqualTo("Hello"));
 			Assert.That(b5.Item2, Is.EqualTo(123));
 			Assert.That(b5.Item3, Is.False);
 			Assert.That(b5.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
 			Assert.That(b5.Item5, Is.EqualTo("World"));
-			STuple<string, int, bool, TimeSpan, string> r5 = t5; // implicit
+			ValueTuple<string, int, bool, TimeSpan, string> r5 = t5; // implicit
 			Assert.That(r5.Item1, Is.EqualTo("Hello"));
 			Assert.That(r5.Item2, Is.EqualTo(123));
 			Assert.That(r5.Item3, Is.False);
@@ -1412,31 +1412,31 @@ namespace Doxense.Collections.Tuples.Tests
 #if DEBUG
 				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
-				Assert.Fail("{0}: Count mismatch between observed {1} and expected {2} for tuple of type {3}", message, t, STuple.Formatter.ToString(expected.AsSpan()), t.GetType().Name);
+				Assert.Fail($"{message}: Count mismatch between observed {t} and expected {STuple.Formatter.ToString(expected.AsSpan())} for tuple of type {t.GetType().Name}");
 			}
 
 			// direct access
 			for (int i = 0; i < expected.Length; i++)
 			{
-				Assert.That(ComparisonHelper.AreSimilar(t[i], expected[i]), Is.True, "{0}: t[{1}] != expected[{1}]", message, i);
+				Assert.That(ComparisonHelper.AreSimilar(t[i], expected[i]), Is.True, $"{message}: t[{i}] != expected[{i}]");
 			}
 
 			// iterator
 			int p = 0;
 			foreach (var obj in t)
 			{
-				if (p >= expected.Length) Assert.Fail("Spliced iterator overshoot at t[{0}] = {1}", p, obj);
-				Assert.That(ComparisonHelper.AreSimilar(obj, expected[p]), Is.True, "{0}: Iterator[{1}], {2} ~= {3}", message, p, obj, expected[p]);
+				if (p >= expected.Length) Assert.Fail($"Spliced iterator overshoot at t[{p}] = {obj}");
+				Assert.That(ComparisonHelper.AreSimilar(obj, expected[p]), Is.True, $"{message}: Iterator[{p}], {obj} ~= {expected[p]}");
 				++p;
 			}
-			Assert.That(p, Is.EqualTo(expected.Length), "{0}: t.GetEnumerator() returned only {1} elements out of {2} expected", message, p, expected.Length);
+			Assert.That(p, Is.EqualTo(expected.Length), $"{message}: t.GetEnumerator() returned only {p} elements out of {expected.Length} expected");
 
 			// CopyTo
-			var tmp = new object[expected.Length];
+			var tmp = new object?[expected.Length];
 			t.CopyTo(tmp, 0);
 			for (int i = 0; i < tmp.Length; i++)
 			{
-				Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, "{0}: CopyTo[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
+				Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, $"{message}: CopyTo[{i}], {tmp[i]} ~= {expected[i]}");
 			}
 
 			// Memoize
@@ -1454,7 +1454,7 @@ namespace Doxense.Collections.Tuples.Tests
 				tmp = u.ToArray();
 				for (int i = 0; i < tmp.Length - 1; i++)
 				{
-					Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, "{0}: Appended[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
+					Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, $"{message}: Appended[{i}], {tmp[i]} ~= {expected[i]}");
 				}
 			}
 		}
@@ -1527,7 +1527,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 		private static object[] GetRange(int fromIncluded, int toExcluded, int count)
 		{
-			if (count == 0) return new object[0];
+			if (count == 0) return Array.Empty<object>();
 
 			if (fromIncluded < 0) fromIncluded += count;
 			if (toExcluded < 0) toExcluded += count;
@@ -1581,10 +1581,10 @@ namespace Doxense.Collections.Tuples.Tests
 				var tuple = tuples[len];
 				if (tuple.Count != len)
 				{
-					Assert.That(tuple.Count, Is.EqualTo(len), "Invalid length for tuple {0}", tuple);
+					Assert.That(tuple.Count, Is.EqualTo(len), $"Invalid length for tuple {tuple}");
 				}
 
-				string prefix = tuple.ToString();
+				var prefix = tuple.ToString();
 
 				//if (rnd.Next(5) == 0)
 				//{ // randomly pack/unpack
@@ -1602,25 +1602,25 @@ namespace Doxense.Collections.Tuples.Tests
 					case 0:
 					{ // [:+rnd]
 						int x = rnd.Next(len);
-						VerifyTuple(prefix + "[:" + x.ToString() + "]", tuple[null, x], GetRange(0, x, len));
+						VerifyTuple($"{prefix}[:{x}]", tuple[null, x], GetRange(0, x, len));
 						break;
 					}
 					case 1:
 					{ // [+rnd:]
 						int x = rnd.Next(len);
-						VerifyTuple(prefix + "[" + x.ToString() + ":]", tuple[x, null], GetRange(x, int.MaxValue, len));
+						VerifyTuple($"{prefix}[{x}:]", tuple[x, null], GetRange(x, int.MaxValue, len));
 						break;
 					}
 					case 2:
 					{ // [:-rnd]
 						int x = -1 - rnd.Next(len);
-						VerifyTuple(prefix + "[:" + x.ToString() + "]", tuple[null, x], GetRange(0, len + x, len));
+						VerifyTuple($"{prefix}[:{x}]", tuple[null, x], GetRange(0, len + x, len));
 						break;
 					}
 					case 3:
 					{ // [-rnd:]
 						int x = -1 - rnd.Next(len);
-						VerifyTuple(prefix + "[" + x.ToString() + ":]", tuple[x, null], GetRange(len + x, int.MaxValue, len));
+						VerifyTuple($"{prefix}[{x}:]", tuple[x, null], GetRange(len + x, int.MaxValue, len));
 						break;
 					}
 					case 4:
@@ -1628,7 +1628,7 @@ namespace Doxense.Collections.Tuples.Tests
 						int x = rnd.Next(len);
 						int y;
 						do { y = rnd.Next(len); } while (y < x);
-						VerifyTuple(prefix + " [" + x.ToString() + ":" + y.ToString() + "]", tuple[x, y], GetRange(x, y, len));
+						VerifyTuple($"{prefix} [{x}:{y}]", tuple[x, y], GetRange(x, y, len));
 						break;
 					}
 					case 5:
@@ -1636,7 +1636,7 @@ namespace Doxense.Collections.Tuples.Tests
 						int x = -1 - rnd.Next(len);
 						int y;
 						do { y = -1 - rnd.Next(len); } while (y < x);
-						VerifyTuple(prefix + " [" + x.ToString() + ":" + y.ToString() + "]", tuple[x, y], GetRange(len + x, len + y, len));
+						VerifyTuple($"{prefix} [{x}:{y}]", tuple[x, y], GetRange(len + x, len + y, len));
 						break;
 					}
 				}
@@ -1760,13 +1760,13 @@ namespace Doxense.Collections.Tuples.Tests
 			// ReSharper restore PossibleUnintendedReferenceComparison
 
 			// It should work on STuple<..> though (but with a compiler warning)
-			STuple<string> aa = STuple.Create<string>("A");
-			STuple<string> bb = STuple.Create<string>("A");
+			var aa = STuple.Create<string>("A");
+			var bb = STuple.Create<string>("A");
 			// ReSharper disable CannotApplyEqualityOperatorToType
 			Assert.That(aa == bb, Is.True, "Operator '==' should work on struct tuples.");
 			// ReSharper restore CannotApplyEqualityOperatorToType
 			Assert.That(aa.Equals(bb), Is.True, "Equals(..) should work on struct tuples.");
-			STuple<string> cc = STuple.Create<string>(new string('A', 1)); // make sure we have an "A" string that is not the same pointers as the others
+			var cc = STuple.Create<string>(new string('A', 1)); // make sure we have an "A" string that is not the same pointers as the others
 			Assert.That(aa.Item1, Is.Not.SameAs(cc.Item1), "Did your compiler optimize the new string('A', 1). If so, need to find another way");
 			Assert.That(aa.Equals(cc), Is.True, "Equals(..) should compare the values, not the pointers.");
 
@@ -1875,7 +1875,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Can_Deformat_Simple_Tuples()
 		{
 
-			void Check<TTuple>(string expr, TTuple expected) where TTuple : IVarTuple
+			static void Check<TTuple>(string expr, TTuple expected) where TTuple : IVarTuple
 			{
 				Log("> " + expr);
 				var actual = STuple.Deformatter.Parse(expr);
@@ -2195,25 +2195,25 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Deconstruct_STuple_TupleSyntax()
 		{
 			{
-				(var a, var b) = STuple.Create(11, 22);
+				var (a, b) = STuple.Create(11, 22);
 				Assert.That(a, Is.EqualTo(11));
 				Assert.That(b, Is.EqualTo(22));
 			}
 			{
-				(var a, var b, var c) = STuple.Create(11, 22, 33);
+				var (a, b, c) = STuple.Create(11, 22, 33);
 				Assert.That(a, Is.EqualTo(11));
 				Assert.That(b, Is.EqualTo(22));
 				Assert.That(c, Is.EqualTo(33));
 			}
 			{
-				(var a, var b, var c, var d) = STuple.Create(11, 22, 33, 44);
+				var (a, b, c, d) = STuple.Create(11, 22, 33, 44);
 				Assert.That(a, Is.EqualTo(11));
 				Assert.That(b, Is.EqualTo(22));
 				Assert.That(c, Is.EqualTo(33));
 				Assert.That(d, Is.EqualTo(44));
 			}
 			{
-				(var a, var b, var c, var d, var e) = STuple.Create(11, 22, 33, 44, 55);
+				var (a, b, c, d, e) = STuple.Create(11, 22, 33, 44, 55);
 				Assert.That(a, Is.EqualTo(11));
 				Assert.That(b, Is.EqualTo(22));
 				Assert.That(c, Is.EqualTo(33));
@@ -2221,7 +2221,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(e, Is.EqualTo(55));
 			}
 			{
-				(var a, var b, var c, var d, var e, var f) = STuple.Create(11, 22, 33, 44, 55, 66);
+				var (a, b, c, d, e, f) = STuple.Create(11, 22, 33, 44, 55, 66);
 				Assert.That(a, Is.EqualTo(11));
 				Assert.That(b, Is.EqualTo(22));
 				Assert.That(c, Is.EqualTo(33));
@@ -2234,4 +2234,5 @@ namespace Doxense.Collections.Tuples.Tests
 		#endregion
 
 	}
+
 }

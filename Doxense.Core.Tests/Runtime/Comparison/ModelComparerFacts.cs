@@ -42,7 +42,7 @@ namespace Doxense.Runtime.Comparison.Tests
 			{
 				Dump("LEFT", left);
 				Dump("RIGHT", right);
-				Assert.Fail("{0}: Left and Right {1} should be equal, but were found to be different!", label, typeof(T).Name);
+				Assert.Fail($"{label}: Left and Right {typeof(T).Name} should be equal, but were found to be different!");
 			}
 		}
 
@@ -52,14 +52,14 @@ namespace Doxense.Runtime.Comparison.Tests
 			{
 				Dump("LEFT", left);
 				Dump("RIGHT", right);
-				Assert.Fail("{0}: Left and Right {1} should be different, but were found to be equal!", label, typeof(T).Name);
+				Assert.Fail($"{label}: Left and Right {typeof(T).Name} should be different, but were found to be equal!");
 			}
 		}
 
 		[Test]
 		public void Test_Compare_Sealed_Model()
 		{
-			var cmp = ModelComparer.Comparer<SaMereModel>.Default;
+			var cmp = ModelComparer.Comparer<SomeGenericSealedModel?>.Default;
 			Assert.That(cmp, Is.Not.Null);
 
 			EnsureEqual(
@@ -69,7 +69,7 @@ namespace Doxense.Runtime.Comparison.Tests
 				null
 			);
 
-			var a = new SaMereModel
+			var a = new SomeGenericSealedModel
 			{
 				String = "Hello",
 				Int32 = 123,
@@ -96,7 +96,7 @@ namespace Doxense.Runtime.Comparison.Tests
 				null
 			);
 
-			var a2 = new SaMereModel
+			var a2 = new SomeGenericSealedModel
 			{
 				String = "Hello",
 				Int32 = 123,
@@ -117,7 +117,7 @@ namespace Doxense.Runtime.Comparison.Tests
 				a2
 			);
 
-			var b = new SaMereModel
+			var b = new SomeGenericSealedModel
 			{
 				String = "World",
 				Int32 = 123,
@@ -129,7 +129,7 @@ namespace Doxense.Runtime.Comparison.Tests
 				b
 			);
 
-			var c = new SaMereModel
+			var c = new SomeGenericSealedModel
 			{
 				String = "Hello",
 				Int32 = 456,
@@ -151,42 +151,42 @@ namespace Doxense.Runtime.Comparison.Tests
 		[Test]
 		public void Test_Compare_Abstract_Model()
 		{
-			var cmp = ModelComparer.Comparer<SaMereBase>.Default;
+			var cmp = ModelComparer.Comparer<SomeGenericBaseType?>.Default;
 			Assert.That(cmp, Is.Not.Null);
 
 			EnsureEqual("null == null", cmp, null, null);
 
-			var a = new SaMereEnShort
+			var a = new SomeGenericDerivedType
 			{
 				Foo = "a",
-				Short = "a"
+				Bar = "a"
 			};
 
 			EnsureEqual("A == A (same instance)", cmp, a, a);
 			EnsureDifferent("A != null", cmp, a, null);
 			EnsureDifferent("null != A", cmp, null, a);
 
-			var a2 = new SaMereEnShort
+			var a2 = new SomeGenericDerivedType
 			{
 				Foo = "a",
-				Short = "a"
+				Bar = "a"
 			};
 			EnsureEqual("A == A2 (same content)", cmp, a, a2);
 
 			a2.Foo = "aa";
 			EnsureDifferent("A != A2' (mutated)", cmp, a, a2);
 
-			var b = new SaMereEnShort
+			var b = new SomeGenericDerivedType
 			{
 				Foo = "a",
-				Short = "b"
+				Bar = "b"
 			};
 			EnsureDifferent("A != B (same type, but different content)", cmp, a, b);
 
-			var c = new SaMereEnBikini()
+			var c = new AnoterGenericDerivedType()
 			{
 				Foo = "a",
-				Bikini = "c"
+				Baz = "c"
 			};
 			EnsureDifferent("A != C (different types)", cmp, a, c);
 			EnsureDifferent("B != C (different types)", cmp, b, c);
@@ -214,21 +214,23 @@ namespace Doxense.Runtime.Comparison.Tests
 			EnsureEqual(
 				"[0] == [0] (different instances)",
 				cmp,
-				new ArrayModel { Items = new string[0] },
+				// ReSharper disable UseArrayEmptyMethod
+				new ArrayModel { Items = new string[0] }, //IMPORTANT: both arrays must be different instances!
 				new ArrayModel { Items = new string[0] }
+				// ReSharper restore UseArrayEmptyMethod
 			);
 
 			EnsureDifferent(
 				"[0] == null",
 				cmp,
 				new ArrayModel { Items = new string[0] },
-				new ArrayModel { Items = null }
+				new ArrayModel { Items = null! }
 			);
 
 			EnsureEqual(
 				"Same length and content",
 				cmp,
-				new ArrayModel { Items = new[] {"Hello", "World" } },
+				new ArrayModel { Items = new[] {"Hello", "World" } }, //IMPORTANT: both arrays must be different instances!
 				new ArrayModel { Items = new[] {"Hello", "World" } }
 			);
 
@@ -277,7 +279,7 @@ namespace Doxense.Runtime.Comparison.Tests
 				"[0] == null",
 				cmp,
 				new ListModel { Items = new List<string>() },
-				new ListModel { Items = null }
+				new ListModel { Items = null! }
 			);
 
 			EnsureEqual(
@@ -339,7 +341,7 @@ namespace Doxense.Runtime.Comparison.Tests
 				"[0] == null",
 				cmp,
 				new DictionaryModel { Items = new Dictionary<string, FooModel>() },
-				new DictionaryModel { Items = null }
+				new DictionaryModel { Items = null! }
 			);
 
 			EnsureEqual(
@@ -409,7 +411,7 @@ namespace Doxense.Runtime.Comparison.Tests
 				"[0] == null",
 				cmp,
 				new HashSetModel { Items = new HashSet<string>() },
-				new HashSetModel { Items = null }
+				new HashSetModel { Items = null! }
 			);
 
 			EnsureEqual(
@@ -460,7 +462,7 @@ namespace Doxense.Runtime.Comparison.Tests
 		[Test]
 		public void Test_HashCode_Sealed_Model()
 		{
-			var comparer = ModelComparer.Comparer<SimpleEntity>.Default;
+			var comparer = ModelComparer.Comparer<SimpleEntity?>.Default;
 			Assert.That(comparer, Is.Not.Null);
 
 			// le comparer est "null safe", et retourne toujours 0 dans ce cas
@@ -569,7 +571,7 @@ namespace Doxense.Runtime.Comparison.Tests
 	}
 
 	/// <summary>Exemple d'une classe Model qui est sealed, et contient quelques Nested Types (également sealed)</summary>
-	public sealed class SaMereModel
+	public sealed class SomeGenericSealedModel
 	{
 		public bool Bool { get; set; }
 
@@ -611,19 +613,19 @@ namespace Doxense.Runtime.Comparison.Tests
 
 	}
 
-	public abstract class SaMereBase
+	public abstract class SomeGenericBaseType
 	{
 		public string Foo { get; set; }
 	}
 
-	public sealed class SaMereEnShort : SaMereBase
+	public sealed class SomeGenericDerivedType : SomeGenericBaseType
 	{
-		public string Short { get; set; }
+		public string Bar { get; set; }
 	}
 
-	public sealed class SaMereEnBikini : SaMereBase
+	public sealed class AnoterGenericDerivedType : SomeGenericBaseType
 	{
-		public string Bikini { get; set; }
+		public string Baz { get; set; }
 	}
 
 }

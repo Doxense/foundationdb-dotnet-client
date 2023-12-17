@@ -92,17 +92,17 @@ namespace Doxense.Monads.Tests
 					{
 						if (i == j)
 						{
-							Assert.That(ms[i].Equals(ms[j]), Is.True, "{0}.Equals({1})", ms[i], ms[j]);
-							Assert.That(ms[i] == ms[j], Is.True, "{0} ==  {1}", ms[i], ms[j]);
-							Assert.That(ms[i] != ms[j], Is.False, "{0} !=  {1}", ms[i], ms[j]);
-							Assert.That(ms[i].Equals((object) ms[j]), Is.True, "{0}.Equals((object) {1})", ms[i], ms[j]);
+							Assert.That(ms[i].Equals(ms[j]), Is.True, $"{ms[i]}.Equals({ms[j]})");
+							Assert.That(ms[i] == ms[j], Is.True, $"{ms[i]} ==  {ms[j]}");
+							Assert.That(ms[i] != ms[j], Is.False, $"{ms[i]} !=  {ms[j]}");
+							Assert.That(ms[i].Equals((object) ms[j]), Is.True, $"{ms[i]}.Equals((object) {ms[j]})");
 						}
 						else
 						{
-							Assert.That(ms[i].Equals(ms[j]), Is.False, "{0}.Equals({1})", ms[i], ms[j]);
-							Assert.That(ms[i] == ms[j], Is.False, "{0} ==  {1}", ms[i], ms[j]);
-							Assert.That(ms[i] != ms[j], Is.True, "{0} !=  {1}", ms[i], ms[j]);
-							Assert.That(ms[i].Equals((object) ms[j]), Is.False, "{0}.Equals((object) {1})", ms[i], ms[j]);
+							Assert.That(ms[i].Equals(ms[j]), Is.False, $"{ms[i]}.Equals({1})");
+							Assert.That(ms[i] == ms[j], Is.False, $"{ms[i]} ==  {ms[j]}");
+							Assert.That(ms[i] != ms[j], Is.True, $"{ms[i]} !=  {ms[j]}");
+							Assert.That(ms[i].Equals((object) ms[j]), Is.False, $"{ms[i]}.Equals((object) {ms[j]})");
 						}
 					}
 				}
@@ -144,15 +144,15 @@ namespace Doxense.Monads.Tests
 						int cmp = ms[i].CompareTo(ms[j]);
 						if (i == j)
 						{
-							Assert.That(cmp, Is.Zero, "{0} cmp {1}", ms[i], ms[j]);
+							Assert.That(cmp, Is.Zero, $"{ms[i]} cmp {ms[j]}");
 						}
 						else if (i < j)
 						{
-							Assert.That(cmp, Is.Negative, "{0} cmp {1}", ms[i], ms[j]);
+							Assert.That(cmp, Is.Negative, $"{ms[i]} cmp {ms[j]}");
 						}
 						else
 						{
-							Assert.That(cmp, Is.GreaterThan(0), "{0} cmp {1}", ms[i], ms[j]);
+							Assert.That(cmp, Is.GreaterThan(0), $"{ms[i]} cmp {ms[j]}");
 						}
 					}
 				}
@@ -191,9 +191,9 @@ namespace Doxense.Monads.Tests
 			Assert.That(m.HasValue, Is.False);
 			Assert.That(m.Error, Is.Null);
 
-			m = f(new Exception("KABOOM"));
+			m = f(new InvalidOperationException("KABOOM"));
 			Assert.That(m.HasValue, Is.False);
-			Assert.IsInstanceOf<Exception>(m.Error);
+			Assert.That(m.Error, Is.InstanceOf<InvalidOperationException>());
 			Assert.That(m.Error.Message, Is.EqualTo("KABOOM"));
 		}
 
@@ -265,7 +265,7 @@ namespace Doxense.Monads.Tests
 
 			var safeSqrt = Maybe<double>.Bind((x) =>
 			{
-				Console.WriteLine("safeSqrt(" + x + ")");
+				//Console.WriteLine("safeSqrt(" + x + ")");
 				if (double.IsNaN(x) || x < 0) return Maybe<double>.Nothing;
 				return Math.Sqrt(x);
 			});
@@ -282,9 +282,9 @@ namespace Doxense.Monads.Tests
 			m = safeSqrt(Maybe<double>.Nothing);
 			Assert.That(m.HasValue, Is.False);
 
-			m = safeSqrt(Maybe<double>.Failure(new Exception("PAF")));
+			m = safeSqrt(Maybe<double>.Failure(new InvalidOperationException("PAF")));
 			Assert.That(m.HasValue, Is.False);
-			Assert.IsInstanceOf<Exception>(m.Error);
+			Assert.That(m.Error, Is.InstanceOf<InvalidOperationException>());
 
 		}
 
@@ -293,7 +293,7 @@ namespace Doxense.Monads.Tests
 		{
 			var safeDivide = Maybe<int>.Bind((x, y) =>
 			{
-				Console.WriteLine("safeDivide(" + x + ", " + y + ")");
+				//Console.WriteLine("safeDivide(" + x + ", " + y + ")");
 				if (y == 0) return Maybe<int>.Nothing;
 				return x / y;
 			});
@@ -311,13 +311,13 @@ namespace Doxense.Monads.Tests
 			m = safeDivide(3, Maybe<int>.Nothing);
 			Assert.That(m.HasValue, Is.False);
 
-			m = safeDivide(3, new Exception("BOOM"));
+			m = safeDivide(3, new InvalidOperationException("BOOM"));
 			Assert.That(m.HasValue, Is.False);
-			Assert.IsInstanceOf<Exception>(m.Error);
+			Assert.That(m.Error, Is.InstanceOf<InvalidOperationException>());
 
-			m = safeDivide(new Exception("POW"), 2);
+			m = safeDivide(new InvalidOperationException("POW"), 2);
 			Assert.That(m.HasValue, Is.False);
-			Assert.IsInstanceOf<Exception>(m.Error);
+			Assert.That(m.Error, Is.InstanceOf<InvalidOperationException>());
 		}
 
 		[Test]
@@ -350,7 +350,7 @@ namespace Doxense.Monads.Tests
 
 			m = combined(new Exception("KABOOM"));
 			Assert.That(m.HasValue, Is.False);
-			Assert.IsInstanceOf<Exception>(m.Error);
+			Assert.That(m.Error, Is.InstanceOf<Exception>());
 			Assert.That(m.Error.Message, Is.EqualTo("KABOOM"));
 
 			// première fonction intercepte...
@@ -360,7 +360,7 @@ namespace Doxense.Monads.Tests
 
 			m = combined(666);
 			Assert.That(m.HasValue, Is.False);
-			Assert.IsInstanceOf<Exception>(m.Error);
+			Assert.That(m.Error, Is.InstanceOf<InvalidOperationException>());
 			Assert.That(m.Error.Message, Is.EqualTo("F"));
 
 			// deuxième fonction intercepte
@@ -370,7 +370,7 @@ namespace Doxense.Monads.Tests
 
 			m = combined(666 * 666);
 			Assert.That(m.HasValue, Is.False);
-			Assert.IsInstanceOf<Exception>(m.Error);
+			Assert.That(m.Error, Is.InstanceOf<Exception>());
 			Assert.That(m.Error.Message, Is.EqualTo("G"));
 
 		}

@@ -113,13 +113,13 @@ namespace Doxense.Tools.Tests
 			//TODO: je n'ai pas vraiment trouvé de test suite avec des valeurs de ref
 			// tout ce que j'ai trouvé c'est que Hash(123, "test") => 2758658570
 
-			Assert.That(XxHash32.Compute(new byte[0]), Is.EqualTo(0x02CC5D05));
+			Assert.That(XxHash32.Compute(Array.Empty<byte>()), Is.EqualTo(0x02CC5D05));
 			Assert.That(XxHash32.Compute(new byte[] { 65, 66, 67 }), Is.EqualTo(0x80712ED5));
 			Assert.That(XxHash32.Compute(new byte[] { 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64 }), Is.EqualTo(0xB1FD16EE));
 			Assert.That(XxHash32.Compute(new byte[] { 1, 2, 3, 4, 65, 66, 67, 5, 6 }, 4, 3), Is.EqualTo(0x80712ED5));
 			Assert.That(XxHash32.Compute(new byte[] { 65, 66, 67 }, 1, 0), Is.EqualTo(0x02CC5D05));
-			Assert.That(() => XxHash32.Compute(default(byte[])), Throws.InstanceOf<ArgumentNullException>());
-			Assert.That(() => XxHash32.Compute(default(byte[]), 0, 0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => XxHash32.Compute(default(byte[])!), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => XxHash32.Compute(default(byte[])!, 0, 0), Throws.InstanceOf<ArgumentNullException>());
 
 			Assert.That(XxHash32.Compute(Slice.Empty), Is.EqualTo(0x02CC5D05));
 			Assert.That(XxHash32.Compute(new byte[] { 65, 66, 67 }.AsSlice()), Is.EqualTo(0x80712ED5));
@@ -137,13 +137,13 @@ namespace Doxense.Tools.Tests
 			Assert.That(XxHash32.Compute("Hello World "), Is.EqualTo(1029714533));
 			Assert.That(XxHash32.Compute("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), Is.EqualTo(2453304613));
 			Assert.That(XxHash32.Compute("foobar", 1, 0), Is.EqualTo(0x02CC5D05));
-			Assert.That(() => XxHash32.Compute(default(string)), Throws.InstanceOf<ArgumentNullException>());
-			Assert.That(() => XxHash32.Compute(default(string), 0, 0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => XxHash32.Compute(default(string)!), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => XxHash32.Compute(default(string)!, 0, 0), Throws.InstanceOf<ArgumentNullException>());
 
-			Assert.That(XxHash32.Compute(new char[0], 0, 0), Is.EqualTo(0x02CC5D05));
+			Assert.That(XxHash32.Compute(Array.Empty<char>(), 0, 0), Is.EqualTo(0x02CC5D05));
 			Assert.That(XxHash32.Compute("foobar".ToCharArray(), 0, 0), Is.EqualTo(0x02CC5D05));
 			Assert.That(XxHash32.Compute("foobar".ToCharArray(), 0, 6), Is.EqualTo(319326668));
-			Assert.That(() => XxHash32.Compute(default(char[]), 0, 0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => XxHash32.Compute(default(char[])!, 0, 0), Throws.InstanceOf<ArgumentNullException>());
 
 		}
 
@@ -161,25 +161,25 @@ namespace Doxense.Tools.Tests
 				prime *= prime;
 			}
 
-			Action<byte[], int, uint, uint> testSequence = (sentence, len, seed, nresult) =>
+			static void TestSequence(byte[] sentence, int len, uint seed, uint nresult)
 			{
 				uint h = XxHash32.Continue(seed, sentence, 0, len);
-				Assert.That(h, Is.EqualTo(nresult), "[{2}, {3}] => 0x{0:X8} != 0x{1:X8}", h, nresult, len, seed);
-			};
+				Assert.That(h, Is.EqualTo(nresult), $"[{len}, {seed}] => 0x{h:X8} != 0x{nresult:X8}");
+			}
 
-			testSequence(sanityBuffer, 1, 0, 0xB85CBEE5);
-		 	testSequence(sanityBuffer, 1, PRIME, 0xD5845D64);
-		 	testSequence(sanityBuffer, 14, 0, 0xE5AA0AB4);
-		 	testSequence(sanityBuffer, 14, PRIME, 0x4481951D);
-		 	testSequence(sanityBuffer, SANITY_BUFFER_SIZE, 0, 0x1F1AA412);
-		 	testSequence(sanityBuffer, SANITY_BUFFER_SIZE, PRIME, 0x498EC8E2);
+			TestSequence(sanityBuffer, 1, 0, 0xB85CBEE5);
+		 	TestSequence(sanityBuffer, 1, PRIME, 0xD5845D64);
+		 	TestSequence(sanityBuffer, 14, 0, 0xE5AA0AB4);
+		 	TestSequence(sanityBuffer, 14, PRIME, 0x4481951D);
+		 	TestSequence(sanityBuffer, SANITY_BUFFER_SIZE, 0, 0x1F1AA412);
+		 	TestSequence(sanityBuffer, SANITY_BUFFER_SIZE, PRIME, 0x498EC8E2);
 		}
 
 		[Test]
 		[SuppressMessage("ReSharper", "AssignNullToNotNullAttribute")]
 		public void TestXxHash64()
 		{
-			Assert.That(XxHash64.FromBytes(new byte[0]), Is.EqualTo(17241709254077376921), "Empty should still return something");
+			Assert.That(XxHash64.FromBytes(Array.Empty<byte>()), Is.EqualTo(17241709254077376921), "Empty should still return something");
 			Assert.That(XxHash64.FromBytes(Slice.Empty), Is.EqualTo(17241709254077376921), "Empty should still return something");
 			Assert.That(XxHash64.FromBytes(new byte[] { 65, 66, 67 }), Is.EqualTo(16603337192413064856));
 			Assert.That(XxHash64.FromBytes(new byte[] { 65, 66, 67 }.AsSlice()), Is.EqualTo(16603337192413064856));
@@ -187,7 +187,7 @@ namespace Doxense.Tools.Tests
 			Assert.That(XxHash64.FromBytes(new byte[] { 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64 }.AsSlice()), Is.EqualTo(7148569436472236994));
 			Assert.That(XxHash64.FromBytes(new byte[] { 1, 2, 3, 4, 65, 66, 67, 5, 6 }.AsSlice(4, 3)), Is.EqualTo(16603337192413064856));
 			Assert.That(XxHash64.FromBytes(new byte[] { 65, 66, 67 }.AsSlice(1, 0)), Is.EqualTo(17241709254077376921));
-			Assert.That(() => XxHash64.FromBytes(default(byte[])), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => XxHash64.FromBytes(default(byte[])!), Throws.InstanceOf<ArgumentNullException>());
 			Assert.That(() => XxHash64.FromBytes(Slice.Nil), Throws.InstanceOf<ArgumentNullException>());
 
 			Assert.That(XxHash64.FromText(""), Is.EqualTo(17241709254077376921UL), "Empty should still return something");
@@ -203,7 +203,7 @@ namespace Doxense.Tools.Tests
 			Assert.That(XxHash64.FromText("This is Spın̈al Tap!!!".AsSpan("This is ".Length, "Spın̈al Tap".Length)), Is.EqualTo(14255674348978296242UL));
 			Assert.That(XxHash64.FromText("foobar".ToCharArray().AsSpan().Slice(0, 0)), Is.EqualTo(17241709254077376921));
 			Assert.That(XxHash64.FromText("foobar".ToCharArray().AsSpan()), Is.EqualTo(5814087441338904397UL));
-			Assert.That(() => XxHash64.FromText(default(string)), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => XxHash64.FromText(default(string)!), Throws.InstanceOf<ArgumentNullException>());
 		}
 
 		[Test]
@@ -223,7 +223,7 @@ namespace Doxense.Tools.Tests
 			void TestSequence64(byte[] sentence, int len, ulong seed, ulong nresult)
 			{
 				ulong h = XxHash64.Continue(seed, sentence.AsSpan(0, len));
-				Assert.That(h, Is.EqualTo(nresult), "[{2}, {3}] => 0x{0:X16} != 0x{1:X16}", h, nresult, len, seed);
+				Assert.That(h, Is.EqualTo(nresult), $"[{len}, {seed}] => 0x{h:X16} != 0x{nresult:X16}");
 			}
 
 			TestSequence64(sanityBuffer, 1, 0, 0x4FCE394CC88952D8UL);
@@ -243,7 +243,7 @@ namespace Doxense.Tools.Tests
 		const double NANOS_PER_TICK = 1E9 / TimeSpan.TicksPerSecond;
 		const double CPU_GHZ = 3.4;
 
-		private static void Hash32Bench(string label, Func<int, byte[], uint> f, byte[] sample, int iter)
+		private static void Hash32Bench(string? label, Func<int, byte[], uint> f, byte[] sample, int iter)
 		{
 			f(1, sample); // Warmup
 			var t = Stopwatch.StartNew();
@@ -252,11 +252,11 @@ namespace Doxense.Tools.Tests
 			if (label != null)
 			{
 				double nanos = (t.Elapsed.Ticks * NANOS_PER_TICK) / iter;
-				Console.WriteLine("{0,6} = {1:x8} > {2,8:F1} ns => {3,5:F1} cycles/byte  @ {4} GHz, {5,7:F1} MB/sec", label, h, nanos, (nanos / sample.Length) * CPU_GHZ, CPU_GHZ, (1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds));
+				Log($"{label,6} = {h:x8} > {nanos,8:F1} ns => {(nanos / sample.Length) * CRCTest.CPU_GHZ,5:F1} cycles/byte  @ {CRCTest.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
 			}
 		}
 
-		private static void Hash64Bench(string label, Func<int, byte[], ulong> f, byte[] sample, int iter)
+		private static void Hash64Bench(string? label, Func<int, byte[], ulong> f, byte[] sample, int iter)
 		{
 			f(1, sample); // Warmup
 			var t = Stopwatch.StartNew();
@@ -265,11 +265,11 @@ namespace Doxense.Tools.Tests
 			if (label != null)
 			{
 				double nanos = (t.Elapsed.TotalSeconds / iter) * NANOS_PER_SEC;
-				Console.WriteLine("{0,6} = {1:x16} > {2,8:F1} ns => {3,5:F1} cycles/byte @ {4} GHz, {5,7:F1} MB/sec", label, h, nanos, (nanos / sample.Length) * CPU_GHZ, CPU_GHZ, (1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds));
+				Log($"{label,6} = {h:x16} > {nanos,8:F1} ns => {(nanos / sample.Length) * CRCTest.CPU_GHZ,5:F1} cycles/byte @ {CRCTest.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
 			}
 		}
 
-		private static void Hash128Bench(string label, Func<int, byte[], Guid> f, byte[] sample, int iter)
+		private static void Hash128Bench(string? label, Func<int, byte[], Guid> f, byte[] sample, int iter)
 		{
 			f(1, sample); // Warmup
 			var t = Stopwatch.StartNew();
@@ -279,7 +279,7 @@ namespace Doxense.Tools.Tests
 			if (label != null)
 			{
 				double nanos = (t.Elapsed.TotalSeconds / iter) * NANOS_PER_SEC;
-				Console.WriteLine("{0,6} = {1:n} > {2,8:F1} ns => {3,5:F1} cycles/byte @ {4} GHz, {5,7:F1} MB/sec", label, h, nanos, (nanos / sample.Length) * CPU_GHZ, CPU_GHZ, (1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds));
+				Log($"{label,6} = {h:n} > {nanos,8:F1} ns => {(nanos / sample.Length) * CRCTest.CPU_GHZ,5:F1} cycles/byte @ {CRCTest.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
 			}
 		}
 
@@ -336,8 +336,8 @@ namespace Doxense.Tools.Tests
 
 			foreach (var test in hashFunctions32)
 			{
-				Console.WriteLine();
-				Console.WriteLine("==== " + test.Key + " ==================");
+				Log();
+				Log("==== " + test.Key + " ==================");
 
 				// warmup
 				Hash32Bench(null, test.Value, new byte[15], 1);
@@ -350,8 +350,8 @@ namespace Doxense.Tools.Tests
 
 			foreach (var test in hashFunctions64)
 			{
-				Console.WriteLine();
-				Console.WriteLine("==== " + test.Key + " ==================");
+				Log();
+				Log("==== " + test.Key + " ==================");
 
 				// warmup
 				Hash64Bench(null, test.Value, new byte[31], 1);
@@ -364,8 +364,8 @@ namespace Doxense.Tools.Tests
 
 			foreach (var test in hashFunctions128)
 			{
-				Console.WriteLine();
-				Console.WriteLine("==== " + test.Key + " ==================");
+				Log();
+				Log("==== " + test.Key + " ==================");
 
 				// warmup
 				Hash128Bench(null, test.Value, new byte[63], 1);
@@ -395,8 +395,8 @@ namespace Doxense.Tools.Tests
 			// Concatènes chaque hash dans un tableau de 4 * 256 bytes (ie : bytes 0-3 = hash de {0}, bytes 4-7 = hash de {0, 1}, bytes 1023-1023 = hash de {0, ..., 255 }
 			// Calcul le hash final sur le vecteur total
 
-			byte[] key = new byte[256];
-			byte[] hashes = new byte[hashBytes * 256];
+			var key = new byte[256];
+			var hashes = new byte[hashBytes * 256];
 			for (int i = 0; i < key.Length; i++)
 			{
 				key[i] = (byte)i;
@@ -405,13 +405,13 @@ namespace Doxense.Tools.Tests
 				var tmp = new byte[i];
 				Array.Copy(key, 0, tmp, 0, i);
 				byte[] h = hashFunction(seed, tmp);
-				Assert.That(h, Is.Not.Null, "h[{0}]", i);
-				Assert.That(h.Length, Is.EqualTo(hashBytes), "h[{0}].Length", i);
+				Assert.That(h, Is.Not.Null, $"h[{i}]");
+				Assert.That(h.Length, Is.EqualTo(hashBytes), $"h[{i}].Length");
 
 				Array.Copy(h, 0, hashes, i * hashBytes, hashBytes);
 			}
 
-			byte[] result = hashFunction(0U, hashes);
+			var result = hashFunction(0U, hashes);
 			return result.AsSpan(0, 4).ToUInt32();
 		}
 
@@ -423,7 +423,7 @@ namespace Doxense.Tools.Tests
 			using (var md5 = System.Security.Cryptography.MD5.Create())
 			{
 				var h = md5.ComputeHash(bytes);
-				byte[] t = new byte[4];
+				var t = new byte[4];
 				Array.Copy(h, 0, t, 0, 4);
 				return t;
 			}

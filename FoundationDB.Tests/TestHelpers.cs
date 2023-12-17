@@ -195,17 +195,17 @@ namespace FoundationDB.Client.Tests
 				FdbTest.Log("> Found " + count + " values");
 		}
 
-		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
+		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message, params object[] args)
 		{
 			try
 			{
 				await asyncTest();
-				Assert.Fail(message, args);
+				Assert.Fail(string.Format(message, args));
 			}
 			catch (AssertionException) { throw; }
 			catch (Exception e)
 			{
-				Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(expectedCode), message, args);
+				Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(expectedCode), string.Format(message, args));
 			}
 		}
 

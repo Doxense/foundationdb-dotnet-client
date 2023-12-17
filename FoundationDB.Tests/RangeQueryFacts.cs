@@ -52,14 +52,14 @@ namespace FoundationDB.Client.Tests
 			{
 				for (int i = 0; i < chunk.Count; i++)
 				{
-					Assert.That(chunk[i].Key, Is.EqualTo(expected[offset + i].Key), "[{0}].Key", i);
-					Assert.That(chunk[i].Value, Is.EqualTo(expected[offset + i].Value), "[{0}].Value", i);
+					Assert.That(chunk[i].Key, Is.EqualTo(expected[offset + i].Key), $"[{i}].Key");
+					Assert.That(chunk[i].Value, Is.EqualTo(expected[offset + i].Value), $"[{i}].Value");
 
-					Assert.That(chunk.Items[i].Key, Is.EqualTo(expected[offset + i].Key), "Items[{0}].Key", i);
-					Assert.That(chunk.Items[i].Value, Is.EqualTo(expected[offset + i].Value), "Items[{0}].Value", i);
+					Assert.That(chunk.Items[i].Key, Is.EqualTo(expected[offset + i].Key), $"Items[{i}].Key");
+					Assert.That(chunk.Items[i].Value, Is.EqualTo(expected[offset + i].Value), $"Items[{i}].Value");
 
-					Assert.That(chunk.Keys[i], Is.EqualTo(expected[offset + i].Key), "Keys[{0}]", i);
-					Assert.That(chunk.Values[i], Is.EqualTo(expected[offset + i].Value), "Values[{0}]", i);
+					Assert.That(chunk.Keys[i], Is.EqualTo(expected[offset + i].Key), $"Keys[{i}]");
+					Assert.That(chunk.Values[i], Is.EqualTo(expected[offset + i].Value), $"Values[{i}]");
 				}
 
 				Assert.That(chunk.First, Is.EqualTo(expected[offset].Key));
@@ -79,6 +79,7 @@ namespace FoundationDB.Client.Tests
 				var data = await db.ReadWriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
+					Assert.That(subspace, Is.Not.Null);
 					var items = Enumerable.Range(0, N).Select(i => new KeyValuePair<Slice, Slice>(subspace.Encode(i), Slice.FromInt32(i))).ToArray();
 					tr.SetValues(items);
 					return items;
@@ -92,6 +93,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					Log("Getting range (WantAll)...");
 					var ts = Stopwatch.StartNew();
@@ -119,6 +121,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					Log("Getting range (Iterator)...");
 					var ts = Stopwatch.StartNew();
@@ -165,6 +168,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 					foreach (int i in Enumerable.Range(0, N))
 					{
 						tr.Set(folder.Encode(i), Slice.FromInt32(i));
@@ -179,6 +183,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(folder.Encode(0), folder.Encode(N));
 					Assert.That(query, Is.Not.Null);
@@ -241,6 +246,8 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+
 					foreach (int i in Enumerable.Range(0, N))
 					{
 						tr.Set(folder.Encode(i), Slice.FromInt32(i));
@@ -252,6 +259,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var chunk = await tr.GetRangeAsync(
 						folder.Encode(0),
@@ -284,6 +292,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(folder.Encode(0), folder.Encode(N), new FdbRangeOptions { Read = FdbReadMode.Keys });
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
@@ -312,6 +321,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRangeKeys(folder.Encode(0), folder.Encode(N));
 
@@ -335,6 +345,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr
 						.GetRange(folder.Encode(0), folder.Encode(N))
@@ -375,6 +386,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 					foreach (int i in Enumerable.Range(0, N))
 					{
 						tr.Set(folder.Encode(i), Slice.FromInt32(i));
@@ -385,6 +397,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var chunk = await tr.GetRangeAsync(
 						folder.Encode(0),
@@ -416,6 +429,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(
 						folder.Encode(0),
@@ -447,6 +461,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRangeValues(folder.Encode(0), folder.Encode(N));
 
@@ -469,6 +484,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr
 						.GetRange(folder.Encode(0), folder.Encode(N))
@@ -493,6 +509,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRangeValues(
 						folder.Encode(0),
@@ -536,6 +553,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 					foreach (int i in Enumerable.Range(0, N))
 					{
 						tr.Set(folder.Encode(i), Slice.FromInt32(i));
@@ -547,6 +565,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(
 						folder.Encode(0),
@@ -588,7 +607,9 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async (tr) =>
 				{
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 					var fb = await b.Resolve(tr);
+					Assert.That(fb, Is.Not.Null);
 					for (int i = 0; i < 10; i++)
 					{
 						tr.Set(fa.Encode(i), Slice.FromInt32(i));
@@ -602,6 +623,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 
 					var query = tr.GetRange(fa.ToRange());
 
@@ -636,6 +658,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fb = await b.Resolve(tr);
+					Assert.That(fb, Is.Not.Null);
 
 					var query = tr.GetRange(fb.ToRange());
 
@@ -674,6 +697,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fc = await c.Resolve(tr);
+					Assert.That(fc, Is.Not.Null);
 
 					var query = tr.GetRange(fc.ToRange());
 
@@ -706,6 +730,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 
 					var query = tr.GetRange(fa.ToRange()).Take(5);
 
@@ -724,6 +749,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 
 					var query = tr.GetRange(fa.ToRange()).Skip(5);
 
@@ -757,14 +783,16 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var f = await location.Resolve(tr);
+					Assert.That(f, Is.Not.Null);
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 					for (int i = 0; i < 10; i++)
 					{
 						tr.Set(fa.Encode(i), Slice.FromInt32(i));
 					}
 					// add guard keys
 					tr.Set(f.GetPrefix(), Slice.FromInt32(-1));
-					tr.Set(f.GetPrefix() + (byte)255, Slice.FromInt32(-1));
+					tr.Set(f.GetPrefix() + 0xFF, Slice.FromInt32(-1));
 				}, this.Cancellation);
 
 				// Take(5) should return the first 5 items
@@ -772,6 +800,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 
 					var query = tr.GetRange(fa.ToRange()).Take(5);
 					Assert.That(query, Is.Not.Null);
@@ -792,6 +821,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 
 					var query = tr.GetRange(fa.ToRange()).Take(12);
 					Assert.That(query, Is.Not.Null);
@@ -812,6 +842,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
+					Assert.That(fa, Is.Not.Null);
 
 					var query = tr.GetRange(fa.ToRange()).Take(0);
 					Assert.That(query, Is.Not.Null);
@@ -840,7 +871,8 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
-					foreach((var k, var v) in dataSet)
+					Assert.That(folder, Is.Not.Null);
+					foreach(var (k, v) in dataSet)
 					{
 						tr.Set(folder.Encode(k), v);
 					}
@@ -850,9 +882,10 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
-					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(folder.ToRange());
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
 
 					// |>>>>>>>>>>>>(50---------->99)|
 					var res = await query.Skip(50).ToListAsync();
@@ -880,9 +913,10 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
-					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(folder.ToRange());
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
 
 					// |(0 <--------- 49)<<<<<<<<<<<<<|
 					var res = await query.Reverse().Skip(50).ToListAsync();
@@ -910,9 +944,10 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
-					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(folder.ToRange());
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
 
 					// |>>>>>>>>>(25<------------74)<<<<<<<<|
 					var res = await query.Skip(25).Reverse().Skip(25).ToListAsync();
@@ -940,7 +975,8 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
-					foreach ((var k, var v) in dataSet)
+					Assert.That(folder, Is.Not.Null);
+					foreach (var (k, v) in dataSet)
 					{
 						tr.Set(folder.Encode(k), v);
 					}
@@ -949,6 +985,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr
 						.GetRange(folder.Encode(10), folder.Encode(20)) // 10 -> 19
@@ -964,6 +1001,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var query = tr
 						.GetRange(folder.Encode(10), folder.Encode(20)) // 10 -> 19
@@ -1020,6 +1058,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
 
@@ -1097,6 +1136,8 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
 
 					var merge = tr.Intersect(
@@ -1175,6 +1216,8 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
 
 					var merge = tr.Except(
@@ -1220,7 +1263,9 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var items = await locItems.Resolve(tr);
+					Assert.That(items, Is.Not.Null);
 					var processed = await locProcessed.Resolve(tr);
+					Assert.That(processed, Is.Not.Null);
 
 					// Items
 					tr.Set(items["userA", 10093], Slice.Empty);
@@ -1237,7 +1282,9 @@ namespace FoundationDB.Client.Tests
 				var results = await db.QueryAsync(async tr =>
 				{
 					var items = await locItems.Resolve(tr);
+					Assert.That(items, Is.Not.Null);
 					var processed = await locProcessed.Resolve(tr);
+					Assert.That(processed, Is.Not.Null);
 
 					var query = tr.Except(
 						new[] { items.ToRange(), processed.ToRange() },
@@ -1267,7 +1314,9 @@ namespace FoundationDB.Client.Tests
 				results = await db.QueryAsync(async tr =>
 				{
 					var items = await locItems.Resolve(tr);
+					Assert.That(items, Is.Not.Null);
 					var processed = await locProcessed.Resolve(tr);
+					Assert.That(processed, Is.Not.Null);
 
 					var resItems = tr
 						.GetRange(items.ToRange())

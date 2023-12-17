@@ -46,7 +46,7 @@ namespace Doxense
 
 			public TException Exception => (this.CapturedException ?? throw new AssertionException("No exception was captured!")) as TException ?? throw new AssertionException($"Captured exception was of type {this.CapturedException.GetType().GetFriendlyName()} instead of expected type {typeof(TException).GetFriendlyName()}");
 
-			internal void Capture(Exception e) => this.CapturedException = e;
+			internal void Capture(Exception? e) => this.CapturedException = e;
 
 			public override string ToString()
 			{
@@ -86,13 +86,15 @@ namespace Doxense
 			this.Ball = ball;
 		}
 
+		public override string Description => $"Catch<{typeof(TException).GetFriendlyName()}>";
+
 		public override ConstraintResult ApplyTo<TActual>(TActual actual)
 		{
 			if (typeof(TActual) != typeof(Exception))
 			{
-				throw new InvalidOperationException($"Unexpected type {typeof(TActual).GetFriendlyName()} while expecting Exception result");
+				throw new InvalidOperationException($"Unexpected type {typeof(TActual).GetFriendlyName()} while expecting {typeof(TException).GetFriendlyName()} exception.");
 			}
-			this.Ball.Capture((Exception) (object) actual);
+			this.Ball.Capture((Exception?) (object?) actual);
 			// success!
 			return new ConstraintResult(this, this.Ball.Exception, true);
 		}

@@ -118,9 +118,9 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(BitHelpers.IsPowerOfTwo(2), Is.True, "2 == 2^1");
 			for (int i = 2; i < 30; i++)
 			{
-				Assert.That(BitHelpers.IsPowerOfTwo((1 << i) - 1), Is.False, "2^{0} - 1 is NOT a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo(1 << i), Is.True, "2^{0} IS a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo((1 << i) + 1), Is.False, "2^{0} + 1 is NOT a power of two", i);
+				Assert.That(BitHelpers.IsPowerOfTwo((1 << i) - 1), Is.False, $"2^{i} - 1 is NOT a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo(1 << i), Is.True, $"2^{i} IS a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo((1 << i) + 1), Is.False, $"2^{i} + 1 is NOT a power of two");
 			}
 			Assert.That(BitHelpers.IsPowerOfTwo(int.MaxValue), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(-1), Is.False);
@@ -132,9 +132,9 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(BitHelpers.IsPowerOfTwo(2L), Is.True, "2 == 2^1");
 			for (int i = 2; i < 62; i++)
 			{
-				Assert.That(BitHelpers.IsPowerOfTwo((1L << i) - 1), Is.False, "2^{0} - 1 is NOT a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo(1L << i), Is.True, "2^{0} IS a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo((1L << i) + 1), Is.False, "2^{0} + 1 is NOT a power of two", i);
+				Assert.That(BitHelpers.IsPowerOfTwo((1L << i) - 1), Is.False, $"2^{i} - 1 is NOT a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo(1L << i), Is.True, $"2^{i} IS a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo((1L << i) + 1), Is.False, $"2^{i} + 1 is NOT a power of two");
 			}
 			Assert.That(BitHelpers.IsPowerOfTwo(long.MaxValue), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo((long)int.MaxValue), Is.False);
@@ -151,9 +151,9 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(BitHelpers.IsPowerOfTwo(2U), Is.True, "2 == 2^1");
 			for (int i = 2; i < 31; i++)
 			{
-				Assert.That(BitHelpers.IsPowerOfTwo((1U << i) - 1), Is.False, "2^{0} - 1 is NOT a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo(1U << i), Is.True, "2^{0} is a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo((1U << i) + 1), Is.False, "2^{0} + 1 is NOT a power of two", i);
+				Assert.That(BitHelpers.IsPowerOfTwo((1U << i) - 1), Is.False, $"2^{i} - 1 is NOT a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo(1U << i), Is.True, $"2^{i} is a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo((1U << i) + 1), Is.False, $"2^{i} + 1 is NOT a power of two");
 			}
 			Assert.That(BitHelpers.IsPowerOfTwo(uint.MaxValue), Is.False);
 
@@ -162,9 +162,9 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(BitHelpers.IsPowerOfTwo(2UL), Is.True, "2 == 2^1");
 			for (int i = 2; i < 62; i++)
 			{
-				Assert.That(BitHelpers.IsPowerOfTwo((1UL << i) - 1), Is.False, "2^{0} - 1 is NOT a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo(1UL << i), Is.True, "2^{0} is a power of two", i);
-				Assert.That(BitHelpers.IsPowerOfTwo((1UL << i) + 1), Is.False, "2^{0} + 1 is NOT a power of two", i);
+				Assert.That(BitHelpers.IsPowerOfTwo((1UL << i) - 1), Is.False, $"2^{i} - 1 is NOT a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo(1UL << i), Is.True, $"2^{i} is a power of two");
+				Assert.That(BitHelpers.IsPowerOfTwo((1UL << i) + 1), Is.False, $"2^{i} + 1 is NOT a power of two");
 			}
 			Assert.That(BitHelpers.IsPowerOfTwo((ulong)uint.MaxValue), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(ulong.MaxValue), Is.False);
@@ -248,14 +248,14 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(BitHelpers.AlignPowerOfTwo(0), Is.EqualTo(16));
 			Assert.That(BitHelpers.AlignPowerOfTwo(0L), Is.EqualTo(16));
 			// 1..16 => 16
-			for (int i = 1; i <= 16; i++) { Assert.That(BitHelpers.AlignPowerOfTwo(i), Is.EqualTo(16), "Align({0}) => 16", i); }
-			for (int i = 1; i <= 16; i++) { Assert.That(BitHelpers.AlignPowerOfTwo((long) i), Is.EqualTo(16), "Align({0}) => 16", i); }
+			for (int i = 1; i <= 16; i++) { Assert.That(BitHelpers.AlignPowerOfTwo(i), Is.EqualTo(16), $"Align({i}) => 16"); }
+			for (int i = 1; i <= 16; i++) { Assert.That(BitHelpers.AlignPowerOfTwo((long) i), Is.EqualTo(16), $"Align({i}) => 16"); }
 			// 17..32 => 32
-			for (int i = 17; i <= 32; i++) { Assert.That(BitHelpers.AlignPowerOfTwo(i), Is.EqualTo(32), "Align({0}) => 32", i); }
-			for (int i = 17; i <= 32; i++) { Assert.That(BitHelpers.AlignPowerOfTwo((long) i), Is.EqualTo(32), "Align({0}) => 32", i); }
+			for (int i = 17; i <= 32; i++) { Assert.That(BitHelpers.AlignPowerOfTwo(i), Is.EqualTo(32), $"Align({i}) => 32"); }
+			for (int i = 17; i <= 32; i++) { Assert.That(BitHelpers.AlignPowerOfTwo((long) i), Is.EqualTo(32), $"Align({i}) => 32"); }
 			// 33..48 => 48
-			for (int i = 33; i <= 48; i++) { Assert.That(BitHelpers.AlignPowerOfTwo(i), Is.EqualTo(48), "Align({0}) => 48", i); }
-			for (int i = 33; i <= 48; i++) { Assert.That(BitHelpers.AlignPowerOfTwo((long) i), Is.EqualTo(48), "Align({0}) => 48", i); }
+			for (int i = 33; i <= 48; i++) { Assert.That(BitHelpers.AlignPowerOfTwo(i), Is.EqualTo(48), $"Align({i}) => 48"); }
+			for (int i = 33; i <= 48; i++) { Assert.That(BitHelpers.AlignPowerOfTwo((long) i), Is.EqualTo(48), $"Align({i}) => 48"); }
 
 			// 2^N-1
 			for (int i = 6; i < 30; i++)
