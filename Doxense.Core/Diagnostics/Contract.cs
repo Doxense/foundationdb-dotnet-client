@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
-
 namespace Doxense.Diagnostics.Contracts
 {
 	using System;
@@ -189,53 +187,48 @@ namespace Doxense.Diagnostics.Contracts
 		/// <exception cref="ArgumentNullException">if <paramref name="value"/> is null</exception>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNull(
-			[System.Diagnostics.CodeAnalysis.NotNull] [AssertionCondition(AssertionConditionType.IS_NOT_NULL)] [NoEnumeration]
-			string? value,
-			string message = null,
-			[InvokerParameterName, CallerArgumentExpression("value")] string paramName = null
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] string? value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null) throw FailArgumentNull(paramName, message);
+			if (value == null) throw FailArgumentNull(paramName!, message);
 		}
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
 		/// <exception cref="ArgumentNullException">if <paramref name="value"/> is null</exception>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNull<TValue>(
-			[System.Diagnostics.CodeAnalysis.NotNull] [AssertionCondition(AssertionConditionType.IS_NOT_NULL)] [NoEnumeration]
-			TValue? value,
-			string message = null,
-			[InvokerParameterName, CallerArgumentExpression("value")] string paramName = null
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 			where TValue : class
 		{
-			if (value == null) throw FailArgumentNull(paramName, message);
+			if (value == null) throw FailArgumentNull(paramName!, message);
 		}
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
 		/// <remarks>This methods allow structs (that can never be null)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullAllowStructs<TValue>(
-			[System.Diagnostics.CodeAnalysis.NotNull]
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
 			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null) throw FailArgumentNull(paramName, message);
+			if (value == null) throw FailArgumentNull(paramName!, message);
 		}
 
 		/// <summary>The specified pointer must not be null (assert: pointer != null)</summary>
 		/// <exception cref="ArgumentNullException">if <paramref name="pointer"/> is null</exception>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void PointerNotNull(
-			[System.Diagnostics.CodeAnalysis.AllowNull]
-			[System.Diagnostics.CodeAnalysis.NotNull]
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] void* pointer,
+			[System.Diagnostics.CodeAnalysis.AllowNull, System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] void* pointer,
 			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression("pointer")] string? paramName = null)
+			[InvokerParameterName, CallerArgumentExpression(nameof(pointer))] string? paramName = null)
 		{
-			if (pointer == null) throw FailArgumentNull(paramName, message);
+			if (pointer == null) throw FailArgumentNull(paramName!, message);
 		}
 
 		/// <summary>The specified value cannot be null (assert: value != null)</summary>
@@ -252,8 +245,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// </code> </example>
 		[Pure, AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T ValueNotNull<T>(
-			[System.Diagnostics.CodeAnalysis.NotNull]
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] T? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] T? value,
 			string? message = null
 		)
 		{
@@ -275,11 +267,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified string must not be null or empty (assert: value != null &amp;&amp; value.Length != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty(
-			[System.Diagnostics.CodeAnalysis.NotNull] [AssertionCondition(AssertionConditionType.IS_NOT_NULL)]
-			string? value,
-			string message = null,
-			[InvokerParameterName] [CallerArgumentExpression("value")]
-			string? paramName = null)
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (string.IsNullOrEmpty(value)) throw FailStringNullOrEmpty(value, paramName, message);
 		}
@@ -295,11 +285,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified string must not be null, empty or contain only whitespaces (assert: value != null &amp;&amp; value.Length != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrWhiteSpace(
-			[System.Diagnostics.CodeAnalysis.NotNull] [AssertionCondition(AssertionConditionType.IS_NOT_NULL)]
-			string? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? value,
 			string? message = null,
-			[InvokerParameterName] [CallerArgumentExpression("value")]
-			string? paramName = null)
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (string.IsNullOrWhiteSpace(value)) throw FailStringNullOrWhiteSpace(value, paramName, message);
 		}
@@ -315,10 +303,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified array must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
-			[System.Diagnostics.CodeAnalysis.NotNull] 
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] T[]? value,
-			string message = null,
-			[InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] T[]? value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
 			if (value == null || value.Length == 0) throw FailArrayNullOrEmpty(value, paramName, message);
@@ -335,13 +322,12 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified collection must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
-			[System.Diagnostics.CodeAnalysis.NotNull]
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<T>? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<T>? value,
 			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName, null);
+			if (value == null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName!);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -360,16 +346,16 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified buffer must not be null or empty (assert: buffer.Array != null &amp;&amp; buffer.Count != 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotNullOrEmpty(Slice buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression("buffer")] string? paramName = null)
+		public static void NotNullOrEmpty(Slice buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
-			if (buffer.Array == null | buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName, message);
+			if (buffer.Array == null | buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
 		}
 
 		/// <summary>The specified buffer must not be null or empty (assert: buffer.Array != null &amp;&amp; buffer.Count != 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotNullOrEmpty<T>(ArraySegment<T> buffer, string message = null, [InvokerParameterName, CallerArgumentExpression("buffer")] string? paramName = null)
+		public static void NotNullOrEmpty<T>(ArraySegment<T> buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
-			if (buffer.Array == null || buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName, message);
+			if (buffer.Array == null || buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
 		}
 
 		#endregion
@@ -397,14 +383,12 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentForbidden<T>(string paramName, T forbidden, string? message = null)
 		{
-			//TODO: need support for two format arguments for conditionTxt !
 			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsForbidden, message, paramName, ContractMessages.ConditionArgNotEqualTo);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentExpected<T>(string paramName, T expected, string? message = null)
 		{
-			//TODO: need support for two format arguments for conditionTxt !
 			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsExpected, message, paramName, ContractMessages.ConditionArgEqualTo);
 		}
 
@@ -448,34 +432,30 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Positive(int value, string? message = null, [InvokerParameterName] [CallerArgumentExpression("value")] string? paramName = null)
+		public static void Positive(int value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value < 0) throw FailArgumentNotPositive(paramName, message);
+			if (value < 0) throw FailArgumentNotPositive(paramName!, message);
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Positive(long value, string? message = null, [InvokerParameterName] [CallerArgumentExpression("value")] string? paramName = null)
+		public static void Positive(long value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value < 0) throw FailArgumentNotPositive(paramName, message);
+			if (value < 0) throw FailArgumentNotPositive(paramName!, message);
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Positive(double value, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void Positive(double value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (Math.Sign(value) != 1) throw FailArgumentNotPositive(paramName, message);
+			if (Math.Sign(value) != 1) throw FailArgumentNotPositive(paramName!, message);
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Positive(float value, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void Positive(float value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			if (!(value >= 0)) throw FailArgumentNotPositive(paramName, message);
-#else
-			if (MathF.Sign(value) != 1) throw FailArgumentNotPositive(paramName, message);
-#endif
+			if (MathF.Sign(value) != 1) throw FailArgumentNotPositive(paramName!, message);
 		}
 
 		#endregion
@@ -484,30 +464,30 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void PowerOfTwo(int value, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void PowerOfTwo(int value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value < 0 || unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName, message);
+			if (value < 0 || unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
 		}
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void PowerOfTwo(uint value, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void PowerOfTwo(uint value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName, message);
+			if (unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
 		}
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void PowerOfTwo(long value, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void PowerOfTwo(long value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value < 0 || unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName, message);
+			if (value < 0 || unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
 		}
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void PowerOfTwo(ulong value, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void PowerOfTwo(ulong value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName, message);
+			if (unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
 		}
 
 		#endregion
@@ -516,45 +496,45 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EqualTo(int value, int expected, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void EqualTo(int value, int expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName, expected, message);
+			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EqualTo(long value, long expected, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void EqualTo(long value, long expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName, expected, message);
+			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EqualTo(uint value, uint expected, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void EqualTo(uint value, uint expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName, expected, message);
+			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EqualTo(ulong value, ulong expected, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void EqualTo(ulong value, ulong expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName, expected, message);
+			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EqualTo(string? value, string? expected, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void EqualTo(string? value, string? expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName, expected, message);
+			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EqualTo<T>(T value, T expected, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void EqualTo<T>(T value, T expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 			where T : struct, IEquatable<T>
 		{
-			if (!value.Equals(expected)) throw FailArgumentExpected(paramName, expected, message);
+			if (!value.Equals(expected)) throw FailArgumentExpected(paramName!, expected, message);
 		}
 
 		#endregion
@@ -563,45 +543,45 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotEqualTo(int value, int forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression("value")] string? paramName = null)
+		public static void NotEqualTo(int value, int forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName, forbidden, message);
+			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotEqualTo(long value, long forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void NotEqualTo(long value, long forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName, forbidden, message);
+			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotEqualTo(uint value, uint forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void NotEqualTo(uint value, uint forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName, forbidden, message);
+			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotEqualTo(ulong value, ulong forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void NotEqualTo(ulong value, ulong forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName, forbidden, message);
+			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotEqualTo(string value, string forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void NotEqualTo(string value, string forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName, forbidden, message);
+			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotEqualTo<T>(T value, T forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression("value")] string? paramName = null)
+		public static void NotEqualTo<T>(T value, T forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 			where T : struct, IEquatable<T>
 		{
-			if (value.Equals(forbidden)) throw FailArgumentForbidden(paramName, forbidden, message);
+			if (value.Equals(forbidden)) throw FailArgumentForbidden(paramName!, forbidden, message);
 		}
 
 		#endregion
@@ -610,54 +590,54 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterThan(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression, thresholdExpression, threshold == 0, message);
+			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression!, thresholdExpression!, threshold == 0, message);
 		}
 
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterThan(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression, thresholdExpression, threshold == 0, message);
+			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression!, thresholdExpression!, threshold == 0, message);
 		}
 
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterThan(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression, thresholdExpression, threshold == 0, message); //BUGBUG: TODO: injecter le thresholdExpression!
+			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression!, thresholdExpression!, threshold == 0, message);
 		}
 
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterThan(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression, thresholdExpression, threshold == 0, message);
+			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression!, thresholdExpression!, threshold == 0, message);
 		}
 
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
-		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression, thresholdExpression, threshold == 0.0f, message);
-		}
-
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterThan(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression, thresholdExpression, threshold == 0.0d, message);
+			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression!, thresholdExpression!, threshold == 0.0f, message);
 		}
 
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterThan(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (value <= threshold) throw FailArgumentNotGreaterThan(valueExpression!, thresholdExpression!, threshold == 0.0d, message);
+		}
+
+		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T: struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) <= 0) throw FailArgumentNotGreaterThan(valueExpression, thresholdExpression, threshold.CompareTo(default(T)) == 0, message);
+			if (value.CompareTo(threshold) <= 0) throw FailArgumentNotGreaterThan(valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
 		}
 
 		#endregion
@@ -666,54 +646,54 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterOrEqual(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression, thresholdExpression, threshold == 0, message);
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression!, thresholdExpression!, threshold == 0, message);
 		}
 
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterOrEqual(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression, thresholdExpression, false, message);
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression!, thresholdExpression!, false, message);
 		}
 
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterOrEqual(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression, thresholdExpression, threshold == 0, message);
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression!, thresholdExpression!, threshold == 0, message);
 		}
 
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterOrEqual(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression, thresholdExpression, false, message);
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression!, thresholdExpression!, false, message);
 		}
 
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
-		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression, thresholdExpression, threshold == 0.0f, message);
-		}
-
-		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterOrEqual(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression, thresholdExpression, threshold == 0.0d, message);
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression!, thresholdExpression!, threshold == 0.0f, message);
 		}
 
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void GreaterOrEqual(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(valueExpression!, thresholdExpression!, threshold == 0.0d, message);
+		}
+
+		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) < 0) throw FailArgumentNotGreaterOrEqual(valueExpression, thresholdExpression, threshold.CompareTo(default(T)) == 0, message);
+			if (value.CompareTo(threshold) < 0) throw FailArgumentNotGreaterOrEqual(valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
 		}
 
 		#endregion
@@ -722,52 +702,52 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not greater than or equal to the specified upper bound</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessThan(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression, thresholdExpression, message);
+			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than or equal to the specified upper bound</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessThan(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression, thresholdExpression, message);
+			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessThan(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression, thresholdExpression, message);
+			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessThan(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression, thresholdExpression, message);
+			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessThan(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression, thresholdExpression, message);
+			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessThan(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression, thresholdExpression, message);
+			if (value >= threshold) throw FailArgumentNotLessThan(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) >= 0) throw FailArgumentNotLessThan(valueExpression, thresholdExpression, message);
+			if (value.CompareTo(threshold) >= 0) throw FailArgumentNotLessThan(valueExpression!, thresholdExpression!, message);
 		}
 
 		#endregion
@@ -776,52 +756,52 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessOrEqual(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression, thresholdExpression, message);
+			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessOrEqual(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression, thresholdExpression, message);
+			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessOrEqual(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression, thresholdExpression, message);
+			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessOrEqual(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression, thresholdExpression, message);
+			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessOrEqual(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression, thresholdExpression, message);
+			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessOrEqual(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression, thresholdExpression, message);
+			if (value > threshold) throw FailArgumentNotLessOrEqual(valueExpression!, thresholdExpression!, message);
 		}
 
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("threshold")] string? thresholdExpression = null)
+		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) > 0) throw FailArgumentNotLessOrEqual(valueExpression, thresholdExpression, message);
+			if (value.CompareTo(threshold) > 0) throw FailArgumentNotLessOrEqual(valueExpression!, thresholdExpression!, message);
 		}
 
 		#endregion
@@ -830,44 +810,44 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(int value, int minimumInclusive, int maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("minimumInclusive")] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between(int value, int minimumInclusive, int maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression, minExpression, maxExpression, message);
+			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
 		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(uint value, uint minimumInclusive, uint maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("minimumInclusive")] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between(uint value, uint minimumInclusive, uint maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression, minExpression, maxExpression, message);
+			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
 		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(long value, long minimumInclusive, long maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("minimumInclusive")] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between(long value, long minimumInclusive, long maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression, minExpression, maxExpression, message);
+			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
 		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(ulong value, ulong minimumInclusive, ulong maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("minimumInclusive")] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between(ulong value, ulong minimumInclusive, ulong maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression, minExpression, maxExpression, message);
+			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
 		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(float value, float minimumInclusive, float maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("minimumInclusive")] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between(float value, float minimumInclusive, float maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression, minExpression, maxExpression, message);
+			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
 		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(double value, double minimumInclusive, double maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression("minimumInclusive")] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between(double value, double minimumInclusive, double maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression, minExpression, maxExpression, message);
+			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
 		#endregion
@@ -881,27 +861,27 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Multiple(int value, int multiple, string? message = null, [InvokerParameterName] [CallerArgumentExpression("value")] string? paramName = null)
+		public static void Multiple(int value, int multiple, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName, message);
+			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Multiple(uint value, uint multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void Multiple(uint value, uint multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName, message);
+			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Multiple(long value, long multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void Multiple(long value, long multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName, message);
+			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Multiple(ulong value, ulong multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression("value")] string? paramName = null)
+		public static void Multiple(ulong value, ulong multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName, message);
+			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
 
 		#endregion
@@ -915,6 +895,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="index">Index (qui ne doit pas être négatif)</param>
 		/// <param name="count">Taille (qui ne doit pas être négative)</param>
 		/// <param name="message"></param>
+		/// <param name="paramBuffer"></param>
+		/// <param name="paramIndex"></param>
+		/// <param name="paramCount"></param>
 		[AssertionMethod]
 		public static void DoesNotOverflow(
 			[System.Diagnostics.CodeAnalysis.NotNull]
@@ -922,36 +905,38 @@ namespace Doxense.Diagnostics.Contracts
 			int index,
 			int count,
 			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression("buffer")] string? paramBuffer = null,
-			[InvokerParameterName, CallerArgumentExpression("index")] string? paramIndex = null,
-			[InvokerParameterName, CallerArgumentExpression("count")] string? paramCount = null
+			[InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramBuffer = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(index))] string? paramIndex = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer == null) throw FailArgumentNull(paramBuffer, message);
-			if (index < 0 || count < 0) throw FailArgumentNotNonNegative(index < 0 ? paramIndex : paramCount, message);
-			if ((buffer.Length - index) < count) throw FailBufferTooSmall(paramCount, message);
+			if (buffer == null) throw FailArgumentNull(paramBuffer!, message);
+			if (index < 0 || count < 0) throw FailArgumentNotNonNegative(index < 0 ? paramIndex! : paramCount!, message);
+			if ((buffer.Length - index) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
 
 		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
 		/// <param name="bufferLength">Taille du buffer</param>
 		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
 		/// <param name="count">Taille (qui ne doit pas être négative)</param>
+		/// <param name="message"></param>
 		[AssertionMethod]
 		public static void DoesNotOverflow(int bufferLength, int offset, int count, string? message = null)
 		{
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? "offset" : "count", message);
-			if ((bufferLength - offset) < count) throw FailBufferTooSmall("count", message);
+			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
+			if ((bufferLength - offset) < count) throw FailBufferTooSmall(nameof(count), message);
 		}
 
 		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
 		/// <param name="bufferLength">Taille du buffer</param>
 		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
 		/// <param name="count">Taille (qui ne doit pas être négative)</param>
+		/// <param name="message"></param>
 		[AssertionMethod]
 		public static void DoesNotOverflow(long bufferLength, long offset, long count, string? message = null)
 		{
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? "offset" : "count", message);
-			if ((bufferLength - offset) < count) throw FailBufferTooSmall("count", message);
+			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
+			if ((bufferLength - offset) < count) throw FailBufferTooSmall(nameof(count), message);
 		}
 
 		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
@@ -959,6 +944,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
 		/// <param name="count">Taille (qui ne doit pas être négative)</param>
 		/// <param name="message"></param>
+		/// <param name="paramBuffer"></param>
+		/// <param name="paramOffset"></param>
+		/// <param name="paramCount"></param>
 		[AssertionMethod]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
@@ -966,29 +954,30 @@ namespace Doxense.Diagnostics.Contracts
 			int offset,
 			int count,
 			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression("buffer")] string? paramBuffer = null,
-			[InvokerParameterName, CallerArgumentExpression("offset")] string? paramOffset = null,
-			[InvokerParameterName, CallerArgumentExpression("count")] string? paramCount = null
+			[InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramBuffer = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(offset))] string? paramOffset = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer == null) throw FailArgumentNull(paramBuffer, message);
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset : paramCount, message);
-			if ((buffer.Length - offset) < count) throw FailBufferTooSmall(paramCount, message);
+			if (buffer == null) throw FailArgumentNull(paramBuffer!, message);
+			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
+			if ((buffer.Length - offset) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
 
 		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
 		/// <param name="buffer">Buffer (qui ne doit pas être null)</param>
 		/// <param name="message"></param>
+		/// <param name="paramName"></param>
 		public static void DoesNotOverflow<TElement>(
 			ArraySegment<TElement> buffer,
 			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression("buffer")] string? paramName = null
+			[InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null
 		)
 		{
 			if (buffer.Offset < 0 || buffer.Count < 0) throw FailArgumentNotNonNegative(paramName + (buffer.Offset < 0 ? ".Offset" : ".Count"), message);
 			if (buffer.Count > 0)
 			{
-				if (buffer.Array == null) throw FailBufferNull(paramName, message);
+				if (buffer.Array == null) throw FailBufferNull(paramName!, message);
 				if ((buffer.Array.Length - buffer.Offset) < buffer.Count) throw FailBufferTooSmall(paramName + ".Count", message);
 			}
 			else
@@ -1002,6 +991,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
 		/// <param name="count">Taille (qui ne doit pas être négative)</param>
 		/// <param name="message"></param>
+		/// <param name="paramBuffer"></param>
+		/// <param name="paramOffset"></param>
+		/// <param name="paramCount"></param>
 		[AssertionMethod]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
@@ -1009,14 +1001,14 @@ namespace Doxense.Diagnostics.Contracts
 			int offset,
 			int count,
 			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression("buffer")] string? paramBuffer = null,
-			[InvokerParameterName, CallerArgumentExpression("offset")] string? paramOffset = null,
-			[InvokerParameterName, CallerArgumentExpression("count")] string? paramCount = null
+			[InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramBuffer = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(offset))] string? paramOffset = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer == null) throw FailArgumentNull(paramBuffer, message);
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset : paramCount, message);
-			if ((buffer.Count - offset) < count) throw FailBufferTooSmall(paramCount, message);
+			if (buffer == null) throw FailArgumentNull(paramBuffer!, message);
+			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
+			if ((buffer.Count - offset) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]

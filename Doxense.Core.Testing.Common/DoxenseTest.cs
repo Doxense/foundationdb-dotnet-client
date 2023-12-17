@@ -685,22 +685,17 @@ namespace Doxense.Testing
 
 		private static string GetAssemblyLocation(Assembly assembly)
 		{
-#if NETFRAMEWORK
-			string? path = assembly.CodeBase;
-			if (string.IsNullOrEmpty(path)) path = assembly.Location;
-#else
 			string path = assembly.Location;
-#endif
 			if (string.IsNullOrEmpty(path)) throw new InvalidOperationException($"Failed to get location of assembly {assembly}");
 
 			// Resharper sometimes returns @"file:///xxxxx" or @"file:\xxxx"
 			if (path.StartsWith("file:\\", StringComparison.OrdinalIgnoreCase))
 			{
-				path = path.Substring(6);
+				path = path[6..];
 			}
 			else if (path.StartsWith("file:///", StringComparison.OrdinalIgnoreCase))
 			{
-				path = path.Substring(8);
+				path = path[8..];
 			}
 
 			path = Path.GetDirectoryName(path) ?? ".";

@@ -397,11 +397,7 @@ namespace Doxense.Memory
 
 		protected override uint ComputeHashCode(in ReadOnlySpan<char> token)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			return (uint) UnsafeHelpers.ComputeHashCode(MemoryMarshal.Cast<char, byte>(token));
-#else
 			return (uint) string.GetHashCode(token);
-#endif
 		}
 
 	}

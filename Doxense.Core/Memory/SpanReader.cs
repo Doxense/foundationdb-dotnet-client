@@ -319,20 +319,12 @@ namespace Doxense.Memory
 		/// <summary>Read the next 4 bytes as an IEEE 32-bit floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public float ReadSingle()
-#if NETFRAMEWORK || NETSTANDARD
-			=> Unsafe.As<int, float>(ref Unsafe.AsRef(BinaryPrimitives.ReadInt32LittleEndian(ReadFourBytes())));
-#else
 			=> BinaryPrimitives.ReadSingleLittleEndian(ReadFourBytes());
-#endif
 
 		/// <summary>Read the next 8 bytes as an IEEE 64-bit floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public double ReadDouble()
-#if NETFRAMEWORK || NETSTANDARD
-			=> Unsafe.As<long, double>(ref Unsafe.AsRef(BinaryPrimitives.ReadInt64LittleEndian(ReadEightBytes())));
-#else
 			=> BinaryPrimitives.ReadDoubleLittleEndian(ReadEightBytes());
-#endif
 
 		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
 		public ReadOnlySpan<byte> ReadByteString()

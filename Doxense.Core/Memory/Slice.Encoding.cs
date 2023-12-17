@@ -1254,25 +1254,7 @@ namespace System
 #if NET8_0_OR_GREATER
 				: System.Text.Ascii.IsValid(span) ? UnsafeHelpers.ConvertToByteString(span) : Utf8NoBomEncoding.GetString(span);
 #else
-				: UnsafeHelpers.IsAsciiBytes(span) ? UnsafeHelpers.ConvertToByteString(span)
-#if !NETFRAMEWORK && !NETSTANDARD
-				: Utf8NoBomEncoding.GetString(span);
-#else
-				: DecodeStringUtf8(this.Span);
-#endif
-#endif
-
-#if NETFRAMEWORK || NETSTANDARD
-			static string DecodeStringUtf8(ReadOnlySpan<byte> span)
-			{
-				unsafe 
-				{
-					fixed (byte* ptr = span)
-					{
-						return Utf8NoBomEncoding.GetString(ptr, span.Length);
-					}
-				}
-			}
+				: UnsafeHelpers.IsAsciiBytes(span) ? UnsafeHelpers.ConvertToByteString(span) : Utf8NoBomEncoding.GetString(span);
 #endif
 		}
 

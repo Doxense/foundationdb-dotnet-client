@@ -413,14 +413,7 @@ namespace Doxense.Serialization.Json.JsonPath
 
 				if (hasDot || hasExp)
 				{
-#if NETFRAMEWORK || NETSTANDARD
-					//TODO: PERF: unfortunaly, we have to allocate :(
-					string literal = this.Path.Slice(start, this.Cursor - start).ToString();
-					this.Number = double.Parse(literal);
-#else
-					var literal = this.Path.Slice(start, this.Cursor - start);
-					this.Number = double.Parse(literal);
-#endif
+					this.Number = double.Parse(this.Path.Slice(start, this.Cursor - start));
 				}
 				else
 				{

@@ -703,20 +703,11 @@ namespace Doxense.Memory
 				goto invalid;
 			}
 
-#if NETFRAMEWORK || NETSTANDARD
-			// must allocate :(
-			literal = (offset > 0 ? literal.Slice(0, literal.Length - offset) : literal).Trim();
-			if (!long.TryParse(literal.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out var num))
-			{
-				goto invalid;
-			}
-#else
 			literal = (offset > 0 ? literal[..^offset] : literal).Trim();
 			if (!long.TryParse(literal, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out var num))
 			{
 				goto invalid;
 			}
-#endif
 
 			try
 			{

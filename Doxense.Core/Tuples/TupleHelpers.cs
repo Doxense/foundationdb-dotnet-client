@@ -296,21 +296,13 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static int CombineHashCodes(int h1, int h2)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			return HashCodes.Combine(2, h1, h2);
-#else
 			return HashCode.Combine(2, h1, h2);
-#endif
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static int CombineHashCodes(int count, int h1, int h2, int h3)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			return HashCodes.Combine(count, h1, h2, h3);
-#else
 			return HashCode.Combine(count, h1, h2, h3);
-#endif
 		}
 
 	}

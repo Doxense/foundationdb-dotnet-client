@@ -234,12 +234,10 @@ namespace System
 			return new Uuid128(Guid.Parse(input));
 		}
 
-#if !NETFRAMEWORK && !NETSTANDARD
 		public static Uuid128 Parse(ReadOnlySpan<char> input)
 		{
 			return new Uuid128(Guid.Parse(input));
 		}
-#endif
 
 		public static Uuid128 ParseExact(string input, string format)
 		{

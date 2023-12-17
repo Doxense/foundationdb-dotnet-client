@@ -1020,70 +1020,30 @@ namespace Doxense.Memory
 
 		#region Decimals...
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteSingle(float value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(4))
-				{
-					*((int*)ptr) = *(int*)(&value);
-				}
-			}
-#else
 			BinaryPrimitives.WriteSingleLittleEndian(AllocateSpan(4), value);
-#endif
 		}
 
 		public void WriteSingle(byte prefix, float value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(5))
-				{
-					ptr[0] = prefix;
-					*((int*) (ptr + 1)) = *(int*)(&value);
-				}
-			}
-#else
 			var buffer = AllocateSpan(5);
 			buffer[0] = prefix;
 			BinaryPrimitives.WriteSingleLittleEndian(buffer.Slice(1), value);
-#endif
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteDouble(double value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(8))
-				{
-					*((long*)ptr) = *(long*)(&value);
-				}
-			}
-#else
 			BinaryPrimitives.WriteDoubleLittleEndian(AllocateSpan(8), value);
-#endif
 		}
 
 		public void WriteDouble(byte prefix, double value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(9))
-				{
-					ptr[0] = prefix;
-					*((long*) (ptr + 1)) = *(long*)(&value);
-				}
-			}
-#else
 			var buffer = AllocateSpan(9);
 			buffer[0] = prefix;
 			BinaryPrimitives.WriteDoubleLittleEndian(buffer.Slice(1), value);
-#endif
 		}
 
 		#endregion

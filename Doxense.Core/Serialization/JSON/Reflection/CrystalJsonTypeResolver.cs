@@ -442,12 +442,10 @@ namespace Doxense.Serialization.Json
 				return CreateDefaultJsonArrayBinder_STuple(type);
 			}
 
-#if !NETSTANDARD && !NETFRAMEWORK
 			if (typeof(System.Runtime.CompilerServices.ITuple).IsAssignableFrom(type))
 			{
 				return CreateDefaultJsonArrayBinder_ITuple(type);
 			}
-#endif
 
 			var staticMethod = type.GetMethod("JsonUnpack", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 			if (staticMethod != null)
@@ -1379,11 +1377,7 @@ namespace Doxense.Serialization.Json
 				.GetMethod(nameof(BindImmutableDictionary_StringKey), BindingFlags.Static | BindingFlags.NonPublic)!
 				.MakeGenericMethod(valueType);
 
-#if NETFRAMEWORK || NETSTANDARD
-			return (CrystalJsonTypeBinder) m.CreateDelegate(typeof(CrystalJsonTypeBinder));
-#else
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
-#endif
 		}
 
 		private static object? BindImmutableDictionary_StringKey<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
@@ -1407,11 +1401,7 @@ namespace Doxense.Serialization.Json
 				.GetMethod(nameof(BindImmutableDictionary_Int32Key), BindingFlags.Static | BindingFlags.NonPublic)!
 				.MakeGenericMethod(valueType);
 
-#if NETFRAMEWORK || NETSTANDARD
-			return (CrystalJsonTypeBinder) m.CreateDelegate(typeof(CrystalJsonTypeBinder));
-#else
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
-#endif
 		}
 
 		private static object? BindImmutableDictionary_Int32Key<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)

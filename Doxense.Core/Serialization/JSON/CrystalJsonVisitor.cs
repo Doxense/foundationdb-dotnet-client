@@ -555,12 +555,10 @@ namespace Doxense.Serialization.Json
 				return CreateVisitorForSTupleType(type);
 			}
 
-#if !NETFRAMEWORK && !NETSTANDARD
 			if (type.IsInstanceOf<System.Runtime.CompilerServices.ITuple>())
 			{ // Value-Tuple
 				return CreateVisitorForITupleType(type);
 			}
-#endif
 
 			if (type.IsEnum)
 			{ // Enum => sous forme numérique (et pas chaîne)
@@ -1633,8 +1631,6 @@ namespace Doxense.Serialization.Json
 
 		#region ValueTuples...
 
-#if !NETFRAMEWORK && !NETSTANDARD
-
 		[Pure]
 		public static CrystalJsonTypeVisitor CreateVisitorForITupleType(Type type)
 		{
@@ -1699,8 +1695,6 @@ namespace Doxense.Serialization.Json
 			}
 			writer.EndArray(state);
 		}
-
-#endif
 
 		/// <summary>Sérialise une tuple de taille 1</summary>
 		public static void VisitValueTuple1<T1>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
@@ -2103,8 +2097,6 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-#if !NETFRAMEWORK && !NETSTANDARD
-
 		[Pure]
 		public static JsonValue ConvertTupleToJson(System.Runtime.CompilerServices.ITuple? tuple)
 		{
@@ -2119,8 +2111,6 @@ namespace Doxense.Serialization.Json
 			}
 			return arr;
 		}
-
-#endif
 
 		#endregion
 

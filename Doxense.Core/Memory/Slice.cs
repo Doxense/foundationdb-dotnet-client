@@ -2999,11 +2999,7 @@ namespace System
 			var capacity = input.CanSeek ? input.Length : 0;
 			using (var output = new MemoryStream(capacity >= 0 && capacity < int.MaxValue ? (int) capacity : 0))
 			{
-#if NETFRAMEWORK || NETSTANDARD
-				await input.CopyToAsync(output, 81920, ct).ConfigureAwait(false);
-#else
 				await input.CopyToAsync(output, ct).ConfigureAwait(false);
-#endif
 				return output.GetBuffer().AsSlice(0, checked((int) output.Length));
 			}
 		}

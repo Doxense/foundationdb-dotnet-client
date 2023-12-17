@@ -285,12 +285,10 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-#if !NETFRAMEWORK && !NETSTANDARD
 				if (value is System.Runtime.CompilerServices.ITuple tuple)
 				{
 					return CrystalJsonVisitor.ConvertTupleToJson(tuple);
 				}
-#endif
 			}
 
 
