@@ -139,21 +139,7 @@ namespace Doxense.Memory
 		
 		protected override string GetLiteral(in ReadOnlyMemory<byte> token)
 		{
-			if (token.Length == 0)
-			{
-				return string.Empty;
-			}
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = token.Span)
-				{
-					return this.Tokens.Encoding.GetString(ptr, token.Length);
-				}
-			}
-#else
-			return this.Tokens.Encoding.GetString(token.Span);
-#endif
+			return token.Length == 0 ? string.Empty : this.Tokens.Encoding.GetString(token.Span);
 		}
 
 		protected override ReadOnlyMemory<byte> GetRunes(string token)

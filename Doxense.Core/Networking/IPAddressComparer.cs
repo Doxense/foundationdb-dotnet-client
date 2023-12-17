@@ -63,17 +63,12 @@ namespace Doxense.Networking
 			{ // je n'ai pas trouvé de moyen d'accéder a "_numbers[]" directement,
 			  // le seul compromis que j'ai trouvé c'est utiliser TryWriteBytes(..) dans des buffers stackalloced
 
-#if NETFRAMEWORK || NETSTANDARD
-				// we have to allocate memory for this :(
-				return x.GetAddressBytes().AsSpan().SequenceCompareTo(y.GetAddressBytes());
-#else
 				Span<byte> xBytes = stackalloc byte[16];
 				Span<byte> yBytes = stackalloc byte[16];
 				if (x.TryWriteBytes(xBytes, out _) && y.TryWriteBytes(yBytes, out _))
 				{
 					return xBytes.SequenceCompareTo(yBytes);
 				}
-#endif
 			}
 
 			// very slow fallback: we will been to allocate memory for the comparison :(

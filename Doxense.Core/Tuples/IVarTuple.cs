@@ -68,8 +68,6 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Tuple that include all items in the current tuple whose offset are greater than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
 		IVarTuple this[int? fromIncluded, int? toExcluded] { [JetBrains.Annotations.Pure] get; }
 
-#if USE_RANGE_API
-
 		/// <summary>Return the element at the specified index</summary>
 		object? this[Index index] { get; }
 
@@ -77,8 +75,6 @@ namespace Doxense.Collections.Tuples
 		/// <param name="range">Range of sub-tuple to return</param>
 		/// <returns>Tuple that include all items in the current tuple whose index are in the specified <paramref name="range"/>. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
 		IVarTuple this[Range range] { get;}
-
-#endif
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>

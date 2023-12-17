@@ -130,8 +130,6 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-#if USE_RANGE_API
-
 		object? IVarTuple.this[Index index] => this[index];
 
 		public T this[Index index] => m_items.Span[TupleHelpers.MapIndex(index, m_items.Length)];
@@ -147,8 +145,6 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-#endif
-
 		public TItem Get<TItem>(int index)
 		{
 			return TypeConverters.ConvertBoxed<TItem>(this[index]);
@@ -163,12 +159,7 @@ namespace Doxense.Collections.Tuples
 		public TItem Last<TItem>()
 		{
 			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
-#if USE_RANGE_API
-			var value = m_items.Span[^1];
-#else
-			var value = m_items.Span[m_items.Length - 1];
-#endif
-			return TypeConverters.ConvertBoxed<TItem>(value);
+			return TypeConverters.ConvertBoxed<TItem>(m_items.Span[^1]);
 		}
 
 		public IVarTuple Append<TItem>(TItem value)
@@ -248,7 +239,7 @@ namespace Doxense.Collections.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IVarTuple other)
+		public bool Equals(IVarTuple? other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -286,7 +277,7 @@ namespace Doxense.Collections.Tuples
 				0 => 0,
 				1 => TupleHelpers.ComputeHashCode(items[0], comparer),
 				2 => TupleHelpers.CombineHashCodes(TupleHelpers.ComputeHashCode(items[0], comparer), TupleHelpers.ComputeHashCode(items[1], comparer)),
-				_ => TupleHelpers.CombineHashCodes(items.Length, TupleHelpers.ComputeHashCode(items[0], comparer), TupleHelpers.ComputeHashCode(items[items.Length - 2], comparer), TupleHelpers.ComputeHashCode(items[items.Length - 1], comparer))
+				_ => TupleHelpers.CombineHashCodes(items.Length, TupleHelpers.ComputeHashCode(items[0], comparer), TupleHelpers.ComputeHashCode(items[^2], comparer), TupleHelpers.ComputeHashCode(items[^1], comparer))
 			};
 			if (canUseCache) m_hashCode = h;
 			return h;

@@ -86,15 +86,11 @@ namespace Doxense.Collections.Tuples
 			return items;
 		}
 
-#if USE_RANGE_API
-
 		[Pure]
 		public static T Get<T>(this IVarTuple tuple, Index index)
 		{
 			return tuple.Get<T>(index.GetOffset(tuple.Count));
 		}
-
-#endif
 
 		/// <summary>Returns the typed value of the first item in this tuple</summary>
 		/// <typeparam name="T">Expected type of the first item</typeparam>
@@ -143,11 +139,7 @@ namespace Doxense.Collections.Tuples
 		public static IVarTuple Substring<TTuple>(this TTuple tuple, int offset) where TTuple : IVarTuple
 		{
 			Contract.NotNullAllowStructs(tuple);
-#if USE_RANGE_API
 			return tuple[Range.StartAt(offset)];
-#else
-			return tuple[offset, null];
-#endif
 		}
 
 		/// <summary>Returns a substring of the current tuple</summary>
@@ -175,20 +167,9 @@ namespace Doxense.Collections.Tuples
 		public static IVarTuple Truncate<TTuple>(this TTuple tuple, int count) where TTuple : IVarTuple
 		{
 			tuple.OfSizeAtLeast(Math.Abs(count));
-
-			if (count < 0)
-			{
-				int offset = tuple.Count + count;
-				return Substring(tuple, offset, -count);
-			}
-			else
-			{
-#if USE_RANGE_API
-				return tuple[Range.EndAt(count)];
-#else
-				return Substring(tuple, 0, count);
-#endif
-			}
+			return count < 0
+				? Substring(tuple, tuple.Count + count, -count)
+				: tuple[Range.EndAt(count)];
 		}
 
 		/// <summary>Test if the start of current tuple is equal to another tuple</summary>

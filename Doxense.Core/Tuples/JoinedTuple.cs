@@ -100,8 +100,6 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-#if USE_RANGE_API
-
 		public object? this[Index index]
 		{
 			get
@@ -131,8 +129,6 @@ namespace Doxense.Collections.Tuples
 				return TupleHelpers.Splice(this, range);
 			}
 		}
-
-#endif
 
 		public T Get<T>(int index)
 		{

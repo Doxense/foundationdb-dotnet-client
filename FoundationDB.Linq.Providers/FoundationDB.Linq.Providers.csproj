@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;net6.0;netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net6.0</TargetFrameworks>
 		<RootNamespace>FoundationDB.Linq.Providers</RootNamespace>
 		<AssemblyName>FoundationDB.Linq.Providers</AssemblyName>
 		<LangVersion>11.0</LangVersion>
@@ -26,13 +26,6 @@
 		<WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
 		<DocumentationFile>bin\Release\$(TargetFramework)\FoundationDB.Layers.Common.xml</DocumentationFile>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />

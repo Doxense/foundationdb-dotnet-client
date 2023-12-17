@@ -161,7 +161,7 @@ namespace FoundationDB.Client
 				else if (previous is object[] arr)
 				{ // one more 
 					Array.Resize(ref arr, arr.Length + 1);
-					arr[arr.Length - 1] = callback;
+					arr[^1] = callback;
 					this.StateCallbacks = arr;
 				}
 				else

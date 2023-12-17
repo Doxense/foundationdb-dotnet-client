@@ -176,11 +176,7 @@ namespace FoundationDB.Client
 		{
 			if (ct.IsCancellationRequested)
 			{
-#if NETFRAMEWORK || NETSTANDARD
-				return new ValueTask<IFdbTransaction>(Task.FromCanceled<IFdbTransaction>(ct));
-#else
 				return ValueTask.FromCanceled<IFdbTransaction>(ct);
-#endif
 			}
 
 			try
@@ -189,11 +185,7 @@ namespace FoundationDB.Client
 			}
 			catch (Exception e)
 			{
-#if NETFRAMEWORK || NETSTANDARD
-				return new ValueTask<IFdbTransaction>(Task.FromException<IFdbTransaction>(e));
-#else
 				return ValueTask.FromException<IFdbTransaction>(e);
-#endif
 			}
 		}
 
@@ -303,12 +295,7 @@ namespace FoundationDB.Client
 			}
 
 			// Unregister the transaction. We do not care if it has already been done
-#if NETFRAMEWORK || NETSTANDARD
-			m_transactions.TryRemove(transaction.Id, out _);
-			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
-#else
 			m_transactions.TryRemove(KeyValuePair.Create(transaction.Id, transaction));
-#endif
 		}
 
 		/// <summary>Add a new transaction to the list of tracked transactions</summary>
@@ -332,12 +319,7 @@ namespace FoundationDB.Client
 			if (m_disposed) return;
 
 			// Unregister the transaction. We do not care if it has already been done
-#if NETFRAMEWORK || NETSTANDARD
-			m_tenants.TryRemove(tenant.Name, out _);
-			//TODO: compare removed value with the specified tenant to ensure it was the correct one?
-#else
 			m_tenants.TryRemove(KeyValuePair.Create(tenant.Name, tenant));
-#endif
 		}
 
 		public IFdbTenant GetTenant(FdbTenantName name)
@@ -372,11 +354,7 @@ namespace FoundationDB.Client
 			{
 				if (tenant != null)
 				{
-#if NETFRAMEWORK || NETSTANDARD
-					m_tenants.TryRemove(nameCopy, out _);
-#else
 					m_tenants.TryRemove(new KeyValuePair<FdbTenantName, FdbTenant>(nameCopy, tenant)); //HACKHACK ! :(
-#endif
 					tenant.Dispose();
 				}
 				throw;

@@ -399,12 +399,12 @@ namespace FoundationDB.Client
 									// for tuples, the really bad cases are for byte[]/strings (which normally end with 00)
 									// => pack(("string",))+\xFF => <02>string<00><FF>
 									// => string(("string",)) => <02>string<01>
-									switch (key[key.Length - 1])
+									switch (key[^1])
 									{
 										case 0xFF:
 										{
 											//***README*** if you break under here, see README in the last catch() block
-											tuple = TuPack.Unpack(key.Slice(0, key.Length - 1));
+											tuple = TuPack.Unpack(key[..^1]);
 											suffix = ".<FF>";
 											break;
 										}
@@ -412,7 +412,7 @@ namespace FoundationDB.Client
 										{
 											//TODO: HACKHACK: until we find another solution, we have to make a copy :(
 											var tmp = key.ToArray();
-											tmp[tmp.Length - 1] = 0;
+											tmp[^1] = 0;
 											//***README*** if you break under here, see README in the last catch() block
 											tuple = TuPack.Unpack(tmp.AsSlice());
 											suffix = " + 1";
@@ -431,7 +431,7 @@ namespace FoundationDB.Client
 									if (key.Length > 2 && key[-1] == 0 && key[-2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										tuple = TuPack.Unpack(key.Slice(0, key.Length - 1));
+										tuple = TuPack.Unpack(key[..^1]);
 										suffix = ".<00>";
 									}
 									break;

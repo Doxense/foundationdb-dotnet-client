@@ -54,28 +54,20 @@ namespace Doxense.Diagnostics.Contracts
 			return new ArgumentNullException(paramName, message);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentNullException([InvokerParameterName] string paramName)
 		{
 			throw ArgumentNullException(paramName);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentNullException([InvokerParameterName] string paramName, string message)
 		{
 			throw ArgumentNullException(paramName, message);
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
 		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName, string? message = null)
 		{
 			throw message != null ? new ArgumentNullException(paramName, message) : new ArgumentNullException(paramName);
@@ -113,20 +105,15 @@ namespace Doxense.Diagnostics.Contracts
 			return new ArgumentException(string.Format(message, args), paramName);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentException([InvokerParameterName] string paramName, string? message = null)
 		{
 			// oui, c'est inversé :)
 			throw ArgumentException(paramName, message);
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
 		public static T ThrowArgumentException<T>([InvokerParameterName] string paramName, string? message = null)
 		{
 			// oui, c'est inversé :)
@@ -149,38 +136,26 @@ namespace Doxense.Diagnostics.Contracts
 			return new ArgumentOutOfRangeException(paramName);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentOutOfRangeException()
 		{
 			// ReSharper disable once NotResolvedInText
 			throw ArgumentOutOfRangeException("index", "Index was out of range. Must be non-negative and less than the size of the collection.");
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName)
 		{
 			throw ArgumentOutOfRangeException(paramName);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, string message)
 		{
 			throw ArgumentOutOfRangeException(paramName, message);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, string message)
 		{
 			throw ArgumentOutOfRangeException(paramName, actualValue, message);
@@ -238,59 +213,44 @@ namespace Doxense.Diagnostics.Contracts
 			return new ObjectDisposedException(message, innerException);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowObjectDisposedException(Type type)
 		{
 			throw ObjectDisposedException(type);
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowObjectDisposedException(string message, Exception innerException)
 		{
 			throw ObjectDisposedException(message, innerException);
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
-
+		[MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
+		[DoesNotReturn]
 		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed)
 			where TDisposed : IDisposable
 		{
 			throw ObjectDisposedException(disposed.GetType());
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
+		[DoesNotReturn]
 		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message)
 			where TDisposed : IDisposable
 		{
 			throw ObjectDisposedException(disposed.GetType(), message);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
+		[DoesNotReturn]
 		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message, object? arg0)
 			where TDisposed : IDisposable
 		{
 			throw ObjectDisposedException(disposed.GetType(), string.Format(CultureInfo.InvariantCulture, message, arg0));
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
+		[DoesNotReturn]
 		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message, params object?[] args)
 			where TDisposed : IDisposable
 		{
@@ -325,55 +285,42 @@ namespace Doxense.Diagnostics.Contracts
 			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowInvalidOperationException(string message)
 		{
 			throw InvalidOperationException(message);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowInvalidOperationException(string message, object? arg0)
 		{
 			throw InvalidOperationException(message, arg0);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1)
 		{
 			throw InvalidOperationException(message, arg0, arg1);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1, object? arg2)
 		{
 			throw InvalidOperationException(message, arg0, arg1, arg2);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowInvalidOperationException(string message, params object?[] args)
 		{
 			throw InvalidOperationException(message, args);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
 		public static T ThrowInvalidOperationException<T>(string message)
 		{
 			throw InvalidOperationException(message);
@@ -392,61 +339,50 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(string message, object? arg0)
 		{
-			return new FormatException(String.Format(CultureInfo.InvariantCulture, message, arg0));
+			return new FormatException(string.Format(CultureInfo.InvariantCulture, message, arg0));
 		}
 
 		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(string message, object? arg0, object? arg1)
 		{
-			return new FormatException(String.Format(CultureInfo.InvariantCulture, message, arg0, arg1));
+			return new FormatException(string.Format(CultureInfo.InvariantCulture, message, arg0, arg1));
 		}
 
 		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(string message, params object?[] args)
 		{
-			return new FormatException(String.Format(CultureInfo.InvariantCulture, message, args));
+			return new FormatException(string.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowFormatException(string message)
 		{
 			throw FormatException(message);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowFormatException(string message, object? arg0)
 		{
 			throw FormatException(message, arg0);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowFormatException(string message, object? arg0, object? arg1)
 		{
 			throw FormatException(message, arg0, arg1);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowFormatException(string message, object? arg0, object? arg1, object? arg2)
 		{
 			throw FormatException(message, arg0, arg1, arg2);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowFormatException(string message, params object?[] args)
 		{
 			throw FormatException(message, args);
@@ -474,28 +410,21 @@ namespace Doxense.Diagnostics.Contracts
 			return new OperationCanceledException(String.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowOperationCanceledException(string message)
 		{
 			throw OperationCanceledException(message);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowOperationCanceledException(string message, object? arg0)
 		{
 			throw OperationCanceledException(message, arg0);
 		}
 
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[StringFormatMethod("message")]
+		[DoesNotReturn]
 		public static void ThrowOperationCanceledException(string message, params object?[] args)
 		{
 			throw OperationCanceledException(message, args);
@@ -551,11 +480,7 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception? TryMapToComplexException(
-#if USE_ANNOTATIONS
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
-#endif
-			Type exceptionType, string message, string? paramName)
+		public static Exception? TryMapToComplexException([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type exceptionType, string message, string? paramName)
 		{
 			ConstructorInfo? constructor;
 
@@ -612,19 +537,14 @@ namespace Doxense.Diagnostics.Contracts
 			return new IndexOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection.");
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowIndexOutOfRangeException()
 		{
 			throw IndexOutOfRangeException();
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
 		public static T ThrowIndexOutOfRangeException<T>()
 		{
 			throw IndexOutOfRangeException();
@@ -638,20 +558,15 @@ namespace Doxense.Diagnostics.Contracts
 			return new ArgumentOutOfRangeException("index", index, "Index was out of range. Must be non-negative and less than the size of the collection.");
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowArgumentOutOfRangeIndex(int index)
 		{
 			// ArgumentOutOfRange_NeedNonNegNum
 			throw ArgumentOutOfRangeIndex(index);
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
 		public static T ThrowArgumentOutOfRangeIndex<T>(int index)
 		{
 			throw IndexOutOfRangeException();
@@ -678,10 +593,7 @@ namespace Doxense.Diagnostics.Contracts
 			return new NotSupportedException("Collection is read-only.");
 		}
 
-		[ContractAnnotation("=> halt")]
-#if USE_ANNOTATIONS
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
+		[DoesNotReturn]
 		public static void ThrowNotSupportedReadOnlyCollection()
 		{
 			// NotSupported_ReadOnlyCollection

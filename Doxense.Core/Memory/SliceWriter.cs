@@ -206,18 +206,16 @@ namespace Doxense.Memory
 			}
 		}
 
-#if USE_RANGE_API
-
+		/// <summary>Return the byte that was previously written at the specified index</summary>
 		public byte this[Index index] => this[index.GetOffset(this.Position)];
 
+		/// <summary>Return a slice that contains the bytes previously written at the specified range</summary>
 		public Slice this[Range range] => Substring(range);
-
-#endif
 
 		#endregion
 
 		/// <summary>Returns the underlying buffer holding the data</summary>
-		/// <remarks>This will never return until, unlike <see cref="Buffer"/> which can be null if the instance was never written to.</remarks>
+		/// <remarks>This will never return <c>null</c>, unlike <see cref="Buffer"/> which can be <c>null</c> if the instance was never written to.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] GetBufferUnsafe() => this.Buffer ?? Array.Empty<byte>();
 
@@ -359,7 +357,7 @@ namespace Doxense.Memory
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If <paramref name="offset"/> is less then zero, or after the current position</exception>
 		[Pure]
-		public Slice Substring(int offset) //REVIEW: => Slice(offset)
+		public Slice Substring(int offset)
 		{
 			int p = this.Position;
 			if (offset < 0 || offset > p) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be inside the buffer");
@@ -373,7 +371,7 @@ namespace Doxense.Memory
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
 		[Pure]
-		public Slice Substring(int offset, int count) //REVIEW: => Slice(offset, count)
+		public Slice Substring(int offset, int count)
 		{
 			int p = this.Position;
 			if ((uint) offset >= p) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be inside the buffer");
@@ -382,19 +380,16 @@ namespace Doxense.Memory
 			return count > 0 ? new Slice(this.Buffer!, offset, count) : Slice.Empty;
 		}
 
-#if USE_RANGE_API
-
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
 		/// <param name="range">Range to return</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If the <paramref name="range"/> does not fit inside the current buffer</exception>
-		public Slice Substring(Range range)
+		[Pure]
+		public Slice Substring(Range range) //REVIEW: convert to an indexer? writer[4..10] instead of writer.Substring(4..10) ?
 		{
 			(int offset, int count) = range.GetOffsetAndLength(this.Position);
 			return count > 0 ? new Slice(this.Buffer!, offset, count) : Slice.Empty;
 		}
-
-#endif
 
 		/// <summary>Truncate the buffer by setting the cursor to the specified position.</summary>
 		/// <param name="position">New size of the buffer</param>
@@ -1025,70 +1020,30 @@ namespace Doxense.Memory
 
 		#region Decimals...
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteSingle(float value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(4))
-				{
-					*((int*)ptr) = *(int*)(&value);
-				}
-			}
-#else
 			BinaryPrimitives.WriteSingleLittleEndian(AllocateSpan(4), value);
-#endif
 		}
 
 		public void WriteSingle(byte prefix, float value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(5))
-				{
-					ptr[0] = prefix;
-					*((int*) (ptr + 1)) = *(int*)(&value);
-				}
-			}
-#else
 			var buffer = AllocateSpan(5);
 			buffer[0] = prefix;
 			BinaryPrimitives.WriteSingleLittleEndian(buffer.Slice(1), value);
-#endif
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteDouble(double value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(8))
-				{
-					*((long*)ptr) = *(long*)(&value);
-				}
-			}
-#else
 			BinaryPrimitives.WriteDoubleLittleEndian(AllocateSpan(8), value);
-#endif
 		}
 
 		public void WriteDouble(byte prefix, double value)
 		{
-#if NETFRAMEWORK || NETSTANDARD
-			unsafe
-			{
-				fixed (byte* ptr = AllocateSpan(9))
-				{
-					ptr[0] = prefix;
-					*((long*) (ptr + 1)) = *(long*)(&value);
-				}
-			}
-#else
 			var buffer = AllocateSpan(9);
 			buffer[0] = prefix;
 			BinaryPrimitives.WriteDoubleLittleEndian(buffer.Slice(1), value);
-#endif
 		}
 
 		#endregion
@@ -2202,24 +2157,23 @@ namespace Doxense.Memory
 			Contract.NotNull(pool);
 			Contract.Positive(newSize);
 
-			var larray = array;
-			if (larray == null)
+			if (array == null)
 			{
 				array = pool.Rent(newSize);
 				return;
 			}
 
-			if (larray.Length != newSize)
+			if (array.Length != newSize)
 			{
 				byte[] newArray = pool.Rent(newSize);
-				if (larray.Length > 0)
+				if (array.Length > 0)
 				{
-					larray.AsSpan().CopyTo(newArray);
+					array.AsSpan().CopyTo(newArray);
 				}
 				//note: we don't return empty buffers, because we may return Array.Empty<byte>() by mistake!
-				if (larray.Length != 0)
+				if (array.Length != 0)
 				{
-					pool.Return(larray);
+					pool.Return(array);
 				}
 				array = newArray;
 			}

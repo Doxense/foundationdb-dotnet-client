@@ -140,7 +140,7 @@ namespace FoundationDB.Samples.Tutorials
 			var tasksLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('T'));
 			var unassignedLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('U'));
 
-			using(var tr = await db.BeginTransactionAsync(ct))
+			using(var tr = db.BeginTransaction(ct))
 			{
 				var counters = await tr.Snapshot.GetRange(countersLocation.ToRange()).Select(kvp => new KeyValuePair<string, long>(countersLocation.DecodeLast<string>(kvp.Key), kvp.Value.ToInt64())).ToListAsync().ConfigureAwait(false);
 

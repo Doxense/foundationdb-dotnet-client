@@ -184,27 +184,12 @@ namespace Doxense.Memory
 
 		public void WriteUtf8Text(in ReadOnlySpan<char> text)
 		{
-#if USE_SPAN_API
 			int byteCount = Encoding.UTF8.GetByteCount(text);
 			var chunk = EnsureBytes(byteCount);
 			Encoding.UTF8.GetBytes(text, chunk);
 			Advance(byteCount);
-#else
-			unsafe
-			{
-				fixed (char* inp = text)
-				{
-					int byteCount = Encoding.UTF8.GetByteCount(inp, text.Length);
-					var chunk = EnsureBytes(byteCount);
-					fixed (byte* outp = chunk)
-					{
-						Encoding.UTF8.GetBytes(inp, text.Length, outp, chunk.Length);
-					}
-					Advance(byteCount);
-				}
-			}
-#endif
 		}
 
 	}
+
 }

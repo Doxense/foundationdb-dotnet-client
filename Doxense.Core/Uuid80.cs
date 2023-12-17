@@ -264,7 +264,7 @@ namespace System
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
 
 			// remove "{...}" if there is any
-			if (s.Length > 2 && s[0] == '{' && s[s.Length - 1] == '}')
+			if (s.Length > 2 && s[0] == '{' && s[^1] == '}')
 			{
 				s = s.Slice(1, s.Length - 2);
 			}

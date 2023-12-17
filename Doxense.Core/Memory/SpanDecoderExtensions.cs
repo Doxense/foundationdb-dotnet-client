@@ -57,17 +57,7 @@ namespace System
 		{
 			if (span.Length == 0) return string.Empty;
 			//note: Encoding.GetString() will do the bound checking for us
-#if USE_SPAN_API
 			return Encoding.Default.GetString(span);
-#else
-			unsafe
-			{
-				fixed(byte* ptr = span)
-				{
-					return Encoding.Default.GetString(ptr, span.Length);
-				}
-			}
-#endif
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -142,17 +132,7 @@ namespace System
 			}
 #endif
 
-#if USE_SPAN_API
 			return Slice.Utf8NoBomEncoding.GetString(span);
-#else
-			unsafe
-			{
-				fixed (byte* ptr = span)
-				{
-					return Slice.Utf8NoBomEncoding.GetString(ptr, span.Length);
-				}
-			}
-#endif
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -186,17 +166,7 @@ namespace System
 				span = span.Slice(3);
 			}
 
-#if USE_SPAN_API
 			return Slice.Utf8NoBomEncoding.GetString(span);
-#else
-			unsafe
-			{
-				fixed (byte* ptr = span)
-				{
-					return Slice.Utf8NoBomEncoding.GetString(ptr, span.Length);
-				}
-			}
-#endif
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -210,7 +180,7 @@ namespace System
 		public static string ToBase64(this Span<byte> span) => ToBase64((ReadOnlySpan<byte>) span);
 
 		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (lowercase)</summary>
-		/// <param name="lowerCase">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
+		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"0123456789abcdef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToHexaString(this ReadOnlySpan<byte> span, bool lowerCase = false) => FormatHexaString(span, '\0', lowerCase);
@@ -220,7 +190,7 @@ namespace System
 
 		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
 		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
-		/// <param name="lowerCase">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
+		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToHexaString(this ReadOnlySpan<byte> span, char sep, bool lowerCase = false) => FormatHexaString(span, sep, lowerCase);
@@ -257,55 +227,46 @@ namespace System
 			return sb.ToString();
 		}
 
-		internal static StringBuilder EscapeString(StringBuilder sb, ReadOnlySpan<byte> buffer, Encoding encoding)
+		internal static StringBuilder EscapeString(StringBuilder? sb, ReadOnlySpan<byte> buffer, Encoding encoding)
 		{
-			if (sb == null) sb = new StringBuilder(buffer.Length + 16);
-#if USE_SPAN_API
+			sb ??= new StringBuilder(buffer.Length + 16);
 			int charCount = encoding.GetCharCount(buffer);
 			if (charCount == 0) return sb;
 
 			//TODO: allocate on heap if too large?
 			Span<char> tmp = stackalloc char[charCount];
 			if (encoding.GetChars(buffer, tmp) != buffer.Length) throw new InvalidOperationException();
-#else
-			int charCount;
-			unsafe
-			{
-				fixed (byte* ptr = buffer)
-				{
-					charCount = encoding.GetCharCount(ptr, buffer.Length);
-					if (charCount == 0) return sb;
-				}
-			}
-
-			//TODO: allocate on heap if too large?
-			Span<char> tmp = stackalloc char[charCount];
-			unsafe
-			{
-				fixed (byte* ptr = buffer)
-				fixed (char* chars = tmp)
-				{
-					if (encoding.GetChars(ptr, buffer.Length, chars, charCount) != buffer.Length) throw new InvalidOperationException();
-				}
-			}
-#endif
 
 			foreach (var c in tmp)
 			{
 				if ((c >= ' ' && c <= '~') || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
+				{
 					sb.Append(c);
+				}
 				else if (c == 0)
+				{
 					sb.Append(@"\0");
+				}
 				else if (c == '\n')
+				{
 					sb.Append(@"\n");
+				}
 				else if (c == '\r')
+				{
 					sb.Append(@"\r");
+				}
 				else if (c == '\t')
+				{
 					sb.Append(@"\t");
+				}
 				else if (c > 127)
+				{
 					sb.Append(@"\u").Append(((int) c).ToString("x4", CultureInfo.InvariantCulture));
+				}
 				else // pas clean!
+				{
 					sb.Append(@"\x").Append(((int) c).ToString("x2", CultureInfo.InvariantCulture));
+				}
 			}
 			return sb;
 		}
@@ -358,14 +319,14 @@ namespace System
 			// look for UTF-8 BOM
 			if (HasUtf8Bom(buffer))
 			{ // this is supposed to be an UTF-8 string
-				return EscapeString(new StringBuilder(buffer.Length).Append('\''), buffer.Slice(3), Slice.Utf8NoBomEncoding).Append('\'').ToString();
+				return EscapeString(new StringBuilder(buffer.Length).Append('\''), buffer[3..], Slice.Utf8NoBomEncoding).Append('\'').ToString();
 			}
 
 			if (buffer.Length >= 2)
 			{
 				// look for JSON objets or arrays
-				if ((buffer[0] == '{' && buffer[buffer.Length - 1] == '}') 
-				 || (buffer[0] == '[' && buffer[buffer.Length - 1] == ']'))
+				if ((buffer[0] == '{' && buffer[^1] == '}') 
+				 || (buffer[0] == '[' && buffer[^1] == ']'))
 				{
 					try
 					{
@@ -376,9 +337,9 @@ namespace System
 						else
 						{
 							return
-								EscapeString(new StringBuilder(buffer.Length + 16), buffer.Slice(0, maxLen), Slice.Utf8NoBomEncoding)
+								EscapeString(new StringBuilder(buffer.Length + 16), buffer[..maxLen], Slice.Utf8NoBomEncoding)
 									.Append("[\u2026]")
-									.Append(buffer[buffer.Length - 1])
+									.Append(buffer[^1])
 									.ToString();
 						}
 					}
@@ -413,31 +374,14 @@ namespace System
 
 			if (!mustEscape)
 			{ // only printable chars found
-#if USE_SPAN_API
 				if (buffer.Length <= maxLen)
 				{
 					return "'" + Encoding.ASCII.GetString(buffer) + "'";
 				}
 				else
 				{
-					return "'" + Encoding.ASCII.GetString(buffer.Slice(0, maxLen)) + "[\u2026]'"; // Unicode for '...'
+					return "'" + Encoding.ASCII.GetString(buffer[..maxLen]) + "[\u2026]'"; // Unicode for '...'
 				}
-#else
-				unsafe
-				{
-					fixed (byte* ptr = buffer)
-					{
-						if (buffer.Length <= maxLen)
-						{
-							return "'" + Encoding.ASCII.GetString(ptr, buffer.Length) + "'";
-						}
-						else
-						{
-							return "'" + Encoding.ASCII.GetString(ptr, maxLen) + "[\u2026]'"; // Unicode for '...'
-						}
-					}
-				}
-#endif
 			}
 			// some escaping required
 			if (buffer.Length <= maxLen)
@@ -446,7 +390,7 @@ namespace System
 			}
 			else
 			{
-				return EscapeString(new StringBuilder(buffer.Length + 2).Append('\''), buffer.Slice(0, maxLen), Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
+				return EscapeString(new StringBuilder(buffer.Length + 2).Append('\''), buffer[..maxLen], Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
 			}
 		}
 
@@ -957,7 +901,7 @@ namespace System
 				case 19: // {hex8-hex8}
 				{
 					// ReSharper disable once AssignNullToNotNullAttribute
-					return Uuid64.Parse(ToByteString(span)!);
+					return Uuid64.Parse(ToByteString(span));
 				}
 			}
 
@@ -1117,7 +1061,7 @@ namespace System
 			{
 				0 => default,
 				16 => new Uuid128(span),
-				36 => Uuid128.Parse(ToByteString(span)!),
+				36 => Uuid128.Parse(ToByteString(span)),
 				_ => throw new FormatException("Cannot convert span into an Uuid128 because it has an incorrect size.")
 			};
 		}
@@ -1142,11 +1086,11 @@ namespace System
 				// binary (10 bytes)
 				10 => Uuid80.Read(span),
 				// XXXXXXXXXXXXXXXXXXXX
-				20 => Uuid80.Parse(ToByteString(span)!),
+				20 => Uuid80.Parse(ToByteString(span)),
 				// XXXX-XXXXXXXX-XXXXXXXX
-				22 => Uuid80.Parse(ToByteString(span)!),
+				22 => Uuid80.Parse(ToByteString(span)),
 				// {XXXX-XXXXXXXX-XXXXXXXX}
-				24 => Uuid80.Parse(ToByteString(span)!),
+				24 => Uuid80.Parse(ToByteString(span)),
 
 				_ => throw new FormatException("Cannot convert span into an Uuid80 because it has an incorrect size.")
 			};
@@ -1179,7 +1123,7 @@ namespace System
 				case 28: // {XXXXXXXX-XXXXXXXX-XXXXXXXX}
 				{
 					// ReSharper disable once AssignNullToNotNullAttribute
-					return Uuid96.Parse(ToByteString(span)!);
+					return Uuid96.Parse(ToByteString(span));
 				}
 			}
 

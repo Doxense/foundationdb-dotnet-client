@@ -105,8 +105,6 @@ namespace FoundationDB.Client
 			get => this.Items[index];
 		}
 
-#if USE_RANGE_API
-
 		/// <summary>Return a reference to the result at the specified index</summary>
 		public KeyValuePair<Slice, Slice> this[Index index]
 		{
@@ -120,8 +118,6 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Items.AsSpan(range);
 		}
-
-#endif
 
 		/// <summary>Return a reference to the result at the specified index</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -400,7 +400,7 @@ namespace Doxense.Linq
 
 			Array.Resize(ref this.Chunks, this.Chunks.Length + 1);
 			this.Current = new T[Math.Min(this.Count, MaxChunkSize)];
-			this.Chunks[this.Chunks.Length - 1] = this.Current;
+			this.Chunks[^1] = this.Current;
 			this.Index = 0;
 		}
 

@@ -55,7 +55,6 @@ namespace Doxense.Networking
 			return !string.IsNullOrEmpty(ip) && IPAddress.TryParse(ip, out _);
 		}
 
-#if !NETFRAMEWORK && !NETSTANDARD
 		/// <summary>Indique si une adresse IP(v4/v6) est valide syntaxiquement</summary>
 		/// <param name="ip">Adresse IPv4 à vérifier (ex: "192.168.1.0")</param>
 		/// <returns>True si l'adresse IP est valide syntaxiquement (4 nombres de 0 à 255)</returns>
@@ -63,7 +62,6 @@ namespace Doxense.Networking
 		{
 			return ip.Length != 0 && IPAddress.TryParse(ip, out _);
 		}
-#endif
 
 		/// <summary>Détermine s'il s'agit d'une adresse IPv4 valide</summary>
 		/// <param name="ip">Chaîne à vérifier</param>
@@ -73,7 +71,6 @@ namespace Doxense.Networking
 			return !string.IsNullOrEmpty(ip) && IPAddress.TryParse(ip, out var value) && value.AddressFamily == AddressFamily.InterNetwork;
 		}
 
-#if !NETFRAMEWORK && !NETSTANDARD
 		/// <summary>Détermine s'il s'agit d'une adresse IPv4 valide</summary>
 		/// <param name="ip">Chaîne à vérifier</param>
 		/// <returns>true si c'est une IPv4 valide, false dans tout les autres cas</returns>
@@ -81,7 +78,6 @@ namespace Doxense.Networking
 		{
 			return ip.Length != 0 && IPAddress.TryParse(ip, out var value) && value.AddressFamily == AddressFamily.InterNetwork;
 		}
-#endif
 
 		/// <summary>Détermine s'il s'agit d'une adresse IPv6 valide</summary>
 		/// <param name="ip">Chaîne à vérifier</param>
@@ -91,7 +87,6 @@ namespace Doxense.Networking
 			return !string.IsNullOrEmpty(ip) && IPAddress.TryParse(ip, out var value) && value.AddressFamily == AddressFamily.InterNetworkV6;
 		}
 
-#if !NETFRAMEWORK && !NETSTANDARD
 		/// <summary>Détermine s'il s'agit d'une adresse IPv6 valide</summary>
 		/// <param name="ip">Chaîne à vérifier</param>
 		/// <returns>true si c'est une IPv6 valide, false dans tout les autres cas</returns>
@@ -99,7 +94,6 @@ namespace Doxense.Networking
 		{
 			return ip.Length != 0 && IPAddress.TryParse(ip, out var value) && value.AddressFamily == AddressFamily.InterNetworkV6;
 		}
-#endif
 
 		/// <summary>Détermine s'il s'agit d'une adresse IP "any" (0.0.0.0 ou '::')</summary>
 		public static bool IsAny(IPAddress? address)
@@ -427,19 +421,11 @@ namespace Doxense.Networking
 				if (subnet == -1) throw new FormatException($"Invalid IP range '{range}' : subnet is invalid");
 				if (subnet < 1 || subnet > 32) throw new FormatException($"Invalid IP rage '{range}' : subnet (/{subnet}) is out of range");
 
-#if NETFRAMEWORK || NETSTANDARD
-				var tmp = range.Substring(0, p);
-				if (!IPAddress.TryParse(tmp, out var addr))
-				{
-					throw new FormatException($"Invalid IP range '{range}' : network address ({tmp.ToString()}) is invalid");
-				}
-#else
 				var tmp = range.AsSpan(0, p);
 				if (!IPAddress.TryParse(tmp, out var addr))
 				{
 					throw new FormatException($"Invalid IP range '{range}' : network address ({tmp.ToString()}) is invalid");
 				}
-#endif
 
 				// on connait le subnet (/8, /16, /24, ..) et l'adresse
 				// il faut qu'on en déduise l'adresse de début

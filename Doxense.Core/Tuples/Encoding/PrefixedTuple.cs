@@ -80,14 +80,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => m_items[fromIncluded, toExcluded];
 		//REVIEW: should we allow this? this silently drops the prefix from the result...
 
-#if USE_RANGE_API
-
 		public object? this[Index index] => m_items[index];
 
 		public IVarTuple this[Range range] => m_items[range];
 		//REVIEW: should we allow this? this silently drops the prefix from the result...
-
-#endif
 
 		public T Get<T>(int index)
 		{

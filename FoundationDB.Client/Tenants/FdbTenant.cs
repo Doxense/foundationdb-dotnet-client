@@ -176,12 +176,7 @@ namespace FoundationDB.Client
 			if (m_disposed) return;
 
 			// Unregister the transaction. We do not care if it has already been done
-#if NETFRAMEWORK || NETSTANDARD
-			m_transactions.TryRemove(transaction.Id, out _);
-			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
-#else
 			m_transactions.TryRemove(System.Collections.Generic.KeyValuePair.Create(transaction.Id, transaction));
-#endif
 		}
 
 		#endregion

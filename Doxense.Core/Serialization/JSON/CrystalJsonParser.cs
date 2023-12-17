@@ -272,7 +272,7 @@ namespace Doxense.Serialization.Json
 		{
 			// cherche les marqueurs '-' 'T' et ':'
 			// la fin doit etre 'Z' si UTC ou alors '+##:##' ou '-##:##'
-			return value.Length >= 20 && value[4] == '-' && value[7] == '-' && value[10] == 'T' && value[13] == ':' && value[16] == ':' && (value[value.Length - 1] == 'Z' || (value[value.Length - 3] == ':' && (value[value.Length - 6] == '+' || value[value.Length - 6] == '-')));
+			return value.Length >= 20 && value[4] == '-' && value[7] == '-' && value[10] == 'T' && value[13] == ':' && value[16] == ':' && (value[^1] == 'Z' || (value[^3] == ':' && (value[^6] is '+' or '-')));
 		}
 
 		[Pure, ContractAnnotation("value:null => false")]
@@ -306,7 +306,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		internal static bool CouldBeJsonMicrosoftDateTime(string value)
 		{
-			return value.Length >= 9 && value[0] == '/' && value[1] == 'D' && value[2] == 'a' && value[3] == 't' && value[4] == 'e' && value[5] == '(' && value[value.Length - 2] == ')' && value[value.Length - 1] == '/';
+			return value.Length >= 9 && value[0] == '/' && value[1] == 'D' && value[2] == 'a' && value[3] == 't' && value[4] == 'e' && value[5] == '(' && value[^2] == ')' && value[^1] == '/';
 		}
 
 		[Pure, ContractAnnotation("value:null => false")]
@@ -906,9 +906,9 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			if (sb[sb.Length - 1] == CrystalJsonParser.EndOfStream)
+			if (sb[^1] == CrystalJsonParser.EndOfStream)
 			{
-				sb.Length = sb.Length - 1;
+				sb.Length--;
 			}
 
 			throw reader.FailInvalidSyntax("Invalid literal '{0}'", StringBuilderCache.GetStringAndRelease(sb));

@@ -81,8 +81,6 @@ namespace Doxense.Collections.Tuples
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
-#if USE_RANGE_API
-
 		public object? this[Index index]
 		{
 			get
@@ -109,8 +107,6 @@ namespace Doxense.Collections.Tuples
 				return TupleHelpers.Splice(this, range);
 			}
 		}
-
-#endif
 
 		public TItem Get<TItem>(int index)
 		{

@@ -24,7 +24,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 		#region IAsyncTest...
 
-		public string Name { get { return "SamplerTest"; } }
+		public string Name => "SamplerTest";
 
 		private static string FormatSize(long size)
 		{
@@ -57,11 +57,11 @@ namespace FoundationDB.Samples.Benchmarks
 			var numMachines = servers.Select(s => s.Machine).Distinct().Count();
 			var numDCs = servers.Select(s => s.DataCenter).Distinct().Count();
 
-			Console.WriteLine("# > Found " + numNodes + " process(es) on " + numMachines + " machine(s) in " + numDCs + " datacenter(s)");
+			Console.WriteLine($"# > Found {numNodes} process(es) on {numMachines} machine(s) in {numDCs} datacenter(s)");
 			Console.WriteLine("# Reading list of shards...");
 			// dump keyServers
 			var ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue, ct);
-			Console.WriteLine("# > Found " + ranges.Count + " shards:");
+			Console.WriteLine($"# > Found {ranges.Count} shards:");
 
 			// take a sample
 			var rnd = new Random(1234);
@@ -77,8 +77,8 @@ namespace FoundationDB.Samples.Benchmarks
 				ranges.RemoveAt(p);
 			}
 
-			Console.WriteLine("# Sampling " + sz + " out of " + ranges.Count + " shards (" + (100.0 * sz / ranges.Count).ToString("N1") + "%) ...");
-			Console.WriteLine("{0,9}{1,10}{2,10}{3,10} : K+V size distribution", "Count", "Keys", "Values", "Total");
+			Console.WriteLine($"# Sampling {sz} out of {ranges.Count} shards ({(100.0 * sz / ranges.Count):N1}%) ...");
+			Console.WriteLine($"{"Count",9}{"Keys",10}{"Values",10}{"Total",10} : K+V size distribution");
 
 			var rangeOptions = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
 
@@ -101,7 +101,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 						#region Method 1: get_range everything...
 
-						using (var tr = await db.BeginTransactionAsync(ct))
+						using (var tr = db.BeginTransaction(ct))
 						{
 							long keySize = 0;
 							long valueSize = 0;
@@ -112,8 +112,8 @@ namespace FoundationDB.Samples.Benchmarks
 							var endSelector = KeySelector.FirstGreaterOrEqual(range.End);
 							while (true)
 							{
-								FdbRangeChunk data = default(FdbRangeChunk);
-								FdbException error = null;
+								var data = default(FdbRangeChunk);
+								var error = default(FdbException);
 								try
 								{
 									data = await tr.Snapshot.GetRangeAsync(
@@ -154,7 +154,7 @@ namespace FoundationDB.Samples.Benchmarks
 							long totalSize = keySize + valueSize;
 							Interlocked.Add(ref total, totalSize);
 
-							Console.WriteLine("{0,9}{1,10}{2,10}{3,10} : {4}", count.ToString("N0"), FormatSize(keySize), FormatSize(valueSize), FormatSize(totalSize), hh.GetDistribution(begin: 1, end: 10000, fold:2));
+							Console.WriteLine($"{count,9:N0}{FormatSize(keySize),10}{FormatSize(valueSize),10}{FormatSize(totalSize),10} : {hh.GetDistribution(begin: 1, end: 10000, fold:2)}");
 						}
 						#endregion
 
@@ -174,8 +174,8 @@ namespace FoundationDB.Samples.Benchmarks
 			await Task.WhenAll(tasks);
 			sw.Stop();
 
-			Console.WriteLine("> Sampled " + FormatSize(total) + " (" + total.ToString("N0") + " bytes) in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
-			Console.WriteLine("> Estimated total size is " + FormatSize(total * ranges.Count / sz));
+			Console.WriteLine($"> Sampled {FormatSize(total)} ({total:N0} bytes) in {sw.Elapsed.TotalSeconds:N1} sec");
+			Console.WriteLine($"> Estimated total size is {FormatSize(total * ranges.Count / sz)}");
 		}
 
 		#endregion

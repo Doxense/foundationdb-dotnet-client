@@ -90,7 +90,7 @@ namespace Doxense.Memory
 		{
 			var pages = new Slice[this.PageCount];
 			m_chunks?.CopyTo(pages);
-			pages[pages.Length - 1] = m_current.AsSlice(0, m_pos);
+			pages[^1] = m_current.AsSlice(0, m_pos);
 			return pages;
 		}
 

@@ -1023,16 +1023,8 @@ namespace Doxense.Serialization.Json
 
 			if (typeof(T) == typeof(JsonValue))
 			{
-#if NETFRAMEWORK || NETSTANDARD
-				// cannot easily re-cast so add manually :(
-				foreach (var item in items)
-				{
-					Add(((JsonValue?) (object?) item) ?? JsonNull.Null);
-				}
-#else
 				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<T, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
 				return AddRange(json, deepCopy: false);
-#endif
 			}
 
 			var dom = CrystalJsonDomWriter.Default;
