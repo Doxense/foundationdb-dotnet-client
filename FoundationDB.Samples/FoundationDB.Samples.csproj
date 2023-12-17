@@ -8,6 +8,7 @@
 		<RootNamespace>FoundationDB.Samples</RootNamespace>
 		<AssemblyName>FoundationDB.Samples</AssemblyName>
 		<LangVersion>11.0</LangVersion>
+		<Nullable>enable</Nullable>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 	</PropertyGroup>
@@ -36,6 +37,10 @@
 		<WarningLevel>4</WarningLevel>
 		<Prefer32Bit>false</Prefer32Bit>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />

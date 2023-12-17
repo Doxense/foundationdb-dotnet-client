@@ -129,9 +129,10 @@ namespace FoundationDB.Samples.Benchmarks
 				sb.AppendLine();
 				sb.AppendLine("T+" + (now - start).TotalSeconds.ToString("N1") + "s : WS=" + ws.ToString("N0") + " bytes (" + (ws - workingSet).ToString("N0") + "), NM=" + tm.ToString("N0") + " bytes (" + (tm - totalMemory).ToString("N0") + ")");
 				sb.AppendLine("  trans: " + DebugCounters.TransactionHandlesTotal.ToString("N0") + " (" + DebugCounters.TransactionHandles + "), futures: " + DebugCounters.FutureHandlesTotal.ToString("N0") + " (" + DebugCounters.FutureHandles + "), callbacks: " + DebugCounters.CallbackHandlesTotal.ToString("N0") + "(" + DebugCounters.CallbackHandles + ")");
-#if !NETCOREAPP
-				sb.AppendLine("  cpu: " + PerfCounters.ProcessorTime.NextValue().ToString("N1") + "%, private: " + PerfCounters.PrivateBytes.NextValue().ToString("N0") + ", gen0: " + PerfCounters.ClrGen0Collections.NextValue() + ", gen1: " + PerfCounters.ClrGen1Collections.NextValue() + ", gen2: " + PerfCounters.ClrGen2Collections.NextValue());
-#endif
+				if (OperatingSystem.IsWindows())
+				{
+					sb.AppendLine("  cpu: " + PerfCounters.ProcessorTime!.NextValue().ToString("N1") + "%, private: " + PerfCounters.PrivateBytes!.NextValue().ToString("N0") + ", gen0: " + PerfCounters.ClrGen0Collections!.NextValue() + ", gen1: " + PerfCounters.ClrGen1Collections!.NextValue() + ", gen2: " + PerfCounters.ClrGen2Collections!.NextValue());
+				}
 				Console.Write(sb.ToString());
 				workingSet = ws;
 				totalMemory = tm;

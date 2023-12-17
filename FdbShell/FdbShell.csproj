@@ -4,6 +4,7 @@
 		<OutputType>Exe</OutputType>
 		<TargetFrameworks>net8.0;net6.0</TargetFrameworks>
 		<LangVersion>11.0</LangVersion>
+		<Nullable>enable</Nullable>
 		<ProjectGuid>{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}</ProjectGuid>
 		<RestorePackages>true</RestorePackages>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -41,6 +42,10 @@
 
 	<ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
 	</ItemGroup>
 	
 	<ItemGroup>

@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+//#define USE_LOG_FILE
+
 namespace FdbShell
 {
 	using System;
@@ -42,30 +44,11 @@ namespace FdbShell
 
 	public static class Program
 	{
-		private static IFdbDatabase Db;
-
-		internal static bool LogEnabled = false;
+		private static IFdbDatabase? Db;
 
 		internal static FdbPath CurrentDirectoryPath = FdbPath.Root;
 
 		internal static string Description = "?";
-
-		private static StreamWriter GetLogFile(string name)
-		{
-			long localTime = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) - 62135596800000;
-			long utcTime = (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) - 62135596800000;
-
-			string path = name + "_" + utcTime + ".log";
-			var stream = System.IO.File.CreateText(path);
-
-			stream.WriteLine("# File: " + name);
-			stream.WriteLine("# Local Time: " + DateTime.Now.ToString("O") + " (" + localTime + " local) - Universal Time: " + DateTime.UtcNow.ToString("O") + " ( " + utcTime + " UTC)");
-			stream.Flush();
-
-			Console.WriteLine("> using log file " + path);
-
-			return stream;
-		}
 
 		internal static void Comment(TextWriter output, string msg)
 		{
@@ -112,15 +95,13 @@ namespace FdbShell
 
 		public static async Task RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command, CancellationToken cancel)
 		{
-			TextWriter log = null;
 			var db = Db;
-			if (log == null) log = Console.Out;
 
 			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
 			{ 
 				try
 				{
-					await command(db, log, cts.Token).ConfigureAwait(false);
+					await command(db, Console.Out, cts.Token).ConfigureAwait(false);
 				}
 				finally
 				{
@@ -131,15 +112,13 @@ namespace FdbShell
 
 		public static async Task<Maybe<T>> RunAsyncCommand<T>(Func<IFdbDatabase, TextWriter, CancellationToken, Task<T>> command, CancellationToken cancel)
 		{
-			TextWriter log = null;
 			var db = Db;
-			if (log == null) log = Console.Out;
 
 			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
 			{
 				try
 				{
-					return Maybe.Return<T>(await command(db, log, cts.Token).ConfigureAwait(false));
+					return Maybe.Return<T>(await command(db, Console.Out, cts.Token).ConfigureAwait(false));
 				}
 				catch (Exception e)
 				{
@@ -189,12 +168,12 @@ namespace FdbShell
 		{
 			#region Options Parsing...
 
-			string clusterFile = null;
+			string? clusterFile = null;
 			var partition = FdbPath.Root;
 			bool showHelp = false;
 			int timeout = 30;
 			int maxRetries = 10;
-			string execCommand = null;
+			string? execCommand = null;
 
 			var opts = new OptionSet()
 			{
@@ -239,14 +218,14 @@ namespace FdbShell
 				return;
 			}
 
-			string startCommand = null;
+			string? startCommand = null;
 			if (!string.IsNullOrEmpty(execCommand))
 			{
 				startCommand = execCommand;
 			}
 			else if (extra.Count > 0)
 			{ // the remainder of the command line will be the first command to execute
-				startCommand = String.Join(" ", extra);
+				startCommand = string.Join(" ", extra);
 			}
 
 			#endregion
@@ -417,12 +396,6 @@ namespace FdbShell
 							case "":
 							{
 								continue;
-							}
-							case "log":
-							{
-								string prm = PopParam(ref extras);
-								LogCommand(prm, extras, Console.Out);
-								break;
 							}
 
 							case "version":
@@ -754,13 +727,13 @@ namespace FdbShell
 							{
 								StdOut("Memory usage:");
 								StdOut("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
-								//TODO: how do we get these values on Linux/Mac?
-#if !NETCOREAPP
-								StdOut("- Working Set  : " + PerfCounters.WorkingSet.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak.NextValue().ToString("N0") + ")");
-								StdOut("- Virtual Bytes: " + PerfCounters.VirtualBytes.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak.NextValue().ToString("N0") + ")");
-								StdOut("- Private Bytes: " + PerfCounters.PrivateBytes.NextValue().ToString("N0"));
-								StdOut("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps.NextValue().ToString("N0"));
-#endif
+								if (OperatingSystem.IsWindows())
+								{
+									StdOut("- Working Set  : " + PerfCounters.WorkingSet!.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak!.NextValue().ToString("N0") + ")");
+									StdOut("- Virtual Bytes: " + PerfCounters.VirtualBytes!.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak!.NextValue().ToString("N0") + ")");
+									StdOut("- Private Bytes: " + PerfCounters.PrivateBytes!.NextValue().ToString("N0"));
+									StdOut("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps!.NextValue().ToString("N0"));
+								}
 								break;
 							}
 
@@ -901,31 +874,7 @@ namespace FdbShell
 
 		#endregion
 
-		private static void LogCommand(string prm, IVarTuple extras, TextWriter log)
-		{
-			switch (prm.ToLowerInvariant())
-			{
-				case "on":
-				{
-					LogEnabled = true;
-					log.WriteLine("# Logging enabled");
-					break;
-				}
-				case "off":
-				{
-					LogEnabled = false;
-					log.WriteLine("# Logging disabled");
-					break;
-				}
-				default:
-				{
-					log.WriteLine("# Logging is {0}", LogEnabled ? "ON" : "OFF");
-					break;
-				}
-			} 
-		}
-
-		private static async Task VersionCommand(IVarTuple extras, string clusterFile, TextWriter log, CancellationToken cancel)
+		private static async Task VersionCommand(IVarTuple extras, string? clusterFile, TextWriter log, CancellationToken cancel)
 		{
 			log.WriteLine("Using .NET Binding v{0} with API level {1}", new System.Reflection.AssemblyName(typeof(Fdb).Assembly.FullName).Version, Fdb.ApiVersion);
 			var res = await RunAsyncCommand((db, _, ct) => FdbCliCommands.RunFdbCliCommand(null, "-h", clusterFile, log, ct), cancel);

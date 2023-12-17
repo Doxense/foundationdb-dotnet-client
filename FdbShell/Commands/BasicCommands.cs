@@ -1,10 +1,34 @@
-﻿
+﻿#region Copyright (c) 2023 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#endregion
+
 namespace FdbShell
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Diagnostics.Contracts;
 	using System.Globalization;
 	using System.IO;
 	using System.Linq;
@@ -26,7 +50,7 @@ namespace FdbShell
 			ShowCount = 2,
 		}
 
-		public static async Task<IFdbDirectory> TryOpenCurrentDirectoryAsync(IFdbReadOnlyTransaction tr, FdbPath path)
+		public static async Task<IFdbDirectory?> TryOpenCurrentDirectoryAsync(IFdbReadOnlyTransaction tr, FdbPath path)
 		{
 			var location = new FdbDirectorySubspaceLocation(path);
 			if (location.Path.Count != 0)
@@ -39,9 +63,9 @@ namespace FdbShell
 			}
 		}
 
-		public static async Task Dir(FdbPath path, IVarTuple extras, DirectoryBrowseOptions options, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		public static async Task Dir(FdbPath path, IVarTuple extras, DirectoryBrowseOptions options, IFdbDatabase db, TextWriter? log, CancellationToken ct)
 		{
-			if (log == null) log = Console.Out;
+			log ??= Console.Out;
 
 			Program.Comment(log, $"# Listing {path}:");
 
@@ -108,9 +132,9 @@ namespace FdbShell
 		}
 
 		/// <summary>Creates a new directory</summary>
-		public static async Task CreateDirectory(FdbPath path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		public static async Task CreateDirectory(FdbPath path, IVarTuple extras, IFdbDatabase db, TextWriter? log, CancellationToken ct)
 		{
-			if (log == null) log = Console.Out;
+			log ??= Console.Out;
 
 			string layer = extras.Count > 0 ? extras.Get<string>(0).Trim() : string.Empty;
 
@@ -151,9 +175,9 @@ namespace FdbShell
 		}
 
 		/// <summary>Remove a directory and all its data</summary>
-		public static async Task RemoveDirectory(FdbPath path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		public static async Task RemoveDirectory(FdbPath path, IVarTuple extras, IFdbDatabase db, TextWriter? log, CancellationToken ct)
 		{
-			if (log == null) log = Console.Out;
+			log ??= Console.Out;
 
 			// "-r|--recursive" is used to allow removing an entire sub-tree
 			string[] args = extras.ToArray<string>();
@@ -1061,7 +1085,7 @@ namespace FdbShell
 
 						#region Method 1: get_range everything...
 
-						using (var tr = await db.BeginTransactionAsync(ct))
+						using (var tr = db.BeginTransaction(ct))
 						{
 							long keySize = 0;
 							long valueSize = 0;

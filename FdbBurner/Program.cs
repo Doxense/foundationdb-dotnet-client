@@ -87,7 +87,7 @@ namespace FdbBurner
 				rnd = new Random(Rnd.Next());
 			}
 
-			using (var tr = await db.BeginTransactionAsync(ct))
+			using (var tr = db.BeginTransaction(ct))
 			{
 				while (!ct.IsCancellationRequested)
 				{

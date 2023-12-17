@@ -22,7 +22,8 @@ namespace FoundationDB.Samples
 
 	public class Program
 	{
-		private static IFdbDatabase Db;
+
+		private static IFdbDatabase? Db;
 
 		private static bool LogEnabled;
 
@@ -43,18 +44,25 @@ namespace FoundationDB.Samples
 			return stream;
 		}
 
-		static IFdbDatabase GetLoggedDatabase(IFdbDatabase db, StreamWriter stream, bool autoFlush = false)
+		static IFdbDatabase GetLoggedDatabase(IFdbDatabase db, StreamWriter? stream, bool autoFlush = false)
 		{
 			if (stream != null)
 			{
-				db.SetDefaultLogHandler(log => { stream.WriteLine(log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); });
+				db.SetDefaultLogHandler(log =>
+				{
+					stream.WriteLine(log.GetTimingsReport(true));
+					if (autoFlush)
+					{
+						stream.Flush();
+					}
+				});
 			}
 			return db;
 		}
 
 		public static void RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command)
 		{
-			TextWriter log = null;
+			TextWriter? log = null;
 			var db = Db;
 			if (log == null) log = Console.Out;
 
@@ -127,16 +135,16 @@ namespace FoundationDB.Samples
 		{
 			bool stop = false;
 
-			string clusterFile = null;
+			string? clusterFile = null;
 			var partition = FdbPath.Root;
 
 			int pStart = 0;
-			string startCommand = null;
+			string? startCommand = null;
 			while (pStart < args.Length)
 			{
-				if (args[pStart].StartsWith("-"))
+				if (args[pStart].StartsWith('-'))
 				{
-					switch (args[pStart].Substring(1))
+					switch (args[pStart][1..])
 					{
 						case "C": case "c":
 						{
@@ -166,7 +174,7 @@ namespace FoundationDB.Samples
 
 			if (args.Length > 0 && pStart < args.Length)
 			{ // the remainder of the command line will be the first command to execute
-				startCommand = String.Join(" ", args, pStart, args.Length - pStart);
+				startCommand = string.Join(" ", args, pStart, args.Length - pStart);
 			}
 
 			var go = new CancellationTokenSource();
@@ -204,12 +212,12 @@ namespace FoundationDB.Samples
 					while (!stop)
 					{
 						Console.Write("> ");
-						string s = startCommand != null ? startCommand : Console.ReadLine();
+						var s = startCommand ?? Console.ReadLine();
 						startCommand = null;
 
 						var tokens = s.Trim().Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-						string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
-						string prm = tokens.Length > 1 ? tokens[1] : String.Empty;
+						string cmd = tokens.Length > 0 ? tokens[0] : string.Empty;
+						string prm = tokens.Length > 1 ? tokens[1] : string.Empty;
 
 						var trimmedCommand = cmd.Trim().ToLowerInvariant();
 						switch (trimmedCommand)
@@ -348,28 +356,30 @@ namespace FoundationDB.Samples
 								GC.Collect();
 								Console.WriteLine(" Done");
 								long after = GC.GetTotalMemory(false);
-								Console.WriteLine("- before = " + before.ToString("N0"));
-								Console.WriteLine("- after  = " + after.ToString("N0"));
-								Console.WriteLine("- delta  = " + (before - after).ToString("N0"));
+								Console.WriteLine($"- before = {before:N0}");
+								Console.WriteLine($"- after  = {after:N0}");
+								Console.WriteLine($"- delta  = {(before - after):N0}");
 								break;
 							}
 
 							case "mem":
 							{
 								Console.WriteLine("Memory usage:");
-								Console.WriteLine("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
-#if !NETCOREAPP
-								Console.WriteLine("- Working Set  : " + PerfCounters.WorkingSet.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak.NextValue().ToString("N0") + ")");
-								Console.WriteLine("- Virtual Bytes: " + PerfCounters.VirtualBytes.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak.NextValue().ToString("N0") + ")");
-								Console.WriteLine("- Private Bytes: " + PerfCounters.PrivateBytes.NextValue().ToString("N0"));
-								Console.WriteLine("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps.NextValue().ToString("N0"));
-#endif
+								Console.WriteLine($"- Managed Mem  : {GC.GetTotalMemory(false):N0}");
+								if (OperatingSystem.IsWindows())
+								{
+									Console.WriteLine($"- Working Set  : {PerfCounters.WorkingSet!.NextValue():N0} (peak {PerfCounters.WorkingSetPeak!.NextValue():N0})");
+									Console.WriteLine($"- Virtual Bytes: {PerfCounters.VirtualBytes!.NextValue():N0} (peak {PerfCounters.VirtualBytesPeak!.NextValue():N0})");
+									Console.WriteLine($"- Private Bytes: {PerfCounters.PrivateBytes!.NextValue():N0}");
+									Console.WriteLine($"- BytesInAlHeap: {PerfCounters.ClrBytesInAllHeaps!.NextValue():N0}");
+								}
+
 								break;
 							}
 
 							default:
 							{
-								Console.WriteLine(string.Format("Unknown command : '{0}'", trimmedCommand));
+								Console.WriteLine($"Unknown command : '{trimmedCommand}'");
 								break;
 							}
 						}
