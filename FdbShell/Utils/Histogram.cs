@@ -261,7 +261,7 @@ namespace FdbShell
 					return r;
 				}
 			}
-			return array.Length == 0 ? 0 : array[array.Length - 1].Deviation;
+			return array.Length == 0 ? 0 : array[^1].Deviation;
 		}
 
 		/// <summary>Retourne la valeur moyenne</summary>

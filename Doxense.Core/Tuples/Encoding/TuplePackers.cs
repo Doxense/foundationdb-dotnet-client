@@ -2434,7 +2434,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					// slide to the left
 					tail.CopyTo(tokens);
 					// append last
-					tokens[tokens.Length - 1] = current;
+					tokens[^1] = current;
 				}
 				++n;
 			}

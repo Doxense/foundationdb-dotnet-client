@@ -71,8 +71,6 @@ namespace Doxense.Collections.Tuples
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
-#if USE_RANGE_API
-
 		object? IVarTuple.this[Index index] => index.GetOffset(1) switch
 		{
 			0 => this.Item1,
@@ -87,8 +85,6 @@ namespace Doxense.Collections.Tuples
 				return count == 0 ? STuple.Empty : this;
 			}
 		}
-
-#endif
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>

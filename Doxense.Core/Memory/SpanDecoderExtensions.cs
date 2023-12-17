@@ -319,14 +319,14 @@ namespace System
 			// look for UTF-8 BOM
 			if (HasUtf8Bom(buffer))
 			{ // this is supposed to be an UTF-8 string
-				return EscapeString(new StringBuilder(buffer.Length).Append('\''), buffer.Slice(3), Slice.Utf8NoBomEncoding).Append('\'').ToString();
+				return EscapeString(new StringBuilder(buffer.Length).Append('\''), buffer[3..], Slice.Utf8NoBomEncoding).Append('\'').ToString();
 			}
 
 			if (buffer.Length >= 2)
 			{
 				// look for JSON objets or arrays
-				if ((buffer[0] == '{' && buffer[buffer.Length - 1] == '}') 
-				 || (buffer[0] == '[' && buffer[buffer.Length - 1] == ']'))
+				if ((buffer[0] == '{' && buffer[^1] == '}') 
+				 || (buffer[0] == '[' && buffer[^1] == ']'))
 				{
 					try
 					{
@@ -337,9 +337,9 @@ namespace System
 						else
 						{
 							return
-								EscapeString(new StringBuilder(buffer.Length + 16), buffer.Slice(0, maxLen), Slice.Utf8NoBomEncoding)
+								EscapeString(new StringBuilder(buffer.Length + 16), buffer[..maxLen], Slice.Utf8NoBomEncoding)
 									.Append("[\u2026]")
-									.Append(buffer[buffer.Length - 1])
+									.Append(buffer[^1])
 									.ToString();
 						}
 					}
@@ -380,7 +380,7 @@ namespace System
 				}
 				else
 				{
-					return "'" + Encoding.ASCII.GetString(buffer.Slice(0, maxLen)) + "[\u2026]'"; // Unicode for '...'
+					return "'" + Encoding.ASCII.GetString(buffer[..maxLen]) + "[\u2026]'"; // Unicode for '...'
 				}
 			}
 			// some escaping required
@@ -390,7 +390,7 @@ namespace System
 			}
 			else
 			{
-				return EscapeString(new StringBuilder(buffer.Length + 2).Append('\''), buffer.Slice(0, maxLen), Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
+				return EscapeString(new StringBuilder(buffer.Length + 2).Append('\''), buffer[..maxLen], Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
 			}
 		}
 

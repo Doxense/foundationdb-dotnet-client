@@ -442,16 +442,17 @@ namespace System
 			return checked(this.Offset + p);
 		}
 
-#if USE_RANGE_API
-
-		private int MapIndexToOffset(Index index)
+		/// <summary>Map an offset in the slice into the absolute offset in the buffer</summary>
+		/// <param name="index">Relative offset (negative values mean from the end)</param>
+		/// <returns>Absolute offset in the buffer</returns>
+		/// <exception cref="IndexOutOfRangeException">If the index is outside the slice</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private int MapToOffset(Index index)
 		{
 			int p = index.GetOffset(this.Count);
 			if ((uint) p >= (uint) this.Count) throw UnsafeHelpers.Errors.IndexOutOfBound();
 			return checked(this.Offset + p);
 		}
-
-#endif
 
 		/// <summary>Normalize negative index values into offset from the start</summary>
 		/// <param name="index">Relative offset (negative values mean from the end)</param>
@@ -481,7 +482,7 @@ namespace System
 		/// <summary>Returns a substring of the current slice that fits withing the specified index range</summary>
 		/// <param name="start">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
 		/// <param name="end">The end position (excluded) of the substring. Positive values means from the start, negative values means from the end</param>
-		/// <returns>Subslice</returns>
+		/// <returns>Slice that only contain the specified range, but shares the same underlying buffer.</returns>
 		public Slice this[int start, int end]
 		{
 			get
@@ -500,13 +501,23 @@ namespace System
 			}
 		}
 
-#if USE_RANGE_API
 
-		public byte this[Index index] => this.Array[MapIndexToOffset(index)];
+		/// <summary>Returns the value of the byte at the specified index in the slice</summary>
+		/// <param name="index">Offset of the byte</param>
+		public byte this[Index index]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Array[MapToOffset(index)];
+		}
 
-		public Slice this[Range range] => Substring(range);
-
-#endif
+		/// <summary>Returns a substring of the current slice that fits withing the specified index range</summary>
+		/// <param name="range">The begin and end position of the substring.</param>
+		/// <returns>Slice that only contain the specified range, but shares the same underlying buffer.</returns>
+		public Slice this[Range range]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Substring(range);
+		}
 
 		/// <summary>
 		/// Returns a reference to the first byte in the slice.
@@ -704,8 +715,6 @@ namespace System
 			return new Slice(this.Array, this.Offset + offset, count);
 		}
 
-#if USE_RANGE_API
-
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position and has a specified length.</summary>
 		/// <param name="range">The range to return</param>
 		/// <returns>A slice that is equivalent to the substring that starts from <paramref name="range"/>.Start and ends before <paramref name="range"/>.End in this instance, or Slice.Empty if range is empty.</returns>
@@ -723,8 +732,6 @@ namespace System
 			if (count == 0) return Empty;
 			return new Slice(this.Array, this.Offset + offset, count);
 		}
-
-#endif
 
 		/// <summary>Truncate the slice if its size exceeds the specified length.</summary>
 		/// <param name="maxSize">Maximum size.</param>
@@ -2858,8 +2865,6 @@ namespace System
 			return new Slice(bytes, (int) offset, (int) count);
 		}
 
-#if USE_RANGE_API
-
 		/// <summary>Return a slice from the sub-section of the byte array</summary>
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="range">Range of the array to return</param>
@@ -2887,8 +2892,6 @@ namespace System
 			}
 		}
 
-#endif
-
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self)
 		{
@@ -2906,8 +2909,6 @@ namespace System
 			return AsSlice(self).Substring(offset, count);
 		}
 
-#if USE_RANGE_API
-
 		/// <summary>Return a slice from the sub-section of an array segment</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self, Range range)
@@ -2915,35 +2916,33 @@ namespace System
 			return AsSlice(self).Substring(range);
 		}
 
-#endif
-
+		/// <summary>Return a <see cref="SliceReader"/> that will expose the content of a buffer</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self)
 		{
 			return new SliceReader(self);
 		}
 
+		/// <summary>Return a <see cref="SliceReader"/> that will expose the start of a buffer</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, int count)
 		{
 			return new SliceReader(self, 0, count);
 		}
 
+		/// <summary>Return a <see cref="SliceReader"/> that will expose a sub-section of a buffer</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, int offset, int count)
 		{
 			return new SliceReader(self, offset, count);
 		}
 
-#if USE_RANGE_API
-
+		/// <summary>Return a <see cref="SliceReader"/> that will expose a sub-section of a buffer</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, Range range)
 		{
 			return AsSlice(self, range).ToSliceReader();
 		}
-
-#endif
 
 		/// <summary>Return a stream that can read from the current slice.</summary>
 		[DebuggerNonUserCode]

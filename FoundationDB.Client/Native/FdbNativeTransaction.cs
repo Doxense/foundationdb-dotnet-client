@@ -255,7 +255,7 @@ namespace FoundationDB.Client.Native
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
 			first = result.Length > 0 ? result[0].Key : default;
-			last = result.Length > 0 ? result[result.Length - 1].Key : default;
+			last = result.Length > 0 ? result[^1].Key : default;
 			return result;
 		}
 
@@ -272,7 +272,7 @@ namespace FoundationDB.Client.Native
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
 			first = result.Length > 0 ? result[0].Key : default;
-			last = result.Length > 0 ? result[result.Length - 1].Key : default;
+			last = result.Length > 0 ? result[^1].Key : default;
 			return result;
 		}
 

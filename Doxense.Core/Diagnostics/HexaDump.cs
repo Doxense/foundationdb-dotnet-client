@@ -352,15 +352,12 @@ namespace Doxense.Diagnostics
 				}
 				int[] cpy = counters.Where(c => c > 0).ToArray();
 				Array.Sort(cpy);
-				int max = cpy[cpy.Length - 1];
+				int max = cpy[^1];
 				int half = cpy.Length >> 1;
 				int med = cpy[half];
 				if (cpy.Length % 2 == 1)
 				{
-					if (cpy.Length == 1)
-						med = cpy[0];
-					else
-						med = (med + cpy[half+1]) / 2;
+					med = cpy.Length == 1 ? cpy[0] : (med + cpy[half + 1]) / 2;
 				}
 
 				foreach (var c in counters)

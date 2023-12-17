@@ -61,8 +61,6 @@ namespace Doxense.Collections.Tuples
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
 		IVarTuple IVarTuple.this[int? from, int? to] => this;
 
-#if USE_RANGE_API
-
 		object IVarTuple.this[Index index] => TupleHelpers.FailIndexOutOfRange<object>(index, 0);
 
 		IVarTuple IVarTuple.this[Range range]
@@ -73,8 +71,6 @@ namespace Doxense.Collections.Tuples
 				return this;
 			}
 		}
-
-#endif
 
 		TItem IVarTuple.Get<TItem>(int index)
 		{

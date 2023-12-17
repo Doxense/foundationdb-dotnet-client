@@ -82,8 +82,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-#if USE_RANGE_API
-
 		public object? this[Index index] => TuplePackers.DeserializeBoxed(m_slices.Span[index.GetOffset(m_slices.Length)]);
 
 		public IVarTuple this[Range range]
@@ -97,8 +95,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				return new SlicedTuple(m_slices.Slice(offset, count));
 			}
 		}
-
-#endif
 
 		public T Get<T>(int index)
 		{
@@ -119,16 +115,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return slices.Span[TupleHelpers.MapIndex(index, slices.Length)];
 		}
 
-#if USE_RANGE_API
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice GetSlice(Index index)
 		{
 			var slices = m_slices;
 			return slices.Span[index.GetOffset(slices.Length)];
 		}
-
-#endif
 
 		IVarTuple IVarTuple.Append<T>(T value)
 		{

@@ -85,22 +85,11 @@ namespace FoundationDB.Client
 		/// <summary>Return the segment at the specified index (0-based)</summary>
 		public FdbPathSegment this[int index] => this.Segments.Span[index];
 
-#if USE_RANGE_API
-
 		/// <summary>Return the segment at the specified index</summary>
-		public FdbPathSegment this[Index index]
-		{
-			get
-			{
-				var path = this.Segments.Span;
-				return path[index.GetOffset(path.Length)];
-			}
-		}
+		public FdbPathSegment this[Index index] => this.Segments.Span[index];
 
 		/// <summary>Return a sub-section of the current path</summary>
 		public FdbPath this[Range range] => new(this.Segments[range], this.IsAbsolute && range.GetOffsetAndLength(this.Count).Offset == 0);
-
-#endif
 
 		/// <summary>Return the name of the last segment of this path</summary>
 		/// <example><see cref="Relative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
@@ -111,7 +100,7 @@ namespace FoundationDB.Client
 			get
 			{
 				var path = this.Segments.Span;
-				return path.Length != 0 ? path[path.Length - 1].Name : string.Empty;
+				return path.Length != 0 ? path[^1].Name : string.Empty;
 			}
 		}
 
@@ -124,7 +113,7 @@ namespace FoundationDB.Client
 			get
 			{
 				var path = this.Segments.Span;
-				return path.Length != 0 ? path[path.Length - 1].LayerId
+				return path.Length != 0 ? path[^1].LayerId
 				       : this.IsAbsolute ? FdbDirectoryPartition.LayerId
 				       : string.Empty;
 			}
@@ -140,11 +129,11 @@ namespace FoundationDB.Client
 
 			var path = this.Segments.Span;
 			if (path.Length == 0) throw new InvalidOperationException("Cannot change the layer of the empty path.");
-			var tail = path[path.Length - 1];
+			var tail = path[^1];
 			if (tail.LayerId == layerId) return this;
 
 			var tmp = this.Segments.ToArray();
-			tmp[tmp.Length - 1] = new FdbPathSegment(tail.Name, layerId);
+			tmp[^1] = new FdbPathSegment(tail.Name, layerId);
 			return new FdbPath(tmp, this.IsAbsolute);
 		}
 
@@ -200,11 +189,7 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-#if USE_RANGE_API
 			relative = new FdbPath(this.Segments[parent.Count..], absolute: false);
-#else
-			relative = new FdbPath(this.Segments.Slice(parent.Count), absolute: false);
-#endif
 			return true;
 		}
 
@@ -220,7 +205,7 @@ namespace FoundationDB.Client
 				parent = default;
 				return false;
 			}
-			parent = new FdbPath(path.Slice(0, path.Length - 1), this.IsAbsolute);
+			parent = new FdbPath(path[..^1], this.IsAbsolute);
 			return true;
 		}
 
@@ -765,7 +750,7 @@ namespace FoundationDB.Client
 			{ // add last segment
 				segments.Add(FdbPathSegment.Parse(path.Slice(start, pos - start)));
 			}
-			else if (segments.Count > 0 && path[path.Length - 1] == '/')
+			else if (segments.Count > 0 && path[^1] == '/')
 			{ // extra '/' at the end !
 				result = default;
 				error = withException ? new FormatException("Invalid directory path: last segment cannot be empty.") : null;
@@ -794,7 +779,7 @@ namespace FoundationDB.Client
 				case 0: return this.IsAbsolute ? -1 : 0;
 				case 1: return HashCodes.Combine(this.IsAbsolute ? -1 : 1, segments[0].GetHashCode());
 				case 2: return HashCodes.Combine(this.IsAbsolute ? -2 : 2, segments[0].GetHashCode(), segments[1].GetHashCode());
-				default: return HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0].GetHashCode(), segments[segments.Length >> 1].GetHashCode(), segments[segments.Length - 1].GetHashCode());
+				default: return HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0].GetHashCode(), segments[segments.Length >> 1].GetHashCode(), segments[^1].GetHashCode());
 			}
 		}
 

@@ -573,7 +573,7 @@ namespace Doxense.Memory
 
 			// unit detection
 
-			char last = literal[literal.Length - 1];
+			char last = literal[^1];
 
 			if (char.IsDigit(last))
 			{ // probably bytes
@@ -582,10 +582,10 @@ namespace Doxense.Memory
 			}
 			else if (last == 'B')
 			{
-				if (literal.Length > 3 && literal[literal.Length - 2] == 'i')
+				if (literal.Length > 3 && literal[^2] == 'i')
 				{ // ends with "iB", could be KiB, MiB, ...
 
-					char u = literal[literal.Length - 3];
+					char u = literal[^3];
 
 					if (u == 'K')
 					{ // "KiB" means 2^10 bytes
@@ -619,7 +619,7 @@ namespace Doxense.Memory
 				}
 				else if (literal.Length > 2)
 				{ // ends with 'B' (but not 'iB'), could be "KB", "MB", "GB", ...
-					var u = literal[literal.Length - 2];
+					var u = literal[^2];
 					if (u == 'K')
 					{ // "KB" means 10^3 bytes
 						offset = 2;

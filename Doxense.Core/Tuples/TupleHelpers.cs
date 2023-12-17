@@ -75,8 +75,6 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-#if USE_RANGE_API
-
 		/// <summary>Default (non-optimized) implementation of ITuple.this[Range]</summary>
 		/// <param name="tuple">Tuple to slice</param>
 		/// <param name="range">Range to select</param>
@@ -93,9 +91,13 @@ namespace Doxense.Collections.Tuples
 			switch (len)
 			{
 				case 1:
+				{
 					return new ListTuple<object?>(new[] { tuple[start] });
+				}
 				case 2:
+				{
 					return new ListTuple<object?>(new[] { tuple[start], tuple[start + 1] });
+				}
 				default:
 				{
 					var items = new object?[len];
@@ -109,8 +111,6 @@ namespace Doxense.Collections.Tuples
 				}
 			}
 		}
-
-#endif
 
 		/// <summary>Default (non-optimized) implementation for ITuple.StartsWith()</summary>
 		/// <param name="a">Larger tuple</param>
@@ -182,8 +182,6 @@ namespace Doxense.Collections.Tuples
 			return offset;
 		}
 
-#if USE_RANGE_API
-
 		/// <summary>Maps a relative index into an absolute index</summary>
 		/// <param name="index">Relative index in the tuple (from the end if negative)</param>
 		/// <param name="count">Size of the tuple</param>
@@ -196,8 +194,6 @@ namespace Doxense.Collections.Tuples
 			if (offset < 0 || offset >= count) return FailIndexOutOfRange<int>(index, count);
 			return offset;
 		}
-
-#endif
 
 		/// <summary>Maps a relative index into an absolute index</summary>
 		/// <param name="index">Relative index in the tuple (from the end if negative)</param>
@@ -216,15 +212,11 @@ namespace Doxense.Collections.Tuples
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
 
-#if USE_RANGE_API
-
 		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static T FailIndexOutOfRange<T>(Index index, int count)
 		{
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
-
-#endif
 
 		public static bool Equals(IVarTuple? left, object? other, IEqualityComparer comparer)
 		{
@@ -261,13 +253,13 @@ namespace Doxense.Collections.Tuples
 
 			if (tuple == null)
 			{
-				return comparer.GetHashCode(null);
+				return comparer.GetHashCode(null!);
 			}
 
 			int h = 0;
 			foreach (var item in tuple)
 			{
-				h = HashCodes.Combine(h, comparer.GetHashCode(item));
+				h = HashCodes.Combine(h, comparer.GetHashCode(item!));
 			}
 			return h;
 		}

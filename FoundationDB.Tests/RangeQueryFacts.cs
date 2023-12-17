@@ -1288,11 +1288,7 @@ namespace FoundationDB.Client.Tests
 
 					var query = tr.Except(
 						new[] { items.ToRange(), processed.ToRange() },
-#if USE_RANGE_API
 						(kv) => TuPack.Unpack(kv.Key)[^2..], // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
-#else
-						(kv) => TuPack.Unpack(kv.Key)[-2, null], // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
-#endif
 						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
 

@@ -812,7 +812,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			sum = N;
 
 			// step4: fudge the tail
-			r = pk[pk.Length - 1];
+			r = pk[^1];
 			double delta = 1;
 			for (int i = pk.Length - 2; i >= 0; i--)
 			{

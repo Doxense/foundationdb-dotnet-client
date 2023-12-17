@@ -3689,7 +3689,7 @@ namespace FoundationDB.Client.Tests
 					// looking at the implementation, it guarantess that the first and last "split points" will be the bounds of the range repeated (even if the keys do not exist)
 					Assert.That(keys, Has.Length.GreaterThan(2), "We expect at least 1 split point between the bounds of the range!");
 					Assert.That(keys[0], Is.EqualTo(begin), "First key should be the start of the range");
-					Assert.That(keys[keys.Length - 1], Is.EqualTo(end), "Last key should be the end of the range");
+					Assert.That(keys[^1], Is.EqualTo(end), "Last key should be the end of the range");
 
 					// all keys should be in ascending order
 					for (int i = 1; i < keys.Length; i++)

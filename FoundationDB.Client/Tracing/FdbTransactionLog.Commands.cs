@@ -360,7 +360,7 @@ namespace FoundationDB.Filters.Logging
 				}
 
 				var s = base.Resolve(key.Substring(prefix.Count));
-				if (s != null && s.Length >= 3 && s[0] == '(' && s[s.Length - 1] == ')')
+				if (s != null && s.Length >= 3 && s[0] == '(' && s[^1] == ')')
 				{ // that was a tuple
 					return string.Concat("([", path, "], ", s.Substring(1));
 				}
@@ -766,7 +766,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				string s = string.Concat("[", this.Keys.Length.ToString(), "] {");
 				if (this.Keys.Length > 0) s += resolver.Resolve(this.Keys[0]);
-				if (this.Keys.Length > 1) s += " ... " + resolver.Resolve(this.Keys[this.Keys.Length - 1]);
+				if (this.Keys.Length > 1) s += " ... " + resolver.Resolve(this.Keys[^1]);
 				return s + " }";
 			}
 
@@ -777,7 +777,7 @@ namespace FoundationDB.Filters.Logging
 					0 => "<empty>",
 					1 => $"[1] {{ {res[0]:P} }}",
 					2 => $"[2] {{ {res[0]:P}, {res[1]:P} }}",
-					_ => $"[{res.Length:N0}] {{ {res[0]:P}, ..., {res[res.Length - 1]:P} }}"
+					_ => $"[{res.Length:N0}] {{ {res[0]:P}, ..., {res[^1]:P} }}"
 				};
 			}
 
@@ -823,7 +823,7 @@ namespace FoundationDB.Filters.Logging
 				string s = string.Concat("[", this.Selectors.Length.ToString(), "] {");
 				//TODO: use resolver!
 				if (this.Selectors.Length > 0) s += this.Selectors[0].ToString();
-				if (this.Selectors.Length > 1) s += " ... " + this.Selectors[this.Selectors.Length - 1].ToString();
+				if (this.Selectors.Length > 1) s += " ... " + this.Selectors[^1].ToString();
 				return s + " }";
 			}
 
@@ -834,7 +834,7 @@ namespace FoundationDB.Filters.Logging
 					0 => "<empty>",
 					1 => $"[1] {{ {resolver.Resolve(res[0])} }}",
 					2 => $"[2] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])} }}",
-					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[res.Length - 1])} }}"
+					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[^1])} }}"
 				};
 			}
 
@@ -1013,7 +1013,7 @@ namespace FoundationDB.Filters.Logging
 					case 0: return "<empty>";
 					case 1: return $"[1] {{ {value[0]} }}";
 					case 2: return $"[2] {{ {value[0]}, {value[1]} }}";
-					default: return $"[{value.Length}] {{ {value[0]}, ..., {value[value.Length - 1]} }}";
+					default: return $"[{value.Length}] {{ {value[0]}, ..., {value[^1]} }}";
 				}
 			}
 
@@ -1050,7 +1050,7 @@ namespace FoundationDB.Filters.Logging
 					0 => "[0] { }",
 					1 => $"[1] {{ {resolver.Resolve(res[0])} }}",
 					2 => $"[2] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])} }}",
-					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[res.Length - 1])} }}"
+					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[^1])} }}"
 				};
 			}
 
