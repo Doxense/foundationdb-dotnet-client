@@ -606,7 +606,7 @@ namespace Doxense.Testing
 
 					if (!task.IsCompleted)
 					{
-						Assert.Fail("Task did not complete in time ({0})", task.Status);
+						Assert.Fail($"Task did not complete in time ({task.Status})");
 					}
 				}
 
@@ -1341,6 +1341,8 @@ namespace Doxense.Testing
 
 		#region Simple Test Runners...
 
+#if DEPRECATED // would need to be rewritten for NUnit 4. Do we still use this??
+
 		// code permettant d'exécuter un test NUnit directement depuis un void Main(), sans devoir passer par un Test Runner externe
 
 		private static void WriteToConsole(TextWriter writer, string msg, ConsoleColor? color = null)
@@ -1534,6 +1536,8 @@ namespace Doxense.Testing
 			public void SendMessage(TestMessage message)
 			{ }
 		}
+
+#endif
 
 		#endregion
 

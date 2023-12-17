@@ -41,7 +41,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="NUnit" Version="3.14.0" />
+		<PackageReference Include="NUnit" Version="4.0.1" />
 		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
 		<PackageReference Include="protobuf-net" Version="3.2.30" />
 	</ItemGroup>

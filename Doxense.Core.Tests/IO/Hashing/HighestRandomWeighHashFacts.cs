@@ -198,12 +198,12 @@ namespace Doxense.IO.Hashing.Tests
 
 				if (b1 != "MARCELUS")
 				{ // the key should not change bucket!
-					if (b2 != b1) Assert.That(b2, Is.EqualTo(b1), "The bucket for key {0} was changed from {1} to {2} even though it should not have been affected!", keys1[i].Key, b1, b2);
+					if (b2 != b1) Assert.That(b2, Is.EqualTo(b1), $"The bucket for key {keys1[i].Key} was changed from {b1} to {b2} even though it should not have been affected!");
 				}
 				else
 				{ // the key should be remaped to someone else!
-					if (b2 == "MARCELUS") Assert.That(b2, Is.Not.EqualTo("MARCELUS"), "The bucket for key {0} should have been reassigned, but is still equal to {1} !", keys1[i].Key, b2);
-					gained[b2] = (gained.TryGetValue(b2, out int x) ? x : 0) + 1;
+					if (b2 == "MARCELUS") Assert.That(b2, Is.Not.EqualTo("MARCELUS"), $"The bucket for key {keys1[i].Key} should have been reassigned, but is still equal to {b2} !");
+					gained[b2] = (gained.GetValueOrDefault(b2, 0)) + 1;
 				}
 			}
 			Log($"Found {changed:N0} keys out of {KEYS:N0} that have been reassigned (1 in {1.0*KEYS/changed:F3})");
@@ -250,11 +250,11 @@ namespace Doxense.IO.Hashing.Tests
 
 				if (b2 == "ROBERTA")
 				{
-					stolen[b1] = (stolen.TryGetValue(b1, out int x) ? x : 0) + 1;
+					stolen[b1] = (stolen.GetValueOrDefault(b1, 0)) + 1;
 				}
 				else
 				{ // the key should not change assignment
-					if (b1 != b2) Assert.That(b2, Is.EqualTo(b1), "The bucket for key {0} should not have been reassigned, but has changed from {1} to {2} !", keys1[i].Key, b1, b2);
+					if (b1 != b2) Assert.That(b2, Is.EqualTo(b1), $"The bucket for key {keys1[i].Key} should not have been reassigned, but has changed from {b1} to {b2} !");
 				}
 			}
 			Log($"Found {changed:N0} keys out of {KEYS:N0} that have been reassigned (1 in {1.0*KEYS/changed:F3})");

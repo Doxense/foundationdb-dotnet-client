@@ -50,7 +50,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 		private delegate void TestHandler<in T>(ref SliceWriter writer, T value);
 
-		private static void PerformWriterTest<T>(TestHandler<T> action, [AllowNull] T value, string expectedResult, string? message = null)
+		private static void PerformWriterTest<T>(TestHandler<T?> action, T? value, string expectedResult, string? message = null)
 		{
 			var writer = default(SliceWriter);
 			action(ref writer, value);
@@ -58,10 +58,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(
 				writer.ToSlice().ToHexaString(' '),
 				Is.EqualTo(expectedResult),
-				"Value {0} ({1}) was not properly packed. {2}",
-				value == null ? "<null>" : value is string s ? Clean(s) : value.ToString(),
-				value == null ? "null" : value.GetType().Name,
-				message
+				$"Value {(value == null ? "<null>" : value is string s ? Clean(s) : value.ToString())} ({(value == null ? "null" : value.GetType().Name)}) was not properly packed. {message}"
 			);
 		}
 
@@ -79,10 +76,10 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_WriteBytes()
 		{
 			{
-				static void Test(ref SliceWriter writer, byte[] value) => writer.WriteBytes(value);
+				static void Test(ref SliceWriter writer, byte[]? value) => writer.WriteBytes(value);
 
-				PerformWriterTest((TestHandler<byte[]>) Test, null, "");
-				PerformWriterTest(Test, new byte[0], "");
+				PerformWriterTest(Test, default(byte[]), "");
+				PerformWriterTest(Test, Array.Empty<byte>(), "");
 				PerformWriterTest(Test, new byte[] {66}, "42");
 				PerformWriterTest(Test, new byte[] {65, 66, 67}, "41 42 43");
 			}

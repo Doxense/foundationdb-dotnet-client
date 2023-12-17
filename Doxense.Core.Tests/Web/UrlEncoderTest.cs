@@ -81,7 +81,9 @@ namespace Doxense.Web.Tests
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.Unicode), Is.EqualTo("%e9%00"), "UTF-16");
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.GetEncoding("iso-8859-1")), Is.EqualTo("%e9"), "Latin-1");
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.GetEncoding(437)), Is.EqualTo("%82"), "OEM United States");
+#pragma warning disable SYSLIB0001
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.UTF7), Is.EqualTo("%2bAOk-"), "UTF-7");
+#pragma warning restore SYSLIB0001
 
 			// lossy
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.ASCII), Is.EqualTo("%3f"), "ASCII changes 'é' to '?'");
@@ -392,7 +394,9 @@ namespace Doxense.Web.Tests
 			Assert.That(UrlEncoding.Decode("%e9%00", Encoding.Unicode), Is.EqualTo("é"), "UTF-16");
 			Assert.That(UrlEncoding.Decode("%e9", Encoding.GetEncoding("iso-8859-1")), Is.EqualTo("é"), "Latin-1");
 			Assert.That(UrlEncoding.Decode("%82", Encoding.GetEncoding(437)), Is.EqualTo("é"), "OEM United States");
+#pragma warning disable SYSLIB0001
 			Assert.That(UrlEncoding.Decode("%2bAOk-", Encoding.UTF7), Is.EqualTo("é"), "UTF-7");
+#pragma warning restore SYSLIB0001
 		}
 
 		[Test]
@@ -475,22 +479,22 @@ namespace Doxense.Web.Tests
 			var values = UrlEncoding.ParseQueryString("foo");
 			Assert.That(values, Is.Not.Null);
 			Assert.That(values.Count, Is.EqualTo(1));
-			Assert.True(values.AllKeys.Contains("foo"));
+			Assert.That(values.AllKeys.Contains("foo"), Is.True);
 			Assert.That(values["foo"], Is.Null);
 
 			// Par convention "foo=" tout court est présent, et vaut String.Empty
 			values = UrlEncoding.ParseQueryString("foo=");
 			Assert.That(values, Is.Not.Null);
 			Assert.That(values.Count, Is.EqualTo(1));
-			Assert.True(values.AllKeys.Contains("foo"));
+			Assert.That(values.AllKeys.Contains("foo"), Is.True);
 			Assert.That(values["foo"], Is.EqualTo(String.Empty));
 
 			// La présente d'autres params juste après ne doit rien changer
 			values = UrlEncoding.ParseQueryString("foo&bar=&baz=123");
 			Assert.That(values, Is.Not.Null);
 			Assert.That(values.Count, Is.EqualTo(3));
-			Assert.True(values.AllKeys.Contains("foo"));
-			Assert.True(values.AllKeys.Contains("bar"));
+			Assert.That(values.AllKeys.Contains("foo"), Is.True);
+			Assert.That(values.AllKeys.Contains("bar"), Is.True);
 			Assert.That(values["foo"], Is.Null);
 			Assert.That(values["bar"], Is.EqualTo(String.Empty));
 			Assert.That(values["baz"], Is.EqualTo("123"));

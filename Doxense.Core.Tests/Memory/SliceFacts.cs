@@ -222,7 +222,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(Random), 16), Throws.ArgumentNullException);
+			Assert.That(() => Slice.Random(default(Random)!, 16), Throws.ArgumentNullException);
 			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
@@ -252,7 +252,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.ArgumentNullException);
+			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator)!, 16), Throws.ArgumentNullException);
 			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
 		}
 
@@ -260,7 +260,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_Slice_FromStringAscii()
 		{
 			Assert.That(Slice.FromStringAscii(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromStringAscii(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(Slice.FromStringAscii(string.Empty).GetBytes(), Is.EqualTo(Array.Empty<byte>()));
 			Assert.That(Slice.FromStringAscii("A").GetBytes(), Is.EqualTo(new byte[] { 0x41 }));
 			Assert.That(Slice.FromStringAscii("AB").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42 }));
 			Assert.That(Slice.FromStringAscii("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
@@ -450,9 +450,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			// 128 and above is multi-byte UTF-8
 			Assert.That(Slice.FromChar('\x80').GetBytes(), Is.EqualTo(new byte[] { 0xC2, 0x80 }));
-			Assert.That(Slice.FromChar('é').GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
-			Assert.That(Slice.FromChar('\u221E').GetBytes(), Is.EqualTo(new byte[] { 0xE2, 0x88, 0x9E }));
-			Assert.That(Slice.FromChar('\uFFFE').GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBF, 0xBE}));
+			Assert.That(Slice.FromChar('é').GetBytes(), Is.EqualTo("é"u8.ToArray()));
+			Assert.That(Slice.FromChar('\u221E').GetBytes(), Is.EqualTo("\u221e"u8.ToArray()));
+			Assert.That(Slice.FromChar('\uFFFE').GetBytes(), Is.EqualTo("\ufffe"u8.ToArray()));
 		}
 
 		#region Signed...
@@ -468,7 +468,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			void Verify(short value, string expected)
 			{
-				Assert.That(Slice.FromInt16(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromInt16(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -533,9 +533,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
 
-			void Verify(short value, string expected)
+			static void Verify(short value, string expected)
 			{
-				Assert.That(Slice.FromInt16BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromInt16BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -661,9 +661,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
 
-			void Verify(int value, string expected)
+			static void Verify(int value, string expected)
 			{
-				Assert.That(Slice.FromInt32(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromInt32(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -744,9 +744,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
 
-			void Verify(int value, string expected)
+			static void Verify(int value, string expected)
 			{
-				Assert.That(Slice.FromInt32BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromInt32BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -831,9 +831,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
 
-			void Verify(long value, string expected)
+			static void Verify(long value, string expected)
 			{
-				Assert.That(Slice.FromInt64(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromInt64(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -866,9 +866,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// FromFixed64 always produce 8 bytes and uses Little Endian
 
-			void Verify(long value, byte[] expected)
+			static void Verify(long value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixed64(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromFixed64(value).GetBytes(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0L, new byte[8]);
@@ -935,7 +935,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice();
 			Assert.That(() => MutateOffset(x, -1).ToInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToInt64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToInt64(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -947,9 +947,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
 
-			void Verify(long value, string expected)
+			static void Verify(long value, string expected)
 			{
-				Assert.That(Slice.FromInt64BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromInt64BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -998,9 +998,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// FromFixed64 always produce 8 bytes and uses Little Endian
 
-			void Verify(long value, byte[] expected)
+			static void Verify(long value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixed64BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromFixed64BE(value).GetBytes(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0L, new byte[8]);
@@ -1067,7 +1067,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice();
 			Assert.That(() => MutateOffset(x, -1).ToInt64BE(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToInt64BE(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToInt64BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToInt64BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1087,9 +1087,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
 
-			void Verify(uint value, string expected)
+			static void Verify(uint value, string expected)
 			{
-				Assert.That(Slice.FromUInt32(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromUInt32(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -1112,9 +1112,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// FromFixed32 always produce 4 bytes and uses Little Endian
 
-			void Verify(uint value, byte[] expected)
+			static void Verify(uint value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU32(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromFixedU32(value).GetBytes(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0, new byte[4]);
@@ -1169,9 +1169,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 32-bit integers should be encoded in big endian, and with 1, 2 or 4 bytes
 
-			void Verify(uint value, string expected)
+			static void Verify(uint value, string expected)
 			{
-				Assert.That(Slice.FromUInt32BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromUInt32BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -1194,9 +1194,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// FromFixedU32BE always produce 4 bytes and uses Big Endian
 
-			void Verify(uint value, byte[] expected)
+			static void Verify(uint value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU32BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromFixedU32BE(value).GetBytes(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0, new byte[4]);
@@ -1253,9 +1253,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
 
-			void Verify(ulong value, string expected)
+			static void Verify(ulong value, string expected)
 			{
-				Assert.That(Slice.FromUInt64(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromUInt64(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12UL, "12");
@@ -1288,9 +1288,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// FromFixed64 always produce 8 bytes and uses Little Endian
 
-			void Verify(ulong value, byte[] expected)
+			static void Verify(ulong value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU64(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromFixedU64(value).GetBytes(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0UL, new byte[8]);
@@ -1353,7 +1353,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = new byte[] { 0x78, 0x56, 0x34, 0x12 }.AsSlice();
 			Assert.That(() => MutateOffset(x, -1).ToUInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 5).ToUInt64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToUInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToUInt64(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -1361,9 +1361,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 64-bit integers should be encoded in big endian, and using from 1 to 8 bytes
 
-			void Verify(ulong value, string expected)
+			static void Verify(ulong value, string expected)
 			{
-				Assert.That(Slice.FromUInt64BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromUInt64BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12UL, "12");
@@ -1398,7 +1398,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			void Verify(ulong value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU64BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromFixedU64BE(value).GetBytes(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0UL, new byte[8]);
@@ -1461,7 +1461,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice();
 			Assert.That(() => MutateOffset(x, -1).ToUInt64BE(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToUInt64BE(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToUInt64BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToUInt64BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1485,10 +1485,10 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_FromSingle()
 		{
-			void Verify(float value, string expected)
+			static void Verify(float value, string expected)
 			{
-				Assert.That(Slice.FromSingle(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0} (Little Endian)", value);
-				Assert.That(Slice.FromSingleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), "Invalid encoding for {0} (Big Endian)", value);
+				Assert.That(Slice.FromSingle(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value} (Little Endian)");
+				Assert.That(Slice.FromSingleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), $"Invalid encoding for {value} (Big Endian)");
 			}
 
 			Verify(0f, "00000000");
@@ -1545,10 +1545,10 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_FromDouble()
 		{
-			void Verify(double value, string expected)
+			static void Verify(double value, string expected)
 			{
-				Assert.That(Slice.FromDouble(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0} (Little Endian)", value);
-				Assert.That(Slice.FromDoubleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), "Invalid encoding for {0} (Big Endian)", value);
+				Assert.That(Slice.FromDouble(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value} (Little Endian)");
+				Assert.That(Slice.FromDoubleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), $"Invalid encoding for {value} (Big Endian)");
 			}
 
 			Verify(0d, "0000000000000000");
@@ -1608,7 +1608,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(decimal value, string expected)
 			{
-				Assert.That(Slice.FromDecimal(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(Slice.FromDecimal(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0m, "00000000000000000000000000000000");
@@ -1707,7 +1707,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = Slice.FromGuid(guid);
 			Assert.That(() => MutateOffset(x, -1).ToGuid(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 17).ToGuid(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToGuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToGuid(), Throws.InstanceOf<FormatException>());
 
 		}
 
@@ -1762,7 +1762,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = Slice.FromUuid128(uuid);
 			Assert.That(() => MutateOffset(x, -1).ToUuid128(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 17).ToUuid128(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToUuid128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToUuid128(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -1815,7 +1815,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = Slice.FromUuid64(uuid);
 			Assert.That(() => MutateOffset(x, -1).ToUuid64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToUuid64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToUuid64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToUuid64(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1824,7 +1824,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_Slice_FromBase64()
 		{
 			// null string is Nil slice
-			var slice = Slice.FromBase64(default(string));
+			var slice = Slice.FromBase64(default(string)!);
 			Assert.That(slice, Is.EqualTo(Slice.Nil));
 
 			// empty string is empty slice
@@ -2008,13 +2008,13 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			// argument should be validated
 			Assert.That(() => good.Equals(MutateOffset(evil, -1)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => good.Equals(MutateCount(evil, 666)), Throws.InstanceOf<FormatException>());
-			Assert.That(() => good.Equals(MutateArray(evil, null)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.Equals(MutateArray(evil, null!)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => good.Equals(MutateOffset(MutateCount(evil, 5), -1)), Throws.InstanceOf<FormatException>());
 
 			// instance should also be validated
 			Assert.That(() => MutateOffset(evil, -1).Equals(good), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(evil, 666).Equals(good), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(evil, null).Equals(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(evil, null!).Equals(good), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateOffset(MutateCount(evil, 5), -1).Equals(good), Throws.InstanceOf<FormatException>());
 		}
 
@@ -2041,7 +2041,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var x = Slice.FromString("evil");
 			Assert.That(() => MutateOffset(x, -1).GetHashCode(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 17).GetHashCode(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).GetHashCode(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).GetHashCode(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -2151,13 +2151,13 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			// argument should be validated
 			Assert.That(() => good.CompareTo(MutateOffset(evil, -1)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => good.CompareTo(MutateCount(evil, 666)), Throws.InstanceOf<FormatException>());
-			Assert.That(() => good.CompareTo(MutateArray(evil, null)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.CompareTo(MutateArray(evil, null!)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => good.CompareTo(MutateOffset(MutateCount(evil, 5), -1)), Throws.InstanceOf<FormatException>());
 
 			// instance should also be validated
 			Assert.That(() => MutateOffset(evil, -1).CompareTo(good), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(evil, 666).CompareTo(good), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(evil, null).CompareTo(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(evil, null!).CompareTo(good), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateOffset(MutateCount(evil, 5), -1).CompareTo(good), Throws.InstanceOf<FormatException>());
 		}
 
@@ -2180,7 +2180,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.FromStream(null), Throws.ArgumentNullException, "Should throw if null");
+			Assert.That(() => Slice.FromStream(null!), Throws.ArgumentNullException, "Should throw if null");
 			Assert.That(Slice.FromStream(Stream.Null), Is.EqualTo(Slice.Nil), "Stream.Null should return Slice.Nil");
 
 			using(var ms = new MemoryStream())
@@ -2432,7 +2432,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(joined, Is.Not.Null);
 			Assert.That(joined.Length, Is.EqualTo(0));
 
-			joined = Slice.JoinBytes(sep, new Slice[0], 0, 0);
+			joined = Slice.JoinBytes(sep, Array.Empty<Slice>(), 0, 0);
 			Assert.That(joined, Is.Not.Null);
 			Assert.That(joined.Length, Is.EqualTo(0));
 
@@ -2441,8 +2441,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(joined.Length, Is.EqualTo(0));
 
 			// ReSharper disable AssignNullToNotNullAttribute
-			Assert.That(() => Slice.JoinBytes(sep, default(Slice[]), 0, 0), Throws.ArgumentNullException);
-			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)), Throws.ArgumentNullException);
+			Assert.That(() => Slice.JoinBytes(sep, default(Slice[])!, 0, 0), Throws.ArgumentNullException);
+			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)!), Throws.ArgumentNullException);
 			// ReSharper restore AssignNullToNotNullAttribute
 
 			Assert.That(() => Slice.JoinBytes(sep, tokens, 0, 4), Throws.InstanceOf<ArgumentOutOfRangeException>());
@@ -2470,11 +2470,11 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			// edge cases
 			// > should behave the same as String.Split()
 			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.None), Is.EqualTo(new [] { Slice.Empty }));
-			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
+			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(Array.Empty<Slice>()));
 			Assert.That(Value("A,").Split(comma, StringSplitOptions.None), Is.EqualTo(new[] { a, Slice.Empty }));
 			Assert.That(Value("A,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new [] { a }));
-			Assert.That(Value(",").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
-			Assert.That(Value(",,,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
+			Assert.That(Value(",").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(Array.Empty<Slice>()));
+			Assert.That(Value(",,,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(Array.Empty<Slice>()));
 
 			// multi-bytes separator with an offset
 			var sep = Value("!<@>!").Substring(1, 3);
@@ -2618,7 +2618,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// Don't try this at home !
 			object tmp = value;
-			typeof(Slice).GetField("Offset").SetValue(tmp, offset);
+			typeof(Slice).GetField("Offset")!.SetValue(tmp, offset);
 			return (Slice) tmp;
 		}
 
@@ -2626,7 +2626,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// Don't try this at home !
 			object tmp = value;
-			typeof(Slice).GetField("Offset").SetValue(tmp, offset);
+			typeof(Slice).GetField("Offset")!.SetValue(tmp, offset);
 			return (Slice) tmp;
 		}
 
@@ -2634,7 +2634,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// Don't try this at home !
 			object tmp = value;
-			typeof(Slice).GetField("Array").SetValue(tmp, array);
+			typeof(Slice).GetField("Array")!.SetValue(tmp, array);
 			return (Slice) tmp;
 		}
 

@@ -38,10 +38,10 @@ namespace Doxense.Runtime.Converters.Tests
 		[Test]
 		public void Test_Values_Of_Same_Types_Are_Always_Similar()
 		{
-			void Test(object? x, object? y)
+			static void Test(object? x, object? y)
 			{
 				bool expected = x == null ? y == null : y != null && x.Equals(y);
-				Assert.That(ComparisonHelper.AreSimilar(x, y), Is.EqualTo(expected), expected ? "{0} == {1}" : "{0} != {1}", x, y);
+				Assert.That(ComparisonHelper.AreSimilar(x, y), Is.EqualTo(expected), expected ? $"{x} == {y}" : $"{x} != {y}");
 			}
 
 			Test(null, null);
@@ -66,19 +66,19 @@ namespace Doxense.Runtime.Converters.Tests
 		[Test]
 		public void Test_Values_Of_Similar_Types_Are_Similar()
 		{
-			void Similar(object x, object y)
+			static void Similar(object? x, object? y)
 			{
 				if (!ComparisonHelper.AreSimilar(x, y))
 				{
-					Assert.Fail("({0}) {1} ~= ({2}) {3}", x == null ? "object" : x.GetType().Name, x, y == null ? "object" : y.GetType().Name, y);
+					Assert.Fail($"({(x == null ? "object" : x.GetType().Name)}) {x} ~= ({(y == null ? "object" : y.GetType().Name)}) {y}");
 				}
 			}
 
-			void Different(object x, object y)
+			static void Different(object? x, object? y)
 			{
 				if (ComparisonHelper.AreSimilar(x, y))
 				{
-					Assert.Fail("({0}) {1} !~= ({2}) {3}", x == null ? "object" : x.GetType().Name, x, y == null ? "object" : y.GetType().Name, y);
+					Assert.Fail($"({(x == null ? "object" : x.GetType().Name)}) {x} !~= ({(y == null ? "object" : y.GetType().Name)}) {y}");
 				}
 			}
 
@@ -113,4 +113,5 @@ namespace Doxense.Runtime.Converters.Tests
 		}
 
 	}
+
 }

@@ -1011,7 +1011,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(key.ToHexaString(' '), Is.EqualTo(expected));
 				var t2 = TuPack.Unpack(key);
 				Assert.That(t2, Is.Not.Null);
-				Assert.That(t2.Count, Is.EqualTo(t.Count), "{0}", t2);
+				Assert.That(t2.Count, Is.EqualTo(t.Count), $"{t2}.Count");
 				Assert.That(t2, Is.EqualTo(t));
 			}
 
@@ -1717,7 +1717,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			Slice slice;
 
-			slice = TuPack.EncodeKey<object>(default(object));
+			slice = TuPack.EncodeKey<object?>(default);
 			Assert.That(slice.ToString(), Is.EqualTo("<00>"));
 
 			slice = TuPack.EncodeKey<object>(1);
@@ -2053,7 +2053,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			#region PackRange(Slice, ...)
 
-			string[] words = {"hello", "world", "très bien", "断トツ", "abc\0def", null, String.Empty};
+			string?[] words = {"hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty};
 
 			var merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words);
 			Assert.That(merged, Is.Not.Null);
@@ -2071,10 +2071,10 @@ namespace Doxense.Collections.Tuples.Tests
 			// corner cases
 			// ReSharper disable AssignNullToNotNullAttribute
 			Assert.That(
-				() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(int[])),
+				() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(int[])!),
 				Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
 			Assert.That(
-				() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)),
+				() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)!),
 				Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
 			// ReSharper restore AssignNullToNotNullAttribute
 

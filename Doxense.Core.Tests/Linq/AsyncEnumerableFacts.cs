@@ -1309,7 +1309,7 @@ namespace Doxense.Linq.Async.Tests
 				var withPrefetchingK = await source.Prefetch(K).Select(Record).ToListAsync(this.Cancellation);
 				Log($"P{K}: {string.Join(", ", withPrefetchingK)}");
 				Assert.That(withPrefetchingK.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
-				Assert.That(withPrefetchingK[0].Called, Is.EqualTo(K + 1), "Generator must have {0} call(s) in advance!", K);
+				Assert.That(withPrefetchingK[0].Called, Is.EqualTo(K + 1), $"Generator must have {K} call(s) in advance!");
 				Assert.That(withPrefetchingK.Select(x => x.Called), Is.All.LessThanOrEqualTo(11));
 			}
 
@@ -1440,14 +1440,14 @@ namespace Doxense.Linq.Async.Tests
 							try
 							{
 								Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
-								Log("** " + sw.Elapsed + " start " + x + " (" + n + ")");
+								Log($"** {sw.Elapsed} start {x} ({n})");
 #if DEBUG_STACK_TRACES
 								Log("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
 #endif
 								int ms;
 								lock (rnd) { ms = rnd.Next(25) + 50; }
 								await Task.Delay(ms, this.Cancellation);
-								Log("** " + sw.Elapsed + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
+								Log($"** {sw.Elapsed} stop {x} ({Volatile.Read(ref concurrent)})");
 
 								return x * x;
 							}
@@ -1459,7 +1459,7 @@ namespace Doxense.Linq.Async.Tests
 						}
 						catch(Exception e)
 						{
-							Console.Error.WriteLine("Thread #" + x + " failed: " + e.ToString());
+							Console.Error.WriteLine($"Thread #{x} failed: {e}");
 							throw;
 						}
 					},
@@ -1567,22 +1567,22 @@ namespace Doxense.Linq.Async.Tests
 
 			if (asyncError != null)
 			{
-				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError);
+				if (referenceError == null) Assert.Fail($"{label}(): The async query failed but not there reference query {witness.Expression} : {asyncError}");
 				//TODO: compare exception types ?
 			}
 			else if (referenceError != null)
 			{
-				Assert.Fail("{0}(): The referency query {1} failed ({2}) but the async query returned: {3}", label, witness.Expression, referenceError.Message, asyncResult);
+				Assert.Fail($"{label}(): The referency query {witness.Expression} failed ({referenceError.Message}) but the async query returned: {asyncResult}");
 			}
 			else
 			{
 				try
 				{
-					Assert.That(asyncResult, Is.EqualTo(referenceResult), "{0}(): {1}", label, witness.Expression);
+					Assert.That(asyncResult, Is.EqualTo(referenceResult), $"{label}(): {witness.Expression}");
 				}
 				catch(AssertionException x)
 				{
-					Log("FAIL: " + witness.Expression + "\r\n >  " + x.Message);
+					Log($"FAIL: {witness.Expression}\r\n >  {x.Message}");
 				}
 			}
 
@@ -1605,18 +1605,18 @@ namespace Doxense.Linq.Async.Tests
 
 			if (asyncError != null)
 			{
-				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError);
+				if (referenceError == null) Assert.Fail($"{label}(): The async query failed but not there reference query {witness.Expression} : {asyncError}");
 				//TODO: compare exception types ?
 			}
 			else if (referenceError != null)
 			{
-				Assert.Fail("{0}(): The referency query {1} failed ({2}) but the async query returned: {3}", label, witness.Expression, referenceError.Message, asyncResult);
+				Assert.Fail($"{label}(): The referency query {witness.Expression} failed ({referenceError.Message}) but the async query returned: {asyncResult}");
 			}
 			else
 			{
 				try
 				{
-					Assert.That(asyncResult, Is.EqualTo(referenceResult), "{0}(): {1}", label, witness.Expression);
+					Assert.That(asyncResult, Is.EqualTo(referenceResult), $"{label}(): {witness.Expression}");
 				}
 				catch (AssertionException x)
 				{

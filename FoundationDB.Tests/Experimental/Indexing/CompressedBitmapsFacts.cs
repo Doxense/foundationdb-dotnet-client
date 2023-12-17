@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			Log($"Set({offset}):");
 			bool actual = builder.Set(offset);
 			bool expected = witness.Set(offset);
-			Assert.That(actual, Is.EqualTo(expected), "Set({0})", offset);
+			Assert.That(actual, Is.EqualTo(expected), $"Set({offset})");
 
 			Verify(builder, witness);
 			return actual;
@@ -103,7 +103,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			Log($"Clear({offset}):");
 			bool actual = builder.Clear(offset);
 			bool expected = witness.Clear(offset);
-			Assert.That(actual, Is.EqualTo(expected), "Clear({0})", offset);
+			Assert.That(actual, Is.EqualTo(expected), $"Clear({offset})");
 
 			Verify(builder, witness);
 			return actual;
@@ -907,12 +907,13 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			j = 0;
 			foreach (var kv in controlStats)
 			{
-				Assert.That(index.TryGetValue(kv.Value, out CompressedBitmapBuilder builder), Is.True, "{0} is missing from index", kv.Value);
+				Assert.That(index.TryGetValue(kv.Value, out CompressedBitmapBuilder builder), Is.True, $"{kv.Value} is missing from index");
+				Assert.That(builder, Is.Not.Null);
 				var bmp = builder.ToBitmap();
 				bmp.GetStatistics(out int bits, out int words, out int a, out int b, out _);
-				Assert.That(bits, Is.EqualTo(kv.Count), "{0} has invalid count", kv.Value);
+				Assert.That(bits, Is.EqualTo(kv.Count), $"{kv.Value} has invalid count");
 				int sz = bmp.ByteCount;
-				log.WriteLine("{0,8} : {1,5} bits, {2} words ({3} lit. / {4} fil.), {5:N0} bytes, {6:N3} bytes/doc, {7:N2}% compression", kv.Value, bits, words, a, b, sz, 1.0 * sz / bits, 100.0 * (4 + 17 + sz) / (17 + (4 + 17) * bits));
+				log.WriteLine($"{kv.Value,8} : {bits,5} bits, {words} words ({a} lit. / {b} fil.), {sz:N0} bytes, {1.0 * sz / bits:N3} bytes/doc, {100.0 * (4 + 17 + sz) / (17 + (4 + 17) * bits):N2}% compression");
 				totalBitmapSize += sz;
 				//if (j % 500 == 0) Log((100.0 * b / words));
 				//if (j % 500 == 0) Log(bmp.Dump());

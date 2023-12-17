@@ -54,7 +54,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 			byte* stop = ptr + count;
 			while (ptr < stop)
 			{
-				if (*ptr != b) Assert.That(*ptr, Is.EqualTo(b), "Unexpected byte at offset {0}", ptr - buffer);
+				if (*ptr != b) Assert.That(*ptr, Is.EqualTo(b), $"Unexpected byte at offset {ptr - buffer}");
 				ptr++;
 			}
 		}
@@ -221,12 +221,12 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 					ushort decoded;
 					ptr2 = UnsafeHelpers.ReadVarint16(ptr, ptr + data.Length, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), "Read({0} => {1}) size", value, expected);
-					Assert.That(decoded, Is.EqualTo(value), "Read({0} => {1}) value", value, expected);
+					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"Read({value} => {expected}) size");
+					Assert.That(decoded, Is.EqualTo(value), $"Read({value} => {expected}) value");
 
 					ptr2 = UnsafeHelpers.ReadVarint16Unsafe(ptr, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), "ReadUnsafe({0} => {1}) size", value, expected);
-					Assert.That(decoded, Is.EqualTo(value), "ReadUnsafe({0} => {1}) value", value, expected);
+					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"ReadUnsafe({value} => {expected}) size");
+					Assert.That(decoded, Is.EqualTo(value), $"ReadUnsafe({value} => {expected}) value");
 
 					Wipe(data);
 					ptr2 = UnsafeHelpers.WriteVarInt16(ptr, ptr + size, value);
@@ -269,12 +269,12 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 					uint decoded;
 					ptr2 = UnsafeHelpers.ReadVarint32(ptr, ptr + data.Length, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), "Read({0} => {1}) size", value, expected);
-					Assert.That(decoded, Is.EqualTo(value), "Read({0} => {1}) value", value, expected);
+					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"Read({value} => {expected}) size");
+					Assert.That(decoded, Is.EqualTo(value), $"Read({value} => {expected}) value");
 
 					ptr2 = UnsafeHelpers.ReadVarint32Unsafe(ptr, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), "ReadUnsafe({0} => {1}) size", value, expected);
-					Assert.That(decoded, Is.EqualTo(value), "ReadUnsafe({0} => {1}) value", value, expected);
+					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"ReadUnsafe({value} => {expected}) size");
+					Assert.That(decoded, Is.EqualTo(value), $"ReadUnsafe({value} => {expected}) value");
 
 					Wipe(data);
 					ptr2 = UnsafeHelpers.WriteVarInt32(ptr, ptr + size, value);
@@ -325,12 +325,12 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 					ulong decoded;
 					ptr2 = UnsafeHelpers.ReadVarint64(ptr, ptr + data.Length, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), "Read({0} => {1}) size", value, expected);
-					Assert.That(decoded, Is.EqualTo(value), "Read({0} => {1}) value", value, expected);
+					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"Read({value} => {expected}) size");
+					Assert.That(decoded, Is.EqualTo(value), $"Read({value} => {expected}) value");
 
 					ptr2 = UnsafeHelpers.ReadVarint64Unsafe(ptr, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), "ReadUnsafe({0} => {1}) size", value, expected);
-					Assert.That(decoded, Is.EqualTo(value), "ReadUnsafe({0} => {1}) value", value, expected);
+					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"ReadUnsafe({value} => {expected}) size");
+					Assert.That(decoded, Is.EqualTo(value), $"ReadUnsafe({value} => {expected}) value");
 
 					Wipe(data);
 					ptr2 = UnsafeHelpers.WriteVarInt64(ptr, ptr + size, value);
@@ -902,7 +902,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 						var res = new ReadOnlySpan<byte>(ptr, (int)(c1 - ptr));
 						Log($"x = 1 << {k,2} {i:+ 0;- 0;'   '} = 0x{x:X8} = {x,10} => ({res.Length}) {res.ToString("X")}");
 						Assert.That(c1 - ptr, Is.GreaterThan(0).And.LessThanOrEqualTo(5), "Should emit between 1 and 5 bytes");
-						Assert.That(UnsafeHelpers.SizeOfOrderedUInt32(x), Is.EqualTo(res.Length), "SizeOf({0} does not match encoded size", x);
+						Assert.That(UnsafeHelpers.SizeOfOrderedUInt32(x), Is.EqualTo(res.Length), $"SizeOf({x}) does not match encoded size");
 
 						uint y;
 						byte* c2 = UnsafeHelpers.ReadOrderedUInt32Unsafe(ptr, out y);
@@ -924,7 +924,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 					byte* c1 = UnsafeHelpers.WriteOrderedUInt32Unsafe(ptr, x);
 					var res = new ReadOnlySpan<byte>(ptr, (int)(c1 - ptr));
 					Assert.That(c1 - ptr, Is.GreaterThan(0).And.LessThanOrEqualTo(5), "Should emit between 1 and 5 bytes");
-					Assert.That(UnsafeHelpers.SizeOfOrderedUInt32(x), Is.EqualTo(res.Length), "SizeOf({0} does not match encoded size", x);
+					Assert.That(UnsafeHelpers.SizeOfOrderedUInt32(x), Is.EqualTo(res.Length), $"SizeOf({x} does not match encoded size");
 
 					// read it back
 					uint y;
@@ -935,7 +935,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 					// should be > the previous one
 					string s = res.ToString("X");
-					if (prev != null) Assert.That(s, Is.GreaterThan(prev), "Encoded({0}) should be greater than Encoded({1})", x, xs[i - 1]);
+					if (prev != null) Assert.That(s, Is.GreaterThan(prev), $"Encoded({x}) should be greater than Encoded({xs[i - 1]})");
 					prev = s;
 				}
 			}
@@ -960,7 +960,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 						var res = new ReadOnlySpan<byte>(ptr, (int)(c1 - ptr));
 						Log($"x = 1 << {k,2} {i:+ 0;- 0;'   '} = 0x{x:X16} = {x,19} => ({res.Length}) {res.ToString("X")}");
 						Assert.That(c1 - ptr, Is.GreaterThan(0).And.LessThanOrEqualTo(8), "Should emit between 1 and 8 bytes");
-						Assert.That(UnsafeHelpers.SizeOfOrderedUInt64(x), Is.EqualTo(res.Length), "SizeOf({0} does not match encoded size", x);
+						Assert.That(UnsafeHelpers.SizeOfOrderedUInt64(x), Is.EqualTo(res.Length), $"SizeOf({x}) does not match encoded size");
 
 						ulong y;
 						byte* c2 = UnsafeHelpers.ReadOrderedUInt64Unsafe(ptr, out y);
@@ -982,7 +982,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 					byte* c1 = UnsafeHelpers.WriteOrderedUInt64Unsafe(ptr, x);
 					var res = new ReadOnlySpan<byte>(ptr, (int) (c1 - ptr));
 					Assert.That(c1 - ptr, Is.GreaterThan(0).And.LessThanOrEqualTo(8), "Should emit between 1 and 8 bytes");
-					Assert.That(UnsafeHelpers.SizeOfOrderedUInt64(x), Is.EqualTo(res.Length), "SizeOf({0} does not match encoded size", x);
+					Assert.That(UnsafeHelpers.SizeOfOrderedUInt64(x), Is.EqualTo(res.Length), $"SizeOf({x}) does not match encoded size");
 
 					// read it back
 					ulong y;
@@ -993,7 +993,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 					// should be > the previous one
 					string s = res.ToString("X");
-					if (prev != null) Assert.That(s, Is.GreaterThan(prev), "Encoded({0}) should be greater than Encoded({1})", x, xs[i - 1]);
+					if (prev != null) Assert.That(s, Is.GreaterThan(prev), $"Encoded({x}) should be greater than Encoded({xs[i - 1]})");
 					prev = s;
 				}
 			}

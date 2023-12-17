@@ -24,9 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if DEPRECATED // scream-test to check if people still using it can easily rewrite to a more modern version
+
 namespace Doxense
 {
-	using Doxense.Threading.Tasks;
 	using NUnit.Framework;
 	using NUnit.Framework.Constraints;
 	using System;
@@ -105,3 +106,5 @@ namespace Doxense
 	}
 
 }
+
+#endif

@@ -83,7 +83,7 @@ namespace Doxense.Core.Tests
 			Assert.That(Uuid80.Parse("{ffff-00000000-deadbeef}"), Is.EqualTo(new Uuid80(0xFFFF, 0, 0xDEADBEEFU)));
 
 			// errors
-			Assert.That(() => Uuid80.Parse(default(string)), Throws.ArgumentNullException);
+			Assert.That(() => Uuid80.Parse(default(string)!), Throws.ArgumentNullException);
 			Assert.That(() => Uuid80.Parse("hello"), Throws.InstanceOf<FormatException>());
 			Assert.That(() => Uuid80.Parse("abcd-12345678-9ABCDEFG"), Throws.InstanceOf<FormatException>(), "Invalid hexa character 'G'");
 			Assert.That(() => Uuid80.Parse("0000-00000000-0000000 "), Throws.InstanceOf<FormatException>(), "Two short + extra space");
@@ -147,7 +147,7 @@ namespace Doxense.Core.Tests
 			{
 				var uid = Uuid80.NewUuid();
 				string s = uid.ToString();
-				if (uids.Contains(s)) Assert.Fail("Duplicate Uuid80 generated: {0}", uid);
+				if (uids.Contains(s)) Assert.Fail($"Duplicate Uuid80 generated: {uid}");
 				uids.Add(s);
 			}
 			Assert.That(uids.Count, Is.EqualTo(N));
@@ -169,7 +169,7 @@ namespace Doxense.Core.Tests
 			{
 				var uid = gen.NewUuid();
 				string s = uid.ToString();
-				if (uids.Contains(s)) Assert.Fail("Duplicate Uuid80 generated: {0}", uid);
+				if (uids.Contains(s)) Assert.Fail($"Duplicate Uuid80 generated: {uid}");
 				uids.Add(s);
 			}
 			Assert.That(uids.Count, Is.EqualTo(N));

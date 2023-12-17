@@ -146,7 +146,7 @@ namespace Doxense.Core.Tests
 			{
 				var uid = Uuid96.NewUuid();
 				string s = uid.ToString();
-				if (uids.Contains(s)) Assert.Fail("Duplicate Uuid96 generated: {0}", uid);
+				if (uids.Contains(s)) Assert.Fail($"Duplicate Uuid96 generated: {uid}");
 				uids.Add(s);
 			}
 			Assert.That(uids.Count, Is.EqualTo(N));
@@ -168,7 +168,7 @@ namespace Doxense.Core.Tests
 			{
 				var uid = gen.NewUuid();
 				string s = uid.ToString();
-				if (uids.Contains(s)) Assert.Fail("Duplicate Uuid96 generated: {0}", uid);
+				if (uids.Contains(s)) Assert.Fail($"Duplicate Uuid96 generated: {uid}");
 				uids.Add(s);
 			}
 			Assert.That(uids.Count, Is.EqualTo(N));

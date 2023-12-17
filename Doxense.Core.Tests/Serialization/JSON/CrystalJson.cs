@@ -2227,7 +2227,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(reloaded.Count, Is.EqualTo(list.Count));
 			for (int i = 0; i < list.Count; i++)
 			{
-				Assert.That(reloaded[i], Is.EqualTo(list[i]), "Mismatch at index {0}", i);
+				Assert.That(reloaded[i], Is.EqualTo(list[i]), $"Mismatch at index {i}");
 			}
 
 			{ // Compresse Deflate
@@ -3469,20 +3469,20 @@ namespace Doxense.Serialization.Json.Tests
 			// => on vérifie que le JsonNumber est capable de gérer correctement ce problème
 
 			double x = 7.5318246509562359d;
-			Assert.That((double)((decimal)x), Is.Not.EqualTo(x), "Check that {0:R} gets corrupted during roundtrip by the CLR", x);
+			Assert.That((double)((decimal)x), Is.Not.EqualTo(x), $"Check that {x:R} gets corrupted during roundtrip by the CLR");
 			Assert.That(JsonNumber.Return(x).ToString(), Is.EqualTo(x.ToString("R")));
-			Assert.That(((JsonNumber)CrystalJson.Parse("7.5318246509562359")).ToDouble(), Is.EqualTo(x), "Rounding Bug check: {0:R} should not change!", x);
+			Assert.That(((JsonNumber)CrystalJson.Parse("7.5318246509562359")).ToDouble(), Is.EqualTo(x), $"Rounding Bug check: {x:R} should not change!");
 
 			x = 3.8219629199346357;
-			Assert.That((double)((decimal)x), Is.Not.EqualTo(x), "Check that {0:R} gets corrupted during roundtrip by the CLR", x);
+			Assert.That((double)((decimal)x), Is.Not.EqualTo(x), $"Check that {x:R} gets corrupted during roundtrip by the CLR");
 			Assert.That(JsonNumber.Return(x).ToString(), Is.EqualTo(x.ToString("R")));
-			Assert.That(((JsonNumber)CrystalJson.Parse("3.8219629199346357")).ToDouble(), Is.EqualTo(x), "Rounding Bug check: {0:R} should not change!", x);
+			Assert.That(((JsonNumber)CrystalJson.Parse("3.8219629199346357")).ToDouble(), Is.EqualTo(x), $"Rounding Bug check: {x:R} should not change!");
 
 			// meme problème avec les float !
 			float y = 7.53182459f;
-			Assert.That((float)((decimal)y), Is.Not.EqualTo(y), "Check that {0:R} gets corrupted during roundtrip by the CLR", y);
+			Assert.That((float)((decimal)y), Is.Not.EqualTo(y), $"Check that {y:R} gets corrupted during roundtrip by the CLR");
 			Assert.That(JsonNumber.Return(y).ToString(), Is.EqualTo(y.ToString("R")));
-			Assert.That(((JsonNumber)CrystalJson.Parse("7.53182459")).ToSingle(), Is.EqualTo(y), "Rounding Bug check: {0:R}", y);
+			Assert.That(((JsonNumber)CrystalJson.Parse("7.53182459")).ToSingle(), Is.EqualTo(y), $"Rounding Bug check: {y:R}");
 		}
 
 		[Test]
@@ -3506,7 +3506,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr[0].ToInt32(), Is.EqualTo(0));
 			for (int i = 1; i < arr.Count; i++)
 			{
-				Assert.That(arr[i], Is.SameAs(JsonNumber.Zero), "arr[{0}]", i);
+				Assert.That(arr[i], Is.SameAs(JsonNumber.Zero), $"arr[{i}]");
 			}
 
 			// liste
@@ -3516,7 +3516,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr[0].ToInt64(), Is.EqualTo(0));
 			for (int i = 1; i < arr.Count; i++)
 			{
-				Assert.That(arr[i], Is.SameAs(arr[0]), "arr[{0}]", i);
+				Assert.That(arr[i], Is.SameAs(arr[0]), $"arr[{i}]");
 			}
 
 			// sequence
@@ -3525,7 +3525,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr[0].ToUInt32(), Is.EqualTo(42U));
 			for (int i = 1; i < arr.Count; i++)
 			{
-				Assert.That(arr[i], Is.SameAs(arr[0]), "arr[{0}]", i);
+				Assert.That(arr[i], Is.SameAs(arr[0]), $"arr[{i}]");
 			}
 
 			// la même série de données convertie deux fois
@@ -3538,8 +3538,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr2, Is.Not.Null.And.Count.EqualTo(t2.Length));
 			for (int i = 0; i < t1.Length; i++)
 			{
-				Assert.That(arr1[i], Is.SameAs(arr2[i]), "arr1[{0}] same as arr2[{0}]", i);
-				Assert.That(arr1[i].ToInt32(), Is.EqualTo(t1[i]), "arr1[{0}] == t1[{0}]", i);
+				Assert.That(arr1[i], Is.SameAs(arr2[i]), $"arr1[{i}] same as arr2[{i}]");
+				Assert.That(arr1[i].ToInt32(), Is.EqualTo(t1[i]), $"arr1[{i}] == t1[{i}]");
 			}
 
 		}
@@ -3818,10 +3818,10 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(array.Count, Is.EqualTo(3));
 			for (int i = 0; i < array.Count; i++)
 			{
-				Assert.That(array[i], Is.Not.Null.And.InstanceOf<JsonObject>(), "[{0}]", i);
-				Assert.That(((JsonObject)array[i])["Id"], Is.EqualTo(JsonNumber.Return(i + 1)), "[{0}].Id", i);
-				Assert.That(((JsonObject)array[i])["Name"], Is.EqualTo(JsonString.Return((i + 1).ToString())), "[{0}].Name", i);
-				Assert.That(((JsonObject)array[i]).Count, Is.EqualTo(2), "[{0}] Count", i);
+				Assert.That(array[i], Is.Not.Null.And.InstanceOf<JsonObject>(), $"[{i}]");
+				Assert.That(((JsonObject)array[i])["Id"], Is.EqualTo(JsonNumber.Return(i + 1)), $"[{i}].Id");
+				Assert.That(((JsonObject)array[i])["Name"], Is.EqualTo(JsonString.Return((i + 1).ToString())), $"[{i}].Name");
+				Assert.That(((JsonObject)array[i]).Count, Is.EqualTo(2), $"[{i}] Count");
 			}
 
 			// errors
@@ -4664,7 +4664,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				var arr = o[name].AsArray(required: false);
 				Assert.That(arr, Is.Not.Null, "Property '{0}' is missing", name);
-				Assert.That(arr.Count, Is.EqualTo(2), "Array should have exactly 2 elements: {0:P}", arr);
+				Assert.That(arr.Count, Is.EqualTo(2), $"Array should have exactly 2 elements: {arr:P}");
 				Assert.That(arr[0].ToStringOrDefault(), Is.EqualTo(expectedType), "Item type does not match for {0}", name);
 				Assert.That(arr[1], valueConstraint, "Value does not match for {0}", name);
 			}
@@ -7030,7 +7030,7 @@ namespace Doxense.Serialization.Json.Tests
 		public static void ParseAreEqual(JsonValue expected, string jsonText, string message = null)
 		{
 			var parsed = CrystalJson.Parse(jsonText);
-			Assert.That(parsed, Is.EqualTo(expected), "CrystalJson.Parse('{0}') into {1}{2}", jsonText, expected.Type, (message == null ? String.Empty : (": " + message)));
+			Assert.That(parsed, Is.EqualTo(expected), $"CrystalJson.Parse('{jsonText}') into {expected.Type}{(message == null ? string.Empty : (": " + message))}");
 		}
 	}
 
