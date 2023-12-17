@@ -37,6 +37,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
 	public static class TupleParser
 	{
+
 		#region Serialization...
 
 		/// <summary>Writes a null value at the end, and advance the cursor</summary>
@@ -506,6 +507,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			else
 			{
+				//TODO: convert this to use Span<char> !
 				fixed (char* chars = value)
 				{
 					if (!TryWriteUnescapedUtf8String(ref writer, chars + offset, count))
@@ -984,31 +986,19 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			if (slice.Count <= 2) return string.Empty;
 
-#if USE_SPAN_API
 			var chunk = slice.Substring(1, slice.Count - 2).Span;
 			if (!ShouldUnescapeByteString(chunk))
 			{
 				return Encoding.Default.GetString(chunk);
 			}
-			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
-			if (!TryUnescapeByteString(chunk, span, out int written))
+			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			if (!TryUnescapeByteString(chunk, buffer, out int written))
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
-#else
-			var chunk = slice.Substring(1, slice.Count - 2);
-			if (!ShouldUnescapeByteString(chunk.Span))
-			{
-				return Encoding.Default.GetString(chunk.Array, chunk.Offset, chunk.Count);
-			}
-			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
-			if (!TryUnescapeByteString(chunk.Span, span, out int written))
-			{ // should never happen since decoding can only reduce the size!?
-				throw new InvalidOperationException();
-			}
-#endif
-			string s = Encoding.Default.GetString(span, 0, written);
-			ArrayPool<byte>.Shared.Return(span);
+
+			string s = Encoding.Default.GetString(buffer, 0, written);
+			ArrayPool<byte>.Shared.Return(buffer);
 			return s;
 		}
 
@@ -1018,33 +1008,21 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Utf8 && slice[-1] == 0);
 
-			if (slice.Count <= 2) return String.Empty;
+			if (slice.Count <= 2) return string.Empty;
 
-#if USE_SPAN_API
 			var chunk = slice.Substring(1, slice.Count - 2).Span;
 			if (!ShouldUnescapeByteString(chunk))
 			{
 				return Encoding.UTF8.GetString(chunk);
 			}
-			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
-			if (!TryUnescapeByteString(chunk, span, out int written))
+			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			if (!TryUnescapeByteString(chunk, buffer, out int written))
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
-#else
-			var chunk = slice.Substring(1, slice.Count - 2);
-			if (!ShouldUnescapeByteString(chunk.Span))
-			{
-				return Encoding.UTF8.GetString(chunk.Array, chunk.Offset, chunk.Count);
-			}
-			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
-			if (!TryUnescapeByteString(chunk.Span, span, out int written))
-			{ // should never happen since decoding can only reduce the size!?
-				throw new InvalidOperationException();
-			}
-#endif
-			string s = Encoding.UTF8.GetString(span, 0, written);
-			ArrayPool<byte>.Shared.Return(span);
+
+			var s = Encoding.UTF8.GetString(buffer, 0, written);
+			ArrayPool<byte>.Shared.Return(buffer);
 			return s;
 		}
 

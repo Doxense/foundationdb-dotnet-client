@@ -14,7 +14,7 @@
 		<Description>.NET Core SDK for FoundationDB</Description>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
-		<DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API;USE_ANNOTATIONS</DefineConstants>
+		<DefineConstants>$(DefineConstants);USE_RANGE_API;USE_ANNOTATIONS</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='net6.0'">

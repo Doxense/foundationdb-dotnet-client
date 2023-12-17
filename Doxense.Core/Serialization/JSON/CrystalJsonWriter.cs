@@ -1636,7 +1636,7 @@ namespace Doxense.Serialization.Json
 				buffer.Write(JsonTokens.EmptyString);
 			}
 			else
-			{ // note: Base64 ne contient ni ' ni " donc pas besoin d'escaper !
+			{ // note: Base64 without any <'> or <">, so no need to escape it!
 				buffer.Write('"');
 				buffer.Write(Convert.ToBase64String(bytes));
 				buffer.Write('"');
@@ -1655,9 +1655,8 @@ namespace Doxense.Serialization.Json
 				buffer.Write(JsonTokens.EmptyString);
 			}
 			else
-			{ // note: Base64 ne contient ni ' ni " donc pas besoin d'escaper !
+			{ // note: Base64 without any <'> or <">, so no need to escape it!
 				buffer.Write('"');
-				//TODO: Si count est très grand, on pourrait switcher sur ToBase64CharArray et buffer ?
 				buffer.Write(Convert.ToBase64String(bytes, offset, count));
 				buffer.Write('"');
 			}
@@ -1671,14 +1670,9 @@ namespace Doxense.Serialization.Json
 				buffer.Write(JsonTokens.EmptyString);
 			}
 			else
-			{ // note: Base64 ne contient ni ' ni " donc pas besoin d'escaper !
+			{ // note: Base64 without any <'> or <">, so no need to escape it!
 				buffer.Write('"');
-				//TODO: Si count est très grand, on pourrait switcher sur ToBase64CharArray et buffer ?
-#if USE_SPAN_API
 				buffer.Write(Convert.ToBase64String(bytes, Base64FormattingOptions.None));
-#else
-				buffer.Write(Base64Encoding.ToBase64String(bytes));
-#endif
 				buffer.Write('"');
 			}
 		}
@@ -1688,7 +1682,7 @@ namespace Doxense.Serialization.Json
 			var buffer = m_buffer;
 			if (bytes.Count == 0)
 			{
-				if (bytes.Array == null)
+				if (bytes.Array == null!)
 				{
 					buffer.Write(JsonTokens.Null);
 				}
@@ -1706,7 +1700,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-#endregion
+		#endregion
 
 		#region Field Writers...
 

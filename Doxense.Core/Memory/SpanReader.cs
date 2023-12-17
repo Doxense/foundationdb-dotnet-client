@@ -428,19 +428,7 @@ namespace Doxense.Memory
 		public string ReadVarString()
 		{
 			var str = ReadVarBytes();
-			if (str.Length == 0) return string.Empty;
-
-#if USE_SPAN_API
-			return Encoding.UTF8.GetString(str);
-#else
-			unsafe
-			{
-				fixed (byte* ptr = str)
-				{
-					return Encoding.UTF8.GetString(ptr, str.Length);
-				}
-			}
-#endif
+			return str.Length == 0 ? string.Empty : Encoding.UTF8.GetString(str);
 		}
 
 		/// <summary>Reads a string prefixed by a variable-sized length, using the specified encoding</summary>
@@ -449,18 +437,7 @@ namespace Doxense.Memory
 		{
 			// generic decoding
 			var bytes = ReadVarBytes();
-			if (bytes.Length == 0) return string.Empty;
-#if USE_SPAN_API
-			return (encoding ?? Encoding.UTF8).GetString(bytes);
-#else
-			unsafe
-			{
-				fixed (byte* ptr = bytes)
-				{
-					return (encoding ?? Encoding.UTF8).GetString(ptr, bytes.Length);
-				}
-			}
-#endif
+			return bytes.Length == 0 ? string.Empty : (encoding ?? Encoding.UTF8).GetString(bytes);
 		}
 
 		/// <summary>Reads a 128-bit Guid</summary>
