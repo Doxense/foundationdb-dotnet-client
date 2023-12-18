@@ -33,9 +33,9 @@ namespace Aspire.Hosting
 		/// <param name="root">Base subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterFile">Path to the cluster file, or <c>null</c> if the default cluster file should be used.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, the known version of the remote cluster, which can be used to infer the appropriate version of the local FDB client library that should be used to connect to this cluster.</param>
-		public static IResourceBuilder<FdbConnectionResource> AddFoundationDbConnection(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, string? clusterFile = null, string? clusterVersion = null)
+		public static IResourceBuilder<FdbConnectionResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, string? clusterFile = null, string? clusterVersion = null)
 		{
-			return AddFoundationDbConnection(builder, name, apiVersion, FdbPath.Parse(root), clusterFile, clusterVersion);
+			return AddFoundationDb(builder, name, apiVersion, FdbPath.Parse(root), clusterFile, clusterVersion);
 		}
 
 		/// <summary>Add a connection to an external FoundationDB cluster</summary>
@@ -45,7 +45,7 @@ namespace Aspire.Hosting
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterFile">Path to the cluster file, or <c>null</c> if the default cluster file should be used.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, the known version of the remote cluster, which can be used to infer the appropriate version of the local FDB client library that should be used to connect to this cluster.</param>
-		public static IResourceBuilder<FdbConnectionResource> AddFoundationDbConnection(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, string? clusterFile = null, string? clusterVersion = null)
+		public static IResourceBuilder<FdbConnectionResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, string? clusterFile = null, string? clusterVersion = null)
 		{
 			Contract.NotNull(builder);
 			Contract.NotNullOrWhiteSpace(name);
@@ -144,9 +144,9 @@ namespace Aspire.Hosting
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
-		public static IResourceBuilder<FdbClusterResource> AddFoundationDbCluster(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
+		public static IResourceBuilder<FdbClusterResource> AddFoundationDbContainer(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
 		{
-			return AddFoundationDbCluster(builder, name, apiVersion, FdbPath.Parse(root), clusterVersion, rollForward);
+			return AddFoundationDbContainer(builder, name, apiVersion, FdbPath.Parse(root), clusterVersion, rollForward);
 		}
 
 		/// <summary>Add a local FoundationDB cluster to the application</summary>
@@ -156,7 +156,7 @@ namespace Aspire.Hosting
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
-		public static IResourceBuilder<FdbClusterResource> AddFoundationDbCluster(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
+		public static IResourceBuilder<FdbClusterResource> AddFoundationDbContainer(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
 		{
 			Contract.NotNull(builder);
 			Contract.NotNullOrWhiteSpace(name);
