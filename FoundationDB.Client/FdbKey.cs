@@ -37,8 +37,10 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 
 	/// <summary>Factory class for keys</summary>
+	[PublicAPI]
 	public static class FdbKey
 	{
+
 		/// <summary>Smallest possible key ('\0')</summary>
 		public static readonly Slice MinValue = Slice.FromByte(0);
 
@@ -221,11 +223,11 @@ namespace FoundationDB.Client
 				for (int k = 0; k < m_workers; k++)
 				{
 					if (m_remaining == 0) yield break;
-					yield return WorkerIterator(k);
+					yield return WorkerIterator();
 				}
 			}
 
-			private IEnumerable<KeyValuePair<int, int>> WorkerIterator(int k)
+			private IEnumerable<KeyValuePair<int, int>> WorkerIterator()
 			{
 				while (true)
 				{
@@ -305,7 +307,7 @@ namespace FoundationDB.Client
 										}
 										case 0x01:
 										{
-											var tmp = key[0, -1] + (byte)0;
+											var tmp = key[0, -1] + 0;
 											//***README*** if you break under here, see README in the last catch() block
 											if (TuPack.TryUnpack(tmp, out tuple))
 											{

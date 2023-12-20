@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents the path to a specific subspace in the database</summary>
 	/// <remarks>A path can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into the actual <see cref="IKeySubspace"/> implementation that will be valid within the context of a transaction.</remarks>
+	[PublicAPI]
 	public interface ISubspaceLocation : IEquatable<ISubspaceLocation>
 	{
 
@@ -63,6 +64,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents the path to a typed subspace in the database</summary>
 	/// <typeparam name="TSubspace">Type of the <see cref="IKeySubspace"/> implementation that this path will resolve into.</typeparam>
+	[PublicAPI]
 	public interface ISubspaceLocation<TSubspace> : ISubspaceLocation
 		where TSubspace : class, IKeySubspace
 	{
@@ -80,6 +82,7 @@ namespace FoundationDB.Client
 	/// <summary>Default implementation of a subspace location</summary>
 	/// <typeparam name="TSubspace">Type of the concrete <see cref="IKeySubspace"/> implementation that this location will resolve to</typeparam>
 	[DebuggerDisplay("Path={Path}, Prefix={Prefix}, Encoding={Encoding}")]
+	[PublicAPI]
 	public abstract class SubspaceLocation<TSubspace> : ISubspaceLocation<TSubspace>
 		where TSubspace : class, IKeySubspace
 	{
@@ -131,6 +134,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Path to a subspace that can represent binary keys only</summary>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="IDynamicKeySubspace"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class BinaryKeySubspaceLocation : SubspaceLocation<IBinaryKeySubspace>
 	{
 
@@ -171,6 +175,8 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Path to a subspace that can represent dynamic keys of any size and type</summary>
+	[PublicAPI]
 	public interface IDynamicKeySubspaceLocation : ISubspaceLocation<IDynamicKeySubspace>
 	{
 		IDynamicKeyEncoder Encoder { get; }
@@ -178,6 +184,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Path to a subspace that can represent dynamic keys of any size and type</summary>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="IDynamicKeySubspace"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class DynamicKeySubspaceLocation : SubspaceLocation<IDynamicKeySubspace>, IDynamicKeySubspaceLocation
 	{
 
@@ -253,6 +260,7 @@ namespace FoundationDB.Client
 	/// <summary>Path to a subspace that can represent keys of a specific type</summary>
 	/// <typeparam name="T1">Type of the key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1> : SubspaceLocation<ITypedKeySubspace<T1>>
 	{
 
@@ -310,6 +318,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T1">Type of the first key</typeparam>
 	/// <typeparam name="T2">Type of the second key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1, T2}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1, T2> : SubspaceLocation<ITypedKeySubspace<T1, T2>>
 	{
 		public ICompositeKeyEncoder<T1, T2> Encoder { get; }
@@ -366,6 +375,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T2">Type of the second key</typeparam>
 	/// <typeparam name="T3">Type of the third key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1, T2, T3}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1, T2, T3> : SubspaceLocation<ITypedKeySubspace<T1, T2, T3>>
 	{
 
@@ -422,6 +432,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T3">Type of the third key</typeparam>
 	/// <typeparam name="T4">Type of the fourth key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1, T2, T3, T4}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1, T2, T3, T4> : SubspaceLocation<ITypedKeySubspace<T1, T2, T3, T4>>
 	{
 
@@ -473,6 +484,7 @@ namespace FoundationDB.Client
 		public TypedKeySubspaceLocation<T4> this[T1 item1, T2 item2, T3 item3] => new(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(3, (item1, item2, item3, default!)), this.Encoding.GetKeyEncoder<T4>());
 	}
 
+	[PublicAPI]
 	public static class SubspaceLocationExtensions
 	{
 
@@ -651,6 +663,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[PublicAPI]
 	public static class SubspaceLocation
 	{
 

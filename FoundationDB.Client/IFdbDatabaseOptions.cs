@@ -27,7 +27,9 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public interface IFdbDatabaseOptions
 	{
 

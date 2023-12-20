@@ -27,8 +27,10 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper that can set various options on transactions</summary>
+	[PublicAPI]
 	public interface IFdbTransactionOptions
 	{
 
