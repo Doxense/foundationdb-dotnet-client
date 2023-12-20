@@ -45,6 +45,8 @@ namespace FoundationDB.Client
 
 		IFdbDatabase Database { get; }
 
+		/// <summary>Tenant of this transaction</summary>
+		/// <remarks>If <c>null</c>, the transaction can interact whith the complete keyspace</remarks>
 		IFdbTenant? Tenant { get; }
 
 		/// <summary>Context of this transaction.</summary>
@@ -77,7 +79,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Try reads from database snapshot represented by by the current transaction and write result to <paramref name="valueWriter"/>. </summary>
 		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="bufferWriter">Buffer writter for which the value is written, if it exists</param>
+		/// <param name="valueWriter">Buffer writter for which the value is written, if it exists</param>
 		/// <returns>Task with true if the key if it is found</returns>
 		Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter);
 

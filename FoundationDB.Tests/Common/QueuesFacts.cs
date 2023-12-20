@@ -208,7 +208,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		private async Task RunMultiClientTest(IFdbDatabase db, FdbDirectorySubspaceLocation location, string desc, int K, int NUM, CancellationToken ct)
 		{
-			Log($"Starting {desc} test with {K} threads and {NUM} iterations");
+			Log($"Starting {desc} test with {K:N0} threads and {NUM:N0} iterations");
 
 			await CleanLocation(db, location);
 
@@ -309,8 +309,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				await Task.WhenAll(popThreads);
 
 				sw.Stop();
-				Log($"> Finished {desc} test in {sw.Elapsed.TotalSeconds} seconds");
-				Log($"> Pushed {pushCount}, Popped {popCount} and Stalled {stalls}");
+				Log($"> Finished {desc} test in {sw.Elapsed.TotalSeconds:N3} seconds");
+				Log($"> Pushed {pushCount:N0}, Popped {popCount:N0} and Stalled {stalls:N0}");
 
 				var pushedItems = pushTreads.SelectMany(t => t.Result).ToList();
 				var poppedItems = popThreads.SelectMany(t => t.Result).ToList();

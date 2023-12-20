@@ -47,11 +47,6 @@ namespace FoundationDB.Client
 				return new ArgumentException("Key cannot be null.", paramName);
 			}
 
-			internal static Exception KeyIsTooBig(Slice key, string paramName = "key")
-			{
-				return new ArgumentException($"Key is too big ({key.Count} > {Fdb.MaxKeySize}).", paramName);
-			}
-
 			internal static Exception KeyIsTooBig(ReadOnlySpan<byte> key, string paramName = "key")
 			{
 				return new ArgumentException($"Key is too big ({key.Length} > {Fdb.MaxKeySize}).", paramName);
@@ -62,27 +57,9 @@ namespace FoundationDB.Client
 				return new ArgumentException("Value cannot be null", paramName);
 			}
 
-			internal static Exception ValueIsTooBig(Slice value, string paramName = "value")
-			{
-				return new ArgumentException($"Value is too big ({value.Count} > {Fdb.MaxValueSize}).", paramName);
-			}
-
 			internal static Exception ValueIsTooBig(ReadOnlySpan<byte> value, string paramName = "value")
 			{
 				return new ArgumentException($"Value is too big ({value.Length} > {Fdb.MaxValueSize}).", paramName);
-			}
-
-			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, Slice key)
-			{
-				Contract.Debug.Requires(db != null);
-				return new FdbException(
-					FdbError.KeyOutsideLegalRange,
-#if DEBUG
-					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the root keyspace {db.Root}."
-#else
-					$"An attempt was made to use a key that is outside of the root Root {db.Root}"
-#endif
-				);
 			}
 
 			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, ReadOnlySpan<byte> key)

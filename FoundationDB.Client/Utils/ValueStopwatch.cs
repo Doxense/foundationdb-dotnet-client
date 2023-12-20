@@ -31,6 +31,9 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using JetBrains.Annotations;
 
+	//note: there is a ValueStopwatch in dotnet/aspnetcore, but it is currently "internal"
+	// => maybe if at some point in time there is a public type for this in the BCL, we can remove this version!
+
 	/// <summary>Helper that can measure time elapsed with the same precision has <see cref="Stopwatch"/>, but without allocating an instance</summary>
 	/// <remarks>This watch cannot be stopped or restarted</remarks>
 	internal readonly struct ValueStopwatch
@@ -76,5 +79,7 @@ namespace FoundationDB.Client
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => new TimeSpan(GetElapsedDateTimeTicks());
 		}
+
 	}
+
 }

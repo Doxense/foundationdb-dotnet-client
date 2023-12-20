@@ -84,7 +84,7 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			return "Watch(" + FdbKey.Dump(this.Key) + ")";
+			return $"Watch({FdbKey.Dump(this.Key)})";
 		}
 
 	}

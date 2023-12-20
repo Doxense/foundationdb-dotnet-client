@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 			this.Id = identifier;
 			this.Coordinators = coordinators.ToArray(); // create a copy of the array
 
-			this.RawValue = String.Format(
+			this.RawValue = string.Format(
 				CultureInfo.InvariantCulture,
 				"{0}:{1}@{2}",
 				this.Description,
@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 
 			int p = rawValue.IndexOf(':');
 			if (p < 0) throw new FormatException("Missing ':' after description field.");
-			string description = rawValue.Substring(0, p).Trim();
+			string description = rawValue[..p].Trim();
 			if (description.Length == 0) throw new FormatException("Empty description field.");
 
 			int q  = rawValue.IndexOf('@', p + 1);
@@ -101,13 +101,13 @@ namespace FoundationDB.Client
 			string identifier = rawValue.Substring(p + 1, q - p - 1).Trim();
 			if (identifier.Length == 0) throw new FormatException("Empty description field.");
 
-			string[] pairs = rawValue.Substring(q + 1).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+			string[] pairs = rawValue[(q + 1)..].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 			var coordinators = pairs.Select(pair =>
 			{
 				bool tls = false;
 				if (pair.EndsWith(":tls", StringComparison.OrdinalIgnoreCase))
 				{
-					pair = pair.Substring(0, pair.Length - 4);
+					pair = pair[..^4];
 					tls = true;
 				}
 				int r = pair.LastIndexOf(':');
@@ -115,8 +115,8 @@ namespace FoundationDB.Client
 				// the format is "{IP}:{PORT}" or "{IP}:{PORT}:tls"
 
 				return new FdbEndPoint(
-					IPAddress.Parse(pair.Substring(0, r)),
-					Int32.Parse(pair.Substring(r + 1)),
+					IPAddress.Parse(pair[..r]),
+					Int32.Parse(pair[(r + 1)..]),
 					tls
 				);
 			}).ToArray();

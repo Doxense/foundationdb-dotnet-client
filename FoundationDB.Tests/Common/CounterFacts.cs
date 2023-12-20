@@ -75,7 +75,7 @@ namespace FoundationDB.Layers.Counters.Tests
 
 				var c = new FdbHighContentionCounter(location);
 
-				Log("Doing " + N + " inserts in one thread...");
+				Log($"Doing {N:N0} inserts in one thread...");
 
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < N; i++)
@@ -84,7 +84,7 @@ namespace FoundationDB.Layers.Counters.Tests
 				}
 				sw.Stop();
 
-				Log("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / N).ToString("N0") + " µs/add)");
+				Log($"> {N:N0} inserts completed in {sw.Elapsed.TotalMilliseconds:N1} ms ({(sw.Elapsed.TotalMilliseconds * 1000 / N):N0} µs/add)");
 
 #if DEBUG
 				await DumpSubspace(db, location);
@@ -113,11 +113,11 @@ namespace FoundationDB.Layers.Counters.Tests
 
 					var c = new FdbHighContentionCounter(location);
 
-					Log("Doing " + W + " x " + B + " inserts in " + W + " threads...");
+					Log($"Doing {W:N0} x {B:N0} inserts in {W:N0} threads...");
 
 					var signal = new TaskCompletionSource<object>();
 					var workers = Enumerable.Range(0, W)
-						.Select(async (id) =>
+						.Select(async (_) =>
 						{
 							await signal.Task.ConfigureAwait(false);
 							for (int i = 0; i < B; i++)
@@ -132,7 +132,7 @@ namespace FoundationDB.Layers.Counters.Tests
 					// wait
 					await Task.WhenAll(workers);
 					sw.Stop();
-					Log("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / B).ToString("N0") + " µs/add)");
+					Log($"> {N} completed in {sw.Elapsed.TotalMilliseconds:N1} ms ({(sw.Elapsed.TotalMilliseconds * 1000 / B):N0} µs/add)");
 
 					long n = await db.ReadAsync(tr => c.GetSnapshot(tr), this.Cancellation);
 					if (n != N)
@@ -155,7 +155,6 @@ namespace FoundationDB.Layers.Counters.Tests
 			}
 
 		}
-
 
 	}
 

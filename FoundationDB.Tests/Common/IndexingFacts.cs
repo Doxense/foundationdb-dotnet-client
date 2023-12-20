@@ -205,15 +205,15 @@ namespace FoundationDB.Layers.Tables.Tests
 
 		private sealed class Character
 		{
-			public long Id { get; set; }
+			public long Id { get; init; }
 
-			public string Name { get; set; }
+			public string Name { get; init; }
 
-			public string Brand { get; set; }
+			public string Brand { get; init; }
 
-			public bool HasSuperPowers { get; set; }
+			public bool HasSuperPowers { get; init; }
 
-			public bool? IsVilain { get; set; }
+			public bool? IsVilain { get; init; }
 		}
 
 	}
