@@ -87,7 +87,7 @@ namespace Doxense.Collections.Tuples
 		/// ("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"
 		/// </example>
 		[JetBrains.Annotations.Pure]
-		TItem Get<TItem>(int index);
+		TItem? Get<TItem>(int index);
 
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="TItem">Type of the new value</typeparam>

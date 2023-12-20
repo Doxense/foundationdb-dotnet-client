@@ -51,7 +51,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T">Type of the element</typeparam>
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="item1">Element to encode</param>
-		void EncodeKey<T>(ref SliceWriter writer, T item1);
+		void EncodeKey<T>(ref SliceWriter writer, T? item1);
 
 		/// <summary>Encode a key composed of two elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -59,7 +59,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
-		void EncodeKey<T1, T2>(ref SliceWriter writer, T1 item1, T2 item2);
+		void EncodeKey<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2);
 
 		/// <summary>Encode a key composed of a three elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -69,7 +69,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
-		void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3);
+		void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3);
 
 		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -81,7 +81,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4);
+		void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4);
 
 		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -95,7 +95,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5);
+		void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5);
 
 		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -111,7 +111,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6);
+		void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6);
 
 		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -129,7 +129,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7);
+		void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7);
 
 		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -149,7 +149,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
 		/// <param name="item8">Eighth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8);
+		void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8);
 
 		#endregion
 
@@ -170,14 +170,14 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T">Expected type of the element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1}"/> or <see cref="EncodeKey{T1}"/></param>
 		/// <returns>Value of the decoded element, or an exception if the data is invalid or the encoded tuple is empty or has more than one element</returns>
-		T DecodeKey<T>(Slice packed);
+		T? DecodeKey<T>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly two elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2}"/> or <see cref="EncodeKey{T1, T2}"/></param>
 		/// <returns>Tuple containing two elements, or an exception if the data is invalid, or the tuples has less or more than two elements</returns>
-		(T1, T2) DecodeKey<T1, T2>(Slice packed);
+		(T1?, T2?) DecodeKey<T1, T2>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly three elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -185,7 +185,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3}"/> or <see cref="EncodeKey{T1, T2, T3}"/></param>
 		/// <returns>Tuple containing three elements, or an exception if the data is invalid, or the tuples has less or more than three elements</returns>
-		(T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed);
+		(T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly four elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -194,7 +194,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4}"/> or <see cref="EncodeKey{T1, T2, T3, T4}"/></param>
 		/// <returns>Tuple containing four elements, or an exception if the data is invalid, or the tuples has less or more than four elements</returns>
-		(T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed);
+		(T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly five elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -204,7 +204,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
-		(T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed);
+		(T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly six elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -215,20 +215,20 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
-		(T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed);
+		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed);
 
 		/// <summary>Decode the first element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded value of first element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T1 DecodeKeyFirst<T1>(Slice packed);
+		T1? DecodeKeyFirst<T1>(Slice packed);
 
 		/// <summary>Decode the first 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 2 elements.</param>
 		/// <returns>Decoded values of the first 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1, T2) DecodeKeyFirst<T1, T2>(Slice packed);
+		(T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed);
 
 		/// <summary>Decode the first 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -236,20 +236,20 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the thrid element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 3 elements.</param>
 		/// <returns>Decoded values of the first 3 elements, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1, T2, T3) DecodeKeyFirst<T1, T2, T3>(Slice packed);
+		(T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed);
 
 		/// <summary>Decode the last element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded value of the last element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T DecodeKeyLast<T>(Slice packed);
+		T? DecodeKeyLast<T>(Slice packed);
 
 		/// <summary>Decode the last 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the second to last element</typeparam>
 		/// <typeparam name="T2">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded values of the last 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1, T2) DecodeKeyLast<T1, T2>(Slice packed);
+		(T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed);
 
 		/// <summary>Decode the last 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the third to last element</typeparam>
@@ -257,7 +257,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded values of the last 3 element, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1, T2, T3) DecodeKeyLast<T1, T2, T3>(Slice packed);
+		(T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed);
 
 
 		#endregion

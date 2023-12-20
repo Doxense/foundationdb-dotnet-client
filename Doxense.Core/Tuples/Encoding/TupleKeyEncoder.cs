@@ -54,7 +54,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1>(ref SliceWriter writer, T1 item1)
+		public void EncodeKey<T1>(ref SliceWriter writer, T1? item1)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -62,7 +62,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1 item1, T2 item2)
+		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -71,7 +71,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3)
+		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -81,7 +81,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4)
+		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -92,7 +92,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -104,7 +104,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -117,7 +117,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -131,7 +131,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -152,40 +152,40 @@ namespace Doxense.Collections.Tuples.Encoding
 		public bool TryUnpackKey(Slice packed, [NotNullWhen(true)] out IVarTuple? tuple) => TuPack.TryUnpack(packed, out tuple);
 
 		/// <inheritdoc />
-		public T DecodeKey<T>(Slice packed) => TuPack.DecodeKey<T>(packed);
+		public T? DecodeKey<T>(Slice packed) => TuPack.DecodeKey<T>(packed);
 
 		/// <inheritdoc />
-		public T1 DecodeKeyFirst<T1>(Slice packed) => TuPack.DecodeFirst<T1>(packed);
+		public T1? DecodeKeyFirst<T1>(Slice packed) => TuPack.DecodeFirst<T1>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2) DecodeKeyFirst<T1, T2>(Slice packed) => TuPack.DecodeFirst<T1, T2>(packed);
+		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed) => TuPack.DecodeFirst<T1, T2>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2, T3) DecodeKeyFirst<T1, T2, T3>(Slice packed) => TuPack.DecodeFirst<T1, T2, T3>(packed);
+		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed) => TuPack.DecodeFirst<T1, T2, T3>(packed);
 
 		/// <inheritdoc />
-		public T DecodeKeyLast<T>(Slice packed) => TuPack.DecodeLast<T>(packed);
+		public T? DecodeKeyLast<T>(Slice packed) => TuPack.DecodeLast<T>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2) DecodeKeyLast<T1, T2>(Slice packed) => TuPack.DecodeLast<T1, T2>(packed);
+		public (T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed) => TuPack.DecodeLast<T1, T2>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2, T3) DecodeKeyLast<T1, T2, T3>(Slice packed) => TuPack.DecodeLast<T1, T2, T3>(packed);
+		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed) => TuPack.DecodeLast<T1, T2, T3>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2) DecodeKey<T1, T2>(Slice packed) => TuPack.DecodeKey<T1, T2>(packed);
+		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed) => TuPack.DecodeKey<T1, T2>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed) => TuPack.DecodeKey<T1, T2, T3>(packed);
+		public (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packed) => TuPack.DecodeKey<T1, T2, T3>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4>(packed);
+		public (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5>(packed);
+		public (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5>(packed);
 
 		/// <inheritdoc />
-		public (T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
+		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
 
 		/// <inheritdoc />
 		public (Slice Begin, Slice End) ToRange(Slice prefix) => TuPack.ToRange(prefix);

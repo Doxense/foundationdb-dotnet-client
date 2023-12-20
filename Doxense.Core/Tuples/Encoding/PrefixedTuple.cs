@@ -85,12 +85,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		public IVarTuple this[Range range] => m_items[range];
 		//REVIEW: should we allow this? this silently drops the prefix from the result...
 
-		public T Get<T>(int index)
+		public T? Get<T>(int index)
 		{
 			return m_items.Get<T>(index);
 		}
 
-		public T Last<T>()
+		public T? Last<T>()
 		{
 			return m_items.Last<T>();
 		}

@@ -90,10 +90,10 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			if (index > 0 || index < -1) return TupleHelpers.FailIndexOutOfRange<TItem>(index, 1);
-			return TypeConverters.Convert<T1, TItem>(this.Item1);
+			return TypeConverters.Convert<T1, TItem?>(this.Item1);
 		}
 
 		IVarTuple IVarTuple.Append<T2>(T2 value) where T2 : default

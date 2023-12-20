@@ -145,18 +145,18 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			return TypeConverters.ConvertBoxed<TItem>(this[index]);
 		}
 
-		public TItem First<TItem>()
+		public TItem? First<TItem>()
 		{
 			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
 			return TypeConverters.ConvertBoxed<TItem>(m_items.Span[0]);
 		}
 
-		public TItem Last<TItem>()
+		public TItem? Last<TItem>()
 		{
 			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
 			return TypeConverters.ConvertBoxed<TItem>(m_items.Span[^1]);

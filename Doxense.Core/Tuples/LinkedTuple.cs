@@ -108,9 +108,9 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
-			if (index == this.HeadCount || index == -1) return TypeConverters.Convert<T, TItem>(this.Tail);
+			if (index == this.HeadCount || index == -1) return TypeConverters.Convert<T, TItem?>(this.Tail);
 			if (index < -1) index++;
 			return this.Head.Get<TItem>(index);
 		}

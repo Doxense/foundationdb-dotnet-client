@@ -512,7 +512,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				{
 					if (!TryWriteUnescapedUtf8String(ref writer, chars + offset, count))
 					{ // the string contains \0 chars, we need to do it the hard way
-						WriteNulEscapedBytes(ref writer, TupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
+						WriteNulEscapedBytes(ref writer, TupleTypes.Utf8, Encoding.UTF8.GetBytes(value!, 0, count));
 					}
 				}
 			}
