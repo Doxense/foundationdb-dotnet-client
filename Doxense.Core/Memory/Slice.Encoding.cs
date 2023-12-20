@@ -190,11 +190,11 @@ namespace System
 				if (value <= (1 << 16) - 1)
 				{
 					//TODO: possible micro optimization is for values like 0x100, 0x201, 0x1413 or 0x4342, where we could use 2 consecutive bytes in the ByteSprite,
-					return new Slice(new byte[2] { (byte)value, (byte)(value >> 8) }, 0, 2);
+					return unchecked(new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2));
 				}
 				if (value <= (1 << 24) - 1)
 				{
-					return new Slice(new byte[3] { (byte)value, (byte)(value >> 8), (byte)(value >> 16) }, 0, 3);
+					return unchecked(new Slice(new byte[3] { (byte) value, (byte) (value >> 8), (byte) (value >> 16) }, 0, 3));
 				}
 			}
 
@@ -206,7 +206,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed32(int value)
 		{
-			return new Slice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4);
+			return unchecked(new Slice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4));
 		}
 
 		/// <summary>Encode a signed 32-bit integer into a variable size slice (1 to 4 bytes) in big-endian</summary>
@@ -222,11 +222,11 @@ namespace System
 				if (value <= (1 << 16) - 1)
 				{
 					//TODO: possible micro optimization is for values like 0x100, 0x201, 0x1413 or 0x4342, where we could use 2 consecutive bytes in the ByteSprite,
-					return new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2);
+					return unchecked(new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2));
 				}
 				if (value <= (1 << 24) - 1)
 				{
-					return new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3);
+					return unchecked(new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3));
 				}
 			}
 			return FromFixed32BE(value);
@@ -237,7 +237,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed32BE(int value)
 		{
-			return new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value, }, 0, 4);
+			return unchecked(new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value, }, 0, 4));
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into a variable size slice (1 to 4 bytes) in little-endian</summary>
@@ -250,11 +250,11 @@ namespace System
 			}
 			if (value <= (1 << 16) - 1)
 			{
-				return new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
+				return unchecked(new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2));
 			}
 			if (value <= (1 << 24) - 1)
 			{
-				return new Slice(new byte[3] { (byte) value, (byte) (value >> 8), (byte) (value >> 16) }, 0, 3);
+				return unchecked(new Slice(new byte[3] { (byte) value, (byte) (value >> 8), (byte) (value >> 16) }, 0, 3));
 			}
 			return FromFixedU32(value);
 		}
@@ -278,11 +278,11 @@ namespace System
 			}
 			if (value <= (1 << 16) - 1)
 			{
-				return new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2);
+				return unchecked(new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2));
 			}
 			if (value <= (1 << 24) - 1)
 			{
-				return new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3);
+				return unchecked(new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3));
 			}
 			return FromFixedU32BE(value);
 		}
@@ -293,7 +293,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixedU32BE(uint value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 4);
+			return unchecked(new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 4));
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into 7-bit encoded unsigned int (aka 'Varint32')</summary>
@@ -326,15 +326,15 @@ namespace System
 				}
 				if (value <= (1L << 40) - 1)
 				{
-					return new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5);
+					return unchecked(new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5));
 				}
 				if (value <= (1L << 48) - 1)
 				{
-					return new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6);
+					return unchecked(new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6));
 				}
 				if (value <= (1L << 56) - 1)
 				{
-					return new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7);
+					return unchecked(new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7));
 				}
 			}
 
@@ -346,7 +346,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed64(long value)
 		{
-			return new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8);
+			return unchecked(new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8));
 		}
 
 		/// <summary>Encode a signed 64-bit integer into a variable size slice (1 to 8 bytes) in big-endian</summary>
@@ -361,15 +361,15 @@ namespace System
 				}
 				if (value <= (1L << 40) - 1)
 				{
-					return new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5);
+					return unchecked(new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5));
 				}
 				if (value <= (1L << 48) - 1)
 				{
-					return new Slice(new byte[6] { (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 6);
+					return unchecked(new Slice(new byte[6] { (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 6));
 				}
 				if (value <= (1L << 56) - 1)
 				{
-					return new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7);
+					return unchecked(new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7));
 				}
 			}
 
@@ -381,7 +381,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed64BE(long value)
 		{
-			return new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8);
+			return unchecked(new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8));
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into a variable size slice (1 to 8 bytes) in little-endian</summary>
@@ -394,15 +394,15 @@ namespace System
 			}
 			if (value <= (1UL << 40) - 1)
 			{
-				return new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5);
+				return unchecked(new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5));
 			}
 			if (value <= (1UL << 48) - 1)
 			{
-				return new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6);
+				return unchecked(new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6));
 			}
 			if (value <= (1UL << 56) - 1)
 			{
-				return new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7);
+				return unchecked(new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7));
 			}
 			return FromFixedU64(value);
 		}
@@ -413,7 +413,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixedU64(ulong value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8);
+			return unchecked(new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8));
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into a variable size slice (1 to 8 bytes) in big-endian</summary>
@@ -426,15 +426,15 @@ namespace System
 			}
 			if (value <= (1UL << 40) - 1)
 			{
-				return new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5);
+				return unchecked(new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5));
 			}
 			if (value <= (1UL << 48) - 1)
 			{
-				return new Slice(new byte[6] { (byte)(value >> 40), (byte)(value >> 32), (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value }, 0, 6);
+				return unchecked(new Slice(new byte[6] { (byte)(value >> 40), (byte)(value >> 32), (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value }, 0, 6));
 			}
 			if (value <= (1UL << 56) - 1)
 			{
-				return new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7);
+				return unchecked(new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7));
 			}
 			return FromFixedU64BE(value);
 		}
@@ -445,7 +445,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixedU64BE(ulong value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8);
+			return unchecked(new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8));
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into 7-bit encoded unsigned int (aka 'Varint64')</summary>
@@ -692,11 +692,11 @@ namespace System
 		/// <remarks>
 		/// This method will check each character and fail if at least one is greater than 255.
 		/// Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.
-		/// The only difference between this method and <see cref="FromByteString"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.
+		/// The only difference between this method and <see cref="FromByteString(string?)"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
 		[Pure]
-		public static Slice FromStringAscii(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		public static Slice FromStringAscii(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			if (value.Length == 0) return Empty;
 			return ConvertByteStringChecked(value, ref buffer);
@@ -733,13 +733,13 @@ namespace System
 		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromByteString(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		public static Slice FromByteString(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			return value.Length != 0 ? ConvertByteStringNoCheck(value, ref buffer) : Empty;
 		}
 
 		[Pure]
-		internal static Slice ConvertByteStringChecked(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		internal static Slice ConvertByteStringChecked(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			int n = value.Length;
 			if (n == 1)
@@ -894,7 +894,7 @@ namespace System
 		/// </remarks>
 		[Pure, ContractAnnotation("=> buffer:notnull")]
 		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead")]
-		public static Slice FromStringUtf8(string value, [Positive] int offset, [Positive] int count, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer, out bool asciiOnly)
+		public static Slice FromStringUtf8(string value, [Positive] int offset, [Positive] int count, ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (count == 0)
 			{
@@ -929,7 +929,7 @@ namespace System
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
-		public static Slice FromStringUtf8(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer, out bool asciiOnly)
+		public static Slice FromStringUtf8(ReadOnlySpan<char> value, ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (value.Length == 0)
 			{
@@ -1043,7 +1043,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		private static Slice ConvertByteStringNoCheck(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		private static Slice ConvertByteStringNoCheck(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			int len = value.Length;
 			if (len == 0) return Empty;
@@ -1242,7 +1242,7 @@ namespace System
 		/// <summary>Stringify a slice containing either 7-bit ASCII, or UTF-8 characters</summary>
 		/// <returns>Decoded string, or null if the slice is null. The encoding will be automatically detected</returns>
 		/// <remarks>
-		/// This should only be used for slices produced by any of the <see cref="FromString"/>, <see cref="FromStringUtf8(string)"/>, <see cref="FromStringUtf8WithBom"/>, <see cref="FromByteString"/> or <see cref="FromStringAscii"/> methods.
+		/// This should only be used for slices produced by any of the <see cref="FromString(string?)"/>, <see cref="FromStringUtf8(string?)"/>, <see cref="FromStringUtf8WithBom(string?)"/>, <see cref="FromByteString(string?)"/> or <see cref="FromStringAscii(string?)"/> methods.
 		/// This is NOT compatible with slices produced by <see cref="FromStringAnsi"/> or encoded with any specific encoding or code page.
 		/// This method will NOT automatically remove the UTF-8 BOM if present (use <see cref="ToStringUtf8"/> if you need this)
 		/// </remarks>
@@ -1321,23 +1321,35 @@ namespace System
 			return this.Span.ToHexaString(sep, lower);
 		}
 
-		internal static StringBuilder EscapeString(StringBuilder sb, byte[] buffer, int offset, int count, Encoding encoding)
+		internal static StringBuilder EscapeString(StringBuilder? sb, byte[] buffer, int offset, int count, Encoding encoding)
 		{
-			if (sb == null) sb = new StringBuilder(count + 16);
+			sb ??= new StringBuilder(count + 16);
 			foreach (var c in encoding.GetChars(buffer, offset, count))
 			{
 				if ((c >= ' ' && c <= '~') || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
+				{
 					sb.Append(c);
+				}
 				else if (c == 0)
+				{
 					sb.Append(@"\0");
+				}
 				else if (c == '\n')
+				{
 					sb.Append(@"\n");
+				}
 				else if (c == '\r')
+				{
 					sb.Append(@"\r");
+				}
 				else if (c == '\t')
+				{
 					sb.Append(@"\t");
+				}
 				else if (c > 127)
+				{
 					sb.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+				}
 				else // pas clean!
 				{
 					sb.Append(@"\x").Append(((int)c).ToString("x2", CultureInfo.InvariantCulture));
