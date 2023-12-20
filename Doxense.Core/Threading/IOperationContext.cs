@@ -166,7 +166,7 @@ namespace Doxense.Threading.Operations
 			}
 			else
 			{ // valuetype
-				return value == null ? default! : (TResult) value!;
+				return value == null ? default! : (TResult) value;
 			}
 		}
 
@@ -215,7 +215,7 @@ namespace Doxense.Threading.Operations
 			}
 			else
 			{ // valuetype
-				result = value == null ? default! : (TResult) value!;
+				result = value == null ? default! : (TResult) value;
 			}
 			error = null;
 			return true;
@@ -244,9 +244,9 @@ namespace Doxense.Threading.Operations
 
 	public sealed record OperationError
 	{
-		public string Code { get; init; }
+		public required string Code { get; init; }
 
-		public string Message { get; init; }
+		public required string Message { get; init; }
 
 		public ExceptionDispatchInfo? Exception { get; init; }
 
@@ -532,31 +532,31 @@ namespace Doxense.Threading.Operations
 		#region Logs...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LogDebug(this IOperationContext context, string message) => context.Log(LogLevel.Debug, null, message, null);
+		public static void LogDebug(this IOperationContext context, string message) => context.Log(LogLevel.Debug, null, message);
 		
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogDebug(this IOperationContext context, string format, params object[]? args) => context.Log(LogLevel.Debug, null, format, args);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LogInformation(this IOperationContext context, string message) => context.Log(LogLevel.Information, null, message, null);
+		public static void LogInformation(this IOperationContext context, string message) => context.Log(LogLevel.Information, null, message);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogInformation(this IOperationContext context, string format, params object[]? args) => context.Log(LogLevel.Information, null, format, args);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LogWarning(this IOperationContext context, string message) => context.Log(LogLevel.Warning, null, message, null);
+		public static void LogWarning(this IOperationContext context, string message) => context.Log(LogLevel.Warning, null, message);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogWarning(this IOperationContext context, string format, params object[]? args) => context.Log(LogLevel.Warning, null, format, args);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LogError(this IOperationContext context, string message) => context.Log(LogLevel.Error, null, message, null);
+		public static void LogError(this IOperationContext context, string message) => context.Log(LogLevel.Error, null, message);
 		
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogError(this IOperationContext context, string format, params object[] args) => context.Log(LogLevel.Error, null, format, args);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LogError(this IOperationContext context, Exception exception, string message) => context.Log(LogLevel.Error, exception, message, null);
+		public static void LogError(this IOperationContext context, Exception exception, string message) => context.Log(LogLevel.Error, exception, message);
 
 		#endregion
 
@@ -595,7 +595,7 @@ namespace Doxense.Threading.Operations
 
 		public bool HasResult { get; private set; }
 
-		public TResult Result { get; private set; }
+		public TResult? Result { get; private set; }
 
 		public OperationError? Error { get; private set; }
 
@@ -674,7 +674,7 @@ namespace Doxense.Threading.Operations
 				return false;
 			}
 
-			result = this.Result;
+			result = this.Result!;
 			return true;
 		}
 
@@ -709,7 +709,7 @@ namespace Doxense.Threading.Operations
 				{
 					activity.SetStatus(ActivityStatusCode.Error, error.Code);
 					activity.SetTag("operation.error.code", error.Code);
-					var ex = error?.Exception?.SourceException;
+					var ex = error.Exception?.SourceException;
 					if (ex != null) activity.RecordException(ex);
 				}
 
@@ -818,9 +818,9 @@ namespace Doxense.Threading.Operations
 
 		private CancellationTokenSource Lifetime { get; }
 
-		private ConcurrentDictionary<string, IOperationContext> OperationsById { get; } = new ConcurrentDictionary<string, IOperationContext>();
+		//private ConcurrentDictionary<string, IOperationContext> OperationsById { get; } = new ConcurrentDictionary<string, IOperationContext>();
 
-		private ConcurrentDictionary<string, IOperationContext> OperationsByKey { get; } = new ConcurrentDictionary<string, IOperationContext>();
+		//private ConcurrentDictionary<string, IOperationContext> OperationsByKey { get; } = new ConcurrentDictionary<string, IOperationContext>();
 
 		public OperationScheduler(IEventBus eventBus, ILogger<OperationScheduler> logger)
 		{

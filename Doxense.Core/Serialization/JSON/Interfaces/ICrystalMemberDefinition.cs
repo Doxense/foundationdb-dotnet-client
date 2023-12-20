@@ -39,9 +39,9 @@ namespace Doxense.Serialization.Json
 
 		bool ReadOnly { get; }
 
-		Func<object, object> Getter { get; }
+		Func<object, object?> Getter { get; }
 
-		Action<object, object>? Setter { get; }
+		Action<object, object?>? Setter { get; }
 
 	}
 

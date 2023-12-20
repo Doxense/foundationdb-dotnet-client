@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
-
 namespace Doxense.Reactive.Disposables
 {
 	using System;
@@ -46,7 +44,7 @@ namespace Doxense.Reactive.Disposables
 		#region Private Members...
 
 		/// <summary>Placeholder utilisé lorsqu'il ne faut rien faire</summary>
-		private static readonly Action<T> s_nop = (t) => { };
+		private static readonly Action<T> s_nop = (_) => { };
 
 		/// <summary>Placeholder utilisé lorsqu'il faut Disposer l'objet</summary>
 		private static readonly Action<T> s_dispose = (t) => (t as IDisposable)?.Dispose();
@@ -132,7 +130,7 @@ namespace Doxense.Reactive.Disposables
 
 		#region Operators...
 
-		public static implicit operator T(Disposable<T> disposable)
+		public static implicit operator T?(Disposable<T>? disposable)
 		{
 			if (disposable == null) return default(T);
 			return disposable.Value;
@@ -197,7 +195,7 @@ namespace Doxense.Reactive.Disposables
 
 		public override string ToString()
 		{
-			return m_value == null ? string.Empty : m_value.ToString();
+			return m_value?.ToString() ?? string.Empty;
 		}
 
 		#endregion

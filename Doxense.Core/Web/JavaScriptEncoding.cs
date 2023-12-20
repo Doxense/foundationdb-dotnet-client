@@ -114,14 +114,14 @@ namespace Doxense.Web
 		/// <param name="includeQuotes">Si true, ajout automatiquement des apostrophes ('...')</param>
 		/// <returns>Chaîne encodée correctement</returns>
 		/// <remarks>Cette méthode n'alloue pas de mémoire si la chaîne d'origine est clean</remarks>
-		public static string Encode(string text, bool includeQuotes)
+		public static string Encode(string? text, bool includeQuotes)
 		{
-			if (text == null) return includeQuotes ? Tokens.Null : String.Empty;
-			if (text.Length == 0) return includeQuotes ? Tokens.EmptyString : String.Empty;
+			if (text == null) return includeQuotes ? Tokens.Null : string.Empty;
+			if (text.Length == 0) return includeQuotes ? Tokens.EmptyString : string.Empty;
 			// premiere passe pour voir s'il y a des caractères a remplacer..
-			if (JavaScriptEncoding.IsCleanJavaScript(text)) return includeQuotes ? String.Concat(Tokens.Quote, text, Tokens.Quote) : text; // rien a modifier, retourne la chaine initiale (fast, no memory used)
+			if (IsCleanJavaScript(text)) return includeQuotes ? string.Concat(Tokens.Quote, text, Tokens.Quote) : text; // rien a modifier, retourne la chaine initiale (fast, no memory used)
 			// deuxième passe: remplace les caractères invalides (slow, memory used)
-			return JavaScriptEncoding.EncodeSlow(new StringBuilder(text.Length + 16), text, includeQuotes).ToString();
+			return EncodeSlow(new StringBuilder(text.Length + 16), text, includeQuotes).ToString();
 		}
 
 		/// <summary>Encode le nom d'une propriété d'un objet</summary>

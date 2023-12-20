@@ -105,12 +105,12 @@ namespace Doxense.Linq.Async.Expressions
 				if (m_transform != null)
 				{
 					var f = m_transform;
-					return new AsyncTransformExpression<TSource, TCasted>((x) => (TCasted) (object) f(x));
+					return new AsyncTransformExpression<TSource, TCasted>((x) => (TCasted) (object) f(x)!);
 				}
 				else
 				{
-					var f = m_asyncTransform;
-					return new AsyncTransformExpression<TSource, TCasted>(async (x, ct) => (TCasted) (object) (await f(x, ct).ConfigureAwait(false)));
+					var f = m_asyncTransform!;
+					return new AsyncTransformExpression<TSource, TCasted>(async (x, ct) => (TCasted) (object) (await f(x, ct).ConfigureAwait(false))!);
 				}
 			}
 		}

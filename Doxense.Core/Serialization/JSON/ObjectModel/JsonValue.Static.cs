@@ -103,7 +103,7 @@ namespace Doxense.Serialization.Json
 			{ // Enumeration
 				// on convertit en int d'abord, car decimal=>enum n'est pas supporté...
 				// note: une enum n'est pas forcément un Int32, donc on est obligé d'abord de convertir vers le UnderlyingType (récursivement)
-				return Enum.ToObject(type, jsonValue.Bind(type.GetEnumUnderlyingType(), resolver));
+				return Enum.ToObject(type, jsonValue.Bind(type.GetEnumUnderlyingType(), resolver)!);
 			}
 
 			var nullableType = Nullable.GetUnderlyingType(type);

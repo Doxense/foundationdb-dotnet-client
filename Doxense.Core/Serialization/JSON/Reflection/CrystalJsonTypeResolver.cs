@@ -193,6 +193,8 @@ namespace Doxense.Serialization.Json
 					Getter = type.GetProperty("Key")!.CompileGetter(),
 					Setter = null, //TODO: private setter?
 					//TODO: visitor? binder?
+					Visitor = (_, _, _, _) => throw new NotImplementedException(),
+					Binder = (_, _, _) => throw new NotImplementedException(),
 				},
 				new CrystalJsonMemberDefinition()
 				{
@@ -203,6 +205,8 @@ namespace Doxense.Serialization.Json
 					Getter = type.GetProperty("Value")!.CompileGetter(),
 					Setter = null, //TODO: private setter?
 					//TODO: visitor? binder?
+					Visitor = (_, _, _, _) => throw new NotImplementedException(),
+					Binder = (_, _, _) => throw new NotImplementedException(),
 				}
 			};
 
@@ -419,13 +423,13 @@ namespace Doxense.Serialization.Json
 					var elementType = type.GetGenericArguments()[0];
 					if (filler == nameof(FillList))
 					{ // special cases!
-						if (elementType == typeof(bool)) return (resolver, array) => array?.ToBoolList();
-						if (elementType == typeof(string)) return (resolver, array) => array?.ToStringList();
-						if (elementType == typeof(int)) return (resolver, array) => array?.ToInt32List();
-						if (elementType == typeof(long)) return (resolver, array) => array?.ToInt64List();
-						if (elementType == typeof(double)) return (resolver, array) => array?.ToDoubleList();
-						if (elementType == typeof(float)) return (resolver, array) => array?.ToSingleList();
-						if (elementType == typeof(Guid)) return (resolver, array) => array?.ToGuidList();
+						if (elementType == typeof(bool)) return (_, array) => array?.ToBoolList();
+						if (elementType == typeof(string)) return (_, array) => array?.ToStringList();
+						if (elementType == typeof(int)) return (_, array) => array?.ToInt32List();
+						if (elementType == typeof(long)) return (_, array) => array?.ToInt64List();
+						if (elementType == typeof(double)) return (_, array) => array?.ToDoubleList();
+						if (elementType == typeof(float)) return (_, array) => array?.ToSingleList();
+						if (elementType == typeof(Guid)) return (_, array) => array?.ToGuidList();
 					}
 					return CreateDefaultJsonArrayBinder_Filler(filler, elementType);
 				}
@@ -708,7 +712,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		private static bool FilterMemberByType(MemberInfo member, Type type)
+		private static bool FilterMemberByType(MemberInfo _, Type type)
 		{
 			if (typeof(Delegate).IsAssignableFrom(type))
 			{
@@ -813,7 +817,6 @@ namespace Doxense.Serialization.Json
 			var properties = type.GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public);
 			foreach (var property in properties)
 			{
-				if (property == null) continue;
 				Type propertyType = property.PropertyType;
 
 				if (!FilterMemberByType(property, propertyType))
@@ -876,7 +879,7 @@ namespace Doxense.Serialization.Json
 			return members.ToArray();
 		}
 
-		private static Action<object, object?>? TryCompileAdderForReadOnlyCollection(PropertyInfo property)
+		private static Action<object, object?>? TryCompileAdderForReadOnlyCollection(PropertyInfo? property)
 		{
 			Contract.Debug.Requires(property?.DeclaringType != null);
 
@@ -1165,7 +1168,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(generator);
 
 			// L'instance dispose d'une méthode this.JsonDeserialize(...)
-			return (v, t, r) =>
+			return (v, _, r) =>
 			{
 				if (v == null || v.IsNull) return null;
 
@@ -1449,7 +1452,7 @@ namespace Doxense.Serialization.Json
 			{ // désérialisation de type de clés simple (integers, guids, ...)
 				var convert = TypeConverters.CreateBoxedConverter<string>(keyType);
 				Contract.Debug.Assert(convert != null);
-				return CreateBinderForDictionary_BoxedKey(generator, valueType, convert);
+				return CreateBinderForDictionary_BoxedKey(generator, valueType, convert!);
 			}
 
 			// ce type n'est pas supporté pour les clés
@@ -1475,7 +1478,7 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForDictionary_BoxedKey(Func<object> generator, Type valueType, Func<string, object?> convert)
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_BoxedKey(Func<object> generator, Type valueType, Func<string, object> convert)
 		{
 			return (v, t, r) =>
 			{

@@ -76,10 +76,10 @@ namespace Doxense.Serialization
 
 			public Type EnumType => m_enumType;
 
-			public string? GetLiteral(Enum value)
+			public string? GetLiteral(Enum? value)
 			{
 				if (value == null) return null;
-				if (m_cache.TryGetValue(value, out EnumStringTable.Entry name))
+				if (m_cache.TryGetValue(value, out var name))
 				{
 					return name.Literal;
 				}
@@ -89,10 +89,10 @@ namespace Doxense.Serialization
 				}
 			}
 
-			public string? GetName(Enum value)
+			public string? GetName(Enum? value)
 			{
 				if (value == null) return null;
-				if (m_cache.TryGetValue(value, out EnumStringTable.Entry name))
+				if (m_cache.TryGetValue(value, out var name))
 				{
 					return name.Name;
 				}
@@ -102,10 +102,10 @@ namespace Doxense.Serialization
 				}
 			}
 
-			public string? GetNameCamelCased(Enum value)
+			public string? GetNameCamelCased(Enum? value)
 			{
 				if (value == null) return null;
-				if (m_cache.TryGetValue(value, out EnumStringTable.Entry name))
+				if (m_cache.TryGetValue(value, out var name))
 				{
 					return name.CamelCased;
 				}
@@ -121,7 +121,7 @@ namespace Doxense.Serialization
 		public static EnumStringTable.Cache GetCacheForType(Type enumType)
 		{
 			var types = EnumStringTable.Types;
-			if (!types.TryGetValue(enumType, out Cache cache))
+			if (!types.TryGetValue(enumType, out var cache))
 			{
 				cache = AddEnumToCache(enumType);
 			}
@@ -136,7 +136,6 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Retourne le nom correspond à la valeur d'une énumération</summary>
-		[return: NotNullIfNotNull("value")] 
 		public static string? GetName(Type enumType, Enum value)
 		{
 			return GetCacheForType(enumType).GetName(value);
@@ -146,7 +145,7 @@ namespace Doxense.Serialization
 		public static string? GetName<TEnum>(TEnum value)
 			where TEnum : struct, Enum
 		{
-			return GetName(typeof(TEnum), (Enum)(object)value);
+			return GetName(typeof(TEnum), (Enum) value);
 		}
 
 		/// <summary>Retourne le littéral (numérique) correspondant à la valeur d'une énumération</summary>
@@ -159,7 +158,7 @@ namespace Doxense.Serialization
 		public static string? GetLiteral<TEnum>(TEnum value)
 			where TEnum : struct, Enum
 		{
-			return GetLiteral(typeof(TEnum), (Enum)(object)value);
+			return GetLiteral(typeof(TEnum), (Enum) value);
 		}
 
 		/// <summary>Génère le cache correspond à un type d'énumération spécifique, et ajoute-le au cache global</summary>
@@ -179,7 +178,7 @@ namespace Doxense.Serialization
 			// => le plus simple est donc d'itérer la liste a l'envers, en écrasant les doublons
 			for (int i = names.Length - 1; i >= 0; i--)
 			{
-				var value = (Enum) values.GetValue(i);
+				var value = (Enum) values.GetValue(i)!;
 				data[value] = new EnumStringTable.Entry(value, value.ToString("D"), names[i]);
 			}
 			var cache = new EnumStringTable.Cache(enumType, data);
@@ -189,7 +188,7 @@ namespace Doxense.Serialization
 			{
 				// vérifie si un autre thread n'a pas déjà généré le même dico...
 				var types = EnumStringTable.Types;
-				if (types.TryGetValue(enumType, out Cache other)) return other;
+				if (types.TryGetValue(enumType, out var other)) return other;
 
 				// non, on ajoute le notre
 				var update = new Dictionary<Type, Cache>(types, types.Comparer)

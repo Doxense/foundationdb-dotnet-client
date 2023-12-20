@@ -31,7 +31,9 @@ namespace Doxense.Mathematics.Statistics
 	using System.Diagnostics;
 	using System.Linq;
 	using Doxense.Runtime;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class RobustBenchmark
 	{
 
@@ -47,7 +49,7 @@ namespace Doxense.Mathematics.Statistics
 			public long Iterations { get; set; }
 			public TimeSpan Duration { get; set; }
 			public bool Rejected { get; set; }
-			public TResult Result { get; set; }
+			public required TResult Result { get; set; }
 		}
 
 		[DebuggerDisplay("R={NumberOfRuns}, ITER={IterationsPerRun}, DUR={TotalDuration}, BIPS={BestIterationsPerSecond}, NANOS={BestIterationsNanos}")]
@@ -57,14 +59,19 @@ namespace Doxense.Mathematics.Statistics
 			public int IterationsPerRun { get; set; }
 
 			public TimeSpan RawTotal { get; set; }
-			public IList<long> RawTimes { get; set; }
-			public IList<TResult> Results { get; set; }
-			public IList<RunData<TResult>> Runs { get; set; }
+
+			public required IList<long> RawTimes { get; set; }
+
+			public required IList<TResult> Results { get; set; }
+
+			public IList<RunData<TResult>>? Runs { get; set; }
+
 			public int RejectedRuns { get; set; }
 
-			public IList<TimeSpan> Times { get; set; }
+			public IList<TimeSpan>? Times { get; set; }
 
 			public long TotalIterations { get; set; }
+
 			public TimeSpan TotalDuration { get; set;  }
 
 			public TimeSpan AverageDuration { get; set; }
@@ -111,13 +118,6 @@ namespace Doxense.Mathematics.Statistics
 				this.IsRunning = true;
 			}
 
-			public void Reset()
-			{
-				this.StartTimeStamp = 0;
-				this.Total = 0;
-				this.IsRunning = false;
-			}
-
 			public void Start()
 			{
 				if (!this.IsRunning)
@@ -137,40 +137,20 @@ namespace Doxense.Mathematics.Statistics
 				}
 			}
 
-			public long ElapsedRawTicks
-			{
-				get { return (this.IsRunning ? (Stopwatch.GetTimestamp() - this.StartTimeStamp) : 0) + this.Total; }
-			}
+			public long ElapsedRawTicks => (this.IsRunning ? (Stopwatch.GetTimestamp() - this.StartTimeStamp) : 0) + this.Total;
 
-			public TimeSpan Elapsed
-			{
-				get { return GetDuration(this.ElapsedRawTicks); }
-			}
+			public TimeSpan Elapsed => GetDuration(this.ElapsedRawTicks);
 
-			public long ElapsedTicks
-			{
-				get { return (long)Math.Round(this.ElapsedRawTicks * TicksFrequency, MidpointRounding.AwayFromZero); }
-			}
+			public long ElapsedTicks => (long)Math.Round(this.ElapsedRawTicks * TicksFrequency, MidpointRounding.AwayFromZero);
 
-			public double ElapsedMicroseconds
-			{
-				get { return this.ElapsedRawTicks * TicksFrequency * 0.1d; }
-			}
+			public double ElapsedMicroseconds => this.ElapsedRawTicks * TicksFrequency * 0.1d;
 
-			public double ElapsedMilliseconds
-			{
-				get { return this.ElapsedRawTicks * TicksFrequency * 0.0001d; }
-			}
+			public double ElapsedMilliseconds => this.ElapsedRawTicks * TicksFrequency * 0.0001d;
 
-			public double ElapsedSeconds
-			{
-				get { return this.ElapsedRawTicks * TicksFrequency * 0.0000001d; }
-			}
+			public double ElapsedSeconds => this.ElapsedRawTicks * TicksFrequency * 0.0000001d;
 
-			public static TimeSpan GetDuration(long ticks)
-			{
-				return TimeSpan.FromTicks((long)Math.Round(ticks * TicksFrequency, MidpointRounding.AwayFromZero));
-			}
+			public static TimeSpan GetDuration(long ticks) => TimeSpan.FromTicks((long)Math.Round(ticks * TicksFrequency, MidpointRounding.AwayFromZero));
+
 		}
 
 		public static Report<long> Run(Action<int> test, int runs, int iterations, RobustHistogram? histo = null)
@@ -273,9 +253,7 @@ namespace Doxense.Mathematics.Statistics
 				GC2 = totalGC2, //(totalGC2 * 1000000.0) / (runs * iterations),
 			};
 
-			IEnumerable<int> _outliers;
-
-			var filtered = PeirceCriterion.FilterOutliers(times, x => (double)x, out _outliers, out var rejected).ToList();
+			var filtered = PeirceCriterion.FilterOutliers(times, x => x, out var _outliers, out var rejected).ToList();
 			//var filtered = DixonTest.ComputeOutliers(times, x => (double)x, DixonTest.Confidence.CL95, DixonTest.Mode.Upper, out _outliers, out rejected).ToList();
 			var outliers = _outliers.ToArray();
 

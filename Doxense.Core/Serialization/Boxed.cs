@@ -67,9 +67,11 @@ namespace Doxense.Serialization
 		public TTarget? Cast<TTarget>()
 		{
 			if (typeof(TTarget).IsAssignableFrom(typeof(T)))
-				return (TTarget) (object) this.Value;
+			{
+				return (TTarget?) (object?) this.Value;
+			}
 
-			return (TTarget) Convert.ChangeType(this.Value, typeof(TTarget), CultureInfo.InvariantCulture);
+			return (TTarget?) Convert.ChangeType(this.Value, typeof(TTarget), CultureInfo.InvariantCulture);
 		}
 
 		public bool Equals(Boxed<T> other)
@@ -77,7 +79,7 @@ namespace Doxense.Serialization
 			return EqualityComparer<T>.Default.Equals(this.Value, other.Value);
 		}
 
-		public bool Equals(T other)
+		public bool Equals(T? other)
 		{
 			return EqualityComparer<T>.Default.Equals(this.Value, other);
 		}
@@ -87,12 +89,12 @@ namespace Doxense.Serialization
 			return Comparer<T>.Default.Compare(this.Value, other.Value);
 		}
 
-		public int CompareTo(T other)
+		public int CompareTo(T? other)
 		{
 			return Comparer<T>.Default.Compare(this.Value, other);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (obj is Boxed<T> boxed) return Equals(boxed);
 			if (obj is T value) return Equals(value);
@@ -101,7 +103,7 @@ namespace Doxense.Serialization
 
 		public override int GetHashCode()
 		{
-			return EqualityComparer<T>.Default.GetHashCode(this.Value);
+			return EqualityComparer<T>.Default.GetHashCode(this.Value!);
 		}
 
 		public static bool operator==(Boxed<T> left, Boxed<T> right)

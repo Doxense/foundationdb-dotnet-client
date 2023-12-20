@@ -195,7 +195,7 @@ namespace Doxense.Serialization.Json
 			return base.Equals(obj);
 		}
 
-		public override bool Equals(JsonValue value)
+		public override bool Equals(JsonValue? value)
 		{
 			// default(object) ('null') est considéré comme égal à JsonNull
 			if (value == null) return true;
@@ -210,7 +210,7 @@ namespace Doxense.Serialization.Json
 			return value.IsNull;
 		}
 
-		public bool Equals(JsonNull value)
+		public bool Equals(JsonNull? value)
 		{
 			return value == null || m_kind == value.m_kind;
 		}
@@ -220,7 +220,7 @@ namespace Doxense.Serialization.Json
 			return 0;
 		}
 
-		public override int CompareTo(JsonValue value)
+		public override int CompareTo(JsonValue? value)
 		{
 			// null est toujours plus petit que le reste, sauf lui même
 			return value == null || value.IsNull ? 0 : -1;

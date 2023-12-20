@@ -37,13 +37,13 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 		public List<RobustHistogram> Histos { get; }
 		public TimeSpan Step { get; }
 		public RobustHistogram.TimeScale Scale { get; }
-		public Func<RobustHistogram, int, bool> Completed { get; }
+		public Func<RobustHistogram, int, bool>? Completed { get; }
 
 		private int LastIndex { get; set; }
 		private Stopwatch Clock { get; }
 		private int Offset { get; set; }
 
-		public RobustTimeLine(TimeSpan step, RobustHistogram.TimeScale scale = RobustHistogram.TimeScale.Milliseconds, Func<RobustHistogram, int, bool> onCompleted = null)
+		public RobustTimeLine(TimeSpan step, RobustHistogram.TimeScale scale = RobustHistogram.TimeScale.Milliseconds, Func<RobustHistogram, int, bool>? onCompleted = null)
 		{
 			if (step <= TimeSpan.Zero) throw new ArgumentException("Time step must be greater than zero", nameof(step));
 
@@ -54,10 +54,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			this.Clock = Stopwatch.StartNew();
 		}
 
-		public int Count
-		{
-			get { return this.Histos.Count; }
-		}
+		public int Count => this.Histos.Count;
 
 		public void Start()
 		{

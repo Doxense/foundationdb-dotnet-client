@@ -98,7 +98,7 @@ namespace Doxense.Linq.Async.Iterators
 			if (ft == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return await Completed().ConfigureAwait(false);
-				ft = iterator.MoveNextAsync().AsTask();
+				ft = iterator!.MoveNextAsync().AsTask();
 			}
 
 			// always wait for the first item (so that we have at least something in the batch)
@@ -110,7 +110,7 @@ namespace Doxense.Linq.Async.Iterators
 			while (hasMore && !m_ct.IsCancellationRequested)
 			{
 				m_buffer ??= new Queue<TInput>(m_prefetchCount);
-				m_buffer.Enqueue(iterator.Current);
+				m_buffer.Enqueue(iterator!.Current);
 
 				var vt = iterator.MoveNextAsync();
 				if (m_buffer.Count >= m_prefetchCount || !vt.IsCompleted)
@@ -134,7 +134,7 @@ namespace Doxense.Linq.Async.Iterators
 				}
 			}
 
-			var current = m_buffer.Dequeue();
+			var current = m_buffer!.Dequeue();
 			return Publish(current);
 		}
 

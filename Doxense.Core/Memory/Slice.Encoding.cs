@@ -43,7 +43,7 @@ namespace System
 
 		/// <summary>Decode a Base64 encoded string into a slice</summary>
 		[Pure]
-		public static Slice FromBase64(string base64String)
+		public static Slice FromBase64(string? base64String)
 		{
 			return base64String == null ? default : base64String.Length == 0 ? Empty : new Slice(Convert.FromBase64String(base64String));
 		}
@@ -1339,7 +1339,9 @@ namespace System
 				else if (c > 127)
 					sb.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
 				else // pas clean!
+				{
 					sb.Append(@"\x").Append(((int)c).ToString("x2", CultureInfo.InvariantCulture));
+				}
 			}
 			return sb;
 		}
@@ -2217,7 +2219,7 @@ namespace System
 			if (this.Count == 36)
 			{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
 			  // ReSharper disable once AssignNullToNotNullAttribute
-				return Guid.Parse(ToByteString());
+				return Guid.Parse(ToByteString() ?? string.Empty);
 			}
 
 			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size.");
@@ -2314,4 +2316,5 @@ namespace System
 
 		#endregion
 	}
+
 }

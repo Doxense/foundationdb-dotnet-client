@@ -34,10 +34,10 @@ namespace Doxense.Serialization.Json
 	public record CrystalJsonMemberDefinition : ICrystalMemberDefinition
 	{
 		/// <summary>Nom</summary>
-		public string Name { get; init; }
+		public required string Name { get; init; }
 
 		/// <summary>Type de retour</summary>
-		public Type Type { get; init; }
+		public required Type Type { get; init; }
 
 		/// <summary>Attribut <see cref="JsonPropertyAttribute"/> appliqué sur le champ (optionnel)</summary>
 		public JsonPropertyAttribute? Attributes { get; init; }
@@ -49,16 +49,16 @@ namespace Doxense.Serialization.Json
 		public bool ReadOnly { get; init; }
 
 		/// <summary>Function capable de retourner la valeur de ce champ</summary>
-		public Func<object, object?> Getter { get; init; }
+		public required Func<object, object?> Getter { get; init; }
 
 		/// <summary>Function capable de fixer la valeur de ce champ</summary>
 		public Action<object, object?>? Setter { get; init; }
 
 		/// <summary>Function capable de sérialiser ce champ directement</summary>
-		public CrystalJsonTypeVisitor Visitor { get; init; }
+		public required CrystalJsonTypeVisitor Visitor { get; init; }
 
 		/// <summary>Function capable de transformer la valeur de base JSON en le bon type</summary>
-		public CrystalJsonTypeBinder Binder { get; init; }
+		public required CrystalJsonTypeBinder Binder { get; init; }
 
 		public bool IsDefaultValue(object? value)
 		{

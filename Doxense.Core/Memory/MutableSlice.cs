@@ -261,15 +261,6 @@ namespace System
 			return this.Span.Slice(offset, count).ToArray();
 		}
 
-		/// <summary>Map an offset in the slice into the absolute offset in the buffer, without any bound checking</summary>
-		/// <param name="index">Relative offset (negative values mean from the end)</param>
-		/// <returns>Absolute offset in the buffer</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private int UnsafeMapToOffset(int index)
-		{
-			return this.Offset + NormalizeIndex(index);
-		}
-
 		/// <summary>Map an offset in the slice into the absolute offset in the buffer</summary>
 		/// <param name="index">Relative offset (negative values mean from the end)</param>
 		/// <returns>Absolute offset in the buffer</returns>
@@ -296,9 +287,9 @@ namespace System
 		public byte this[int index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Array[MapToOffset(index)];
+			get => this.Array![MapToOffset(index)];
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			set => this.Array[MapToOffset(index)] = value;
+			set => this.Array![MapToOffset(index)] = value;
 		}
 
 		/// <summary>Returns a reference to a specific position in the slice</summary>
@@ -306,7 +297,7 @@ namespace System
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public ref readonly byte ItemRef(int index)
 		{
-			return ref this.Array[MapToOffset(index)];
+			return ref this.Array![MapToOffset(index)];
 		}
 
 		/// <summary>Returns a substring of the current slice that fits withing the specified index range</summary>
@@ -347,7 +338,7 @@ namespace System
 		public ref byte DangerousGetPinnableReference()
 		{
 			//note: this is the equivalent of MemoryMarshal.GetReference(..) and does not check for the 0-length case!
-			return ref this.Array[this.Offset];
+			return ref this.Array![this.Offset];
 		}
 
 		/// <summary>
@@ -360,7 +351,7 @@ namespace System
 		{
 			unsafe
 			{
-				return ref (this.Count != 0) ? ref this.Array[this.Offset] : ref Unsafe.AsRef<byte>(null);
+				return ref (this.Count != 0) ? ref this.Array![this.Offset] : ref Unsafe.AsRef<byte>(null);
 			}
 		}
 
@@ -536,7 +527,7 @@ namespace System
 		}
 
 		/// <summary>Returns a printable representation of the key</summary>
-		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="MutableSlice.Unescape"/>(string) and get back the original slice.</remarks>
+		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="System.Slice.Unescape(string?)"/>(string) and get back the original slice.</remarks>
 		public override string ToString()
 		{
 			return this.Slice.ToString();
@@ -555,7 +546,7 @@ namespace System
 		/// The format <b>D</b> is the default, and produce a roundtrip-able version of the slice, using &lt;XX&gt; tokens for non-printable bytes.
 		/// The format <b>N</b> (or <b>n</b>) produces a compact hexadecimal string (without separators).
 		/// The format <b>X</b> (or <b>x</b>) produces an hexadecimal string with spaces between each bytes.
-		/// The format <b>P</b> is the equivalent of calling <see cref="PrettyPrint()"/>.
+		/// The format <b>P</b> is the equivalent of calling <see cref="Slice.PrettyPrint()"/>.
 		/// </remarks>
 		public string ToString(string? format, IFormatProvider? provider)
 		{
@@ -725,9 +716,9 @@ namespace System
 				get
 				{
 					if (m_slice.Count == 0) return m_slice.Array == null ? null : System.Array.Empty<byte>();
-					if (m_slice.Offset == 0 && m_slice.Count == m_slice.Array.Length) return m_slice.Array;
+					if (m_slice.Offset == 0 && m_slice.Count == m_slice.Array!.Length) return m_slice.Array;
 					var tmp = new byte[m_slice.Count];
-					System.Array.Copy(m_slice.Array, m_slice.Offset, tmp, 0, m_slice.Count);
+					System.Array.Copy(m_slice.Array!, m_slice.Offset, tmp, 0, m_slice.Count);
 					return tmp;
 				}
 			}
@@ -742,7 +733,7 @@ namespace System
 				get
 				{
 					if (m_slice.Count == 0) return m_slice.Array == null ? null : String.Empty;
-					return Slice.EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Array, m_slice.Offset, m_slice.Count, Utf8NoBomEncodingNoThrow).ToString();
+					return Slice.EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Array!, m_slice.Offset, m_slice.Count, Utf8NoBomEncodingNoThrow).ToString();
 				}
 			}
 

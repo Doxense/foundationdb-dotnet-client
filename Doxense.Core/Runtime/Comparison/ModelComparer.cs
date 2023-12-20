@@ -149,7 +149,7 @@ namespace Doxense.Runtime.Comparison
 		public static IEnumerable<(string MemberName, object? LeftValue, object? RightValue)> ComputeDifferences(Type type, object? left, object? right)
 		{
 			var t = typeof(Comparer<>).MakeGenericType(type).GetField(nameof(Comparer<int>.Default), BindingFlags.Static | BindingFlags.Public)!;
-			var x = t.GetValue(null);
+			var x = t.GetValue(null)!;
 			var m = x.GetType().GetMethod(nameof(Comparer<int>.ComputeDifferences))!;
 			return (IEnumerable<(string MemberName, object?, object?)>) m.Invoke(x, new [] { left, right })!;
 		}

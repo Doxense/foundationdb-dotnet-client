@@ -150,11 +150,11 @@ namespace Doxense.Diagnostics.Contracts
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[AssertionMethod]
-		public static void NotNull<TValue>([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] TValue value, [InvokerParameterName] string paramName = null, string message = null)
+		public static void NotNull<TValue>([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] TValue value, [InvokerParameterName] string? paramName = null, string? message = null)
 			where TValue : class
 		{
 #if PARANOID_ANDROID
-			if (value == null) throw Contract.FailArgumentNull(paramName, message);
+			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);
 #endif
 		}
 
@@ -162,10 +162,10 @@ namespace Doxense.Diagnostics.Contracts
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[AssertionMethod]
-		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string value, [InvokerParameterName] string paramName = null, string message = null)
+		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string value, [InvokerParameterName] string? paramName = null, string? message = null)
 		{
 #if PARANOID_ANDROID
-			if (value == null) throw Contract.FailArgumentNull(paramName, message);
+			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);
 #endif
 		}
 
@@ -173,10 +173,10 @@ namespace Doxense.Diagnostics.Contracts
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[AssertionMethod]
-		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] byte[] value, [InvokerParameterName] string paramName = null, string message = null)
+		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] byte[] value, [InvokerParameterName] string? paramName = null, string? message = null)
 		{
 #if PARANOID_ANDROID
-			if (value == null) throw Contract.FailArgumentNull(paramName, message);
+			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);
 #endif
 		}
 

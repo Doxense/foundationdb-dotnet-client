@@ -933,7 +933,7 @@ namespace Doxense.Serialization.Json
 				int state = EXPECT_PROPERTY;
 
 				char c = '\0';
-				string name = null;
+				string? name = null;
 				while (true)
 				{
 					char prev = c;
@@ -992,7 +992,7 @@ namespace Doxense.Serialization.Json
 								reader.ResizeObjectBuffer(ref props);
 							}
 
-							props[index] = new KeyValuePair<string, JsonValue>(name, ParseJsonValue(ref reader));
+							props[index] = new KeyValuePair<string, JsonValue>(name!, ParseJsonValue(ref reader)!);
 							++index;
 							// next should be ',' or '}'
 							state = EXPECT_NEXT;
@@ -1020,7 +1020,7 @@ namespace Doxense.Serialization.Json
 						{ // object
 							if (c == CrystalJsonParser.EndOfStream) throw reader.FailUnexpectedEndOfStream("Incomplete object definition");
 							if (state == EXPECT_NEXT) throw reader.FailInvalidSyntax("Missing comma after field #{0}", index);
-							if (state == EXPECT_VALUE) throw reader.FailInvalidSyntax("Missing semicolon after field '{0}' value", name);
+							if (state == EXPECT_VALUE) throw reader.FailInvalidSyntax("Missing semicolon after field '{0}' value", name!);
 							if (c == ']') throw reader.FailInvalidSyntax("Unexpected ']' encountered inside an object. Did you forget to close the object?");
 							throw reader.FailInvalidSyntax("Invalid character '{0}' after field #{1}", c, index);
 						}

@@ -65,7 +65,7 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsDefault => !m_value;
 
-		public override object? ToObject() => m_value;
+		public override object ToObject() => m_value;
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null) => JsonValue.BindNative<JsonBoolean, bool>(this, m_value, type, resolver);
 
@@ -155,8 +155,9 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>
 
-		public override int CompareTo(JsonValue other)
+		public override int CompareTo(JsonValue? other)
 		{
+			if (other == null) return +1;
 			switch(other.Type)
 			{
 				case JsonType.Boolean:
@@ -168,7 +169,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public int CompareTo(JsonBoolean other)
+		public int CompareTo(JsonBoolean? other)
 		{
 			return other != null ? m_value.CompareTo(other.Value) : +1;
 		}

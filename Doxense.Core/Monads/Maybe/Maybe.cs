@@ -369,7 +369,7 @@ namespace Doxense
 		{
 			return (x, y) =>
 			{
-				if (x.m_errorContainer != null || y.m_errorContainer != null) return Maybe.Error(default(TResult)!, x.Error!, y.Error!);
+				if (x.m_errorContainer != null || y.m_errorContainer != null) return Maybe.Error(default(TResult)!, x.Error, y.Error);
 				if (x.m_hasValue && y.m_hasValue)
 				{
 					try
@@ -502,7 +502,7 @@ namespace Doxense
 		/// <param name="error1">Deuxième exception (peut être null)</param>
 		/// <returns>Maybe encapsulant la ou les erreur. Si les deux erreurs sont présentes, elles sont combinées dans une AggregateException</returns>
 		[Pure]
-		public static Maybe<T> Error<T>(T? _, Exception error0, Exception error1)
+		public static Maybe<T> Error<T>(T? _, Exception? error0, Exception? error1)
 		{
 			// Il faut au moins une des deux !
 			Contract.Debug.Requires(error0 != null || error1 != null);
@@ -533,7 +533,7 @@ namespace Doxense
 
 		/// <summary>Retourne le résultat d'un Maybe, ou une valeur par défaut s'il est vide.</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T OrDefault<T>(this Maybe<T> m, T @default = default)
+		public static T? OrDefault<T>(this Maybe<T> m, T? @default = default)
 		{
 			// EXIT THE MONAD
 			return m.HasValue ? m.Value : @default;
@@ -637,7 +637,7 @@ namespace Doxense
 					var aggEx = task.Exception!.Flatten();
 					if (aggEx.InnerExceptions.Count == 1)
 					{
-						return Error<T>(aggEx.InnerException);
+						return Error<T>(aggEx.InnerException!);
 					}
 					return Error<T>(aggEx);
 				}
@@ -669,7 +669,7 @@ namespace Doxense
 					var aggEx = task.Exception!.Flatten();
 					if (aggEx.InnerExceptions.Count == 1)
 					{
-						return Error<T>(aggEx.InnerException);
+						return Error<T>(aggEx.InnerException!);
 					}
 					return Error<T>(aggEx);
 				}
@@ -701,7 +701,7 @@ namespace Doxense
 					var aggEx = task.Exception!.Flatten();
 					if (aggEx.InnerExceptions.Count == 1)
 					{
-						return Task.FromResult(Maybe.Error<T>(aggEx.InnerException));
+						return Task.FromResult(Maybe.Error<T>(aggEx.InnerException!));
 					}
 					return Task.FromResult(Maybe.Error<T>(aggEx));
 				}

@@ -581,14 +581,14 @@ namespace Doxense.Serialization.Json
 			get
 			{
 				// Following trick can reduce the range check by one
-				if ((uint)index >= (uint)m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
+				if ((uint) index >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
 				//TODO: REVIEW: support negative indexing ?
 				return m_items[index] ?? JsonNull.Null;
 			}
 			set
 			{
 				Contract.Debug.Requires(!object.ReferenceEquals(this, value));
-				if ((uint)index >= (uint)m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
+				if ((uint) index >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
 				//TODO: REVIEW: support negative indexing ?
 				m_items[index] = value ?? JsonNull.Null;
 			}
@@ -1188,7 +1188,7 @@ namespace Doxense.Serialization.Json
 					int p = size;
 					foreach (var item in array)
 					{
-						items[p++] = item?.Copy(deep: true);
+						items[p++] = item.Copy(deep: true);
 					}
 				}
 				else
@@ -1303,17 +1303,14 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array, où si la valeur ne peut pas être bindé vers le type <typeparamref name="T"/></returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T? Get<T>(int index)
-		{
-			return (this[index] ?? JsonNull.Missing).As<T>();
-		}
+		public T? Get<T>(int index) => this[index].As<T>();
 
 		[CollectionAccess(CollectionAccessType.Read)]
-		public bool TryGet<T>(int index, [MaybeNullWhen(false)] out T? result)
+		public bool TryGet<T>(int index, out T? result)
 		{
 			if (index >= 0 & index < this.Count)
 			{
-				result = this[index].As<T>()!;
+				result = this[index].As<T>();
 				return true;
 			}
 			result = default(T);
@@ -1328,7 +1325,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonObject? GetObject(int index)
 		{
-			return this[index]?.AsObject(required: false);
+			return this[index].AsObject(required: false);
 		}
 
 		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
@@ -1352,7 +1349,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray? GetArray(int index)
 		{
-			return this[index]?.AsArray(required: false);
+			return this[index].AsArray(required: false);
 		}
 
 		/// <summary>Retourne la valeur à l'index spécifié sous forme d'array JSON</summary>
@@ -1844,7 +1841,7 @@ namespace Doxense.Serialization.Json
 					m_current = default(TValue);
 				}
 
-				public TValue Current => m_current;
+				public TValue Current => m_current!;
 
 			}
 
@@ -1913,7 +1910,7 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
-		public override object? ToObject()
+		public override object ToObject()
 		{
 			//TODO: détecter le cas ou tt les members ont le même type T,
 			// et dans ce cas créer une List<T>, plutôt qu'une List<object> !
@@ -2711,7 +2708,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[CollectionAccess(CollectionAccessType.Read)]
-		internal static JsonArray Project(IEnumerable<JsonValue> source, KeyValuePair<string, JsonValue?>[] defaults)
+		internal static JsonArray Project(IEnumerable<JsonValue?> source, KeyValuePair<string, JsonValue?>[] defaults)
 		{
 			Contract.Debug.Requires(source != null && defaults != null);
 
@@ -3314,7 +3311,7 @@ namespace Doxense.Serialization.Json
 				m_current = default(TJson);
 			}
 
-			public TJson Current => m_current;
+			public TJson Current => m_current!;
 		}
 
 		public int Count => m_size;

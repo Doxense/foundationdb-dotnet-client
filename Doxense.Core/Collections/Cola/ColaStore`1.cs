@@ -370,7 +370,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
 		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int FindPrevious(T value, bool orEqual, out int offset, out T result)
+		public int FindPrevious(T value, bool orEqual, out int offset, out T? result)
 		{
 			return ColaStore.FindPrevious<T>(m_levels, m_count, value, orEqual, m_comparer, out offset, out result);
 		}
@@ -383,7 +383,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
 		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int FindPrevious(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T result)
+		public int FindPrevious(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T? result)
 		{
 			return ColaStore.FindPrevious<T>(m_levels, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
 		}

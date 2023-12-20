@@ -77,8 +77,8 @@ namespace Doxense.Memory
 		protected TokenDictionary(TokenDictionary<TValue, TLiteral, TRune> parent)
 		{
 			Initialize(parent.Count);
-			var buckets = parent.Buckets;
-			var entries = parent.Entries;
+			var buckets = parent.Buckets!;
+			var entries = parent.Entries!;
 			int size = parent.Size;
 			for (int i = 0; i < size; i++)
 			{
@@ -97,8 +97,8 @@ namespace Doxense.Memory
 
 		private void Insert(in ReadOnlyMemory<TRune> token, TValue value)
 		{
-			var buckets = this.Buckets;
-			var entries = this.Entries;
+			var buckets = this.Buckets!;
+			var entries = this.Entries!;
 
 			var tokenSpan = token.Span;
 			uint hashCode = ComputeHashCode(tokenSpan);
@@ -138,15 +138,15 @@ namespace Doxense.Memory
 			if (count == entries.Length)
 			{
 				Resize();
-				buckets = this.Buckets;
-				entries = this.Entries;
+				buckets = this.Buckets!;
+				entries = this.Entries!;
 				bucket = ref buckets[hashCode % (uint) buckets.Length];
 			}
 
 			int index = count;
 			Size = count + 1;
 
-			ref Entry entry = ref entries![index];
+			ref Entry entry = ref entries[index];
 
 			entry.HashCode = hashCode;
 			// Value in _buckets is 1-based
@@ -242,7 +242,9 @@ namespace Doxense.Memory
 					for (int divisor = 3; divisor <= limit; divisor += 2)
 					{
 						if ((candidate % divisor) == 0)
+						{
 							return false;
+						}
 					}
 
 					return true;
@@ -259,7 +261,9 @@ namespace Doxense.Memory
 				{
 					int prime = primes[i];
 					if (prime >= min)
+					{
 						return prime;
+					}
 				}
 
 				//outside of our predefined table. 
@@ -267,7 +271,9 @@ namespace Doxense.Memory
 				for (int i = (min | 1); i < int.MaxValue; i += 2)
 				{
 					if (IsPrime(i) && ((i - 1) % HashPrime != 0))
+					{
 						return i;
+					}
 				}
 
 				return min;
@@ -326,8 +332,8 @@ namespace Doxense.Memory
 		private int FindEntry(in ReadOnlySpan<TRune> token)
 		{
 			int i = -1;
-			var buckets = this.Buckets;
-			var entries = this.Entries;
+			var buckets = this.Buckets!;
+			var entries = this.Entries!;
 			int collisionCount = 0;
 			if (buckets.Length != 0)
 			{

@@ -25,7 +25,7 @@
 #endregion
 
 #pragma warning disable 618
-#nullable disable
+#nullable disable //note: too much nullability warnings!
 
 // ReSharper disable HeapView.BoxingAllocation
 // ReSharper disable HeapView.DelegateAllocation
@@ -7146,7 +7146,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		public string MustNotBeCalled() { return "ShouldNotBeCalled"; }
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (obj == null || !(obj is DummyJsonClass)) return false;
 			var other = (DummyJsonClass)obj;
@@ -7365,7 +7365,7 @@ namespace Doxense.Serialization.Json.Tests
 			);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (!(obj is DummyCtorBasedJsonBindableClass other)) return false;
 			return other.Id == this.Id && other.Name == this.Name && other.X == this.X && other.Y == this.Y && other.Color == this.Color;
@@ -7439,7 +7439,7 @@ namespace Doxense.Serialization.Json.Tests
 			);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (!(obj is DummyCtorBasedJsonBindableClass other)) return false;
 			return other.Id == this.Id && other.Name == this.Name && other.X == this.X && other.Y == this.Y && other.Color == this.Color;
@@ -7521,7 +7521,7 @@ namespace Doxense.Serialization.Json.Tests
 			);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (!(obj is DummyCtorBasedJsonBindableClass other)) return false;
 			return other.Id == this.Id && other.Name == this.Name && other.X == this.X && other.Y == this.Y;
