@@ -354,6 +354,9 @@ namespace Doxense.Serialization.Json
 		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
 		/// </remarks>
 		[Pure]
+#if NET8_0_OR_GREATER
+		[Obsolete("Formatter-based serialization is obsolete and should not be used.")]
+#endif
 		public static JsonObject FromException(Exception ex, bool includeTypes = true)
 		{
 			Contract.NotNull(ex);
@@ -370,6 +373,9 @@ namespace Doxense.Serialization.Json
 		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
 		/// </remarks>
 		[Pure]
+#if NET8_0_OR_GREATER
+		[Obsolete("Formatter-based serialization is obsolete and should not be used.")]
+#endif
 		public static JsonObject FromISerializable(ISerializable value, bool includeTypes = true, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(value);
