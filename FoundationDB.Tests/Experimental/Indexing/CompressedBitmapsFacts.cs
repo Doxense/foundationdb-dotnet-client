@@ -252,7 +252,6 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 				var compressed = writer.GetBuffer();
 				Log($"OUT [{compressed.Count}] => {compressed} [r={r}]");
-				var sb = new StringBuilder();
 				Log(WordAlignHybridEncoder.DumpCompressed(compressed).ToString());
 				Log();
 			}
@@ -389,7 +388,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 		private static Action<TDoc> MakeInserter<TDoc, TKey>(MemoryIndex<TKey> index, Func<TDoc, int> idFunc, Func<TDoc, TKey> keyFunc)
 		{
-			return (TDoc doc) =>
+			return (doc) =>
 			{
 				int docId = idFunc(doc);
 				TKey indexedValue = keyFunc(doc);
@@ -484,17 +483,14 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			));
 		}
 
-		private static List<Character> DumpIndexQueryResult(Dictionary<int, Character> characters, CompressedBitmap bitmap)
+		private static void DumpIndexQueryResult(Dictionary<int, Character> characters, CompressedBitmap bitmap)
 		{
-			var results = new List<Character>();
 			foreach (var docId in bitmap.GetView())
 			{
 				Assert.That(characters.TryGetValue(docId, out Character character), Is.True);
 
-				results.Add(character);
-				Log($"- {docId}: {character.Name} {(character.Gender == "Male" ? "\u2642" : character.Gender == "Female" ? "\u2640" : character.Gender)}{(character.Dead ? " (\u271D)" : "")}");
+				Log($"- {docId}: {character!.Name} {(character.Gender == "Male" ? "\u2642" : character.Gender == "Female" ? "\u2640" : character.Gender)}{(character.Dead ? " (\u271D)" : "")}");
 			}
-			return results;
 		}
 
 		[Test]
@@ -651,7 +647,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		{
 			#region Data Generators...
 
-			Random rnd = null; // initialized later
+			Random rnd = Random.Shared; // initialized later with the actual value!
 
 			var dfFlips = new Cauchy(10, 4, rnd);
 			Func<int> makeFlips = () =>
@@ -736,13 +732,16 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 					MakeInserter<KeyValuePair<int, CoinToss>, string>(indexLoc, (kv) => kv.Key, (kv) => kv.Value.Location),
 				};
 
-				var database = new Dictionary<int, CoinToss>();
+				//var database = new Dictionary<int, CoinToss>();
 				//Log("Inserting data: ...");
 				foreach (var data in dataSet)
 				{
 					//if (database.Count % 1000 == 0) Log("\rInserting data: {0} / {1}", database.Count, N);
-					database[data.Key] = data.Value;
-					foreach (var inserter in inserters) inserter(data);
+					//database[data.Key] = data.Value;
+					foreach (var inserter in inserters)
+					{
+						inserter(data);
+					}
 				}
 				//Log("\rInserting data: {0} / {1}", database.Count, N);
 

@@ -103,6 +103,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					// also check directly
 					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
 					var data = await tr.GetAsync(folder.Encode("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);
@@ -214,6 +215,5 @@ namespace FoundationDB.Layers.Collections.Tests
 		}
 
 	}
-
 
 }

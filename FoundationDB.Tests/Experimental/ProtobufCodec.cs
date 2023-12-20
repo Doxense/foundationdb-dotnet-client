@@ -24,15 +24,15 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#nullable enable
+
 namespace FoundationDB.Types.ProtocolBuffers
 {
 	using System;
 	using System.Diagnostics;
 	using System.IO;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 
 	public class ProtobufCodec<TDocument> : IValueEncoder<TDocument>, IUnorderedTypeCodec<TDocument>
 	{
@@ -42,11 +42,11 @@ namespace FoundationDB.Types.ProtocolBuffers
 			ProtoBuf.Serializer.PrepareSerializer<TDocument>();
 		}
 
-		protected virtual Slice EncodeInternal(TDocument document)
+		protected virtual Slice EncodeInternal(TDocument? document)
 		{
 			using (var ms = new MemoryStream())
 			{
-				ProtoBuf.Serializer.Serialize<TDocument>(ms, document);
+				ProtoBuf.Serializer.Serialize<TDocument?>(ms, document);
 
 				// Overflow protection (should never happen since a MemoryStream won't let us write more than 2G, but just to be sure ...)
 				if (ms.Length > int.MaxValue) throw new OutOfMemoryException("The serialized JSON document exceeds the maximum allowed size");
@@ -60,12 +60,12 @@ namespace FoundationDB.Types.ProtocolBuffers
 			}
 		}
 
-		public Slice EncodeValue(TDocument document)
+		public Slice EncodeValue(TDocument? document)
 		{
 			return EncodeInternal(document);
 		}
 
-		public TDocument DecodeValue(Slice encoded)
+		public TDocument? DecodeValue(Slice encoded)
 		{
 			if (encoded.IsNullOrEmpty) return default(TDocument);
 
@@ -75,7 +75,7 @@ namespace FoundationDB.Types.ProtocolBuffers
 			}
 		}
 
-		void IUnorderedTypeCodec<TDocument>.EncodeUnorderedSelfTerm(ref SliceWriter output, TDocument value)
+		void IUnorderedTypeCodec<TDocument>.EncodeUnorderedSelfTerm(ref SliceWriter output, TDocument? value)
 		{
 			var packed = EncodeInternal(value);
 			Debug.Assert(packed.Count >= 0);
@@ -83,7 +83,7 @@ namespace FoundationDB.Types.ProtocolBuffers
 			output.WriteBytes(packed);
 		}
 
-		TDocument IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)
+		TDocument? IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
 			uint size = input.ReadVarInt32();
 			if (size > int.MaxValue) throw new FormatException("Malformed data size");
@@ -92,12 +92,12 @@ namespace FoundationDB.Types.ProtocolBuffers
 			return DecodeValue(packed);
 		}
 
-		Slice IUnorderedTypeCodec<TDocument>.EncodeUnordered(TDocument value)
+		Slice IUnorderedTypeCodec<TDocument>.EncodeUnordered(TDocument? value)
 		{
 			return EncodeValue(value);
 		}
 
-		TDocument IUnorderedTypeCodec<TDocument>.DecodeUnordered(Slice input)
+		TDocument? IUnorderedTypeCodec<TDocument>.DecodeUnordered(Slice input)
 		{
 			return DecodeValue(input);
 		}

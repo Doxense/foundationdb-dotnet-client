@@ -260,7 +260,6 @@ namespace FoundationDB.Client.Native
 				var key = Interlocked.Exchange(ref future.m_key, IntPtr.Zero);
 				if (key != IntPtr.Zero)
 				{
-					FdbFuture<T> _;
 					if (s_futures.TryRemove(key.ToInt64(), out _))
 					{
 						Interlocked.Decrement(ref DebugCounters.CallbackHandles);
@@ -308,7 +307,7 @@ namespace FoundationDB.Client.Native
 			m_ctr = default;
 		}
 
-		private static void CancellationHandler(object state)
+		private static void CancellationHandler(object? state)
 		{
 			if (state is FdbFuture<T> future)
 			{

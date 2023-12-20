@@ -68,7 +68,7 @@ namespace FoundationDB.Layers.Interning
 				return !object.ReferenceEquals(other, null) && other.HashCode == this.HashCode && other.Slice.Equals(this.Slice);
 			}
 
-			public override bool Equals(object obj)
+			public override bool Equals(object? obj)
 			{
 				return obj is Uid && Equals((Uid) obj);
 			}

@@ -275,7 +275,7 @@ namespace FoundationDB.Client
 		#region Equality...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 			=> obj is FdbPathSegment other && Equals(other);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

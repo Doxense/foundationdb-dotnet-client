@@ -545,7 +545,7 @@ namespace FoundationDB.Filters.Logging
 					}
 					else
 					{ // annotation
-						sb.Append(FormattableString.Invariant($"│{(cmd.Step == step ? ":" : " ")}{cmd.Step,-3:##0}{(cmd.Error != null ? "!" : " ")}{cmd.ShortName,2}{(ticks >= TimeSpan.TicksPerMillisecond * 10 ? '*' : ticks >= TimeSpan.TicksPerMillisecond ? '°' : ' ')}│ {w} │ T+{cmd.StartOffset.TotalMilliseconds,7:##0.000}                        │     -     - │ {(showCommands ? cmd.ToString(keyResolver) : string.Empty)}"));
+						sb.Append(FormattableString.Invariant($"│{(cmd.Step == step ? ":" : " ")}{cmd.Step,-3:##0}{(cmd.Error != null ? "!" : " ")}{cmd.ShortName,2} │ {w} │ T+{cmd.StartOffset.TotalMilliseconds,7:##0.000}                        │     -     - │ {(showCommands ? cmd.ToString(keyResolver) : string.Empty)}"));
 					}
 
 					if (showCommands && cmd.CallSite != null)
@@ -553,10 +553,10 @@ namespace FoundationDB.Filters.Logging
 						var f = GetFirstInterestingStackFrame(cmd.CallSite);
 						if (f != null)
 						{
-							var m = f.GetMethod();
+							var m = f.GetMethod()!;
 							string name = GetUserFriendlyMethodName(m);
 							sb.Append(" // ").Append(name);
-							string fn = f.GetFileName();
+							var fn = f.GetFileName();
 							if (fn != null) sb.Append(FormattableString.Invariant($" at {fn}:{f.GetFileLineNumber()}"));
 						}
 					}
@@ -609,7 +609,7 @@ namespace FoundationDB.Filters.Logging
 			for (int k = 0; k < st.FrameCount; k++)
 			{
 				var f = st.GetFrame(k);
-				var m = f.GetMethod();
+				var m = f?.GetMethod();
 				if (m == null) continue;
 
 				var t = m.DeclaringType;
@@ -618,7 +618,7 @@ namespace FoundationDB.Filters.Logging
 				// discard any method in this assembly
 				if (t.Module == self) continue;
 				// discard any NETFX method (async state machines, threadpool, ...)
-				if (t.Namespace.StartsWith("System.", StringComparison.Ordinal)) continue;
+				if (t.Namespace!.StartsWith("System.", StringComparison.Ordinal)) continue;
 				// discard any compiler generated state machine
 				return f;
 			}

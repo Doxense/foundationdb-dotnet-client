@@ -28,7 +28,6 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
@@ -87,7 +86,7 @@ namespace FoundationDB.Client
 			this.KeyEncoder = encoder;
 		}
 
-		public Slice this[T1 item1]
+		public Slice this[T1? item1]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Encode(item1);
@@ -100,7 +99,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure]
-		public Slice Encode(T1 item1)
+		public Slice Encode(T1? item1)
 		{
 			var sw = this.OpenWriter(12);
 			this.KeyEncoder.WriteKeyTo(ref sw, item1);
@@ -123,7 +122,7 @@ namespace FoundationDB.Client
 			//TODO: defer to the encoding itself?
 			var key = ExtractKey(packedKey, boundCheck: true);
 
-			if (this.KeyEncoder.TryDecodeKey(key, out T1 value))
+			if (this.KeyEncoder.TryDecodeKey(key, out T1? value))
 			{
 				return STuple.Formatter.Stringify(value);
 			}

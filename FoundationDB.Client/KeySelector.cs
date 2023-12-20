@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && Key.Equals(other.Key);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is KeySelector selector && Equals(selector);
 		}
@@ -150,13 +150,17 @@ namespace FoundationDB.Client
 				--offset;
 				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
 			}
-			sb.Append(FdbKey.PrettyPrint(Key, mode));
-			sb.Append("}");
+			sb.Append(FdbKey.PrettyPrint(this.Key, mode))
+			  .Append('}');
 
 			if (offset > 0)
+			{
 				sb.Append(" + ").Append(offset);
+			}
 			else if (offset < 0)
+			{
 				sb.Append(" - ").Append(-offset);
+			}
 
 			return sb.ToString();
 		}

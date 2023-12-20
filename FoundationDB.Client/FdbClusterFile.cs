@@ -134,11 +134,11 @@ namespace FoundationDB.Client
 		/// <summary>Computes the hashcode of the cluster file</summary>
 		public override int GetHashCode()
 		{
-			return this.RawValue?.GetHashCode() ?? -1;
+			return this.RawValue.GetHashCode();
 		}
 
 		/// <summary>Check if this cluster file is equal to another object</summary>
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is FdbClusterFile cf && string.Equals(this.RawValue, cf.RawValue, StringComparison.Ordinal);
 		}

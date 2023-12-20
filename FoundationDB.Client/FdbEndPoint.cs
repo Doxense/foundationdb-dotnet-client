@@ -83,7 +83,7 @@ namespace FoundationDB.Client
 			return m_tls ? (s + ":tls") : s;
 		}
 
-		public override bool Equals(object comparand)
+		public override bool Equals(object? comparand)
 		{
 			return comparand is FdbEndPoint fep && fep.m_tls == m_tls && base.Equals(fep);
 		}

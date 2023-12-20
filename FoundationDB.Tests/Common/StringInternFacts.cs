@@ -61,6 +61,7 @@ namespace FoundationDB.Layers.Interning.Tests
 					var ve = await table.InternAsync(tr, "cat");
 
 					var subspace = await dataSpace.Resolve(tr);
+					Assert.That(subspace, Is.Not.Null);
 					tr.Set(subspace["a"], va);
 					tr.Set(subspace["b"], vb);
 					tr.Set(subspace["c"], vc);
@@ -77,6 +78,7 @@ namespace FoundationDB.Layers.Interning.Tests
 				await stringTable.ReadAsync(db, async (tr, table) =>
 				{
 					var subspace = await dataSpace.Resolve(tr);
+					Assert.That(subspace, Is.Not.Null);
 					var uid_a = await tr.GetAsync(subspace["a"]);
 					var uid_b = await tr.GetAsync(subspace["b"]);
 					var uid_c = await tr.GetAsync(subspace["c"]);

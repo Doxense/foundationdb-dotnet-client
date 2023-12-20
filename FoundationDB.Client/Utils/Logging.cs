@@ -208,7 +208,7 @@ namespace FoundationDB.Client
 			if (Logging.IsError)
 			{
 				// flatten aggregate exceptions
-				if (e is AggregateException aggEx) e = aggEx.Flatten().InnerException;
+				if (e is AggregateException aggEx) e = aggEx.Flatten().InnerException ?? e;
 
 				string msg = $"Exception in {GetObjectUniqueId(obj, method)} - {e.Message}.";
 				if (!string.IsNullOrWhiteSpace(e.StackTrace)) msg += "\r\n" + e.StackTrace;
@@ -261,19 +261,19 @@ namespace FoundationDB.Client
 			}
 		}
 
-		private static void ProcessExistEvent(object sender, EventArgs e)
+		private static void ProcessExistEvent(object? sender, EventArgs e)
 		{
 			Close();
 			s_appDomainShutdown = true;
 		}
 
-		private static void AppDomainUnloadEvent(object sender, EventArgs e)
+		private static void AppDomainUnloadEvent(object? sender, EventArgs e)
 		{
 			Close();
 			s_appDomainShutdown = true;
 		}
 
-		private static string GetObjectUniqueId(object obj, string method)
+		private static string GetObjectUniqueId(object? obj, string? method)
 		{
 			string suffix = method != null ? ("::" + method + "()") : string.Empty;
 
@@ -290,7 +290,7 @@ namespace FoundationDB.Client
 				return "FdbTransaction#" + tr.Id.ToString(CultureInfo.InvariantCulture) + suffix;
 			}
 
-			if (obj is IFdbDatabase db)
+			if (obj is IFdbDatabase)
 			{
 				return "FdbDatabase" + suffix;
 			}
@@ -306,4 +306,5 @@ namespace FoundationDB.Client
 		#endregion
 
 	}
+
 }

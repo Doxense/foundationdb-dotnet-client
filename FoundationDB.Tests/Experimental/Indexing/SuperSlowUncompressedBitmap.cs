@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 		public SuperSlowUncompressedBitmap()
 		{
-			this.Bits = new bool[0];
+			this.Bits = Array.Empty<bool>();
 		}
 
 		public SuperSlowUncompressedBitmap(CompressedBitmap bitmap)
@@ -234,7 +234,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				{
 					bits.Add(true);
 					hsb = bits.Count;
-					if (lsb != int.MaxValue) lsb = bits.Count;
+					if (lsb == int.MaxValue) lsb = bits.Count;
 				}
 				else if (c == '0')
 				{
@@ -245,12 +245,12 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			return new SuperSlowUncompressedBitmap(bits.ToArray(), lsb, hsb);
 		}
 
-		public StringBuilder Dump(StringBuilder sb = null)
+		public StringBuilder Dump(StringBuilder? sb = null)
 		{
 			return Dump(this.Bits, sb);
 		}
 
-		public static StringBuilder Dump(bool[] bits, StringBuilder sb = null)
+		public static StringBuilder Dump(bool[] bits, StringBuilder? sb = null)
 		{
 			sb = sb ?? new StringBuilder();
 
@@ -287,7 +287,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		}
 
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			var other = obj as SuperSlowUncompressedBitmap;
 			return other != null && Equals(other);
@@ -304,7 +304,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			return h;
 		}
 
-		public bool Equals(SuperSlowUncompressedBitmap other)
+		public bool Equals(SuperSlowUncompressedBitmap? other)
 		{
 			if (other == null) return false;
 

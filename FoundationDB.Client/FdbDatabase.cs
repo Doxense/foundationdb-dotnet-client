@@ -34,8 +34,6 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
-	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
@@ -225,7 +223,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context in which the transaction will run</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
-			Contract.Debug.Requires(context?.Database != null);
+			Contract.Debug.Requires(context != null && context.Database != null);
 			ThrowIfDisposed();
 
 			// force the transaction to be read-only, if the database itself is read-only
@@ -708,7 +706,7 @@ namespace FoundationDB.Client
 						// cancel pending transactions (that don't have a tenant)
 						foreach (var trans in m_transactions.Values)
 						{
-							if (trans != null && trans.StillAlive)
+							if (trans.StillAlive)
 							{
 								trans.Cancel();
 							}
@@ -718,10 +716,7 @@ namespace FoundationDB.Client
 						// dispose all tenants (and recursively their own transactions)
 						foreach (var tenant in m_tenants.Values)
 						{
-							if (tenant != null)
-							{
-								tenant.Dispose();
-							}
+							tenant.Dispose();
 						}
 						m_tenants.Clear();
 
@@ -736,14 +731,11 @@ namespace FoundationDB.Client
 					}
 					finally
 					{
-						if (m_handler != null)
+						if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", $"Disposing database handler");
+						try { m_handler.Dispose(); }
+						catch (Exception e)
 						{
-							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", $"Disposing database handler");
-							try { m_handler.Dispose(); }
-							catch (Exception e)
-							{
-								if (Logging.On) Logging.Exception(this, "Dispose", e);
-							}
+							if (Logging.On) Logging.Exception(this, "Dispose", e);
 						}
 					}
 				}

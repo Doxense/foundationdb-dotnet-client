@@ -24,7 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-// ReSharper disable AssignNullToNotNullAttribute
+// ReSharper disable AccessToDisposedClosure
+
 #define ENABLE_LOGGING
 
 namespace FoundationDB.Client.Tests
@@ -32,6 +33,7 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
@@ -728,7 +730,6 @@ namespace FoundationDB.Client.Tests
 				{
 					var segFoo = FdbPathSegment.Partition("Foo$");
 					var segBar = FdbPathSegment.Create("Bar");
-					var segBaz = FdbPathSegment.Create("Baz");
 
 					Log("Creating partition /Foo$ ...");
 					var partition = await dl.CreateAsync(tr, FdbPath.Absolute(segFoo));
@@ -1137,6 +1138,8 @@ namespace FoundationDB.Client.Tests
 
 					ShouldFail(() => partition.Append(Slice.FromString("hello")));
 					var subspace = await location.Resolve(tr, dl);
+					Assert.That(subspace, Is.Not.Null);
+
 					ShouldFail(() => partition.Append(subspace.GetPrefix()));
 					ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
@@ -1210,6 +1213,8 @@ namespace FoundationDB.Client.Tests
 						Log("Committing T1...");
 						await tr1.CommitAsync();
 						Log("T1 committed");
+
+						// ReSharper disable once DisposeOnUsingVariable
 						tr1.Dispose(); // force T1 to be dumped immediately
 
 						// T2 commits second
@@ -1260,7 +1265,10 @@ namespace FoundationDB.Client.Tests
 						);
 
 						var subspace1 = await location.Resolve(tr1, dl);
+						Assert.That(subspace1, Is.Not.Null);
+
 						var subspace2 = await location.Resolve(tr2, dl);
+						Assert.That(subspace2, Is.Not.Null);
 
 						var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1.Encode("abc"));
 						tr1.Set(first.GetPrefix(), Value("This belongs to the first directory"));
@@ -1271,6 +1279,8 @@ namespace FoundationDB.Client.Tests
 						Log("Committing T1...");
 						await tr1.CommitAsync();
 						Log("T1 committed");
+
+						// ReSharper disable once DisposeOnUsingVariable
 						tr1.Dispose(); // force T1 to be dumped immediately
 
 						Log("Committing T2...");
@@ -1325,7 +1335,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(dl.Content, Is.Not.Null);
 				Assert.That(dl.Content, Is.EqualTo(location));
 
-				void Validate(FdbDirectorySubspace actual, FdbDirectorySubspace expected)
+				void Validate([NotNull] FdbDirectorySubspace? actual, FdbDirectorySubspace expected)
 				{
 					Assert.That(actual, Is.Not.Null);
 					Assert.That(actual.FullName, Is.EqualTo(expected.FullName));
@@ -1455,7 +1465,7 @@ namespace FoundationDB.Client.Tests
 						var folders = await db.ReadAsync(async tr =>
 						{
 							// reading sequentially should be slow without caching for the first request, but then should be very fast
-							var res = new List<FdbDirectorySubspace>();
+							var res = new List<FdbDirectorySubspace?>();
 							for (int i = 0; i < N; i++)
 							{
 								res.Add(await dl.TryOpenCachedAsync(tr, FdbPath.Absolute("Students", k.ToString(), i.ToString())));
@@ -1494,6 +1504,7 @@ namespace FoundationDB.Client.Tests
 				var fooCached = await db.ReadAsync(async tr =>
 				{
 					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.Absolute("Foo"));
+					Assert.That(folder, Is.Not.Null);
 					Assert.That(folder.Context, Is.InstanceOf<FdbDirectoryLayer.State>());
 					return folder;
 				}, this.Cancellation);
@@ -1502,6 +1513,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(() => fooCached.GetPrefix(), Throws.InstanceOf<InvalidOperationException>(), "Accessing a cached subspace outside the transaction should throw");
 
 				var fooUncached = await db.ReadAsync(tr => dl.TryOpenAsync(tr, FdbPath.Absolute("Foo")), this.Cancellation);
+				Assert.That(fooUncached, Is.Not.Null);
 				Assert.That(() => fooUncached.Context.EnsureIsValid(), Throws.Nothing, "Accessing a non-cached subspace outside the transaction should not throw");
 			}
 		}
@@ -1545,6 +1557,7 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async tr =>
 				{
 					var subspace = await dir.Resolve(tr, directoryLayer);
+					Assert.That(subspace, Is.Not.Null);
 					Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
 				}, this.Cancellation);
 			}

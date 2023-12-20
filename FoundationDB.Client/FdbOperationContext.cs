@@ -171,7 +171,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		private Task ExecuteHandlers(ref object handlers, FdbOperationContext ctx, FdbTransactionState state)
+		private Task ExecuteHandlers(ref object? handlers, FdbOperationContext ctx, FdbTransactionState state)
 		{
 			var cbk = Interlocked.Exchange(ref handlers, null);
 			switch (cbk)
@@ -205,11 +205,14 @@ namespace FoundationDB.Client
 			throw new NotSupportedException("Unexpected handler delegate type.");
 		}
 
-		private static async Task ExecuteMultipleHandlers(object[] arr, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
+		private static async Task ExecuteMultipleHandlers(object?[] arr, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
 		{
-			foreach (object del in arr)
+			foreach (object? del in arr)
 			{
-				if (del != null) await ExecuteSingleHandler(del, ctx, arg, ct).ConfigureAwait(false);
+				if (del != null)
+				{
+					await ExecuteSingleHandler(del, ctx, arg, ct).ConfigureAwait(false);
+				}
 			}
 		}
 
@@ -287,6 +290,7 @@ namespace FoundationDB.Client
 		/// <returns>If there was already a cached instance for this key, it will be discarded</returns>
 		public void SetLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(newState);
@@ -309,9 +313,9 @@ namespace FoundationDB.Client
 		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
 		/// <param name="newState">New instance that must be attached to the transaction</param>
 		/// <returns>Previous cached instance, or null if none was found.</returns>
-		[return: MaybeNull]
-		public TState ReplaceLocalData<TState, TToken>(TToken key, TState newState)
+		public TState? ReplaceLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(newState);
@@ -342,7 +346,9 @@ namespace FoundationDB.Client
 		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
 		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
 		/// <returns>Returns <c>true</c> if the value was found and removed; otherwise, false.</returns>
-		public bool RemoveLocalData<TState, TToken>(TToken key) where TState : class
+		public bool RemoveLocalData<TState, TToken>(TToken key)
+			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			lock (this)
@@ -366,6 +372,7 @@ namespace FoundationDB.Client
 		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
 		public bool TryGetLocalData<TState, TToken>(TToken key, [NotNullWhen(true)] out TState? state)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			lock (this)
@@ -376,7 +383,7 @@ namespace FoundationDB.Client
 					var items = (Dictionary<TToken, TState>) slot;
 					if (items.TryGetValue(key, out var value))
 					{
-						state = (TState) value;
+						state = value;
 						return true;
 					}
 				}
@@ -393,13 +400,14 @@ namespace FoundationDB.Client
 		/// <returns>Either the existing value, or <paramref name="newState"/>.</returns>
 		public TState GetOrCreateLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(newState);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
-				TState result;
+				TState? result;
 				if (container.TryGetValue(typeof(TState), out var slot))
 				{
 					var items = (Dictionary<TToken, TState>) slot;
@@ -431,13 +439,14 @@ namespace FoundationDB.Client
 		//REVIEW: should we return a tuple (TState Data, bool Created) instead ?
 		public TState GetOrCreateLocalData<TState, TToken>(TToken key, Func<TState> factory)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(factory);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
-				TState result;
+				TState? result;
 				if (container.TryGetValue(typeof(TState), out var slot))
 				{
 					var items = (Dictionary<TToken, TState>) slot;

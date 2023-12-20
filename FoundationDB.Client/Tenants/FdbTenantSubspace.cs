@@ -49,8 +49,7 @@ namespace FoundationDB.Client
 
 		public override string PrettyPrint(Slice packedKey)
 		{
-			if (packedKey.IsNull) return "<null>";
-			return this.NamePrefix + base.PrettyPrint(packedKey);
+			return packedKey.IsNull ? "<null>" : this.NamePrefix + base.PrettyPrint(packedKey);
 		}
 
 	}

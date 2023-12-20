@@ -39,8 +39,6 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
-	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Filters.Logging;
@@ -140,7 +138,7 @@ namespace FoundationDB.Client
 		public FdbTenant? Tenant { get; }
 
 		/// <inheritdoc />
-		IFdbTenant IFdbReadOnlyTransaction.Tenant => this.Tenant;
+		IFdbTenant? IFdbReadOnlyTransaction.Tenant => this.Tenant;
 
 		/// <summary>Returns the handler for this transaction</summary>
 		internal IFdbTransactionHandler Handler => m_handler;
@@ -354,7 +352,7 @@ namespace FoundationDB.Client
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetReadVersionCommand(),
-					(tr, cmd) => tr.m_handler.GetReadVersionAsync(tr.m_cancellation)
+					(tr, _) => tr.m_handler.GetReadVersionAsync(tr.m_cancellation)
 				);
 		}
 
@@ -428,7 +426,7 @@ namespace FoundationDB.Client
 			lock (this)
 			{
 				var cache = GetMetadataVersionKeysCache();
-				if (!cache.TryGetValue(key, out t) || t.Task == null)
+				if (!cache.TryGetValue(key, out t) || t.Task == null) //REVIEW: BUGBUG: should this be null or PoisonedMetadataVersion ?
 				{
 					mustAddConflictRange = !snapshot;
 					t = (ReadAndParseMetadataVersionSlow(key), snapshot);
@@ -1319,7 +1317,7 @@ namespace FoundationDB.Client
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetApproximateSizeCommand(),
-					(tr, cmd) => tr.m_handler.GetApproximateSizeAsync(tr.m_cancellation)
+					(tr, _) => tr.m_handler.GetApproximateSizeAsync(tr.m_cancellation)
 				);
 		}
 
@@ -1371,7 +1369,7 @@ namespace FoundationDB.Client
 				return log.ExecuteAsync(
 					self,
 					new FdbTransactionLog.CommitCommand(),
-					(tr, cmd) => tr.m_handler.CommitAsync(tr.m_cancellation),
+					(tr, _) => tr.m_handler.CommitAsync(tr.m_cancellation),
 					(tr, cmd, log) =>
 					{
 						log.CommittedUtc = DateTimeOffset.UtcNow;
@@ -1529,7 +1527,7 @@ namespace FoundationDB.Client
 				self.m_log.Execute(
 					self,
 					new FdbTransactionLog.ResetCommand(),
-					(tr, cmd) => tr.m_handler.Reset()
+					(tr, _) => tr.m_handler.Reset()
 				);
 			}
 		}
@@ -1573,7 +1571,7 @@ namespace FoundationDB.Client
 				=> self.m_log!.Execute(
 					self,
 					new FdbTransactionLog.CancelCommand(),
-					(tr, cmd) => tr.m_handler.Cancel()
+					(tr, _) => tr.m_handler.Cancel()
 				);
 		}
 
@@ -1709,14 +1707,11 @@ namespace FoundationDB.Client
 				}
 				finally
 				{
-					// Dispose of the handle
-					if (m_handler != null)
+					// Dispose of the handler
+					try { m_handler.Dispose(); }
+					catch(Exception e)
 					{
-						try { m_handler.Dispose(); }
-						catch(Exception e)
-						{
-							if (Logging.On) Logging.Error(this, "Dispose", $"Transaction #{m_id} failed to dispose the transaction handler: [{e.GetType().Name}] {e.Message}");
-						}
+						if (Logging.On) Logging.Error(this, "Dispose", $"Transaction #{m_id} failed to dispose the transaction handler: [{e.GetType().Name}] {e.Message}");
 					}
 
 					var context = this.Context;

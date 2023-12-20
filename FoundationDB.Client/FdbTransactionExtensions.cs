@@ -416,9 +416,8 @@ namespace FoundationDB.Client
 
 		#region Atomic Ops...
 
-		/// <summary>
-		/// Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
-		/// </summary>
+		/// <summary>Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
 		/// <param name="mutation">Type of mutation that should be performed on the key</param>
@@ -895,12 +894,11 @@ namespace FoundationDB.Client
 			if (p >= 0)
 			{ // found a candidate spot, we have to make sure that it is only present once in the key!
 
-				if (buffer.Slice(p + token.Length).IndexOf(token) >= 0)
+				if (buffer[(p + token.Length)..].IndexOf(token) >= 0)
 				{
-					if (argName == "key")
-						throw new ArgumentException("The key should only contain one occurrence of a VersionStamp.", argName);
-					else
-						throw new ArgumentException("The value should only contain one occurrence of a VersionStamp.", argName);
+					throw argName == "key"
+						? new ArgumentException("The key should only contain one occurrence of a VersionStamp.", argName)
+						: new ArgumentException("The value should only contain one occurrence of a VersionStamp.", argName);
 				}
 			}
 			else
@@ -908,10 +906,9 @@ namespace FoundationDB.Client
 				p = buffer.IndexOf(VersionStamp.IncompleteToken.Span);
 				if (p < 0)
 				{
-					if (argName == "key")
-						throw new ArgumentException("The key should contain at least one VersionStamp.", argName);
-					else 
-						throw new ArgumentException("The value should contain at least one VersionStamp.", argName);
+					throw argName == "key"
+						? new ArgumentException("The key should contain at least one VersionStamp.", argName)
+						: new ArgumentException("The value should contain at least one VersionStamp.", argName);
 				}
 			}
 			Contract.Debug.Assert(p >= 0 && p + token.Length <= buffer.Length);
@@ -920,7 +917,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception FailVersionStampNotSupported(int apiVersion)
+		private static NotSupportedException FailVersionStampNotSupported(int apiVersion)
 		{
 			return new NotSupportedException($"VersionStamps are not supported at API version {apiVersion}. You need to select at least API Version 400 or above.");
 		}
@@ -1545,6 +1542,7 @@ namespace FoundationDB.Client
 		#region CheckValueAsync...
 
 		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="expected">Expected value for this key</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
@@ -1570,7 +1568,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key to be removed from the database.</param>
 		public static void Clear(this IFdbTransaction trans, Slice key)
 		{
-			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(key));
+			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 
 			trans.Clear(key.Span);
 		}

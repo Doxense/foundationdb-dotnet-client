@@ -87,12 +87,12 @@ namespace FoundationDB.Client
 			return HashCodes.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is FdbDirectorySubspaceLocation loc && Equals(loc);
 		}
 
-		public bool Equals(ISubspaceLocation other)
+		public bool Equals(ISubspaceLocation? other)
 		{
 			return other != null && other.Path == this.Path && other.Prefix.Count == 0;
 		}

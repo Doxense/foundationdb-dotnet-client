@@ -89,7 +89,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the pair of key selectors</summary>
 		public override string ToString()
 		{
-			return "[ " + this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End) + " )";
+			return $"[ {this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin)}, {this.End.PrettyPrint(FdbKey.PrettyPrintMode.End)} )";
 		}
 
 	}

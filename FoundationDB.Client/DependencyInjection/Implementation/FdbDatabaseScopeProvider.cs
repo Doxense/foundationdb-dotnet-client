@@ -156,11 +156,11 @@ namespace FoundationDB.DependencyInjection
 		}
 
 		/// <inheritdoc />
-		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default)
+		public ValueTask<(IFdbDatabase Database, TState? State)> GetDatabaseAndState(CancellationToken ct = default)
 		{
 			//BUGBUG: what if the parent scope has been shut down?
 			var t = ReadInternalState();
-			return t.Database != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<(IFdbDatabase, TState)>((t.Database, t.State)) : GetDatabaseAndStateSlow(ct);
+			return t.Database != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<(IFdbDatabase, TState?)>((t.Database, t.State)) : GetDatabaseAndStateSlow(ct);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]

@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable AccessToDisposedClosure
+// ReSharper disable MemberHidesStaticFromOuterClass
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -110,7 +113,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Total number of values inserted in the database</returns>
 			/// <remarks>In case of a non retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
-			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions options, CancellationToken ct)
+			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(data);
@@ -153,7 +156,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Total number of values inserted in the database</returns>
 			/// <remarks>In case of a non retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
-			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<(Slice Key, Slice Value)> data, WriteOptions options, CancellationToken ct)
+			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<(Slice Key, Slice Value)> data, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(data);
@@ -285,7 +288,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T, IFdbTransaction> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T, IFdbTransaction> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);
@@ -336,7 +339,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T, IFdbTransaction, Task> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T, IFdbTransaction, Task> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);
@@ -603,7 +606,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T[], IFdbTransaction> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T[], IFdbTransaction> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);
@@ -654,7 +657,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T[], IFdbTransaction, Task> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T[], IFdbTransaction, Task> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);

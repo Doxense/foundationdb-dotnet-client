@@ -232,7 +232,7 @@ namespace FoundationDB.Client
 
 		/// <summary>[DEPRECATED] Return the error message matching the specified error code</summary>
 		[Obsolete("Use FdbNative.GetErrorMessage instead")]
-		public static string GetErrorMessage(FdbError code)
+		public static string? GetErrorMessage(FdbError code)
 		{
 			//TODO: remove from this type, and move to FdbNativeDatase!
 			return FdbNative.GetErrorMessage(code);

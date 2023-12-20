@@ -24,16 +24,16 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#nullable enable
+
 namespace FoundationDB.Types.Json
 {
 	using System;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 	using Newtonsoft.Json;
 
 	/// <summary>Sample codec that uses JSON.Net to serialize values into Slices</summary>
@@ -45,16 +45,16 @@ namespace FoundationDB.Types.Json
 
 		private readonly JsonSerializer m_serializer;
 
-		public JsonNetCodec(JsonSerializerSettings settings = null)
+		public JsonNetCodec(JsonSerializerSettings? settings = null)
 			: this(JsonSerializer.CreateDefault(settings))
 		{ }
 
-		public JsonNetCodec(JsonSerializer serializer)
+		public JsonNetCodec(JsonSerializer? serializer)
 		{
 			m_serializer = serializer ?? JsonSerializer.CreateDefault();
 		}
 
-		protected virtual Slice EncodeInternal(TDocument document)
+		protected virtual Slice EncodeInternal(TDocument? document)
 		{
 			var ms = new MemoryStream(256);
 			using (var tw = new StreamWriter(ms, s_utf8NoBom))
@@ -75,12 +75,12 @@ namespace FoundationDB.Types.Json
 			}
 		}
 
-		public Slice EncodeValue(TDocument document)
+		public Slice EncodeValue(TDocument? document)
 		{
 			return EncodeInternal(document);
 		}
 
-		public TDocument DecodeValue(Slice encoded)
+		public TDocument? DecodeValue(Slice encoded)
 		{
 			if (encoded.IsNullOrEmpty) return default(TDocument);
 
@@ -94,7 +94,7 @@ namespace FoundationDB.Types.Json
 			}
 		}
 
-		void IUnorderedTypeCodec<TDocument>.EncodeUnorderedSelfTerm(ref SliceWriter output, TDocument value)
+		void IUnorderedTypeCodec<TDocument>.EncodeUnorderedSelfTerm(ref SliceWriter output, TDocument? value)
 		{
 			var packed = EncodeInternal(value);
 			Debug.Assert(packed.Count >= 0);
@@ -102,7 +102,7 @@ namespace FoundationDB.Types.Json
 			output.WriteBytes(packed);
 		}
 
-		TDocument IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)
+		TDocument? IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
 			uint size = input.ReadVarInt32();
 			if (size > int.MaxValue) throw new FormatException("Malformed data size");
@@ -111,15 +111,16 @@ namespace FoundationDB.Types.Json
 			return DecodeValue(packed);
 		}
 
-		Slice IUnorderedTypeCodec<TDocument>.EncodeUnordered(TDocument value)
+		Slice IUnorderedTypeCodec<TDocument>.EncodeUnordered(TDocument? value)
 		{
 			return EncodeValue(value);
 		}
 
-		TDocument IUnorderedTypeCodec<TDocument>.DecodeUnordered(Slice input)
+		TDocument? IUnorderedTypeCodec<TDocument>.DecodeUnordered(Slice input)
 		{
 			return DecodeValue(input);
 		}
+
 	}
 
 }

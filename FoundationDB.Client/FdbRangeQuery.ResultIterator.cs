@@ -68,7 +68,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			public ResultIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction, Func<KeyValuePair<Slice, Slice>, T> transform)
+			public ResultIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction? transaction, Func<KeyValuePair<Slice, Slice>, T> transform)
 			{
 				Contract.Debug.Requires(query != null && transform != null);
 
@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 					var chunk = iterator.Current;
 
 					//note: if the range is empty, we may have an empty chunk, that is equivalent to no chunk
-					if (chunk != null && chunk.Length > 0)
+					if (chunk != null! && chunk.Length > 0)
 					{
 #if DEBUG_RANGE_ITERATOR
 						Debug.WriteLine("Got a new chunk from page iterator: " + chunk.Length);
