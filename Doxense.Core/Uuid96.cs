@@ -44,7 +44,7 @@ namespace System
 	{
 
 		/// <summary>Uuid with all bits set to 0</summary>
-		public static readonly Uuid96 Empty = default;
+		public static readonly Uuid96 Empty;
 
 		/// <summary>Uuid with all bits set to 1</summary>
 		public static readonly Uuid96 MaxValue = new Uuid96(uint.MaxValue, ulong.MaxValue);
@@ -552,7 +552,7 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal unsafe void WriteToUnsafe(Span<byte> destination)
+		internal void WriteToUnsafe(Span<byte> destination)
 		{
 			WriteUnsafe(this.Hi, this.Lo, destination);
 		}

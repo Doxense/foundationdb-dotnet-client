@@ -40,7 +40,7 @@ namespace System
 	/// <summary>Represents an RFC 4122 compliant 128-bit UUID</summary>
 	/// <remarks>You should use this type if you are primarily exchanging UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
 	[DebuggerDisplay("[{ToString(),nq}]")]
-	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), Serializable]
+	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), PublicAPI, Serializable]
 	public readonly struct Uuid128 : IFormattable, IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>
 	{
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)
@@ -171,7 +171,8 @@ namespace System
 			return new Uuid128(guid);
 		}
 
-		public static readonly Uuid128 Empty = default;
+		/// <summary>Uuid with all bits set to 0</summary>
+		public static readonly Uuid128 Empty;
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;

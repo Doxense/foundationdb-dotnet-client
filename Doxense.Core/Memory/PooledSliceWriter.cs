@@ -33,6 +33,7 @@ namespace Doxense.Memory
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Buffer writer that writes all data into a single consecutive buffer allocated from a pool</summary>
 	/// <remarks>
@@ -40,6 +41,7 @@ namespace Doxense.Memory
 	/// <para>All allocated memory will be returned to the pool when this instance is disposed.</para>
 	/// <para>All slices allocated from this instance <b>MUST NOT</b> be used after that instance has beed disposed or cleared! Consider using <see cref="ArraySliceWriter"/> if you need allocated data to survive this instance.</para>
 	/// </remarks>
+	[PublicAPI]
 	public sealed class PooledSliceWriter : ISliceBufferWriter, IDisposable
 	{
 		private byte[]? m_buffer;

@@ -38,6 +38,7 @@ namespace Doxense.Memory
 	/// <remarks>Slice allocated from this writer CAN still be used after this instance has been disposed or cleared.</remarks>
 	/// <remarks>If you require all data to be consecutive in memory, use <see cref="ArraySliceWriter"/> instead.</remarks>
 	/// <remarks>If all data allocated from this writer is guarenteed to not be used outside of its lifetime, consider using <see cref="PooledSliceAllocator"/> for performance reasons.</remarks>
+	[PublicAPI]
 	public sealed class SlabSliceWriter : IBufferWriter<byte>, ISliceBufferWriter
 	{
 

@@ -31,6 +31,7 @@ namespace Doxense.Memory
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
 	/// <remarks>
@@ -38,6 +39,7 @@ namespace Doxense.Memory
 	/// This class is not thread safe.
 	/// </remarks>
 	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Size={Size}, Allocated={Allocated}")]
+	[PublicAPI]
 	public sealed class SliceBuffer
 	{
 		private const int DefaultPageSize = 256;
@@ -62,7 +64,7 @@ namespace Doxense.Memory
 
 		/// <summary>Create a new slice buffer with the default page size</summary>
 		public SliceBuffer()
-			: this(0, null)
+			: this(0)
 		{ }
 
 		/// <summary>Create a new slice buffer with the specified page size</summary>
@@ -71,7 +73,7 @@ namespace Doxense.Memory
 		public SliceBuffer(int pageSize, ArrayPool<byte>? pool = null)
 		{
 			if (pageSize < 0) throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size cannot be less than zero");
-			m_pageSize = pageSize == 0 ? DefaultPageSize : BitHelpers.AlignPowerOfTwo(pageSize, 16);
+			m_pageSize = pageSize == 0 ? DefaultPageSize : BitHelpers.AlignPowerOfTwo(pageSize, powerOfTwo: 16);
 			m_pool = pool;
 		}
 

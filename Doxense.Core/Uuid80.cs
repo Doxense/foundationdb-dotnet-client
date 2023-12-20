@@ -42,8 +42,9 @@ namespace System
 	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>
 	{
+
 		/// <summary>Uuid with all bits set to 0</summary>
-		public static readonly Uuid80 Empty = default(Uuid80);
+		public static readonly Uuid80 Empty;
 
 		/// <summary>Uuid with all bits set to 1</summary>
 		public static readonly Uuid80 MaxValue = new Uuid80(ushort.MaxValue, ulong.MaxValue);
@@ -121,7 +122,7 @@ namespace System
 		public Uuid80(ushort a, ushort b, ushort c, ushort d, ushort e)
 		{
 			this.Hi = a;
-			this.Lo = ((ulong) b) << 48 | ((ulong) c) << 32 | ((ulong) d) << 16 | ((ulong) e);
+			this.Lo = ((ulong) b) << 48 | ((ulong) c) << 32 | ((ulong) d) << 16 | e;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -438,7 +439,7 @@ namespace System
 			ptr[0] = HexToLowerChar((uint) a >> 12);
 			ptr[1] = HexToLowerChar((uint) a >> 8);
 			ptr[2] = HexToLowerChar((uint) a >> 4);
-			ptr[3] = HexToLowerChar((uint) a);
+			ptr[3] = HexToLowerChar(a);
 			return ptr + 4;
 		}
 
@@ -469,7 +470,7 @@ namespace System
 			ptr[0] = HexToUpperChar((uint) a >> 12);
 			ptr[1] = HexToUpperChar((uint) a >> 8);
 			ptr[2] = HexToUpperChar((uint) a >> 4);
-			ptr[3] = HexToUpperChar((uint) a);
+			ptr[3] = HexToUpperChar(a);
 			return ptr + 4;
 		}
 

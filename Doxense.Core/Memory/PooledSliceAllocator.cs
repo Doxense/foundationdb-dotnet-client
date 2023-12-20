@@ -42,6 +42,7 @@ namespace Doxense.Memory
 	/// <para>Slice allocated from this writer <b>MUST NOT</b> be used after this instance has been disposed or cleared!</para>
 	/// <para>If you require all allocated data to survive this instance, use <see cref="ArraySliceAllocator"/> instead.</para>
 	/// </remarks>
+	[PublicAPI]
 	public sealed class PooledSliceAllocator : ISliceAllocator
 	{
 

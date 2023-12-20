@@ -28,6 +28,7 @@ namespace System
 {
 	using System;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -42,6 +43,7 @@ namespace System
 	/// The optional last 2 bytes can contain a user-provider version number used to allow multiple stamps inside the same transaction.
 	/// </remarks>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>
 	{
 		//note: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').

@@ -27,7 +27,9 @@
 namespace Doxense.Serialization.Encoders
 {
 	using System;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public sealed class BinaryEncoding : IValueEncoding, IKeyEncoding,
 		IValueEncoder<Slice>,
 		IValueEncoder<string?>,
@@ -76,7 +78,7 @@ namespace Doxense.Serialization.Encoders
 		public IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>()
 		{
 			if (typeof(TStorage) != typeof(Slice)) throw new NotSupportedException("BinaryEncoding can only use Slice as the storage type.");
-			return (IValueEncoder<TValue, TStorage>) (object) GetValueEncoder<TValue>();
+			return (IValueEncoder<TValue, TStorage>) GetValueEncoder<TValue>();
 		}
 
 		public IValueEncoder<TValue> GetValueEncoder<TValue>()

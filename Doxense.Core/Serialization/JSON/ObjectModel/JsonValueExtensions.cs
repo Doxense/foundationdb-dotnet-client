@@ -33,6 +33,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class JsonValueExtensions
 	{
 

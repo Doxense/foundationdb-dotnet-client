@@ -38,6 +38,7 @@ namespace Doxense.Memory
 	/// Warning: Since the pool can reuse its internal buffer between sessions, this breaks the immutability contract for long lived Slices, and may introduce corruption if not used properly.
 	/// Warning: instances of this type are NOT thread-safe. In multi-threaded contexts, each thread should either use locking, or have its own pool instance.
 	/// </remarks>
+	[Obsolete("Use ISliceBufferWriter or ISliceAllocator instead")]
 	public sealed class SlicePool //REVIEW: change the name into something like "SliceAllocator", so that we can use "SlicePool" in the same meaning as MemoryPool or ArrayPool?
 	{
 		//note: a SliceWriter only keeps a single buffer (resized as needed) that remembers all the slices produced, while a SlicePool will allocate new buffers without copying.
