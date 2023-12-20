@@ -52,13 +52,23 @@ namespace Doxense.Serialization.Json
 			public static CrystalJsonTypeVisitor? Handler
 			{
 				get => s_typeVisitorCache[typeof(T)];
-				set => s_typeVisitorCache.SetItem(typeof(T), value);
+				set
+				{
+					if (value != null)
+					{
+						s_typeVisitorCache.SetItem(typeof(T), value);
+					}
+					else
+					{
+						s_typeVisitorCache.Remove(typeof(T));
+					}
+				}
 			}
 		}
 
 		#region Type Writers ...
 
-		private static readonly QuasiImmutableCache<Type, CrystalJsonTypeVisitor> s_typeVisitorCache = new QuasiImmutableCache<Type, CrystalJsonTypeVisitor>(TypeEqualityComparer.Default);
+		private static readonly QuasiImmutableCache<Type, CrystalJsonTypeVisitor> s_typeVisitorCache = new(TypeEqualityComparer.Default);
 
 		private static readonly Func<Type, bool, CrystalJsonTypeVisitor> CreateVisitorForTypeCallback = CreateVisitorForType;
 
@@ -798,7 +808,7 @@ namespace Doxense.Serialization.Json
 			// il faut caster l'objet
 			var castedValue = prmValue.CastFromObject(prmType);
 			var body = Expression.Call(method, castedValue, prmWriter);
-			return Expression.Lambda<CrystalJsonTypeVisitor>(body, true, new[] { prmValue, prmDeclaringType, prmRuntimeType, prmWriter }).Compile();
+			return Expression.Lambda<CrystalJsonTypeVisitor>(body, true, prmValue, prmDeclaringType, prmRuntimeType, prmWriter).Compile();
 		}
 
 		/// <summary>Génère le convertisseur pour un type respectant le pattern JsonSerializable static</summary>
@@ -1045,7 +1055,7 @@ namespace Doxense.Serialization.Json
 		{
 			var method = typeof(CrystalJsonVisitor).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
 			Contract.Debug.Assert(method != null);
-			method = method!.MakeGenericMethod(type);
+			method = method.MakeGenericMethod(type);
 			var prms = new[] {
 				Expression.Parameter(typeof(object), "v"),
 				Expression.Parameter(typeof(Type), "t"),

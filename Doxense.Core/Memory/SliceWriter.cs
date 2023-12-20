@@ -129,7 +129,7 @@ namespace Doxense.Memory
 
 			if (capacity == 0)
 			{ // most frequent usage is to add a packed integer at the end of a prefix
-				capacity = BitHelpers.AlignPowerOfTwo(n + 8, 16);
+				capacity = BitHelpers.AlignPowerOfTwo(n + 8, powerOfTwo: 16);
 			}
 			else
 			{
@@ -2132,7 +2132,7 @@ namespace Doxense.Memory
 
 			if (pool == null)
 			{ // use the heap
-				int size = BitHelpers.AlignPowerOfTwo((int) newSize, 16); // round up to 16 bytes, to reduce fragmentation
+				int size = BitHelpers.AlignPowerOfTwo((int) newSize, powerOfTwo: 16); // round up to 16 bytes, to reduce fragmentation
 				Array.Resize(ref buffer, size);
 			}
 			else

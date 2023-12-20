@@ -88,13 +88,12 @@ namespace Doxense.Serialization.Json
 
 			foreach(var kvp in left)
 			{
-				if (!inRight.TryGetValue(kvp.Key, out JsonValue val))
+				if (!inRight.Remove(kvp.Key, out var val))
 				{ // removed from right
 					diff[kvp.Key] = JsonObject.Create("_remove", kvp.Value);
 					continue;
 				}
 
-				inRight.Remove(kvp.Key);
 				if (kvp.Value.Type != val.Type)
 				{ // type has changed!
 					diff[kvp.Key] = JsonObject.Create("_replace", kvp.Value, "_by", val);
@@ -432,7 +431,7 @@ namespace Doxense.Serialization.Json
 
 			foreach(var kvp in after)
 			{
-				if (!before.TryGetValue(kvp.Key, out JsonValue prev))
+				if (!before.TryGetValue(kvp.Key, out var prev))
 				{
 					// ["add", PATH, VALUE] : add new field "PATH" with value VALUE
 					ops.Add(JsonArray.Create(Commands.Add, kvp.Key, kvp.Value));

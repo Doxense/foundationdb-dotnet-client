@@ -218,7 +218,7 @@ namespace Doxense.Messaging
 				{
 					await this.RunTask;
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					//BUGBUG: TODO: logger?
 				}
@@ -279,7 +279,7 @@ namespace Doxense.Messaging
 					signal?.TrySetResult(null);
 				}
 			}
-			catch (Exception e)
+			catch (Exception)
 			{
 				if (!ct.IsCancellationRequested)
 				{

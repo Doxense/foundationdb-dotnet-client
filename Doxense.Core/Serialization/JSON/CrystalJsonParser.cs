@@ -841,23 +841,21 @@ namespace Doxense.Serialization.Json
 			// génère le literal
 			// on considère qu'un nombre de 4 ou plus digits est une "valeur", alors qu'en dessous, c'est une "clé"
 			var table = reader.GetStringTable(computed ? JsonLiteralKind.Integer : JsonLiteralKind.Decimal);
-			string? literal = computed ? null
-				: table != null ? table.Add(new ReadOnlySpan<char>(buffer, p))
-				: new string(buffer, 0, p);
 
 			if (computed)
 			{
 				if (negative)
 				{ // avec seulement 16 digits, pas de risques d'overflow a cause du signe
-					return JsonNumber.ParseSigned(-((long)num), literal);
+					return JsonNumber.ParseSigned(-((long) num), null);
 				}
 				else
 				{
-					return JsonNumber.ParseUnsigned(num, literal);
+					return JsonNumber.ParseUnsigned(num, null);
 				}
 			}
 
 			// on a besoin de parser le nombre...
+			string literal = table != null ? table.Add(new ReadOnlySpan<char>(buffer, p)) : new string(buffer, 0, p);
 			var value = CrystalJsonParser.ParseNumberFromLiteral(literal, negative, hasDot, hasExponent);
 			if (value == null) throw reader.FailInvalidSyntax("Invalid JSON number '{0}' (malformed)", literal);
 			return value;
