@@ -228,15 +228,15 @@ namespace Doxense.Memory
 		public static uint SizeOfVarInt(uint value)
 		{
 			return value < (1U << 7) ? 1 : SizeOfVarIntSlow(value);
-		}
 
-		private static uint SizeOfVarIntSlow(uint value)
-		{
-			// count is already known to be >= 128
-			if (value < (1U << 14)) return 2;
-			if (value < (1U << 21)) return 3;
-			if (value < (1U << 28)) return 4;
-			return 5;
+			static uint SizeOfVarIntSlow(uint value)
+			{
+				// count is already known to be >= 128
+				if (value < (1U << 14)) return 2;
+				if (value < (1U << 21)) return 3;
+				if (value < (1U << 28)) return 4;
+				return 5;
+			}
 		}
 
 		/// <summary>Return the size (in bytes) that a 64-bit number would need when encoded as a VarInt</summary>
@@ -246,20 +246,20 @@ namespace Doxense.Memory
 		public static uint SizeOfVarInt(ulong value)
 		{
 			return value < (1UL << 7) ? 1 : SizeOfVarIntSlow(value);
-		}
 
-		private static uint SizeOfVarIntSlow(ulong value)
-		{
-			// value is already known to be >= 128
-			if (value < (1UL << 14)) return 2;
-			if (value < (1UL << 21)) return 3;
-			if (value < (1UL << 28)) return 4;
-			if (value < (1UL << 35)) return 5;
-			if (value < (1UL << 42)) return 6;
-			if (value < (1UL << 49)) return 7;
-			if (value < (1UL << 56)) return 8;
-			if (value < (1UL << 63)) return 9;
-			return 10;
+			static uint SizeOfVarIntSlow(ulong value)
+			{
+				// value is already known to be >= 128
+				if (value < (1UL << 14)) return 2;
+				if (value < (1UL << 21)) return 3;
+				if (value < (1UL << 28)) return 4;
+				if (value < (1UL << 35)) return 5;
+				if (value < (1UL << 42)) return 6;
+				if (value < (1UL << 49)) return 7;
+				if (value < (1UL << 56)) return 8;
+				if (value < (1UL << 63)) return 9;
+				return 10;
+			}
 		}
 
 		/// <summary>Return the size (in bytes) that a variable-size array of bytes would need when encoded as a VarBytes</summary>

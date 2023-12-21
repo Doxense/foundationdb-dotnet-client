@@ -29,19 +29,31 @@ namespace Doxense.Memory
 	using System;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
+	using System.Text;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public ref struct SpanWriter
 	{
-		public Span<byte> Buffer;
 
+		/// <summary>Buffer where to write</summary>
+		public readonly Span<byte> Buffer;
+
+		/// <summary>Current position in the buffer</summary>
 		public int Position;
 
 		public SpanWriter(Span<byte> buffer)
 		{
 			this.Buffer = buffer;
 			this.Position = 0;
+		}
+
+		/// <summary>Return the rest of the buffer, starting from the current position</summary>
+		public Span<byte> Tail
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Buffer[this.Position..];
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -402,6 +414,7 @@ namespace Doxense.Memory
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void WriteVarInt32Slow(uint value)
 		{
 			const uint MASK = 128;
@@ -460,6 +473,76 @@ namespace Doxense.Memory
 			this.Position = p;
 		}
 
+		/// <summary>Return the size (in bytes) that a 32-bit number would need when encoded as a VarInt</summary>
+		/// <param name="value">Number that needs to be encoded</param>
+		/// <returns>Number of bytes needed (1-5)</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int SizeOfVarInt(int value)
+		{
+			return (uint) value < (1U << 7) ? 1 : SizeOfVarIntSlow(value);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static int SizeOfVarIntSlow(int value)
+			{
+				if (value < 0) throw new ArgumentException("Size cannot be negative", nameof(value));
+				// count is already known to be >= 128
+				if (value < (1U << 14)) return 2;
+				if (value < (1U << 21)) return 3;
+				if (value < (1U << 28)) return 4;
+				return 5;
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static int WriteVarInt32Unsafe(Span<byte> buffer, int value)
+		{
+			//note: value is known to be >= 128
+			if ((uint) value < (1U << 7))
+			{
+				buffer[0] = (byte) value;
+				return 1;
+			}
+			return WriteVarInt32UnsafeSlow(buffer, value);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static int WriteVarInt32UnsafeSlow(Span<byte> buffer, int value)
+			{
+				Contract.Debug.Requires(value > 127);
+
+				const uint MASK = 128;
+				if (value < (1 << 14))
+				{
+					buffer[0] = (byte) (value | MASK);
+					buffer[1] = (byte) (value >> 7);
+					return 2;
+				}
+
+				if (value < (1 << 21))
+				{
+					buffer[0] = (byte) (value | MASK);
+					buffer[1] = (byte) ((value >> 7) | MASK);
+					buffer[2] = (byte) (value >> 14);
+					return 3;
+				}
+
+				if (value < (1 << 28))
+				{
+					buffer[0] = (byte) (value | MASK);
+					buffer[1] = (byte) ((value >> 7) | MASK);
+					buffer[2] = (byte) ((value >> 14) | MASK);
+					buffer[3] = (byte) (value >> 21);
+					return 4;
+				}
+
+				buffer[0] = (byte) (value | MASK);
+				buffer[1] = (byte) ((value >> 7) | MASK);
+				buffer[2] = (byte) ((value >> 14) | MASK);
+				buffer[3] = (byte) ((value >> 21) | MASK);
+				buffer[4] = (byte) (value >> 28);
+				return 5;
+			}
+		}
+
 		#endregion
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -514,5 +597,21 @@ namespace Doxense.Memory
 			this.Position += 5;
 		}
 
+		public void WriteVarStringUtf8(ReadOnlySpan<char> text)
+		{
+			if (text.Length == 0)
+			{
+				WriteByte(0);
+				return;
+			}
+
+			int n = Encoding.UTF8.GetByteCount(text);
+			var buf = EnsureBytes(n + SizeOfVarInt(n));
+			int p = WriteVarInt32Unsafe(buf, n);
+			Encoding.UTF8.GetBytes(text, buf[p..]);
+			this.Position += n;
+		}
+
 	}
+
 }

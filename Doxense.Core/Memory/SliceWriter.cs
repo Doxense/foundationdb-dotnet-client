@@ -440,7 +440,9 @@ namespace Doxense.Memory
 		public void Reset(bool shrink = false, bool zeroes = false)
 		{
 			var buffer = this.Buffer;
-			Contract.Debug.Requires(buffer != null && buffer.Length >= this.Position);
+			if (buffer == null) return; // already empty buffer
+
+			Contract.Debug.Assert(buffer.Length >= this.Position);
 			// reduce size ?
 			// If the buffer exceeds 64K and we used less than 1/8 of it the last time, we will "shrink" the buffer
 			if (shrink && buffer.Length > 65536 && this.Position <= (buffer.Length >> 3))
