@@ -27,7 +27,6 @@
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
 

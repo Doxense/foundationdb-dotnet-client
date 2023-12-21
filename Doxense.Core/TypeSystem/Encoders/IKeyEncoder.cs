@@ -39,17 +39,17 @@ namespace Doxense.Serialization.Encoders
 	public interface IKeyEncoder<T1> : IKeyEncoder
 	{
 		/// <summary>Encode a single value</summary>
-		void WriteKeyTo(ref SliceWriter writer, T1 value);
+		void WriteKeyTo(ref SliceWriter writer, T1? value);
 
 		/// <summary>Decode a single value</summary>
-		void ReadKeyFrom(ref SliceReader reader, out T1 value);
+		void ReadKeyFrom(ref SliceReader reader, out T1? value);
 
-		bool TryReadKeyFrom(ref SliceReader reader, out T1 value);
+		bool TryReadKeyFrom(ref SliceReader reader, out T1? value);
 	}
 
 	public class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
 	{
-		public KeyEncoder(Func<TKey, Slice> pack, Func<Slice, TKey> unpack)
+		public KeyEncoder(Func<TKey?, Slice> pack, Func<Slice, TKey?> unpack)
 		{
 			this.Pack = pack;
 			this.Unpack = unpack;
@@ -81,9 +81,9 @@ namespace Doxense.Serialization.Encoders
 
 		public IKeyEncoding Encoding => this;
 
-		public void WriteKeyTo(ref SliceWriter writer, TKey value)
+		public void WriteKeyTo(ref SliceWriter writer, TKey? value)
 		{
-			if (this.Pack is Func<TKey, Slice> f)
+			if (this.Pack is Func<TKey?, Slice> f)
 			{
 				writer.WriteBytes(f(value));
 				return;
@@ -91,9 +91,9 @@ namespace Doxense.Serialization.Encoders
 			throw new InvalidOperationException();
 		}
 
-		public void ReadKeyFrom(ref SliceReader reader, out TKey value)
+		public void ReadKeyFrom(ref SliceReader reader, out TKey? value)
 		{
-			if (this.Unpack is Func<Slice, TKey> f)
+			if (this.Unpack is Func<Slice, TKey?> f)
 			{
 				value = f(reader.ReadToEnd());
 				return;
@@ -101,9 +101,9 @@ namespace Doxense.Serialization.Encoders
 			throw new InvalidOperationException();
 		}
 
-		public bool TryReadKeyFrom(ref SliceReader reader, out TKey value)
+		public bool TryReadKeyFrom(ref SliceReader reader, out TKey? value)
 		{
-			if (this.Unpack is Func<Slice, TKey> f)
+			if (this.Unpack is Func<Slice, TKey?> f)
 			{
 				try
 				{
@@ -112,12 +112,12 @@ namespace Doxense.Serialization.Encoders
 				}
 				catch (FormatException)
 				{
-					value = default!;
+					value = default;
 					return false;
 				}
 			}
 
-			value = default!;
+			value = default;
 			return false;
 
 		}

@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable AccessToDisposedClosure
+
 namespace Doxense.Networking
 {
 	using System;
@@ -308,12 +310,16 @@ namespace Doxense.Networking
 
 		private static int CountOccurrences(string s, char t)
 		{
+#if NET8_0_OR_GREATER
+			return s.AsSpan().Count(t);
+#else
 			int n = 0;
 			foreach (var c in s)
 			{
 				if (c == t) n++;
 			}
 			return n;
+#endif
 		}
 
 		/// <summary>Teste si une adresse IP fait partie d'une plage.
@@ -708,7 +714,7 @@ namespace Doxense.Networking
 					var sw = Stopwatch.StartNew();
 					var task = ping.SendPingAsync(address, timeoutMs, buffer, options);
 
-					if (await Task.WhenAny(task, delay) == delay)
+					if (await Task.WhenAny(task, delay).ConfigureAwait(false) == delay)
 					{ // we were aborted!
 						return null;
 					}
@@ -805,26 +811,26 @@ namespace Doxense.Networking
 	[DebuggerDisplay("Status={Status}, MaxTtl={MaxTtl}, Hops={Hops.Count}")]
 	public sealed record TracerouteReply
 	{
-		public IPStatus Status { get; init; }
+		public required IPStatus Status { get; init; }
 
-		public int MaxTtl { get; init; }
+		public required int MaxTtl { get; init; }
 
-		public TimeSpan Timeout { get; init; }
+		public required TimeSpan Timeout { get; init; }
 
-		public List<TracerouteHop> Hops { get; init; }
+		public required List<TracerouteHop> Hops { get; init; }
 
 	}
 
 	[DebuggerDisplay("Distance={Distance}, Status={Status}, Address={Address}, Rtt={Rtt}, Private={Private}")]
 	public sealed record TracerouteHop
 	{
-		public int Distance { get; init; }
+		public required int Distance { get; init; }
 
-		public IPStatus Status { get; init; }
+		public required IPStatus Status { get; init; }
 
-		public IPAddress Address { get; init; }
+		public required IPAddress Address { get; init; }
 
-		public TimeSpan Rtt { get; init; }
+		public required TimeSpan Rtt { get; init; }
 
 		public bool? Private { get; init; }
 

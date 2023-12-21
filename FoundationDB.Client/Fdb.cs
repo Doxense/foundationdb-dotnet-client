@@ -232,7 +232,7 @@ namespace FoundationDB.Client
 
 		/// <summary>[DEPRECATED] Return the error message matching the specified error code</summary>
 		[Obsolete("Use FdbNative.GetErrorMessage instead")]
-		public static string GetErrorMessage(FdbError code)
+		public static string? GetErrorMessage(FdbError code)
 		{
 			//TODO: remove from this type, and move to FdbNativeDatase!
 			return FdbNative.GetErrorMessage(code);
@@ -325,7 +325,7 @@ namespace FoundationDB.Client
 						while (thread.IsAlive && duration.Elapsed.TotalSeconds < 5)
 						{
 							// wait a bit...
-							Thread.Sleep(250);
+							Thread.Sleep(100);
 						}
 
 						if (thread.IsAlive)
@@ -363,7 +363,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Entry point for the Network Thread</summary>
-		[HandleProcessCorruptedStateExceptions]
 		private static void EventLoop()
 		{
 			//TODO: we need to move the crash handling logic outside this method, so that an app can hook up an event and device what to do: crash or keep running (dangerous!).
@@ -706,7 +705,7 @@ namespace FoundationDB.Client
 			finally
 			{
 				// register with the AppDomain to ensure that everything is cleared when the process exists
-				s_appDomainUnloadHandler = (sender, args) =>
+				s_appDomainUnloadHandler = (_, _) =>
 				{
 					if (s_started)
 					{

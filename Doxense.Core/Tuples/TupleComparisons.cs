@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable MemberHidesStaticFromOuterClass
+
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -66,7 +68,7 @@ namespace Doxense.Collections.Tuples
 				return HashCodes.Compute(obj, m_comparer);
 			}
 
-			public bool Equals(object? x, object? y)
+			public new bool Equals(object? x, object? y)
 			{
 				if (object.ReferenceEquals(x, y)) return true;
 				if (x == null || y == null) return false;

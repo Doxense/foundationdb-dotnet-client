@@ -30,12 +30,14 @@ namespace Doxense.Memory
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Buffer writer that writes all data into a single consecutive buffer allocated from the heap</summary>
 	/// <remarks>
 	/// <para>This buffer will grow and copy the underlying array as needed. For performance reason, prefer using <see cref="SlabSliceWriter"/> if you don't require the final output to be consecutive in memory</para>
 	/// <para>If all data allocated from this writer is guarenteed to not be used outside of its lifetime, consider using <see cref="PooledSliceWriter"/> for performance reasons.</para>
 	/// </remarks>
+	[PublicAPI]
 	public sealed class ArraySliceWriter : ISliceBufferWriter
 	{
 		private byte[]? m_buffer;

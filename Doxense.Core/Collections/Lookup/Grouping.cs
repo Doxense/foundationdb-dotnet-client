@@ -632,7 +632,7 @@ namespace Doxense.Collections.Lookup
 
 			public int GetHashCode(TKey obj)
 			{
-				return m_comparer.GetHashCode(obj);
+				return m_comparer.GetHashCode(obj!);
 			}
 
 			public bool Equals(Grouping<TKey, TElement>? x, Grouping<TKey, TElement>? y)
@@ -640,9 +640,9 @@ namespace Doxense.Collections.Lookup
 				return x == null ? y == null : y != null && m_comparer.Equals(x.Key, y.Key);
 			}
 
-			public int GetHashCode(Grouping<TKey, TElement> obj)
+			public int GetHashCode(Grouping<TKey, TElement>? obj)
 			{
-				return obj == null ? -1 : m_comparer.GetHashCode(obj.Key);
+				return obj == null ? -1 : m_comparer.GetHashCode(obj.Key!);
 			}
 		}
 
@@ -663,12 +663,12 @@ namespace Doxense.Collections.Lookup
 				m_comparer = comparer;
 			}
 
-			public int Compare(TKey x, TKey y)
+			public int Compare(TKey? x, TKey? y)
 			{
 				return m_comparer.Compare(x, y);
 			}
 
-			public int Compare(Grouping<TKey, TElement> x, Grouping<TKey, TElement> y)
+			public int Compare(Grouping<TKey, TElement>? x, Grouping<TKey, TElement>? y)
 			{
 				return x == null ? (y == null ? 0 : -1)
 					: y == null ? +1
@@ -796,7 +796,7 @@ namespace Doxense.Collections.Lookup
 		/// <param name="grouping"></param>
 		/// <returns></returns>
 		[ContractAnnotation("null => null; notnull => notnull")]
-		public static Grouping<TKey, TElement>? FromLinq<TKey, TElement>(IGrouping<TKey, TElement> grouping)
+		public static Grouping<TKey, TElement>? FromLinq<TKey, TElement>(IGrouping<TKey, TElement>? grouping)
 		{
 			if (grouping == null) return null;
 			// C'est peut être déjà dans le bon type ?

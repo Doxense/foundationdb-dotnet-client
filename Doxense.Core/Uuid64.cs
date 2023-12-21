@@ -39,10 +39,15 @@ namespace System
 
 	/// <summary>Represents a 64-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
-	[ImmutableObject(true), Serializable]
+	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct Uuid64 : IFormattable, IEquatable<Uuid64>, IComparable<Uuid64>
 	{
-		public static readonly Uuid64 Empty = default;
+
+		/// <summary>Uuid with all bits set to 0</summary>
+		public static readonly Uuid64 Empty;
+
+		/// <summary>Uuid with all bits set to 1</summary>
+		public static readonly Uuid64 MaxValue = new Uuid64(ulong.MaxValue);
 
 		/// <summary>Size is 8 bytes</summary>
 		public const int SizeOf = 8;
@@ -752,14 +757,8 @@ namespace System
 					++pc;
 					int count = MAX_SIZE - (int) (pc - chars);
 					Contract.Debug.Assert(count > 0 && count <= 11);
-					return count <= 0 ? String.Empty : new string(pc, 0, count);
+					return count <= 0 ? string.Empty : new string(pc, 0, count);
 				}
-			}
-
-			public static bool TryDecode(char[] s, out ulong value)
-			{
-				if (s == null) { value = 0; return false; }
-				return TryDecode(new ReadOnlySpan<char>(s), out value);
 			}
 
 			public static bool TryDecode(ReadOnlySpan<char> s, out ulong value)

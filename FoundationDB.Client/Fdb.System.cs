@@ -35,7 +35,6 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
 	using FoundationDB.Client.Status;
-	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 
 	public static partial class Fdb
@@ -339,7 +338,7 @@ namespace FoundationDB.Client
 			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
 				Contract.NotNull(trans);
-				Contract.Debug.Requires(trans.Context?.Database != null);
+				Contract.Debug.Requires(trans.Context != null && trans.Context.Database != null);
 
 				var readVersion = await trans.GetReadVersionAsync().ConfigureAwait(false);
 

@@ -841,23 +841,21 @@ namespace Doxense.Serialization.Json
 			// génère le literal
 			// on considère qu'un nombre de 4 ou plus digits est une "valeur", alors qu'en dessous, c'est une "clé"
 			var table = reader.GetStringTable(computed ? JsonLiteralKind.Integer : JsonLiteralKind.Decimal);
-			string? literal = computed ? null
-				: table != null ? table.Add(new ReadOnlySpan<char>(buffer, p))
-				: new string(buffer, 0, p);
 
 			if (computed)
 			{
 				if (negative)
 				{ // avec seulement 16 digits, pas de risques d'overflow a cause du signe
-					return JsonNumber.ParseSigned(-((long)num), literal);
+					return JsonNumber.ParseSigned(-((long) num), null);
 				}
 				else
 				{
-					return JsonNumber.ParseUnsigned(num, literal);
+					return JsonNumber.ParseUnsigned(num, null);
 				}
 			}
 
 			// on a besoin de parser le nombre...
+			string literal = table != null ? table.Add(new ReadOnlySpan<char>(buffer, p)) : new string(buffer, 0, p);
 			var value = CrystalJsonParser.ParseNumberFromLiteral(literal, negative, hasDot, hasExponent);
 			if (value == null) throw reader.FailInvalidSyntax("Invalid JSON number '{0}' (malformed)", literal);
 			return value;
@@ -933,7 +931,7 @@ namespace Doxense.Serialization.Json
 				int state = EXPECT_PROPERTY;
 
 				char c = '\0';
-				string name = null;
+				string? name = null;
 				while (true)
 				{
 					char prev = c;
@@ -992,7 +990,7 @@ namespace Doxense.Serialization.Json
 								reader.ResizeObjectBuffer(ref props);
 							}
 
-							props[index] = new KeyValuePair<string, JsonValue>(name, ParseJsonValue(ref reader));
+							props[index] = new KeyValuePair<string, JsonValue>(name!, ParseJsonValue(ref reader)!);
 							++index;
 							// next should be ',' or '}'
 							state = EXPECT_NEXT;
@@ -1020,7 +1018,7 @@ namespace Doxense.Serialization.Json
 						{ // object
 							if (c == CrystalJsonParser.EndOfStream) throw reader.FailUnexpectedEndOfStream("Incomplete object definition");
 							if (state == EXPECT_NEXT) throw reader.FailInvalidSyntax("Missing comma after field #{0}", index);
-							if (state == EXPECT_VALUE) throw reader.FailInvalidSyntax("Missing semicolon after field '{0}' value", name);
+							if (state == EXPECT_VALUE) throw reader.FailInvalidSyntax("Missing semicolon after field '{0}' value", name!);
 							if (c == ']') throw reader.FailInvalidSyntax("Unexpected ']' encountered inside an object. Did you forget to close the object?");
 							throw reader.FailInvalidSyntax("Invalid character '{0}' after field #{1}", c, index);
 						}

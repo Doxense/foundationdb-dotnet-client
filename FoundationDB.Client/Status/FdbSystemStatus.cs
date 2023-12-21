@@ -118,7 +118,7 @@ namespace FoundationDB.Client.Status
 			return StringComparer.Ordinal.GetHashCode(this.Name);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is Message message && Equals(message);
 		}

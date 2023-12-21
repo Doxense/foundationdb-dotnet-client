@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public override string ToString()
 		{
-			return Lowest > Highest ? "[empty]" : String.Format("[{0}, {1}]", Lowest, Highest);
+			return this.Lowest > this.Highest ? "[empty]" : $"[{this.Lowest}, {this.Highest}]";
 		}
 
 		public bool Equals(BitRange other)
@@ -66,9 +66,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return other.Lowest == this.Lowest && other.Highest == this.Highest;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
-			return obj is BitRange && Equals((BitRange)obj);
+			return obj is BitRange range && Equals(range);
 		}
 
 		public override int GetHashCode()

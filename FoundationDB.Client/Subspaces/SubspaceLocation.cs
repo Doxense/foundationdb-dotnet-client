@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents the path to a specific subspace in the database</summary>
 	/// <remarks>A path can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into the actual <see cref="IKeySubspace"/> implementation that will be valid within the context of a transaction.</remarks>
+	[PublicAPI]
 	public interface ISubspaceLocation : IEquatable<ISubspaceLocation>
 	{
 
@@ -63,6 +64,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents the path to a typed subspace in the database</summary>
 	/// <typeparam name="TSubspace">Type of the <see cref="IKeySubspace"/> implementation that this path will resolve into.</typeparam>
+	[PublicAPI]
 	public interface ISubspaceLocation<TSubspace> : ISubspaceLocation
 		where TSubspace : class, IKeySubspace
 	{
@@ -80,6 +82,7 @@ namespace FoundationDB.Client
 	/// <summary>Default implementation of a subspace location</summary>
 	/// <typeparam name="TSubspace">Type of the concrete <see cref="IKeySubspace"/> implementation that this location will resolve to</typeparam>
 	[DebuggerDisplay("Path={Path}, Prefix={Prefix}, Encoding={Encoding}")]
+	[PublicAPI]
 	public abstract class SubspaceLocation<TSubspace> : ISubspaceLocation<TSubspace>
 		where TSubspace : class, IKeySubspace
 	{
@@ -121,9 +124,9 @@ namespace FoundationDB.Client
 
 		public abstract ValueTask<TSubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
 
-		public override bool Equals(object obj) => obj is ISubspaceLocation path && Equals(path);
+		public override bool Equals(object? obj) => obj is ISubspaceLocation path && Equals(path);
 
-		public abstract bool Equals(ISubspaceLocation other);
+		public abstract bool Equals(ISubspaceLocation? other);
 
 		public abstract override int GetHashCode();
 
@@ -131,6 +134,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Path to a subspace that can represent binary keys only</summary>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="IDynamicKeySubspace"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class BinaryKeySubspaceLocation : SubspaceLocation<IBinaryKeySubspace>
 	{
 
@@ -145,7 +149,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12345678);
 
-		public override bool Equals(ISubspaceLocation other) =>
+		public override bool Equals(ISubspaceLocation? other) =>
 			object.ReferenceEquals(other, this)
 			|| (other is BinaryKeySubspaceLocation bin && bin.Path == this.Path && bin.Prefix == other.Prefix);
 
@@ -171,6 +175,8 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Path to a subspace that can represent dynamic keys of any size and type</summary>
+	[PublicAPI]
 	public interface IDynamicKeySubspaceLocation : ISubspaceLocation<IDynamicKeySubspace>
 	{
 		IDynamicKeyEncoder Encoder { get; }
@@ -178,6 +184,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Path to a subspace that can represent dynamic keys of any size and type</summary>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="IDynamicKeySubspace"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class DynamicKeySubspaceLocation : SubspaceLocation<IDynamicKeySubspace>, IDynamicKeySubspaceLocation
 	{
 
@@ -253,6 +260,7 @@ namespace FoundationDB.Client
 	/// <summary>Path to a subspace that can represent keys of a specific type</summary>
 	/// <typeparam name="T1">Type of the key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1> : SubspaceLocation<ITypedKeySubspace<T1>>
 	{
 
@@ -273,11 +281,11 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public override bool Equals(object obj) => obj is ISubspaceLocation path && Equals(path);
+		public override bool Equals(object? obj) => obj is ISubspaceLocation path && Equals(path);
 
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x1111);
 
-		public override bool Equals(ISubspaceLocation other) =>
+		public override bool Equals(ISubspaceLocation? other) =>
 			object.ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 		
@@ -310,6 +318,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T1">Type of the first key</typeparam>
 	/// <typeparam name="T2">Type of the second key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1, T2}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1, T2> : SubspaceLocation<ITypedKeySubspace<T1, T2>>
 	{
 		public ICompositeKeyEncoder<T1, T2> Encoder { get; }
@@ -330,7 +339,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x2222);
 
-		public override bool Equals(ISubspaceLocation other) =>
+		public override bool Equals(ISubspaceLocation? other) =>
 			object.ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
@@ -366,6 +375,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T2">Type of the second key</typeparam>
 	/// <typeparam name="T3">Type of the third key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1, T2, T3}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1, T2, T3> : SubspaceLocation<ITypedKeySubspace<T1, T2, T3>>
 	{
 
@@ -386,7 +396,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x3333);
 
-		public override bool Equals(ISubspaceLocation other) =>
+		public override bool Equals(ISubspaceLocation? other) =>
 			object.ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
@@ -410,9 +420,9 @@ namespace FoundationDB.Client
 			return new TypedKeySubspace<T1, T2, T3>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
 
-		public TypedKeySubspaceLocation<T2, T3> this[T1 item1] => new TypedKeySubspaceLocation<T2, T3>(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(1, (item1, default, default)), this.Encoding.GetKeyEncoder<T2, T3>());
+		public TypedKeySubspaceLocation<T2, T3> this[T1 item1] => new(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(1, (item1, default!, default!)), this.Encoding.GetKeyEncoder<T2, T3>());
 
-		public TypedKeySubspaceLocation<T3> this[T1 item1, T2 item2] => new TypedKeySubspaceLocation<T3>(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(2, (item1, item2, default)), this.Encoding.GetKeyEncoder<T3>());
+		public TypedKeySubspaceLocation<T3> this[T1 item1, T2 item2] => new(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(2, (item1, item2, default!)), this.Encoding.GetKeyEncoder<T3>());
 
 	}
 
@@ -422,6 +432,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T3">Type of the third key</typeparam>
 	/// <typeparam name="T4">Type of the fourth key</typeparam>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="ITypedKeySubspace{T1, T2, T3, T4}"/> valid for a specific transaction</remarks>
+	[PublicAPI]
 	public sealed class TypedKeySubspaceLocation<T1, T2, T3, T4> : SubspaceLocation<ITypedKeySubspace<T1, T2, T3, T4>>
 	{
 
@@ -442,7 +453,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x4444);
 
-		public override bool Equals(ISubspaceLocation other) =>
+		public override bool Equals(ISubspaceLocation? other) =>
 			object.ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3, T4> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
@@ -466,13 +477,14 @@ namespace FoundationDB.Client
 			return new TypedKeySubspace<T1, T2, T3, T4>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
 
-		public TypedKeySubspaceLocation<T2, T3, T4> this[T1 item1] => new TypedKeySubspaceLocation<T2, T3, T4>(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(1, (item1, default, default, default)), this.Encoding.GetKeyEncoder<T2, T3, T4>());
+		public TypedKeySubspaceLocation<T2, T3, T4> this[T1 item1] => new(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(1, (item1, default!, default!, default!)), this.Encoding.GetKeyEncoder<T2, T3, T4>());
 
-		public TypedKeySubspaceLocation<T3, T4> this[T1 item1, T2 item2] => new TypedKeySubspaceLocation<T3, T4>(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(2, (item1, item2, default, default)), this.Encoding.GetKeyEncoder<T3, T4>());
+		public TypedKeySubspaceLocation<T3, T4> this[T1 item1, T2 item2] => new(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(2, (item1, item2, default!, default!)), this.Encoding.GetKeyEncoder<T3, T4>());
 
-		public TypedKeySubspaceLocation<T4> this[T1 item1, T2 item2, T3 item3] => new TypedKeySubspaceLocation<T4>(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(3, (item1, item2, item3, default)), this.Encoding.GetKeyEncoder<T4>());
+		public TypedKeySubspaceLocation<T4> this[T1 item1, T2 item2, T3 item3] => new(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(3, (item1, item2, item3, default!)), this.Encoding.GetKeyEncoder<T4>());
 	}
 
+	[PublicAPI]
 	public static class SubspaceLocationExtensions
 	{
 
@@ -651,6 +663,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[PublicAPI]
 	public static class SubspaceLocation
 	{
 
@@ -669,37 +682,37 @@ namespace FoundationDB.Client
 		}
 
 		[Pure]
-		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoder encoder)
+		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoder? encoder)
 		{
 			return new DynamicKeySubspaceLocation(path, default, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
 		}
 
 		[Pure]
-		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoding encoding)
+		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoding? encoding)
 		{
 			return new DynamicKeySubspaceLocation(path, default, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1> FromPath<T1>(FdbPath path, IKeyEncoder<T1> encoder)
+		public static TypedKeySubspaceLocation<T1> FromPath<T1>(FdbPath path, IKeyEncoder<T1>? encoder)
 		{
 			return new TypedKeySubspaceLocation<T1>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1>());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1, T2> FromPath<T1, T2>(FdbPath path, ICompositeKeyEncoder<T1, T2> encoder)
+		public static TypedKeySubspaceLocation<T1, T2> FromPath<T1, T2>(FdbPath path, ICompositeKeyEncoder<T1, T2>? encoder)
 		{
 			return new TypedKeySubspaceLocation<T1, T2>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2>());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1, T2, T3> FromPath<T1, T2, T3>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static TypedKeySubspaceLocation<T1, T2, T3> FromPath<T1, T2, T3>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3>? encoder)
 		{
 			return new TypedKeySubspaceLocation<T1, T2, T3>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3>());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromPath<T1, T2, T3, T4>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromPath<T1, T2, T3, T4>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3, T4>? encoder)
 		{
 			return new TypedKeySubspaceLocation<T1, T2, T3, T4>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>());
 		}

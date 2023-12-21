@@ -64,8 +64,8 @@ namespace System
 			/// <returns>true if <paramref name="x"/> and <paramref name="y"/> have the same size and contain the same sequence of bytes; otherwise, false.</returns>
 			public bool Equals(Slice x, Slice y)
 			{
-				if (x.Array == null) return y.Array == null;
-				return x.Count == y.Count && y.Array != null && x.Span.SequenceEqual(y.Span);
+				if (x.Array == null!) return y.Array == null!;
+				return x.Count == y.Count && y.Array != null! && x.Span.SequenceEqual(y.Span);
 			}
 
 			/// <summary>Computes the hash code of a slice</summary>
@@ -73,7 +73,7 @@ namespace System
 			/// <returns>A 32-bit signed hash coded calculated from all the bytes in the slice</returns>
 			public int GetHashCode(Slice obj)
 			{
-				return obj.Array == null ? 0 : UnsafeHelpers.ComputeHashCode(obj.Span);
+				return obj.Array == null! ? 0 : UnsafeHelpers.ComputeHashCode(obj.Span);
 			}
 
 			int IComparer<KeyValuePair<Slice, Slice>>.Compare(KeyValuePair<Slice, Slice> x, KeyValuePair<Slice, Slice> y)

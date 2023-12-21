@@ -212,7 +212,7 @@ namespace FoundationDB.Filters.Logging
 				return sb.ToString();
 			}
 
-			protected virtual string ResolveKey(Slice key, Func<Slice, string> resolver)
+			protected virtual string ResolveKey(Slice key, Func<Slice, string>? resolver)
 			{
 				return resolver == null ? FdbKey.Dump(key) : resolver(key);
 			}
@@ -249,7 +249,7 @@ namespace FoundationDB.Filters.Logging
 		public class KeyResolver
 		{
 
-			public static readonly KeyResolver Default = new KeyResolver();
+			public static readonly KeyResolver Default = new();
 
 			public virtual string Resolve(Slice key)
 			{
@@ -313,7 +313,7 @@ namespace FoundationDB.Filters.Logging
 					if (t.Count != 3 || t.Get<int>(1) != 0) continue;
 
 					//var parent = t.Get<Slice>(0); //TODO: use this to construct the full materialized path of this directory? (would need more than one pass)
-					string name = t.Get<string>(2) ?? string.Empty;
+					string name = t.Get<string?>(2) ?? string.Empty;
 
 					map[entry.Value] = name;
 				}
@@ -360,7 +360,7 @@ namespace FoundationDB.Filters.Logging
 				}
 
 				var s = base.Resolve(key.Substring(prefix.Count));
-				if (s != null && s.Length >= 3 && s[0] == '(' && s[^1] == ')')
+				if (s != null! && s.Length >= 3 && s[0] == '(' && s[^1] == ')')
 				{ // that was a tuple
 					return string.Concat("([", path, "], ", s.Substring(1));
 				}
@@ -754,8 +754,8 @@ namespace FoundationDB.Filters.Logging
 			{
 				get
 				{
-					if (!this.Result.HasValue || this.Result.Value == null) return null;
-					var array = this.Result.Value;
+					var array = this.Result.GetValueOrDefault();
+					if (array == null) return null;
 					int sum = 0;
 					for (int i = 0; i < array.Length; i++) sum += array[i].Count;
 					return sum;
@@ -810,8 +810,8 @@ namespace FoundationDB.Filters.Logging
 			{
 				get
 				{
-					if (!this.Result.HasValue || this.Result.Value == null) return null;
-					var array = this.Result.Value;
+					var array = this.Result.GetValueOrDefault();
+					if (array == null) return null;
 					int sum = 0;
 					for (int i = 0; i < array.Length; i++) sum += array[i].Count;
 					return sum;
@@ -870,9 +870,9 @@ namespace FoundationDB.Filters.Logging
 			{
 				get
 				{
-					if (!this.Result.HasValue) return null;
+					var chunk = this.Result.GetValueOrDefault()?.Items;
+					if (chunk == null) return null;
 					int sum = 0;
-					var chunk = this.Result.Value.Items;
 					for (int i = 0; i < chunk.Length; i++)
 					{
 						sum += chunk[i].Key.Count + chunk[i].Value.Count;
@@ -895,10 +895,11 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetResult(KeyResolver resolver)
 			{
-				if (this.Result.HasValue)
+				var chunk = this.Result.GetValueOrDefault();
+				if (chunk != null)
 				{
-					string s = $"{this.Result.Value.Count:N0} result(s)";
-					if (this.Result.Value.HasMore) s += ", has_more";
+					string s = $"{chunk.Count:N0} result(s)";
+					if (chunk.HasMore) s += ", has_more";
 					return s;
 				}
 				return base.GetResult(resolver);
@@ -972,11 +973,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetResult(KeyResolver resolver)
 			{
-				if (this.Result.HasValue)
-				{
-					if (this.Result.Value == null) return "<null>";
-				}
-				return base.GetResult(resolver);
+				return this.Result.HasValue && this.Result.Value == null ? "<null>" : base.GetResult(resolver);
 			}
 
 			protected override string Dump(VersionStamp? value, KeyResolver resolver)

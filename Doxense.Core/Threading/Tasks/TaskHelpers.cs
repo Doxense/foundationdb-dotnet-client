@@ -52,7 +52,7 @@ namespace Doxense.Threading.Tasks
 
 		#region Task.Run(Func<..>, ...)
 
-		public static Task<TResult> Run<TResult>(Func<TResult> function, CancellationToken ct, TaskScheduler scheduler)
+		public static Task<TResult> Run<TResult>(Func<TResult> function, CancellationToken ct, TaskScheduler? scheduler)
 		{
 			return Task.Factory.StartNew(
 				function,
@@ -135,7 +135,7 @@ namespace Doxense.Threading.Tasks
 				}
 				case TaskStatus.Faulted:
 				{
-					self.TrySetException(completedTask.Exception.InnerExceptions);
+					self.TrySetException(completedTask.Exception!.InnerExceptions);
 					break;
 				}
 				case TaskStatus.Canceled:
@@ -156,7 +156,7 @@ namespace Doxense.Threading.Tasks
 		/// <param name="completedTask">Tâche terminée, dont l'état sera recopié sur la TaskCompletionSource</param>
 		/// <param name="result">Valeur a assigner à la completionSource si la tâche a réussi</param>
 		/// <remarks>Si la task est annulée, la source sera annulée. Si la task a échoué, les exceptions seront copiées. Si la tâche a réussie, la valeur 'result' sera assignée à la source</remarks>
-		public static void PropagateStatus<T>(this TaskCompletionSource<T> self, Task completedTask, T result = default(T))
+		public static void PropagateStatus<T>(this TaskCompletionSource<T> self, Task completedTask, T result = default!)
 		{
 			Contract.NotNull(self);
 			Contract.NotNull(completedTask);
@@ -170,7 +170,7 @@ namespace Doxense.Threading.Tasks
 				}
 				case TaskStatus.Faulted:
 				{
-					self.TrySetException(completedTask.Exception.InnerExceptions);
+					self.TrySetException(completedTask.Exception!.InnerExceptions);
 					break;
 				}
 				case TaskStatus.Canceled:
@@ -215,7 +215,7 @@ namespace Doxense.Threading.Tasks
 		/// <param name="state">Tuple à décoder</param>
 		/// <returns>Résultat de l'exécution du callback</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static R InvokeFromStateTuple<T, R>(object state)
+		public static R InvokeFromStateTuple<T, R>(object? state)
 		{
 			Contract.Debug.Requires(state is Tuple<Func<T, R>, T>, "Incorrect state tuple type");
 			var tuple = (Tuple<Func<T, R>, T>) state;
@@ -254,7 +254,7 @@ namespace Doxense.Threading.Tasks
 		/// <summary>Throw si la Task ne s'est pas déroulée correctement</summary>
 		public static void ThrowIfFailed(this Task task)
 		{
-			if (task == null)
+			if (task == null!)
 			{
 				// README: Probablement un bug d'une méthode "T Foo()" convertit en "Task<T> FooAsync()" qui retourne 'null' au lieu de 'Task.FromResult<T>(null)' !
 				// => Vérifier dans la callstack la méthode qui a créé la task sur laquelle on veut obtenir le résultat
@@ -274,7 +274,7 @@ namespace Doxense.Threading.Tasks
 		public static void AwaitCompletion(this Task task)
 		{
 #if DEBUG
-			if (task == null)
+			if (task == null!)
 			{
 				// README: Probablement un bug d'une méthode "T Foo()" convertit en "Task<T> FooAsync()" qui retourn 'null' au lieu de 'Task.FromResult<T>(null)' !
 				// => Vérifier dans la callstack la méthode qui a créé la task sur laquelle on veut attendre la completion
@@ -299,7 +299,7 @@ namespace Doxense.Threading.Tasks
 		/// <param name="task">Task</param>
 		/// <param name="ct">Token d'annulation (idéalement le même qu'utilisé par la task)</param>
 		/// <returns>True si la Task est terminée avec succès, et que le token n'est pas annulé</returns>
-		public static bool CanRunInline(Task task, CancellationToken ct)
+		public static bool CanRunInline(Task? task, CancellationToken ct)
 		{
 			return task != null && task.Status == TaskStatus.RanToCompletion && !ct.IsCancellationRequested;
 		}
@@ -391,7 +391,7 @@ namespace Doxense.Threading.Tasks
 			{
 				task.ContinueWith((t, state) =>
 				{
-					PropagateStatus((TaskCompletionSource<T0>) state, t);
+					PropagateStatus((TaskCompletionSource<T0?>) state!, t);
 				},
 					self,
 					CancellationToken.None,
@@ -411,7 +411,7 @@ namespace Doxense.Threading.Tasks
 				return task.ContinueWith((t, state) =>
 				{
 					ThrowIfFailed(t);
-					return ((Func<T0, TResult>) state)(t.Result);
+					return ((Func<T0, TResult>) state!)(t.Result);
 				}, continuation, ct, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Current);
 			}
 
@@ -448,7 +448,7 @@ namespace Doxense.Threading.Tasks
 			public static Task<T1> Run(Func<T0, T1> function, T0 arg0, CancellationToken ct, TaskScheduler? taskScheduler)
 			{
 				return Task.Factory.StartNew(
-					(_) => InvokeFromStateTuple<T0, T1>(_),
+					state => InvokeFromStateTuple<T0, T1>(state),
 					PackStateTuple<T0, T1>(function, arg0),
 					ct,
 					DefaultTaskCreationOptions,

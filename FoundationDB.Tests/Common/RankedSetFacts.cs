@@ -79,10 +79,10 @@ namespace FoundationDB.Layers.Collections.Tests
 			var sb = new StringBuilder();
 			for (int l = 0; l < 6; l++)
 			{
-				sb.AppendFormat("Level {0}:\r\n", l);
+				sb.Append($"Level {l}:\r\n");
 				await tr.GetRange(rs.Subspace.Partition.ByKey(l).ToRange()).ForEachAsync((kvp) =>
 				{
-					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Unpack(kvp.Key), kvp.Value.ToInt64());
+					sb.Append($"\t{rs.Subspace.Unpack(kvp.Key)} = {kvp.Value.ToInt64()}\r\n");
 				});
 			}
 			return sb.ToString();

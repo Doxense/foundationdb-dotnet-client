@@ -271,7 +271,7 @@ namespace System
 			}
 			else
 			{
-				slice = new Slice(segment.Array, segment.Offset, segment.Count);
+				slice = new Slice(segment.Array!, segment.Offset, segment.Count);
 			}
 			return true;
 		}
@@ -288,7 +288,7 @@ namespace System
 		public static implicit operator Slice(ArraySegment<byte> value)
 		{
 			if (value.Count == 0) return value.Array == null ? default : Empty;
-			return new Slice(value.Array, value.Offset, value.Count);
+			return new Slice(value.Array!, value.Offset, value.Count);
 		}
 
 		/// <summary>Returns a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see> that wraps the content of this slice</summary>
@@ -390,7 +390,7 @@ namespace System
 			var arr = this.Array;
 			if (arr == null)
 			{
-				bytes = null;
+				bytes = System.Array.Empty<byte>();
 				return true;
 			}
 
@@ -2431,8 +2431,8 @@ namespace System
 			this.EnsureSliceIsValid();
 
 			// note: Slice.Nil != Slice.Empty
-			if (this.Array == null) return other.Array == null;
-			return other.Array != null && this.Count == other.Count && this.Span.SequenceEqual(other.Span);
+			if (this.Array == null) return other.Array == null!;
+			return other.Array != null! && this.Count == other.Count && this.Span.SequenceEqual(other.Span);
 		}
 
 		/// <summary>Checks if another slice is equal to the current slice.</summary>
@@ -2500,7 +2500,7 @@ namespace System
 		/// <summary>Checks if the content of a byte array matches the current slice.</summary>
 		/// <param name="other">Byte array compared with the current instance</param>
 		/// <returns>true if the both array and slice have the same size and contain the same sequence of bytes; otherwise, false.</returns>
-		public bool Equals(byte[] other)
+		public bool Equals(byte[]? other)
 		{
 			if (other == null) return this.Array == null;
 			return this.Count == other.Length && this.Span.SequenceEqual(other);
@@ -2546,7 +2546,7 @@ namespace System
 			if (slice.Count < 0) return UnsafeHelpers.Errors.SliceCountNotNeg();
 			if (slice.Count > 0)
 			{
-				if (slice.Array == null) return UnsafeHelpers.Errors.SliceBufferNotNull();
+				if (slice.Array == null!) return UnsafeHelpers.Errors.SliceBufferNotNull();
 				if (slice.Offset + slice.Count > slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
 			}
 			// maybe it's Lupus ?

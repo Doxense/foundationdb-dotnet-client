@@ -27,7 +27,6 @@
 namespace Doxense.Memory
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -38,6 +37,7 @@ namespace Doxense.Memory
 	/// <para>Slices allocated from this writer <b>CAN</b> be used after this instance has been disposed or cleared.</para>
 	/// <para>If you can guarantee that no slice allocated will survice this instance, you can also use <see cref="PooledSliceAllocator"/> which can rent memory from a pool.</para>
 	/// </remarks>
+	[PublicAPI]
 	public sealed class ArraySliceAllocator : ISliceAllocator
 	{
 
@@ -165,12 +165,6 @@ namespace Doxense.Memory
 			m_current = newBuffer;
 			m_index = 0;
 			return newBuffer;
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static InvalidOperationException ThrowInvalidOperationException_AdvancedTooFar()
-		{
-			return new InvalidOperationException("Buffer writer advanced too far");
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]

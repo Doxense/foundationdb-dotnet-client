@@ -268,14 +268,14 @@ namespace Doxense.Serialization.Json.JsonPath
 		[Pure]
 		public JPathExpression LessThanOrEqualTo(JsonValue literal) => LessThanOrEqual(this, literal);
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj == this || (obj is JPathExpression expr && Equals(expr));
 		}
 
 		public abstract override int GetHashCode();
 
-		public abstract bool Equals(JPathExpression other);
+		public abstract bool Equals(JPathExpression? other);
 		
 	}
 
@@ -288,7 +288,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Token = token;
 		}
 
-		public override bool Equals(JPathExpression other)
+		public override bool Equals(JPathExpression? other)
 		{
 			return other is JPathSpecialToken tok && tok.Token == this.Token;
 		}
@@ -339,7 +339,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Name = name;
 		}
 
-		public override bool Equals(JPathExpression other)
+		public override bool Equals(JPathExpression? other)
 		{
 			return other is JPathObjectIndexer idx && idx.Name == this.Name && idx.Node.Equals(this.Node);
 		}
@@ -427,7 +427,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.EndExclusive = end;
 		}
 
-		public override bool Equals(JPathExpression other)
+		public override bool Equals(JPathExpression? other)
 		{
 			return other is JPathArrayRange range && range.StartInclusive == this.StartInclusive && range.EndExclusive == this.EndExclusive && range.Node.Equals(this.Node);
 		}
@@ -479,7 +479,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Index = index;
 		}
 
-		public override bool Equals(JPathExpression other)
+		public override bool Equals(JPathExpression? other)
 		{
 			return other is JPathArrayIndexer idx && idx.Index == this.Index && idx.Node.Equals(this.Node);
 		}
@@ -519,7 +519,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Filter = filter;
 		}
 
-		public override bool Equals(JPathExpression other)
+		public override bool Equals(JPathExpression? other)
 		{
 			return other is JPathFilterExpression filter && filter.Filter.Equals(this.Filter) && filter.Node.Equals(this.Node);
 		}
@@ -602,7 +602,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Right = right;
 		}
 
-		public override bool Equals(JPathExpression other)
+		public override bool Equals(JPathExpression? other)
 		{
 			return other is JPathBinaryOperator op && op.Operator == this.Operator && object.Equals(op.Right, this.Right) && op.Left.Equals(this.Left);
 		}
@@ -853,7 +853,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Operator = op;
 		}
 
-		public override bool Equals(JPathExpression obj)
+		public override bool Equals(JPathExpression? obj)
 		{
 			return obj is JPathUnaryOperator op && op.Operator == this.Operator && op.Node.Equals(this.Node);
 		}
@@ -904,7 +904,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Node = node;
 		}
 
-		public override bool Equals(JPathExpression other)
+		public override bool Equals(JPathExpression? other)
 		{
 			return other is JPathQuoteExpression quote && quote.Node.Equals(this.Node);
 		}
@@ -925,7 +925,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			JsonArray? arr = null;
 			foreach (var x in this.Node.Iterate(root, current))
 			{
-				if (x != null)
+				if (x != null!)
 				{
 					(arr ??= new JsonArray()).Add(x);
 				}
@@ -936,4 +936,3 @@ namespace Doxense.Serialization.Json.JsonPath
 	}
 
 }
-

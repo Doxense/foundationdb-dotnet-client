@@ -26,11 +26,10 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using FoundationDB.Filters.Logging;
+	using JetBrains.Annotations;
 
 	/// <summary>Transaction that allows read and write operations</summary>
 	[PublicAPI]

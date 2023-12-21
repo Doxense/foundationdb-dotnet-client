@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			public PagingIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction)
+			public PagingIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction? transaction)
 			{
 				Contract.Debug.Requires(query != null);
 
@@ -223,7 +223,7 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_PAGING
 						Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync() returned " + this.Chunk.Length + " results (" + this.RowCount + " total) " + (hasMore ? " with more to come" : " and has no more data"));
 #endif
-						if (!result.IsEmpty && this.Transaction != null)
+						if (!result.IsEmpty)
 						{
 							return Task.FromResult(Publish(result.Items));
 						}

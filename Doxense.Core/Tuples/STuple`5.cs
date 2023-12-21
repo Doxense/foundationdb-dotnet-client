@@ -157,18 +157,18 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem Get<TItem>(int index) => index switch
+		public TItem? Get<TItem>(int index) => index switch
 		{
-			0  => TypeConverters.Convert<T1, TItem>(this.Item1),
-			1  => TypeConverters.Convert<T2, TItem>(this.Item2),
-			2  => TypeConverters.Convert<T3, TItem>(this.Item3),
-			3  => TypeConverters.Convert<T4, TItem>(this.Item4),
-			4  => TypeConverters.Convert<T5, TItem>(this.Item5),
-			-1 => TypeConverters.Convert<T5, TItem>(this.Item5),
-			-2 => TypeConverters.Convert<T4, TItem>(this.Item4),
-			-3 => TypeConverters.Convert<T3, TItem>(this.Item3),
-			-4 => TypeConverters.Convert<T2, TItem>(this.Item2),
-			-5 => TypeConverters.Convert<T1, TItem>(this.Item1),
+			0  => TypeConverters.Convert<T1, TItem?>(this.Item1),
+			1  => TypeConverters.Convert<T2, TItem?>(this.Item2),
+			2  => TypeConverters.Convert<T3, TItem?>(this.Item3),
+			3  => TypeConverters.Convert<T4, TItem?>(this.Item4),
+			4  => TypeConverters.Convert<T5, TItem?>(this.Item5),
+			-1 => TypeConverters.Convert<T5, TItem?>(this.Item5),
+			-2 => TypeConverters.Convert<T4, TItem?>(this.Item4),
+			-3 => TypeConverters.Convert<T3, TItem?>(this.Item3),
+			-4 => TypeConverters.Convert<T2, TItem?>(this.Item2),
+			-5 => TypeConverters.Convert<T1, TItem?>(this.Item1),
 			_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 5)
 		};
 

@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (obj is KeyRange range) return Equals(range);
 			if (obj is ValueTuple<Slice, Slice> tuple) return Equals(tuple);
@@ -254,7 +254,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the range</summary>
 		public override string ToString()
 		{
-			return "{" + FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin) + ", " + FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End) + "}";
+			return $"{{{FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin)}, {FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End)}}}";
 		}
 	
 		[DebuggerDisplay("Mode={m_mode}")]

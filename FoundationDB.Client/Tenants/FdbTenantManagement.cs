@@ -32,8 +32,9 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using Doxense.Serialization.Json;
-	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public enum FdbTenantMode
 	{
 		Invalid = -1,

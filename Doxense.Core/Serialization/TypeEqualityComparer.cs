@@ -39,7 +39,7 @@ namespace Doxense.Serialization
 		private TypeEqualityComparer()
 		{ }
 
-		public bool Equals(Type x, Type y)
+		public bool Equals(Type? x, Type? y)
 		{
 			return object.ReferenceEquals(x, y);
 		}

@@ -96,12 +96,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		public T Get<T>(int index)
+		public T? Get<T>(int index)
 		{
 			return TuplePacker<T>.Deserialize(GetSlice(index));
 		}
 
-		public T Last<T>()
+		public T? Last<T>()
 		{
 			int count = m_slices.Length;
 			if (count == 0) throw new InvalidOperationException("Tuple is empty");

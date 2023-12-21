@@ -86,15 +86,15 @@ namespace Doxense.Serialization.Encoders
 
 		#region JobTicket...
 
-		Slice IValueEncoder<T, Slice>.EncodeValue(T value)
+		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
 		{
 			Contract.NotNullAllowStructs(value);
 			return JsonPack.Encode(JsonValue.FromValue<T>(value, this.Settings, this.Resolver), this.Settings);
 		}
 
-		T IValueEncoder<T, Slice>.DecodeValue(Slice packed)
+		T? IValueEncoder<T, Slice>.DecodeValue(Slice packed)
 		{
-			return JsonPack.Decode(packed, this.Settings).As<T>(required: true, resolver: this.Resolver)!;
+			return JsonPack.Decode(packed, this.Settings).As<T>(required: true, resolver: this.Resolver);
 		}
 
 		#endregion

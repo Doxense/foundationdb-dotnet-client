@@ -263,14 +263,12 @@ namespace FoundationDB.Client
 		#region IEquatable / IComparable...
 
 		/// <summary>Compare this subspace with another subspace</summary>
-		public int CompareTo(IKeySubspace other)
+		public int CompareTo(IKeySubspace? other)
 		{
 			if (other == null) return +1;
 			if (object.ReferenceEquals(this, other)) return 0;
-			if (other is KeySubspace sub)
-				return this.Key.CompareTo(sub.Key);
-			else
-				return this.Key.CompareTo(other.GetPrefix());
+			if (other is KeySubspace sub) return this.Key.CompareTo(sub.Key);
+			return this.Key.CompareTo(other.GetPrefix());
 		}
 
 		/// <summary>Test if both subspaces have the same prefix</summary>
@@ -278,10 +276,8 @@ namespace FoundationDB.Client
 		{
 			if (other == null) return false;
 			if (object.ReferenceEquals(this, other)) return true;
-			if (other is KeySubspace sub)
-				return this.Key.Equals(sub.Key);
-			else
-				return this.Key.Equals(other.GetPrefix());
+			if (other is KeySubspace sub) return this.Key.Equals(sub.Key);
+			return this.Key.Equals(other.GetPrefix());
 		}
 
 		/// <summary>Test if an object is a subspace with the same prefix</summary>

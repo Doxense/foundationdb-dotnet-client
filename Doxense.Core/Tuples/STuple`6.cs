@@ -173,16 +173,16 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			switch(index)
 			{
-				case 0: case -6: return TypeConverters.Convert<T1, TItem>(this.Item1);
-				case 1: case -5: return TypeConverters.Convert<T2, TItem>(this.Item2);
-				case 2: case -4: return TypeConverters.Convert<T3, TItem>(this.Item3);
-				case 3: case -3: return TypeConverters.Convert<T4, TItem>(this.Item4);
-				case 4: case -2: return TypeConverters.Convert<T5, TItem>(this.Item5);
-				case 5: case -1: return TypeConverters.Convert<T6, TItem>(this.Item6);
+				case 0: case -6: return TypeConverters.Convert<T1, TItem?>(this.Item1);
+				case 1: case -5: return TypeConverters.Convert<T2, TItem?>(this.Item2);
+				case 2: case -4: return TypeConverters.Convert<T3, TItem?>(this.Item3);
+				case 3: case -3: return TypeConverters.Convert<T4, TItem?>(this.Item4);
+				case 4: case -2: return TypeConverters.Convert<T5, TItem?>(this.Item5);
+				case 5: case -1: return TypeConverters.Convert<T6, TItem?>(this.Item6);
 				default: return TupleHelpers.FailIndexOutOfRange<TItem>(index, 6);
 			}
 		}

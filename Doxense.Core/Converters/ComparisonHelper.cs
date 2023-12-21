@@ -29,12 +29,13 @@ namespace Doxense.Runtime.Converters
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper classe used to compare object of "compatible" types</summary>
+	[PublicAPI]
 	public static class ComparisonHelper
 	{
 
@@ -50,7 +51,7 @@ namespace Doxense.Runtime.Converters
 				this.Right = right;
 			}
 
-			public override bool Equals(object obj)
+			public override bool Equals(object? obj)
 			{
 				return obj is TypePair tp && Equals(tp);
 			}
@@ -93,26 +94,16 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Tries to convert an object into an equivalent string representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
 		/// <returns>String equivalent of the object</returns>
-		[return:NotNullIfNotNull("value")]
-		public static string? TryAdaptToString(object? value)
+		public static string? TryAdaptToString(object? value) => value switch
 		{
-			switch (value)
-			{
-				case null:
-					return null;
-				case string s:
-					return s;
-				case char c:
-					return new string(c, 1);
-				case Slice sl:
-					return sl.ToStringUtf8(); //BUGBUG: ASCII? Ansi? UTF8?
-				case byte[] bstr:
-					return bstr.AsSlice().ToStringUtf8(); //BUGBUG: ASCII? Ansi? UTF8?
-				case IFormattable fmt:
-					return fmt.ToString(null, CultureInfo.InvariantCulture);
-			}
-			return null;
-		}
+			null => null,
+			string s => s,
+			char c => new string(c, 1),
+			Slice sl => sl.ToStringUtf8(), //BUGBUG: ASCII? Ansi? UTF8?
+			byte[] bstr => bstr.AsSlice().ToStringUtf8(), //BUGBUG: ASCII? Ansi? UTF8?
+			IFormattable fmt => fmt.ToString(null, CultureInfo.InvariantCulture),
+			_ => null
+		};
 
 		/// <summary>Tries to convert an object into an equivalent double representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
@@ -186,8 +177,11 @@ namespace Doxense.Runtime.Converters
 					case TypeCode.UInt32: return (x, y) => x == null ? y == null : y != null && (uint) x == (uint) y;
 					case TypeCode.Int64: return (x, y) => x == null ? y == null : y != null && (long) x == (long) y;
 					case TypeCode.UInt64: return (x, y) => x == null ? y == null : y != null && (ulong) x == (ulong) y;
+					// ReSharper disable CompareOfFloatsByEqualityOperator
 					case TypeCode.Single: return (x, y) => x == null ? y == null : y != null && (float) x == (float) y;
 					case TypeCode.Double: return (x, y) => x == null ? y == null : y != null && (double) x == (double) y;
+					case TypeCode.Decimal: return (x, y) => x == null ? y == null : y != null && (decimal) x == (decimal) y;
+					// ReSharper restore CompareOfFloatsByEqualityOperator
 					case TypeCode.String: return (x, y) => x == null ? y == null : y != null && (string) x == (string) y;
 				}
 
@@ -223,7 +217,7 @@ namespace Doxense.Runtime.Converters
 			}
 
 			//TODO: some other way to compare ?
-			return (x, y) => false;
+			return (_, _) => false;
 		}
 
 		public static Func<object?, object?, bool> GetTypeComparator(Type t1, Type t2)

@@ -130,7 +130,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public T Get<T>(int index)
+		public T? Get<T>(int index)
 		{
 			index = TupleHelpers.MapIndex(index, this.Count);
 			return index < this.HeadCount ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - this.HeadCount);

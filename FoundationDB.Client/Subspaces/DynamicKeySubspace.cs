@@ -29,7 +29,6 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
@@ -432,45 +431,45 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
-		public static STuple<T1, T2> Decode<T1, T2>(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?> Decode<T1, T2>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
-		public static STuple<T1, T2, T3> Decode<T1, T2, T3>(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
-		public static STuple<T1, T2, T3, T4> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
-		public static STuple<T1, T2, T3, T4, T5> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
-		public static STuple<T1, T2, T3, T4, T5, T6> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
-		public static TFirst DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
+		public static TFirst? DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyFirst<TFirst>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
-		public static TLast DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
+		public static TLast? DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyLast<TLast>(self.ExtractKey(packedKey));
 		}

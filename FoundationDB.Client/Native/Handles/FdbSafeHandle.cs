@@ -39,13 +39,8 @@ namespace FoundationDB.Client.Native
 			: base(IntPtr.Zero)
 		{ }
 
-		public override bool IsInvalid
-		{
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			get => this.handle == IntPtr.Zero;
-		}
+		public override bool IsInvalid => this.handle == IntPtr.Zero;
 
-		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
 		protected override bool ReleaseHandle()
 		{
 			if (handle != IntPtr.Zero)
@@ -66,15 +61,12 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Return the value of the FDBFuture handle, for logging purpose only</summary>
-		internal IntPtr Handle
-		{
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			get => this.handle;
-		}
+		internal IntPtr Handle => this.handle;
 
 		/// <summary>Call the appropriate fdb_*_destroy(..)</summary>
 		/// <param name="handle">Handle on the FDBFuture</param>
 		protected abstract void Destroy(IntPtr handle);
+
 	}
 
 }

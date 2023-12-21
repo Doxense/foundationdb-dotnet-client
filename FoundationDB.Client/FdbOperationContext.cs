@@ -24,12 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#if NET6_0_OR_GREATER
-#define SUPPORTS_ACTIVITYSOURCES
-#else
-#undef SUPPORTS_ACTIVITYSOURCES
-#endif
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -43,7 +37,6 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using JetBrains.Annotations;
 
@@ -56,10 +49,7 @@ namespace FoundationDB.Client
 	{
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
 
-#if SUPPORTS_ACTIVITYSOURCES
 		private static readonly ActivitySource ActivitySource = new ActivitySource("FoundationDB.Client");
-#endif
-
 
 		/// <summary>The database used by the operation</summary>
 		public IFdbDatabase Database => m_db;
@@ -112,10 +102,8 @@ namespace FoundationDB.Client
 		private FdbTransaction? Transaction;
 		//note: field accessed via interlocked operations!
 
-#if SUPPORTS_ACTIVITYSOURCES
 		/// <summary>Current <see cref="System.Diagnostics.Activity"/>, if tracing is enabled</summary>
 		public Activity? Activity { get; private set; }
-#endif
 
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
@@ -171,7 +159,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		private Task ExecuteHandlers(ref object handlers, FdbOperationContext ctx, FdbTransactionState state)
+		private Task ExecuteHandlers(ref object? handlers, FdbOperationContext ctx, FdbTransactionState state)
 		{
 			var cbk = Interlocked.Exchange(ref handlers, null);
 			switch (cbk)
@@ -205,11 +193,14 @@ namespace FoundationDB.Client
 			throw new NotSupportedException("Unexpected handler delegate type.");
 		}
 
-		private static async Task ExecuteMultipleHandlers(object[] arr, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
+		private static async Task ExecuteMultipleHandlers(object?[] arr, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
 		{
-			foreach (object del in arr)
+			foreach (object? del in arr)
 			{
-				if (del != null) await ExecuteSingleHandler(del, ctx, arg, ct).ConfigureAwait(false);
+				if (del != null)
+				{
+					await ExecuteSingleHandler(del, ctx, arg, ct).ConfigureAwait(false);
+				}
 			}
 		}
 
@@ -287,6 +278,7 @@ namespace FoundationDB.Client
 		/// <returns>If there was already a cached instance for this key, it will be discarded</returns>
 		public void SetLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(newState);
@@ -309,9 +301,9 @@ namespace FoundationDB.Client
 		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
 		/// <param name="newState">New instance that must be attached to the transaction</param>
 		/// <returns>Previous cached instance, or null if none was found.</returns>
-		[return: MaybeNull]
-		public TState ReplaceLocalData<TState, TToken>(TToken key, TState newState)
+		public TState? ReplaceLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(newState);
@@ -342,7 +334,9 @@ namespace FoundationDB.Client
 		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
 		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
 		/// <returns>Returns <c>true</c> if the value was found and removed; otherwise, false.</returns>
-		public bool RemoveLocalData<TState, TToken>(TToken key) where TState : class
+		public bool RemoveLocalData<TState, TToken>(TToken key)
+			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			lock (this)
@@ -366,6 +360,7 @@ namespace FoundationDB.Client
 		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
 		public bool TryGetLocalData<TState, TToken>(TToken key, [NotNullWhen(true)] out TState? state)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			lock (this)
@@ -376,7 +371,7 @@ namespace FoundationDB.Client
 					var items = (Dictionary<TToken, TState>) slot;
 					if (items.TryGetValue(key, out var value))
 					{
-						state = (TState) value;
+						state = value;
 						return true;
 					}
 				}
@@ -393,13 +388,14 @@ namespace FoundationDB.Client
 		/// <returns>Either the existing value, or <paramref name="newState"/>.</returns>
 		public TState GetOrCreateLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(newState);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
-				TState result;
+				TState? result;
 				if (container.TryGetValue(typeof(TState), out var slot))
 				{
 					var items = (Dictionary<TToken, TState>) slot;
@@ -431,13 +427,14 @@ namespace FoundationDB.Client
 		//REVIEW: should we return a tuple (TState Data, bool Created) instead ?
 		public TState GetOrCreateLocalData<TState, TToken>(TToken key, Func<TState> factory)
 			where TState : class
+			where TToken : notnull
 		{
 			Contract.NotNullAllowStructs(key);
 			Contract.NotNull(factory);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
-				TState result;
+				TState? result;
 				if (container.TryGetValue(typeof(TState), out var slot))
 				{
 					var items = (Dictionary<TToken, TState>) slot;
@@ -721,10 +718,8 @@ namespace FoundationDB.Client
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
-#if SUPPORTS_ACTIVITYSOURCES
 			using var mainActivity = ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite");
 			context.Activity = mainActivity;
-#endif
 
 			try
 			{
@@ -745,7 +740,6 @@ namespace FoundationDB.Client
 					//note: trans may be different from context.Transaction if it has been filtered!
 					Contract.Debug.Assert(context.Transaction != null);
 
-#if SUPPORTS_ACTIVITYSOURCES
 					if (mainActivity?.IsAllDataRequested == true)
 					{
 						mainActivity.SetTag("db.system", "fdb");
@@ -756,7 +750,6 @@ namespace FoundationDB.Client
 						if (trans.IsReadOnly) mainActivity.SetTag("db.fdb.trans.readonly", true);
 						if (trans.IsSnapshot) mainActivity.SetTag("db.fdb.trans.snapshot", true);
 					}
-#endif
 
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
@@ -764,15 +757,11 @@ namespace FoundationDB.Client
 						bool hasRunValueChecks = false;
 						result = default!;
 
-#if SUPPORTS_ACTIVITYSOURCES
 						Activity? currentActivity = null;
-#endif
-
 						try
 						{
 							TIntermediate intermediate;
 
-#if SUPPORTS_ACTIVITYSOURCES
 							currentActivity = ActivitySource.StartActivity("FDB Handler");
 							if (currentActivity != null)
 							{
@@ -785,7 +774,7 @@ namespace FoundationDB.Client
 									if (context.PreviousError != FdbError.Success) currentActivity.SetTag("db.fdb.error.previous", context.PreviousError);
 								}
 							}
-#endif
+
 							// call the user provided lambda
 							switch (handler)
 							{
@@ -1039,14 +1028,12 @@ namespace FoundationDB.Client
 								}
 							}
 
-#if SUPPORTS_ACTIVITYSOURCES
 							if (currentActivity != null)
 							{
 								currentActivity.Dispose();
 								currentActivity = null;
 								context.Activity = mainActivity;
 							}
-#endif
 
 							if (context.Abort)
 							{
@@ -1058,7 +1045,6 @@ namespace FoundationDB.Client
 							hasRunValueChecks = true;
 							if (context.HasPendingValueChecks(out var valueChecks))
 							{
-#if SUPPORTS_ACTIVITYSOURCES
 								currentActivity = ActivitySource.StartActivity("FDB Value Checks");
 								if (currentActivity != null)
 								{
@@ -1072,11 +1058,9 @@ namespace FoundationDB.Client
 										if (context.PreviousError != FdbError.Success) currentActivity.SetTag("db.fdb.error.previous", context.PreviousError);
 									}
 								}
-#endif
 
 								if (!await context.ValidateValueChecksSlow(valueChecks, ignoreFailedTasks: false))
 								{
-#if SUPPORTS_ACTIVITYSOURCES
 									if (currentActivity != null)
 									{
 										using (currentActivity)
@@ -1086,25 +1070,21 @@ namespace FoundationDB.Client
 										currentActivity = null;
 										context.Activity = mainActivity;
 									}
-#endif
 									throw FailValueCheck();
 								}
 
-#if SUPPORTS_ACTIVITYSOURCES
 								if (currentActivity != null)
 								{
 									currentActivity.Dispose();
 									currentActivity = null;
 									context.Activity = mainActivity;
 								}
-#endif
 							}
 
 							if (!trans.IsReadOnly)
 							{ // commit the transaction
 
-#if SUPPORTS_ACTIVITYSOURCES
-								currentActivity = FdbOperationContext.ActivitySource.StartActivity("FDB Commit");
+								currentActivity = ActivitySource.StartActivity("FDB Commit");
 								if (currentActivity != null)
 								{
 									context.Activity = currentActivity;
@@ -1120,11 +1100,9 @@ namespace FoundationDB.Client
 										}
 									}
 								}
-#endif
 
 								await trans.CommitAsync().ConfigureAwait(false);
 
-#if SUPPORTS_ACTIVITYSOURCES
 								if (currentActivity != null)
 								{
 									using (currentActivity)
@@ -1134,7 +1112,6 @@ namespace FoundationDB.Client
 									currentActivity = null;
 									context.Activity = mainActivity;
 								}
-#endif
 							}
 
 							// we are done
@@ -1340,7 +1317,6 @@ namespace FoundationDB.Client
 						}
 						catch (FdbException e)
 						{
-#if SUPPORTS_ACTIVITYSOURCES
 							if (currentActivity != null)
 							{
 								using (currentActivity)
@@ -1350,7 +1326,6 @@ namespace FoundationDB.Client
 								}
 								context.Activity = mainActivity;
 							}
-#endif
 
 							context.PreviousError = e.Code;
 
@@ -1392,7 +1367,6 @@ namespace FoundationDB.Client
 						}
 						catch (Exception e)
 						{
-#if SUPPORTS_ACTIVITYSOURCES
 							if (currentActivity != null)
 							{
 								using (currentActivity)
@@ -1402,7 +1376,6 @@ namespace FoundationDB.Client
 								}
 								context.Activity = mainActivity;
 							}
-#endif
 
 							context.PreviousError = FdbError.UnknownError;
 							if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Handler failed with error: [{e.GetType().Name}] {e.Message}");
@@ -1436,7 +1409,10 @@ namespace FoundationDB.Client
 
 									shouldThrow = false;
 									// note: technically we are after the "OnError" so any new comment will be seen as part of the next attempt..
-									if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Previous attempt failed because of the following failed value-check(s): {string.Join(", ", context.FailedValueCheckTags.Where(x => x.Value.Result == FdbValueCheckResult.Failed).Select(x => x.Key))}");
+									if (context.Transaction?.IsLogged() == true)
+									{
+										context.Transaction.Annotate($"Previous attempt failed because of the following failed value-check(s): {string.Join(", ", context.FailedValueCheckTags?.Where(x => x.Value.Result == FdbValueCheckResult.Failed).Select(x => x.Key) ?? Array.Empty<string>())}");
+									}
 								}
 							}
 
@@ -1453,9 +1429,7 @@ namespace FoundationDB.Client
 
 				if (context.Abort)
 				{
-#if SUPPORTS_ACTIVITYSOURCES
 					mainActivity?.SetStatus(ActivityStatusCode.Error, "Transaction was aborted");
-#endif
 
 					// execute any state callbacks, if there are any
 					if (context.StateCallbacks != null)
@@ -1469,14 +1443,12 @@ namespace FoundationDB.Client
 				return result!;
 
 			}
-#if SUPPORTS_ACTIVITYSOURCES
 			catch (Exception e)
 			{
 				//REVIEW: TODO: in order to call "RecordException(...)" we need a ref to package OpenTelemetry.API !
 				mainActivity?.SetStatus(ActivityStatusCode.Error, e.Message);
 				throw;
 			}
-#endif
 			finally
 			{
 				if (context.BaseDuration.TotalSeconds >= 10)

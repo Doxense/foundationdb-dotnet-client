@@ -602,21 +602,18 @@ namespace Doxense.Collections.Tuples
 			}
 
 			[MethodImpl(MethodImplOptions.NoInlining)]
-			private static string StringifyInternal(object item)
+			private static string StringifyInternal(object? item) => item switch
 			{
-				switch (item)
-				{
-					case string s: return Stringify(s);
-					case byte[] bytes: return Stringify(bytes.AsSlice());
-					case Slice slice: return Stringify(slice);
-					case MutableSlice slice: return Stringify(slice);
-					case ArraySegment<byte> buffer: return Stringify(buffer.AsSlice());
-					//TODO: Memory<T>, ReadOnlyMemory<T>, ...
-					case IFormattable f: return f.ToString(null, CultureInfo.InvariantCulture);
-					// This will probably not give a meaningful result ... :(
-					default: return item.ToString();
-				}
-			}
+				null => TokenNull,
+				string s => Stringify(s),
+				byte[] bytes => Stringify(bytes.AsSlice()),
+				Slice slice => Stringify(slice),
+				MutableSlice slice => Stringify(slice),
+				ArraySegment<byte> buffer => Stringify(buffer.AsSlice()),
+				//TODO: Memory<T>, ReadOnlyMemory<T>, ...
+				IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
+				_ => item.ToString() ?? TokenNull
+			};
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
@@ -784,6 +781,8 @@ namespace Doxense.Collections.Tuples
 
 			/// <summary>Parse a tuple expression at the start of a string</summary>
 			/// <param name="expression">String that starts with a valid Tuple expression, with optional extra characters</param>
+			/// <param name="tuple"></param>
+			/// <param name="tail"></param>
 			/// <returns>First item is the parsed tuple, and the second item is the rest of the string (or null if we consumed the whole expression)</returns>
 			public static void ParseNext(string expression, out IVarTuple? tuple, out string? tail)
 			{

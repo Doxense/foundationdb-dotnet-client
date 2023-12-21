@@ -43,7 +43,10 @@ namespace Doxense.Linq.Iterators
 		private const int STATE_COMPLETED = 3;
 		private const int STATE_DISPOSED = -1;
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 		protected TResult m_current;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
 		protected int m_state;
 
 		#region IEnumerable<TResult>...
@@ -77,7 +80,7 @@ namespace Doxense.Linq.Iterators
 			throw new NotSupportedException();
 		}
 
-		object System.Collections.IEnumerator.Current => this.Current;
+		object System.Collections.IEnumerator.Current => this.Current!;
 
 		public TResult Current
 		{

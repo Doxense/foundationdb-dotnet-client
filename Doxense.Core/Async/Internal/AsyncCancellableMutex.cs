@@ -67,7 +67,7 @@ namespace Doxense.Async
 			// the state contains the weak reference on the waiter, that we need to unwrap...
 
 			var weakRef = (WeakReference<AsyncCancelableMutex>) state!;
-			if (weakRef.TryGetTarget(out AsyncCancelableMutex waiter))
+			if (weakRef.TryGetTarget(out var waiter))
 			{ // still alive...
 				waiter.Abort(async: true);
 			}
@@ -124,12 +124,12 @@ namespace Doxense.Async
 
 		private static void SetDeferred(AsyncCancelableMutex mutex)
 		{
-			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetResult(null), mutex);
+			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex) state!).TrySetResult(null), mutex);
 		}
 
 		private static void CancelDeferred(AsyncCancelableMutex mutex)
 		{
-			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetCanceled(), mutex);
+			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex) state!).TrySetCanceled(), mutex);
 		}
 
 	}

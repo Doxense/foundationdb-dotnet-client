@@ -26,11 +26,8 @@
 
 namespace FoundationDB.Filters.Logging
 {
-	using System;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -40,50 +37,79 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see> instance.
+		/// This method only applies to transactions created from a logged database instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IFdbReadOnlyTransaction.IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object? arg0)
 		{
-			if (trans.IsLogged()) trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, arg0));
+			if (trans.IsLogged()) AnnotateCore(trans, format, arg0);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void AnnotateCore(IFdbReadOnlyTransaction trans, string format, object? arg0)
+			{
+				trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, arg0));
+			}
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see>instance.
+		/// This method only applies to transactions created from a logged database instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IFdbReadOnlyTransaction.IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object? arg0, object? arg1)
 		{
-			if (trans.IsLogged()) trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
+			if (trans.IsLogged()) AnnotateCore(trans, format, arg0, arg1);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void AnnotateCore(IFdbReadOnlyTransaction trans, string format, object? arg0, object? arg1)
+			{
+				trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
+			}
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see> instance.
+		/// This method only applies to transactions created from a logged database instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IFdbReadOnlyTransaction.IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object? arg0, object? arg1, object? arg2)
 		{
-			if (trans.IsLogged()) trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1, arg2));
+			if (trans.IsLogged()) AnnotateCore(trans, format, arg0, arg1, arg2);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void AnnotateCore(IFdbReadOnlyTransaction trans, string format, object? arg0, object? arg1, object? arg2)
+			{
+				trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1, arg2));
+			}
+
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see> instance.
+		/// This method only applies to transactions created from a logged database instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IFdbReadOnlyTransaction.IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, params object?[] args)
 		{
-			if (trans.IsLogged()) trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, args));
+			if (trans.IsLogged()) AnnotateCore(trans, format, args);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void AnnotateCore(IFdbReadOnlyTransaction trans, string format, object?[] args)
+			{
+				trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, args));
+			}
 		}
 
 	}

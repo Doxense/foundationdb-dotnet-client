@@ -1049,6 +1049,7 @@ namespace Doxense.Serialization.Json
 			WriteValue(str);
 		}
 
+		[Obsolete("EnumStringTable is obsolete")]
 		internal void WriteEnum(Enum? value, EnumStringTable.Cache cache)
 		{
 			if (value == null)

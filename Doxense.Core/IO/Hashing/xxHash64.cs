@@ -35,6 +35,7 @@ namespace Doxense.IO.Hashing
 
 	/// <summary>Calcul de hash xxHash sur 64 bits</summary>
 	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
+	[Obsolete("Use System.IO.Hashing.XxHash64 instead")]
 	public static class XxHash64
 	{
 		// From https://code.google.com/p/xxhash/

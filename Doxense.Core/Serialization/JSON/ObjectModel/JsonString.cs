@@ -78,7 +78,7 @@ namespace Doxense.Serialization.Json
 
 		public static JsonValue Return(char[]? value, int offset, int count)
 		{
-			return count == 0 ? (value == null ? JsonNull.Null : JsonString.Empty) : new JsonString(new string(value, offset, count));
+			return count == 0 ? (value == null ? JsonNull.Null : JsonString.Empty) : new JsonString(new string(value!, offset, count));
 		}
 
 		public static JsonValue Return(byte[]? value)
@@ -89,8 +89,8 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(Slice value)
 		{
 			return value.Count == 0
-				? (value.Array == null ? JsonNull.Null : JsonString.Empty)
-				: new JsonString(value.ToBase64());
+				? (value.Array == null! ? JsonNull.Null : JsonString.Empty)
+				: new JsonString(value.ToBase64()!);
 		}
 
 		public static JsonValue Return(ReadOnlySpan<byte> value)
@@ -104,7 +104,7 @@ namespace Doxense.Serialization.Json
 		{
 			return value.Count == 0
 				? (value.Array == null ? JsonNull.Null : JsonString.Empty)
-				: new JsonString(Convert.ToBase64String(value.Array, value.Offset, value.Count));
+				: new JsonString(Convert.ToBase64String(value.Array!, value.Offset, value.Count));
 		}
 
 		public static JsonValue Return(Guid value)
@@ -328,7 +328,7 @@ namespace Doxense.Serialization.Json
 			return new JsonString(CrystalJsonNodaPatterns.ZonedDateTimes.Format(value.Value));
 		}
 
-		public static JsonValue Return(NodaTime.DateTimeZone value)
+		public static JsonValue Return(NodaTime.DateTimeZone? value)
 		{
 			return value != null
 				? new JsonString(value.Id)
@@ -441,7 +441,7 @@ namespace Doxense.Serialization.Json
 			return m_value.Length != 0 ? Convert.FromBase64String(m_value) : Array.Empty<byte>();
 		}
 
-		public override object? ToObject()
+		public override object ToObject()
 		{
 			return m_value;
 		}
@@ -752,10 +752,10 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			return m_value?.GetHashCode() ?? 0;
+			return m_value.GetHashCode();
 		}
 
-		public override int CompareTo(JsonValue other)
+		public override int CompareTo(JsonValue? other)
 		{
 			if (object.ReferenceEquals(other, null)) return +1;
 			switch (other.Type)
@@ -784,21 +784,15 @@ namespace Doxense.Serialization.Json
 				: CrystalJsonFormatter.EncodeJavaScriptString(m_value);
 		}
 
-		public override string ToString()
-		{
-			return m_value ?? string.Empty;
-		}
+		public override string ToString() => m_value;
 
 		[ContractAnnotation("=> notnull")]
-		public override string ToStringOrDefault()
-		{
-			return m_value;
-		}
+		public override string ToStringOrDefault() => m_value;
 
 		public bool TryConvertString(out string value)
 		{
 			value = m_value;
-			return m_value != null;
+			return true;
 		}
 
 		#endregion
@@ -921,7 +915,7 @@ namespace Doxense.Serialization.Json
 		public bool TryConvertInt32(out int value)
 		{
 			var lit = m_value;
-			if (lit == null) { value = 0; return false; }
+			if (lit.Length == 0) { value = 0; return false; }
 			if (lit.Length == 1)
 			{ // le cas le plus fréquent est un nombre de 0 à 9
 				char c = lit[0];
@@ -976,7 +970,7 @@ namespace Doxense.Serialization.Json
 		public bool TryConvertInt64(out long value)
 		{
 			var lit = m_value;
-			if (lit == null) { value = 0L; return false; }
+			if (lit.Length == 0) { value = 0L; return false; }
 			if (lit.Length == 1)
 			{ // le cas le plus fréquent est un nombre de 0 à 9
 				char c = lit[0];

@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context in which the transaction will run</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
-			Contract.Debug.Requires(context?.Database != null);
+			Contract.Debug.Requires(context != null && context.Database != null);
 			ThrowIfDisposed();
 
 			// force the transaction to be read-only, if the database itself is read-only

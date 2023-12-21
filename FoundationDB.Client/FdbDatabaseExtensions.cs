@@ -154,6 +154,14 @@ namespace FoundationDB.Client
 			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1, T2, T3, T4, T5>(this IFdbDatabase db, ValueTuple<T1, T2, T3, T4, T5> name)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.FromTuple(name));
+		}
+
 		#endregion
 
 		#region Options...

@@ -30,7 +30,6 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
-	using JetBrains.Annotations;
 
 	/// <summary>Settings used when establishing the connection with a FoundationDB cluster</summary>
 	[DebuggerDisplay("{" + nameof(ToString) + "(),nq}")]

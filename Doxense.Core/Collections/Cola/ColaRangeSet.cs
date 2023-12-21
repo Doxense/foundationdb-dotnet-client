@@ -33,6 +33,7 @@ namespace Doxense.Collections.Generic
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered list of ranges, stored in a Cache Oblivious Lookup Array</summary>
@@ -99,6 +100,7 @@ namespace Doxense.Collections.Generic
 
 			public int Compare(Entry? x, Entry? y)
 			{
+				Contract.Debug.Requires(x != null && y != null);
 				return m_comparer.Compare(x.Begin, y.Begin);
 			}
 
@@ -177,13 +179,15 @@ namespace Doxense.Collections.Generic
 			}
 		}
 
-		private TKey Min(TKey a, TKey b)
+		private TKey Min(TKey? a, TKey? b)
 		{
+			Contract.Debug.Requires(a != null && b != null);
 			return m_comparer.Compare(a, b) <= 0 ? a : b;
 		}
 
-		private TKey Max(TKey a, TKey b)
+		private TKey Max(TKey? a, TKey? b)
 		{
+			Contract.Debug.Requires(a != null && b != null);
 			return m_comparer.Compare(a, b) >= 0 ? a : b;
 		}
 
@@ -198,7 +202,7 @@ namespace Doxense.Collections.Generic
 			if (m_comparer.Compare(begin, end) >= 0) throw new InvalidOperationException($"End key `{begin}` must be greater than the Begin key `{end}`.");
 
 			var entry = new Entry(begin, end);
-			Entry cursor;
+			Entry? cursor;
 
 			switch (m_items.Count)
 			{
@@ -256,15 +260,15 @@ namespace Doxense.Collections.Generic
 
 
 					// overlaps with existing ranges, we may need to resolve conflicts
-					int offset, level;
+					int level;
 					bool inserted = false;
 
 					// once inserted, will it conflict with the previous entry ?
-					if ((level = m_items.FindPrevious(entry, true, out offset, out cursor)) >= 0)
+					if ((level = m_items.FindPrevious(entry, true, out int offset, out cursor)) >= 0)
 					{
-						if (Resolve(cursor, entry))
+						if (Resolve(cursor!, entry))
 						{
-							entry = cursor;
+							entry = cursor!;
 							inserted = true;
 						}
 					}
@@ -325,9 +329,8 @@ namespace Doxense.Collections.Generic
 		{
 			if (m_bounds.Contains(key, m_comparer))
 			{
-				var entry = new Entry(key, key);
-				int level = m_items.FindPrevious(entry, true, out _, out entry);
-				return level >= 0 && entry.Contains(key, m_comparer);
+				int level = m_items.FindPrevious(new Entry(key, key), true, out _, out var entry);
+				return level >= 0 && entry!.Contains(key, m_comparer);
 			}
 			return false;
 		}

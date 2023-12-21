@@ -27,7 +27,9 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class FdbTransactionOptionsExtensions
 	{
 		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)</summary>

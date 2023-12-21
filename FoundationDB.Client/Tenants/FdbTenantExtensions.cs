@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class FdbTenantExtensions
 	{
 

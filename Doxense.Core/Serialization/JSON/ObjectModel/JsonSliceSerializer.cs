@@ -32,16 +32,16 @@ namespace Doxense.Serialization.Json
 	public sealed class JsonSliceSerializer : ISliceSerializer<JsonValue>
 	{
 
-		public static readonly JsonSliceSerializer Default = new JsonSliceSerializer();
+		public static readonly JsonSliceSerializer Default = new();
 
 		private JsonSliceSerializer() { }
 
-		public void WriteTo(ref SliceWriter writer, JsonValue value)
+		public void WriteTo(ref SliceWriter writer, JsonValue? value)
 		{
-			value.WriteTo(ref writer);
+			(value ?? JsonNull.Null).WriteTo(ref writer);
 		}
 
-		bool ISliceSerializer<JsonValue>.TryReadFrom(ref SliceReader reader, out JsonValue value)
+		bool ISliceSerializer<JsonValue>.TryReadFrom(ref SliceReader reader, out JsonValue? value)
 		{
 			//TODO: !!!
 			throw new NotImplementedException();

@@ -141,7 +141,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a tenant name from an N-tuple</summary>
 		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName FromTuple<TTuple>(TTuple items) where TTuple : IVarTuple
+		public static FdbTenantName FromTuple<TTuple>([NotNull] TTuple? items) where TTuple : IVarTuple
 		{
 			return items?.Count > 0
 				? new(TuPack.Pack<TTuple>(items), items)

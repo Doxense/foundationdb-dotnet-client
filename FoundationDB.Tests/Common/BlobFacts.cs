@@ -106,7 +106,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 				}
 
 				Log("Reading blob size:");
-				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);;
+				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
 				Log($"> {size:N0}");
 				Assert.That(size, Is.EqualTo(50 * data.Count));
 

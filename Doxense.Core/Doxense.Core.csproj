@@ -4,7 +4,7 @@
 		<OutputType>Library</OutputType>
 		<TargetFrameworks>net8.0;net6.0</TargetFrameworks>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-		<LangVersion>11.0</LangVersion>
+		<LangVersion>12</LangVersion>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

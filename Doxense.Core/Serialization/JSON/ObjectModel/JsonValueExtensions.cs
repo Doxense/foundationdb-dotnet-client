@@ -33,6 +33,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class JsonValueExtensions
 	{
 
@@ -187,7 +188,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value)
 		{
-			return CrystalJson.ToBytes(value, null);
+			return CrystalJson.ToBytes(value);
 		}
 
 		/// <summary>Sérialise cette valeur JSON en un tableau de bytes</summary>
@@ -204,7 +205,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonBuffer(this JsonValue? value)
 		{
-			return CrystalJson.ToBuffer(value, null);
+			return CrystalJson.ToBuffer(value);
 		}
 
 		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
@@ -285,10 +286,10 @@ namespace Doxense.Serialization.Json
 
 			if (default(T) == null)
 			{ // ref type
-				return (T) (value ?? JsonNull.Null).Bind(typeof(T), null)!;
+				return (T?) (value ?? JsonNull.Null).Bind(typeof(T));
 			}
 			// value type
-			return value?.IsNull != false ? JsonNull.Default<T>() : (T) value.Bind(typeof(T), null)!;
+			return value?.IsNull != false ? JsonNull.Default<T>() : (T?) value.Bind(typeof(T));
 		}
 
 		/// <summary>Bind cette valeur JSON en une instance d'un type CLR</summary>
@@ -526,7 +527,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Valeur JSON à valider</param>
 		/// <param name="missingValue">Valeur retournée si <paramref name="value"/> est null ou manquante</param>
 		[Pure, ContractAnnotation("missingValue:notnull => notnull")]
-		public static JsonValue? OrDefault(this JsonValue? value, JsonValue missingValue)
+		public static JsonValue OrDefault(this JsonValue? value, JsonValue missingValue)
 		{
 			return value.IsNullOrMissing() ? missingValue : value;
 		}
@@ -535,9 +536,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Valeur JSON à valider</param>
 		/// <param name="factory">Lambda appelée pour générer la valeur valeur retournée si <paramref name="value"/> est null ou manquante.</param>
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
-		public static JsonValue OrDefault(this JsonValue? value, Func<JsonValue> factory)
+		public static JsonValue OrDefault(this JsonValue? value, Func<JsonValue?> factory)
 		{
-			return value.IsNullOrMissing() ? (factory() ?? JsonNull.Null) : value!;
+			return value.IsNullOrMissing() ? (factory() ?? JsonNull.Null) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -545,9 +546,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="factory">Lambda appelée pour générer la valeur valeur retournée si <paramref name="value"/> est null ou manquante.</param>
 		/// <param name="arg">Argument passé à <paramref name="factory"/></param>
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
-		public static JsonValue OrDefault<TArg>(this JsonValue? value, Func<TArg, JsonValue> factory, TArg arg)
+		public static JsonValue OrDefault<TArg>(this JsonValue? value, Func<TArg, JsonValue?> factory, TArg arg)
 		{
-			return value.IsNullOrMissing() ? (factory(arg) ?? JsonNull.Null) : value!;
+			return value.IsNullOrMissing() ? (factory(arg) ?? JsonNull.Null) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -556,7 +557,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, string missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -565,7 +566,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, bool missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonBoolean.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonBoolean.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -574,7 +575,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, int missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -583,7 +584,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, long missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -592,7 +593,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, double missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -601,7 +602,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, float missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -610,7 +611,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, Guid missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -619,7 +620,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, TimeSpan missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -628,7 +629,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, DateTime missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -637,7 +638,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, DateTimeOffset missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -646,7 +647,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault<TValue>(this JsonValue? value, TValue? missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(missingValue) : value!;
+			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(missingValue) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -655,7 +656,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault<TValue>(this JsonValue? value, Func<TValue> factory)
 		{
-			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(factory()) : value!;
+			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(factory()) : value;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -663,9 +664,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="factory">Lambda appelée pour générer la valeur retournée, si <paramref name="value"/> est null ou manquante</param>
 		/// <param name="arg">Argument passé à <paramref name="factory"/></param>
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
-		public static JsonValue OrDefault<TValue, TArg>(this JsonValue? value, Func<TArg, TValue> factory, TArg? arg)
+		public static JsonValue OrDefault<TValue, TArg>(this JsonValue? value, Func<TArg?, TValue> factory, TArg? arg)
 		{
-			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(factory(arg)) : value!;
+			return value.IsNullOrMissing() ? JsonValue.FromValue(factory(arg)) : value;
 		}
 
 		#endregion
@@ -684,7 +685,7 @@ namespace Doxense.Serialization.Json
 		public static JsonObject AsObject(this JsonValue? value)
 		{
 			if (value.IsNullOrMissing()) return FailObjectIsNullOrMissing();
-			if (value!.Type != JsonType.Object) return FailValueIsNotAnObject(value); // => throws
+			if (value.Type != JsonType.Object) return FailValueIsNotAnObject(value); // => throws
 			return (JsonObject) value;
 		}
 
@@ -701,7 +702,7 @@ namespace Doxense.Serialization.Json
 				if (required) return FailObjectIsNullOrMissing();
 				return null;
 			}
-			if (value!.Type != JsonType.Object) return FailValueIsNotAnObject(value); // => throws
+			if (value.Type != JsonType.Object) return FailValueIsNotAnObject(value); // => throws
 			return (JsonObject) value;
 		}
 
@@ -714,7 +715,7 @@ namespace Doxense.Serialization.Json
 		public static JsonObject? AsObjectOrDefault(this JsonValue? value)
 		{
 			if (value.IsNullOrMissing()) return null;
-			if (value!.Type != JsonType.Object) return FailValueIsNotAnObject(value); // => throws
+			if (value.Type != JsonType.Object) return FailValueIsNotAnObject(value); // => throws
 			return (JsonObject) value;
 		}
 
@@ -746,7 +747,7 @@ namespace Doxense.Serialization.Json
 			// essayes de garder le même comparer que la source...
 			comparer ??= JsonObject.ExtractKeyComparer(items) ?? StringComparer.Ordinal;
 
-			var map = new Dictionary<string, JsonValue>((items as ICollection<KeyValuePair<string, TValue>>)?.Count ?? 0, comparer);
+			var map = new Dictionary<string, JsonValue?>((items as ICollection<KeyValuePair<string, TValue>>)?.Count ?? 0, comparer);
 			var context = new CrystalJsonDomWriter.VisitingContext();
 			foreach (var item in items)
 			{
@@ -756,7 +757,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public static JsonObject ToJsonObject<TValue>([InstantHandle] this IEnumerable<KeyValuePair<string, TValue>> items, [InstantHandle] Func<TValue, JsonValue> valueSelector, IEqualityComparer<string>? comparer = null)
+		public static JsonObject ToJsonObject<TValue>([InstantHandle] this IEnumerable<KeyValuePair<string, TValue>> items, [InstantHandle] Func<TValue, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(items);
 			Contract.NotNull(valueSelector);
@@ -764,7 +765,7 @@ namespace Doxense.Serialization.Json
 			// essayes de garder le même comparer que la source...
 			comparer ??= JsonObject.ExtractKeyComparer(items) ?? StringComparer.Ordinal;
 
-			var map = new Dictionary<string, JsonValue>((items as ICollection<KeyValuePair<string, TValue>>)?.Count ?? 0, comparer);
+			var map = new Dictionary<string, JsonValue?>((items as ICollection<KeyValuePair<string, TValue>>)?.Count ?? 0, comparer);
 			foreach (var item in items)
 			{
 				map.Add(item.Key, valueSelector(item.Value) ?? JsonNull.Null);
@@ -773,7 +774,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public static JsonObject ToJsonObject<TElement>([InstantHandle] this IEnumerable<TElement> source, [InstantHandle] Func<TElement, string> keySelector, [InstantHandle] Func<TElement, JsonValue> valueSelector, IEqualityComparer<string>? comparer = null)
+		public static JsonObject ToJsonObject<TElement>([InstantHandle] this IEnumerable<TElement> source, [InstantHandle] Func<TElement, string> keySelector, [InstantHandle] Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(keySelector);
@@ -781,7 +782,7 @@ namespace Doxense.Serialization.Json
 
 			var coll = source as ICollection<TElement>;
 
-			var map = new Dictionary<string, JsonValue>(coll?.Count ?? 0, comparer ?? StringComparer.Ordinal);
+			var map = new Dictionary<string, JsonValue?>(coll?.Count ?? 0, comparer ?? StringComparer.Ordinal);
 			foreach (var item in source)
 			{
 				map.Add(keySelector(item), valueSelector(item) ?? JsonNull.Null);
@@ -798,7 +799,7 @@ namespace Doxense.Serialization.Json
 
 			var coll = source as ICollection<TElement>;
 
-			var map = new Dictionary<string, JsonValue>(coll?.Count ?? 0, comparer ?? StringComparer.Ordinal);
+			var map = new Dictionary<string, JsonValue?>(coll?.Count ?? 0, comparer ?? StringComparer.Ordinal);
 			var context = new CrystalJsonDomWriter.VisitingContext();
 			foreach (var item in source)
 			{
@@ -838,7 +839,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[ContractAnnotation("=> halt")]
-		private static JsonNumber FailValueIsNotANumber(JsonValue value)
+		private static JsonNumber FailValueIsNotANumber(JsonValue? value)
 		{
 			if (value.IsNullOrMissing()) ThrowHelper.ThrowInvalidOperationException("Expected JSON number was either null or missing.");
 			throw CrystalJson.Errors.Parsing_CannotCastToJsonNumber(value.Type);

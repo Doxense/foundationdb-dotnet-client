@@ -26,10 +26,10 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	/// <summary>Transactional context that can execute, inside a retry loop, idempotent actions using read-only transactions.</summary>
 	[PublicAPI]

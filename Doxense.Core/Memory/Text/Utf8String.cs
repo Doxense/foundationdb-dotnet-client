@@ -65,14 +65,14 @@ namespace Doxense.Memory.Text
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use FromString(ReadOnlySpan<char>, ...) instead", error: true)]
-		public static Utf8String FromString(string? text, int offset, int count, ref byte[] buffer, bool noHashCode = false)
+		public static Utf8String FromString(string? text, int offset, int count, ref byte[]? buffer, bool noHashCode = false)
 		{
 			if (text == null) return count == 0 ? default : throw new ArgumentNullException(nameof(text));
 			return FromString(text.AsSpan(offset, count), ref buffer, noHashCode);
 		}
 
 		[Pure]
-		public static Utf8String FromString(ReadOnlySpan<char> text, ref byte[] buffer, bool noHashCode = false)
+		public static Utf8String FromString(ReadOnlySpan<char> text, ref byte[]? buffer, bool noHashCode = false)
 		{
 			if (text.Length == 0) return Utf8String.Empty;
 			var bytes = Slice.FromStringUtf8(text, ref buffer, out var asciiOnly);
@@ -436,7 +436,7 @@ namespace Doxense.Memory.Text
 			}
 
 			var sb = new StringBuilder(length + (length >> 2) + (quotes != 0 ? 2 : 0));
-			var it = new Enumerator(buffer, false);
+			var it = new Enumerator(buffer, asciiOnly: false);
 			if (quotes != 0) sb.Append(quotes);
 			while (it.MoveNext())
 			{

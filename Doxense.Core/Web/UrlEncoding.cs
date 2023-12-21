@@ -28,7 +28,6 @@ namespace Doxense.Web
 {
 	using System;
 	using System.Collections.Specialized;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.IO;
 	using System.Text;
@@ -251,7 +250,7 @@ namespace Doxense.Web
 		/// <param name="bytes">Buffer de sortie où écrire les octets décodés</param>
 		/// <param name="encoding">Encoding utilisé (UTF-8 par défaut si null)</param>
 		/// <returns>Nombre d'octets écrit dans le buffer de sortie</returns>
-		private static unsafe int DecodeBytes(char* value, int offset, int count, byte* bytes, Encoding encoding)
+		private static unsafe int DecodeBytes(char* value, int offset, int count, byte* bytes, Encoding? encoding)
 		{
 			encoding ??= Encoding.UTF8;
 
@@ -495,7 +494,7 @@ namespace Doxense.Web
 		private static string ObjectToString(object? value)
 		{
 			// most frequent types
-			if (value == null) return String.Empty;
+			if (value == null) return string.Empty;
 			if (value is string s) return s;
 
 			var type = value.GetType();
@@ -506,13 +505,13 @@ namespace Doxense.Web
 				{
 					case TypeCode.Boolean: return ((bool)value) ? Tokens.True : Tokens.False;
 					case TypeCode.Char: return new string((char)value, 1);
-					case TypeCode.SByte: return StringConverters.ToString((int)(sbyte)value);
-					case TypeCode.Byte: return StringConverters.ToString((int) (byte)value);
-					case TypeCode.Int16: return StringConverters.ToString((int) (short)value);
-					case TypeCode.UInt16: return StringConverters.ToString((int) (ushort)value);
-					case TypeCode.Int32: return StringConverters.ToString((int)value);
-					case TypeCode.UInt32: return StringConverters.ToString((uint)value);
-					case TypeCode.Int64: return StringConverters.ToString((long)value);
+					case TypeCode.SByte: return StringConverters.ToString((sbyte) value);
+					case TypeCode.Byte: return StringConverters.ToString((byte) value);
+					case TypeCode.Int16: return StringConverters.ToString((short) value);
+					case TypeCode.UInt16: return StringConverters.ToString((ushort) value);
+					case TypeCode.Int32: return StringConverters.ToString((int) value);
+					case TypeCode.UInt32: return StringConverters.ToString((uint) value);
+					case TypeCode.Int64: return StringConverters.ToString((long) value);
 					case TypeCode.UInt64: return ((ulong)value).ToString(null, CultureInfo.InvariantCulture);
 					case TypeCode.Single: return ((float)value).ToString(Tokens.FormatR, CultureInfo.InvariantCulture);
 					case TypeCode.Double: return ((double)value).ToString(Tokens.FormatR, CultureInfo.InvariantCulture);
@@ -549,7 +548,7 @@ namespace Doxense.Web
 			}
 
 			// on croise les doigts...
-			return value.ToString();
+			return value.ToString() ?? string.Empty;
 		}
 
 		/// <summary>Encode une valeur qui sera utilisée comme valeur dans une QueryString</summary>

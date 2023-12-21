@@ -34,7 +34,7 @@ namespace Doxense.Runtime
 	public static class ExpressionExtensions
 	{
 
-		private static readonly PropertyInfo DebugViewProperty = typeof(Expression).GetProperty("DebugView", BindingFlags.Instance | BindingFlags.NonPublic);
+		private static readonly PropertyInfo DebugViewProperty = typeof(Expression).GetProperty("DebugView", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
 		/// <summary>Retourne la valeur de la propriété privée <b>DebugView</b> d'une <see cref="Expression"/></summary>
 		public static string GetDebugView(this Expression? expr)

@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable AccessToDisposedClosure
+// ReSharper disable MemberHidesStaticFromOuterClass
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -110,7 +113,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Total number of values inserted in the database</returns>
 			/// <remarks>In case of a non retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
-			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions options, CancellationToken ct)
+			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(data);
@@ -153,7 +156,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Total number of values inserted in the database</returns>
 			/// <remarks>In case of a non retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
-			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<(Slice Key, Slice Value)> data, WriteOptions options, CancellationToken ct)
+			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<(Slice Key, Slice Value)> data, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(data);
@@ -285,7 +288,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T, IFdbTransaction> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T, IFdbTransaction> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);
@@ -336,7 +339,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T, IFdbTransaction, Task> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T, IFdbTransaction, Task> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);
@@ -389,13 +392,11 @@ namespace FoundationDB.Client
 				{
 					var timer = Stopwatch.StartNew();
 
-					Func<Task> commit = async () =>
+					async Task CommitBatch()
 					{
 #if FULL_DEBUG
 						Trace.WriteLine("> commit called with " + batch.Count.ToString("N0") + " items and " + trans.Size.ToString("N0") + " bytes");
 #endif
-
-						FdbException? error = null;
 
 						// if transaction Size is bigger than Fdb.MaxTransactionSize (10MB) then commit will fail, but we will retry with a smaller batch anyway
 
@@ -403,13 +404,7 @@ namespace FoundationDB.Client
 						{
 							await trans.CommitAsync().ConfigureAwait(false);
 						}
-						catch (FdbException e)
-						{ // the batch failed to commit :(
-							error = e;
-							//TODO: C# 6.0 will support awaits in catch blocks!
-						}
-
-						if (error != null)
+						catch (FdbException error)
 						{ // we failed to commit this batch, we need to retry...
 
 #if FULL_DEBUG
@@ -418,7 +413,10 @@ namespace FoundationDB.Client
 
 							if (error.Code == FdbError.TransactionTooLarge)
 							{
-								if (batch.Count == 1) throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
+								if (batch.Count == 1)
+								{
+									throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
+								}
 							}
 							else
 							{
@@ -436,9 +434,9 @@ namespace FoundationDB.Client
 						batch.Clear();
 						trans.Reset();
 						timer.Reset();
-					};
+					}
 
-					foreach(var item in source)
+					foreach (var item in source)
 					{
 						if (ct.IsCancellationRequested) break;
 
@@ -462,7 +460,7 @@ namespace FoundationDB.Client
 						 || timer.Elapsed.TotalSeconds >= 4  // it's getting late...
 						)
 						{
-							await commit().ConfigureAwait(false);
+							await CommitBatch().ConfigureAwait(false);
 							Contract.Debug.Assert(batch.Count == 0);
 						}
 					}
@@ -472,7 +470,7 @@ namespace FoundationDB.Client
 					// handle the last (or only) batch
 					if (batch.Count > 0)
 					{
-						await commit().ConfigureAwait(false);
+						await CommitBatch().ConfigureAwait(false);
 					}
 				}
 
@@ -518,7 +516,6 @@ namespace FoundationDB.Client
 					}
 				}
 
-				FdbException error;
 				try
 				{
 #if FULL_DEBUG
@@ -527,26 +524,26 @@ namespace FoundationDB.Client
 					await trans.CommitAsync().ConfigureAwait(false);
 					return;
 				}
-				catch (FdbException e)
+				catch (FdbException error)
 				{
-					error = e;
-					//TODO: update this for C# 6.0
-				}
-
 #if FULL_DEBUG
-				Trace.WriteLine("> oh noes " + error);
+					Trace.WriteLine("> oh noes " + error);
 #endif
 
-				// it failed again
-				if (error.Code == FdbError.TransactionTooLarge)
-				{
-					// retrying won't help if a single item is too big
-					if (count == 1) throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
-				}
-				else
-				{
-					await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
+					// it failed again
+					if (error.Code == FdbError.TransactionTooLarge)
+					{
+						// retrying won't help if a single item is too big
+						if (count == 1)
+						{
+							throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
+						}
+					}
+					else
+					{
+						await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
 
+					}
 				}
 
 				//TODO: for the moment we do a recursive call, which could potentially cause a stack overflow in addition to being ugly.
@@ -603,7 +600,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T[], IFdbTransaction> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T[], IFdbTransaction> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);
@@ -654,7 +651,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T[], IFdbTransaction, Task> handler, WriteOptions options, CancellationToken ct)
+			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T[], IFdbTransaction, Task> handler, WriteOptions? options, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(source);
@@ -707,13 +704,11 @@ namespace FoundationDB.Client
 				{
 					var timer = Stopwatch.StartNew();
 
-					async Task Commit()
+					async Task CommitBatch()
 					{
 #if FULL_DEBUG
 						Trace.WriteLine("> commit called with " + batch.Count.ToString("N0") + " items and " + trans.Size.ToString("N0") + " bytes");
 #endif
-
-						FdbException? error = null;
 
 						// if transaction Size is bigger than Fdb.MaxTransactionSize (10MB) then commit will fail, but we will retry with a smaller batch anyway
 
@@ -727,13 +722,7 @@ namespace FoundationDB.Client
 							batchCount = (int) (((long) chunk.Count * sizeThreshold) / (trans.Size * 8L));
 							//Console.WriteLine("New batch size is {0}", batchCount);
 						}
-						catch (FdbException e)
-						{ // the batch failed to commit :(
-							error = e;
-							//TODO: C# 6.0 will support awaits in catch blocks!
-						}
-
-						if (error != null)
+						catch (FdbException error)
 						{ // we failed to commit this batch, we need to retry...
 
 #if FULL_DEBUG
@@ -795,7 +784,7 @@ namespace FoundationDB.Client
 							if (trans.Size >= sizeThreshold         // transaction is startting to get big...
 							 || timer.Elapsed.TotalSeconds >= 4)    // it's getting late...
 							{
-								await Commit().ConfigureAwait(false);
+								await CommitBatch().ConfigureAwait(false);
 
 								offset = 0;
 							}
@@ -819,7 +808,7 @@ namespace FoundationDB.Client
 							bodyBlocking(batch, trans);
 						}
 
-						await Commit().ConfigureAwait(false);
+						await CommitBatch().ConfigureAwait(false);
 					}
 				}
 
@@ -863,7 +852,6 @@ namespace FoundationDB.Client
 					bodyBlocking(items, trans);
 				}
 
-				FdbException error;
 				try
 				{
 #if FULL_DEBUG
@@ -872,26 +860,25 @@ namespace FoundationDB.Client
 					await trans.CommitAsync().ConfigureAwait(false);
 					return;
 				}
-				catch (FdbException e)
+				catch (FdbException error)
 				{
-					error = e;
-					//TODO: update this for C# 6.0
-				}
-
 #if FULL_DEBUG
-				Trace.WriteLine("> oh noes " + error);
+					Trace.WriteLine("> oh noes " + error);
 #endif
 
-				// it failed again
-				if (error.Code == FdbError.TransactionTooLarge)
-				{
-					// retrying won't help if a single item is too big
-					if (count == 1) throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
-				}
-				else
-				{
-					await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
-
+					// it failed again
+					if (error.Code == FdbError.TransactionTooLarge)
+					{
+						// retrying won't help if a single item is too big
+						if (count == 1)
+						{
+							throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
+						}
+					}
+					else
+					{
+						await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
+					}
 				}
 
 				//TODO: for the moment we do a recursive call, which could potentially cause a stack overflow in addition to being ugly.

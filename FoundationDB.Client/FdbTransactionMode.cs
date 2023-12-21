@@ -27,8 +27,10 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	[Flags]
+	[PublicAPI]
 	public enum FdbTransactionMode //REVIEW: rename this to FdbTransactionFlags ?
 	{
 		Default = 0,

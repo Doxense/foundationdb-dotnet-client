@@ -196,7 +196,6 @@ namespace FoundationDB.Client
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
-		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
 		public async Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
@@ -239,7 +238,6 @@ namespace FoundationDB.Client
 		/// <summary>Registers an existing prefix as a directory with the given <paramref name="path"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to create</param>
-		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
 		public async Task<FdbDirectorySubspace> RegisterAsync(IFdbTransaction trans, FdbPath path, Slice prefix)
 		{
@@ -254,7 +252,6 @@ namespace FoundationDB.Client
 		/// <summary>Attempts to register an existing prefix as a directory with the given <paramref name="path"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to create</param>
-		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
 		public async Task<FdbDirectorySubspace?> TryRegisterAsync(IFdbTransaction trans, FdbPath path, Slice prefix)
 		{
@@ -1058,7 +1055,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
-			private FdbDirectorySubspace ContentsOfNode(FdbPath path, Slice prefix, string layer, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain, PartitionDescriptor partition, PartitionDescriptor parentPartition, ISubspaceContext? context)
+			private FdbDirectorySubspace ContentsOfNode(FdbPath path, Slice prefix, string? layer, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain, PartitionDescriptor partition, PartitionDescriptor parentPartition, ISubspaceContext? context)
 			{
 				Contract.Debug.Requires(partition != null && parentPartition != null);
 
@@ -1100,7 +1097,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Remove an existing node from its parents</summary>
 			/// <returns>True if the parent node was found, otherwise false</returns>
-			private async Task<bool> RemoveFromParent(IFdbTransaction tr, FdbPath path)
+			private async Task RemoveFromParent(IFdbTransaction tr, FdbPath path)
 			{
 				Contract.Debug.Requires(tr != null);
 
@@ -1109,9 +1106,7 @@ namespace FoundationDB.Client
 				{
 					if (AnnotateTransactions) tr.Annotate("Removing path {0} from its parent folder at {1}", path, parent.Prefix);
 					tr.Clear(GetSubDirKey(parent.Partition, parent.Prefix, path.Name));
-					return true;
 				}
-				return false;
 			}
 
 			/// <summary>Recursively remove a node (including the content), all its children</summary>
@@ -1490,7 +1485,7 @@ namespace FoundationDB.Client
 		internal sealed class DirectoryDescriptor
 		{
 
-			public DirectoryDescriptor(FdbDirectoryLayer directoryLayer, FdbPath path, Slice prefix, string layer, PartitionDescriptor partition, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain)
+			public DirectoryDescriptor(FdbDirectoryLayer directoryLayer, FdbPath path, Slice prefix, string? layer, PartitionDescriptor partition, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain)
 			{
 				Contract.Debug.Requires(directoryLayer != null && partition != null && path.StartsWith(partition.Path));
 

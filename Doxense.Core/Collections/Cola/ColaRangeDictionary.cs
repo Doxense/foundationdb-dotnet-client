@@ -127,9 +127,7 @@ namespace Doxense.Collections.Generic
 
 			public int Compare(Entry? x, Entry? y)
 			{
-#if DEBUG
-				if ((x == null || y == null) && System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
-#endif
+				Contract.Debug.Requires(x != null && y != null);
 				return m_comparer.Compare(x.End, y.End);
 			}
 		}
@@ -227,7 +225,7 @@ namespace Doxense.Collections.Generic
 		{
 			// look for the first existing range that is intersected by the start of the new range
 
-			int level = m_items.FindPrevious(range, true, out _, out Entry cursor);
+			int level = m_items.FindPrevious(range, true, out _, out var cursor);
 			if (level < 0)
 			{
 				return null;
@@ -239,7 +237,7 @@ namespace Doxense.Collections.Generic
 		{
 			// look for the last existing range that is intersected by the end of the new range
 
-			int level = m_items.FindPrevious(range, true, out _, out Entry cursor);
+			int level = m_items.FindPrevious(range, true, out _, out var cursor);
 			if (level < 0)
 			{
 				return null;
@@ -247,13 +245,15 @@ namespace Doxense.Collections.Generic
 			return cursor;
 		}
 
-		private TKey Min(TKey a, TKey b)
+		private TKey Min(TKey? a, TKey? b)
 		{
+			Contract.Debug.Requires(a != null && b != null);
 			return m_keyComparer.Compare(a, b) <= 0 ? a : b;
 		}
 
-		private TKey Max(TKey a, TKey b)
+		private TKey Max(TKey? a, TKey? b)
 		{
+			Contract.Debug.Requires(a != null && b != null);
 			return m_keyComparer.Compare(a, b) >= 0 ? a : b;
 		}
 
@@ -271,7 +271,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="end">end key</param>
 		/// <param name="offset">offset to apply</param>
 		/// <param name="applyOffset">func to apply offset to a key</param>
-		public void Remove(TKey begin, TKey end, TKey offset, Func<TKey, TKey, TKey> applyOffset)
+		public void Remove(TKey begin, TKey end, TKey offset, Func<TKey?, TKey, TKey> applyOffset)
 		{
 			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
 
@@ -285,7 +285,7 @@ namespace Doxense.Collections.Generic
 					//on ne trouve pas l'item exacte, on prends le premier.
 					iterator.SeekFirst();
 				}
-				var cursor = iterator.Current;
+				var cursor = iterator.Current!;
 				var c1 = comparer.Compare(begin, cursor.Begin);
 				var c2 = comparer.Compare(end, cursor.End);
 				List<Entry>? toRemove = null;
@@ -326,56 +326,45 @@ namespace Doxense.Collections.Generic
 					//end > cursor.End
 					//      [+++++++++[
 					//-------------------...
-					if (c2 > 0)
+					toRemove = new List<Entry>();
+					toRemove.Add(cursor);
+					while (iterator.Next())
 					{
-						toRemove = new List<Entry>();
-						toRemove.Add(cursor);
-						while (iterator.Next())
+						cursor = iterator.Current!;
+						c2 = comparer.Compare(end, cursor.End);
+						c3 = comparer.Compare(end, cursor.Begin);
+						//end <= cursor.Begin
+						//       [+++++
+						// ----[
+						//ou
+						//       [+++++
+						// ------[
+						if (c3 <= 0)
 						{
-							cursor = iterator.Current;
-							c2 = comparer.Compare(end, cursor.End);
-							c3 = comparer.Compare(end, cursor.Begin);
-							//end <= cursor.Begin
-							//       [+++++
-							// ----[
-							//ou
-							//       [+++++
-							// ------[
-							if (c3 <= 0)
-							{
-								//on set cursor pour que la translation soit faite correctement
-								cursor = entry;
-								break;
-							}
-							//end > cursor.Begin
-							if (c3 > 0)
-							{
-								//end < cursor.End
-								//     [+++++++++++
-								// ----------[
-								if (c2 < 0)
-								{
-									cursor.Begin = begin;
-									cursor.End = applyOffset(cursor.End, offset);
-									break;
-								}
-								// end >= cursor.End
-								//      [+++++++++[
-								// ---------------[
-								//ou
-								//      [+++++++[
-								// ----------------...
-								if (c2 >= 0)
-								{
-									toRemove.Add(cursor);
-									if (c2 == 0) break;
-								}
-							}
+							//on set cursor pour que la translation soit faite correctement
+							cursor = entry;
+							break;
 						}
-						m_items.RemoveItems(toRemove);
-						TranslateAfter(cursor, offset, applyOffset);
-						return;
+						//end < cursor.End
+						//     [+++++++++++
+						// ----------[
+						if (c2 < 0)
+						{
+							cursor.Begin = begin;
+							cursor.End = applyOffset(cursor.End, offset);
+							break;
+						}
+						// end >= cursor.End
+						//      [+++++++++[
+						// ---------------[
+						//ou
+						//      [+++++++[
+						// ----------------...
+						toRemove.Add(cursor);
+						if (c2 == 0) break;
 					}
+					m_items.RemoveItems(toRemove);
+					TranslateAfter(cursor, offset, applyOffset);
 				}
 				//begin == cursor.Begin
 				else if (c1 == 0)
@@ -407,7 +396,7 @@ namespace Doxense.Collections.Generic
 						toRemove.Add(cursor);
 						while (iterator.Next())
 						{
-							cursor = iterator.Current;
+							cursor = iterator.Current!;
 							var c3 = comparer.Compare(end, cursor.Begin);
 							c2 = comparer.Compare(end, cursor.End);
 							//end < cursor.Begin
@@ -434,20 +423,16 @@ namespace Doxense.Collections.Generic
 								//end >= cursor.End
 								// [+++++++++[
 								//---------------...
-								//ou
+								//or
 								// [+++++++++[
 								//-----------[
-								if (c2 >= 0)
-								{
-									toRemove.Add(cursor);
-									if (c2 == 0) break;
-								}
+								toRemove.Add(cursor);
+								if (c2 == 0) break;
 							}
 						}
 					}
 					m_items.RemoveItems(toRemove);
 					TranslateAfter(cursor, offset, applyOffset);
-					return;
 				}
 				//begin > cursor.Begin
 				else
@@ -481,7 +466,7 @@ namespace Doxense.Collections.Generic
 						cursor.End = begin;
 						while (iterator.Next())
 						{
-							cursor = iterator.Current;
+							cursor = iterator.Current!;
 							var c3 = comparer.Compare(end, cursor.Begin);
 							c2 = comparer.Compare(end, cursor.End);
 							//end <= cursor.Begin
@@ -532,7 +517,7 @@ namespace Doxense.Collections.Generic
 			}
 		}
 
-		private void TranslateAfter(Entry? lastOk, TKey offset, Func<TKey, TKey, TKey> applyKeyOffset)
+		private void TranslateAfter(Entry? lastOk, TKey offset, Func<TKey?, TKey, TKey> applyKeyOffset)
 		{
 			var iterator = m_items.GetIterator();
 			//null il faut tout décaller
@@ -548,10 +533,10 @@ namespace Doxense.Collections.Generic
 					//on cherche l'élément suivant
 					//si tout à été supprimé on sort.
 					if (!iterator.SeekFirst()) return;
-					var c = m_keyComparer.Compare(lastOk.End, iterator.Current.Begin);
+					var c = m_keyComparer.Compare(lastOk.End, iterator.Current!.Begin);
 					while (c > 0 && iterator.Next())
 					{
-						c = m_keyComparer.Compare(lastOk.End, iterator.Current.Begin);
+						c = m_keyComparer.Compare(lastOk.End, iterator.Current!.Begin);
 					}
 				}
 				//on veut décaller les suivants de celui passé en parametre
@@ -562,13 +547,14 @@ namespace Doxense.Collections.Generic
 				var cursor = iterator.Current;
 				//dans le cas ou tout à été supprimé après le lastOK l'iterator est déjà au bout quand on arrive ici...
 				if (cursor == null) break;
+
 				cursor.Begin = applyKeyOffset(cursor.Begin, offset);
 				cursor.End = applyKeyOffset(cursor.End, offset);
 			}
 			while (iterator.Next());
 			//on décalle les bounds correctement
-			if (iterator.SeekFirst()) m_bounds.Begin = iterator.Current.Begin;
-			if (iterator.SeekLast()) m_bounds.End = iterator.Current.End;
+			if (iterator.SeekFirst()) m_bounds.Begin = iterator.Current!.Begin;
+			if (iterator.SeekLast()) m_bounds.End = iterator.Current!.End;
 		}
 
 		public void Mark(TKey begin, TKey end, TValue value)
@@ -791,7 +777,7 @@ namespace Doxense.Collections.Generic
 
 						m_bounds.End = Max(m_bounds.End, end);
 
-						cursor = iterator.Current;
+						cursor = iterator.Current!;
 
 						c1 = cmp.Compare(cursor.Begin, begin);
 						c2 = cmp.Compare(cursor.End, end);
@@ -1149,6 +1135,7 @@ namespace Doxense.Collections.Generic
 		/// <summary>Checks if there is at least one range in the dictionary that intersects with the specified range, and matches the predicate</summary>
 		/// <param name="begin">Lower bound of the intersection</param>
 		/// <param name="end">Higher bound (excluded) of the intersection</param>
+		/// <param name="match"></param>
 		/// <returns>True if there was at least one intersecting range.</returns>
 		public bool Intersect(TKey begin, TKey end, [MaybeNullWhen(false)] out Entry match)
 		{
@@ -1169,7 +1156,7 @@ namespace Doxense.Collections.Generic
 
 			do
 			{
-				var cursor = iterator.Current;
+				var cursor = iterator.Current!;
 				
 				// A and B intersects if: CMP(B.end, A.begin) <= 0 .OR. CMP(A.end, B.begin) <= 0
 

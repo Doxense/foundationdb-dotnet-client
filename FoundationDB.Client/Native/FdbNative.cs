@@ -522,6 +522,7 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_future_get_key(FutureHandle future, out byte* key, out int keyLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			[Obsolete("Deprecated since API level 610")]
 			public static extern FdbError fdb_future_get_cluster(FutureHandle future, out ClusterHandle cluster);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]

@@ -52,7 +52,9 @@ namespace FoundationDB.Client
 			this.Code = errorCode;
 		}
 
-#if !CORE_CLR
+#if NET8_0_OR_GREATER
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.")]
+#endif
 		private FdbException(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
@@ -60,12 +62,14 @@ namespace FoundationDB.Client
 		}
 
 		[SecurityCritical]
+#if NET8_0_OR_GREATER
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.")]
+#endif
 		public override void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			base.GetObjectData(info, context);
 			info.AddValue("Code", (int)this.Code);
 		}
-#endif
 
 		/// <summary>Gets the code for this error.</summary>
 		public FdbError Code { get; }

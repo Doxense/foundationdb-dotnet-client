@@ -109,14 +109,14 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			return index switch
 			{
-				0  => TypeConverters.Convert<T1, TItem>(this.Item1),
-				1  => TypeConverters.Convert<T2, TItem>(this.Item2),
-				-1 => TypeConverters.Convert<T2, TItem>(this.Item2),
-				-2 => TypeConverters.Convert<T1, TItem>(this.Item1),
+				0  => TypeConverters.Convert<T1, TItem?>(this.Item1),
+				1  => TypeConverters.Convert<T2, TItem?>(this.Item2),
+				-1 => TypeConverters.Convert<T2, TItem?>(this.Item2),
+				-2 => TypeConverters.Convert<T1, TItem?>(this.Item1),
 				_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 2)
 			};
 		}

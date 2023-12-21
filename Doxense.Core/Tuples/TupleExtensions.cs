@@ -87,7 +87,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[Pure]
-		public static T Get<T>(this IVarTuple tuple, Index index)
+		public static T? Get<T>(this IVarTuple tuple, Index index)
 		{
 			return tuple.Get<T>(index.GetOffset(tuple.Count));
 		}
@@ -96,7 +96,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T">Expected type of the first item</typeparam>
 		/// <returns>Value of the first item, adapted into type <typeparamref name="T"/>.</returns>
 		[Pure]
-		public static T First<T>(this IVarTuple tuple)
+		public static T? First<T>(this IVarTuple tuple)
 		{
 			return tuple.Get<T>(0);
 		}
@@ -106,7 +106,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Value of the last item of this tuple, adapted into type <typeparamref name="T"/></returns>
 		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
 		[Pure]
-		public static T Last<T>(this IVarTuple tuple)
+		public static T? Last<T>(this IVarTuple tuple)
 		{
 			return tuple.Get<T>(-1);
 		}
@@ -270,7 +270,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T1">Expected type of the single element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 1</param>
 		/// <returns>Equivalent tuple, with its element converted to the specified type</returns>
-		public static ValueTuple<T1> As<T1>(this IVarTuple tuple)
+		public static ValueTuple<T1?> As<T1>(this IVarTuple tuple)
 		{
 			tuple.OfSize(1);
 			return new ValueTuple<T1>(tuple.Get<T1>(0)!);
@@ -281,7 +281,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 2</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static ValueTuple<T1, T2> As<T1, T2>(this IVarTuple tuple)
+		public static ValueTuple<T1?, T2?> As<T1, T2>(this IVarTuple tuple)
 		{
 			tuple.OfSize(2);
 			return (
@@ -296,7 +296,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 3</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static ValueTuple<T1, T2, T3> As<T1, T2, T3>(this IVarTuple tuple)
+		public static ValueTuple<T1?, T2?, T3?> As<T1, T2, T3>(this IVarTuple tuple)
 		{
 			tuple.OfSize(3);
 			return (
@@ -313,7 +313,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 4</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static ValueTuple<T1, T2, T3, T4> As<T1, T2, T3, T4>(this IVarTuple tuple)
+		public static ValueTuple<T1?, T2?, T3?, T4?> As<T1, T2, T3, T4>(this IVarTuple tuple)
 		{
 			tuple.OfSize(4);
 			return (
@@ -332,7 +332,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 5</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static ValueTuple<T1, T2, T3, T4, T5> As<T1, T2, T3, T4, T5>(this IVarTuple tuple)
+		public static ValueTuple<T1?, T2?, T3?, T4?, T5?> As<T1, T2, T3, T4, T5>(this IVarTuple tuple)
 		{
 			tuple.OfSize(5);
 			return (
@@ -353,7 +353,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 5</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static ValueTuple<T1, T2, T3, T4, T5, T6> As<T1, T2, T3, T4, T5, T6>(this IVarTuple tuple)
+		public static ValueTuple<T1?, T2?, T3?, T4?, T5?, T6?> As<T1, T2, T3, T4, T5, T6>(this IVarTuple tuple)
 		{
 			tuple.OfSize(6);
 			return (

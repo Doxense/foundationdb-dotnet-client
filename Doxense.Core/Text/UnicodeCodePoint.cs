@@ -72,7 +72,7 @@ namespace Doxense.Text
 			return this.Value == other;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is UnicodeCodePoint cp && cp.Value == this.Value;
 		}

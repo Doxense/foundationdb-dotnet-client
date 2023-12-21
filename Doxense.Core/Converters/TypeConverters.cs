@@ -73,11 +73,6 @@ namespace Doxense.Runtime.Converters
 				return FromObject(value);
 			}
 
-			public static T? Cast(object? value)
-			{
-				if (value == null) return default!;
-				return (T) value;
-			}
 		}
 
 		#endregion
@@ -121,7 +116,7 @@ namespace Doxense.Runtime.Converters
 				if (!typeof(TOutput).IsAssignableFrom(typeof(TInput))) throw new InvalidOperationException($"Type {typeof(TInput).Name} is not a subclass of {typeof(TOutput).Name}");
 			}
 
-			public TOutput? Convert(TInput? value)
+			public TOutput Convert(TInput value)
 			{
 				return (TOutput) (object) value!;
 			}
@@ -594,22 +589,27 @@ namespace Doxense.Runtime.Converters
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static T ConvertBoxed<T>(object? value)
+		public static T? ConvertBoxed<T>(object? value)
 		{
-			if (value == null) return default!;
-			var type = value.GetType();
+			if (value == null) return default;
 
+			var type = value.GetType();
 			var targetType = typeof(T);
 
 			// cast !
-			if (targetType.IsAssignableFrom(type)) return (T) value;
-
-			if (!Converters.TryGetValue(new ComparisonHelper.TypePair(type, targetType), out var converter))
+			if (targetType.IsAssignableFrom(type))
 			{
-				// maybe it is a nullable type ?
-				var nullableType = Nullable.GetUnderlyingType(targetType);
-				if (nullableType == null) throw FailCannotConvert(type, targetType);
+				return (T) value;
+			}
 
+			if (Converters.TryGetValue(new ComparisonHelper.TypePair(type, targetType), out var converter))
+			{
+				return (T) converter.ConvertBoxed(value)!;
+			}
+			// maybe it is a nullable type ?
+			var nullableType = Nullable.GetUnderlyingType(targetType);
+			if (nullableType != null)
+			{
 				// we already null-checked value above, so we just have to convert it to the underlying type...
 
 				// shortcut for converting a T into a Nullable<T> ...
@@ -622,12 +622,12 @@ namespace Doxense.Runtime.Converters
 				}
 			}
 
-			return (T) converter.ConvertBoxed(value)!;
+			throw FailCannotConvert(type, targetType);
 		}
 
 		private static MethodInfo GetConverterMethod(Type input, Type output)
 		{
-			var m = typeof(TypeConverters).GetMethod(nameof(GetConverter), BindingFlags.Static | BindingFlags.Public).MakeGenericMethod(input, output);
+			var m = typeof(TypeConverters).GetMethod(nameof(GetConverter), BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(input, output);
 			Contract.Debug.Assert(m != null);
 			return m;
 		}
@@ -636,7 +636,7 @@ namespace Doxense.Runtime.Converters
 		[Pure]
 		public static Func<TInput, object?> CreateBoxedConverter<TInput>(Type outputType)
 		{
-			var converter = (ITypeConverter) GetConverterMethod(typeof(TInput), outputType).Invoke(null, Array.Empty<object>());
+			var converter = (ITypeConverter) GetConverterMethod(typeof(TInput), outputType).Invoke(null, Array.Empty<object>())!;
 			return (x) => converter.ConvertBoxed(x);
 		}
 
@@ -681,10 +681,10 @@ namespace Doxense.Runtime.Converters
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull("value")]
-		public static string? ToString<TInput>(TInput? value)
+		public static string? ToString<TInput>(TInput value)
 		{
 			//note: raccourci pour Convert<TInput, string>(..) dont le but est d'être inliné par le JIT en release
-			return Cache<TInput, string>.Converter.Convert(value);
+			return Cache<TInput, string?>.Converter.Convert(value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -695,10 +695,10 @@ namespace Doxense.Runtime.Converters
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TOutput? FromString<TOutput>(string? text)
+		public static TOutput FromString<TOutput>(string? text)
 		{
 			//note: raccourci pour Convert<TInput, string>(..) dont le but est d'être inliné par le JIT en release
-			return Cache<string, TOutput>.Converter.Convert(text);
+			return Cache<string?, TOutput>.Converter.Convert(text);
 		}
 
 	}

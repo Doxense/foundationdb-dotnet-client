@@ -155,9 +155,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return (int)this.RawValue;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
-			return obj is CompressedWord && Equals((CompressedWord)obj);
+			return obj is CompressedWord word && Equals(word);
 		}
 
 		public bool Equals(CompressedWord word)

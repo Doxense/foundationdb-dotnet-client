@@ -513,12 +513,15 @@ namespace Doxense.Collections.Generic
 		}
 
 		/// <summary>Search for the largest element that is smaller than a reference element</summary>
+		/// <param name="count"></param>
 		/// <param name="value">Reference element</param>
 		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
+		/// <param name="comparer"></param>
 		/// <param name="offset">Receive the offset within the level of the previous element, or 0 if not found</param>
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
+		/// <param name="levels"></param>
 		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
-		public static int FindPrevious<T>(T[][] levels, int count, T value, bool orEqual, IComparer<T> comparer, out int offset, out T result)
+		public static int FindPrevious<T>(T[][] levels, int count, T value, bool orEqual, IComparer<T> comparer, out int offset, out T? result)
 		{
 			int level = NOT_FOUND;
 			var max = default(T);
@@ -620,7 +623,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="comparer">Key comparer</param>
 		/// <param name="result">Received the next smallest element if the method returns true; otherwise set to default(T)</param>
 		/// <returns>The index of the level that returned the value, or -1 if all levels are done</returns>
-		internal static int IterateFindNext<T>(T[][] inputs, int[] cursors, int min, int max, IComparer<T> comparer, out T result)
+		internal static int IterateFindNext<T>(T[][] inputs, int[] cursors, int min, int max, IComparer<T> comparer, out T? result)
 		{
 			Contract.Debug.Requires(inputs != null && cursors != null && min >= 0 && max >= min && comparer != null);
 
@@ -664,10 +667,12 @@ namespace Doxense.Collections.Generic
 		/// <summary>Find the next largest key pointed by a list of cursors</summary>
 		/// <param name="inputs">List of source arrays</param>
 		/// <param name="cursors">Lit of cursors in source arrays</param>
+		/// <param name="max"></param>
 		/// <param name="comparer">Key comparer</param>
 		/// <param name="result">Received the next largest element if the method returns true; otherwise set to default(T)</param>
+		/// <param name="min"></param>
 		/// <returns>The index of the level that returned the value, or -1 if all levels are done</returns>
-		internal static int IterateFindPrevious<T>(T[][] inputs, int[] cursors, int min, int max, IComparer<T> comparer, out T result)
+		internal static int IterateFindPrevious<T>(T[][] inputs, int[] cursors, int min, int max, IComparer<T> comparer, out T? result)
 		{
 			Contract.Debug.Requires(inputs != null && cursors != null && min >= 0 && max >= min && comparer != null);
 			// NOT TESTED !!!!!
@@ -745,7 +750,7 @@ namespace Doxense.Collections.Generic
 
 				while (count-- > 0)
 				{
-					T item;
+					T? item;
 					int pos;
 					if (reverse)
 					{
@@ -761,7 +766,7 @@ namespace Doxense.Collections.Generic
 						//TODO: should we fail or stop here ?
 						throw new InvalidOperationException("Not enough data in the source arrays to fill the output array");
 					}
-					yield return item;
+					yield return item!;
 
 					// update the bounds if needed
 					if (pos == max)
@@ -800,7 +805,7 @@ namespace Doxense.Collections.Generic
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
-		public struct Enumerator<T> : IEnumerator<T>, IDisposable
+		public struct Enumerator<T> : IEnumerator<T>
 		{
 			private readonly ColaStore<T> m_items;
 			private readonly bool m_reverse;
@@ -860,7 +865,7 @@ namespace Doxense.Collections.Generic
 				return true;
 			}
 
-			public T Current => m_current;
+			public T Current => m_current!;
 
 			public bool Reverse => m_reverse;
 
@@ -869,7 +874,7 @@ namespace Doxense.Collections.Generic
 				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...
 			}
 
-			object System.Collections.IEnumerator.Current => m_current;
+			object System.Collections.IEnumerator.Current => m_current!;
 
 			void System.Collections.IEnumerator.Reset()
 			{

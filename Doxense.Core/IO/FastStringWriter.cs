@@ -49,7 +49,7 @@ namespace Doxense.IO
 
 		private readonly StringBuilder m_buffer;
 
-		private static volatile UnicodeEncoding? s_encoding;
+		private static readonly UnicodeEncoding s_encoding = new UnicodeEncoding(false, false);
 
 		#region Constructors...
 
@@ -136,7 +136,7 @@ namespace Doxense.IO
 		public override Encoding Encoding
 		{
 			[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
-			get { return s_encoding ??= new UnicodeEncoding(false, false); }
+			get => s_encoding;
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
@@ -153,13 +153,13 @@ namespace Doxense.IO
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
-		public override void Write(string value)
+		public override void Write(string? value)
 		{
 			m_buffer.Append(value);
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
-		public override void Write(char[] value)
+		public override void Write(char[]? value)
 		{
 			m_buffer.Append(value);
 		}
@@ -181,7 +181,7 @@ namespace Doxense.IO
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
-		public override void WriteLine(string value)
+		public override void WriteLine(string? value)
 		{
 			m_buffer.AppendLine(value);
 		}
@@ -202,7 +202,7 @@ namespace Doxense.IO
 			return Task.CompletedTask;
 		}
 
-		public override Task WriteAsync(string value)
+		public override Task WriteAsync(string? value)
 		{
 			m_buffer.Append(value);
 			return Task.CompletedTask;

@@ -27,8 +27,10 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a set of options for the database connection</summary>
+	[PublicAPI]
 	public enum FdbDatabaseOption
 	{
 		/// <summary>No option defined</summary>

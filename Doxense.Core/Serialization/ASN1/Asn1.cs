@@ -26,6 +26,8 @@
 
 //#define FULL_DEBUG
 
+// ReSharper disable IntVariableOverflowInUncheckedContext
+
 namespace Doxense.Serialization.Asn1
 {
 	using System;
@@ -39,6 +41,7 @@ namespace Doxense.Serialization.Asn1
 	// => elle devrait être "déspécialisée" pour devenir le plus générique possible!
 
 	/// <summary>Routines statiques d'encodage/décodage des règles ASN.1</summary>
+	[Obsolete("Use a more modern type!")]
 	public static class Asn1
 	{
 		public const string TOKENS_PREFIX_1_2 = "1.2";
@@ -54,7 +57,7 @@ namespace Doxense.Serialization.Asn1
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int SizeOfLength(byte[] src, int offset)
 		{
-			Contract.Debug.Requires(src != null & offset >= 0);
+			Contract.Debug.Requires(src != null && offset >= 0);
 			int v = src[offset];
 			return v < 0x80 ? 1 : ((v & 0x7f) + 1);
 		}
@@ -129,7 +132,7 @@ namespace Doxense.Serialization.Asn1
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int GetLength(byte[] src, int pos)
 		{
-			Contract.Debug.Requires(src != null & pos >= 0 & pos < src.Length);
+			Contract.Debug.Requires(src != null && pos >= 0 && pos < src.Length);
 			int v;
 			return (v = src[pos]) < 0x80 ? v : GetLengthSlow(src, pos);
 		}
@@ -231,14 +234,14 @@ namespace Doxense.Serialization.Asn1
 		/// <param name="value">le fragment d'oid a écrire</param>
 		/// <returns>position dans le tableau après écriture</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int PutOidFragment(byte[] dst, int pos, long value)
+		public static int PutOidFragment(byte[]? dst, int pos, long value)
 		{
 			if (value < 0x80 && dst != null && (uint)pos < dst.Length)
 			{
 				dst[pos] = (byte) value;
 				return pos + 1;
 			}
-			return PutOidFragmentSlow(dst, pos, value);
+			return PutOidFragmentSlow(dst!, pos, value);
 		}
 
 		private static unsafe int PutOidFragmentSlow(byte[] dst, int pos, long value)
@@ -297,7 +300,7 @@ namespace Doxense.Serialization.Asn1
 		[Pure]
 		private static unsafe byte* ReadNextOidFragmentSlow(byte* ptr, byte* stop, out long value)
 		{
-			Contract.Debug.Requires(ptr != null & stop != null);
+			Contract.Debug.Requires(ptr != null && stop != null);
 			if (ptr > stop) throw new InvalidOperationException("Oid fragment parsing error: cursor is after the end of the buffer");
 
 			if (ptr == stop)
@@ -639,7 +642,7 @@ namespace Doxense.Serialization.Asn1
 		/// <returns>position dans le tableau après écriture</returns>
 		public static int PutStringData(byte[] dst, int offset, string value)
 		{
-			Contract.Debug.Requires(dst != null & offset >= 0);
+			Contract.Debug.Requires(dst != null && offset >= 0);
 			byte[] src = Encoding.Default.GetBytes(value); // BUGBUG: Encoding.Default dépend de la culture de l'OS !
 			offset = PutLength(dst, offset, src.Length);
 			Buffer.BlockCopy(src, 0, dst, offset, src.Length);
