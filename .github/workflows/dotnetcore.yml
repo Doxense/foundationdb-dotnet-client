@@ -13,7 +13,7 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
-    - name: Build with dotnet (net6.0)
+    - name: Build with dotnet (net8.0)
       run: dotnet build --configuration Release -f net8.0
     - name: Build NuGet Packages
       run: dotnet pack --configuration Release --output Redist
