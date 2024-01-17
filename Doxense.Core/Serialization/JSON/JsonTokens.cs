@@ -28,7 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 
-	/// <summary>Classe interne contenant les différentes strings utilisées pour la sérialisation</summary>
+	/// <summary>Internal class that holds various constants and tokens used dureing parsing and serialization</summary>
 	internal static class JsonTokens
 	{
 		// On load les différents tokens en static readonly pour éviter d'allouer sans arret les mêmes chaines ...

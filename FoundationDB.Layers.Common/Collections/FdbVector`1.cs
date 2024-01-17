@@ -35,9 +35,11 @@ namespace FoundationDB.Layers.Collections
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
 	[DebuggerDisplay("Location={Location}, Default={DefaultValue}")]
+	[PublicAPI]
 	public class FdbVector<T> : IFdbLayer<FdbVector<T>.State>
 	{
 		// from https://apple.github.io/foundationdb/vector.html
@@ -62,7 +64,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="location">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
 		/// <param name="encoder">Encoder used for the values of this vector</param>
-		public FdbVector(ISubspaceLocation location, T defaultValue = default, IValueEncoder<T>? encoder = null)
+		public FdbVector(ISubspaceLocation location, T? defaultValue = default, IValueEncoder<T>? encoder = null)
 			: this(location.AsDynamic(), defaultValue, encoder)
 		{ }
 
@@ -70,7 +72,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="location">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
 		/// <param name="encoder">Encoder used for the values of this vector</param>
-		public FdbVector(DynamicKeySubspaceLocation location, T defaultValue, IValueEncoder<T>? encoder = null)
+		public FdbVector(DynamicKeySubspaceLocation location, T? defaultValue, IValueEncoder<T>? encoder = null)
 		{
 			Contract.NotNull(location);
 
@@ -84,20 +86,21 @@ namespace FoundationDB.Layers.Collections
 		public DynamicKeySubspaceLocation Location { get; }
 
 		/// <summary>Default value for sparse entries</summary>
-		public T DefaultValue { get; }
+		public T? DefaultValue { get; }
 
 		public IValueEncoder<T> Encoder { get; }
 
+		[PublicAPI]
 		public sealed class State
 		{
 
 			public IDynamicKeySubspace Subspace { get; }
 
-			public T DefaultValue { get; }
+			public T? DefaultValue { get; }
 
 			public IValueEncoder<T> Encoder { get; }
 
-			internal State(IDynamicKeySubspace subspace, T defaultValue, IValueEncoder<T> encoder)
+			internal State(IDynamicKeySubspace subspace, T? defaultValue, IValueEncoder<T> encoder)
 			{
 				this.Subspace = subspace;
 				this.DefaultValue = defaultValue;
@@ -125,6 +128,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Get the value of the last item in the Vector.</summary>
 			public Task<T> BackAsync(IFdbReadOnlyTransaction tr)
 			{
+				//REVIEW: rename this to "PeekLast" ?
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
 				return tr
@@ -134,13 +138,14 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Get the value of the first item in the Vector.</summary>
-			public Task<T> FrontAsync(IFdbReadOnlyTransaction tr)
+			public Task<T?> FrontAsync(IFdbReadOnlyTransaction tr)
 			{
+				//REVIEW: rename this to "Peek" ?
 				return GetAsync(tr, 0);
 			}
 
 			/// <summary>Get and pops the last item off the Vector.</summary>
-			public async Task<(T Value, bool HasValue)> PopAsync(IFdbTransaction tr)
+			public async Task<(T? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -212,7 +217,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Get the item at the specified index.</summary>
-			public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
+			public async Task<T?> GetAsync(IFdbReadOnlyTransaction tr, long index)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 				if (index < 0) throw new IndexOutOfRangeException($"Index {index} must be positive");
@@ -241,7 +246,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
-			public IAsyncEnumerable<T> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
+			public IAsyncEnumerable<T?> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 

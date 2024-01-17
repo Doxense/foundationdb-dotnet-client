@@ -34,12 +34,14 @@ namespace FoundationDB.Layers.Collections
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 #if DEBUG
 	using FoundationDB.Filters.Logging;
 #endif
 
 	/// <summary>Provides a high-contention Queue class</summary>
 	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
 	public class FdbQueue<T> : IFdbLayer<FdbQueue<T>.State>
 	{
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
@@ -72,6 +74,7 @@ namespace FoundationDB.Layers.Collections
 			return new State(subspace, this.Encoder);
 		}
 
+		[PublicAPI]
 		public sealed class State
 		{
 
@@ -108,7 +111,7 @@ namespace FoundationDB.Layers.Collections
 			private static readonly FdbRangeOptions SingleOptions = new FdbRangeOptions() { Limit = 1, Mode = FdbStreamingMode.Exact };
 
 			/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-			public async Task<(T Value, bool HasValue)> PopAsync(IFdbTransaction tr)
+			public async Task<(T? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 			{
 				Contract.NotNull(tr);
 #if DEBUG
@@ -139,7 +142,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Get the value of the next item in the queue without popping it.</summary>
-			public async Task<(T Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
+			public async Task<(T? Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
 			{
 				Contract.NotNull(tr);
 
@@ -162,7 +165,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(kvs, _, offset, __) =>
+				(kvs, _, offset, _) =>
 				{
 					foreach(var kv in kvs)
 					{
@@ -187,7 +190,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				async (kvs, _, offset, __) =>
+				async (kvs, _, offset, _) =>
 				{
 					foreach (var kv in kvs)
 					{
@@ -211,7 +214,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(kvs, _, offset, __) =>
+				(kvs, _, offset, _) =>
 				{
 					handler(this.Encoder.DecodeValues(kvs), offset);
 					return Task.CompletedTask;
@@ -230,7 +233,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(kvs, _, offset, __) => handler(this.Encoder.DecodeValues(kvs), offset),
+				(kvs, _, offset, _) => handler(this.Encoder.DecodeValues(kvs), offset),
 				ct
 			);
 		}

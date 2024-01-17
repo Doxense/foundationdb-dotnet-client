@@ -35,8 +35,10 @@ namespace FoundationDB.Layers.Collections
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
 	public class FdbMap<TKey, TValue> : IFdbLayer<FdbMap<TKey, TValue>.State>
 	{
 
@@ -60,6 +62,7 @@ namespace FoundationDB.Layers.Collections
 
 		#endregion
 
+		[PublicAPI]
 		public sealed class State
 		{
 
@@ -97,7 +100,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="id">Key of the entry to read from the map</param>
 			/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
-			public async Task<(TValue Value, bool HasValue)> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
+			public async Task<(TValue? Value, bool HasValue)> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 				if (id == null) throw new ArgumentNullException(nameof(id));
@@ -287,7 +290,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(batch, loc, _, __) =>
+				(batch, loc, _, _) =>
 				{
 					var encoder = this.ValueEncoder;
 					foreach (var item in batch)
@@ -314,7 +317,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				async (batch, loc, _, __) =>
+				async (batch, loc, _, _) =>
 				{
 					var encoder = this.ValueEncoder;
 					foreach (var item in batch)
@@ -340,7 +343,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(batch, loc, _, __) =>
+				(batch, loc, _, _) =>
 				{
 					if (batch.Length > 0)
 					{
@@ -378,7 +381,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed and return the result of the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public async Task<TResult> AggregateAsync<TResult>(IFdbDatabase db, Func<TResult> init, Func<TResult, KeyValuePair<TKey, TValue>[], TResult> handler, CancellationToken ct)
+		public async Task<TResult> AggregateAsync<TResult>(IFdbDatabase db, Func<TResult>? init, Func<TResult, KeyValuePair<TKey, TValue>[], TResult> handler, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -392,7 +395,7 @@ namespace FoundationDB.Layers.Collections
 			await Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(batch, loc, _, __) =>
+				(batch, loc, _, _) =>
 				{
 					state = handler(state!, DecodeItems(loc, this.ValueEncoder, batch));
 					return Task.CompletedTask;
@@ -411,7 +414,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed and return the result of calling <paramref name="finish"/> with the state return by the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public async Task<TResult> AggregateAsync<TState, TResult>(IFdbDatabase db, Func<TState> init, Func<TState, KeyValuePair<TKey, TValue>[], TState> handler, Func<TState, TResult> finish, CancellationToken ct)
+		public async Task<TResult> AggregateAsync<TState, TResult>(IFdbDatabase db, Func<TState>? init, Func<TState, KeyValuePair<TKey, TValue>[], TState> handler, Func<TState, TResult>? finish, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -425,7 +428,7 @@ namespace FoundationDB.Layers.Collections
 			await Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(batch, loc, _, __) =>
+				(batch, loc, _, _) =>
 				{
 					state = handler(state!, DecodeItems(loc, this.ValueEncoder, batch));
 					return Task.CompletedTask;

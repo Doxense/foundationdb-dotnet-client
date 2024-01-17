@@ -37,15 +37,14 @@ namespace Doxense.Serialization.Json
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.IO;
-	using Doxense.Memory;
 	using JetBrains.Annotations;
 
-	/// <summary>Classe capable d'écrire du JSON dans un buffer</summary>
+	/// <summary>Serialize values into JSON</summary>
 	[DebuggerDisplay("Json={!m_javascript}, Formatted={m_formatted}, Depth={m_objectGraphDepth}")]
+	[PublicAPI]
 	public sealed class CrystalJsonWriter
 	{
 		private const int MaximumObjectGraphDepth = 16;
-		internal const string FormatDateTimeO = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.fffffffK";
 
 		public enum NodeType
 		{
@@ -121,44 +120,45 @@ namespace Doxense.Serialization.Json
 
 		public ICrystalJsonTypeResolver Resolver => m_resolver;
 
-		/// <summary>Indique si on cible du JavaScript et non pas du JSON</summary>
-		/// <remarks>Si true, les strings sont encodées avec des quotes ('), et les noms de propriétés ne sont quoted que si nécessaire</remarks>
+		/// <summary>Specifies if we are targeting JavaScript, instead of JSON</summary>
+		/// <remarks>If <c>true</c>, all strings will be escaped using single quotes (<c>'</c>), and property names will only be quoted if necessary</remarks>
 		public bool JavaScript => m_javascript;
 
-		/// <summary>Indique s'il faut ignorer les membres nulls/vides</summary>
+		/// <summary>Specifies if we will discard value type members that have a default value (0, false, null for Nullable&lt;T&;gt;, ...)</summary>
 		public bool DiscardDefaults => m_discardDefaults;
 
-		/// <summary>Indique s'il faut ignorer les membres nulls</summary>
+		/// <summary>Specified if we wil discard reference type members that are null</summary>
 		public bool DiscardNulls => m_discardNulls;
 
-		/// <summary>Indique s'il faut ignorer l'attribut "_class"</summary>
+		/// <summary>Specifies if we wil discard the "_class" attribute</summary>
 		public bool DiscardClass => m_discardClass;
 
-		/// <summary>Format actuel de conversion de date (en fonction du mode si Default)</summary>
+		/// <summary>Format used to convert dates</summary>
 		public CrystalJsonSettings.DateFormat DateFormatting => m_dateFormat;
 
-		/// <summary>Format actuel de conversion de nombres à virgule</summary>
+		/// <summary>Format used to convert floating point numbers</summary>
 		public CrystalJsonSettings.FloatFormat FloatFormatting => m_floatFormat;
 
-		/// <summary>Profondeur actuelle de sérialisation</summary>
+		/// <summary>Current depth when serializing (0 for top level)</summary>
 		public int Depth => m_objectGraphDepth;
 
-		/// <summary>Indique si le writer indente automatiquement les valeurs</summary>
+		/// <summary>Specifies whether the writer will automatically indent all values (to enhance readability by humans)</summary>
 		public bool Indented => m_indented;
 
-		/// <summary>Indique si le writer insert des espaces entre les tokens</summary>
+		/// <summary>Specifies whether the writer will insert spaces between tokens (to enhance readability by humans)</summary>
 		public bool Formatted => m_formatted;
 
-		/// <summary>Retourne un petit buffer utilisable pour le formatage de données (ex: floats, dates, ...)</summary>
+		/// <summary>Return a small buffer that can be used to format data</summary>
+		/// <remarks>The buffer size is 64 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private char[] GetTempBuffer()
 		{
 			return m_tmpBuffer ??= new char[64];
 		}
 
-		/// <summary>Retourne le nom formaté d'un champ</summary>
-		/// <param name="name">Nom d'un champ (ex: "FooBar")</param>
-		/// <returns>Nom éventuellement formaté ("fooBar" en Camel Casing)</returns>
+		/// <summary>Apply casing policy to a property name</summary>
+		/// <param name="name">Name (ex: "FooBar")</param>
+		/// <returns>Same name, or camel cased version (ex: "FooBar" => "fooBar" if Camel Casing is selected)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal string FormatName(string name)
 		{
@@ -167,17 +167,17 @@ namespace Doxense.Serialization.Json
 
 		internal static string CamelCase(string name)
 		{
-			// check si le premier n'est pas déjà en minuscules
+			// if the first character is already lowercase, we can skip it
 			char first = name[0];
 			if (first == '_' || (first >= 'a' && first <= 'z')) return name;
-			// convertir le premier caractère en minuscules
+
+			// lower case the first character
 			var chars = name.ToCharArray();
 			chars[0] = char.ToLowerInvariant(first);
 			return new string(chars);
 		}
 
-		/// <summary>Ecrit l'attribut "_class" avec l'id résolvé du type</summary>
-		/// <param name="type">Type à résolver</param>
+		/// <summary>Write the "_class" attribute with the resolved type id</summary>
 		public void WriteClassId(Type type)
 		{
 			var typeDef = this.Resolver.ResolveJsonType(type);
@@ -185,14 +185,15 @@ namespace Doxense.Serialization.Json
 			WriteField(JsonTokens.CustomClassAttribute, typeDef.ClassId);
 		}
 
-		/// <summary>Ecrit l'attribut "_class" avec un id de class spécifique</summary>
-		/// <param name="classId">Identifiant de la class</param>
+		/// <summary>Write the "_class" attribute with the specified type id</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteClassId(string classId)
 		{
 			WriteField(JsonTokens.CustomClassAttribute, classId);
 		}
 
+		/// <summary>Write a comment</summary>
+		/// <remarks>Not all JSON parser will accept comments! Only use when you know that all parsers that will consume this understand and allow comments!</remarks>
 		public void WriteComment(string comment)
 		{
 			m_buffer.Write("/* ");
@@ -200,28 +201,28 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write(" */");
 		}
 
-		/// <summary>Ecrit "null"</summary>
+		/// <summary>Write the "null" literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteNull()
 		{
 			m_buffer.Write(JsonTokens.Null);
 		}
 
-		/// <summary>Ecrit "{}", en respectant le formatage</summary>
+		/// <summary>Write the empty object "{}" literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyObject()
 		{
 			m_buffer.Write(m_formatted ? JsonTokens.EmptyObjectFormatted : JsonTokens.EmptyObjectCompact);
 		}
 
-		/// <summary>Ecrit "[]", en respectant le formatage</summary>
+		/// <summary>Write the empty array "[]" literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyArray()
 		{
 			m_buffer.Write(m_formatted ? JsonTokens.EmptyArrayFormatted : JsonTokens.EmptyArrayCompact);
 		}
 
-		/// <summary>Ecrit le "," qui sépare deux fields (sauf si c'est le premier item d'un objet ou d'une array), en respectant le formatage</summary>
+		/// <summary>Write a coma separator (",") between two fields, unless this is the first element of an array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteFieldSeparator()
 		{
@@ -235,6 +236,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Properly indent the first element of an array</summary>
 		public void WriteHeadSeparator()
 		{
 			Contract.Debug.Requires(!m_state.Tail);
@@ -251,6 +253,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Write a coma between elements of an array</summary>
 		public void WriteTailSeparator()
 		{
 			Contract.Debug.Requires(m_state.Tail);
@@ -270,7 +273,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Ecrit le "," qui sépare deux fields (sauf si c'est le premier item d'un objet ou d'une array), en respectant le formatage</summary>
+		/// <summary>Write a coma between elements of an inline array, unless this is the first element</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteInlineFieldSeparator()
 		{
@@ -321,9 +324,10 @@ namespace Doxense.Serialization.Json
 			m_attributes = attributes;
 		}
 
-		/// <summary>Démarre un nouvel état courant, et retourne le précédent</summary>
-		/// <param name="type">Type du nouvel état</param>
-		/// <returns>Etat précédent</returns>
+		/// <summary>Push a new state onto the stack</summary>
+		/// <param name="type">Type of the new node (Object, Array, ...)</param>
+		/// <returns>Previous state</returns>
+		/// <remarks>The "stack" itself is handled by the caller's own stack. The previous state should be stored in a local variable, and passed back to <see cref="PopState"/> once the array of object is completed.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal State PushState(NodeType type)
 		{
@@ -333,9 +337,10 @@ namespace Doxense.Serialization.Json
 			return state;
 		}
 
-		/// <summary>Restaure un état précédent, et retourne l'état courant</summary>
-		/// <param name="state">Copie d'un précédent état</param>
-		/// <returns>Etat actuel</returns>
+		/// <summary>Pop and return the state from the stack</summary>
+		/// <param name="state">Copy of the previous state (as returned by <see cref="PushState"/>)</param>
+		/// <returns>Current state (before the pop)</returns>
+		/// <remarks>The "stack" itself is handled by the caller's own stack.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal State PopState(State state)
 		{
@@ -344,27 +349,27 @@ namespace Doxense.Serialization.Json
 			return tmp;
 		}
 
-		/// <summary>Réinitialise l'état du writer, comme s'il était au début d'un nouveau document JSON</summary>
+		/// <summary>Reset the state of the writer, so that it can be reused to write a new JSON document</summary>
 		/// <remarks>
-		/// A utiliser si on réutilise plusieurs fois un même writer.
-		/// L'appelant doit faire attention a reset également l'état interne du TextWriter utilisé par ce writer!
+		/// Only use when reusing the same writer in a loop or batch.
+		/// The caller must be careful to reset the internal state of the inner TextWriter that is used by this instance!
 		/// </remarks>
 		public void ResetState()
 		{
-			//note: on doit garder le mode d'indentation!
+			//note: we must keep the current indentation mode!
 			m_state.Node = NodeType.TopLevel;
 			m_state.Tail = false;
 		}
 
-		/// <summary>Retourne une copie de l'état courant du writer</summary>
+		/// <summary>Return a copy of the current state</summary>
 		internal State CurrentState
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_state;
 		}
 
-		/// <summary>Marque le début d'un nouvel item dans une array, ou d'un field dans un objet</summary>
-		/// <returns>False si c'est le premier élément du context courant, ou True s'il y a déjà des éléments.</returns>
+		/// <summary>Mark the start of a new item in an array, or field in an object</summary>
+		/// <returns><c>false</c> if this is the first element of the current state, or <c>true</c> if there was at least one element written before.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal bool MarkNext()
 		{
@@ -373,6 +378,8 @@ namespace Doxense.Serialization.Json
 			return tail;
 		}
 
+		/// <summary>Start a new JSON object</summary>
+		/// <returns>Previous state, that should be passed to the corresponding <see cref="EndObject"/></returns>
 		public State BeginObject()
 		{
 			var state = m_state;
@@ -383,7 +390,9 @@ namespace Doxense.Serialization.Json
 			return state;
 		}
 
-		/// <summary>Ecrit le "}" pour terminer un objet, en respectant le formatage</summary>
+		/// <summary>End a JSON object</summary>
+		/// <param name="state">Value that was returned by the call to <see cref="BeginObject"/> for this object</param>
+		/// <remarks>The caller should store the state in a local variable. Mixing states between objects and arrays will CORRUPT the resulting JSON document!</remarks>
 		public void EndObject(State state)
 		{
 			Paranoid.Requires(m_state.Node == NodeType.Object);
@@ -405,8 +414,8 @@ namespace Doxense.Serialization.Json
 			m_state = state;
 		}
 
-		/// <summary>Ecrit le "[" pour démarrer un tableau, en respectant le formatage</summary>
-		/// <returns>Etat actuel (à retourner lors de l'appel de EndArray)</returns>
+		/// <summary>Start a new JSON array</summary>
+		/// <returns>Previous state, that should be passed to the corresponding <see cref="EndArray"/></returns>
 		public State BeginArray()
 		{
 			var state = m_state;
@@ -417,8 +426,9 @@ namespace Doxense.Serialization.Json
 			return state;
 		}
 
-		/// <summary>Ecrit le "[" pour démarrer un tableau, en respectant le formatage</summary>
-		/// <returns>Etat actuel (à retourner lors de l'appel de EndArray)</returns>
+		/// <summary>Start a new JSON inline array</summary>
+		/// <returns>Previous state, that should be passed to the corresponding <see cref="EndArray"/></returns>
+		/// <remarks>Inline arrays will attempt to keep all elements on a single line. Use this when serialing "vector" or "tuples" that are not techincally an array, but are expressed as an array (the XYZ coordinates of a point, a key/value pair, ...)</remarks>
 		public State BeginInlineArray()
 		{
 			var state = m_state;
@@ -428,8 +438,9 @@ namespace Doxense.Serialization.Json
 			return state;
 		}
 
-		/// <summary>Ecrit le "]" pour terminer un tableau, en respectant le formatage</summary>
-		/// <param name="state">Valeur qui a été retournée par l'appel à BeginArray</param>
+		/// <summary>End a JSON array</summary>
+		/// <param name="state">Value that was returned by the call to <see cref="BeginArray"/> for this array</param>
+		/// <remarks>The caller should store the state in a local variable. Mixing states between objects and arrays will CORRUPT the resulting JSON document!</remarks>
 		public void EndArray(State state)
 		{
 			Paranoid.Requires(m_state.Node == NodeType.Array);
@@ -451,8 +462,9 @@ namespace Doxense.Serialization.Json
 			m_state = state;
 		}
 
-		/// <summary>Ecrit le "]" pour terminer un tableau, en respectant le formatage</summary>
-		/// <param name="state">Valeur qui a été retournée par l'appel à BeginArray</param>
+		/// <summary>End a JSON inline array</summary>
+		/// <param name="state">Value that was returned by the call to <see cref="BeginArray"/> for this array</param>
+		/// <remarks>The caller should store the state in a local variable. Mixing states between objects and arrays will CORRUPT the resulting JSON document!</remarks>
 		public void EndInlineArray(State state)
 		{
 			Paranoid.Requires(m_state.Node == NodeType.Array);
@@ -604,7 +616,7 @@ namespace Doxense.Serialization.Json
 			EndInlineArray(state);
 		}
 
-		public void WriteInlinePair(int key, JsonValue value)
+		public void WriteInlinePair(int key, JsonValue? value)
 		{
 			var state = BeginInlineArray();
 			WriteInlineHeadSeparator();
@@ -654,7 +666,7 @@ namespace Doxense.Serialization.Json
 			EndInlineArray(state);
 		}
 
-		public void WriteInlinePair(string? key, JsonValue value)
+		public void WriteInlinePair(string? key, JsonValue? value)
 		{
 			var state = BeginInlineArray();
 			WriteInlineHeadSeparator();
@@ -676,17 +688,18 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Marque l'objet comme étant déjà traité</summary>
-		/// <param name="value">Objet en cours de traitement</param>
-		/// <exception cref="System.InvalidOperationException">Si cet objet a déjà été marqué</exception>
+		/// <summary>Mark an instance as already visited, and perform infinite loop detection</summary>
+		/// <param name="value">Instance currently being serialized</param>
+		/// <exception cref="System.InvalidOperationException">If this instance is already being serialized, meaning that there is a cycle where the object (or one of its children) is referencing back to itself</exception>
+		/// <remarks>The caller should call <see cref="Leave"/> once this instance has been handled. Failure to do so will leak memory, and also prevent from serializing the same object multiple times (cached singletons, ...)</remarks>
 		public void MarkVisited(object? value)
 		{
 			if (m_objectGraphDepth >= MaximumObjectGraphDepth)
-			{ // protection contre les object graph gigantesques
+			{ // protect against very deep object graphs
 				throw CrystalJson.Errors.Serialization_FailTooDeep(m_objectGraphDepth, value);
 			}
 			if (value != null && m_markVisited)
-			{ // protection contre les chaînes récursives d'objet (=> stack overflow)
+			{ // protect against loops in the object graph that would cause a stack overflow
 				if (m_visitedObjects == null)
 				{
 					m_visitedObjects = new object[4];
@@ -727,10 +740,12 @@ namespace Doxense.Serialization.Json
 
 		internal static bool TypeSafeForRecursion(Type type)
 		{
-			// liste de reference types qui peuvent être répétés plusieurs fois, et qui ne peuvent pas provoquer de stackoverflow
+			// known types that are "safe" from any possible loop
 			return type.IsValueType || type == typeof(string) || type == typeof(System.Net.IPAddress);
 		}
 
+		/// <summary>Mark the current object as completed, and remove it from the loop tracking list</summary>
+		/// <param name="value">Same value that was passed to <see cref="MarkVisited"/></param>
 		public void Leave(object? value)
 		{
 			if (m_objectGraphDepth == 0) throw CrystalJson.Errors.Serialization_InternalDepthInconsistent();
@@ -753,10 +768,10 @@ namespace Doxense.Serialization.Json
 
 		#region Basic Type Serializers...
 
-		/// <summary>[DANGEROUS] Ecrit un bloc de JSON brut dans le buffer de sortie</summary>
-		/// <param name="rawJson">Snippet de JSON brut à écrire tel quel (sans encodage)</param>
+		/// <summary>[DANGEROUS] Writes a raw JSON literal into the output buffer, without any checks or encoding.</summary>
+		/// <param name="rawJson">JSON snippet that is already encoded</param>
 		/// <remarks>"Danger, Will Robinson !!!"
-		/// A n'utiliser que lorsque vous êtes certain de ce que vous faites, car vous pouvez facilement corrompre le JSON généré !</remarks>
+		/// Only use it if you know what you are doing, such as outputing already encoded JSON constants or in very specific use cases where performance superseeds safety!</remarks>
 		public void WriteRaw(string? rawJson)
 		{
 			if (!string.IsNullOrEmpty(rawJson))
@@ -765,11 +780,11 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Ecrit un nom de propriété qui est GARANTIT comme ne nécessitant pas d'encodage!</summary>
-		/// <param name="name">Nom de propriété QUI NE DOIT PAS NECESSITER D'ENCODAGE ! (nom d'une propriété d'un objet C# = OK, key d'un dictionnaire = NOT OK !)</param>
+		/// <summary>Write a property name that is KNOWN to not require any escaping.</summary>
+		/// <param name="name">Name of the property that MUST NOT REQUIRED ANY ESCAPING!</param>
+		/// <remarks>Calling this with a .NET object property or field name (obtained via reflection or nameof(...)) is OK, but calling with a dictionary key or user-input is NOT safe!</remarks>
 		public void WriteName(string name)
 		{
-			// ajoute le séparateur
 			WriteFieldSeparator();
 			WritePropertyName(name);
 		}
@@ -796,60 +811,56 @@ namespace Doxense.Serialization.Json
 			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 		}
 
-		/// <summary>Ecrit un nom de propriété qui est GARANTIT comme ne nécessitant pas d'encodage!</summary>
-		/// <param name="name">Nom de propriété QUI NE DOIT PAS NECESSITER D'ENCODAGE ! (nom d'une propriété d'un objet C# = OK, key d'un dictionnaire = NOT OK !)</param>
+		/// <summary>Write a field name that is an integer</summary>
+		/// <param name="name">Integer</param>
+		/// <remarks>This is used for objects with keys that are integers like: <c>{ "0": ..., "1": ...., ....}</c>.</remarks>
 		public void WriteName(long name)
 		{
-			// ajoute le séparateur
 			WriteFieldSeparator();
 			WritePropertyName(name);
 		}
 
 		internal void WritePropertyName(long name)
 		{
-			if (!m_javascript)
-			{
-				m_buffer.Write('"');
-				WriteValue(name);
-				m_buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
-			}
-			else
-			{
-				WriteJavaScriptName(name);
-			}
-		}
-
-		internal void WriteJavaScriptName(long name)
-		{
-			WriteValue(name);
-			m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
-		}
-
-		/// <summary>Ecrit un nom de propriété numérique</summary>
-		/// <param name="name">Nom de la propriété</param>
-		public void WriteUnsafeName(int name)
-		{
-			// ajoute le séparateur
-			WriteFieldSeparator();
 			var buffer = m_buffer;
 			if (!m_javascript)
 			{
 				buffer.Write('"');
 				WriteValue(name);
-				buffer.Write('"');
+				buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
 			}
 			else
 			{
-				buffer.Write('\'');
 				WriteValue(name);
-				buffer.Write('\'');
+				buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 			}
-			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+		}
+
+		public void WriteName(int name)
+		{
+			WriteFieldSeparator();
+			WritePropertyName(name);
+
+		}
+
+		internal void WritePropertyName(int name)
+		{
+			var buffer = m_buffer;
+			if (!m_javascript)
+			{
+				buffer.Write('"');
+				WriteValue(name);
+				buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+			}
+			else
+			{
+				WriteValue(name);
+				buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+			}
 		}
 
 		public void WriteUnsafeName(string name)
 		{
-			// ajoute le séparateur
 			WriteFieldSeparator();
 			var buffer = m_buffer;
 			if (!m_javascript)
@@ -869,23 +880,31 @@ namespace Doxense.Serialization.Json
 		public void WriteValue(JsonValue? value)
 		{
 			if (value != null)
+			{
 				value.JsonSerialize(this);
+			}
 			else
+			{
 				WriteNull();
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(string? value)
 		{
 			if (!m_javascript)
+			{
 				CrystalJsonFormatter.WriteJsonString(m_buffer, value);
+			}
 			else
+			{
 				CrystalJsonFormatter.WriteJavaScriptString(m_buffer, value);
+			}
 		}
 
 		public void WriteValue(char value)
 		{
-			// on remplace le char NUL par 'null', ce qui est plus logique en javascript...
+			// replace the NUL character (\0) by 'null'
 			var buffer = m_buffer;
 			if (value == '\0')
 			{
@@ -899,7 +918,6 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				//TODO: trouver un moyen plus optimisé ?
 				buffer.Write(JsonEncoding.AppendSlow(new StringBuilder(), new string(value, 1), true).ToString());
 			}
 		}
@@ -907,7 +925,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(char? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(StringBuilder? value)
@@ -1018,32 +1043,50 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(double? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteEnumInteger<TEnum>(TEnum value)
-			where TEnum : System.Enum
+			where TEnum : struct, System.Enum
 		{
-			//note: on pourrait convertir l'enum en (int) et appeler WriteInt32(...) mais certaines enums ne dérivent pas de Int32 :(
+			//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
 			m_buffer.Write(value.ToString("D"));
 		}
 
-		public void WriteEnumInteger(Enum value)
+		public void WriteEnumInteger(Enum? value)
 		{
-			//note: on pourrait convertir l'enum en (int) et appeler WriteInt32(...) mais certaines enums ne dérivent pas de Int32 :(
+			if (value == null)
+			{
+				WriteNull();
+				return;
+			}
+			//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
 			m_buffer.Write(value.ToString("D"));
 		}
 
-		public void WriteEnumString<TEnum>(Enum value)
-			where TEnum: System.Enum
+		public void WriteEnumString<TEnum>(TEnum value)
+			where TEnum: struct, System.Enum
 		{
 			string str = value.ToString("G");
 			if (m_enumCamelCased) str = CamelCase(str);
 			WriteValue(str);
 		}
 
-		public void WriteEnumString(Enum value)
+		public void WriteEnumString(Enum? value)
 		{
+			if (value == null)
+			{
+				WriteNull();
+				return;
+			}
+
 			string str = value.ToString("G");
 			if (m_enumCamelCased) str = CamelCase(str);
 			WriteValue(str);
@@ -1061,12 +1104,12 @@ namespace Doxense.Serialization.Json
 			var fmt = m_attributes?.EnumFormat ?? JsonEnumFormat.Inherits;
 			if ((fmt == JsonEnumFormat.Inherits && m_enumAsString) || fmt == JsonEnumFormat.String)
 			{
-				//TODO: on peut supposer que les enum.ToString() sont safe au niveau encodage ?
+				//TODO: could we assume that enum.ToString() will always return a string that does not need escaping ?
 				WriteValue(m_enumCamelCased ? cache.GetNameCamelCased(value) : cache.GetName(value));
 			}
 			else
 			{
-				//note: on pourrait convertir l'enum en (int) et appeler WriteInt32(...) mais certaines enums ne dérivent pas de Int32 :(
+				//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
 				m_buffer.Write(cache.GetLiteral(value));
 			}
 		}
@@ -1088,7 +1131,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				//note: on pourrait convertir l'enum en (int) et appeler WriteInt32(...) mais certaines enums ne dérivent pas de Int32 :(
+				//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
 				string str = value.ToString("D");
 				m_buffer.Write(str);
 			}
@@ -1097,25 +1140,30 @@ namespace Doxense.Serialization.Json
 		public void WriteValue(decimal value)
 		{
 			if (value == 0)
-			{ // le plus courant (objets vides)
+			{ // the most common for empty members
 				m_buffer.Write('0');
 			}
 			else
-			{ // conversion directe
+			{ // direct conversion
 				m_buffer.Write(value.ToString(null, NumberFormatInfo.InvariantInfo));
-				// note: on n'ajoute pas le '.0' pour les entiers, car un 'decimal' peut être n'importe quoi, surtout dans le cas d'un objet dynamic,
-				// ou '1' est représenté par un decimal s'il n'y a pas de précision du type dans l'invocation dynamic.
-				// Si on rajoute un '.0', on casse la règle: jsonText == Serialize(DeserializeDynamic(jsonText))
+				// note: we do not add '.0' for integers, since 'decimal' could be used to represent any number (integer or floats) in dynamic or scripted languages (like javascript), and we want to be able to round-trip: "1" => (decimal) 1 => "1"
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(decimal? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
-		/// <summary>Ecrit une date dont au format indiqué par le paramétrage</summary>
+		/// <summary>Write a <c>DateTime</c>, using the configured formatting</summary>
 		public void WriteValue(DateTime value)
 		{
 			switch (m_dateFormat)
@@ -1128,7 +1176,7 @@ namespace Doxense.Serialization.Json
 					break;
 				}
 				case CrystalJsonSettings.DateFormat.Microsoft:
-				{ // "\/Date(#####)\/" pour UTC, ou "\/Date(####+HHMM)\/" pour LocalTime
+				{ // "\/Date(#####)\/" for UTC, or "\/Date(####+HHMM)\/" for LocalTime
 					WriteDateTimeMicrosoft(value);
 					break;
 				}
@@ -1140,13 +1188,21 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Write a nullable <c>DateTime</c>, using the configured formatting</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(DateTime? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
-		/// <summary>Ecrit une date dont au format indiqué par le paramétrage</summary>
+		/// <summary>Write a <c>DateTimeOffset</c>, using the configured formatting</summary>
 		public void WriteValue(DateTimeOffset value)
 		{
 			switch(m_dateFormat)
@@ -1171,32 +1227,33 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Write a nullable <c>DateTimeOffset</c>, using the configured formatting</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(DateTimeOffset? value)
 		{
 			if (value.HasValue) WriteValue(value.Value); else WriteNull();
 		}
 
-		/// <summary>Ecrit une date au format Microsoft: "\/Date(....)\/"</summary>
+		/// <summary>Write a date, using Microsoft's custom encoding <c>"\/Date(....)\/"</c></summary>
 		public void WriteDateTimeMicrosoft(DateTime date)
 		{
 			if (date == DateTime.MinValue)
-			{ // pour éviter de s'embrouiller avec les TimeZones...
+			{ // no explicit timezone
 				m_buffer.Write(JsonTokens.MicrosoftDateTimeMinValue);
 			}
 			else if (date == DateTime.MaxValue)
-			{ // idem
+			{ // no explicit timezone
 				m_buffer.Write(JsonTokens.MicrosoftDateTimeMaxValue);
 			}
 			else
-			{ // "\/Date(######)\/" ou "\/Date(######+HHMM)\/"
+			{ // "\/Date(######)\/" or "\/Date(######+HHMM)\/"
 
 				var sb = new StringBuilder(36)
 					.Append(JsonTokens.DateBeginMicrosoft)
 					.Append(CrystalJson.DateToJavaScriptTicks(date).ToString(null, NumberFormatInfo.InvariantInfo));
 				if (date.Kind != DateTimeKind.Utc)
-				{ // précise la timezone pour savoir la reconvertir correctement en LocalTime après
-					// => "/Date(.....+HHMM)/"  ou "/Date(...-HHMM)/"
+				{ // specify the timezone, so that it can correctly be converted to LocalTime afterward
+					// => "/Date(.....+HHMM)/" or "/Date(...-HHMM)/"
 					var offset = TimeZoneInfo.Local.GetUtcOffset(date);
 					WriteDateTimeMicrosoftTimeZone(sb, offset);
 				}
@@ -1205,7 +1262,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Ecrit une date au format Microsoft: "\/Date(....)\/"</summary>
+		/// <summary>Write a date with offset, using Microsoft's custom encoding <c>"\/Date(....)\/"</c></summary>
 		public void WriteDateTimeMicrosoft(DateTimeOffset date)
 		{
 			if (date == DateTimeOffset.MinValue)
@@ -1221,8 +1278,8 @@ namespace Doxense.Serialization.Json
 				var sb = new StringBuilder(36)
 					.Append(JsonTokens.DateBeginMicrosoft)
 					.Append(CrystalJson.DateToJavaScriptTicks(date).ToString(null, NumberFormatInfo.InvariantInfo));
-				// précise la timezone pour savoir la reconvertir correctement en LocalTime après
-				// => "/Date(.....+HHMM)/"  ou "/Date(...-HHMM)/"
+				// specify the timezone, so that it can correctly be converted to LocalTime afterward
+				// => "/Date(.....+HHMM)/" or "/Date(...-HHMM)/"
 				var offset = date.Offset;
 				WriteDateTimeMicrosoftTimeZone(sb, offset);
 				sb.Append(JsonTokens.DateEndMicrosoft);
@@ -1230,24 +1287,24 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Ecrit le "+HHMM"/"-HHMM" correspondant à l'offset UTC d'une TimeZone</summary>
+		/// <summary>Append the "+HHMM"/"-HHMM" suffix that correspond to the UTC offset of a TimeZone</summary>
 		internal static void WriteDateTimeMicrosoftTimeZone(StringBuilder sb, TimeSpan offset)
 		{
-			//note: si GMT-xxx, Hours et Minutes sont négatifs !!!
+			//note: if GMT-xxx, Hours et Minutes are also negative !!!
 			int h = Math.Abs(offset.Hours);
 			int m = Math.Abs(offset.Minutes);
 			sb.Append(offset < TimeSpan.Zero ? '-' : '+').Append((char)('0' + (h / 10))).Append((char)('0' + (h % 10))).Append((char)('0' + (m / 10))).Append((char)('0' + (m % 10)));
 		}
 
-		/// <summary>Ecrit une date au format ISO 8601: "YYYY-MM-DDTHH:mm:ss.ffff+TZ"</summary>
+		/// <summary>Write a date using the ISO 8601 format: <c>"YYYY-MM-DDTHH:mm:ss.ffff+TZ"</c></summary>
 		public void WriteDateTimeIso8601(DateTime date)
 		{
 			if (date == DateTime.MinValue)
-			{ // MinValue est sérialisée comme une chaine vide
+			{ // MinValue is serialized as the emtpy string
 				m_buffer.Write(JsonTokens.EmptyString);
 			}
 			else if (date == DateTime.MaxValue)
-			{ // MaxValue ne doit pas mentioner la TZ
+			{ // MaxValue should not specify a timezone
 				m_buffer.Write(JsonTokens.Iso8601DateTimeMaxValue);
 			}
 			else
@@ -1258,7 +1315,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Ecrit une date au format ISO 8601: "YYYY-MM-DDTHH:mm:ss.ffff+TZ"</summary>
+		/// <summary>Write a date with offset using the ISO 8601 format: <c>"YYYY-MM-DDTHH:mm:ss.ffff+TZ"</c></summary>
 		public void WriteDateTimeIso8601(DateTimeOffset date)
 		{
 			if (date == DateTimeOffset.MinValue)
@@ -1277,16 +1334,16 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Ecrit une date au format JavaScript: new Date(123456789)</summary>
+		/// <summary>Write a date, using the Javascript format: <c>new Date(123456789)</c></summary>
 		public void WriteDateTimeJavaScript(DateTime date)
 		{
 			var buffer = m_buffer;
 			if (date == DateTime.MinValue)
-			{ // pour éviter de s'embrouiller avec les TimeZones...
+			{ // no timezone
 				buffer.Write(JsonTokens.JavaScriptDateTimeMinValue);
 			}
 			else if (date == DateTime.MaxValue)
-			{ // idem
+			{ // no timezone
 				buffer.Write(JsonTokens.JavaScriptDateTimeMaxValue);
 			}
 			else
@@ -1297,16 +1354,16 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Ecrit une date au format JavaScript: new Date(123456789)</summary>
+		/// <summary>Write a date with offset, using the Javascript format: <c>new Date(123456789)</c></summary>
 		public void WriteDateTimeJavaScript(DateTimeOffset date)
 		{
 			var buffer = m_buffer;
 			if (date == DateTimeOffset.MinValue)
-			{ // pour éviter de s'embrouiller avec les TimeZones...
+			{ // no timezone
 				buffer.Write(JsonTokens.JavaScriptDateTimeMinValue);
 			}
 			else if (date == DateTimeOffset.MaxValue)
-			{ // idem
+			{ // no timezone
 				buffer.Write(JsonTokens.JavaScriptDateTimeMaxValue);
 			}
 			else
@@ -1320,15 +1377,26 @@ namespace Doxense.Serialization.Json
 		public void WriteValue(TimeSpan value)
 		{
 			if (value == TimeSpan.Zero)
-				m_buffer.Write(JsonTokens.Zero); //.DecimalZero);
+			{
+				m_buffer.Write(JsonTokens.Zero);
+			}
 			else
+			{
 				WriteValue(value.TotalSeconds);
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(TimeSpan? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(Guid value)
@@ -1355,7 +1423,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Guid? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(Uuid128 value)
@@ -1382,7 +1457,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Uuid128? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(Uuid96 value)
@@ -1409,7 +1491,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Uuid96? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(Uuid80 value)
@@ -1436,7 +1525,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Uuid80? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(Uuid64 value)
@@ -1470,7 +1566,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == NodaTime.Duration.Zero)
 			{
-				m_buffer.Write(JsonTokens.Zero); //.DecimalZero);
+				m_buffer.Write(JsonTokens.Zero);
 				return;
 			}
 
@@ -1481,7 +1577,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			// on doit décomposer (days, nanosOfDays) en (seconds, nanosOfSeconds)
+			// we must decompose (days, nanosOfDays) into (seconds, nanosOfSeconds)
 			int days = value.Days;
 			long nanosOfDay = value.NanosecondOfDay;
 			long secsOfDay = nanosOfDay / 1_000_000_000;
@@ -1500,16 +1596,15 @@ namespace Doxense.Serialization.Json
 		public void WriteValue(NodaTime.Instant date)
 		{
 			if (date == NodaTime.Instant.MinValue)
-			{ // MinValue est sérialisée comme une chaine vide
+			{ // MinValue is serialized as the empty string
 				m_buffer.Write(JsonTokens.EmptyString);
 			}
 			else if (date == NodaTime.Instant.MaxValue)
-			{ // MaxValue ne doit pas mentioner la TZ
+			{ // MaxValue does not have any timezone
 				m_buffer.Write(JsonTokens.Iso8601DateTimeMaxValue);
 			}
 			else
 			{ // "2013-07-26T16:45:20.1234567Z"
-				//TODO: optimisation pour pas avoir a encoder la string...
 				WriteValue(CrystalJsonNodaPatterns.Instants.Format(date));
 			}
 		}
@@ -1517,44 +1612,69 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(NodaTime.Instant? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(NodaTime.LocalDateTime date)
 		{
-			// "1988-04-19T00:35:56" ou "1988-04-19T00:35:56.342" (pas de 'Z' ou de timezone)
-			//TODO: optimisation pour pas avoir a encoder la string...
+			// "1988-04-19T00:35:56" or "1988-04-19T00:35:56.342" (no 'Z' suffix or timezone)
 			WriteValue(CrystalJsonNodaPatterns.LocalDateTimes.Format(date));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(NodaTime.LocalDateTime? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(NodaTime.ZonedDateTime date)
 		{
-			//TODO: optimisation pour pas avoir a encoder la string...
 			WriteValue(CrystalJsonNodaPatterns.ZonedDateTimes.Format(date));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(NodaTime.ZonedDateTime? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(NodaTime.OffsetDateTime date)
 		{
-			//TODO: optimisation pour pas avoir a encoder la string...
 			WriteValue(CrystalJsonNodaPatterns.OffsetDateTimes.Format(date));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(NodaTime.OffsetDateTime? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(NodaTime.Offset offset)
@@ -1566,7 +1686,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(NodaTime.Offset? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(NodaTime.LocalDate date)
@@ -1578,7 +1705,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(NodaTime.LocalDate? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(NodaTime.LocalTime time)
@@ -1590,7 +1724,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(NodaTime.LocalTime? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(NodaTime.DateTimeZone? zone)
@@ -1673,7 +1814,7 @@ namespace Doxense.Serialization.Json
 			else
 			{ // note: Base64 without any <'> or <">, so no need to escape it!
 				buffer.Write('"');
-				buffer.Write(Convert.ToBase64String(bytes, Base64FormattingOptions.None));
+				buffer.Write(Convert.ToBase64String(bytes));
 				buffer.Write('"');
 			}
 		}
@@ -1683,19 +1824,12 @@ namespace Doxense.Serialization.Json
 			var buffer = m_buffer;
 			if (bytes.Count == 0)
 			{
-				if (bytes.Array == null!)
-				{
-					buffer.Write(JsonTokens.Null);
-				}
-				else
-				{
-					buffer.Write(JsonTokens.EmptyString);
-				}
+				buffer.Write(bytes.Array == null! ? JsonTokens.Null : JsonTokens.EmptyString);
 			}
 			else
 			{ // note: Base64 ne contient ni ' ni " donc pas besoin d'escaper !
 				buffer.Write('"');
-				//TODO: Si count est très grand, on pourrait switcher sur ToBase64CharArray et buffer ?
+				//TODO: if count is large, we could switch to ToBase64CharArray + a buffer ?
 				buffer.Write(Convert.ToBase64String(bytes.Array, bytes.Offset, bytes.Count));
 				buffer.Write('"');
 			}
@@ -2137,7 +2271,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteField(string name, NodaTime.DateTimeZone value)
+		public void WriteField(string name, NodaTime.DateTimeZone? value)
 		{
 			if (value != null || !m_discardNulls)
 			{
@@ -2158,7 +2292,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteField(string name, object value, Type declaredType)
+		public void WriteField(string name, object? value, Type declaredType)
 		{
 			if (value != null || !m_discardNulls)
 			{
@@ -2200,7 +2334,7 @@ namespace Doxense.Serialization.Json
 			CrystalJsonVisitor.VisitValue<T>(value, this);
 		}
 
-		public void VisitArray<T>([InstantHandle] IEnumerable<T> array, Action<CrystalJsonWriter, T> action)
+		public void VisitArray<T>([InstantHandle] IEnumerable<T>? array, Action<CrystalJsonWriter, T> action)
 		{
 			Contract.NotNull(action);
 			if (array == null)
@@ -2260,7 +2394,7 @@ namespace Doxense.Serialization.Json
 			EndArray(state);
 		}
 
-		public void WriteArray<TKey, TValue>(ICollection<KeyValuePair<TKey, TValue>> source)
+		public void WriteArray<TKey, TValue>(ICollection<KeyValuePair<TKey, TValue>>? source)
 		{
 			if (source == null)
 			{
@@ -2289,22 +2423,22 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteDictionary(IDictionary<string, object> map)
+		public void WriteDictionary(IDictionary<string, object>? map)
 		{
 			CrystalJsonVisitor.VisitGenericObjectDictionary(map, this);
 		}
 
-		public void WriteDictionary(IDictionary<string, string> map)
+		public void WriteDictionary(IDictionary<string, string>? map)
 		{
 			CrystalJsonVisitor.VisitStringDictionary(map, this);
 		}
 
-		public void WriteDictionary<TValue>(Dictionary<string, TValue> map)
+		public void WriteDictionary<TValue>(Dictionary<string, TValue>? map)
 		{
 			CrystalJsonVisitor.VisitGenericDictionary<TValue>(map, this);
 		}
 
-		public void VisitXmlNode(System.Xml.XmlNode node)
+		public void VisitXmlNode(System.Xml.XmlNode? node)
 		{
 			CrystalJsonVisitor.VisitXmlNode(node, this);
 		}

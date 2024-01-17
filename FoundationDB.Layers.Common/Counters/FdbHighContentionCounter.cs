@@ -32,17 +32,20 @@ namespace FoundationDB.Layers.Counters
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Represents an integer value which can be incremented without conflict.
 	/// Uses a sharded representation (which scales with contention) along with background coalescing...
 	/// </summary>
 	/// <remarks>This is obsoleted for most practical purposes by the addition of atomic to FoundationDB v2.x, which do the same thing more efficiently.</remarks>
+	[PublicAPI]
 	public class FdbHighContentionCounter
 	{
-		// from https://github.com/FoundationDB/python-layers/blob/master/lib/counter.py
+		// based on the lost implementation that used to be at https://github.com/FoundationDB/python-layers/blob/master/lib/counter.py
+		// => this version as been "lost to time", and only this c# port remains (archive.org does not have a copy)
 
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
-		private readonly Random Rng = new Random();
+		private readonly Random Rng = new();
 
 		/// <summary>Flag use to know if a background coalescing is already running</summary>
 		private int m_coalesceRunning;

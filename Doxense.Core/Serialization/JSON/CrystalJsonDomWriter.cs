@@ -480,7 +480,9 @@ namespace Doxense.Serialization.Json
 
 			if (type.IsEnum)
 			{ // on convertit les énumérations en keyword
+#pragma warning disable CS0618 // Type or member is obsolete
 				result = EnumStringTable.GetName(type, (Enum) value);
+#pragma warning restore CS0618 // Type or member is obsolete
 				//BUGBUG: vérifier m_enumAsString et m_enumCamelCased
 				return true;
 			}

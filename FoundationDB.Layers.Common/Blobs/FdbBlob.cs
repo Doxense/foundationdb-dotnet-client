@@ -32,9 +32,11 @@ namespace FoundationDB.Layers.Blobs
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
 	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Location) + "}")]
+	[PublicAPI]
 	public class FdbBlob : IFdbLayer<FdbBlob.State>
 	{
 		private const long CHUNK_LARGE = 10000; // all chunks will be not greater than this size
@@ -103,7 +105,7 @@ namespace FoundationDB.Layers.Blobs
 
 			private long DataKeyOffset(Slice key)
 			{
-				long offset = Int64.Parse(this.Subspace.DecodeLast<string>(key), CultureInfo.InvariantCulture);
+				long offset = long.Parse(this.Subspace.DecodeLast<string>(key)!, CultureInfo.InvariantCulture);
 				if (offset < 0) throw new InvalidOperationException("Chunk offset value cannot be less than zero");
 				return offset;
 			}
@@ -111,11 +113,6 @@ namespace FoundationDB.Layers.Blobs
 			private Slice SizeKey()
 			{
 				return this.Subspace.Encode(SizeSuffix);
-			}
-
-			private Slice AttributeKey(string name)
-			{
-				return this.Subspace.Encode(AttributesSuffix, name);
 			}
 
 			#region Internal Helpers...

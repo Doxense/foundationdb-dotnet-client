@@ -44,7 +44,9 @@ namespace FoundationDB.Client.Native
 		private readonly DatabaseHandle m_handle;
 
 		/// <summary>Optional Cluster handle (only for API 600 or below)</summary>
+#pragma warning disable CS0618 // Type or member is obsolete
 		private readonly ClusterHandle? m_clusterHandle;
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		/// <summary>Path to the cluster file</summary>
 		private readonly string? m_clusterFile;
@@ -53,7 +55,19 @@ namespace FoundationDB.Client.Native
 		private readonly StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeDatabase(DatabaseHandle handle, string? clusterFile, ClusterHandle? cluster = null)
+		public FdbNativeDatabase(DatabaseHandle handle, string? clusterFile)
+		{
+			Contract.NotNull(handle);
+
+			m_handle = handle;
+			m_clusterFile = clusterFile;
+#if CAPTURE_STACKTRACES
+			m_stackTrace = new StackTrace();
+#endif
+		}
+
+		[Obsolete("Deprecated since API level 610")]
+		internal FdbNativeDatabase(DatabaseHandle handle, string? clusterFile, ClusterHandle cluster)
 		{
 			Contract.NotNull(handle);
 

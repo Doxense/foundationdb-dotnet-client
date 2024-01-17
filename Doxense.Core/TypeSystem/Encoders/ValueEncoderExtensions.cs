@@ -262,7 +262,7 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="TValue"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[LinqTunnel]
-		public static IEnumerable<TValue> SelectValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TStorage> values)
+		public static IEnumerable<TValue?> SelectValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TStorage> values)
 		{
 			Contract.NotNull(encoder);
 			Contract.NotNull(values);

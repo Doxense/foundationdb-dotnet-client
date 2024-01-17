@@ -49,10 +49,11 @@ namespace FoundationDB.Client
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
 		[Pure]
 		[Obsolete("Use BeginReadOnlyTransaction() instead")]
-		public static async ValueTask<IFdbReadOnlyTransaction> BeginReadOnlyTransactionAsync(this IFdbDatabase db, CancellationToken ct)
+		public static ValueTask<IFdbReadOnlyTransaction> BeginReadOnlyTransactionAsync(this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db);
-			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
+			if (ct.IsCancellationRequested) return ValueTask.FromCanceled<IFdbReadOnlyTransaction>(ct);
+			return ValueTask.FromResult<IFdbReadOnlyTransaction>(db.BeginTransaction(FdbTransactionMode.ReadOnly, ct));
 		}
 
 		/// <summary>Start a new read-only transaction on this database</summary>
@@ -64,7 +65,7 @@ namespace FoundationDB.Client
 		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db);
-			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
+			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct);
 		}
 
 		/// <summary>Start a new transaction on this database</summary>

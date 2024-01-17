@@ -30,7 +30,7 @@ namespace Doxense.Serialization.Json
 	using System.ComponentModel;
 	using System.Runtime.Serialization;
 
-	/// <summary>Erreur de syntaxe lors du parsing d'un document JSON</summary>
+	/// <summary>Syntax error that occurred while parsing a JSON document</summary>
 	[Serializable]
 	public class JsonSyntaxException : FormatException
 	{

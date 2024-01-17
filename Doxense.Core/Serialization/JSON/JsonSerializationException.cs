@@ -27,9 +27,10 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.ComponentModel;
 	using System.Runtime.Serialization;
 
-	/// <summary>Erreur survenue lors de la sérialisation d'un objet en document JSON</summary>
+	/// <summary>Error that occurred while serializing a value or object into a JSON document</summary>
 	[Serializable]
 	public class JsonSerializationException : InvalidOperationException
 	{
@@ -45,6 +46,10 @@ namespace Doxense.Serialization.Json
 			: base(message, innerException)
 		{ }
 
+#if NET8_0_OR_GREATER
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
+#endif
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		protected JsonSerializationException(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{ }

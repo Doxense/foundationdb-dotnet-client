@@ -32,11 +32,13 @@ namespace FoundationDB.Layers.Indexing
 	using System.Threading.Tasks;
 	using Doxense.Linq;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
 	[DebuggerDisplay("Location={Location}, IndexNullValues={IndexNullValues})")]
+	[PublicAPI]
 	public class FdbIndex<TId, TValue> : IFdbLayer<FdbIndex<TId, TValue>.State>
 	{
 
@@ -120,7 +122,7 @@ namespace FoundationDB.Layers.Indexing
 
 				return trans
 					.GetRange(KeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
-					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2);
+					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value greater than (or equal) a specified <paramref name="value"/></summary>
@@ -136,7 +138,7 @@ namespace FoundationDB.Layers.Indexing
 
 				return trans
 					.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2);
+					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal) a specified <paramref name="value"/></summary>
@@ -152,7 +154,7 @@ namespace FoundationDB.Layers.Indexing
 
 				return trans
 					.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2);
+					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
 			}
 
 		}

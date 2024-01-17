@@ -87,7 +87,7 @@ namespace Doxense.Networking.Http
 			{
 				return ActivatorUtilities.CreateInstance<TProtocol>(this.Services, client);
 			}
-			catch (Exception e)
+			catch (Exception)
 			{
 #if DEBUG
 				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();

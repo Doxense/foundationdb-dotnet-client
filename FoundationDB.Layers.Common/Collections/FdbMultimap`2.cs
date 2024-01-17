@@ -38,6 +38,7 @@ namespace FoundationDB.Layers.Collections
 	/// <typeparam name="TKey">Type of the keys of the map</typeparam>
 	/// <typeparam name="TValue">Type of the values of the map</typeparam>
 	[DebuggerDisplay("Location={Location}, AllowNegativeValues={AllowNegativeValues}")]
+	[PublicAPI]
 	public class FdbMultiMap<TKey, TValue> : IFdbLayer<FdbMultiMap<TKey, TValue>.State>
 	{
 		// Inspired by https://apple.github.io/foundationdb/multimaps.html
@@ -72,6 +73,7 @@ namespace FoundationDB.Layers.Collections
 
 		#endregion
 
+		[PublicAPI]
 		public sealed class State
 		{
 
@@ -143,7 +145,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns></returns>
-			public IAsyncEnumerable<TValue> Get(IFdbReadOnlyTransaction trans, TKey key)
+			public IAsyncEnumerable<TValue?> Get(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -167,7 +169,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns>List of values for this index, or an empty list if the index does not exist</returns>
-			public Task<List<TValue>> GetAsync(IFdbReadOnlyTransaction trans, TKey key)
+			public Task<List<TValue?>> GetAsync(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				return Get(trans, key).ToListAsync();
 			}
@@ -176,7 +178,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns></returns>
-			public IAsyncEnumerable<(TValue Value, long Count)> GetCounts(IFdbReadOnlyTransaction trans, TKey key)
+			public IAsyncEnumerable<(TValue? Value, long Count)> GetCounts(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				var range = KeyRange.StartsWith(this.Subspace.EncodePartial(key));
 
@@ -189,20 +191,7 @@ namespace FoundationDB.Layers.Collections
 					: query.Where(x => x.Count > 0);
 			}
 
-			/// <summary>Returns a dictionary with of the counts of each value for a specific key</summary>
-			/// <param name="trans"></param>
-			/// <param name="key"></param>
-			/// <param name="comparer"></param>
-			/// <returns></returns>
-			public Task<Dictionary<TValue, long>> GetCountsAsync(IFdbReadOnlyTransaction trans, TKey key, IEqualityComparer<TValue>? comparer = null)
-			{
-				return GetCounts(trans, key).ToDictionaryAsync(x => x.Value, x => x.Count, comparer);
-			}
-
 			/// <summary>Remove all the values for a specific key</summary>
-			/// <param name="trans"></param>
-			/// <param name="key"></param>
-			/// <returns></returns>
 			public void Remove(IFdbTransaction trans, TKey key)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -211,10 +200,6 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Remove a value for a specific key</summary>
-			/// <param name="trans"></param>
-			/// <param name="key"></param>
-			/// <param name="value"></param>
-			/// <returns></returns>
 			public void Remove(IFdbTransaction trans, TKey key, TValue value)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -232,6 +217,7 @@ namespace FoundationDB.Layers.Collections
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by MultiMap Layer was not found.");
 			return new State(subspace, this.AllowNegativeValues);
 		}
+
 	}
 
 }

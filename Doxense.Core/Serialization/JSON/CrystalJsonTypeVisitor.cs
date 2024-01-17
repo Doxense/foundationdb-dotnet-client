@@ -28,11 +28,11 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 
-	/// <summary>Delegate appelé pour sérialiser une objet en JSON</summary>
-	/// <param name="value">Valeur (managée) à sérialiser</param>
-	/// <param name="declaringType">Type du membre parent (dans le cas d'une membre d'un objet, d'un item d'une collection, ...)</param>
-	/// <param name="runtimeType">Type réel de l'objet au runtime (ou null lors de la compilation d'une définition de type</param>
-	/// <param name="writer">Contexte de la sérialisation</param>
+	/// <summary>Delegate that will serialize a value into JSON</summary>
+	/// <param name="value">Value (boxed) to serialize</param>
+	/// <param name="declaringType">Type of the field or property, as declared in the parent type Type or collection, or "typeof(object)" if unknown or top-level</param>
+	/// <param name="runtimeType">Actual runtime type of this instance (or null when performing the initial mapping of the parent type)</param>
+	/// <param name="writer">Serialization context</param>
 	public delegate void CrystalJsonTypeVisitor(object? value, Type declaringType, Type? runtimeType, CrystalJsonWriter writer);
 
 }

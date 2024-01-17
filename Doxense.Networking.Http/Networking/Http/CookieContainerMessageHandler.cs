@@ -46,7 +46,7 @@ namespace Doxense.Networking.Http
 
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
-			var value = this.Cookies.GetCookieHeader(request.RequestUri);
+			var value = this.Cookies.GetCookieHeader(request.RequestUri!);
 			if (!string.IsNullOrWhiteSpace(value))
 			{
 				request.Headers.Add(HeaderNames.Cookie, value);
@@ -58,16 +58,18 @@ namespace Doxense.Networking.Http
 			{
 				foreach (SetCookieHeaderValue cookieHeader in SetCookieHeaderValue.ParseList(values.ToList()))
 				{
-					Cookie cookie = new Cookie(cookieHeader.Name.Value, cookieHeader.Value.Value, cookieHeader.Path.Value);
+					Cookie cookie = new Cookie(cookieHeader.Name.Value!, cookieHeader.Value.Value, cookieHeader.Path.Value);
 					if (cookieHeader.Expires.HasValue)
 					{
 						cookie.Expires = cookieHeader.Expires.Value.DateTime;
 					}
-					this.Cookies.Add(request.RequestUri, cookie);
+					this.Cookies.Add(request.RequestUri!, cookie);
 				}
 			}
 
 			return res;
 		}
+
 	}
+
 }

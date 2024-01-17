@@ -27,12 +27,16 @@
 namespace FoundationDB.Layers.Counters
 {
 	using System;
+	using System.Diagnostics;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Providers a dictionary of 64-bit counters that can be updated atomically</summary>
 	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
 	public sealed class FdbCounterMap<TKey>
 	{
 

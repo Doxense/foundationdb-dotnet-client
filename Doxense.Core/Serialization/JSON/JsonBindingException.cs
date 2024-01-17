@@ -30,7 +30,7 @@ namespace Doxense.Serialization.Json
 	using System.ComponentModel;
 	using System.Runtime.Serialization;
 
-	/// <summary>Erreur survenue lors de la désérialisation d'une valeur JSON en objet CLR</summary>
+	/// <summary>Error that occurred while deserializing a JSON value back into a CLR type</summary>
 	[Serializable]
 	public class JsonBindingException : InvalidOperationException
 	{

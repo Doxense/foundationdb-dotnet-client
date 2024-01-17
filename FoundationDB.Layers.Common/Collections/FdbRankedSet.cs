@@ -27,23 +27,28 @@
 namespace FoundationDB.Layers.Collections
 {
 	using System;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>
 	/// Provides a high-contention Queue class
 	/// </summary>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
 	public class FdbRankedSet : IFdbLayer<FdbRankedSet.State>
 	{
-		// from https://github.com/FoundationDB/python-layers/blob/master/lib/rankedset.py
+		// based on the lost implementation that used to be at https://github.com/FoundationDB/python-layers/blob/master/lib/rankedset.py
+		// => this version as been "lost to time", and only this c# port remains (archive.org does not have a copy)
 
 		private const int MAX_LEVELS = 6;
 		private const int LEVEL_FAN_POW = 4; // 2^X per level
 
-		public FdbRankedSet(ISubspaceLocation location)
+		public FdbRankedSet(ISubspaceLocation? location)
 			: this(location?.AsDynamic())
 		{ }
 
@@ -57,9 +62,6 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public DynamicKeySubspaceLocation Location { get; }
 
-		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
-		private readonly Random Rng = new Random();
-
 		/// <summary>Make sure that the set is initialized</summary>
 		public async Task OpenAsync(IFdbTransaction trans)
 		{
@@ -71,6 +73,7 @@ namespace FoundationDB.Layers.Collections
 			await state.SetupLevelsAsync(trans);
 		}
 
+		[PublicAPI]
 		public sealed class State
 		{
 

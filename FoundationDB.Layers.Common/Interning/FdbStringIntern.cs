@@ -44,7 +44,8 @@ namespace FoundationDB.Layers.Interning
 		//BUGBUGBUG: the current implementation has a bug with the cache, when a transaction fails to commit!
 		//TODO: rewrite this to use typed subspaces !
 
-		// Based on the stringintern.py implementation at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
+		// Based on the lost stringintern.py implementation previously at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
+		// => this version as been "lost to time", and only this c# port remains (archive.org does not have a copy)
 
 		private const int CacheLimitBytes = 10 * 1000 * 1000;
 
@@ -55,7 +56,7 @@ namespace FoundationDB.Layers.Interning
 		private sealed class Uid : IEquatable<Uid>
 		{
 			public readonly Slice Slice;
-			public readonly int HashCode;
+			private readonly int HashCode;
 
 			public Uid(Slice slice)
 			{
@@ -63,14 +64,14 @@ namespace FoundationDB.Layers.Interning
 				this.HashCode = slice.GetHashCode();
 			}
 
-			public bool Equals(Uid other)
+			public bool Equals(Uid? other)
 			{
 				return !object.ReferenceEquals(other, null) && other.HashCode == this.HashCode && other.Slice.Equals(this.Slice);
 			}
 
 			public override bool Equals(object? obj)
 			{
-				return obj is Uid && Equals((Uid) obj);
+				return obj is Uid uid && Equals(uid);
 			}
 
 			public override int GetHashCode()
@@ -79,14 +80,14 @@ namespace FoundationDB.Layers.Interning
 			}
 		}
 
-		private readonly List<Uid> m_uidsInCache = new List<Uid>();
-		private readonly Dictionary<Uid, string> m_uidStringCache = new Dictionary<Uid, string>(EqualityComparer<Uid>.Default);
-		private readonly Dictionary<string, Uid> m_stringUidCache = new Dictionary<string, Uid>(StringComparer.Ordinal);
+		private readonly List<Uid> m_uidsInCache = new();
+		private readonly Dictionary<Uid, string> m_uidStringCache = new(EqualityComparer<Uid>.Default);
+		private readonly Dictionary<string, Uid> m_stringUidCache = new(StringComparer.Ordinal);
 		private int m_bytesCached;
 
-		private readonly Random m_rnd = new Random();
+		private readonly Random m_rnd = new();
 		private readonly RandomNumberGenerator m_prng = RandomNumberGenerator.Create();
-		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
+		private readonly ReaderWriterLockSlim m_lock = new();
 
 		public FdbStringIntern(ISubspaceLocation location)
 		{
@@ -147,11 +148,15 @@ namespace FoundationDB.Layers.Interning
 					}
 
 					if (this.Layer.m_uidStringCache.ContainsKey(new Uid(slice)))
+					{
 						continue;
+					}
 
 					var candidate = await trans.GetAsync(UidKey(slice)).ConfigureAwait(false);
 					if (candidate.IsNull)
+					{
 						return slice;
+					}
 
 					++tries;
 				}
@@ -180,7 +185,7 @@ namespace FoundationDB.Layers.Interning
 			Debug.WriteLine("Want to intern: " + value);
 #endif
 
-				if (this.Layer.m_stringUidCache.TryGetValue(value, out Uid uidKey))
+				if (this.Layer.m_stringUidCache.TryGetValue(value, out var uidKey))
 				{
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> found in cache! " + uidKey);
@@ -240,7 +245,7 @@ namespace FoundationDB.Layers.Interning
 
 				if (uid.IsEmpty) return Task.FromResult(string.Empty);
 
-				if (this.Layer.m_uidStringCache.TryGetValue(new Uid(uid), out string value))
+				if (this.Layer.m_uidStringCache.TryGetValue(new Uid(uid), out var value))
 				{
 					return Task.FromResult(value);
 				}
@@ -283,11 +288,11 @@ namespace FoundationDB.Layers.Interning
 
 				// remove from uids_in_cache
 				var uidKey = m_uidsInCache[i];
-				m_uidsInCache[i] = m_uidsInCache[m_uidsInCache.Count - 1];
+				m_uidsInCache[i] = m_uidsInCache[^1];
 				m_uidsInCache.RemoveAt(m_uidsInCache.Count - 1);
 
 				// remove from caches, account for bytes
-				if (!m_uidStringCache.TryGetValue(uidKey, out string value) || value == null)
+				if (!m_uidStringCache.TryGetValue(uidKey, out var value) || value == null!)
 				{
 					throw new InvalidOperationException("Error in cache eviction: string not found");
 				}
