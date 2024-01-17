@@ -36,24 +36,24 @@ namespace Doxense.Diagnostics
 	using Doxense.IO.Hashing;
 	using JetBrains.Annotations;
 
-	/// <summary>Helper class pour dumper des blobs binaires en hexa</summary>
+	/// <summary>Helper class for formatting binary blobs into hexadecimal for logging or troubleshooting</summary>
 	public static class HexaDump
 	{
-		/// <summary>Options de formatage du dump hexadécimal</summary>
+		/// <summary>Formatting options</summary>
 		[Flags]
 		public enum Options
 		{
-			/// <summary>Affichage standard</summary>
+			/// <summary>Standard display</summary>
 			Default = 0,
-			/// <summary>N'affiche pas la preview ASCII</summary>
+			/// <summary>Do not display the ASCII preview</summary>
 			NoPreview = 1,
-			/// <summary>N'ajoutes pas les headers</summary>
+			/// <summary>Do not add any headers</summary>
 			NoHeader = 2,
-			/// <summary>N'ajoutes pas les footers</summary>
+			/// <summary>Do not add any footers</summary>
 			NoFooter = 4,
-			/// <summary>Affiche les informations de distribution des octets</summary>
+			/// <summary>Display the byte distribution graph</summary>
 			ShowBytesDistribution = 8,
-			/// <summary>Le contenu est probablement du texte</summary>
+			/// <summary>The content is most probably text</summary>
 			Text = 16,
 		}
 
@@ -116,7 +116,7 @@ namespace Doxense.Diagnostics
 			if (bytes.Length < 16) sb.Append(' ', (16 - bytes.Length));
 		}
 
-		/// <summary>Dump un tableau de bytes en hexa décimal, formaté avec 16 octets par lignes</summary>
+		/// <summary>Dump a byte array into hexadecimal, formatted as 16 bytes per lines</summary>
 		public static string Format(byte[] bytes, Options options = Options.Default, int indent = 0)
 		{
 			Contract.NotNull(bytes);
@@ -124,19 +124,19 @@ namespace Doxense.Diagnostics
 			return Format(bytes.AsSlice(), options, indent);
 		}
 
-		/// <summary>Dump une séquence de bytes en hexa décimal, formaté avec 16 octets par lignes</summary>
+		/// <summary>Dump a byte slice into hexadecimal, formatted as 16 bytes per lines</summary>
 		public static string Format(Slice bytes, Options options = Options.Default, int indent = 0)
 		{
 			return Format(bytes.Span, options, indent);
 		}
 
-		/// <summary>Dump une séquence de bytes en hexa décimal, formaté avec 16 octets par lignes</summary>
+		/// <summary>Dump a byte span into hexadecimal, formatted as 16 bytes per lines</summary>
 		public static string Format(ReadOnlySpan<byte> bytes, Options options = Options.Default, int indent = 0)
 		{
 			var sb = new StringBuilder();
 			bool preview = (options & Options.NoPreview) == 0;
 
-			string prefix = indent == 0 ? String.Empty : new string('\t', indent); // tabs ftw
+			string prefix = indent == 0 ? string.Empty : new string('\t', indent); // tabs ftw
 
 			if ((options & Options.NoHeader) == 0)
 			{
@@ -192,7 +192,7 @@ namespace Doxense.Diagnostics
 			return sb.ToString();
 		}
 
-		/// <summary>Dump un comparatif de deux tableaux de bytes en hexa décimal, formaté en side-by-side avec 16 octets par lignes</summary>
+		/// <summary>Dump two byte arrays, side-by-side, formatted as 16 bytes per line</summary>
 		public static string Versus(byte[] left, byte[] right, Options options = Options.Default)
 		{
 			Contract.NotNull(left);
@@ -200,13 +200,13 @@ namespace Doxense.Diagnostics
 			return Versus(left.AsSpan(), right.AsSpan(), options);
 		}
 
-		/// <summary>Dump un comparatif de deux séquences de bytes en hexa décimal, formaté en side-by-side avec 16 octets par lignes</summary>
+		/// <summary>Dump two byte slices, side-by-side, formatted as 16 bytes per line</summary>
 		public static string Versus(Slice left, Slice right, Options options = Options.Default)
 		{
 			return Versus(left.OrEmpty().Span, right.OrEmpty().Span);
 		}
 
-		/// <summary>Dump un comparatif de deux séquences de bytes en hexa décimal, formaté en side-by-side avec 16 octets par lignes</summary>
+		/// <summary>Dump two byte spans, side-by-side, formatted as 16 bytes per line</summary>
 		public static string Versus(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right, Options options = Options.Default)
 		{
 			var sb = new StringBuilder();
@@ -298,48 +298,39 @@ namespace Doxense.Diagnostics
 			return sb.ToString();
 		}
 
-		/// <summary>Génère une string ASCII avec la distribution des octets (0..255) dans un segment de données binaires</summary>
-		/// <param name="bytes">Tableau contenant des octets à mapper</param>
-		/// <param name="shrink">Shrink factor entre 0 et 8. La valeur des octets est divisées par 2^<paramref name="shrink"/> pour obtenir l'index du compteur correspondant</param>
-		/// <returns>Chaîne ASCII (de taille 256 >> <paramref name="shrink"/>) avec la répartition des octets de <paramref name="bytes"/></returns>
+		/// <summary>Generate a string that represents the byte distribution (0..255) of a buffer</summary>
+		/// <param name="bytes">Buffer to map</param>
+		/// <param name="shrink">Shrink factor between 0 and 8. The byte value is divided by 2^<paramref name="shrink"/> to get the index of the corresponding counter</param>
+		/// <returns>ASCII string (of size 256 >> <paramref name="shrink"/>) that shows the distribution of <paramref name="bytes"/></returns>
 		public static string ComputeBytesDistribution(byte[] bytes, int shrink = 0)
 		{
 			Contract.NotNull(bytes);
 			return ComputeBytesDistribution(bytes.AsSpan(), shrink);
 		}
 
-		/// <summary>Génère une string ASCII avec la distribution des octets (0..255) dans un segment de données binaires</summary>
-		/// <param name="bytes">Tableau contenant des octets à mapper</param>
-		/// <param name="shrink">Shrink factor entre 0 et 8. La valeur des octets est divisées par 2^<paramref name="shrink"/> pour obtenir l'index du compteur correspondant</param>
-		/// <returns>Chaîne ASCII (de taille 256 >> <paramref name="shrink"/>) avec la répartition des octets de <paramref name="bytes"/></returns>
+		/// <summary>Generate a string that represents the byte distribution (0..255) of a buffer</summary>
+		/// <param name="bytes">Buffer to map</param>
+		/// <param name="shrink">Shrink factor between 0 and 8. The byte value is divided by 2^<paramref name="shrink"/> to get the index of the corresponding counter</param>
+		/// <returns>ASCII string (of size 256 >> <paramref name="shrink"/>) that shows the distribution of <paramref name="bytes"/></returns>
 		public static string ComputeBytesDistribution(Slice bytes, int shrink = 0)
 		{
 			return ComputeBytesDistribution(bytes.Span, shrink);
 		}
 
-		/// <summary>Génère une string ASCII avec la distribution des octets (0..255) dans un segment de données binaires</summary>
-		/// <param name="bytes">Tableau contenant des octets à mapper</param>
-		/// <param name="shrink">Shrink factor entre 0 et 8. La valeur des octets est divisées par 2^<paramref name="shrink"/> pour obtenir l'index du compteur correspondant</param>
-		/// <returns>Chaîne ASCII (de taille 256 >> <paramref name="shrink"/>) avec la répartition des octets de <paramref name="bytes"/></returns>
+		/// <summary>Generate a string that represents the byte distribution (0..255) of a buffer</summary>
+		/// <param name="bytes">Buffer to map</param>
+		/// <param name="shrink">Shrink factor between 0 and 8. The byte value is divided by 2^<paramref name="shrink"/> to get the index of the corresponding counter</param>
+		/// <returns>ASCII string (of size 256 >> <paramref name="shrink"/>) that shows the distribution of <paramref name="bytes"/></returns>
 		public static string ComputeBytesDistribution(ReadOnlySpan<byte> bytes, int shrink = 0)
 
 		{
 			if (shrink < 0 || shrink > 8) throw new ArgumentOutOfRangeException(nameof(shrink));
 
-			/* trouvé sur le net: Jorn Barger's light value scale
-					             Darker    .'`,^:";~    Lighter
-					   bright    /|\      -_+<>i!lI?     /|\      dark
-					  letters     |       /\|()1{}[]      |     letters
-					     on               rcvunxzjft               on
-					    dark      |       LCJUYXZO0Q      |      bright
-					 background  \|/      oahkbdpqwm     \|/   background
-					            Lighter   *WMB8&%$#@   Darker
-			*/
 #if DEBUG_ASCII_PALETTE
 			var brush = "0123456789ABCDE".ToCharArray();
 #else
 			var brush = " .-:;~+=omMB$#@".ToCharArray();
-			//note: tweaké pour que ca rende le mieux avec Consolas (VS output, notepad, ...)
+			//note: tweaked to get a better result when using Consolas (VS output, notepad, ...)
 #endif
 
 			var sb = new StringBuilder();

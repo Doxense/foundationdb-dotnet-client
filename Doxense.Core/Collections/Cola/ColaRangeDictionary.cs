@@ -87,7 +87,7 @@ namespace Doxense.Collections.Generic
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public void Desconstruct(out TKey? begin, out TKey? end, out TValue? value)
+			public void Deconstruct(out TKey? begin, out TKey? end, out TValue? value)
 			{
 				begin = this.Begin;
 				end = this.End;
@@ -282,7 +282,7 @@ namespace Doxense.Collections.Generic
 				var comparer = m_keyComparer;
 				if (!iterator.Seek(entry, true))
 				{
-					//on ne trouve pas l'item exacte, on prends le premier.
+					// could not find an exact match, use the first one instead.
 					iterator.SeekFirst();
 				}
 				var cursor = iterator.Current!;
@@ -341,7 +341,7 @@ namespace Doxense.Collections.Generic
 						// ------[
 						if (c3 <= 0)
 						{
-							//on set cursor pour que la translation soit faite correctement
+							// set cursor so that the translation can be done properly
 							cursor = entry;
 							break;
 						}
@@ -520,18 +520,18 @@ namespace Doxense.Collections.Generic
 		private void TranslateAfter(Entry? lastOk, TKey offset, Func<TKey?, TKey, TKey> applyKeyOffset)
 		{
 			var iterator = m_items.GetIterator();
-			//null il faut tout décaller
+			
 			if (lastOk == null)
-			{
+			{ // null => we need to shift everything
 				if (!iterator.SeekFirst()) return;
 			}
 			else
 			{
 				if (!iterator.Seek(lastOk, true))
 				{
-					//l'element passé en parametre à été supprimé
-					//on cherche l'élément suivant
-					//si tout à été supprimé on sort.
+					// the item passed has parameter has been deleted
+					// - search for the next item
+					// - if everything has been deleted, we exit early.
 					if (!iterator.SeekFirst()) return;
 					var c = m_keyComparer.Compare(lastOk.End, iterator.Current!.Begin);
 					while (c > 0 && iterator.Next())
@@ -539,20 +539,23 @@ namespace Doxense.Collections.Generic
 						c = m_keyComparer.Compare(lastOk.End, iterator.Current!.Begin);
 					}
 				}
-				//on veut décaller les suivants de celui passé en parametre
-				else iterator.Next();
+				else
+				{
+					// we want to shift the item that follow the one passed as parameter
+					iterator.Next();
+				}
 			}
 			do
 			{
 				var cursor = iterator.Current;
-				//dans le cas ou tout à été supprimé après le lastOK l'iterator est déjà au bout quand on arrive ici...
+				// in the case where everything has been deleted after lastOK, the iterator is already passed the end when we reach here
 				if (cursor == null) break;
 
 				cursor.Begin = applyKeyOffset(cursor.Begin, offset);
 				cursor.End = applyKeyOffset(cursor.End, offset);
 			}
 			while (iterator.Next());
-			//on décalle les bounds correctement
+			// shift the bounds if required
 			if (iterator.SeekFirst()) m_bounds.Begin = iterator.Current!.Begin;
 			if (iterator.SeekLast()) m_bounds.End = iterator.Current!.End;
 		}
@@ -563,7 +566,7 @@ namespace Doxense.Collections.Generic
 
 			// adds a new interval to the dictionary by overwriting or splitting any previous interval
 			// * if there are no interval, or the interval is disjoint from all other intervals, it is inserted as-is
-			// * if the new interval completly overwrites one or more intervals, they will be replaced by the new interval
+			// * if the new interval completely overwrites one or more intervals, they will be replaced by the new interval
 			// * if the new interval partially overlaps with one or more intervals, they will be split into chunks, and the new interval will be inserted between them
 
 			// Examples:
@@ -848,7 +851,7 @@ namespace Doxense.Collections.Generic
 								{ // there was no previous entry, but still check the next one
 									var next = iterator.Current;
 									if (next != null && cmp.Compare(next.Begin, end) == 0 && m_valueComparer.Equals(next.Value, value))
-									{ // the next one is contigious and with the same value, it can be merged!
+									{ // the next one is contiguous and with the same value, it can be merged!
 
 										//   x        [=====)..
 										// + x[=======)
@@ -1007,7 +1010,7 @@ namespace Doxense.Collections.Generic
 								if (!inserted)
 								{ // use that slot to insert ourselves
 									cursor.Set(entry);
-									//get the reference to be able to eventually merge it afterwards
+									// get the reference to be able to eventually merge it afterward
 									entry = cursor;
 									inserted = true;
 								}

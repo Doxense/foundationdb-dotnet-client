@@ -35,17 +35,16 @@ namespace Doxense.IO
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 
-	/// <summary>Version "rapide" de StringWriter, moins secure que StringWriter, adaptée dans des scenario spécifique (parsers, ...)</summary>
-	/// <remarks>Il est préférable d'éviter d'exposer cette classe a des consommateurs externes!</remarks>
+	/// <summary>"Fast" version of StringWriter, that performs less checks, but is a good fit for specific use cases (serialization, ...)</summary>
+	/// <remarks>This type is "unsafe" and should only be used internally, and not exposed to the caller.</remarks>
 	public sealed class FastStringWriter : TextWriter
 	{
-		// Version "bare metal" de StringWriter qui:
-		// * Désactive les tests d'ouverture/fermeture du stream (ie: on peut écrire après Dispose!)
-		// * Optimise les cas les plus fréquents dans un parseur (string, nombres, ...)
-		// * Toute les opérations sont en InvariantCulture
-		// * Si possible, vise l'inlining du code
-
-		// Dans l'absolu, c'est les méthodes du StringBuilder qui feront le check des paramètres
+		// "bare metal" version of StringWriter that:
+		// * Disable all checks if the stream is still open/closed (ie: can still write Dispose has been called!)
+		// * Optimize the hot paths that are frequently called by a serializer (strings, numbers, ...) that already checks its own inputs
+		// * Rely on the inner StringBuilder to do param checks
+		// * All operations are InvariantCulture by default
+		// * Attempt to better inline code
 
 		private readonly StringBuilder m_buffer;
 
@@ -73,24 +72,25 @@ namespace Doxense.IO
 
 		#endregion
 
-		/// <summary>Retourne le buffer utilisé par ce writer</summary>
+		/// <summary>Return the underlying buffer used by this writer</summary>
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public StringBuilder GetStringBuilder()
 		{
 			return m_buffer;
 		}
 
-		/// <summary>Retourne le contenu du buffer sous forme de chaîne</summary>
-		/// <returns>Texte contenu dans le buffer</returns>
-		/// <remarks>Attention, il faut éviter d'appeler ToString() puis de continuer a écrire des données, car cela provoque des réallocation mémoire au niveau du StringBuilder interne !</remarks>
+		/// <summary>Return the current buffer as a string</summary>
+		/// <returns>Text that has been written so far</returns>
+		/// <remarks>Caution: please don't call this method if more text will be written later, because it will cause a lot of extra memory allocations!</remarks>
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override string ToString()
 		{
 			return m_buffer.ToString();
 		}
 
-		/// <summary>Retourne les caractères contenus dans le buffer</summary>
-		/// <returns></returns>
+		/// <summary>Return the current buffer as an array of char</summary>
+		/// <returns>Text that has been written so far</returns>
+		/// <remarks>Caution: please don't call this method if more text will be written later, because it will cause a lot of extra memory allocations!</remarks>
 		public char[] ToCharArray()
 		{
 			char[] data = new char[m_buffer.Length];
@@ -98,18 +98,18 @@ namespace Doxense.IO
 			return data;
 		}
 
-		/// <summary>Retourne le contenu du stream sous forme binaire</summary>
-		/// <param name="encoding">Encoding utilisé (ex: Encoding.UTF8)</param>
-		/// <returns>Octets correspondant au contenu du buffer</returns>
+		/// <summary>Return the content of the buffer, as bytes, using the specified encoding</summary>
+		/// <param name="encoding">Encoding used to convert text into bytes (ex: Encoding.UTF8)</param>
+		/// <returns>Content of the buffer, encoded into bytes</returns>
 		public byte[] GetBytes(Encoding encoding)
 		{
 			return encoding.GetBytes(m_buffer.ToString());
 		}
 
-		/// <summary>Copie le contenu de ce stream vers un TextWriter</summary>
-		/// <param name="output">Writer dans lequel écrire le contenu de ce stream</param>
-		/// <param name="buffer">Buffer de caractère utilisé pour la copie (ou null)</param>
-		/// <remarks>Effectue une copie "optimisée" en évitant d'allouer la string du StringBuilder</remarks>
+		/// <summary>Copy the content of the buffer to another text writer</summary>
+		/// <param name="output">Writer where to write the content of the buffer</param>
+		/// <param name="buffer">Optional buffer used for the copy (if not <c>null</c>)</param>
+		/// <remarks>Perform an "optimized" copy by preventing the string allocation from the inner StringBuilder</remarks>
 		public void CopyTo(TextWriter output, char[]? buffer = null)
 		{
 			Contract.NotNull(output);
@@ -142,7 +142,6 @@ namespace Doxense.IO
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override void Close()
 		{
-			// la version initiale fait un GC.SuppressFinalize(this) qui est inutile ici
 			this.Dispose(true);
 		}
 
@@ -196,7 +195,6 @@ namespace Doxense.IO
 
 		#region Async Implementation...
 
-		// Note: les version Async sont overridable uniquement à partir de .NET 4.5 !
 		public override Task FlushAsync()
 		{
 			return Task.CompletedTask;

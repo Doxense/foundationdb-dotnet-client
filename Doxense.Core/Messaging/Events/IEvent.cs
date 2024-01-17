@@ -42,9 +42,9 @@ namespace Doxense.Messaging.Events
 
 		string? OperationId { get; }
 
-		/// <summary>Liste des topics sur lesquelles délivrer cet event</summary>
+		/// <summary>List of topics where this event must be delivered</summary>
 		IEnumerable<string> GetTopics();
-		//REVIEW: est-ce que c'est l'event qui doit décider? ou alors un autre composant qui voit passer les events et qui décide ou les envoyer?
+		//REVIEW: should the event decide for itself? or should we add another abstraction or component that would see all events and decide which topic should receive them?
 
 	}
 

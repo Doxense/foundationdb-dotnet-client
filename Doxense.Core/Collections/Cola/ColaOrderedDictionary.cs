@@ -195,7 +195,7 @@ namespace Doxense.Collections.Generic
 			return true;
 		}
 
-		/// <summary>Try to add an entry with the specified key and value to the sorted dictionary, if it does not already exists.</summary>
+		/// <summary>Try to add an entry with the specified key and value to the sorted dictionary, if it does not already exist.</summary>
 		/// <param name="key">The key of the entry to add.</param>
 		/// <param name="value">The value of the entry to add.</param>
 		/// <param name="actualValue">Receives the previous value if <paramref name="key"/> already exists, or <paramref name="value"/> if it was inserted</param>
@@ -235,7 +235,7 @@ namespace Doxense.Collections.Generic
 
 		/// <summary>Determines whether this dictionary contains a specified key.</summary>
 		/// <param name="equalKey">The key to search for.</param>
-		/// <param name="actualKey">The matching key located in the dictionary if found, or equalkey if no match is found.</param>
+		/// <param name="actualKey">The matching key located in the dictionary if found, or <paramref name="equalKey"/> if no match is found.</param>
 		/// <returns>true if a match for <paramref name="equalKey"/> is found; otherwise, false.</returns>
 		public bool TryGetKey(TKey equalKey, out TKey actualKey)
 		{
@@ -334,9 +334,8 @@ namespace Doxense.Collections.Generic
 
 		public IEnumerable<TKey> IterateAndRemoveRange(TKey begin, bool beginEqual, TKey end, bool endEqual)
 		{
-			// c'est le pire opérateur pour un COLA!
-			// l'opération actuelle est SUPER LENTE!
-			// => il faudrait l'optimiser mais pour ca il faudrait touche directement les levels
+			// This is the worst case scenario for COLA: this operation is VERY SLOW!
+			// => It should be optimized, but for this it would need to modify the levels directly
 
 			var kvNext = new KeyValuePair<TKey, TValue>(begin, default!);
 			var cmp = m_keyComparer;
@@ -352,7 +351,10 @@ namespace Doxense.Collections.Generic
 
 				yield return candidate.Key;
 				m_items.RemoveAt(level, offset);
-				if (!endEqual && p == 0) break; // on évite un search de trop!
+				if (!endEqual && p == 0)
+				{ // prevent one extra search operation!
+					break;
+				}
 			}
 			while (true);
 		}

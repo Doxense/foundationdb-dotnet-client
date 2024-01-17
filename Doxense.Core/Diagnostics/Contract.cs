@@ -68,7 +68,7 @@ namespace Doxense.Diagnostics.Contracts
 		public const string ConditionArgBufferOverflow = "(buffer.Length - offset) < count";
 	}
 
-	/// <summary>Classe helper pour la vérification de pré-requis, invariants, assertions, ...</summary>
+	/// <summary>Helper type to check for pre-requisites, invariants, assertions, ...</summary>
 	[DebuggerNonUserCode]
 	[PublicAPI]
 	public static partial class Contract
@@ -80,12 +80,12 @@ namespace Doxense.Diagnostics.Contracts
 
 		private static (ConstructorInfo? One, ConstructorInfo? Two) GetAssertionExceptionCtor()
 		{
-			// détermine si on est lancé depuis des tests unitaires (pour désactiver les breakpoints et autres opérations intrusives qui vont parasiter les tests)
+			// check if we are inside a unit test runner (to mute all breakpoints and other intrusive actions that would block or crash an unattended CI)
 
 			var nUnitAssert = Type.GetType("NUnit.Framework.AssertionException,nunit.framework");
 			if (nUnitAssert != null)
 			{
-				// on convertit les échecs "soft" en échec d'assertion NUnit
+				// Convert all "soft" failures into NUnit assertions
 				IsUnitTesting = true;
 				return (nUnitAssert.GetConstructor(new [] { typeof (string) }), nUnitAssert.GetConstructor(new [] { typeof (string), typeof(Exception) }));
 			}
@@ -103,11 +103,11 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region DEBUG checks...
 
-		/// <summary>Vérifie qu'une pré-condition est vrai, lors de l'entrée dans une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+		/// <summary>Test if a pre-condition is true, at the start of a method.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Requires(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
@@ -120,11 +120,11 @@ namespace Doxense.Diagnostics.Contracts
 			if (!condition) throw RaiseContractFailure(SDC.ContractFailureKind.Precondition, userMessage, conditionText);
 		}
 
-		/// <summary>Vérifie qu'une condition est toujours vrai, dans le body dans une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+		/// <summary>Test if a condition is true, inside the body of a method.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Assert(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
@@ -136,11 +136,11 @@ namespace Doxense.Diagnostics.Contracts
 			if (!condition) throw RaiseContractFailure(SDC.ContractFailureKind.Assert, userMessage, conditionText);
 		}
 
-		/// <summary>Vérifie qu'une condition est toujours vrai, lors de la sortie d'une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+		/// <summary>Test if a post-condition is true, at the end of a method.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Ensures(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
@@ -153,11 +153,11 @@ namespace Doxense.Diagnostics.Contracts
 			if (!condition) throw RaiseContractFailure(SDC.ContractFailureKind.Postcondition, userMessage, conditionText);
 		}
 
-		/// <summary>Vérifie qu'une condition est toujours vrai pendant toute la vie d'une instance</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+		/// <summary>Test that an invariant is met.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Invariant(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
@@ -171,9 +171,9 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>Unconditionally trigger an assertion fault</summary>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="exception">Optional exception linked to the issue</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+		/// <remarks>Throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.NoInlining)]
 		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
 		public static void Fail(string? userMessage, Exception? exception = null)
@@ -209,7 +209,7 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
-		/// <remarks>This methods allow structs (that can never be null)</remarks>
+		/// <remarks>This method allow structs (that can never be null)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullAllowStructs<TValue>(
 			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
@@ -327,7 +327,7 @@ namespace Doxense.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName!);
+			if (value == null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName!, message!);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -808,42 +808,42 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region Between...
 
-		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(int value, int minimumInclusive, int maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
 			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
-		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(uint value, uint minimumInclusive, uint maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
 			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
-		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(long value, long minimumInclusive, long maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
 			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
-		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(ulong value, ulong minimumInclusive, ulong maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
 			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
-		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(float value, float minimumInclusive, float maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
 			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
 
-		/// <summary>The specified value must not be outside of the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(double value, double minimumInclusive, double maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
@@ -1035,22 +1035,22 @@ namespace Doxense.Diagnostics.Contracts
 			return ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull);
 		}
 
-		/// <summary>Déclenche une exception suite à l'échec d'une condition</summary>
+		/// <summary>Throws an exception, following a failed assertion</summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static Exception ReportFailure(Type exceptionType, string msg, string? userMessage, string? paramName, string? conditionTxt)
 		{
 			if (conditionTxt != null && conditionTxt.IndexOf('{') >= 0)
-			{ // il y a peut être un "{0}" dans la condition qu'il faut remplacer le nom du paramètre
+			{ // Replace any occurence of "{0}" in the condition, by the name of the parameter
 				conditionTxt = string.Format(conditionTxt, paramName ?? "value");
 			}
 
 			string? str = SRC.ContractHelper.RaiseContractFailedEvent(SDC.ContractFailureKind.Precondition, userMessage ?? msg, conditionTxt, null);
-			// si l'appelant retourne null, c'est qu'il a lui même traité l'incident ...
-			// mais ca n'empêche pas qu'on doit quand même stopper l'exécution !
+			// If this returns null, then the issue has already been handled (popup on the screen, ...)
+			// But we still need to stop the execution!
 #if DEBUG
 			if (str != null)
 			{
-				// note: on ne spam les logs si on est en train de unit tester ! (vu qu'on va provoquer intentionnellement plein d'erreurs!)
+				// note: do not spam the logs if in the context a of unit test runner!
 				if (!IsUnitTesting)
 				{
 					System.Diagnostics.Debug.Fail(str);
@@ -1062,12 +1062,12 @@ namespace Doxense.Diagnostics.Contracts
 			var exception = ThrowHelper.TryMapToKnownException(exceptionType, description, paramName);
 
 			if (exception == null)
-			{ // c'est un type compliqué ??
+			{ // Is this a complex exception type ?
 				exception = ThrowHelper.TryMapToComplexException(exceptionType, description, paramName);
 			}
 
 			if (exception == null)
-			{ // uh? on va quand même envoyer une exception proxy !
+			{ // still not know? we'll try to wrap it with a proxy exception
 				exception = FallbackForUnknownException(description, paramName);
 			}
 
@@ -1077,12 +1077,11 @@ namespace Doxense.Diagnostics.Contracts
 		private static Exception FallbackForUnknownException(string description, string? paramName)
 		{
 #if DEBUG
-			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break(); // README: Si vous tombez ici, c'est que l'appelant a spécifié un type d'Exception qu'on n'arrive pas a construire! il faudrait peut être changer le type...
+			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break(); // README: If you breakpoint here, it means the caller has requested a type of Exception that we cannot instantiate! Please change the type to something easier
 #endif
-			if (paramName != null)
-				return new ArgumentException(description, paramName);
-			else
-				return new InvalidOperationException(description);
+			return paramName != null
+				? new ArgumentException(description, paramName)
+				: new InvalidOperationException(description);
 		}
 
 		/// <summary>Signale l'échec d'une condition en déclenchant une ContractException</summary>
@@ -1091,8 +1090,8 @@ namespace Doxense.Diagnostics.Contracts
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		internal static Exception RaiseContractFailure(SDC.ContractFailureKind kind, string? msg, string? conditionText = null, Exception? exception = null)
 		{
-			//note: actuellement dans .NET Core 3.x, si conditionText == null, le message formaté ne contient pas la partie "kind" !
-			// => le contournement est de passer le message a la place de la condition, ce qui change légèrement la string générée, mais reste lisible!
+			//note: currently in .NET Core 3.x, if conditionText == null, the formatted message will not have the "kind" section!
+			// => the workaround is to pass the message itself, instead of the condition text, which will slightly change the generated string, but will still be readable!
 			string? str = conditionText == null
 				? SRC.ContractHelper.RaiseContractFailedEvent(kind, msg, null, exception)
 				: SRC.ContractHelper.RaiseContractFailedEvent(kind, msg, conditionText, exception);
@@ -1100,28 +1099,28 @@ namespace Doxense.Diagnostics.Contracts
 			{
 				if (IsUnitTesting)
 				{
-					// throws une AssertionException si on a réussi a se connecter avec NUnit
+					// throws an AssertionException if we were able to connect with NUnit
 					var ex = MapToNUnitAssertion(str, exception);
 #if DEBUG
-					// README: Si vous break-pointez ici, il faut remonter plus haut dans la callstack, et trouver la fonction invoque Contract.xxx(...)
+					// README: If you breakpoint here, you are too deep and must go up the stack, until you find the method that invoked any of the Contract.xxx(...) helpers!
 					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
-					// note: à partir de VS 2015 Up2, [DebuggerNonUserCode] n'est plus respecté si la regkey AlwaysEnableExceptionCallbacksOutsideMyCode n'est pas égale à 1, pour améliorer les perfs.
+					// note: starting from VS 2015 Up2, [DebuggerNonUserCode] has no effect anymore, if the registry key AlwaysEnableExceptionCallbacksOutsideMyCode is not set to 1, for performance reasons.
 					// cf "How to Suppress Ignorable Exceptions with DebuggerNonUserCode" dans https://blogs.msdn.microsoft.com/visualstudioalm/2016/02/12/using-the-debuggernonusercode-attribute-in-visual-studio-2015/
 #endif
 					if (ex != null) return ex;
-					// sinon, on continue
+					// if not null, continue
 				}
 #if DEBUG
 				else if (kind == SDC.ContractFailureKind.Assert && Debugger.IsAttached)
 				{
-					// uniquement si on F5 depuis VS, car sinon cela cause problèmes avec le TestRunner de R# (qui popup les assertion fail!)
+					// only when debugging from VS, or else it will cause issues with Resharper's TestRunner (that will display a popup for each failed assertion!)
 					System.Diagnostics.Debug.Fail(str);
 				}
 #endif
 
 				return new ContractException(kind, str, msg, conditionText, null);
 			}
-			//note: on doit quand même retourner quelque chose!
+			//note: we still need to return something!
 			return new ContractException(kind, "Contract Failed", msg, conditionText, null);
 		}
 

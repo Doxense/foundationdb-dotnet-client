@@ -58,7 +58,7 @@ namespace Doxense.Messaging.PubSub
 				if (string.Equals(subscribersByChannel.Channel, channel, StringComparison.OrdinalIgnoreCase))
 				{
 					// Execute method for everyone subscribed on this channel:
-					await subscribersByChannel.Handler(channel, message, ct);
+					await subscribersByChannel.Handler(channel, message, ct).ConfigureAwait(false);
 				}
 			}
 		}

@@ -36,10 +36,10 @@ namespace Doxense.Messaging.Events
 		/// <summary>If true, this event sinks requires async dispatching. If false, it will always run inline and will not block the calling thread</summary>
 		bool Async { get; }
 
-		/// <summary>Dispatch un event vers ce log</summary>
+		/// <summary>Dispatch an event to this log sink</summary>
 		Task Dispatch(IEvent evt, CancellationToken ct);
 
-		/// <summary>Dispatch un batch d'events vers ce log</summary>
+		/// <summary>Dispatch a batch of events to this log sink</summary>
 		Task Dispatch(ReadOnlyMemory<IEvent> batch, CancellationToken ct);
 
 	}

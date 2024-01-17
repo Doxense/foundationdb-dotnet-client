@@ -51,9 +51,9 @@ namespace Doxense.Web
 			public const string InfinityNeg = "Number.NEGATIVE_INFINITY";
 		}
 
-		/// <summary>Détermine si le javascript est "clean" (ie: ne nécessite pas d'encodage)</summary>
-		/// <param name="s">Chaîne à vérifier</param>
-		/// <returns>True si tt les caractères sont valides</returns>
+		/// <summary>Test if a javascript string would require escaping or not</summary>
+		/// <param name="s">String to inspect</param>
+		/// <returns><c>true</c> if all characters are valid</returns>
 		public static unsafe bool IsCleanJavaScript(string s)
 		{
 			int n = s.Length;
@@ -64,7 +64,7 @@ namespace Doxense.Web
 				{
 					char c = *ptr++;
 					if (!((c >= 'a' && c <= 'z') || c == ' ' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == ',' || c == '-' || c == '_' || c == ':' || c == '/' || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591)))
-					{ // pas autorisé!
+					{ // not allowed!
 						return false;
 					}
 					--n;
@@ -73,19 +73,12 @@ namespace Doxense.Web
 			return true;
 		}
 
-		/// <summary>Encode un texte Javascript (en traitant chaque caractère)</summary>
-		/// <param name="sb">Buffer où écrire le résultat</param>
-		/// <param name="s">Chaîne à encoder</param>
-		/// <param name="includeQuotes"></param>
+		/// <summary>Encode a Javascript string known to contain at least one invalid character</summary>
 		public static unsafe StringBuilder EncodeSlow(StringBuilder sb, string s, bool includeQuotes)
 		{
 			int n = s.Length;
 			if (includeQuotes) sb.Append('\'');
-#if MONO
-			fixed(char* p=s.ToCharArray())
-#else
-			fixed (char* p = s) // JustCode warning (compile sous MS.NET)
-#endif
+			fixed (char* p = s)
 			{
 				char* ptr = p;
 				while (n-- > 0)
@@ -99,9 +92,9 @@ namespace Doxense.Web
 						sb.Append(@"\r");
 					else if (c == '\t')
 						sb.Append(@"\t");
-					else if (c > 127)
+					else if (c > 127) // 4 byte unicode
 						sb.Append(@"\u").Append(((int) c).ToString("x4", CultureInfo.InvariantCulture));
-					else // pas clean!
+					else // 2 byte ascii
 						sb.Append(@"\x").Append(((int) c).ToString("x2", CultureInfo.InvariantCulture));
 				}
 			}
@@ -109,25 +102,25 @@ namespace Doxense.Web
 			return sb;
 		}
 
-		/// <summary>Encode une chaîne en JavaScript</summary>
-		/// <param name="text">Chaîne à encoder</param>
-		/// <param name="includeQuotes">Si true, ajout automatiquement des apostrophes ('...')</param>
-		/// <returns>Chaîne encodée correctement</returns>
-		/// <remarks>Cette méthode n'alloue pas de mémoire si la chaîne d'origine est clean</remarks>
+		/// <summary>Encode a JavaScript string</summary>
+		/// <param name="text">Text to encode</param>
+		/// <param name="includeQuotes">Si <c>true</c>, automatically add quotes around the string (<c>'...'</c>)</param>
+		/// <returns>Encoded string</returns>
+		/// <remarks>This method will not allocate memory if the original string is printable as-is, and <paramref name="includeQuotes"/> is <c>false</c></remarks>
 		public static string Encode(string? text, bool includeQuotes)
 		{
 			if (text == null) return includeQuotes ? Tokens.Null : string.Empty;
 			if (text.Length == 0) return includeQuotes ? Tokens.EmptyString : string.Empty;
-			// premiere passe pour voir s'il y a des caractères a remplacer..
-			if (IsCleanJavaScript(text)) return includeQuotes ? string.Concat(Tokens.Quote, text, Tokens.Quote) : text; // rien a modifier, retourne la chaine initiale (fast, no memory used)
-			// deuxième passe: remplace les caractères invalides (slow, memory used)
+			// first pass to check if there escaping is required...
+			if (IsCleanJavaScript(text)) return includeQuotes ? string.Concat(Tokens.Quote, text, Tokens.Quote) : text; // nothing to escape
+			// second pass to escape all non-printable characters
 			return EncodeSlow(new StringBuilder(text.Length + 16), text, includeQuotes).ToString();
 		}
 
-		/// <summary>Encode le nom d'une propriété d'un objet</summary>
-		/// <param name="name">Nom de la propriété d'un objet</param>
-		/// <returns>Si le nom est "clean", il est écrit tel quel, sinon il est encodé</returns>
-		/// <exception cref="System.ArgumentNullException">Si 'name' est null</exception>
+		/// <summary>Encode the name of an object's property or field</summary>
+		/// <param name="name">Name of a property or field of a Javascript object</param>
+		/// <returns>If the name is "clean", it will be written as-is. Otherwise, it will be escaped</returns>
+		/// <exception cref="System.ArgumentNullException">If 'name' is null</exception>
 		/// <example>
 		/// EncodePropertyName("foo") => "foo"
 		/// EncodePropertyName("foo bar") => "'foo bar'"
@@ -139,16 +132,13 @@ namespace Doxense.Web
 		{
 			Contract.NotNull(name);
 
-			if (IsValidIdentifier(name))
-				return name;
-			else
-				return Encode(name, true);
+			return IsValidIdentifier(name) ? name : Encode(name, true);
 		}
 
 		/// <summary>Ensemble des mots clés réservés en JavaScript</summary>
 		private static readonly HashSet<string> s_reservedKeywords = new HashSet<string>(
 			new[] { "instanceof", "typeof", "break", "do", "new", "var", "case", "else", "return", "void", "catch", "finally", "continue", "for", "switch", "while", "this", "with", "debugger", "function", "throw", "default", "if", "try", "delete", "in" },
-			StringComparer.Ordinal // case sensitive! "Typeof" n'est pas réservé, mais "typeof" l'est.
+			StringComparer.Ordinal // case-sensitive: "Typeof" is not reserved, but "typeof" is!
 		);
 
 		/// <summary>Détermine si un caractère est valide comme premier caractère d'un identifiant JavaScript ("identifierStart")</summary>
@@ -156,11 +146,11 @@ namespace Doxense.Web
 		{
 			/* identifierStart:unicodeLetter | DOLLAR | UNDERSCORE | unicodeEscapeSequence  */
 
-			// ASCII Letter, $ ou '_'
+			// ASCII Letter, $ or '_'
 			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '$' || c == '_')
 				return true;
 
-			// Sinon, cela doit etre un "Unicode Letter"
+			// Otherwise, this must be a "Unicode Letter"
 			if (c >= 0x80)
 			{
 				/* any character in the unicode categories:
@@ -186,10 +176,10 @@ namespace Doxense.Web
 			return false;
 		}
 
-		/// <summary>Détermine si un caractère est valide comme second caractère ou suivant d'un identifiant JavaScript ("identifierPart")</summary>
+		/// <summary>Test if a character (that is not the first one) is allowed in a JavaScript identifier ("identifierPart")</summary>
 		private static bool IsValidIdentifierPart(char c)
 		{
-			// ASCII Letter, Digit, $ ou '_'
+			// ASCII Letter, Digit, $ or '_'
 			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '$' || c == '_')
 				return true;
 
@@ -219,13 +209,13 @@ namespace Doxense.Web
 			return false;
 		}
 
-		/// <summary>Détermine rapidement si un nom peut être utilisé directement comme nom de propriété d'un objet JavaScript, ou s'il doit d'abord être encodé</summary>
-		/// <param name="name">Nom d'une propriété d'un objet JavaScript</param>
-		/// <returns>Retourne true si le nom est valide comme identifiant et qu'il ne contient que de l'ASCII, ou false s'il est invalide ou s'il contient de l'Unicode</returns>
-		/// <remarks>Cette fonction peut retourner 'false' pour des identifiants tout à fait valide ! Le but ici est de déterminer RAPIDEMENT s'il est nécessaire d'encoder un identifiant, pas de le rejeter !</remarks>
+		/// <summary>Quickly test if a name can be used as a Javascript object's property name without escaping, or if it must be escaped first</summary>
+		/// <param name="name">Name of a property or field</param>
+		/// <returns>Return <c>true</c> if this is a valid name, and that it only contains ASCII. <c>false</c> it is invalid or if it contains Unicode that requires escaping</returns>
+		/// <remarks>This can return <c>false</c> even for valid identifiers! The goal is to decide QUICKLY if escaping is required. A false negative would only use a bit more cpu but still produce a correct result.</remarks>
 		public static bool IsValidIdentifier(string name)
 		{
-			/* D'après ECMA-262 "ECMAScript Language Specification" section 7.6 :
+			/* According to ECMA-262 "ECMAScript Language Specification", section 7.6:
 
 				Identifier :: 
 					IdentifierName but not ReservedWord
@@ -269,11 +259,11 @@ namespace Doxense.Web
 
 			if (string.IsNullOrEmpty(name)) return false;
 
-			// Le premier caractère doit être une lettre, un '$' ou un '_'
+			// First character must be a letter, '$' or '_'
 			if (!IsValidIdentifierStart(name[0]))
 				return false;
 
-			// Les autres caractères autorisent les chiffres et d'autres types de symboles unicode
+			// Remaining characters allow digits and other types of Unicode symbols
 			int n = name.Length - 1;
 			if (n > 0)
 			{
@@ -286,7 +276,7 @@ namespace Doxense.Web
 						{
 							char c = *ptr++;
 							if (!IsValidIdentifierPart(c))
-							{ // pas autorisé!
+							{ // not allowed!
 								return false;
 							}
 							--n;
@@ -295,10 +285,10 @@ namespace Doxense.Web
 				}
 			}
 
-			// L'identifiant ne doit pas être un mot clé réservé ("if", "delete", ...)
+			// The identifier must not be a reserved keyword ("if", "delete", ...)
 			return !s_reservedKeywords.Contains(name);
 		}
 
-
 	}
+
 }

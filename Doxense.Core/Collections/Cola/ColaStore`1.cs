@@ -308,7 +308,7 @@ namespace Doxense.Collections.Generic
 			if ((m_count & 1) != 0)
 			{
 				// If someone gets the last inserted key, there is a 50% change that it is in the root
-				// (if not, it will the the last one of the first non-empty level)
+				// (if not, it will the last one of the first non-empty level)
 				if (m_comparer.Compare(value, m_root[0]) == 0)
 				{
 					offset = 0;
@@ -426,7 +426,7 @@ namespace Doxense.Collections.Generic
 			return segment[offset];
 		}
 
-		/// <summary>Store a value at a specific location in the arrayh</summary>
+		/// <summary>Store a value at a specific location in the array</summary>
 		/// <param name="arrayIndex">Absolute index in the vector-array</param>
 		/// <param name="value">Value to store</param>
 		/// <returns>Previous value at that location</returns>
@@ -484,7 +484,7 @@ namespace Doxense.Collections.Generic
 		/// <summary>Add a value to the array</summary>
 		/// <param name="value">Value to add to the array</param>
 		/// <param name="overwriteExistingValue">If <paramref name="value"/> already exists in the array and <paramref name="overwriteExistingValue"/> is true, it will be overwritten with <paramref name="value"/></param>
-		/// <returns>If the value did not  if the value was been added to the array, or false if it was already there.</returns>
+		/// <returns><c>true</c>if the value was added to the array, or <c>false</c> if it was already there.</returns>
 		public bool SetOrAdd(T value, bool overwriteExistingValue)
 		{
 			int level = Find(value, out var offset, out _);
@@ -725,11 +725,11 @@ namespace Doxense.Collections.Generic
 			else
 			{
 				// we are missing a spot in out modified segment, that need to fill
-				// > we will take the first non empty segment, and break it in pieces
+				// > we will take the first non-empty segment, and break it in pieces
 				//  > its last item will be used to fill the empty spot
 				//  > the rest of its items will be spread to all the previous empty segments
 
-				// find the first non empty segment that can be broken
+				// find the first non-empty segment that can be broken
 				int firstNonEmptyLevel = ColaStore.LowestBit(m_count);
 
 				if (firstNonEmptyLevel == level)
@@ -951,7 +951,7 @@ namespace Doxense.Collections.Generic
 		/// <summary>Returns the smallest and largest element in the store</summary>
 		/// <param name="min">Receives the value of the smallest element (or default(T) is the store is Empty)</param>
 		/// <param name="max">Receives the value of the largest element (or default(T) is the store is Empty)</param>
-		/// <remarks>If the store contains only one element, than min and max will be equal</remarks>
+		/// <remarks>If the store contains only one element, then min and max will be equal</remarks>
 		public bool TryGetBounds([MaybeNullWhen(false)] out T min, [MaybeNullWhen(false)] out T max)
 		{
 			switch (m_count)
@@ -1153,8 +1153,8 @@ namespace Doxense.Collections.Generic
 			private T? m_current;
 			private int m_currentLevel;
 			private int m_direction;
-#if DEBUG
-			private ColaStore<T> m_parent; // usefull when troubleshooting to have the pointer to the parent!
+#if FULL_DEBUG
+			private ColaStore<T> m_parent; // useful when troubleshooting to have the pointer to the parent!
 #endif
 
 			internal Iterator(ColaStore<T> store)
@@ -1165,7 +1165,7 @@ namespace Doxense.Collections.Generic
 				m_comparer = store.m_comparer;
 
 				m_cursors = ColaStore.CreateCursors(m_count, out m_min);
-#if DEBUG
+#if FULL_DEBUG
 				m_parent = store;
 #endif
 			}
@@ -1287,7 +1287,7 @@ namespace Doxense.Collections.Generic
 			/// <param name="orEqual">When <see cref="item"/> exists: if <c>true</c>, then seek to this item. If <c>false</c>, seek to the previous entry.</param>
 			public bool Seek(T item, bool orEqual)
 			{
-				// Goal: we want to find the item key itself (if it exists and orEqual==true), or the max key that is stricly less than item
+				// Goal: we want to find the item key itself (if it exists and orEqual==true), or the max key that is strictly less than item
 				// We can use BinarySearch to look in each segment for where that key would be, but we have to compensate for the fact that BinarySearch looks for the smallest key that is greater than or equal to the search key.
 
 				// Also, the iterator can be used to move:
@@ -1359,7 +1359,7 @@ namespace Doxense.Collections.Generic
 				return maxLevel >= 0;
 			}
 
-			/// <summary>Move the cursor the the smallest value that is greater than the current value</summary>
+			/// <summary>Move the cursor the smallest value that is greater than the current value</summary>
 			public bool Next()
 			{
 				// invalid position, or no more values
@@ -1422,7 +1422,7 @@ namespace Doxense.Collections.Generic
 				return minLevel >= 0;
 			}
 
-			/// <summary>Move the cursor the the largest value that is smaller than the current value</summary>
+			/// <summary>Move the cursor the largest value that is smaller than the current value</summary>
 			public bool Previous()
 			{
 				// invalid position, or no more values

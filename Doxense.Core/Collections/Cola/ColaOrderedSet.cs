@@ -143,13 +143,12 @@ namespace Doxense.Collections.Generic
 
 		public bool Remove(T value)
 		{
-			T _;
 			return TryRemove(value, out _);
 		}
 
 		public T RemoveAt(int arrayIndex)
 		{
-			if (arrayIndex < 0 || arrayIndex >= m_items.Count) throw new ArgumentOutOfRangeException("arrayIndex", "Index is outside the array");
+			if (arrayIndex < 0 || arrayIndex >= m_items.Count) throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index is outside the array");
 
 			int level = ColaStore.MapOffsetToLocation(m_items.Count, arrayIndex, out var offset);
 			Contract.Debug.Assert(level >= 0 && offset >= 0 && offset < 1 << level);
@@ -163,9 +162,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>true if the set contains the specified value; otherwise, false.</returns>
 		public bool Contains(T value)
 		{
-			int _;
-			T __;
-			return m_items.Find(value, out _, out __) >= 0;
+			return m_items.Find(value, out _, out _) >= 0;
 		}
 
 		/// <summary>Find an element </summary>
@@ -173,7 +170,6 @@ namespace Doxense.Collections.Generic
 		/// <returns>The zero-based index of the first occurrence of <paramref name="value"/> within the entire list, if found; otherwise, –1.</returns>
 		public int IndexOf(T value)
 		{
-			T _;
 			int level = m_items.Find(value, out var offset, out _);
 			if (level >= 0)
 			{
@@ -188,7 +184,6 @@ namespace Doxense.Collections.Generic
 		/// <returns>A value indicating whether the search was successful.</returns>
 		public bool TryGetValue(T value, out T actualValue)
 		{
-			int _;
 			return m_items.Find(value, out _, out actualValue) >= 0;
 		}
 

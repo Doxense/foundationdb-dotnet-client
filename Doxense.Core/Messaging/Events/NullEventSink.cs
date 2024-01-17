@@ -30,7 +30,7 @@ namespace Doxense.Messaging.Events
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Ignore received messages</summary>
+	/// <summary>Ignore all received messages</summary>
 	public sealed class NullEventSink : IEventSink
 	{
 
@@ -51,4 +51,5 @@ namespace Doxense.Messaging.Events
 		}
 
 	}
+
 }

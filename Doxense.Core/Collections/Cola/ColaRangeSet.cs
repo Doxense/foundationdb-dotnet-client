@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-// enables consitency checks after each operation to the set
+// enables consistency checks after each operation to the set
 #define ENFORCE_INVARIANTS
 
 namespace Doxense.Collections.Generic
@@ -292,7 +292,7 @@ namespace Doxense.Collections.Generic
 							}
 						}
 						else
-						{ // we havent inserted the key yet, so in case of conflict, we will use the next segment's slot
+						{ // we haven't inserted the key yet, so in case of conflict, we will use the next segment's slot
 							if (Resolve(cursor, entry))
 							{
 								//Console.WriteLine("  > merged in place: " + cursor);

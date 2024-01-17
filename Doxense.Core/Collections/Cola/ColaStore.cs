@@ -197,7 +197,7 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.Debug.Assert(array != null && offset >= 0 && count >= 0 && comparer != null);
 
-			// Instead of starting from the midle we will exploit the fact that, since items are usually inserted in order, the value is probably either to the left or the right of the segment.
+			// Instead of starting from the middle we will exploit the fact that, since items are usually inserted in order, the value is probably either to the left or the right of the segment.
 			// Also, since most activity happens in the top levels, the search array is probably very small (size 1, 2 or 4)
 
 			if (count == 0)
@@ -269,7 +269,7 @@ namespace Doxense.Collections.Generic
 		}
 
 		/// <summary>Replace a value in a segment with another value, while keeping it sorted</summary>
-		/// <param name="segment">Segment that will received the new value</param>
+		/// <param name="segment">Segment that will receive the new value</param>
 		/// <param name="offset">Offset of replaced value in the segment</param>
 		/// <param name="value">New value to insert into the segment</param>
 		/// <param name="comparer">Comparer to use</param>
@@ -364,8 +364,8 @@ namespace Doxense.Collections.Generic
 			Contract.Debug.Requires(left.Length > 0 && output.Length == left.Length * 2 && right.Length == left.Length);
 
 			int c, n = left.Length;
-			// note: The probality to merge an array of size N is rougly 1/N (with N being a power of 2),
-			// which means that we will spend roughly half the time merging arrays of size 1 into an array of size 2..
+			// note: The probability to merge an array of size N is roughly 1/N (with N being a power of 2),
+			// which means that we will spend roughly half the time merging arrays of size 1 into an array of size 2...
 
 			if (n == 1)
 			{ // Most frequent case (p=0.5)
@@ -729,12 +729,12 @@ namespace Doxense.Collections.Generic
 			Contract.Debug.Requires(count >= 0 && inputs != null && comparer != null);
 
 			// We will use a list of N cursors, set to the start of their respective levels.
-			// A each turn, look for the smallest key referenced by the cursors, return that one, and advance its cursor.
+			// At each turn, look for the smallest key referenced by the cursors, return that one, and advance its cursor.
 			// Once a cursor is past the end of its level, it is set to -1 and is ignored for the rest of the operation
 
 			if (count > 0)
 			{
-				// setup the cursors, with the empty levels already marked as completed
+				// set up the cursors, with the empty levels already marked as completed
 				var cursors = new int[inputs.Length];
 				for (int i = 0; i < cursors.Length; i++)
 				{
@@ -744,7 +744,7 @@ namespace Doxense.Collections.Generic
 					}
 				}
 
-				// pre compute the first/last active level
+				// pre-compute the first/last active level
 				int min = LowestBit(count);
 				int max = HighestBit(count);
 

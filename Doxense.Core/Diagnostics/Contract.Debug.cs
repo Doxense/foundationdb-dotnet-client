@@ -45,11 +45,11 @@ namespace Doxense.Diagnostics.Contracts
 
 			#region DEBUG checks...
 
-			/// <summary>[DEBUG ONLY] Vérifie qu'une pré-condition est vrai, lors de l'entrée dans une méthode</summary>
-			/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-			/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-			/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-			/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+			/// <summary>[DEBUG ONLY] Test if a pre-condition is true, at the start of a method.</summary>
+			/// <param name="condition">Condition that should never be false</param>
+			/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
 			public static void Requires(
@@ -65,11 +65,11 @@ namespace Doxense.Diagnostics.Contracts
 #endif
 			}
 
-			/// <summary>[DEBUG ONLY] Vérifie qu'une condition est toujours vrai, dans le body dans une méthode</summary>
-			/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-			/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-			/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-			/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+			/// <summary>[DEBUG ONLY] Test if a condition is true, inside the body of a method.</summary>
+			/// <param name="condition">Condition that should never be false</param>
+			/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
 			public static void Assert(
@@ -84,11 +84,11 @@ namespace Doxense.Diagnostics.Contracts
 #endif
 			}
 
-			/// <summary>[DEBUG ONLY] Vérifie qu'une condition est toujours vrai, lors de la sortie d'une méthode</summary>
-			/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-			/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-			/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-			/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+			/// <summary>[DEBUG ONLY] Test if a post-condition is true, at the end of a method.</summary>
+			/// <param name="condition">Condition that should never be false</param>
+			/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
 			public static void Ensures(
@@ -104,11 +104,11 @@ namespace Doxense.Diagnostics.Contracts
 #endif
 			}
 
-			/// <summary>[DEBUG ONLY] Vérifie qu'une condition est toujours vrai pendant toute la vie d'une instance</summary>
-			/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-			/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-			/// <param name="conditionText">Texte de la condition (optionnel, injecté par le compilateur)</param>
-			/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+			/// <summary>[DEBUG ONLY] Test that an invariant is met.</summary>
+			/// <param name="condition">Condition that should never be false</param>
+			/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
 			public static void Invariant(

@@ -82,7 +82,7 @@ namespace Doxense.Messaging.PubSub
 				channel,
 				sub.Callback,
 				ct
-			);
+			).ConfigureAwait(false);
 
 			return sub;
 		}

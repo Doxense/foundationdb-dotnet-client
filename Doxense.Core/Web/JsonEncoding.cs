@@ -37,20 +37,20 @@ namespace Doxense.Serialization.Json
 	public static class JsonEncoding
 	{
 
-		/// <summary>Table de lookup pour savoir si un caractère doit etre encodé</summary>
-		/// <remarks>lookup[index] contient true si le charactère UNICODE correspondant doit être éncodé</remarks>
+		/// <summary>Lookup table used to test if a character must be escaped</summary>
+		/// <remarks>lookup[index] contains <c>true</c> if the corresponding UNICODE character must be escaped</remarks>
 		private static readonly bool[] EscapingLookupTable = InitializeEscapingLookupTable();
 
 		private static bool[] InitializeEscapingLookupTable()
 		{
-			// IMPORTANT: le tableau DOIT avoir une taille de 64K car on va l'indexer avec des caractères UNICODE!
+			// IMPORTANT: the array MUST have a length of 65536 because it will be indexed with the UNICODE value of each character!
 			var table = new bool[65536];
 			for (int i = 0; i < table.Length; i++)
 			{
 				table[i] = NeedsEscaping((char) i);
 			}
 
-			//JIT_HACK: touche la StringTable pour qu'elle soit JITée immédiatement
+			//JIT_HACK: ensure that StringTable is already JITed
 			StringTable.EnsureJit();
 
 			return table;
@@ -59,33 +59,27 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool NeedsEscaping(char c)
 		{
-			// On encode la double-quote ("), l'anti-slash (\), les ASCII control codes (0..31) et les caractères UNICODE spéciaux (0xD800-0xDFFF, 0xFFFE et 0xFFFF)
+			// Encode double-quote ("), anti-slash (\), and ASCII control codes (0..31), as well as special UNICODE characters (0xD800-0xDFFF, 0xFFFE and 0xFFFF)
 			return (c < 32 | c == '"' | c == '\\') || (c >= 0xD800 && (c < 0xE000 | c >= 0xFFFE));
 		}
 
-		/// <summary>Détermine si le texte JSON est "clean" (ie: ne nécessite pas d'encodage)</summary>
-		/// <param name="s">Chaîne à vérifier</param>
-		/// <returns>False si tt les caractères sont valides, True si au moins un nécessite d'être encodé</returns>
+		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <param name="s">Text to inspect</param>
+		/// <returns><c>false</c> if all characters are valid, or <c>true</c> if at least one character must be escaped</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool NeedsEscaping(string s)
 		{
 			// A string is a collection of zero or more Unicode characters, wrapped in double quotes, using backslash escapes.
 			// A character is represented as a single character string. A string is very much like a C or Java string.
 
-			// Après des de nombreux benchs :
-			// * Les version "lookup" sont plus rapides (mais nécessitent un table de 64Ko)
-			// * Les version "unsafe" sont toutes plus lentes, sauf avec de l'unrolling
-			// * Le cross over entre lookup et unrolled est entre 6 et 12...
-
 			return s.Length <= 6
 				? NeedsEscapingShort(s)
 				: NeedsEscapingLong(s);
 		}
 
-		/// <summary>Détermine si le texte JSON est "clean" (ie: ne nécessite pas d'encodage)</summary>
-		/// <param name="s">Chaîne à vérifier</param>
-		/// <returns>False si tt les caractères sont valides, True si au moins un nécessite d'être encodé</returns>
-		public static bool NeedsEscapingShort(string s)
+		/// <summary>Check if a (short) string must be escaped</summary>
+		/// <remarks>This version is optimized for short strings</remarks>
+		internal static bool NeedsEscapingShort(string s)
 		{
 			var lookup = EscapingLookupTable;
 			foreach (var c in s)
@@ -95,39 +89,15 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Détermine si le texte JSON est "clean" (ie: ne nécessite pas d'encodage)</summary>
-		/// <param name="s">Chaîne à vérifier</param>
-		/// <returns>False si tt les caractères sont valides, True si au moins un nécessite d'être encodé</returns>
-		public static unsafe bool NeedsEscapingLong(string s)
+		/// <summary>Check if a (long) string must be escaped</summary>
+		/// <remarks>This version is optimized for longer strings</remarks>
+		internal static unsafe bool NeedsEscapingLong(string s)
 		{
 			Contract.Debug.Requires(s != null);
 
-			// Unroll la boucle de test, optimisée pour les chaînes de tailles > 8
+			// We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
+			// If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
 
-			// On part du principe que 99.99% des strings encodées sont propre, et donc que lookup[c] retournera (presque) toujours false.
-			// Si on utilise un OR bitwise (|), on a un seul test/branch par boucle de 4, alors que si on utilise les OR logique (||) il y a un test à chaque step donc 4 tests/branch bar boucle de 4.
-
-#if DISABLE_UNSAFE_CODE
-			// Version "safe" (20-30% de perf en moins)
-			var lookup = s_escapingLookupTable;
-			int n = s.Length;
-			int p = 0;
-
-			// loop unrolling
-			while (n >= 4)
-			{
-				if (lookup[s[p++]] | lookup[s[p++]] | lookup[s[p++]] | lookup[s[p++]]) return true;
-				n -= 4;
-			}
-			// tail
-			while (n > 0)
-			{
-				if (lookup[s[p++]]) return true;
-				--n;
-			}
-			return false;
-#else
-			// Version "unsafe" (la plus performante)
 			fixed (char* p = s)
 			{
 				var lookup = EscapingLookupTable;
@@ -148,17 +118,16 @@ namespace Doxense.Serialization.Json
 				}
 				return false;
 			}
-#endif
 		}
 
-		/// <summary>Encode une chaîne en JSON</summary>
-		/// <param name="text">Chaîne à encoder</param>
+		/// <summary>Encode a string of text that must be written to a JSON document</summary>
+		/// <param name="text">Text to encode</param>
 		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
-		/// <remarks>Chaîne correctement encodée, avec les guillemets ou "null" si text==null</remarks>
+		/// <remarks>String with the correct escaping and surrounded by double-quotes (<c>"..."</c>), or <c>"null"</c> if <paramref name="text"/> is <c>null</c></remarks>
 		/// <example>EncodeJsonString("foo") => "\"foo\""</example>
 		public static string Encode(string? text)
 		{
-			// on évacue tout de suite les cas faciles
+			// handle quickly the easy cases
 			if (text == null)
 			{ // => null
 				return "null";
@@ -166,47 +135,45 @@ namespace Doxense.Serialization.Json
 			if (text.Length == 0)
 			{ // => ""
 				return "\"\"";
-			} // -> premiere passe pour voir s'il y a des caractères a remplacer..
-
+			}
+			
+			// first check if we actually need to encode anything
 			if (NeedsEscaping(text))
-			{ // il va falloir escaper la string!
+			{ // yes => slow path
 				return EncodeSlow(text);
 			}
 
-			// rien a modifier, retourne la chaîne initiale (fast, no memory used)
+			// nothing to do, except add the double quotes
 			return string.Concat("\"", text, "\"");
 		}
 
 		public static string EncodeSlow(string text)
 		{
-			// note: on estime a 6 caracs l'overhead typique d'un encoding (ou deux ou trois \", ou un \uXXXX)
+			// note: we assume that the typical overhead of escaping characters will be up to 6 characters if there is only one or two "invalid" characters
+			// this assumption totally breaks down for non-latin languages!
 			var sb = StringBuilderCache.Acquire(checked(text.Length + 2 + 6));
 			return StringBuilderCache.GetStringAndRelease(AppendSlow(sb, text, true));
 		}
 
-		/// <summary>Encode un texte JSON (en traitant chaque caractère)</summary>
-		/// <param name="sb">Buffer où écrire le résultat</param>
-		/// <param name="text">Chaîne à encoder</param>
-		/// <param name="includeQuotes">Si true, ajoutes les '"' en début et fin du buffer</param>
-		/// <returns>Le StringBuilder passé en paramètre (pour chaînage)</returns>
-		public static unsafe StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
+		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
+		internal static unsafe StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
 		{
 			if (text == null)
 			{ // bypass
 				return sb.Append("null");
 			}
 
-			// On fait la détection et l'encodage en une seule passe:
-			// - On a un curseur sur le dernier carac modifié (initialement à 0)
-			// - Tant que tout est clean, on avance le curseur
-			// - Dés qu'on trouve un caractère à encoder (ou fin de chaîne):
-			//   - On dump le texte clean du curseur à la position courante
-			//   - On encode le caractère actuel,
-			//   - et on replace le curseur juste derrière
+			// We check and encode in a single pass:
+			// - we have a cursor on the last changed character (initially set to 0)
+			// - as long as we see valid characters, we advance the cursor
+			// - if we find a character that needs to be escaped (or reach the end of the string):
+			//   - we copy the clean text from the previous cursor to the current position,
+			//   - we encode the current character,
+			//   - we advance the cursor to the next character
 			//
-			// Une chaîne entièrement clean arrivera a la fin du for avec le curseur toujours à 0
+			// A string that did not require any replacement will end up with the cursor still set to 0
 			//
-			// note: on laisse le '/' tel quel, pour différencier entre le '/' (qui serait présent dans la chaîne d'origine), du '\/' qui serait pour les dates
+			// note: we do not encode the forward slash ('/'), to help distinguish with it, and '\/' that is frequently used to encode dates.
 
 			if (includeQuotes) sb.Append('"');
 			int i = 0, last = 0;
@@ -224,12 +191,12 @@ namespace Doxense.Serialization.Json
 							goto escape_backslash;
 						}
 						else if (c >= ' ')
-						{ // ASCII 32..47 : entre l'espace et le '/'
-							goto next; // => non modifié
+						{ // ASCII 32..47 : from space to '/'
+							goto next; // => not modified
 						}
-						// ASCII 0..31 : encodé
-						// - on escape directement les \n, \r, \t, \b et \f
-						// - le reste sera encodé en Unicode \uXXXX
+						// ASCII 0..31 : encoded
+						// - we directly escape any of \n, \r, \t, \b and \f
+						// - all others will be escaped as Unicode: \uXXXX
 						switch (c)
 						{
 							case '\n': c = 'n'; goto escape_backslash;
@@ -238,7 +205,7 @@ namespace Doxense.Serialization.Json
 							case '\b': c = 'b'; goto escape_backslash;
 							case '\f': c = 'f'; goto escape_backslash;
 						}
-						// encode en \uXXXX
+						// encode as \uXXXX
 						goto escape_unicode;
 					}
 					else if (c == '\\')
@@ -246,20 +213,20 @@ namespace Doxense.Serialization.Json
 						goto escape_backslash;
 					}
 					else if (c >= 0xD800 && (c < 0xE000 || c >= 0xFFFE))
-					{ // attention, la plage Unicode D800 - DFFF est utilisée pour encoder les caractères non-BMP (> 0x10000), et FFFE/FFFF correspondent aux BOM UTF-16 (LE/BE)
+					{ // warning, the Unicode range D800 - DFFF is used to escape non-BMP characters (> 0x10000), and FFFE/FFFF corresponds to BOM UTF-16 (LE/BE)
 						goto escape_unicode;
 					}
 					// => skip
 					goto next;
 
-					// caractère encodé avec un backslah => \c
+					// character encoded with a single backslash => \c
 				escape_backslash:
 					if (i > last) sb.Append(text, last, i - last);
 					last = i + 1;
 					sb.Append('\\').Append(c);
 					goto next;
 
-					// caractère encodé en Unicode sur 16 bits
+					// character encoded as Unicode using 16 bits
 				escape_unicode:
 					if (i > last) sb.Append(text, last, i - last);
 					last = i + 1;
@@ -267,19 +234,18 @@ namespace Doxense.Serialization.Json
 					goto next;
 
 				next:
-					// si on arrive ici, c'est que c'est un caractère normal.
-					// on continue à checker jusqu'à la fin ou prochain caractère
+					// no encoding required.
 					++i;
 
 				} // while
 			} // fixed
 
 			if (last == 0)
-			{ // toute la chaîne était clean
+			{ // the text did not require any escaping
 				sb.Append(text);
 			}
 			else if (last < text.Length)
-			{ // il reste des caractères normaux dans le buffer
+			{ // append the tail that did not need any escaping
 				sb.Append(text, last, text.Length - last);
 			}
 			return includeQuotes ? sb.Append('"') : sb;

@@ -40,4 +40,5 @@ namespace Doxense.Messaging.PubSub
 		Task PublishAsync(string channel, string message, CancellationToken ct);
 
 	}
+
 }

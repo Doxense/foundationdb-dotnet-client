@@ -59,7 +59,7 @@ namespace Doxense.Messaging.Events
 		private List<IEvent> Events { get; } = new ();
 
 		public bool Async => false;
-		//note: techniquement c'est un mensonge car on lock() mais c'est pas très grave!
+		//note: in truth, this is a "lie" because we lock(), but this is not really an issue here!
 
 		public Task Dispatch(IEvent evt, CancellationToken ct)
 		{
@@ -86,7 +86,7 @@ namespace Doxense.Messaging.Events
 		{
 			lock(this.Events)
 			{
-				//note: on retourne une copie!
+				//note: we return a copy!
 				return new List<IEvent>(this.Events);
 			}
 		}

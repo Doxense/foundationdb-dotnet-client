@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
-
 namespace Doxense.Diagnostics.Contracts
 {
 	using JetBrains.Annotations;
@@ -451,7 +449,7 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception? TryMapToKnownException(Type exceptionType, string message, string? paramName)
 		{
-			// d'abord on regarde si c'est un type "simple"
+			// first check if this is a "simple" type
 			if (exceptionType == typeof(ArgumentNullException))
 			{
 				return new ArgumentNullException(paramName, message);
@@ -485,7 +483,7 @@ namespace Doxense.Diagnostics.Contracts
 			ConstructorInfo? constructor;
 
 			if (paramName != null)
-			{ // essayes de trouver un constructeur qui prenne deux string dont une soit "paramName"
+			{ // look for a ctor that takes two strings with one of them called "paramName"
 				constructor = exceptionType.GetConstructor(new[] { typeof(string), typeof(string) });
 				if (constructor != null)
 				{
@@ -493,21 +491,21 @@ namespace Doxense.Diagnostics.Contracts
 					{
 						return constructor.Invoke(new object[] { paramName, message }) as Exception;
 					}
-					else if (constructor.GetParameters()[1].Name == "paramName")
+					if (constructor.GetParameters()[1].Name == "paramName")
 					{
 						return constructor.Invoke(new object[] { message, paramName }) as Exception;
 					}
 				}
 			}
 
-			// essayes de trouver un constructeur qui prenne une string
+			// look for a ctor that takes only one string
 			constructor = exceptionType.GetConstructor(new[] { typeof(string) });
 			if (constructor != null)
 			{
 				return constructor.Invoke(new object[] { message }) as Exception;
 			}
 
-			// c'est un type d'erreur qui ne prend pas de params ?
+			// is this a parameterless ctor?
 			constructor = exceptionType.GetConstructor(Type.EmptyTypes);
 			if (constructor != null)
 			{

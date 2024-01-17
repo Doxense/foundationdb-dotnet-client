@@ -188,10 +188,10 @@ namespace Doxense.Messaging
 					this.Pipeline.Writer.TryWrite(tcs);
 					if (final) this.Pipeline.Writer.TryComplete();
 
-					var t = await Task.WhenAny(tcs.Task, runTask, Task.Delay(Timeout.Infinite, ct));
+					var t = await Task.WhenAny(tcs.Task, runTask, Task.Delay(Timeout.Infinite, ct)).ConfigureAwait(false);
 					if (t == tcs.Task)
 					{
-						await tcs.Task;
+						await tcs.Task.ConfigureAwait(false);
 					}
 				}
 				finally
@@ -209,14 +209,14 @@ namespace Doxense.Messaging
 				this.Lifetime.CancelAfter(TimeSpan.FromSeconds(5));
 
 				// drain!
-				await DrainAsync(true, this.Lifetime.Token);
+				await DrainAsync(true, this.Lifetime.Token).ConfigureAwait(false);
 
 				// cancel the main task
 				this.Lifetime.Cancel();
 				// wait for the main task to complete..
 				try
 				{
-					await this.RunTask;
+					await this.RunTask.ConfigureAwait(false);
 				}
 				catch (Exception)
 				{
