@@ -27,12 +27,14 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.ComponentModel;
 	using System.Runtime.Serialization;
 
 	/// <summary>Erreur de syntaxe lors du parsing d'un document JSON</summary>
 	[Serializable]
 	public class JsonSyntaxException : FormatException
 	{
+
 		private readonly string? m_reason;
 		private readonly long m_offset;
 		private readonly int m_line;
@@ -56,7 +58,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		public JsonSyntaxException(string message, string? reason, long offset, int line, int position)
-			: base(String.Format(reason == null ? "{0} at ln {1} col {2}" : "{0} at ln {1} col {2}: {3}", message, line, position, reason))
+			: base(string.Format(reason == null ? "{0} at ln {1} col {2}" : "{0} at ln {1} col {2}: {3}", message, line, position, reason))
 		{
 			m_reason = reason;
 			m_offset = offset;
@@ -64,6 +66,10 @@ namespace Doxense.Serialization.Json
 			m_position = position;
 		}
 
+#if NET8_0_OR_GREATER
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
+#endif
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		protected JsonSyntaxException(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
@@ -73,6 +79,10 @@ namespace Doxense.Serialization.Json
 			m_position = info.GetInt32("Position");
 		}
 
+#if NET8_0_OR_GREATER
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
+#endif
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			base.GetObjectData(info, context);

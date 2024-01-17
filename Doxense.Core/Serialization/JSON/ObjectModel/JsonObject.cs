@@ -38,6 +38,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.Serialization;
 	using System.Text;
 	using Doxense.Memory;
+	using System.ComponentModel;
 
 	/// <summary>JSON Object with fields</summary>
 	[Serializable]
@@ -345,6 +346,9 @@ namespace Doxense.Serialization.Json
 			return obj;
 		}
 
+#if NET8_0_OR_GREATER
+		[Obsolete]
+#endif
 		private static System.Runtime.Serialization.FormatterConverter? CachedFormatterConverter;
 
 		/// <summary>Serialize an <see cref="Exception"/> into a JSON object</summary>
@@ -360,7 +364,7 @@ namespace Doxense.Serialization.Json
 		public static JsonObject FromException(Exception ex, bool includeTypes = true)
 		{
 			Contract.NotNull(ex);
-			if (!(ex is ISerializable ser))
+			if (ex is not ISerializable ser)
 			{
 				throw new JsonSerializationException($"Cannot serialize exception of type '{ex.GetType().FullName}' because it is not marked as Serializable.");
 			}
@@ -374,7 +378,8 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		[Pure]
 #if NET8_0_OR_GREATER
-		[Obsolete("Formatter-based serialization is obsolete and should not be used.")]
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		public static JsonObject FromISerializable(ISerializable value, bool includeTypes = true, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{

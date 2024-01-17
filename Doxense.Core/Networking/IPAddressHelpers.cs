@@ -257,9 +257,7 @@ namespace Doxense.Networking
 			}
 			catch (Exception e)
 			{
-#if DEBUG
 				System.Diagnostics.Debug.WriteLine($"### Failed to get local address able to talk to remote address {remoteAddress}: {e}");
-#endif
 				localAddress = null;
 				return false;
 			}

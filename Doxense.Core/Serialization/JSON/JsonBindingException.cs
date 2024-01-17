@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.ComponentModel;
 	using System.Runtime.Serialization;
 
 	/// <summary>Erreur survenue lors de la désérialisation d'une valeur JSON en objet CLR</summary>
@@ -62,6 +63,10 @@ namespace Doxense.Serialization.Json
 			this.Value = value;
 		}
 
+#if NET8_0_OR_GREATER
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
+#endif
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		protected JsonBindingException(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
@@ -69,6 +74,10 @@ namespace Doxense.Serialization.Json
 			this.Path = info.GetString("Path");
 		}
 
+#if NET8_0_OR_GREATER
+		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
+#endif
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			base.GetObjectData(info, context);

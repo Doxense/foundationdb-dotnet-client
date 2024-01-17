@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
+namespace Doxense.Mathematics.Statistics
 {
 	using System;
 	using System.Globalization;
@@ -35,6 +35,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 	using JetBrains.Annotations;
 
 	/// <summary>Helper that will aggregate individual measurements, and output detailed distribution reports and charts.</summary>
+	[PublicAPI]
 	public sealed class RobustHistogram
 	{
 
@@ -107,7 +108,9 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 
 		public RobustHistogram(TimeScale scale)
 		{
-			this.Clear();
+			this.Min = MaxValue;
+			this.Max = MinValue;
+			this.Buckets = new long[NumBuckets];
 			this.Scale = scale;
 			switch (scale)
 			{
@@ -309,7 +312,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			return TimeSpan.FromTicks((long)(value / this.TicksToUnit));
 		}
 
-		/// <summary>Vide les données de cet histogramme, afin de pouvoir le réutiliser pour une nouvelle campagne de mesure</summary>
+		/// <summary>Clear all samples from this histogram, so that it can be reused for another measurement run</summary>
 		public void Clear()
 		{
 			this.Min = MaxValue;
@@ -317,14 +320,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			this.Count = 0;
 			this.InternalSum = 0;
 			this.InternalSumSquares = 0;
-			if (this.Buckets == null)
-			{
-				this.Buckets = new long[NumBuckets];
-			}
-			else
-			{
-				Array.Clear(this.Buckets, 0, this.Buckets.Length);
-			}
+			Array.Clear(this.Buckets, 0, this.Buckets.Length);
 		}
 
 		public void Merge(RobustHistogram other)
@@ -342,12 +338,12 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 
 		private static int GetBucketIndex(double value)
 		{
-			// On veut trouver pour chaque valeur 'x' le bucket 'B' qui correspond à: BucketLimits[B - 1] <= x < BucketLimits[B]
-			// Si value > MaxValue, alors on considère qu'elle est quand même dans le dernier bucket, ce qui faussera les résultats
+			// We want to find, for each value 'x', the bucket 'B' that verfies: BucketLimits[B - 1] <= x < BucketLimits[B]
+			// Note: If value > MaxValue, we assume that we are still in the last bucket, which may break some measurements
 
-			// cette méthode est perf sensitive car elle apparait souvent dans les rapports de profiling
-			// => on va d'abord déterminer dans quel "quadrant" se trouve la valeur, et finir par un binary search
-			// => on part du principe que les valeurs les plus courrantes sont des petits nombres
+			// This method if performance sensitive, beccause it will usually be called by benchmarks or when profiling the hot path of an algorithm.
+			// => we will first compute in which "quadrant" the value is located, and then finish by performing a binary search
+			// => we assume that the most common values will be small numbers, and that large numbers are uncommon.
 
 			int p;
 			if (value < 1)
@@ -407,7 +403,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 #if FULL_DEBUG
 		public static void ValidateGetBucketIndex()
 		{
-			// Pseudo-test qui permet de vérifier que GetBucketIndex(...) retourne les bonnes valeurs!
+			// Pseudo-test that ensures that GetBucketIndex(...) is behaving as expected
 
 			Action<double> getBucket = (x) =>
 			{
@@ -442,7 +438,8 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 		}
 #endif
 
-		/// <summary>Ajoute une valeur (exprimée dans l'unitée de l'échelle associée à cet histogramme)</summary>
+		/// <summary>Add a new measurement</summary>
+		/// <remarks>The unit if the value should match the unit that was specified when the histogram was created</remarks>
 		public void Add(double value)
 		{
 			int bucketIndex = GetBucketIndex(value);
@@ -454,69 +451,70 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			this.InternalSumSquares += (value * value * SUM_SQUARES_RATIO);
 		}
 
-		/// <summary>Ajoute une durée qui sera adaptée à l'échelle de cet histogramme</summary>
+		/// <summary>Add a new duration measurement</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(TimeSpan value)
 		{
 			Add(value.Ticks * this.TicksToUnit);
 		}
 
-		/// <summary>Ajoute une durée (exprimée en ticks de TimeSpan) qui sera adaptée à l'échelle de cet histogramme</summary>
+		/// <summary>Add a new duration measurement, expressed in ticks (100 ns per tick)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void AddTicks(long ticks)
 		{
 			Add(ticks * this.TicksToUnit);
 		}
 
-		/// <summary>Ajoute une durée (exprimée en ticks de TimeSpan) qui sera adaptée à l'échelle de cet histogramme</summary>
+		/// <summary>Add a new duration measurement, expressed in nanoseconds</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void AddNanos(double nanos)
 		{
 			Add(nanos * (this.TicksToUnit / 100.0)); // 100 nanos per tick
 		}
 
-		/// <summary>Echelle utilisée par cet histogramme</summary>
+		/// <summary>Time scale used by this histogram</summary>
 		public TimeScale Scale { get; }
 
+		/// <summary>Dimension of values measured by this histogram</summary>
 		public DimensionType Dimension { get; }
 
-		/// <summary>Facteur de conversion pour passer d'un tick de TimeSpan à l'unitée de l'échelle de cet histogramme</summary>
+		/// <summary>Conversion factor from ticks (100ns) to the time scale unit used by this histogram</summary>
 		private double TicksToUnit { get; }
 
-		/// <summary>Retourne le nombre d'échantillons: Ts.Count()</summary>
+		/// <summary>Number of samples that where measured so far: Ts.Count()</summary>
 		public int Count { get; private set; }
 
-		/// <summary>Retourne l'échantillon minimum: Ts.Min()</summary>
+		/// <summary>Lowest sample measured so far: Ts.Min()</summary>
 		public double Min { get; private set; }
 
-		/// <summary>Retourne l'échantillon maximum: Ts.Max()</summary>
+		/// <summary>Highest sample measured so far: Ts.Max()</summary>
 		public double Max { get; private set; }
 
-		/// <summary>Retourne la somme des valeurs: Ts.Sum(t => t)</summary>
+		/// <summary>Sum of all samples measured so far: Ts.Sum(t => t)</summary>
 		public double Sum
 		{
 			[Pure]
 			get => this.InternalSum / SUM_RATIO;
 		}
 
-		/// <summary>Retourne la somme des carrés des valeurs: Ts.Sum(t => t * t)</summary>
+		/// <summary>Sum of the squares of all samples measured so far: Ts.Sum(t => t * t)</summary>
 		public double SumSquares
 		{
 			[Pure]
 			get => this.InternalSumSquares / SUM_SQUARES_RATIO;
 		}
 
-		/// <summary>Somme de toutes les valeurs ajoutées à cet histogramme</summary>
+		/// <summary>Raw sum of all samples</summary>
 		private double InternalSum { get; set; }
 
-		/// <summary>Somme des carrés de toutes les valeurs ajoutées à cet histogramme</summary>
+		/// <summary>Raw sum of the squares of all samples</summary>
 		private double InternalSumSquares { get; set; }
 
-		/// <summary>Array contenant le nombre de samples ajoutés pour chaque bucket</summary>
-		/// <remarks>La slot Buckets[B] contient le nombre de samples dont la valeur x est Buckets[B - 1] &lt;= x &lt; Buckets[B]</remarks>
+		/// <summary>Array that contains the number of samples that where measured for each bucket</summary>
+		/// <remarks>The entry <c>Buckets[B]</c> contains the number of samples whose value <c>x</c> is bounded by <c>Buckets[B - 1] &lt;= x &lt; Buckets[B]</c></remarks>
 		private long[] Buckets { get; set; }
 
-		/// <summary>Retourne l'échantillon médian</summary>
+		/// <summary>Compute the median of all measured samples (50% percentile)</summary>
 		public double Median
 		{
 			[Pure]
@@ -690,9 +688,9 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 
 		#endregion
 
-		/// <summary>Retourne la valeur du percentile <paramref name="p"/> (entre 0 et 100)</summary>
-		/// <param name="p">Valeur du percentile, entre 0 et 100 (ex: 50 pour la médiane)</param>
-		/// <returns>Valeur du percentile correspondante</returns>
+		/// <summary>Compte the value of the given percentile <paramref name="p"/> (0..100%)</summary>
+		/// <param name="p">Value of the percentile, expressed in % from 0 to 100 (ex: 50 is equivalent to the median)</param>
+		/// <returns>Corresponding percentile value</returns>
 		[Pure]
 		public double Percentile(double p)
 		{
@@ -719,7 +717,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			return this.Max;
 		}
 
-		/// <summary>Retourne le Mean Absolute Deviation</summary>
+		/// <summary>Compute the Mean Absolute Deviation</summary>
 		[Pure]
 		public double MAD()
 		{
@@ -731,7 +729,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 				{
 					double leftPoint = i > 0 ? BucketLimits[i - 1] : 0;
 					double rightPoint = BucketLimits[i];
-					// on considère qu'on est au millieu
+					// assume that we are in between of the two buckets
 					return new { Count = x, Deviation = Math.Abs(((leftPoint + rightPoint) / 2d) - median) };
 				})
 				.Where(kvp => kvp.Count > 0)
@@ -758,14 +756,14 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			return array.LastOrDefault()?.Deviation ?? double.NaN;
 		}
 
-		/// <summary>Retourne la valeur moyenne</summary>
+		/// <summary>Compute the arithmetic average</summary>
 		public double Average
 		{
 			[Pure]
 			get => this.Count == 0 ? 0 : (this.Sum / this.Count);
 		}
 
-		/// <summary>Retourne la valeur de l'écart-type</summary>
+		/// <summary>Compute the standard deviation</summary>
 		public double StandardDeviation
 		{
 			[Pure]
@@ -789,17 +787,18 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 				return new string('@', chars);
 			}
 
-			char[] s = new char[chars];
+			var buf = new char[chars];
+			var s = buf.AsSpan();
 
 			int p = 0;
 
 			if (value < -double.Epsilon)
 			{
-				s[p + 0] = '[';
-				s[p + 1] = 'N';
-				s[p + 2] = 'E';
-				s[p + 3] = 'G';
-				s[p + 4] = ']';
+				s[0] = '[';
+				s[1] = 'N';
+				s[2] = 'E';
+				s[3] = 'G';
+				s[4] = ']';
 				p += 5;
 			}
 			else if (marks == 0)
@@ -828,11 +827,11 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 				while (p < chars) s[p++] = pad;
 			}
 
-			return new string(s, 0, p);
+			return new string(buf, 0, p);
 		}
 
-		/// <summary>Génère un areaplot correspondant à la distribution des éléments par valeur</summary>
-		/// <returns>Chaîne qui ressemble à <code>"   __xX=-___x___     "</code></returns>
+		/// <summary>Generate an areaplot that will display the distribution of samples, by value</summary>
+		/// <returns>String that will look like this: <c>"   __xX=-___x___     "</c></returns>
 		[Pure]
 		public string GetDistribution(double begin = 1.0d, double end = MaxValue, int fold = 0)
 		{
@@ -886,14 +885,15 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			}
 		}
 
-		/// <summary>Gènère un boxplot horizontale correspondant aux distributions des données</summary>
-		/// <returns>Chaine qui ressemble à <code>"¤     ×·(——[==#===]——————)···×          @"</code>.
-		/// Légende:
+		/// <summary>Generate an horizontal boxplot that displays the distribution of the sampled values</summary>
+		/// <returns><para>String that will look like <c>"¤     ×·(——[==#===]——————)···×          @"</c>.</para>
+		/// <code>Legend:
 		/// - '#' = MEDIAN
-		/// - '¤' et '@' = MIN et MAX
-		/// - '[' et ']' = P25 et P75
-		/// - '(' et ')' = P05 et P95
-		/// - 'x' = P01 et P99
+		/// - '¤', '@' = MIN, MAX
+		/// - '[', ']' = P25, P75
+		/// - '(', ')' = P05, P95
+		/// - 'x' = P01, P99
+		/// </code>
 		/// </returns>
 		[Pure]
 		public string GetPercentile(double start = 1.0d, double end = MaxValue)
@@ -966,7 +966,7 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			get => GetMaxThreshold(this.Max);
 		}
 
-		/// <summary>Découpe la section d'une échelle graduée correspondant au min-max spécifié</summary>
+		/// <summary>Truncate a distribution scale according to the specified range</summary>
 		[Pure]
 		public static string GetDistributionScale(string scaleString, double start = 1.0d, double end = MaxValue)
 		{
@@ -980,7 +980,8 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 		[Pure]
 		public string GetScaleAuto(string? scaleString = null) => GetDistributionScale(scaleString ?? HorizontalScale, this.LowThreshold, this.HighThreshold);
 
-		/// <summary>Retourne une description textuelle des différents percentiles</summary>
+		/// <summary>Generate a short text description of the percentiles of this distribution</summary>
+		/// <returns><c>"P5 --| P25 == [ P50 ]== P75 |-- P95"</c></returns>
 		[Pure]
 		public string GetPercentiles()
 		{
@@ -995,8 +996,8 @@ namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 			);
 		}
 
-		/// <summary>Génère un rapport des mesures</summary>
-		/// <param name="detailed">Si false, génère un tableau qui tient en moins de 80 caractère de large. Si true, retourne une version plus large avec plus de bars graphs</param>
+		/// <summary>Generate a text report of the measurements, that can be written to the console or in a log file</summary>
+		/// <param name="detailed">If <c>false</c>, generate a simple table. If <c>true</c>, output a more detailed version with bar graphs, that could exceed 80 characters per line.</param>
 		[Pure]
 		public string GetReport(bool detailed)
 		{
