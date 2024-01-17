@@ -79,7 +79,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Check if a (short) string must be escaped</summary>
 		/// <remarks>This version is optimized for short strings</remarks>
-		internal static bool NeedsEscapingShort(string s)
+		public static bool NeedsEscapingShort(string s)
 		{
 			var lookup = EscapingLookupTable;
 			foreach (var c in s)
@@ -91,7 +91,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Check if a (long) string must be escaped</summary>
 		/// <remarks>This version is optimized for longer strings</remarks>
-		internal static unsafe bool NeedsEscapingLong(string s)
+		public static unsafe bool NeedsEscapingLong(string s)
 		{
 			Contract.Debug.Requires(s != null);
 
@@ -156,7 +156,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
-		internal static unsafe StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
+		public static unsafe StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
 		{
 			if (text == null)
 			{ // bypass

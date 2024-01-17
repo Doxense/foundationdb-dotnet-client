@@ -379,32 +379,32 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.StringEncode("\xFFFF"), Is.EqualTo(@"""\uffff"""), "BOM UTF-16 BE (FFFF)");
 
 			// test coverage !
-			Assert.That(JsonEncoding.NeedsEscapingLong("a"), Is.False, "LOWER CASE 'a'");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\""), Is.True, "DOUBLE QUOTE");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\\"), Is.True, "ANTI SLASH");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\x00"), Is.True, "ASCII NULL");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\x07"), Is.True, "ASCII 7");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\x1F"), Is.True, "ASCII 31");
-			Assert.That(JsonEncoding.NeedsEscapingLong(" "), Is.False, "SPACE");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\uD7FF"), Is.False, "UNICODE 0xD7FF");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\uD800"), Is.True, "UNICODE 0xD800");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\uE000"), Is.False, "UNICODE 0xE000");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\uFFFD"), Is.False, "UNICODE 0xFFFD");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\uFFFE"), Is.True, "UNICODE 0xFFFE");
-			Assert.That(JsonEncoding.NeedsEscapingLong("\uFFFF"), Is.True, "UNICODE 0xFFFF");
+			Assert.That(JsonEncoding.NeedsEscaping("a"), Is.False, "LOWER CASE 'a'");
+			Assert.That(JsonEncoding.NeedsEscaping("\""), Is.True, "DOUBLE QUOTE");
+			Assert.That(JsonEncoding.NeedsEscaping("\\"), Is.True, "ANTI SLASH");
+			Assert.That(JsonEncoding.NeedsEscaping("\x00"), Is.True, "ASCII NULL");
+			Assert.That(JsonEncoding.NeedsEscaping("\x07"), Is.True, "ASCII 7");
+			Assert.That(JsonEncoding.NeedsEscaping("\x1F"), Is.True, "ASCII 31");
+			Assert.That(JsonEncoding.NeedsEscaping(" "), Is.False, "SPACE");
+			Assert.That(JsonEncoding.NeedsEscaping("\uD7FF"), Is.False, "UNICODE 0xD7FF");
+			Assert.That(JsonEncoding.NeedsEscaping("\uD800"), Is.True, "UNICODE 0xD800");
+			Assert.That(JsonEncoding.NeedsEscaping("\uE000"), Is.False, "UNICODE 0xE000");
+			Assert.That(JsonEncoding.NeedsEscaping("\uFFFD"), Is.False, "UNICODE 0xFFFD");
+			Assert.That(JsonEncoding.NeedsEscaping("\uFFFE"), Is.True, "UNICODE 0xFFFE");
+			Assert.That(JsonEncoding.NeedsEscaping("\uFFFF"), Is.True, "UNICODE 0xFFFF");
 
-			Assert.That(JsonEncoding.NeedsEscapingLong("aa"), Is.False);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaa"), Is.False);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaaa"), Is.False);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaaaa"), Is.False);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaaaaa"), Is.False);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaaaaaa"), Is.False);
-			Assert.That(JsonEncoding.NeedsEscapingLong("a\""), Is.True);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aa\""), Is.True);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaa\""), Is.True);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaaa\""), Is.True);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaaaa\""), Is.True);
-			Assert.That(JsonEncoding.NeedsEscapingLong("aaaaaa\""), Is.True);
+			Assert.That(JsonEncoding.NeedsEscaping("aa"), Is.False);
+			Assert.That(JsonEncoding.NeedsEscaping("aaa"), Is.False);
+			Assert.That(JsonEncoding.NeedsEscaping("aaaa"), Is.False);
+			Assert.That(JsonEncoding.NeedsEscaping("aaaaa"), Is.False);
+			Assert.That(JsonEncoding.NeedsEscaping("aaaaaa"), Is.False);
+			Assert.That(JsonEncoding.NeedsEscaping("aaaaaaa"), Is.False);
+			Assert.That(JsonEncoding.NeedsEscaping("a\""), Is.True);
+			Assert.That(JsonEncoding.NeedsEscaping("aa\""), Is.True);
+			Assert.That(JsonEncoding.NeedsEscaping("aaa\""), Is.True);
+			Assert.That(JsonEncoding.NeedsEscaping("aaaa\""), Is.True);
+			Assert.That(JsonEncoding.NeedsEscaping("aaaaa\""), Is.True);
+			Assert.That(JsonEncoding.NeedsEscaping("aaaaaa\""), Is.True);
 		}
 
 		[Test]

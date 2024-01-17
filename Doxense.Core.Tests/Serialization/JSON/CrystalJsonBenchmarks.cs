@@ -485,9 +485,9 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Warmup...
 			JsonEncoding.NeedsEscaping("foo");
+			JsonEncoding.NeedsEscaping("fo\"o");
 			JsonEncoding.NeedsEscaping("hello world");
-			JsonEncoding.NeedsEscapingShort("bar");
-			JsonEncoding.NeedsEscapingLong("hello world");
+			JsonEncoding.NeedsEscaping("hello world\"hello world");
 			#endregion
 
 			double[][] nanos = new double[LIST.Length][];
