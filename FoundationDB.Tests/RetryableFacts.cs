@@ -24,6 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable PossibleMultipleEnumeration
+// ReSharper disable AccessToDisposedClosure
+// ReSharper disable ReplaceAsyncWithTaskReturn
+#pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 namespace FoundationDB.Client.Tests
 {
 	using System;
@@ -78,7 +84,7 @@ namespace FoundationDB.Client.Tests
 				int called = 0;
 
 				// ReadAsync should return a failed Task, and not bubble up the exception.
-				var task = db.ReadAsync<int>((tr) =>
+				var task = db.ReadAsync<int>((_) =>
 				{
 					Assert.That(called, Is.Zero, "ReadAsync should not retry on regular exceptions");
 					++called;
@@ -112,7 +118,7 @@ namespace FoundationDB.Client.Tests
 							Assert.That(tr.Context, Is.Not.Null, "tr.Context should not be null");
 							Assert.That(tr.Context.Retries, Is.EqualTo(called - 1), "tr.Context.Retries should equal the number of calls to the handler, minus one");
 
-							if (id == null) id = tr.Id;
+							id ??= tr.Id;
 							Assert.That(tr.Id, Is.EqualTo(id.Value), "The same transaction should be passed multiple times");
 
 							if (called < 3)
@@ -173,11 +179,11 @@ namespace FoundationDB.Client.Tests
 				sw.Stop();
 				Log("> done in " + sw.Elapsed);
 
-				using (var timer = new System.Threading.Timer((_) => { Log($"WorkingSet: {Environment.WorkingSet:N0}, Managed: {GC.GetTotalMemory(false):N0}"); }, null, 1000, 1000))
+				using (new System.Threading.Timer((_) => { Log($"WorkingSet: {Environment.WorkingSet:N0}, Managed: {GC.GetTotalMemory(false):N0}"); }, null, 1000, 1000))
 				{
 					try
 					{
-						var result = await db.ReadAsync(async (tr) =>
+						_ = await db.ReadAsync(async (tr) =>
 						{
 							Log("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
 							var subspace = await location.Resolve(tr);
@@ -218,12 +224,12 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var go = new CancellationTokenSource())
 				{
-					go.Cancel();
+					await go.CancelAsync();
 
 					bool called = false;
 
 					// ReadAsync should return a canceled Task, and never call the handler
-					var t = db.ReadAsync<int>((tr) =>
+					var t = db.ReadAsync<int>((_) =>
 					{
 						called = true;
 						Log("FAILED");
@@ -233,7 +239,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(t.IsCompleted, "Returned task should already be canceled");
 					Assert.That(t.Status, Is.EqualTo(TaskStatus.Canceled), "Returned task should be in the canceled state");
 					Assert.That(called, Is.False, "Handler should not be called with an already canceled token");
-					var _ = t.Exception;
+					_ = t.Exception;
 				}
 			}
 
@@ -387,8 +393,8 @@ namespace FoundationDB.Client.Tests
 				int called = 0;
 				Assert.That(
 					async () => await db.ReadWriteAsync<Slice>(
-						(tr) => throw new InvalidOperationException("KAPOW!"),
-						(tr, res) =>
+						(_) => throw new InvalidOperationException("KAPOW!"),
+						(_, _) =>
 						{
 							called++;
 							Assert.Fail("Success callback should never have been called!");
@@ -531,7 +537,7 @@ namespace FoundationDB.Client.Tests
 						tr.SetVersionStampedKey(key + VersionStamp.Incomplete().ToSlice(), key.Count, prev);
 						return new { Stamp = tr.GetVersionStampAsync() }; //REVIEW: "return tr.GetVersionStampAsync()" will deadlock because 'ReadWrite' will try to await it!
 					},
-					(tr, res) => res.Stamp,
+					(_, res) => res.Stamp,
 					this.Cancellation
 				);
 				Assert.That(st.IsIncomplete, Is.False, "Stamp should be completed");

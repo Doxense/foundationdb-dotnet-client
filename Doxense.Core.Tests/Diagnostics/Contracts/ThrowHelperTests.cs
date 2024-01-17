@@ -24,6 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace Doxense.Diagnostics.Contracts.Tests
 {
 	using System;

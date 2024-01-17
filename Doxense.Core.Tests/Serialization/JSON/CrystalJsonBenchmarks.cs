@@ -25,8 +25,10 @@
 #endregion
 
 #nullable disable
-
+// ReSharper disable UnusedParameter.Local
+// ReSharper disable UnusedMember.Global
 // ReSharper disable ReturnValueOfPureMethodIsNotUsed
+
 #define ENABLE_NEWTONSOFT
 
 namespace Doxense.Serialization.Json.Tests
@@ -43,7 +45,6 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Threading;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Runtime;
-	using Doxense.Memory.Text;
 	using Doxense.Testing;
 #if ENABLE_NEWTONSOFT
 	using NJ = Newtonsoft.Json;
@@ -340,7 +341,7 @@ namespace Doxense.Serialization.Json.Tests
 				var w = new CrystalJsonWriter(new StringBuilder(), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
 				media.Manual(w);
 				b = w.Buffer.ToString();
-				Log("json/doxense-manual : size  = " + b.Length + " chars");
+				Log("json/doxense-manual : size  = " + b?.Length + " chars");
 			}
 
 			#endregion
@@ -441,7 +442,7 @@ namespace Doxense.Serialization.Json.Tests
 			string jsonText = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
 			CrystalJson.Parse(jsonText, settings);
 #if ENABLE_NEWTONSOFT
-			var tok = NJ.Linq.JObject.Parse(jsonText);
+			_ = NJ.Linq.JObject.Parse(jsonText);
 #endif
 			#endregion
 
@@ -542,8 +543,8 @@ namespace Doxense.Serialization.Json.Tests
 
 			var report = RobustBenchmark.Run(
 				() => method,
-				(m, i) => { m(); },
-				(m) => 0,
+				(m, _) => { m(); },
+				(_) => 0,
 				BENCH_RUNS,
 				BENCH_ITERS,
 				histo
@@ -605,9 +606,9 @@ namespace Doxense.Serialization.Json.Tests
 			// setup / warmup
 			var jsonText = CrystalJson.Serialize<T>(model, settings);
 			{
-				var parsed = CrystalJson.Parse(jsonText, settings);
-				var roundTip = CrystalJson.Deserialize<T>(jsonText, settings, resolver);
-				var domified = JsonValue.FromValue<T>(model, settings, resolver);
+				_ = CrystalJson.Parse(jsonText, settings);
+				_ = CrystalJson.Deserialize<T>(jsonText, settings, resolver);
+				_ = JsonValue.FromValue<T>(model, settings, resolver);
 			}
 
 			int ITER_PER_RUN = jsonText.Length <= 100 ? ITER_FAST : jsonText.Length <= 1000 ? ITER_NORMAL : jsonText.Length <= 10000 ? ITER_MEDIUM : ITER_SLOW;
@@ -616,7 +617,7 @@ namespace Doxense.Serialization.Json.Tests
 			//fullGC();
 			var serReport = RobustBenchmark.Run(
 				() => model,
-				(value, iter) => CrystalJson.Serialize<T>(value, settings),
+				(value, _) => CrystalJson.Serialize<T>(value, settings),
 				(value) => value,
 				RUNS,
 				ITER_PER_RUN,
@@ -626,7 +627,7 @@ namespace Doxense.Serialization.Json.Tests
 			fullGC();
 			var parseReport = RobustBenchmark.Run(
 				() => jsonText,
-				(text, iter) => CrystalJson.Parse(text, settings),
+				(text, _) => CrystalJson.Parse(text, settings),
 				(text) => text,
 				RUNS,
 				ITER_PER_RUN,
@@ -636,7 +637,7 @@ namespace Doxense.Serialization.Json.Tests
 			fullGC();
 			var deserReport = RobustBenchmark.Run(
 				() => jsonText,
-				(text, iter) => CrystalJson.Deserialize<T>(text, settings, resolver),
+				(text, _) => CrystalJson.Deserialize<T>(text, settings, resolver),
 				(text) => text,
 				RUNS,
 				ITER_PER_RUN,
@@ -646,7 +647,7 @@ namespace Doxense.Serialization.Json.Tests
 			fullGC();
 			var domReport = RobustBenchmark.Run(
 				() => model,
-				(value, iter) => JsonValue.FromValue<T>(value),
+				(value, _) => JsonValue.FromValue<T>(value),
 				(value) => value,
 				RUNS,
 				ITER_PER_RUN,
@@ -751,8 +752,8 @@ namespace Doxense.Serialization.Json.Tests
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => rnd.Next(1001) - 500).ToArray()); // -500..+500
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => rnd.Next(1001) - 500.0).ToArray()); // -500..+500
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => rnd.Next()).ToArray()); // big numbers
-			RunTestMethod(Enumerable.Range(0, 365).Select(i => (long)rnd.Next() * (long)rnd.Next()).ToArray());
-			RunTestMethod(Enumerable.Range(0, 365).Select(i => (ulong)rnd.Next() * (ulong)rnd.Next()).ToArray());
+			RunTestMethod(Enumerable.Range(0, 365).Select(i => ((long) rnd.Next()) * (long) rnd.Next()).ToArray());
+			RunTestMethod(Enumerable.Range(0, 365).Select(i => (ulong) rnd.Next() * (ulong) rnd.Next()).ToArray());
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => Math.Round((rnd.NextDouble() - 0.5) * 500, 2, MidpointRounding.AwayFromZero)).ToArray()); // -500.00..+500.00
 
 			// objects

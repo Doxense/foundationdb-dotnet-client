@@ -269,7 +269,7 @@ namespace FoundationDB.Layers.Collections.Tests
 							// make everyone wait a bit, to ensure that they all start roughly at the same time
 							await popLock.Task.ConfigureAwait(false);
 
-							var res = new List<string>(NUM);
+							var res = new List<string?>(NUM);
 
 							while (i < NUM)
 							{
@@ -330,7 +330,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		[Test, Category("Bench")]
 		public async Task Bench_Concurrent_Clients()
 		{
-			int NUM = 100;
+			const int NUM = 100;
 
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -347,7 +347,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		[Test, Category("Bench")]
 		public async Task Test_Log_Queue()
 		{
-			int NUM = 100;
+			const int NUM = 100;
 
 			using (var db = await OpenTestPartitionAsync())
 			{

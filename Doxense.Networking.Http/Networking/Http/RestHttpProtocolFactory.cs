@@ -27,8 +27,10 @@
 namespace Doxense.Networking.Http
 {
 	using System;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
+	[PublicAPI]
 	public class RestHttpProtocolFactory : BetterHttpProtocolFactoryBase<RestHttpProtocol, RestHttpClientOptions>
 	{
 		public RestHttpProtocolFactory(IServiceProvider services) : base(services)
@@ -40,6 +42,7 @@ namespace Doxense.Networking.Http
 		}
 	}
 
+	[PublicAPI]
 	public static class RestHttpProtocolFactoryExtensions
 	{
 

@@ -24,6 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable CS0618 // Type or member is obsolete
 namespace Doxense.IO.Hashing.Tests
 {
 	using System;

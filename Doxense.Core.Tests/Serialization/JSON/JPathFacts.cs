@@ -42,50 +42,54 @@ namespace Doxense.Serialization.Json.Tests
 		private static JsonObject GetSample()
 		{
 			return JsonValue.ParseObject(
-				@"{ ""store"": {
-					""book"": [
-
+				"""
+				{
+					"store":
 					{
-						""category"": ""reference"",
-						""author"": ""Nigel Rees"",
-						""title"": ""Sayings of the Century"",
-						""price"": 8.95
-
-					},
-					{
-						""category"": ""fiction"",
-						""author"": ""Evelyn Waugh"",
-						""title"": ""Sword of Honour"",
-						""price"": 12.99
-
-					},
-					{
-						""category"": ""fiction"",
-						""author"": ""Herman Melville"",
-						""title"": ""Moby Dick"",
-						""isbn"": ""0-553-21311-3"",
-						""price"": 8.99
-
-					},
-					{
-						""category"": ""fiction"",
-						""author"": ""J. R. R. Tolkien"",
-						""title"": ""The Lord of the Rings"",
-						""isbn"": ""0-395-19395-8"",
-						""price"": 22.99
-
-					}
-					],
-					""bicycle"": {
-						""color"": ""red"",
-						""price"": 19.95
-
+						"book":
+						[
+							{
+								"category": "reference",
+								"author": "Nigel Rees",
+								"title": "Sayings of the Century",
+								"price": 8.95
+		
+							},
+							{
+								"category": "fiction",
+								"author": "Evelyn Waugh",
+								"title": "Sword of Honour",
+								"price": 12.99
+		
+							},
+							{
+								"category": "fiction",
+								"author": "Herman Melville",
+								"title": "Moby Dick",
+								"isbn": "0-553-21311-3",
+								"price": 8.99
+		
+							},
+							{
+								"category": "fiction",
+								"author": "J. R. R. Tolkien",
+								"title": "The Lord of the Rings",
+								"isbn": "0-395-19395-8",
+								"price": 22.99
+		
+							}
+						],
+						"bicycle":
+						{
+							"color": "red",
+							"price": 19.95
+						}
 					}
 				}
-			}");
+				""")!;
 		}
 
-		private static void CheckSingle(JsonValue node, string query, JsonValue expected, string label = null)
+		private static void CheckSingle(JsonValue node, string query, JsonValue expected, string? label = null)
 		{
 			Log("? " + query);
 			Log("* " + JPathQuery.ParseExpression(query));
@@ -99,7 +103,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(res, Is.EqualTo(expected), label);
 		}
 
-		private static string GetType(JsonValue value)
+		private static string GetType(JsonValue? value)
 		{
 			if (value == null) return "---";
 			switch (value.Type)
@@ -115,18 +119,25 @@ namespace Doxense.Serialization.Json.Tests
 			}
 		}
 
-		private static void CheckMultiple(JsonValue node, string query, params JsonValue[] results)
+		private static void CheckMultiple(JsonValue? node, string query, params JsonValue[] results)
 		{
 			Log("? " + query);
 			Log("* " + JPathQuery.ParseExpression(query));
-			var res = node.FindAll(query);
+			Assert.That(node, Is.Not.Null);
+			var res = node!.FindAll(query);
 			Assert.That(res, Is.Not.Null);
 			if (res.Count == 0)
+			{
 				Log("> (no results)");
+			}
 			else if (res.Count == 1)
+			{
 				Log("> 1 result");
+			}
 			else
+			{
 				Log($"> {res.Count} result(s)");
+			}
 
 			for (int i = 0; i < res.Count; i++)
 			{
@@ -136,32 +147,32 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(res, Is.EqualTo(results));
 		}
 
-		private static void CheckEqual(JPathExpression actual, JPathExpression expected, string label = null)
+		private static void CheckEqual(JPathExpression actual, JPathExpression expected, string? label = null)
 		{
 			if (!actual.Equals(expected))
 			{
-				Log("> Actual  : " + actual.ToString());
-				Log("> Expected: " + expected.ToString());
+				Log($"> Actual  : {actual}");
+				Log($"> Expected: {expected}");
 				Assert.That(actual, Is.EqualTo(expected), label);
 			}
 		}
 
-		private static void CheckEqual(JPathQuery query, JPathExpression expected, string label = null)
+		private static void CheckEqual(JPathQuery query, JPathExpression expected, string? label = null)
 		{
 			if (!query.Expression.Equals(expected))
 			{
 				Log($"FAILED to parse query \"{query.Text}\"");
-				Log("> Actual  : " + query.Expression.ToString());
-				Log("> Expected: " + expected.ToString());
+				Log($"> Actual  : {query.Expression}");
+				Log($"> Expected: {expected}");
 				Assert.That(query.Expression, Is.EqualTo(expected), label);
 			}
 		}
 
-		private static void CheckNotEqual(JPathExpression actual, JPathExpression expected, string label = null)
+		private static void CheckNotEqual(JPathExpression actual, JPathExpression expected, string? label = null)
 		{
 			if (actual.Equals(expected))
 			{
-				Log("Actual  : " + actual.ToString());
+				Log($"Actual  : {actual}");
 				Assert.That(actual, Is.Not.EqualTo(expected), label);
 			}
 		}
@@ -655,7 +666,7 @@ namespace Doxense.Serialization.Json.Tests
 			CheckMultiple(obj, "store.book[-1]", obj["store"]["book"][3]); // should only return the last item
 			CheckMultiple(obj, "store.book[^1]", obj["store"]["book"][3]); // should only return the last item
 
-			CheckMultiple(obj, "store.book[]", obj["store"]["book"].As<JsonValue[]>()); // should return the items of the array!
+			CheckMultiple(obj, "store.book[]", obj["store"]["book"].As<JsonValue[]>()!); // should return the items of the array!
 			CheckMultiple(obj, "store.book[].title", "Sayings of the Century", "Sword of Honour", "Moby Dick", "The Lord of the Rings"); // should flatten array of a single JsonArray into an array of all items
 			CheckMultiple(obj, "store.book[isbn]", obj["store"]["book"][2], obj["store"]["book"][3]); // should return only items of the array that have an isbn
 			CheckMultiple(obj, "store.book[isbn].title", "Moby Dick", "The Lord of the Rings"); // should all the titles of the books that have an isbn
@@ -664,7 +675,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			CheckMultiple(obj, "store.book[not(isbn)]", obj["store"]["book"][0], obj["store"]["book"][1]); // should return only items of the array that have an isbn
 
-			var arr = JsonValue.ParseArray("[ [1, 2, 3], [4, 5, 6], [7, 8, 9]]", required: true);
+			var arr = JsonValue.ParseArray("[ [1, 2, 3], [4, 5, 6], [7, 8, 9]]", required: true)!;
 			CheckMultiple(arr, "$", arr); // return the top array
 			CheckMultiple(arr, "$[]", arr[0], arr[1], arr[2]); // return all arrays
 			CheckMultiple(arr, "$[0]", arr[0]); // return the first array

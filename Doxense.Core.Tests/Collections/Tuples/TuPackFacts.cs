@@ -25,6 +25,8 @@
 #endregion
 
 // ReSharper disable AccessToModifiedClosure
+// ReSharper disable JoinDeclarationAndInitializer
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace Doxense.Collections.Tuples.Tests
 {
 	using System;

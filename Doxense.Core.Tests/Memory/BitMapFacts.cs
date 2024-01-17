@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable AccessToModifiedClosure
+// ReSharper disable UseObjectOrCollectionInitializer
 namespace Doxense.IO.Tests
 {
 	using System;
@@ -207,54 +209,54 @@ namespace Doxense.IO.Tests
 			Assert.That(map.Population(), Is.EqualTo(0));
 
 			map.SetAndCount(42, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new [] { 42 }));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new [] { 42L }));
 			Assert.That(pop, Is.EqualTo(1));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			map.SetAndCount(63, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42, 63 }));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42L, 63L }));
 			Assert.That(pop, Is.EqualTo(2));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			// already set
 			map.SetAndCount(42, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42, 63 }));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42L, 63L }));
 			Assert.That(pop, Is.EqualTo(2));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			// out of bounds
 			Assert.That(() => map.SetAndCount(256, ref pop), Throws.Exception);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42, 63 }));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42L, 63L }));
 			Assert.That(pop, Is.EqualTo(2));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			// remove non existing
 			map.ClearAndCount(79, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42, 63 }));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42L, 63L }));
 			Assert.That(pop, Is.EqualTo(2));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			// remove existing
 			map.ClearAndCount(63, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42 }));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42L }));
 			Assert.That(pop, Is.EqualTo(1));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			// remove existing again
 			map.ClearAndCount(63, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42 }));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new[] { 42L }));
 			Assert.That(pop, Is.EqualTo(1));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			// remove last
 			map.ClearAndCount(42, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new int[0]));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(Array.Empty<long>()));
 			Assert.That(pop, Is.EqualTo(0));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
 			// remove any
 			map.ClearAndCount(123, ref pop);
-			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(new int[0]));
+			Assume.That(map.GetSetBits().ToArray(), Is.EqualTo(Array.Empty<long>()));
 			Assert.That(pop, Is.EqualTo(0));
 			Assert.That(map.Population(), Is.EqualTo(pop));
 
@@ -302,12 +304,12 @@ namespace Doxense.IO.Tests
 			// bit map (empty)
 			var map = new BitMap64(SIZE);
 
-			Action<int, int, int> verify = (start, end, expect) =>
+			void Verify(int start, int end, int expect)
 			{
 #if DEBUG
 				string s = map.ToString("B");
-				if (start > 0) s = new string('_', start) + s.Substring(start);
-				if (end <= SIZE) s = s.Substring(0, end) + new string('_', SIZE - end);
+				if (start > 0) s = new string('_', start) + s[start..];
+				if (end <= SIZE) s = s[..end] + new string('_', SIZE - end);
 				Log("MAP: " + s);
 #endif
 				var actual = map.FindNext(start, end);
@@ -325,37 +327,37 @@ namespace Doxense.IO.Tests
 				{
 					Assert.That(actual, Is.EqualTo(expect), $"Invalid result in range {start} <= idx < {end}");
 				}
-			};
+			}
 
-			verify(0, SIZE, -1);
+			Verify(0, SIZE, -1);
 
 			map.Set(42);
-			verify(0, SIZE, 42);
-			verify(42, SIZE, 42);
-			verify(0, 43, 42);
-			verify(43, SIZE, -1);
-			verify(0, 42, -1);
+			Verify(0, SIZE, 42);
+			Verify(42, SIZE, 42);
+			Verify(0, 43, 42);
+			Verify(43, SIZE, -1);
+			Verify(0, 42, -1);
 
 			map.Set(40);
-			verify(0, SIZE, 40);
-			verify(40, SIZE, 40);
-			verify(0, 41, 40);
-			verify(0, 43, 40);
-			verify(43, SIZE, -1);
-			verify(0, 40, -1);
+			Verify(0, SIZE, 40);
+			Verify(40, SIZE, 40);
+			Verify(0, 41, 40);
+			Verify(0, 43, 40);
+			Verify(43, SIZE, -1);
+			Verify(0, 40, -1);
 
-			verify(40, 43, 40);
-			verify(41, 43, 42);
-			verify(42, 43, 42);
+			Verify(40, 43, 40);
+			Verify(41, 43, 42);
+			Verify(42, 43, 42);
 
 			map.ClearAll();
 			map.Set(234);
-			verify(0, SIZE, 234);
-			verify(234, SIZE, 234);
-			verify(42, 237, 234);
-			verify(231, 237, 234);
-			verify(0, 234, -1);
-			verify(0, 235, 234);
+			Verify(0, SIZE, 234);
+			Verify(234, SIZE, 234);
+			Verify(42, 237, 234);
+			Verify(231, 237, 234);
+			Verify(0, 234, -1);
+			Verify(0, 235, 234);
 		}
 
 		[Test]

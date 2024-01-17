@@ -26,6 +26,7 @@
 
 // ReSharper disable HeapView.BoxingAllocation
 // ReSharper disable HeapView.ObjectAllocation
+#pragma warning disable CS0618 // Type or member is obsolete
 namespace Doxense.Tools.Tests
 {
 	using System;

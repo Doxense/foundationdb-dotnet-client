@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable UnusedTypeParameter
+// ReSharper disable MemberHidesStaticFromOuterClass
 namespace Doxense.Runtime.Tests
 {
 	using System;

@@ -39,21 +39,23 @@ namespace Doxense.Networking.Http
 	using System.Xml.Linq;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
+	using JetBrains.Annotations;
 	using Microsoft.IO;
 	using OpenTelemetry.Trace;
 
 	/// <summary>Represents the context of an HTTP request being executed</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public class BetterHttpClientContext
 	{
 
 		private static readonly ActivitySource ActivitySource = new("Doxense.Networking.Http");
 
 		/// <summary>Instance of the <see cref="BetterHttpClient">client</see> executing this request</summary>
-		public BetterHttpClient Client { get; init; }
+		public required BetterHttpClient Client { get; init; }
 
 		/// <summary>Unique ID of this request (for logging purpose)</summary>
-		public string Id { get; init; }
+		public required string Id { get; init; }
 
 		/// <summary>Cancellation token attached to the lifetime of this request</summary>
 		public CancellationToken Cancellation { get; init; }
@@ -63,10 +65,10 @@ namespace Doxense.Networking.Http
 		public BetterHttpClientStage? FailedStage { get; internal set; }
 
 		/// <summary>Bag of items that will be available throughout the lifetime of the request</summary>
-		public Dictionary<string, object?> State { get; init; }
+		public required Dictionary<string, object?> State { get; init; }
 
 		/// <summary>Request that will be send to the remote HTTP server</summary>
-		public HttpRequestMessage Request { get; init; }
+		public required HttpRequestMessage Request { get; init; }
 
 		internal HttpResponseMessage? OriginalResponse { get; set; }
 
@@ -120,35 +122,30 @@ namespace Doxense.Networking.Http
 			return true;
 		}
 
-		public HttpResponseMessage EnsureHasResponse()
-		{
-			return this.Response ?? throw new InvalidOperationException("HTTP context does not yet have a valid response message.");
-		}
-
 		public void EnsureSuccessStatusCode()
 		{
-			EnsureHasResponse().EnsureSuccessStatusCode();
+			this.Response.EnsureSuccessStatusCode();
 		}
 
 		/// <summary>Gets a value that indicates if the response was successful</summary>
-		public bool IsSuccessStatusCode => this.Response?.IsSuccessStatusCode ?? false;
+		public bool IsSuccessStatusCode => this.OriginalResponse?.IsSuccessStatusCode ?? false;
 
 		/// <summary>Read the response body as a string</summary>
 		public Task<string> ReadAsStringAsync()
 		{
-			return EnsureHasResponse().Content.ReadAsStringAsync(this.Cancellation);
+			return this.Response.Content.ReadAsStringAsync(this.Cancellation);
 		}
 
 		/// <summary>Return a stream that can be used to read the response body</summary>
 		public Task<Stream> ReadAsStreamAsync()
 		{
-			return EnsureHasResponse().Content.ReadAsStreamAsync(this.Cancellation);
+			return this.Response.Content.ReadAsStreamAsync(this.Cancellation);
 		}
 
 		/// <summary>Copy the response body into the provided stream</summary>
 		public Task CopyToAsync(Stream stream)
 		{
-			return EnsureHasResponse().Content.CopyToAsync(stream, this.Cancellation);
+			return this.Response.Content.CopyToAsync(stream, this.Cancellation);
 		}
 
 		#region Helpers...
@@ -157,7 +154,7 @@ namespace Doxense.Networking.Http
 		public bool IsLikelyJson()
 		{
 			//TODO: meilleur heuristique! Problème: on a pas le body en mémoire donc c'est difficile d'inspecter le body !
-			if (this.Response == null) return false;
+			if (this.OriginalResponse == null) return false;
 			if (this.Response.Content.Headers.ContentType?.MediaType == "application/json")
 			{
 				return true;
@@ -264,7 +261,7 @@ namespace Doxense.Networking.Http
 		public bool IsLikelyXml()
 		{
 			//TODO: meilleur heuristique! Problème: on a pas le body en mémoire donc c'est difficile d'inspecter le body !
-			if (this.Response == null) return false;
+			if (this.OriginalResponse == null) return false;
 			if (this.Response.Content.Headers.ContentType?.MediaType == "text/xml")
 			{
 				return true;
@@ -279,8 +276,7 @@ namespace Doxense.Networking.Http
 
 			try
 			{
-				var response = EnsureHasResponse();
-				var stream = await response.Content.ReadAsStreamAsync(this.Cancellation);
+				var stream = await this.Response.Content.ReadAsStreamAsync(this.Cancellation);
 				//note: do NOT dispose this stream here!
 
 				return await XDocument.LoadAsync(stream, options, this.Cancellation);
@@ -297,7 +293,7 @@ namespace Doxense.Networking.Http
 
 		public override string ToString()
 		{
-			return $"{this.Request.Method} {this.Request.RequestUri} => {(this.Response != null ? $"{(int) this.Response.StatusCode} {this.Response.ReasonPhrase}" : "<no response>")}";
+			return $"{this.Request.Method} {this.Request.RequestUri} => {(this.OriginalResponse != null ? $"{(int) this.Response.StatusCode} {this.Response.ReasonPhrase}" : "<no response>")}";
 		}
 
 	}

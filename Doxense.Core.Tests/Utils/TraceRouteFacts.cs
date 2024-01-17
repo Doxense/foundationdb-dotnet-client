@@ -93,7 +93,7 @@ namespace Doxense.Networking.Tests
 			Assert.That(target, Is.Not.Null);
 
 			Log($"# Traceroute: {target}");
-			var (res, elapsed) = await Time(() => IPAddressHelpers.TracerouteAsync(target, 16, TimeSpan.FromSeconds(2), this.Cancellation));
+			var (res, elapsed) = await Time(() => IPAddressHelpers.TracerouteAsync(target!, 16, TimeSpan.FromSeconds(2), this.Cancellation));
 			Log($"> [{elapsed.TotalSeconds:N3}s]");
 			Dump(res);
 			Assert.That(res.Status, Is.EqualTo(IPStatus.Success), $"Traceroute to self should succeed: {target}");

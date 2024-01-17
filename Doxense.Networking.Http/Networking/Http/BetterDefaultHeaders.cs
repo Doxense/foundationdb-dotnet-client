@@ -65,7 +65,7 @@ namespace Doxense.Networking.Http
 
 		//TODO: ajouter ce qu'il manque!!!
 
-		public List<KeyValuePair<string, IEnumerable<string>>> Extra { get; set; } = new List<KeyValuePair<string, IEnumerable<string>>>();
+		public List<KeyValuePair<string, IEnumerable<string>>> Extra { get; set; } = new();
 
 		public Uri? Referrer { get; set; }
 

@@ -577,7 +577,7 @@ namespace Doxense.Serialization
 		/// <returns>Objet DateTime correspondant, ou exception si incorrect</returns>
 		/// <exception cref="System.ArgumentException">Si la date est incorrecte</exception>
 		[Pure]
-		public static DateTime ParseDateTime(string date)
+		public static DateTime ParseDateTime(string? date)
 		{
 			return ParseDateTime(date, null);
 		}
@@ -588,7 +588,7 @@ namespace Doxense.Serialization
 		/// <returns>Objet DateTime correspondant, ou exception si incorrect</returns>
 		/// <exception cref="System.ArgumentException">Si la date est incorrecte</exception>
 		[Pure]
-		public static DateTime ParseDateTime(string date, CultureInfo? culture)
+		public static DateTime ParseDateTime(string? date, CultureInfo? culture)
 		{
 			if (!TryParseDateTime(date, culture, out DateTime result, true)) throw FailInvalidDateFormat();
 			return result;
@@ -619,7 +619,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Culture (pour le format attendu) ou null</param>
 		/// <returns>Objet DateTime correspondant, ou dflt si date est null ou vide</returns>
 		[Pure]
-		public static DateTime ParseDateTime(string date, DateTime dflt, CultureInfo? culture)
+		public static DateTime ParseDateTime(string? date, DateTime dflt, CultureInfo? culture)
 		{
 			if (!TryParseDateTime(date, culture, out DateTime result, false)) return dflt;
 			return result;

@@ -30,12 +30,11 @@ namespace FoundationDB.Client.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using FoundationDB.Filters.Logging;
 	using NUnit.Framework;
 
 	internal static class TestHelpers
 	{
-		public const string TestClusterFile = null;
+		public const string? TestClusterFile = null;
 		public const int DefaultTimeout = 15_000;
 
 		//TODO: move these methods to FdbTest ?
@@ -72,7 +71,7 @@ namespace FoundationDB.Client.Tests
 			return db.WriteAsync(tr => tr.ClearRange(subspace.ToRange()), ct);
 		}
 
-		public static async Task CleanLocation(IFdbDatabase db, ISubspaceLocation location, CancellationToken ct)
+		public static Task CleanLocation(IFdbDatabase db, ISubspaceLocation location, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null, "null db");
 			if (location.Path.Count == 0 && location.Prefix.Count == 0)
@@ -83,7 +82,7 @@ namespace FoundationDB.Client.Tests
 			// if the prefix part is empty, then we simply recursively remove the corresponding sub-directory tree
 			// If it is not empty, we only remove the corresponding subspace (without touching the sub-directories!)
 
-			await db.WriteAsync(async tr =>
+			return db.WriteAsync(async tr =>
 			{
 				tr.StopLogging();
 

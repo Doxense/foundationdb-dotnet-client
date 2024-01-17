@@ -26,6 +26,8 @@
 
 // ReSharper disable AssignNullToNotNullAttribute
 // ReSharper disable StringLiteralTypo
+// ReSharper disable SuspiciousTypeConversion.Global
+// ReSharper disable RedundantCast
 namespace Doxense.Core.Tests
 {
 	using System;
@@ -120,7 +122,7 @@ namespace Doxense.Core.Tests
 			Assert.That(Uuid64.Parse("{00000000-deadbeef}").ToUInt64(), Is.EqualTo(0xDEADBEEFUL));
 
 			// errors
-			Assert.That(() => Uuid64.Parse(default(string)), Throws.ArgumentNullException);
+			Assert.That(() => Uuid64.Parse(default(string)!), Throws.ArgumentNullException);
 			Assert.That(() => Uuid64.Parse("hello"), Throws.InstanceOf<FormatException>());
 			Assert.That(() => Uuid64.Parse("12345678-9ABCDEFG"), Throws.InstanceOf<FormatException>(), "Invalid hexa character 'G'");
 			Assert.That(() => Uuid64.Parse("00000000-0000000 "), Throws.InstanceOf<FormatException>(), "Two short + extra space");
@@ -381,14 +383,14 @@ namespace Doxense.Core.Tests
 			Assert.That(d != 42UL, Is.True, "d != 42");
 
 			// Equals(objecct)
-			Assert.That(a.Equals((object)a), Is.True, "a == a");
-			Assert.That(a.Equals((object)b), Is.True, "a == b");
-			Assert.That(a.Equals((object)c), Is.True, "a == c");
-			Assert.That(a.Equals((object)d), Is.False, "a != d");
-			Assert.That(a.Equals((object)42L), Is.True, "a == 42");
-			Assert.That(a.Equals((object)42UL), Is.True, "a == 42");
-			Assert.That(d.Equals((object)42L), Is.False, "d != 42");
-			Assert.That(d.Equals((object)42UL), Is.False, "d != 42");
+			Assert.That(a.Equals((object?) a), Is.True, "a == a");
+			Assert.That(a.Equals((object?) b), Is.True, "a == b");
+			Assert.That(a.Equals((object?) c), Is.True, "a == c");
+			Assert.That(a.Equals((object?) d), Is.False, "a != d");
+			Assert.That(a.Equals((object?) 42L), Is.True, "a == 42");
+			Assert.That(a.Equals((object?) 42UL), Is.True, "a == 42");
+			Assert.That(d.Equals((object?) 42L), Is.False, "d != 42");
+			Assert.That(d.Equals((object?) 42UL), Is.False, "d != 42");
 
 		}
 

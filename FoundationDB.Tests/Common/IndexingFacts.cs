@@ -207,9 +207,9 @@ namespace FoundationDB.Layers.Tables.Tests
 		{
 			public long Id { get; init; }
 
-			public string Name { get; init; }
+			public required string Name { get; init; }
 
-			public string Brand { get; init; }
+			public required string Brand { get; init; }
 
 			public bool HasSuperPowers { get; init; }
 

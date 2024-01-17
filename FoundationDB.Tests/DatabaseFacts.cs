@@ -25,6 +25,8 @@
 #endregion
 
 // ReSharper disable AccessToDisposedClosure
+// ReSharper disable ReplaceAsyncWithTaskReturn
+
 namespace FoundationDB.Client.Tests
 {
 	using System;
@@ -93,7 +95,7 @@ namespace FoundationDB.Client.Tests
 				var rnd = new Random();
 				var bytes = new byte[128];
 				rnd.NextBytes(bytes);
-				System.IO.File.WriteAllBytes(path, bytes);
+				await System.IO.File.WriteAllBytesAsync(path, bytes, this.Cancellation);
 
 				await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = path }, this.Cancellation), FdbError.ConnectionStringInvalid, "Should fail if file is corrupted");
 			}
@@ -218,7 +220,7 @@ namespace FoundationDB.Client.Tests
 				var status = await Fdb.System.GetStatusAsync(db, this.Cancellation);
 				Assert.That(status, Is.Not.Null);
 
-				Assert.That(status.Client, Is.Not.Null);
+				Assert.That(status!.Client, Is.Not.Null);
 				Assert.That(status.Client.Messages, Is.Not.Null);
 
 				Assert.That(status.Cluster, Is.Not.Null);
@@ -270,7 +272,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var root = await db.Root.Resolve(tr);
 					Assert.That(root, Is.Not.Null);
-					Assert.That(root.Path, Is.EqualTo(db.Root.Path));
+					Assert.That(root!.Path, Is.EqualTo(db.Root.Path));
 					Assert.That(root.DirectoryLayer, Is.SameAs(dl));
 				}
 			}
@@ -281,7 +283,7 @@ namespace FoundationDB.Client.Tests
 		{
 
 			string clusterPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, "notfound.cluster");
-			File.WriteAllText(clusterPath, "local:thisClusterShouldNotExist@127.0.0.1:4566");
+			await File.WriteAllTextAsync(clusterPath, "local:thisClusterShouldNotExist@127.0.0.1:4566", this.Cancellation);
 			var options = new FdbConnectionOptions { ClusterFile = clusterPath };
 
 			using (var db = await Fdb.OpenAsync(options, this.Cancellation))

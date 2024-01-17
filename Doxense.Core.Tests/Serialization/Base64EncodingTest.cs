@@ -80,7 +80,7 @@ namespace Doxense.Serialization.Tests
 			//WARMUP + JIT
 			Assume.That(Base64Encoding.ToBase64String(data.AsSlice(0, 1024)), Is.EqualTo(Convert.ToBase64String(data, 0, 1024)));
 
-			string s1 = null, s2 = null;
+			string? s1 = null, s2 = null;
 			var sw = new Stopwatch();
 
 			TimeSpan durA = TimeSpan.Zero;
@@ -155,7 +155,7 @@ namespace Doxense.Serialization.Tests
 
 			{
 				long gc = GC.CollectionCount(0);
-				StringWriter buf = null;
+				StringWriter? buf = null;
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < N; i++)
 				{
@@ -173,7 +173,7 @@ namespace Doxense.Serialization.Tests
 
 			{
 				long gc = GC.CollectionCount(0);
-				StringWriter buf = null;
+				StringWriter? buf = null;
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < N; i++)
 				{
@@ -194,7 +194,7 @@ namespace Doxense.Serialization.Tests
 		[Test]
 		public void Test_Versus()
 		{
-			byte[] original = Encoding.UTF8.GetBytes("Ecchi na no wa, ikenai to omoimasu!");
+			byte[] original = "Ecchi na no wa, ikenai to omoimasu!"u8.ToArray();
 
 			for (int i = 0; i < original.Length; i++)
 			{
@@ -215,7 +215,7 @@ namespace Doxense.Serialization.Tests
 		[Test]
 		public void Test_Subset()
 		{
-			byte[] original = Encoding.UTF8.GetBytes("Ecchi na no wa, ikenai to omoimasu!");
+			byte[] original = "Ecchi na no wa, ikenai to omoimasu!"u8.ToArray();
 
 			for (int i = 0; i < original.Length; i++)
 			{

@@ -37,9 +37,9 @@ namespace Doxense.Networking.Http
 		// Seed the _lastConnectionId for this application instance with
 		// the number of 100-nanosecond intervals that have elapsed since 12:00:00 midnight, January 1, 0001
 		// for a roughly increasing _lastId over restarts
-		private static long _lastId = DateTime.UtcNow.Ticks;
+		private static long LastId = DateTime.UtcNow.Ticks;
 
-		public static string GetNextId() => GenerateId(Interlocked.Increment(ref _lastId));
+		public static string GetNextId() => GenerateId(Interlocked.Increment(ref CorrelationIdGenerator.LastId));
 
 		private static string GenerateId(long id)
 		{
@@ -47,7 +47,7 @@ namespace Doxense.Networking.Http
 			{
 				char[] encode32Chars = s_encode32Chars;
 
-				buffer[13] = 'C'; //note: on rajoute un 'C' a la fin comme 'Client', pour éviter de rentrer en collision avec les TraceIdentifier de requetes servers (qui utilisent le même format!)
+				buffer[13] = 'C'; //note: add a 'C' suffix - for 'Client' - in order to prevent collisions with TraceIdentifier from server requests (that use the same format!)
 				buffer[12] = encode32Chars[value & 31];
 				buffer[11] = encode32Chars[(value >> 5) & 31];
 				buffer[10] = encode32Chars[(value >> 10) & 31];
@@ -65,4 +65,5 @@ namespace Doxense.Networking.Http
 		}
 
 	}
+
 }

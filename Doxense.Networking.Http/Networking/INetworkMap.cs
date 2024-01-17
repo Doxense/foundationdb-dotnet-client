@@ -35,9 +35,11 @@ namespace Doxense.Networking
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Networking.Http;
+	using JetBrains.Annotations;
 	using NodaTime;
 
 	/// <summary>Interface utilisée pour pouvoir gérer réel ou simulé</summary>
+	[PublicAPI]
 	public interface INetworkMap
 	{
 
@@ -105,6 +107,7 @@ namespace Doxense.Networking
 
 	}
 
+	[PublicAPI]
 	public interface IVirtualNetworkTopology
 	{
 
@@ -121,6 +124,7 @@ namespace Doxense.Networking
 	}
 
 	/// <summary>Represents the view of the network, relative to a specific host</summary>
+	[PublicAPI]
 	public interface IVirtualNetworkMap : INetworkMap
 	{
 		IVirtualNetworkTopology Topology { get; }
@@ -174,6 +178,7 @@ namespace Doxense.Networking
 	}
 
 	/// <summary>Représente un "LAN" où tous les hosts se voient entre eux directement</summary>
+	[PublicAPI]
 	public interface IVirtualNetworkLocation : IEquatable<IVirtualNetworkLocation>
 	{
 
@@ -228,6 +233,7 @@ namespace Doxense.Networking
 
 	}
 
+	[PublicAPI]
 	public interface IVirtualNetworkHost : IEquatable<IVirtualNetworkHost>
 	{
 
@@ -258,6 +264,7 @@ namespace Doxense.Networking
 
 	}
 
+	[PublicAPI]
 	public interface IVirtualNetworkAdapter
 	{
 
@@ -277,6 +284,7 @@ namespace Doxense.Networking
 
 	}
 
+	[PublicAPI]
 	public static class NetworkMapExtensions
 	{
 

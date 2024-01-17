@@ -56,8 +56,6 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			var decoded = JsonPack.Decode(bytes);
 			DumpCompact("DECODED", decoded);
 
-			bool b = decoded.Equals(value);
-
 			Assert.That(decoded, Is.EqualTo(value), "Decoded JSON value does not match original");
 
 			Log("done");
@@ -344,10 +342,10 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 			// random numbers
 			var rnd = new Random();
-			VerifyRoundtrip(Enumerable.Range(0, 100).Select(x => rnd.Next()).ToJsonArray());
+			VerifyRoundtrip(Enumerable.Range(0, 100).Select(_ => rnd.Next()).ToJsonArray());
 
 			// random guids
-			VerifyRoundtrip(Enumerable.Range(0, 10).Select(x => Guid.NewGuid()).ToJsonArray());
+			VerifyRoundtrip(Enumerable.Range(0, 10).Select(_ => Guid.NewGuid()).ToJsonArray());
 			//note: étrangement, ca se compresse très bien avec Zstd (probablement que les GUID textuels de 36 chars repassent sur ~16 bytes)
 
 			// array of arrays

@@ -42,11 +42,11 @@ namespace FoundationDB.Layers.Collections
 	public class FdbMap<TKey, TValue> : IFdbLayer<FdbMap<TKey, TValue>.State>
 	{
 
-		public FdbMap(ISubspaceLocation location, IValueEncoder<TValue> valueEncoder)
+		public FdbMap(ISubspaceLocation location, IValueEncoder<TValue?> valueEncoder)
 			: this(location.AsTyped<TKey>(), valueEncoder)
 		{ }
 
-		public FdbMap(TypedKeySubspaceLocation<TKey> location, IValueEncoder<TValue> valueEncoder)
+		public FdbMap(TypedKeySubspaceLocation<TKey> location, IValueEncoder<TValue?> valueEncoder)
 		{
 			this.Location = location ?? throw new ArgumentNullException(nameof(location));
 			this.ValueEncoder = valueEncoder ?? throw new ArgumentNullException(nameof(valueEncoder));
@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Collections
 		public TypedKeySubspaceLocation<TKey> Location { get; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public IValueEncoder<TValue> ValueEncoder { get; }
+		public IValueEncoder<TValue?> ValueEncoder { get; }
 
 		#endregion
 
@@ -68,9 +68,9 @@ namespace FoundationDB.Layers.Collections
 
 			public ITypedKeySubspace<TKey> Subspace { get; }
 
-			public IValueEncoder<TValue> ValueEncoder { get; }
+			public IValueEncoder<TValue?> ValueEncoder { get; }
 
-			internal State(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> encoder)
+			internal State(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> encoder)
 			{
 				Contract.Debug.Requires(subspace != null && encoder != null);
 				this.Subspace = subspace;
@@ -141,7 +141,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="options"></param>
 			/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
 			/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
-			public IAsyncEnumerable<KeyValuePair<TKey, TValue>> All(IFdbReadOnlyTransaction trans, FdbRangeOptions? options = null)
+			public IAsyncEnumerable<KeyValuePair<TKey, TValue?>> All(IFdbReadOnlyTransaction trans, FdbRangeOptions? options = null)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -154,7 +154,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="ids">List of the keys to read</param>
 			/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
-			public async Task<TValue[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
+			public async Task<TValue?[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 				if (ids == null) throw new ArgumentNullException(nameof(ids));
@@ -162,11 +162,11 @@ namespace FoundationDB.Layers.Collections
 				var kv = await trans.GetValuesAsync(ids.Select(id => this.Subspace[id])).ConfigureAwait(false);
 				if (kv.Length == 0) return Array.Empty<TValue>();
 
-				var result = new TValue[kv.Length];
+				var result = new TValue?[kv.Length];
 				var decoder = this.ValueEncoder;
 				for (int i = 0; i < kv.Length; i++)
 				{
-					result[i] = decoder.DecodeValue(kv[i])!;
+					result[i] = decoder.DecodeValue(kv[i]);
 				}
 
 				return result;
@@ -282,7 +282,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync(IFdbDatabase db, Action<KeyValuePair<TKey, TValue>> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Action<KeyValuePair<TKey, TValue?>> handler, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -309,7 +309,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync(IFdbDatabase db, Func<KeyValuePair<TKey, TValue>, CancellationToken, Task> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Func<KeyValuePair<TKey, TValue?>, CancellationToken, Task> handler, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -335,7 +335,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync(IFdbDatabase db, Action<KeyValuePair<TKey, TValue>[]> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Action<KeyValuePair<TKey, TValue?>[]> handler, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -361,7 +361,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync(IFdbDatabase db, Func<KeyValuePair<TKey, TValue>[], CancellationToken, Task> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Func<KeyValuePair<TKey, TValue?>[], CancellationToken, Task> handler, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -381,7 +381,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed and return the result of the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public async Task<TResult> AggregateAsync<TResult>(IFdbDatabase db, Func<TResult>? init, Func<TResult, KeyValuePair<TKey, TValue>[], TResult> handler, CancellationToken ct)
+		public async Task<TResult> AggregateAsync<TResult>(IFdbDatabase db, Func<TResult>? init, Func<TResult, KeyValuePair<TKey, TValue?>[], TResult> handler, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -414,7 +414,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed and return the result of calling <paramref name="finish"/> with the state return by the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public async Task<TResult> AggregateAsync<TState, TResult>(IFdbDatabase db, Func<TState>? init, Func<TState, KeyValuePair<TKey, TValue>[], TState> handler, Func<TState, TResult>? finish, CancellationToken ct)
+		public async Task<TResult> AggregateAsync<TState, TResult>(IFdbDatabase db, Func<TState>? init, Func<TState, KeyValuePair<TKey, TValue?>[], TState> handler, Func<TState, TResult>? finish, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -447,24 +447,24 @@ namespace FoundationDB.Layers.Collections
 			return result!;
 		}
 
-		private static KeyValuePair<TKey, TValue> DecodeItem(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> valueEncoder, KeyValuePair<Slice, Slice> item)
+		private static KeyValuePair<TKey, TValue?> DecodeItem(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> valueEncoder, KeyValuePair<Slice, Slice> item)
 		{
-			return new KeyValuePair<TKey, TValue>(
+			return new KeyValuePair<TKey, TValue?>(
 				subspace.Decode(item.Key)!,
-				valueEncoder.DecodeValue(item.Value)!
+				valueEncoder.DecodeValue(item.Value)
 			);
 		}
 
-		private static KeyValuePair<TKey, TValue>[] DecodeItems(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> valueEncoder, KeyValuePair<Slice, Slice>[] batch)
+		private static KeyValuePair<TKey, TValue?>[] DecodeItems(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> valueEncoder, KeyValuePair<Slice, Slice>[] batch)
 		{
 			Contract.Debug.Requires(batch != null);
 
-			var items = new KeyValuePair<TKey, TValue>[batch.Length];
+			var items = new KeyValuePair<TKey, TValue?>[batch.Length];
 			for (int i = 0; i < batch.Length; i++)
 			{
-				items[i] = new KeyValuePair<TKey, TValue>(
+				items[i] = new KeyValuePair<TKey, TValue?>(
 					subspace.Decode(batch[i].Key)!,
-					valueEncoder.DecodeValue(batch[i].Value)!
+					valueEncoder.DecodeValue(batch[i].Value)
 				);
 			}
 			return items;

@@ -753,7 +753,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			writer.WriteBytes(Slice.Repeat((byte)'b', 24));
 			// buffer should have been replaced with larger one
 			Assert.That(writer.Buffer, Is.Not.SameAs(original));
-			Assert.That(writer.Buffer.Length, Is.GreaterThanOrEqualTo(48));
+			Assert.That(writer.Buffer!.Length, Is.GreaterThanOrEqualTo(48));
 
 			//but the content should be unchanged
 			Assert.That(writer.ToSlice().ToStringAscii(), Is.EqualTo("aaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbb"));
@@ -772,7 +772,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			// adding a single byte should resize the buffer
 			writer.WriteBytes(Slice.FromChar('Z'));
 			Assert.That(writer.Buffer, Is.Not.SameAs(original));
-			Assert.That(writer.Buffer.Length, Is.GreaterThanOrEqualTo(33));
+			Assert.That(writer.Buffer!.Length, Is.GreaterThanOrEqualTo(33));
 			Assert.That(writer.ToSlice().ToStringAscii(), Is.EqualTo("ccccccccccccccccccccccccccccccccZ"));
 		}
 

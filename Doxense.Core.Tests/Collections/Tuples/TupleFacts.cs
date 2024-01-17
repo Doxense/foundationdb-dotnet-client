@@ -25,6 +25,7 @@
 #endregion
 
 // ReSharper disable AccessToModifiedClosure
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace Doxense.Collections.Tuples.Tests
 {
 	using System;
@@ -398,20 +399,20 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(STuple.Create(123, true, "foo", 666, false).GetHashCode(), Is.EqualTo(STuple.Create(123L, 1, "foo", 666UL, 0).GetHashCode()), "Hashcode should be stable");
 
 			{ // Deconstruct
-				t5.Deconstruct(out string item1, out int item2, out bool item3, out long item4, out long item5);
+				t5.Deconstruct(out string item1, out int item2, out bool item3, out long item4, out int item5);
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);
 				Assert.That(item4, Is.EqualTo(1234L));
-				Assert.That(item5, Is.EqualTo(-1234L));
+				Assert.That(item5, Is.EqualTo(-1234));
 			}
 			{ // Deconstruct
-				(string item1, int item2, bool item3, long item4, long item5) = t5;
+				(string item1, int item2, bool item3, long item4, int item5) = t5;
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);
 				Assert.That(item4, Is.EqualTo(1234L));
-				Assert.That(item5, Is.EqualTo(-1234L));
+				Assert.That(item5, Is.EqualTo(-1234));
 			}
 
 			Assert.That(((string, int, bool, long, int)) t5, Is.EqualTo(ValueTuple.Create("hello world", 123, false, 1234L, -1234)));

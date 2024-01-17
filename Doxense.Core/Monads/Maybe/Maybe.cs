@@ -399,7 +399,7 @@ namespace Doxense
 		/// <param name="value">Valeur à convertir</param>
 		/// <returns>Maybe&lt;T&gt; contenant la valeur</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> Return<T>(T value)
+		public static Maybe<T> Return<T>(T? value)
 		{
 			// ENTER THE MONAD !
 			return new Maybe<T>(value);

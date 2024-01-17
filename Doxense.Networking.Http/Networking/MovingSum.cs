@@ -80,7 +80,7 @@ namespace Doxense.Networking
 			var data = this.Data;
 			var p = this.Next;
 			var c = this.Count;
-			var t = this.Total;
+			var t = this.Total!;
 			if (c < data.Length)
 			{ // growing phase
 				c = c + 1;

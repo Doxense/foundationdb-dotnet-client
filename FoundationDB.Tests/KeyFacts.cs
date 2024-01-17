@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable PossibleMultipleEnumeration
+// ReSharper disable JoinDeclarationAndInitializer
+
 namespace FoundationDB.Client.Tests
 {
 	using System;
@@ -92,7 +95,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// get a bunch of random slices
 			var rnd = new Random();
-			var slices = Enumerable.Range(0, 16).Select(x => Slice.Random(rnd, 4 + rnd.Next(32))).ToArray();
+			var slices = Enumerable.Range(0, 16).Select(_ => Slice.Random(rnd, 4 + rnd.Next(32))).ToArray();
 
 			var merged = FdbKey.Merge(Slice.FromByte(42), slices);
 			Assert.That(merged, Is.Not.Null);
@@ -109,8 +112,8 @@ namespace FoundationDB.Client.Tests
 
 			// corner cases
 			// ReSharper disable AssignNullToNotNullAttribute
-			Assert.That(() => FdbKey.Merge(Slice.Empty, default(Slice[])), Throws.ArgumentNullException.With.Property("ParamName").EqualTo("keys"));
-			Assert.That(() => FdbKey.Merge(Slice.Empty, default(IEnumerable<Slice>)), Throws.ArgumentNullException.With.Property("ParamName").EqualTo("keys"));
+			Assert.That(() => FdbKey.Merge(Slice.Empty, default(Slice[])!), Throws.ArgumentNullException.With.Property("ParamName").EqualTo("keys"));
+			Assert.That(() => FdbKey.Merge(Slice.Empty, default(IEnumerable<Slice>)!), Throws.ArgumentNullException.With.Property("ParamName").EqualTo("keys"));
 			// ReSharper restore AssignNullToNotNullAttribute
 		}
 
@@ -119,7 +122,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// we want numbers from 0 to 99 in 5 batches of 20 contiguous items each
 
-			var query = FdbKey.BatchedRange(0, 100, 20);
+			IEnumerable<IEnumerable<int>> query = FdbKey.BatchedRange(0, 100, 20);
 			Assert.That(query, Is.Not.Null);
 
 			var batches = query.ToArray();
@@ -149,7 +152,7 @@ namespace FoundationDB.Client.Tests
 			const int B = 20;
 			const int W = 5;
 
-			var query = FdbKey.Batched(0, N, W, B);
+			IEnumerable<IEnumerable<KeyValuePair<int, int>>> query = FdbKey.Batched(0, N, W, B);
 			Assert.That(query, Is.Not.Null);
 
 			var batches = query.ToArray();
@@ -159,7 +162,7 @@ namespace FoundationDB.Client.Tests
 
 			var used = new bool[N];
 
-			var signal = new TaskCompletionSource<object>();
+			var signal = new TaskCompletionSource<object?>();
 
 			// each batch should return new numbers
 			var tasks = batches.Select(async (iterator, id) =>

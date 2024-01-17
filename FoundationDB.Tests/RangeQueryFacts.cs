@@ -24,6 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable PossibleMultipleEnumeration
+// ReSharper disable ReplaceAsyncWithTaskReturn
+#pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 namespace FoundationDB.Client.Tests
 {
 	using System;
@@ -844,7 +849,7 @@ namespace FoundationDB.Client.Tests
 					var fa = await a.Resolve(tr);
 					Assert.That(fa, Is.Not.Null);
 
-					var query = tr.GetRange(fa.ToRange()).Take(0);
+					var query = tr.GetRange(fa!.ToRange()).Take(0);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.Zero);
 
@@ -874,7 +879,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(folder, Is.Not.Null);
 					foreach(var (k, v) in dataSet)
 					{
-						tr.Set(folder.Encode(k), v);
+						tr.Set(folder!.Encode(k), v);
 					}
 				}, this.Cancellation);
 
@@ -1019,8 +1024,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_MergeSort()
 		{
-			int K = 3;
-			int N = 100;
+			const int K = 3;
+			const int N = 100;
 
 			// create K lists:
 			// lists[0] contains all multiples of K ([0, 0], [K, 1], [2K, 2], ...)
@@ -1086,8 +1091,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Range_Intersect()
 		{
-			int K = 3;
-			int N = 100;
+			const int K = 3;
+			const int N = 100;
 
 			// lists[0] contains all multiples of 1
 			// lists[1] contains all multiples of 2
@@ -1165,8 +1170,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Range_Except()
 		{
-			int K = 3;
-			int N = 100;
+			const int K = 3;
+			const int N = 100;
 
 			// lists[0] contains all multiples of 1
 			// lists[1] contains all multiples of 2
@@ -1323,7 +1328,7 @@ namespace FoundationDB.Client.Tests
 						.Select(kv => processed.Decode(kv.Key));
 
 					// items and processed are lists of (string, int) tuples, we can compare them directly
-					var query = resItems.Except(resProcessed, TupleComparisons.Composite<string, int>());
+					var query = resItems.Except(resProcessed, TupleComparisons.Composite<string?, int>());
 
 					// query is already a list of tuples, nothing more to do
 					return query;

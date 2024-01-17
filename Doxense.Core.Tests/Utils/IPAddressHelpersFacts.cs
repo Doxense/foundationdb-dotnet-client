@@ -50,14 +50,14 @@ namespace Doxense.Networking.Tests
 
 			static void ShouldFailV4(string? ip)
 			{
-				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.False, "'{0}' is NOT a valid IPv4 address", ip);
+				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.False, "'{0}' is NOT a valid IPv4 address", ip ?? "<null>");
 				if (IPAddress.TryParse(ip, out var x) && x.AddressFamily == AddressFamily.InterNetworkV6)
 				{
 					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, "'{0}' is valid but no an IPv4 address", ip);
 				}
 				else
 				{
-					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, "'{0}' is NOT a valid IP address", ip);
+					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, "'{0}' is NOT a valid IP address", ip ?? "<null>");
 				}
 			}
 
@@ -101,14 +101,14 @@ namespace Doxense.Networking.Tests
 
 			static void ShouldFailV6(string? ip)
 			{
-				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.False, "'{0}' is NOT a valid IPv6 address", ip);
+				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.False, "'{0}' is NOT a valid IPv6 address", ip ?? "<null>");
 				if (IPAddress.TryParse(ip, out var x) && x.AddressFamily == AddressFamily.InterNetwork)
 				{
 					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, "'{0}' is valid but no an IPv6 address", ip);
 				}
 				else
 				{
-					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, "'{0}' is NOT a valid IP address", ip);
+					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, "'{0}' is NOT a valid IP address", ip ?? "<null>");
 				}
 			}
 

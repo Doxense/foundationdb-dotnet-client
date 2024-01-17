@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable CS8604 // Possible null reference argument.
+
 namespace FoundationDB.Filters.Logging.Tests
 {
 	using System;
@@ -87,7 +89,8 @@ namespace FoundationDB.Filters.Logging.Tests
 				}, this.Cancellation);
 
 				bool first = true;
-				Action<FdbTransactionLog> logHandler = (log) =>
+
+				void LogHandler(FdbTransactionLog log)
 				{
 					if (first)
 					{
@@ -96,10 +99,10 @@ namespace FoundationDB.Filters.Logging.Tests
 					}
 
 					Log(log.GetTimingsReport(true));
-				};
+				}
 
 				// create a logged version of the database
-				db.SetDefaultLogHandler(logHandler);
+				db.SetDefaultLogHandler(LogHandler);
 
 				for (int k = 0; k < N; k++)
 				{
@@ -116,7 +119,7 @@ namespace FoundationDB.Filters.Logging.Tests
 
 						//tr.SetOption(FdbTransactionOption.CausalReadRisky);
 
-						long ver = await tr.GetReadVersionAsync().ConfigureAwait(false);
+						_ = await tr.GetReadVersionAsync().ConfigureAwait(false);
 
 						await tr.GetAsync(subspace.Encode("One")).ConfigureAwait(false);
 						await tr.GetAsync(subspace.Encode("NotFound")).ConfigureAwait(false);

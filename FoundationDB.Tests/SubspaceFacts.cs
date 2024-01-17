@@ -103,7 +103,7 @@ namespace FoundationDB.Client.Tests
 		public void Test_Cannot_Create_Or_Partition_Subspace_With_Slice_Nil()
 		{
 			Assert.That(() => new KeySubspace(Slice.Nil, SubspaceContext.Default), Throws.ArgumentException);
-			Assert.That(() => new KeySubspace(Slice.Empty, default(SubspaceContext)), Throws.ArgumentNullException);
+			Assert.That(() => new KeySubspace(Slice.Empty, default(SubspaceContext)!), Throws.ArgumentNullException);
 			Assert.That(() => KeySubspace.FromKey(Slice.Nil), Throws.ArgumentException);
 			//FIXME: typed subspaces refactoring !
 			//Assert.That(() => FdbSubspace.Empty.Partition[Slice.Nil], Throws.ArgumentException);
@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00>")), Is.EqualTo("hello"));
 
 			// Decode(..., out T)
-			location.Decode(Slice.Unescape("PREFIX<02>hello<00>"), out string x);
+			location.Decode(Slice.Unescape("PREFIX<02>hello<00>"), out string? x);
 			Assert.That(x, Is.EqualTo("hello"));
 		}
 
@@ -275,7 +275,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{")), Is.EqualTo(("hello", 123)));
 
 			// Decode(..., out T)
-			location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{"), out string x1, out int x2);
+			location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{"), out string? x1, out int x2);
 			Assert.That(x1, Is.EqualTo("hello"));
 			Assert.That(x2, Is.EqualTo(123));
 		}
@@ -303,7 +303,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>")), Is.EqualTo(("hello", 123, "world")));
 
 			// Decode(..., out T)
-			location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>"), out string x1, out int x2, out string x3);
+			location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>"), out string? x1, out int x2, out string? x3);
 			Assert.That(x1, Is.EqualTo("hello"));
 			Assert.That(x2, Is.EqualTo(123));
 			Assert.That(x3, Is.EqualTo("world"));
@@ -332,7 +332,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>")), Is.EqualTo(("hello", 123, "world", 456)));
 
 			// Decode(..., out T)
-			location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"), out string x1, out int x2, out string x3, out int x4);
+			location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"), out string? x1, out int x2, out string? x3, out int x4);
 			Assert.That(x1, Is.EqualTo("hello"));
 			Assert.That(x2, Is.EqualTo(123));
 			Assert.That(x3, Is.EqualTo("world"));

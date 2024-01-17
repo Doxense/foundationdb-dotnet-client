@@ -45,7 +45,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(empty.ToString(), Is.EqualTo(string.Empty));
 			Assert.That(empty.Name, Is.EqualTo(string.Empty));
 			Assert.That(empty.Segments.Length, Is.EqualTo(0));
-			Assert.That(empty.ToArray(), Is.EqualTo(new string[0]));
+			Assert.That(empty.ToArray(), Is.EqualTo(Array.Empty<string>()));
 
 			Assert.That(empty, Is.EqualTo(FdbPath.Empty));
 			Assert.That(empty == FdbPath.Empty, Is.True);
@@ -70,7 +70,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(root.ToString(), Is.EqualTo("/"));
 			Assert.That(root.Name, Is.EqualTo(string.Empty));
 			Assert.That(root.Segments.Length, Is.EqualTo(0));
-			Assert.That(root.ToArray(), Is.EqualTo(new string[0]));
+			Assert.That(root.ToArray(), Is.EqualTo(Array.Empty<string>()));
 
 			Assert.That(root, Is.EqualTo(FdbPath.Root));
 			Assert.That(root == FdbPath.Root, Is.True);
@@ -225,9 +225,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbPathSegment_Parse()
 		{
-			Assert.That(FdbPathSegment.Parse(@"Hello"), Is.EqualTo(FdbPathSegment.Create("Hello")));
-			Assert.That(FdbPathSegment.Parse(@"Hello[World]"), Is.EqualTo(FdbPathSegment.Create("Hello", "World")));
-			Assert.That(FdbPathSegment.Parse(@"Hello[]"), Is.EqualTo(FdbPathSegment.Create("Hello", "")));
+			Assert.That(FdbPathSegment.Parse("Hello"), Is.EqualTo(FdbPathSegment.Create("Hello")));
+			Assert.That(FdbPathSegment.Parse("Hello[World]"), Is.EqualTo(FdbPathSegment.Create("Hello", "World")));
+			Assert.That(FdbPathSegment.Parse("Hello[]"), Is.EqualTo(FdbPathSegment.Create("Hello", "")));
 			Assert.That(FdbPathSegment.Parse(@"Hello\[World\]"), Is.EqualTo(FdbPathSegment.Create("Hello[World]")));
 			Assert.That(FdbPathSegment.Parse(@"Hello\[World\][Layer]"), Is.EqualTo(FdbPathSegment.Create("Hello[World]", "Layer")));
 			Assert.That(FdbPathSegment.Parse(@"Hello\/World[Foo\[Bar]"), Is.EqualTo(FdbPathSegment.Create("Hello/World", "Foo[Bar")));

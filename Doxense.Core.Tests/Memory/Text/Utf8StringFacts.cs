@@ -27,6 +27,7 @@
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable AccessToModifiedClosure
 // ReSharper disable ImplicitlyCapturedClosure
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 namespace Doxense.Text.Utf8.Tests
 {
 	using System;
@@ -262,8 +263,7 @@ namespace Doxense.Text.Utf8.Tests
 			Assert.That(() => Utf8String.FromBuffer(data), Throws.InstanceOf<DecoderFallbackException>()); //TODO: which type of exception?
 
 			// compute length
-			int len;
-			Assert.That(Utf8Encoder.TryGetLength(data, out len), Is.False, "Should not be able to get length of invalid UTF-8 string");
+			Assert.That(Utf8Encoder.TryGetLength(data, out int _), Is.False, "Should not be able to get length of invalid UTF-8 string");
 
 		}
 
@@ -299,23 +299,23 @@ namespace Doxense.Text.Utf8.Tests
 			Assert.That(Utf8String.FromString(string.Empty), Is.EqualTo(Utf8String.Empty));
 
 			Assert.That(Utf8String.FromString("A").GetBytes(), Is.EqualTo(new byte[] { 65 }));
-			Assert.That(Utf8String.FromString("Hello").GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("Hello")));
-			Assert.That(Utf8String.FromString("Héllö").GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("Héllö")));
+			Assert.That(Utf8String.FromString("Hello").GetBytes(), Is.EqualTo("Hello"u8.ToArray()));
+			Assert.That(Utf8String.FromString("Héllö").GetBytes(), Is.EqualTo("Héllö"u8.ToArray()));
 
-			Assert.That(Utf8String.FromString("Héllø, 世界!".AsSpan(0, 5)).GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("Héllø")));
-			Assert.That(Utf8String.FromString("Héllø, 世界!".AsSpan(7, 2)).GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("世界")));
-			Assert.That(Utf8String.FromString("Héllø, 世界!".AsSpan(0, 10)).GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("Héllø, 世界!")));
+			Assert.That(Utf8String.FromString("Héllø, 世界!".AsSpan(0, 5)).GetBytes(), Is.EqualTo("Héllø"u8.ToArray()));
+			Assert.That(Utf8String.FromString("Héllø, 世界!".AsSpan(7, 2)).GetBytes(), Is.EqualTo("世界"u8.ToArray()));
+			Assert.That(Utf8String.FromString("Héllø, 世界!".AsSpan(0, 10)).GetBytes(), Is.EqualTo("Héllø, 世界!"u8.ToArray()));
 
 			// pre-allocated buffer
 
-			byte[] tmp = null;
+			byte[]? tmp = null;
 			var str = Utf8String.FromString("Hello, World!".AsSpan(), ref tmp);
 			Assert.That(str.ToString(), Is.EqualTo("Hello, World!"));
 			Assert.That(tmp, Is.Not.Null);
 			Assert.That(str.GetBuffer().Array, Is.SameAs(tmp));
 
 			// reuse buffer if large enough
-			byte[] orig = tmp;
+			byte[] orig = tmp!;
 			str = Utf8String.FromString("FFFFöööööööööööö!!!!".AsSpan(3, 4), ref tmp);
 			Assert.That(str.ToString(), Is.EqualTo("Fööö"));
 			Assert.That(tmp, Is.SameAs(orig));

@@ -32,8 +32,10 @@ namespace Doxense.Networking.Http
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Serialization.Json;
+	using JetBrains.Annotations;
 
 	/// <summary>Generic HTTP protocol that exposes all HTTP verbes without any custom processing</summary>
+	[PublicAPI]
 	public class RestHttpProtocol : IBetterHttpProtocol
 	{
 

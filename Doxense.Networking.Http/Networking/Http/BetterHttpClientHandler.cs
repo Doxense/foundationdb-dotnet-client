@@ -20,16 +20,18 @@ namespace Doxense.Networking.Http
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Version non-"protected" de <see cref="System.Net.Http.HttpClientHandler"/></summary>
+	[PublicAPI]
 	public class BetterHttpClientHandler : HttpMessageHandler
-    {
+	{
 
 		// La verison normale de HttpMessageHandler ne permet pas de lui passer un SocketsHttpHandler via ctor, ni d'accéder a celui qui a été créé.
 		// Egalement, on ne peut pas appeler les méthodes Send/SendAsync publiquement, ce qui rend l'intégration très complexe.
 		// => cette class rend les champs publique, et donc permet de customiser le SocketsHttpHandler (pour lui passer des callbacks custom, par exemple)
 
-        public SocketsHttpHandler Sockets { get; }
+		public SocketsHttpHandler Sockets { get; }
 
 		public INetworkMap Network { get; }
 
@@ -37,7 +39,7 @@ namespace Doxense.Networking.Http
 
 		private Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>? m_serverCustomValidationCallback;
 
-        private volatile bool m_disposed;
+		private volatile bool m_disposed;
 
 		#region Cheat Codes...
 
@@ -167,25 +169,25 @@ namespace Doxense.Networking.Http
 		{ }
 
 		public BetterHttpClientHandler(INetworkMap map, SocketsHttpHandler sockets)
-        {
+		{
 			Contract.NotNull(map);
 			Contract.NotNull(sockets);
 
 			this.Network = map;
 			this.Sockets = sockets;
-            this.ClientCertificateOptions = ClientCertificateOption.Manual;
-        }
+			this.ClientCertificateOptions = ClientCertificateOption.Manual;
+		}
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && !m_disposed)
-            {
-                m_disposed = true;
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing && !m_disposed)
+			{
+				m_disposed = true;
 				this.Sockets.Dispose();
-            }
+			}
 
-            base.Dispose(disposing);
-        }
+			base.Dispose(disposing);
+		}
 		
 
 		public virtual bool SupportsAutomaticDecompression { get; set; } = true; //note: internal const SocketsHttpHandler.SupportsAutomaticDecompression qui vaut "true"
@@ -194,156 +196,156 @@ namespace Doxense.Networking.Http
 
 		public virtual bool SupportsRedirectConfiguration { get; set; } = true; //note: internal const SocketsHttpHandler.SupportsRedirectConfiguration qui vaut "true"
 
-        public bool UseCookies
-        {
-            get => this.Sockets.UseCookies;
-            set => this.Sockets.UseCookies = value;
-        }
+		public bool UseCookies
+		{
+			get => this.Sockets.UseCookies;
+			set => this.Sockets.UseCookies = value;
+		}
 
-        public CookieContainer CookieContainer
-        {
-            get => this.Sockets.CookieContainer;
-            set
-            {
-                ArgumentNullException.ThrowIfNull(value);
+		public CookieContainer CookieContainer
+		{
+			get => this.Sockets.CookieContainer;
+			set
+			{
+				ArgumentNullException.ThrowIfNull(value);
 
 				this.Sockets.CookieContainer = value;
-            }
-        }
+			}
+		}
 
-        public DecompressionMethods AutomaticDecompression
-        {
-            get => this.Sockets.AutomaticDecompression;
-            set => this.Sockets.AutomaticDecompression = value;
-        }
+		public DecompressionMethods AutomaticDecompression
+		{
+			get => this.Sockets.AutomaticDecompression;
+			set => this.Sockets.AutomaticDecompression = value;
+		}
 
-        public bool UseProxy
-        {
-            get => this.Sockets.UseProxy;
-            set => this.Sockets.UseProxy = value;
-        }
+		public bool UseProxy
+		{
+			get => this.Sockets.UseProxy;
+			set => this.Sockets.UseProxy = value;
+		}
 
-        public IWebProxy? Proxy
-        {
-            get => this.Sockets.Proxy;
-            set => this.Sockets.Proxy = value;
-        }
+		public IWebProxy? Proxy
+		{
+			get => this.Sockets.Proxy;
+			set => this.Sockets.Proxy = value;
+		}
 
-        public ICredentials? DefaultProxyCredentials
-        {
-            get => this.Sockets.DefaultProxyCredentials;
-            set => this.Sockets.DefaultProxyCredentials = value;
-        }
+		public ICredentials? DefaultProxyCredentials
+		{
+			get => this.Sockets.DefaultProxyCredentials;
+			set => this.Sockets.DefaultProxyCredentials = value;
+		}
 
-        public bool PreAuthenticate
-        {
-            get => this.Sockets.PreAuthenticate;
-            set => this.Sockets.PreAuthenticate = value;
-        }
+		public bool PreAuthenticate
+		{
+			get => this.Sockets.PreAuthenticate;
+			set => this.Sockets.PreAuthenticate = value;
+		}
 
-        public bool UseDefaultCredentials
-        {
-            // SocketsHttpHandler doesn't have a separate UseDefaultCredentials property.  There
-            // is just a Credentials property.  So, we need to map the behavior.
-            get => this.Sockets.Credentials == CredentialCache.DefaultCredentials;
-            set
-            {
-                if (value)
-                {
+		public bool UseDefaultCredentials
+		{
+			// SocketsHttpHandler doesn't have a separate UseDefaultCredentials property.  There
+			// is just a Credentials property.  So, we need to map the behavior.
+			get => this.Sockets.Credentials == CredentialCache.DefaultCredentials;
+			set
+			{
+				if (value)
+				{
 					this.Sockets.Credentials = CredentialCache.DefaultCredentials;
-                }
-                else
-                {
-                    if (this.Sockets.Credentials == CredentialCache.DefaultCredentials)
-                    {
-                        // Only clear out the Credentials property if it was a DefaultCredentials.
+				}
+				else
+				{
+					if (this.Sockets.Credentials == CredentialCache.DefaultCredentials)
+					{
+						// Only clear out the Credentials property if it was a DefaultCredentials.
 						this.Sockets.Credentials = null;
-                    }
-                }
-            }
-        }
+					}
+				}
+			}
+		}
 
-        public ICredentials? Credentials
-        {
-            get => this.Sockets.Credentials;
-            set => this.Sockets.Credentials = value;
-        }
+		public ICredentials? Credentials
+		{
+			get => this.Sockets.Credentials;
+			set => this.Sockets.Credentials = value;
+		}
 
-        public bool AllowAutoRedirect
-        {
-            get => this.Sockets.AllowAutoRedirect;
-            set => this.Sockets.AllowAutoRedirect = value;
-        }
+		public bool AllowAutoRedirect
+		{
+			get => this.Sockets.AllowAutoRedirect;
+			set => this.Sockets.AllowAutoRedirect = value;
+		}
 
-        public int MaxAutomaticRedirections
-        {
-            get => this.Sockets.MaxAutomaticRedirections;
-            set => this.Sockets.MaxAutomaticRedirections = value;
-        }
+		public int MaxAutomaticRedirections
+		{
+			get => this.Sockets.MaxAutomaticRedirections;
+			set => this.Sockets.MaxAutomaticRedirections = value;
+		}
 
-        public int MaxConnectionsPerServer
-        {
-            get => this.Sockets.MaxConnectionsPerServer;
-            set => this.Sockets.MaxConnectionsPerServer = value;
-        }
+		public int MaxConnectionsPerServer
+		{
+			get => this.Sockets.MaxConnectionsPerServer;
+			set => this.Sockets.MaxConnectionsPerServer = value;
+		}
 
-        public long MaxRequestContentBufferSize
-        {
-            // This property is not supported. In the .NET Framework it was only used when the handler needed to
-            // automatically buffer the request content. That only happened if neither 'Content-Length' nor
-            // 'Transfer-Encoding: chunked' request headers were specified. So, the handler thus needed to buffer
-            // in the request content to determine its length and then would choose 'Content-Length' semantics when
-            // POST'ing. In .NET Core, the handler will resolve the ambiguity by always choosing
-            // 'Transfer-Encoding: chunked'. The handler will never automatically buffer in the request content.
-            get
-            {
-                return 0; // Returning zero is appropriate since in .NET Framework it means no limit.
-            }
+		public long MaxRequestContentBufferSize
+		{
+			// This property is not supported. In the .NET Framework it was only used when the handler needed to
+			// automatically buffer the request content. That only happened if neither 'Content-Length' nor
+			// 'Transfer-Encoding: chunked' request headers were specified. So, the handler thus needed to buffer
+			// in the request content to determine its length and then would choose 'Content-Length' semantics when
+			// POST'ing. In .NET Core, the handler will resolve the ambiguity by always choosing
+			// 'Transfer-Encoding: chunked'. The handler will never automatically buffer in the request content.
+			get
+			{
+				return 0; // Returning zero is appropriate since in .NET Framework it means no limit.
+			}
 
-            set
-            {
-                if (value < 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value));
-                }
+			set
+			{
+				if (value < 0)
+				{
+					throw new ArgumentOutOfRangeException(nameof(value));
+				}
 
-				const long MaxBufferSize = int.MaxValue; //TODO: HttpContent.MaxBufferSize
-                if (value > MaxBufferSize) 
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, $"Buffering more than {MaxBufferSize:N0} bytes is not supported.");
-                }
+				const long MAX_BUFFER_SIZE = int.MaxValue; //TODO: HttpContent.MaxBufferSize
+				if (value > MAX_BUFFER_SIZE) 
+				{
+					throw new ArgumentOutOfRangeException(nameof(value), value, $"Buffering more than {MAX_BUFFER_SIZE:N0} bytes is not supported.");
+				}
 
-                CheckDisposed();
+				CheckDisposed();
 
-                // No-op on property setter.
-            }
-        }
+				// No-op on property setter.
+			}
+		}
 
-        public int MaxResponseHeadersLength
-        {
-            get => this.Sockets.MaxResponseHeadersLength;
-            set => this.Sockets.MaxResponseHeadersLength = value;
-        }
+		public int MaxResponseHeadersLength
+		{
+			get => this.Sockets.MaxResponseHeadersLength;
+			set => this.Sockets.MaxResponseHeadersLength = value;
+		}
 
-        public ClientCertificateOption ClientCertificateOptions
-        {
-            get => m_clientCertificateOptions;
-            set
-            {
-                switch (value)
-                {
-                    case ClientCertificateOption.Manual:
+		public ClientCertificateOption ClientCertificateOptions
+		{
+			get => m_clientCertificateOptions;
+			set
+			{
+				switch (value)
+				{
+					case ClientCertificateOption.Manual:
 					{
 						ThrowForModifiedManagedSslOptionsIfStarted();
 						m_clientCertificateOptions = value;
-						this.Sockets.SslOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => CertHelpers.GetEligibleClientCertificate(this.Sockets.SslOptions.ClientCertificates)!;
+						this.Sockets.SslOptions.LocalCertificateSelectionCallback = (_, _, _, _, _) => CertHelpers.GetEligibleClientCertificate(this.Sockets.SslOptions.ClientCertificates)!;
 						break;
 					}
 					case ClientCertificateOption.Automatic:
 					{
 						ThrowForModifiedManagedSslOptionsIfStarted();
 						m_clientCertificateOptions = value;
-						this.Sockets.SslOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => CertHelpers.GetEligibleClientCertificate()!;
+						this.Sockets.SslOptions.LocalCertificateSelectionCallback = (_, _, _, _, _) => CertHelpers.GetEligibleClientCertificate()!;
 						break;
 					}
 					default:
@@ -351,12 +353,12 @@ namespace Doxense.Networking.Http
 						throw new ArgumentOutOfRangeException(nameof(value));
 					}
 				}
-            }
-        }
+			}
+		}
 
 		private static class CertHelpers
 		{
-			private const string ClientAuthenticationOID = "1.3.6.1.5.5.7.3.2";
+			private const string ClientAuthenticationOid = "1.3.6.1.5.5.7.3.2";
 
 			internal static X509Certificate2? GetEligibleClientCertificate()
 			{
@@ -372,89 +374,88 @@ namespace Doxense.Networking.Http
 			}
 
 			internal static X509Certificate2? GetEligibleClientCertificate(X509CertificateCollection? candidateCerts)
-	        {
-	            if (candidateCerts == null || candidateCerts.Count == 0)
-	            {
-	                return null;
-	            }
+			{
+				if (candidateCerts == null || candidateCerts.Count == 0)
+				{
+					return null;
+				}
 
-	            var certs = new X509Certificate2Collection();
-	            certs.AddRange(candidateCerts);
+				var certs = new X509Certificate2Collection();
+				certs.AddRange(candidateCerts);
 
-	            return GetEligibleClientCertificate(certs);
-	        }
+				return GetEligibleClientCertificate(certs);
+			}
 
-	        internal static X509Certificate2? GetEligibleClientCertificate(X509Certificate2Collection? candidateCerts)
-	        {
-	            if (candidateCerts == null || candidateCerts.Count == 0)
-	            {
-	                return null;
-	            }
+			private static X509Certificate2? GetEligibleClientCertificate(X509Certificate2Collection? candidateCerts)
+			{
+				if (candidateCerts == null || candidateCerts.Count == 0)
+				{
+					return null;
+				}
 
-	            foreach (X509Certificate2 cert in candidateCerts)
-	            {
-	                if (!cert.HasPrivateKey)
-	                {
-	                    continue;
-	                }
+				foreach (X509Certificate2 cert in candidateCerts)
+				{
+					if (!cert.HasPrivateKey)
+					{
+						continue;
+					}
 
-	                if (IsValidClientCertificate(cert))
-	                {
-	                    return cert;
-	                }
-	            }
+					if (IsValidClientCertificate(cert))
+					{
+						return cert;
+					}
+				}
 
-	            return null;
-	        }
+				return null;
+			}
 
-	        private static bool IsValidClientCertificate(X509Certificate2 cert)
-	        {
-	            foreach (X509Extension extension in cert.Extensions)
+			private static bool IsValidClientCertificate(X509Certificate2 cert)
+			{
+				foreach (X509Extension extension in cert.Extensions)
 				{
 					switch (extension)
 					{
-						case X509EnhancedKeyUsageExtension eku when !IsValidForClientAuthenticationEKU(eku):
+						case X509EnhancedKeyUsageExtension eku when !IsValidForClientAuthenticationEku(eku):
 						case X509KeyUsageExtension ku when !IsValidForDigitalSignatureUsage(ku):
 						{
 							return false;
 						}
 					}
 				}
-	            return true;
-	        }
+				return true;
+			}
 
-	        private static bool IsValidForClientAuthenticationEKU(X509EnhancedKeyUsageExtension eku)
-	        {
-	            foreach (Oid oid in eku.EnhancedKeyUsages)
-	            {
-	                if (oid.Value == ClientAuthenticationOID)
-	                {
-	                    return true;
-	                }
-	            }
+			private static bool IsValidForClientAuthenticationEku(X509EnhancedKeyUsageExtension eku)
+			{
+				foreach (Oid oid in eku.EnhancedKeyUsages)
+				{
+					if (oid.Value == CertHelpers.ClientAuthenticationOid)
+					{
+						return true;
+					}
+				}
 
-	            return false;
-	        }
+				return false;
+			}
 
-	        private static bool IsValidForDigitalSignatureUsage(X509KeyUsageExtension ku)
-	        {
-	            const X509KeyUsageFlags RequiredUsages = X509KeyUsageFlags.DigitalSignature;
-	            return (ku.KeyUsages & RequiredUsages) == RequiredUsages;
-	        }
+			private static bool IsValidForDigitalSignatureUsage(X509KeyUsageExtension ku)
+			{
+				return (ku.KeyUsages & X509KeyUsageFlags.DigitalSignature) == X509KeyUsageFlags.DigitalSignature;
+			}
 		}
 
-        public X509CertificateCollection ClientCertificates
-        {
-            get
-            {
-                if (ClientCertificateOptions != ClientCertificateOption.Manual)
-                {
-                    throw new InvalidOperationException($"The {nameof(ClientCertificateOptions)} property must be set to '{nameof(ClientCertificateOption.Manual)}' to use this property.");
-                }
+		public X509CertificateCollection ClientCertificates
+		{
+			get
+			{
+				if (ClientCertificateOptions != ClientCertificateOption.Manual)
+				{
+					throw new InvalidOperationException($"The {nameof(ClientCertificateOptions)} property must be set to '{nameof(ClientCertificateOption.Manual)}' to use this property.");
+				}
 
-                return this.Sockets.SslOptions.ClientCertificates ??= new X509CertificateCollection();
-            }
-        }
+				return this.Sockets.SslOptions.ClientCertificates ??= new X509CertificateCollection();
+			}
+		}
 
 		public Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>? ServerCertificateCustomValidationCallback
 		{
@@ -467,27 +468,27 @@ namespace Doxense.Networking.Http
 			}
 		}
 
-        public bool CheckCertificateRevocationList
-        {
-            get => this.Sockets.SslOptions.CertificateRevocationCheckMode == X509RevocationMode.Online;
-            set
-            {
-                ThrowForModifiedManagedSslOptionsIfStarted();
+		public bool CheckCertificateRevocationList
+		{
+			get => this.Sockets.SslOptions.CertificateRevocationCheckMode == X509RevocationMode.Online;
+			set
+			{
+				ThrowForModifiedManagedSslOptionsIfStarted();
 				this.Sockets.SslOptions.CertificateRevocationCheckMode = value ? X509RevocationMode.Online : X509RevocationMode.NoCheck;
-            }
-        }
+			}
+		}
 
-        public SslProtocols SslProtocols
-        {
-            get => this.Sockets.SslOptions.EnabledSslProtocols;
-            set
-            {
-                ThrowForModifiedManagedSslOptionsIfStarted();
+		public SslProtocols SslProtocols
+		{
+			get => this.Sockets.SslOptions.EnabledSslProtocols;
+			set
+			{
+				ThrowForModifiedManagedSslOptionsIfStarted();
 				this.Sockets.SslOptions.EnabledSslProtocols = value;
-            }
-        }
+			}
+		}
 
-        public IDictionary<string, object?> Properties => this.Sockets.Properties;
+		public IDictionary<string, object?> Properties => this.Sockets.Properties;
 
 		protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken ct) => CheatCodes.SendInvoker(Sockets, request, ct);
 
@@ -500,22 +501,22 @@ namespace Doxense.Networking.Http
 		public Task<HttpResponseMessage> InvokeSendAsync(HttpRequestMessage request, CancellationToken ct) => this.SendAsync(request, ct);
 
 		// lazy-load the validator func so it can be trimmed by the ILLinker if it isn't used.
-        public static readonly Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> DangerousAcceptAnyServerCertificateValidator = (_,_,_,_) => true;
+		public static readonly Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> DangerousAcceptAnyServerCertificateValidator = (_,_,_,_) => true;
 
-        private void ThrowForModifiedManagedSslOptionsIfStarted()
-        {
-            // Hack to trigger an InvalidOperationException if a property that's stored on
-            // SslOptions is changed, since SslOptions itself does not do any such checks.
+		private void ThrowForModifiedManagedSslOptionsIfStarted()
+		{
+			// Hack to trigger an InvalidOperationException if a property that's stored on
+			// SslOptions is changed, since SslOptions itself does not do any such checks.
 			this.Sockets.SslOptions = this.Sockets.SslOptions;
-        }
+		}
 
-        private void CheckDisposed()
-        {
-            if (m_disposed)
-            {
-                throw new ObjectDisposedException(GetType().ToString());
-            }
-        }
+		private void CheckDisposed()
+		{
+			if (m_disposed)
+			{
+				throw new ObjectDisposedException(GetType().ToString());
+			}
+		}
 
 		private Socket CreateSocket()
 		{
@@ -806,6 +807,6 @@ namespace Doxense.Networking.Http
 			this.Sockets.ConnectCallback = this.SocketsConnectCallback;
 		}
 
-    }
+	}
 
 }

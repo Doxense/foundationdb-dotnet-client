@@ -24,6 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable UnusedMember.Global
 namespace Doxense.Runtime.Comparison.Tests
 {
 	using System;
@@ -223,8 +224,8 @@ namespace Doxense.Runtime.Comparison.Tests
 			EnsureDifferent(
 				"[0] == null",
 				cmp,
-				new ArrayModel { Items = new string[0] },
-				new ArrayModel { Items = null! }
+				new ArrayModel { Items = Array.Empty<string>() },
+				new ArrayModel { Items = null }
 			);
 
 			EnsureEqual(
@@ -527,9 +528,9 @@ namespace Doxense.Runtime.Comparison.Tests
 		public Guid Id { get; set; }
 
 		[Primary]
-		public string Name { get; set; }
+		public string? Name { get; set; }
 
-		public string Description { get; set; }
+		public string? Description { get; set; }
 
 		[Primary]
 		public long Version { get; set; }
@@ -543,31 +544,31 @@ namespace Doxense.Runtime.Comparison.Tests
 
 	public sealed class ArrayModel
 	{
-		public string[] Items { get; set; }
+		public string[]? Items { get; set; }
 
 	}
 
 	public sealed class ListModel
 	{
-		public List<string> Items { get; set; }
+		public List<string>? Items { get; set; }
 	}
 
 	public sealed class FooModel
 	{
 		public int Id { get; set; }
 
-		public string Name { get; set; }
+		public string? Name { get; set; }
 
 	}
 
 	public sealed class DictionaryModel
 	{
-		public Dictionary<string, FooModel> Items { get; set; }
+		public Dictionary<string, FooModel>? Items { get; set; }
 	}
 
 	public sealed class HashSetModel
 	{
-		public HashSet<string> Items { get; set; }
+		public HashSet<string>? Items { get; set; }
 	}
 
 	/// <summary>Exemple d'une classe Model qui est sealed, et contient quelques Nested Types (également sealed)</summary>
@@ -575,7 +576,7 @@ namespace Doxense.Runtime.Comparison.Tests
 	{
 		public bool Bool { get; set; }
 
-		public string String { get; set; }
+		public string? String { get; set; }
 
 		public int Int32 { get; set; }
 
@@ -600,32 +601,32 @@ namespace Doxense.Runtime.Comparison.Tests
 
 		public sealed class NestedSealedClass
 		{
-			public string Hello { get; set; }
+			public string? Hello { get; set; }
 
 			public bool Foo { get; set; }
 		}
 
 		public struct NestedStruct
 		{
-			public string Hello;
-			public string Foo;
+			public string? Hello;
+			public string? Foo;
 		}
 
 	}
 
 	public abstract class SomeGenericBaseType
 	{
-		public string Foo { get; set; }
+		public string? Foo { get; set; }
 	}
 
 	public sealed class SomeGenericDerivedType : SomeGenericBaseType
 	{
-		public string Bar { get; set; }
+		public string? Bar { get; set; }
 	}
 
 	public sealed class AnoterGenericDerivedType : SomeGenericBaseType
 	{
-		public string Baz { get; set; }
+		public string? Baz { get; set; }
 	}
 
 }

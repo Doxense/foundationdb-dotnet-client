@@ -38,8 +38,10 @@ namespace Doxense.Networking
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Networking.Http;
+	using JetBrains.Annotations;
 	using NodaTime;
 
+	[PublicAPI]
 	public class NetworkMap : INetworkMap
 	{
 
@@ -106,7 +108,7 @@ namespace Doxense.Networking
 					Type = x.NetworkInterfaceType,
 					Name = x.Name,
 					Description = x.Description,
-					PhysicalAddress = x.GetPhysicalAddress()?.ToString(),
+					PhysicalAddress = x.GetPhysicalAddress().ToString(),
 					DnsSuffix = props.DnsSuffix,
 					UnicastAddresses = props.UnicastAddresses
 						.Select(info => new NetworkAdaptorDescriptor.UnicastAddressDescriptor()
@@ -132,12 +134,7 @@ namespace Doxense.Networking
 		{
 			lock (this.Lock)
 			{
-				if (!this.HeatMap.TryGetValue(endpoint, out var usage))
-				{ // first time!
-					return null;
-				}
-
-				return usage;
+				return this.HeatMap.GetValueOrDefault(endpoint);
 			}
 		}
 
@@ -204,6 +201,7 @@ namespace Doxense.Networking
 	}
 
 	[DebuggerDisplay("EndPoint={EndPoint}, Score={Score}, Total={TotalConnections}, Errors={TotalErrors}")]
+	[PublicAPI]
 	public sealed class EndPointQuality
 	{
 

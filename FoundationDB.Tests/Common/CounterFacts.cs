@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Counters.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				var res = await db.ReadAsync(async tr => await c.GetSnapshot(tr), this.Cancellation);
+				var res = await db.ReadAsync(tr => c.GetSnapshot(tr), this.Cancellation);
 				Assert.That(res, Is.EqualTo(N));
 			}
 
@@ -115,7 +115,7 @@ namespace FoundationDB.Layers.Counters.Tests
 
 					Log($"Doing {W:N0} x {B:N0} inserts in {W:N0} threads...");
 
-					var signal = new TaskCompletionSource<object>();
+					var signal = new TaskCompletionSource<object?>();
 					var workers = Enumerable.Range(0, W)
 						.Select(async (_) =>
 						{

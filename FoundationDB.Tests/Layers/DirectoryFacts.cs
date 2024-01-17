@@ -25,6 +25,8 @@
 #endregion
 
 // ReSharper disable AccessToDisposedClosure
+// ReSharper disable RedundantCast
+// ReSharper disable ReplaceAsyncWithTaskReturn
 
 #define ENABLE_LOGGING
 
@@ -452,27 +454,27 @@ namespace FoundationDB.Client.Tests
 				Log("List '/Foo':");
 				var subdirs = await db.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
-				foreach (var subdir in subdirs) Log($"- " + subdir);
+				foreach (var subdir in subdirs) Log("- " + subdir);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo(FdbPath.Parse("/Foo/Bar")));
 
 				Log("List '/Foo/Bar':");
 				subdirs = await db.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
-				foreach (var subdir in subdirs) Log($"- " + subdir);
+				foreach (var subdir in subdirs) Log("- " + subdir);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo(FdbPath.Parse("/Foo/Bar/Baz")));
 
 				Log("List '/Foo/Bar/Baz':");
 				subdirs = await db.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo/Bar/Baz")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
-				foreach (var subdir in subdirs) Log($"- " + subdir);
+				foreach (var subdir in subdirs) Log("- " + subdir);
 				Assert.That(subdirs.Count, Is.Zero);
 
 				Log("List '/numbers':");
 				subdirs = await db.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/numbers")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
-				foreach (var subdir in subdirs) Log($"- " + subdir);
+				foreach (var subdir in subdirs) Log("- " + subdir);
 				Assert.That(subdirs.Count, Is.EqualTo(10));
 				Assert.That(subdirs, Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => FdbPath.Absolute("numbers", x.ToString())).ToList()));
 
@@ -519,7 +521,7 @@ namespace FoundationDB.Client.Tests
 				Log("Listing '/letters':");
 				var subdirs = await db.ReadAsync(tr => dl.ListAsync(tr, FdbPath.Absolute("letters")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
-				foreach (var subdir in subdirs) Log($"- " + subdir);
+				foreach (var subdir in subdirs) Log("- " + subdir);
 				Assert.That(subdirs.Count, Is.EqualTo(10));
 				for (int i = 0; i < subdirs.Count; i++)
 				{
@@ -1140,7 +1142,7 @@ namespace FoundationDB.Client.Tests
 					var subspace = await location.Resolve(tr, dl);
 					Assert.That(subspace, Is.Not.Null);
 
-					ShouldFail(() => partition.Append(subspace.GetPrefix()));
+					ShouldFail(() => partition.Append(subspace!.GetPrefix()));
 					ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
 					ShouldFail(() => partition.ToRange());
@@ -1270,10 +1272,10 @@ namespace FoundationDB.Client.Tests
 						var subspace2 = await location.Resolve(tr2, dl);
 						Assert.That(subspace2, Is.Not.Null);
 
-						var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1.Encode("abc"));
+						var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1!.Encode("abc"));
 						tr1.Set(first.GetPrefix(), Value("This belongs to the first directory"));
 
-						var second = await dl.RegisterAsync(tr2, FdbPath.Absolute("Second"), subspace2.Encode("def"));
+						var second = await dl.RegisterAsync(tr2, FdbPath.Absolute("Second"), subspace2!.Encode("def"));
 						tr2.Set(second.GetPrefix(), Value("This belongs to the second directory"));
 
 						Log("Committing T1...");
@@ -1338,7 +1340,7 @@ namespace FoundationDB.Client.Tests
 				void Validate([NotNull] FdbDirectorySubspace? actual, FdbDirectorySubspace expected)
 				{
 					Assert.That(actual, Is.Not.Null);
-					Assert.That(actual.FullName, Is.EqualTo(expected.FullName));
+					Assert.That(actual!.FullName, Is.EqualTo(expected.FullName));
 					Assert.That(actual.Path, Is.EqualTo(expected.Path));
 					Assert.That(actual.Layer, Is.EqualTo(expected.Layer));
 					Assert.That(actual.DirectoryLayer, Is.SameAs(expected.DirectoryLayer));
@@ -1389,7 +1391,7 @@ namespace FoundationDB.Client.Tests
 
 				// creating *another* subspace should not change the cache
 				Log($"Creating '{pathBar}'...");
-				var bar = await db.ReadWriteAsync(tr => dl.CreateAsync(tr, pathBar), this.Cancellation);
+				_ = await db.ReadWriteAsync(tr => dl.CreateAsync(tr, pathBar), this.Cancellation);
 #if DEBUG
 				Log($"After creating '{pathBar}':");
 				await DumpSubspace(db, location);
@@ -1505,7 +1507,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.Absolute("Foo"));
 					Assert.That(folder, Is.Not.Null);
-					Assert.That(folder.Context, Is.InstanceOf<FdbDirectoryLayer.State>());
+					Assert.That(folder!.Context, Is.InstanceOf<FdbDirectoryLayer.State>());
 					return folder;
 				}, this.Cancellation);
 
@@ -1514,7 +1516,7 @@ namespace FoundationDB.Client.Tests
 
 				var fooUncached = await db.ReadAsync(tr => dl.TryOpenAsync(tr, FdbPath.Absolute("Foo")), this.Cancellation);
 				Assert.That(fooUncached, Is.Not.Null);
-				Assert.That(() => fooUncached.Context.EnsureIsValid(), Throws.Nothing, "Accessing a non-cached subspace outside the transaction should not throw");
+				Assert.That(() => fooUncached!.Context.EnsureIsValid(), Throws.Nothing, "Accessing a non-cached subspace outside the transaction should not throw");
 			}
 		}
 
@@ -1548,7 +1550,7 @@ namespace FoundationDB.Client.Tests
 					Log("Resolving " + dir);
 					var subspace = await dir.Resolve(tr, directoryLayer);
 					Assert.That(subspace, Is.Not.Null);
-					Assert.That(subspace.Path, Is.EqualTo(dir.Path), ".Path");
+					Assert.That(subspace!.Path, Is.EqualTo(dir.Path), ".Path");
 					Log("> Found under " + subspace.GetPrefix());
 					Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
 				}, this.Cancellation);
@@ -1558,7 +1560,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await dir.Resolve(tr, directoryLayer);
 					Assert.That(subspace, Is.Not.Null);
-					Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
+					Assert.That(subspace!.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
 				}, this.Cancellation);
 			}
 		}

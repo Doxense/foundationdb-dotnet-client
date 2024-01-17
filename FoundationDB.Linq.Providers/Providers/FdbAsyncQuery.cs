@@ -59,13 +59,13 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Query expression</summary>
-		public FdbQueryExpression Expression { get; }
+		public FdbQueryExpression? Expression { get; }
 
 		/// <summary>Database used by the query (or null)</summary>
 		public IFdbDatabase? Database { get; }
 
 		/// <summary>Transaction used by the query (or null)</summary>
-		public IFdbReadOnlyTransaction Transaction { get; }
+		public IFdbReadOnlyTransaction? Transaction { get; }
 
 		/// <summary>Type of the elements returned by the query</summary>
 		public virtual Type Type => this.Expression?.Type ?? (this.Transaction != null ? typeof(IFdbReadOnlyTransaction) : typeof(IFdbDatabase));
@@ -93,19 +93,14 @@ namespace FoundationDB.Linq.Providers
 		/// <summary>Create a new sequence query from a sequence expression</summary>
 		public virtual IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression)
 		{
-			if (expression == null) throw new ArgumentNullException(nameof(expression));
-
-			if (this.Transaction != null)
-				return new FdbAsyncSequenceQuery<R>(this.Transaction, expression);
-			else
-				return new FdbAsyncSequenceQuery<R>(this.Database!, expression);
+			return expression == null ? throw new ArgumentNullException(nameof(expression)) : this.Transaction != null ? new FdbAsyncSequenceQuery<R>(this.Transaction, expression) : new FdbAsyncSequenceQuery<R>(this.Database!, expression);
 		}
 
 		/// <summary>Execute the query and return the result asynchronously</summary>
 		/// <typeparam name="R">Type of the expected result. Can be a <typeparamref name="T"/> for singleton queries or a <see cref="List{T}"/> for sequence queries</typeparam>
 		public async Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct)
 		{
-			if (expression == null) throw new ArgumentNullException(nameof(ct));
+			if (expression == null) throw new ArgumentNullException(nameof(expression));
 			ct.ThrowIfCancellationRequested();
 
 			var result = await ExecuteInternal(expression, typeof(R), ct).ConfigureAwait(false);
@@ -195,6 +190,7 @@ namespace FoundationDB.Linq.Providers
 
 		internal static IAsyncEnumerator<T> GetEnumerator(FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
 		{
+			if (sequence.Expression == null) throw new InvalidOperationException();
 			var generator = sequence.CompileSequence(sequence.Expression);
 
 			if (sequence.Transaction != null)

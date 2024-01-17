@@ -40,7 +40,7 @@ namespace FoundationDB.Linq
 		Type Type { get; }
 
 		/// <summary>Expression describing the intent of the query</summary>
-		FdbQueryExpression Expression { get; }
+		FdbQueryExpression? Expression { get; }
 
 		/// <summary>Provider that created this query</summary>
 		IFdbAsyncQueryProvider Provider { get; }

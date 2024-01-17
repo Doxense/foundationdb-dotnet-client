@@ -24,11 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System;
-using NUnit.Framework;
-
 namespace Doxense.Serialization.Tests
 {
+	using System;
+	using NUnit.Framework;
 	using Doxense.Testing;
 
 	[TestFixture]

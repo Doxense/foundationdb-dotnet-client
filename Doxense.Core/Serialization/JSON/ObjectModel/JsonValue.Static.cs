@@ -201,7 +201,14 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
 		[Pure]
-		public static JsonValue Parse(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
+		public static JsonValue Parse(
+#if NET8_0_OR_GREATER
+			[StringSyntax("json")]
+#endif
+			string? jsonText,
+			CrystalJsonSettings? settings = null,
+			bool required = false
+		)
 		{
 			var res = CrystalJson.Parse(jsonText, settings);
 			return required ? res.Required() : res;
@@ -215,7 +222,14 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
+		public static JsonArray? ParseArray(
+#if NET8_0_OR_GREATER
+			[StringSyntax("json")]
+#endif
+			string? jsonText,
+			CrystalJsonSettings? settings = null,
+			bool required = false
+		)
 		{
 			return CrystalJson.Parse(jsonText, settings).AsArray(required);
 		}
@@ -228,7 +242,14 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
+		public static JsonObject? ParseObject(
+#if NET8_0_OR_GREATER
+			[StringSyntax("json")]
+#endif
+			string? jsonText,
+			CrystalJsonSettings? settings = null,
+			bool required = false
+		)
 		{
 			return CrystalJson.Parse(jsonText, settings).AsObject(required);
 		}

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Doxense.Diagnostics
 {
@@ -37,6 +37,7 @@ namespace Doxense.Diagnostics
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class for formatting binary blobs into hexadecimal for logging or troubleshooting</summary>
+	[PublicAPI]
 	public static class HexaDump
 	{
 		/// <summary>Formatting options</summary>

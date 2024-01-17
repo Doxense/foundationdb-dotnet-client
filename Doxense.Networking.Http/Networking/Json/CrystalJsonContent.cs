@@ -37,9 +37,11 @@ namespace Doxense.Serialization.Json
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
+	using JetBrains.Annotations;
 	using OpenTelemetry.Trace;
 
 	/// <summary><see cref="HttpContent"/> that uses <see cref="CrystalJson"/> to serialize JSON payloads</summary>
+	[PublicAPI]
 	public class CrystalJsonContent : HttpContent
 	{
 

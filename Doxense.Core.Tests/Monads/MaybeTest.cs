@@ -25,6 +25,7 @@
 #endregion
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace Doxense.Monads.Tests
 {
 	using System;
@@ -55,7 +56,7 @@ namespace Doxense.Monads.Tests
 
 			Assert.That(m.HasValue, Is.False);
 			Assert.That(m.Error, Is.Null);
-			Assert.That(() => { var x = m.Value; }, Throws.InvalidOperationException);
+			Assert.That(() => { _ = m.Value; }, Throws.InvalidOperationException);
 		}
 
 		[Test]
@@ -68,7 +69,7 @@ namespace Doxense.Monads.Tests
 			Assert.That(m.HasValue, Is.False);
 			Assert.That(m.Error, Is.SameAs(boom));
 
-			var aggEx = Assert.Throws<AggregateException>(() => { var x = m.Value; });
+			var aggEx = Assert.Throws<AggregateException>(() => { _ = m.Value; });
 			Assert.That(aggEx.InnerException, Is.SameAs(boom));
 		}
 

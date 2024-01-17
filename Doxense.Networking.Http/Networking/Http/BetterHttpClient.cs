@@ -174,7 +174,7 @@ namespace Doxense.Networking.Http
 			handler = new MagicalHandler(handler);
 
 			// add any optional wrappers on top of that
-			if (this.Options.Handlers?.Count > 0)
+			if (this.Options.Handlers.Count > 0)
 			{
 				foreach (var factory in this.Options.Handlers)
 				{
@@ -501,7 +501,7 @@ namespace Doxense.Networking.Http
 			Dispose(true);
 		}
 
-		protected void Dispose(bool disposing)
+		private void Dispose(bool disposing)
 		{
 			if (disposing)
 			{

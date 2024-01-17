@@ -32,7 +32,9 @@ namespace Doxense.AspNetCore.Common.Json
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class CrystalJsonHttpMessageExtensions
 	{
 

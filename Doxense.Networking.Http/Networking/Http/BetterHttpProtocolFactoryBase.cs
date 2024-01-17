@@ -96,7 +96,6 @@ namespace Doxense.Networking.Http
 			}
 		}
 
-
 	}
 
 }

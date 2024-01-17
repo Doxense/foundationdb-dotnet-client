@@ -43,21 +43,23 @@ namespace FoundationDB.Client.Tests
 
 		#region Setup...
 
-		private IFdbDatabase Db;
+		private IFdbDatabase? m_db;
+
+		protected IFdbDatabase Db => m_db ?? throw new InvalidOperationException();
 
 		protected override async Task OnBeforeAllTests()
 		{
-			this.Db = await OpenTestDatabaseAsync();
+			m_db = await OpenTestDatabaseAsync();
 
-			var mode = await this.Db.ReadAsync(tr => Fdb.Tenants.GetTenantMode(tr), this.Cancellation);
+			var mode = await m_db.ReadAsync(tr => Fdb.Tenants.GetTenantMode(tr), this.Cancellation);
 			Log("Tenant Mode: " + mode);
 			Assume.That(mode, Is.Not.EqualTo(FdbTenantMode.Disabled), "This test requires that the cluster is configure with 'tenant_mode' = optional !");
 		}
 
 		protected override Task OnAfterAllTests()
 		{
-			this.Db.Dispose();
-			this.Db = null;
+			m_db?.Dispose();
+			m_db = null;
 			return Task.CompletedTask;
 		}
 
@@ -192,7 +194,7 @@ namespace FoundationDB.Client.Tests
 			{
 				Assert.That(tr, Is.Not.Null);
 				Assert.That(tr.Tenant, Is.Not.Null, "tr.Tenant should not be null");
-				Assert.That(tr.Tenant.Name, Is.EqualTo(acme.Name), "tr.Tenant.Name should be valid");
+				Assert.That(tr.Tenant!.Name, Is.EqualTo(acme.Name), "tr.Tenant.Name should be valid");
 				Assert.That(tr.Database, Is.Not.Null.And.SameAs(this.Db), "tr.Database should be the same db objet that was used to create the tenant");
 				Assert.That(tr.Context.Mode.HasFlag(FdbTransactionMode.UseTenant), Is.True, $"tr.Mode flag UseTenant should be set, but was {tr.Context.Mode}");
 
@@ -278,7 +280,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var metadata = await Fdb.Tenants.GetTenantMetadata(tr, tenant.Name);
 					Assert.That(metadata, Is.Not.Null, $"Tenant {tenant.Name} should exist!");
-					Assert.That(metadata.Prefix.Count, Is.GreaterThan(0), $"Tenant {tenant.Name} should have a non-empty prefix!");
+					Assert.That(metadata!.Prefix.Count, Is.GreaterThan(0), $"Tenant {tenant.Name} should have a non-empty prefix!");
 
 					var subspace = metadata.GetSubspace();
 					Assert.That(subspace, Is.Not.Null);
@@ -333,7 +335,7 @@ namespace FoundationDB.Client.Tests
 				Assume.That(tenant, Is.Not.Null, $"Could not create test tenant {name}");
 			}
 
-			return tenant;
+			return tenant!;
 		}
 
 		protected Task<T> TenantRead<T>(FdbTenantName tenant, Func<IFdbReadOnlyTransaction, Task<T>> handler)

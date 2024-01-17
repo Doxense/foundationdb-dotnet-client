@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable ReplaceAsyncWithTaskReturn
+
 namespace FoundationDB.Layers.Collections.Tests
 {
 	using System;
@@ -104,7 +106,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					// also check directly
 					var folder = await location.Resolve(tr);
 					Assert.That(folder, Is.Not.Null);
-					var data = await tr.GetAsync(folder.Encode("Foos", "hello"));
+					var data = await tr.GetAsync(folder!.Encode("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);
 
@@ -162,9 +164,9 @@ namespace FoundationDB.Layers.Collections.Tests
 				(ipe) => ipe == null ? Slice.Empty : TuPack.EncodeKey(ipe.Address, ipe.Port),
 				(packed) =>
 				{
-					if (packed.IsNullOrEmpty) return default(IPEndPoint);
+					if (packed.IsNullOrEmpty) return null;
 					var t = TuPack.Unpack(packed);
-					return new IPEndPoint(t.Get<IPAddress>(0), t.Get<int>(1));
+					return new IPEndPoint(t.Get<IPAddress>(0)!, t.Get<int>(1));
 				}
 			);
 

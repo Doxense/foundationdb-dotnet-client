@@ -30,6 +30,7 @@ namespace Doxense.Networking.Http
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Net.Http;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -44,6 +45,7 @@ namespace Doxense.Networking.Http
 
 	}
 
+	[PublicAPI]
 	public static class BetterHttpClientExtensions
 	{
 

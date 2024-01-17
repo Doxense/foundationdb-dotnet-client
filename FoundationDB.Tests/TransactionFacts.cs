@@ -27,12 +27,16 @@
 //#define ENABLE_LOGGING
 
 // ReSharper disable AccessToDisposedClosure
+// ReSharper disable AccessToModifiedClosure
+// ReSharper disable ReplaceAsyncWithTaskReturn
+// ReSharper disable JoinDeclarationAndInitializer
+// ReSharper disable TooWideLocalVariableScope
+
 namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Net;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -130,8 +134,8 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				IFdbTransaction tr1 = null;
-				IFdbTransaction tr2 = null;
+				IFdbTransaction? tr1 = null;
+				IFdbTransaction? tr2 = null;
 				try
 				{
 					// concurrent transactions should have separate FDB_FUTURE* handles
@@ -333,7 +337,7 @@ namespace FoundationDB.Client.Tests
 					await Task.Delay(1, this.Cancellation);
 
 					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
-					cts.Cancel();
+					await cts.CancelAsync();
 
 					Assert.That(async () => await t, Throws.InstanceOf<TaskCanceledException>(), "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
 				}
@@ -1213,7 +1217,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
 					var subspace = (await db.Root.Resolve(tr))!;
-					var _ = await tr.GetAsync(subspace.Encode("foo"));
+					_ = await tr.GetAsync(subspace.Encode("foo"));
 
 					// until the transaction commits, the committed version will stay -1
 					ver = tr.GetCommittedVersion();
@@ -2288,7 +2292,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should still be pending because key2 was untouched");
 
 					// cancelling the token associated to the watch should cancel them
-					cts.Cancel();
+					await cts.CancelAsync();
 
 					await Task.Delay(100, this.Cancellation);
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.Canceled), "w2 should have been cancelled");
@@ -2435,8 +2439,8 @@ namespace FoundationDB.Client.Tests
 						Assert.That(addr, Is.Not.Null.Or.Empty);
 						Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
 						int p = addr.IndexOf(':');
-						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out IPAddress address), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
-						Assert.That(int.TryParse(addr.Substring(p + 1), out var port), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
+						Assert.That(System.Net.IPAddress.TryParse(addr.AsSpan(0, p), out _), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr[..p]);
+						Assert.That(int.TryParse(addr.AsSpan(p + 1), out _), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr[(p + 1)..]);
 					}
 				}
 
@@ -2459,8 +2463,8 @@ namespace FoundationDB.Client.Tests
 						Assert.That(addr, Is.Not.Null.Or.Empty);
 						Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
 						int p = addr.IndexOf(':');
-						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out IPAddress address), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
-						Assert.That(int.TryParse(addr.Substring(p + 1), out var port), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
+						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out _), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
+						Assert.That(int.TryParse(addr.Substring(p + 1), out _), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
 					}
 
 				}
@@ -2509,7 +2513,7 @@ namespace FoundationDB.Client.Tests
 
 					HashSet<string> distinctNodes = new HashSet<string>(StringComparer.Ordinal);
 					int replicationFactor = 0;
-					string[] ids = null;
+					string[]? ids = null;
 					foreach (var key in shards)
 					{
 						// - the first 12 bytes are some sort of header:
@@ -2812,9 +2816,9 @@ namespace FoundationDB.Client.Tests
 			{
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				const string foo = "Foo";
-				const string bar = "Bar";
-				const string baz = "Baz";
+				const string FOO = "Foo";
+				const string BAR = "Bar";
+				const string BAZ = "Baz";
 
 				// initial setup:
 				// - Foo: version stamp
@@ -2824,17 +2828,17 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = (await db.Root.Resolve(tr))!;
-					tr.TouchMetadataVersionKey(subspace.Encode(foo));
+					tr.TouchMetadataVersionKey(subspace.Encode(FOO));
 				}, this.Cancellation);
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = (await db.Root.Resolve(tr))!;
-					tr.TouchMetadataVersionKey(subspace.Encode(bar));
+					tr.TouchMetadataVersionKey(subspace.Encode(BAR));
 				}, this.Cancellation);
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = (await db.Root.Resolve(tr))!;
-					tr.Clear(subspace.Encode(baz));
+					tr.Clear(subspace.Encode(BAZ));
 				}, this.Cancellation);
 
 				// changing the metadata version and then reading it back from the same transaction CANNOT WORK!
@@ -2843,36 +2847,36 @@ namespace FoundationDB.Client.Tests
 					var subspace = (await db.Root.Resolve(tr))!;
 
 					// We can read the version before
-					var before1 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(foo));
+					var before1 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(FOO));
 					Log($"Foo (before): {before1}");
 					Assert.That(before1, Is.Not.Null);
 
 					// Another read attempt should return the cached value
-					var before2 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(bar));
+					var before2 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(BAR));
 					Log($"Bar (before): {before2}");
 					Assert.That(before2, Is.Not.Null.And.Not.EqualTo(before1));
 
 					// Another read attempt should return the cached value
-					var before3 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(baz));
+					var before3 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(BAZ));
 					Log($"Baz (before): {before3}");
 					Assert.That(before3, Is.EqualTo(new VersionStamp()));
 
 					// change the version from inside the transaction
 					Log("Mutate Foo!");
-					tr.TouchMetadataVersionKey(subspace.Encode(foo));
+					tr.TouchMetadataVersionKey(subspace.Encode(FOO));
 
 					// we should not be able to get the version anymore (should return null)
-					var after1 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(foo));
+					var after1 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(FOO));
 					Log($"Foo (after): {after1}");
 					Assert.That(after1, Is.Null, "Should not be able to get the version right after changing it from the same transaction.");
 
 					// We can read the version before
-					var after2 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(bar));
+					var after2 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(BAR));
 					Log($"Bar (after): {after2}");
 					Assert.That(after2, Is.Not.Null.And.EqualTo(before2));
 
 					// We can read the version before
-					var after3 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(baz));
+					var after3 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(BAZ));
 					Log($"Baz (after): {after3}");
 					Assert.That(after3, Is.EqualTo(new VersionStamp()));
 
@@ -3654,7 +3658,7 @@ namespace FoundationDB.Client.Tests
 
 				// we will setup a list of 1K keys with randomized value size (that we keep track of)
 				var rnd = new Random(123456);
-				var values = Enumerable.Range(0, NUM_ITEMS).Select(i => Slice.Random(rnd, VALUE_SIZE)).ToArray();
+				var values = Enumerable.Range(0, NUM_ITEMS).Select(_ => Slice.Random(rnd, VALUE_SIZE)).ToArray();
 
 				const int BATCH_SIZE = 1_000_000 / VALUE_SIZE;
 				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes ({BATCH_SIZE:N0} per batch)");
@@ -3741,7 +3745,7 @@ namespace FoundationDB.Client.Tests
 
 				// we will setup a list of N keys with randomized value size (that we keep track of)
 				var rnd = new Random(123456);
-				var values = Enumerable.Range(0, NUM_ITEMS).Select(i => Slice.Random(rnd, VALUE_SIZE)).ToArray();
+				var values = Enumerable.Range(0, NUM_ITEMS).Select(_ => Slice.Random(rnd, VALUE_SIZE)).ToArray();
 
 				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes");
 				await db.WriteAsync(async (tr) =>
@@ -3755,7 +3759,7 @@ namespace FoundationDB.Client.Tests
 					}
 				}, this.Cancellation);
 
-				Log($"Get estimated ranges size...");
+				Log("Get estimated ranges size...");
 				for (int i = 0; i < 25; i++)
 				{
 					await db.ReadAsync(async (tr) =>
