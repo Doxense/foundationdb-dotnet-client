@@ -8,6 +8,7 @@
 
 namespace Aspire.Hosting.ApplicationModel
 {
+	using System;
 	using System.Data.Common;
 	using FoundationDB.Client;
 

@@ -10,6 +10,7 @@ namespace Aspire.Hosting.ApplicationModel
 {
 	using System;
 
+	/// <summary>Specify the versionning rules for the FoundationDB docker image</summary>
 	public enum FdbVersionPolicy
 	{
 		/// <summary>Use the exact version specified</summary>

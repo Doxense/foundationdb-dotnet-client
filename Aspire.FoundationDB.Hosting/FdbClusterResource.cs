@@ -14,6 +14,7 @@ namespace Aspire.Hosting.ApplicationModel
 	using System.Globalization;
 	using System.Linq;
 	using System.Net;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 
 	public class FdbClusterResource : Resource, IFdbResource
@@ -74,6 +75,7 @@ namespace Aspire.Hosting.ApplicationModel
 
 		internal FdbContainerResource CreateContainer(string name, bool coordinator)
 		{
+			Contract.Debug.Requires(name != null);
 
 			var fdbContainer = new FdbContainerResource(name, this)
 			{

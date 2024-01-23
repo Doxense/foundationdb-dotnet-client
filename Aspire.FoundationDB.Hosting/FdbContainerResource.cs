@@ -10,11 +10,13 @@ namespace Aspire.Hosting.ApplicationModel
 {
 	using System.Linq;
 	using System.Net;
+	using Doxense.Diagnostics.Contracts;
 
 	public class FdbContainerResource : ContainerResource, IFdbResource, IResourceWithParent<FdbClusterResource>
 	{
 		public FdbContainerResource(string name, FdbClusterResource parent) : base(name)
 		{
+			Contract.NotNull(parent);
 			this.Parent = parent;
 		}
 
@@ -30,15 +32,17 @@ namespace Aspire.Hosting.ApplicationModel
 
 		internal EndPoint GetEndpoint()
 		{
-			if (!this.TryGetServiceBindings(out var bindings))
+			if (!this.TryGetAllocatedEndPoints(out var bindings))
 			{
 				throw new DistributedApplicationException("Expected allocated endpoints!");
 			}
 
 			var allocatedEndpoint = bindings.Single();
 
+			//note: we expect the address to be "localhost".
+			Contract.Debug.Assert(allocatedEndpoint.Address == "localhost");
 			var addr = IPAddress.Loopback;
-			var port = allocatedEndpoint.Port ?? this.Port;
+			var port = allocatedEndpoint.Port;
 
 			return new IPEndPoint(addr, port);
 		}
