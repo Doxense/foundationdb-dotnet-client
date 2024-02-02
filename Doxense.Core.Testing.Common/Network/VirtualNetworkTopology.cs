@@ -40,7 +40,6 @@ namespace Doxense.Networking
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.IO.Hashing;
-	using Doxense.Text;
 	using Doxense.Threading;
 
 	public class VirtualNetworkTopology : IVirtualNetworkTopology
@@ -101,11 +100,23 @@ namespace Doxense.Networking
 
 			public bool Passthrough { get; }
 
+			/// <summary>Flag that is <see langword="true"/> when this host is 'offline' and should not respond to any external request.</summary>
+			public bool Offline { get; private set; }
+
 			/// <summary>Map of all handlers attached to each network location</summary>
 			/// <remarks>The key is the network location id, and the value is the map of the ports that are bound: <c>Location => (Port => Handler)</c></remarks>
 			public Dictionary<string, Dictionary<int, Func<HttpMessageHandler>>> Handlers { get; } = new(StringComparer.Ordinal);
 
-			public SimulatedHost(SimulatedNetworkAdapter[] adapters, string id, string hostName, string fqdn, string[] aliases, IPAddress[] addresses, bool passthrough)
+			/// <summary>Create a new simulated host</summary>
+			/// <param name="adapters">List of the network adapters that are available for this host (note: must include at least one adapter for 'localhost')</param>
+			/// <param name="id">Unique id of this host</param>
+			/// <param name="hostName">Primary host name (ex: "pc042")</param>
+			/// <param name="fqdn">Primary fully qualified domain name (ex: "pc042.acme.local")</param>
+			/// <param name="aliases">Optional list of aliases (including short names or other fqdn)</param>
+			/// <param name="addresses">List of IP addresses owned by this host</param>
+			/// <param name="passthrough">If true, this host represents an actual physical host, accessible on the network by the testing framework, and all requests will be forwarded to this physical host (instead of being simulated).</param>
+			/// <param name="offline">If true, this host starts in "offline" mode, and will not respond to requests.</param>
+			public SimulatedHost(SimulatedNetworkAdapter[] adapters, string id, string hostName, string fqdn, string[] aliases, IPAddress[] addresses, bool passthrough, bool offline)
 			{
 				Contract.Debug.Requires(adapters != null && adapters.Length != 0 && id != null && hostName != null && fqdn != null && aliases != null && addresses != null);
 				this.Adapters = adapters;
@@ -117,6 +128,17 @@ namespace Doxense.Networking
 				this.Aliases = aliases;
 				this.Addresses = addresses;
 				this.Passthrough = passthrough;
+				this.Offline = offline;
+			}
+
+			/// <summary>Change the <see cref="Offline">offline state</see> of this host</summary>
+			/// <param name="offline">Mark the host as offline if <see langword="true"/>, or back online if <see langword="false"/>.</param>
+			/// <remarks>If the host is offline, all simulated requests will start to fail</remarks>
+			public void SetOffline(bool offline)
+			{
+				//TODO: maybe add a parameter to specify which kind of "offline" fault the host should simulate: powered-down? ethernet is off? currently rebooting but not yet ready? some big crash?
+				this.Offline = offline;
+				//TODO: maybe have a way to "cancel" any in-flight requests to this host?
 			}
 
 			/// <summary>Bind a "virtual socket" on the specified port</summary>
@@ -518,6 +540,8 @@ namespace Doxense.Networking
 			var netMask = IPAddress.Parse("255.0.0.0"); //HACKHACK: BUGBUG: must parse from the IP range!
 			var prefixLen = 8; //HACKHACK: BUGBUG: must parse from the IP range!
 
+			var offline = identity.StartAsOffline;
+
 			var adapters = new List<SimulatedNetworkAdapter>();
 
 			using (this.Lock.GetWriteLock())
@@ -556,7 +580,7 @@ namespace Doxense.Networking
 					});
 				}
 
-				var host = new SimulatedHost(adapters.ToArray(), id, hostName, fqdn, aliases, addresses, identity.PassthroughToPhysicalNetwork);
+				var host = new SimulatedHost(adapters.ToArray(), id, hostName, fqdn, aliases, addresses, identity.PassthroughToPhysicalNetwork, offline);
 				this.HostsById.Add(host.Id, host);
 				foreach (var key in host.GetHostKeys())
 				{

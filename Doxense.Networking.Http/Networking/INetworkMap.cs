@@ -180,6 +180,9 @@ namespace Doxense.Networking
 		/// <summary>If <see langword="true"/>, this is an actual physical device on the network, and requests will be sent over the network. If <see langword="false"/>, this is a virtualized host.</summary>
 		public bool PassthroughToPhysicalNetwork { get; set; }
 
+		/// <summary>If <see langword="true"/>, the host should start in the 'offline' state.</summary>
+		public bool StartAsOffline { get; set; }
+
 	}
 
 	/// <summary>Représente un "LAN" où tous les hosts se voient entre eux directement</summary>
@@ -266,6 +269,14 @@ namespace Doxense.Networking
 		void Bind(IVirtualNetworkLocation location, int port, Func<HttpMessageHandler> handler);
 
 		Func<HttpMessageHandler>? FindHandler(IVirtualNetworkLocation location, int port);
+
+		/// <summary>Flag that is <see langword="true"/> when this host is 'offline' and should not respond to any external request.</summary>
+		bool Offline { get; }
+
+		/// <summary>Change the <see cref="Offline">offline state</see> of this host</summary>
+		/// <param name="offline">Mark the host as offline if <see langword="true"/>, or back online if <see langword="false"/>.</param>
+		/// <remarks>If the host is offline, all simulated requests will start to fail</remarks>
+		void SetOffline(bool offline);
 
 	}
 

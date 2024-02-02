@@ -107,6 +107,30 @@ namespace Doxense.Networking
 			var (local, remote) = FindNetworkPath(host, hostOrAddress);
 			if (local != null && remote != null)
 			{
+				// either we are offline, or the remote host is offline (or both)
+				if (local.Type != VirtualNetworkType.Loopback)
+				{
+					if (this.Host.Offline)
+					{ // We are offline!
+
+						//TODO: maybe this would be a different error? if the local host has no online network adapter, the error may be different
+
+						// => for now, simply simulate a generic connection timeout
+						return VirtualDeadHttpClientHandler.SimulateConnectFailure($"Local virtual host '{this.Host.Id}' is currently marked as offline and cannot send any request to remote host {host.Id}.");
+					}
+
+					if (host.Offline)
+					{ // the host is offline (rebooting? disconnected from ethernet/wifi?)
+
+						//TODO: depending on the situation, we should either simulate a name resolution failure, OR a tcp connect timeout:
+						// - if the DNS entry for the host is statically assigned, OR the caller still as the IP in cache from an earlier query, it would attempt to connect with the remote host, and fail with a timeout.
+						// - if the host use DHCP, and/or has a very short TTL, and/or use WINS, then the caller would fail with a name resolution error.
+
+						// => for now, simply assume that the DNS is static and/or already cached, and simulate a socket connection timeout (ie: the host was alive at some point and now suddenly became offline)
+						return VirtualDeadHttpClientHandler.SimulateConnectFailure($"Remote virtual host '{host.Id}' is currently marked as offline and will not respond to any request.");
+					}
+				}
+
 				//TODO: check si les deux hosts veulent se parler quand meme!
 				var handler = host.FindHandler(remote, port);
 				if (handler != null)
