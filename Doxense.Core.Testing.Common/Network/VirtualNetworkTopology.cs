@@ -46,25 +46,22 @@ namespace Doxense.Networking
 	public class VirtualNetworkTopology : IVirtualNetworkTopology
 	{
 
-
 		public sealed record SimulatedNetworkAdapter : IVirtualNetworkAdapter
 		{
 
-			public SimulatedNetwork Location { get; init; }
+			public required SimulatedNetwork Location { get; init; }
 
 			IVirtualNetworkLocation IVirtualNetworkAdapter.Location => this.Location;
 
-			public string Id { get; init; }
+			public required string Id { get; init; }
 
-			public int Index { get; init; }
+			public required NetworkInterfaceType Type { get; init; }
 
-			public NetworkInterfaceType Type { get; init; }
+			public required string Name { get; init; }
 
-			public string Name { get; init; }
+			public required string Description { get; init; }
 
-			public string Description { get; init; }
-
-			public (IPAddress Address, IPAddress Mask, int PrefixLength)[] UnicastAddresses { get; init; }
+			public required (IPAddress Address, IPAddress Mask, int PrefixLength)[] UnicastAddresses { get; init; }
 
 			public string? PhysicalAddress { get; init; }
 
@@ -104,8 +101,9 @@ namespace Doxense.Networking
 
 			public bool Passthrough { get; }
 
+			/// <summary>Map of all handlers attached to each network location</summary>
+			/// <remarks>The key is the network location id, and the value is the map of the ports that are bound: <c>Location => (Port => Handler)</c></remarks>
 			public Dictionary<string, Dictionary<int, Func<HttpMessageHandler>>> Handlers { get; } = new(StringComparer.Ordinal);
-			// Location => Port => Handler
 
 			public SimulatedHost(SimulatedNetworkAdapter[] adapters, string id, string hostName, string fqdn, string[] aliases, IPAddress[] addresses, bool passthrough)
 			{
@@ -121,6 +119,11 @@ namespace Doxense.Networking
 				this.Passthrough = passthrough;
 			}
 
+			/// <summary>Bind a "virtual socket" on the specified port</summary>
+			/// <param name="location">Network location (ie: network adapter) on which to bind this handler</param>
+			/// <param name="port">Port of the virtual socket</param>
+			/// <param name="handler">Handler that will be called on each connection attempt on this port. It should return an HTTP handler that will process (or fail) the request.</param>
+			/// <exception cref="InvalidOperationException">If the host is not able to bind virtual socket (ex: passthrough host)</exception>
 			public void Bind(IVirtualNetworkLocation location, int port, Func<HttpMessageHandler> handler)
 			{
 				if (this.Passthrough) throw new InvalidOperationException("Cannot bind ports to passthrough hosts!");
@@ -137,6 +140,10 @@ namespace Doxense.Networking
 				}
 			}
 
+			/// <summary>Find a message handler that is bound to the specified port</summary>
+			/// <param name="location">Network location (ie: network adapter) from which the request is coming</param>
+			/// <param name="port">Port of the connection attempt</param>
+			/// <returns>If the port is bound, return a new HTTP message handler that will process request. If the port is unassigned, it will return <see langword="null"/>.</returns>
 			public Func<HttpMessageHandler>? FindHandler(IVirtualNetworkLocation location, int port)
 			{
 				// si c'est un vrai host, on n'a pas de handler custom
@@ -153,6 +160,7 @@ namespace Doxense.Networking
 				}
 			}
 
+			/// <summary>Return all the variations of host names, fqdn and aliases that this host responds to.</summary>
 			public IEnumerable<string> GetHostKeys()
 			{
 				if (!string.IsNullOrEmpty(this.Fqdn))
@@ -254,20 +262,19 @@ namespace Doxense.Networking
 
 			public IVirtualNetworkHost? GetHost(string id)
 			{
-				return this.HostsById.TryGetValue(id, out var host) ? host : null;
+				return this.HostsById.GetValueOrDefault(id);
 			}
 
 			public bool CanSendTo(IVirtualNetworkLocation target)
 			{
 				if (this.Equals(target)) return true;
-				//TODO: est-ce qu'on a une gateway, ou est-ce qu'on est isolé du reste du monde?
+				//TODO: do we have a valid gateway, or are we isolated from the rest of the world?
 				return true; // par défaut c'est ouvert!
 			}
 
 			public bool CanReceiveFrom(IVirtualNetworkLocation source)
 			{
 				if (this.Equals(source)) return true;
-				//TODO: est-ce qu'on est isolé du reste du monde?
 				return this.Options.AllowsIncoming;
 			}
 
@@ -315,7 +322,7 @@ namespace Doxense.Networking
 				}
 			}
 
-			/// <summary>Allocate a new IP address (pseudo-DHCP)</summary>
+			/// <summary>Allocate a new IP address (pseudo-DHCP) on this network location</summary>
 			public IPAddress AllocateIpAddress()
 			{
 				if (this.Type == VirtualNetworkType.Loopback) throw new InvalidOperationException($"Network Location {this.Id} ({this.Name}) does not support DHCP because it is a loopback adaptaer!");
@@ -339,6 +346,11 @@ namespace Doxense.Networking
 				throw new InvalidOperationException($"Network Location {this.Id} ({this.Name}) allocation pool is full!");
 			}
 
+			/// <summary>Allocate a new MAC address on this network location</summary>
+			/// <param name="ouiPrefix">First 24 bits of the MAC address, in the format <c>"XX:XX:XX"</c> (with X = hex digit)</param>
+			/// <param name="seed">Optional seed used to generate a deterministic address (like the host name, its IP address, etc...). If <see langword="null"/>, a randomly generated seed will be used instead.</param>
+			/// <returns>A newly generated MAC address, in the format <c>"XX:XX:XX:YY:YY:YY"</c> with X coming from <paramref name="ouiPrefix"/> and Y being generated from the <paramref name="seed"/></returns>
+			/// <example><c>AllocateMacAddress("12:34:56") => "12:34:56:C0:FF:EE"</c></example>
 			public string AllocateMacAddress(string ouiPrefix, string? seed = null)
 			{
 				Contract.NotNullOrEmpty(ouiPrefix);
@@ -346,11 +358,17 @@ namespace Doxense.Networking
 
 				seed ??= Guid.NewGuid().ToString();
 				ulong h = Fnv1Hash32.FromString(seed);
-				//on n'a besoin que de 3 bytes, donc on va un peu mixer le tout
+				// We only need 3 bytes, so we will folder the 32 bits down to 24 bits.
 				int tail = (int) ((h & 0xFFFFFFUL) ^ ((h >> 24) & 0xFFFFFFUL) ^ ((h >> 48) & 0xFFFFUL));
 				return $"{ouiPrefix}:{((tail >> 16) & 0xFF):X02}:{((tail >> 8) & 0xFF):X02}:{(tail & 0xFF):X02}";
 			}
 
+			/// <summary>Generate a new unique serial number, within this network location</summary>
+			/// <param name="pattern">Pattern string where any '#' will be replaced by a digit (0-9), and '?' by an uppercase letter (A-Z)</param>
+			/// <param name="seed">Optional seed used to generate a deterministic serial numbers (like the host name, its IP address, etc...). If <see langword="null"/>, a randomly generated seed will be used instead.</param>
+			/// <returns>A string where all '#' and '?' in the <paramref name="pattern"/> have been replaced.</returns>
+			/// <exception cref="ArgumentException">If the pattern did not include any '#' or '?'</exception>
+			/// <example><c>AllocateSerialNumber("ACME-???###-T") => "ACME-ZOB420-T"</c></example>
 			public string AllocateSerialNumber(string pattern, string? seed = null)
 			{
 				Contract.NotNullOrEmpty(pattern);
@@ -388,6 +406,7 @@ namespace Doxense.Networking
 
 		internal Dictionary<string, SimulatedNetwork> Locations { get; } = new Dictionary<string, SimulatedNetwork>(StringComparer.Ordinal);
 
+		/// <summary>Register a new network location to this topology</summary>
 		public IVirtualNetworkLocation RegisterLocation(string id, string name, VirtualNetworkType type, VirtualNetworkLocationOptions options)
 		{
 			Contract.Debug.Requires(id != null && name != null && options != null);
@@ -406,16 +425,21 @@ namespace Doxense.Networking
 			}
 		}
 
+		/// <summary>Get a network location, given its identifier.</summary>
+		/// <param name="id">Id of the network location</param>
+		/// <returns>The corresponding <see cref="IVirtualNetworkLocation"/> if it exists, or an exception if it does not.</returns>
+		/// <exception cref="InvalidOperationException">If there is no network location with the given <paramref name="id"/></exception>
 		public IVirtualNetworkLocation GetLocation(string id)
 		{
 			using (this.Lock.GetReadLock())
 			{
 				return this.Locations.TryGetValue(id, out var location)
 					? location
-					: throw new InvalidOperationException($"There is not network location '{id}' in the test environment!");
+					: throw new InvalidOperationException($"There is no network location '{id}' in the test environment!");
 			}
 		}
 
+		/// <summary>Generate a multi-line textual dump of the network topology</summary>
 		public string Dump()
 		{
 			using (this.Lock.GetReadLock())
@@ -429,7 +453,7 @@ namespace Doxense.Networking
 					foreach (var adapter in host.Adapters)
 					{
 						host.Handlers.TryGetValue(adapter.Location.Id, out var ports);
-						sb.AppendLine($"#     - {adapter.Location.Id}: {(ports != null ? string.Join<int>(", ", ports.Keys) : "<none>")}");
+						sb.AppendLine($"#     - {adapter.Location.Id}: {(ports != null ? string.Join(", ", ports.Keys) : "<none>")}");
 					}
 				}
 
@@ -447,6 +471,10 @@ namespace Doxense.Networking
 			}
 		}
 
+		/// <summary>Register a new host in the global network topology</summary>
+		/// <param name="location">Network location where this host is located</param>
+		/// <param name="id">Unique id of this host</param>
+		/// <param name="identity">Configuration of this host</param>
 		public SimulatedHost RegisterHost(SimulatedNetwork location, string id, VirtualHostIdentity identity)
 		{
 			Contract.NotNull(location);
@@ -460,11 +488,12 @@ namespace Doxense.Networking
 
 			if (location.Topology.HostsById.TryGetValue(id, out var previous))
 			{
-				throw new ArgumentException($"There is already a host with id '{id}' defined on this network: {previous.Fqdn}", nameof(id));
+				throw new ArgumentException($"There is already an host with id '{id}' defined on this network: {previous.Fqdn}", nameof(id));
 			}
 
 			var hostName = identity.HostName;
 			var fqdn = identity.Fqdn;
+
 			if (hostName == null)
 			{
 				if (fqdn != null)
@@ -476,19 +505,23 @@ namespace Doxense.Networking
 				{
 					hostName = id.ToLowerInvariant();
 				}
+				Contract.Debug.Assert(hostName != null);
 			}
+
 			if (fqdn == null)
 			{
 				fqdn = hostName + (identity.DnsSuffix ?? ".simulated");
 			}
+
 			var aliases = identity.Aliases.ToArray();
 			var addresses = identity.Addresses.ToArray();
-			var netMask = IPAddress.Parse("255.0.0.0"); //HACKHACK: BUGBUG: il faut parser a partir de l'iprange
-			var prefixLen = 8; //HACKHACK: BUGBUG: il faut parser a partir de l'iprange
+			var netMask = IPAddress.Parse("255.0.0.0"); //HACKHACK: BUGBUG: must parse from the IP range!
+			var prefixLen = 8; //HACKHACK: BUGBUG: must parse from the IP range!
+
+			var adapters = new List<SimulatedNetworkAdapter>();
 
 			using (this.Lock.GetWriteLock())
 			{
-				var adapters = new List<SimulatedNetworkAdapter>();
 				adapters.Add(new SimulatedNetworkAdapter()
 				{
 					Location = location,
@@ -497,7 +530,7 @@ namespace Doxense.Networking
 					Description = "Ethernet Network Adapter (virtual)",
 					Type = NetworkInterfaceType.Ethernet,
 					UnicastAddresses = addresses.Select(ip => (ip, netMask, prefixLen)).ToArray(),
-					PhysicalAddress =  "00:11:22:33:44:55", //BUGBUG: !!
+					PhysicalAddress =  "00:11:22:33:44:55", //TODO: BUGBUG: !!
 				});
 
 				SimulatedNetwork? loopback = null;
@@ -508,13 +541,13 @@ namespace Doxense.Networking
 						id + ":loopback",
 						"Loopback for " + id,
 						VirtualNetworkType.Loopback,
-						new VirtualNetworkLocationOptions() { AllowsIncoming = false, IpRange = "127.0.0.1/24" });
+						new() { AllowsIncoming = false, IpRange = "127.0.0.1/24" }
+					);
 					this.Locations.Add(loopback.Id, loopback);
 					adapters.Add(new SimulatedNetworkAdapter()
 					{
 						Location = loopback,
 						Id = "loopback",
-						Index = 0,
 						Name = "Loopback",
 						Description = "Loopback Network Adapter (virtual)",
 						Type = NetworkInterfaceType.Loopback,
@@ -534,6 +567,7 @@ namespace Doxense.Networking
 				{
 					loopback.HostsById.Add(host.Id, host);
 					loopback.HostsByNameOrAddress.Add("localhost", host.Id);
+					loopback.HostsByNameOrAddress.Add("localhost.localdomain", host.Id);
 					loopback.HostsByNameOrAddress.Add("127.0.0.1", host.Id);
 					loopback.HostsByNameOrAddress.Add("::1", host.Id);
 				}
@@ -544,16 +578,24 @@ namespace Doxense.Networking
 
 		IVirtualNetworkHost IVirtualNetworkTopology.GetHost(string id) => GetHost(id);
 
-		private static Exception MissingHost(string id) => new InvalidOperationException($"Simulated host '{id}' does not exists");
+		private static InvalidOperationException ErrorMissingHost(string id) => new($"Simulated host '{id}' does not exists");
 
+		/// <summary>Get a virtual host, given its identifier</summary>
+		/// <param name="id">Id of the virtual host</param>
+		/// <returns>The corresponding <see cref="IVirtualNetworkHost"/> if it exists, or an exception if it does not.</returns>
+		/// <exception cref="InvalidOperationException">If there is no virtual host with the given <paramref name="id"/></exception>
 		public SimulatedHost GetHost(string id)
 		{
 			using (this.Lock.GetReadLock())
 			{
-				return this.HostsById.TryGetValue(id, out var host) ? host : throw MissingHost(id);
+				return this.HostsById.TryGetValue(id, out var host) ? host : throw ErrorMissingHost(id);
 			}
 		}
 
+		/// <summary>Get a virtual host, given its IP address</summary>
+		/// <param name="address">Known IP address of the host</param>
+		/// <param name="host">Receives the host if there is a match.</param>
+		/// <returns><see langword="true"/> if the host was found; otherwise, <see langword="false"/></returns>
 		public bool TryGetHostByIpAddress(IPAddress address, [MaybeNullWhen(false)] out SimulatedHost host)
 		{
 			using (this.Lock.GetReadLock())
@@ -563,11 +605,18 @@ namespace Doxense.Networking
 					host = null;
 					return false;
 				}
-				if (!this.HostsById.TryGetValue(hostId, out host)) throw MissingHost(hostId);
+				if (!this.HostsById.TryGetValue(hostId, out host))
+				{
+					throw ErrorMissingHost(hostId);
+				}
 				return true;
 			}
 		}
 
+		/// <summary>Get a virtual host, given its host name</summary>
+		/// <param name="hostName">Known name of the host (could be host name, fdqn, one of its aliases, ...)</param>
+		/// <param name="host">Receives the host if there is a match.</param>
+		/// <returns><see langword="true"/> if the host was found; otherwise, <see langword="false"/></returns>
 		public bool TryGetHostByHostName(string hostName, [MaybeNullWhen(false)] out SimulatedHost host)
 		{
 			using (this.Lock.GetReadLock())
@@ -577,11 +626,20 @@ namespace Doxense.Networking
 					host = null;
 					return false;
 				}
-				if (!this.HostsById.TryGetValue(hostId, out host)) throw MissingHost(hostId);
+				if (!this.HostsById.TryGetValue(hostId, out host)) throw ErrorMissingHost(hostId);
 				return true;
 			}
 		}
 
+		/// <summary>Perform a simulated DNS resolution of the given host name or ip address, from the point of view of a simulated host.</summary>
+		/// <param name="hostNameOrAddress">Host name, fqdn, or IP address</param>
+		/// <param name="source">Virtual host that is perfoming the DNS resolution</param>
+		/// <param name="family">If specified, the type of address resolved (A, AAA, ...)</param>
+		/// <param name="ct">Token used to cancel the DNS resolution</param>
+		/// <returns>Result of the resolution.</returns>
+		/// <exception cref="SocketException">Simulated socket exception, if the resolution has failed</exception>
+		/// <exception cref="ArgumentException">If any argument is invalid.</exception>
+		/// <remarks>This method attempts to emulates the behavior of <see cref="Dns.GetHostEntryAsync(System.Net.IPAddress)"/></remarks>
 		public async Task<IPHostEntry> DnsResolve(string hostNameOrAddress, IVirtualNetworkHost? source, AddressFamily? family, CancellationToken ct)
 		{
 			Contract.NotNullOrEmpty(hostNameOrAddress);
@@ -594,7 +652,7 @@ namespace Doxense.Networking
 			}
 
 			// simulate context switch
-			await Task.Delay(0, ct);
+			await Task.Yield();
 
 			var host = GetHost(hostId);
 

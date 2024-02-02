@@ -38,8 +38,8 @@ namespace Doxense.Networking
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Networking.Http;
 
-	/// <summary>Implémentation par défaut d'un <see cref="INetworkMap"/></summary>
-	/// <remarks>Permet de register des "simulated hosts" qui utilisent un <see cref="HttpMessageHandler"/> spécifique</remarks>
+	/// <summary>Default implementation of a <see cref="IVirtualNetworkMap">virtual network map</see>, as seen from a <see cref="IVirtualNetworkHost">virtual host</see></summary>
+	/// <remarks>There should be one instance of this map per virtual host.</remarks>
 	public class VirtualNetworkMap : NetworkMap, IVirtualNetworkMap
 	{
 
@@ -49,19 +49,13 @@ namespace Doxense.Networking
 			this.Host = host;
 		}
 
+		/// <summary>Topology of the virtualized network</summary>
 		public VirtualNetworkTopology Topology { get; }
 		IVirtualNetworkTopology IVirtualNetworkMap.Topology => this.Topology;
 
+		/// <summary>Local virtual host</summary>
 		public VirtualNetworkTopology.SimulatedHost Host { get; }
 		IVirtualNetworkHost IVirtualNetworkMap.Host => this.Host;
-
-		private HttpMessageHandler CreateFailedHandler(VirtualNetworkTopology.SimulatedHost host, string hostOrAddress)
-		{
-			if (IPAddress.TryParse(hostOrAddress, out var ip))
-				return VirtualDeadHttpClientHandler.SimulateConnectFailure($"Found not matching host for IP {ip} visible from host {this.Host.Id}");
-			else
-				return VirtualDeadHttpClientHandler.SimulateNameResolutionFailure($"Found no matching host for name '{hostOrAddress}' visible from host {this.Host.Id}");
-		}
 
 		public VirtualNetworkTopology.SimulatedHost? FindHost(string hostOrAddress)
 		{
@@ -120,11 +114,18 @@ namespace Doxense.Networking
 					return handler();
 				}
 
-				return VirtualDeadHttpClientHandler.SimulatePortNotBoundFailure($"Found not port {port} bound on location '{remote}' of target host '{host.Id}', visible from host '{this.Host.Id}'");
+				return VirtualDeadHttpClientHandler.SimulatePortNotBoundFailure($"Found no port {port} bound on location '{remote}' of target host '{host.Id}', visible from host '{this.Host.Id}'");
 				//TODO: BUGBUG: ici le failed handler doit simuler un "connection reset be remote host" (ie: il existe mais port pas bindé!)
 			}
 
-			return CreateFailedHandler(host, hostOrAddress);
+			if (IPAddress.TryParse(hostOrAddress, out var ip))
+			{ // the request URI included the IP, so probably it would have failed to a timeout, or maybe a "bad gateway" ?
+				return VirtualDeadHttpClientHandler.SimulateConnectFailure($"Found no valid route from local host {this.Host.Id} to remote host {host.Id} using the IP address '{ip}'.");
+			}
+			else
+			{ // the request URI included the host name, so it could have failed the name resolution.
+				return VirtualDeadHttpClientHandler.SimulateNameResolutionFailure($"Found no valid route from local host {this.Host.Id} to remote host {host.Id} using the host name '{hostOrAddress}'.");
+			}
 		}
 
 		public (VirtualNetworkTopology.SimulatedNetwork? Local, VirtualNetworkTopology.SimulatedNetwork? Remote) FindNetworkPath(VirtualNetworkTopology.SimulatedHost target, string hostOrAddress)
@@ -214,9 +215,9 @@ namespace Doxense.Networking
 	public class VirtualDeadHttpClientHandler : HttpClientHandler
 	{
 
-		private Func<Uri, Exception> Handler { get; }
+		private Func<Uri?, Exception> Handler { get; }
 
-		public VirtualDeadHttpClientHandler(Func<Uri, Exception> handler)
+		public VirtualDeadHttpClientHandler(Func<Uri?, Exception> handler)
 		{
 			this.Handler = handler;
 		}
@@ -225,7 +226,7 @@ namespace Doxense.Networking
 		{
 			return new VirtualDeadHttpClientHandler((uri) =>
 			{
-				var webEx = new System.Net.WebException($"No connection could be made because the target machine actively refused it {uri.DnsSafeHost}:{uri.Port}", WebExceptionStatus.ConnectFailure);
+				var webEx = new WebException($"No connection could be made because the target machine actively refused it {uri?.DnsSafeHost ?? "<unknown>"}:{uri?.Port}", WebExceptionStatus.ConnectFailure);
 				return new HttpRequestException($"An error occurred while sending the request. [{debugReason}]", webEx);
 			});
 		}
@@ -234,17 +235,17 @@ namespace Doxense.Networking
 		{
 			return new VirtualDeadHttpClientHandler((uri) =>
 			{
-				var webEx = new System.Net.WebException($"The remote name could not be resolved: '{uri.Host}'", WebExceptionStatus.NameResolutionFailure);
+				var webEx = new WebException($"The remote name could not be resolved: '{uri?.Host ?? "<unknown>"}'", WebExceptionStatus.NameResolutionFailure);
 				return new HttpRequestException($"An error occurred while sending the request. [{debugReason}]", webEx);
 			});
 		}
 
 		public static VirtualDeadHttpClientHandler SimulateConnectFailure(string debugReason)
 		{
-			return new VirtualDeadHttpClientHandler((uri) =>
+			return new VirtualDeadHttpClientHandler((_) =>
 			{
-				var sockEx = new System.Net.Sockets.SocketException(10060); // TimedOut
-				var webEx = new System.Net.WebException("Unable to connect to the remove server", sockEx, WebExceptionStatus.ConnectFailure, null);
+				var sockEx = new SocketException(10060); // TimedOut
+				var webEx = new WebException("Unable to connect to the remove server", sockEx, WebExceptionStatus.ConnectFailure, null);
 				return new HttpRequestException($"An error occurred while sending the request. [{debugReason}]", webEx);
 			});
 		}

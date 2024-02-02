@@ -283,46 +283,28 @@ namespace Doxense.Diagnostics.Contracts
 			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
-		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message)
-		{
-			throw InvalidOperationException(message);
-		}
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		public static void ThrowInvalidOperationException(string message) => throw InvalidOperationException(message);
 
 		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, object? arg0)
-		{
-			throw InvalidOperationException(message, arg0);
-		}
+		public static void ThrowInvalidOperationException(string message, object? arg0) => throw InvalidOperationException(message, arg0);
 
 		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1)
-		{
-			throw InvalidOperationException(message, arg0, arg1);
-		}
+		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1) => throw InvalidOperationException(message, arg0, arg1);
 
 		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1, object? arg2)
-		{
-			throw InvalidOperationException(message, arg0, arg1, arg2);
-		}
+		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1, object? arg2) => throw InvalidOperationException(message, arg0, arg1, arg2);
 
 		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, params object?[] args)
-		{
-			throw InvalidOperationException(message, args);
-		}
+		public static void ThrowInvalidOperationException(string message, params object?[] args) => throw InvalidOperationException(message, args);
 
 		[StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		[DoesNotReturn]
-		public static T ThrowInvalidOperationException<T>(string message)
-		{
-			throw InvalidOperationException(message);
-		}
+		public static T ThrowInvalidOperationException<T>(string message) => throw InvalidOperationException(message);
 
 		#endregion
 
@@ -536,39 +518,23 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		[DoesNotReturn]
-		public static void ThrowIndexOutOfRangeException()
-		{
-			throw IndexOutOfRangeException();
-		}
+		public static void ThrowIndexOutOfRangeException() => throw IndexOutOfRangeException();
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
 		[DoesNotReturn]
-		public static T ThrowIndexOutOfRangeException<T>()
-		{
-			throw IndexOutOfRangeException();
-		}
+		public static T ThrowIndexOutOfRangeException<T>() => throw IndexOutOfRangeException();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeIndex(int index)
 		{
 			// ArgumentOutOfRange_NeedNonNegNum
-			// ReSharper disable once UseNameofExpression
-			return new ArgumentOutOfRangeException("index", index, "Index was out of range. Must be non-negative and less than the size of the collection.");
+			return new ArgumentOutOfRangeException(nameof(index), index, "Index was out of range. Must be non-negative and less than the size of the collection.");
 		}
 
 		[DoesNotReturn]
-		public static void ThrowArgumentOutOfRangeIndex(int index)
-		{
-			// ArgumentOutOfRange_NeedNonNegNum
-			throw ArgumentOutOfRangeIndex(index);
-		}
+		public static void ThrowArgumentOutOfRangeIndex(int index) => throw ArgumentOutOfRangeIndex(index);
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
 		[DoesNotReturn]
-		public static T ThrowArgumentOutOfRangeIndex<T>(int index)
-		{
-			throw IndexOutOfRangeException();
-		}
+		public static T ThrowArgumentOutOfRangeIndex<T>(int index) => throw ArgumentOutOfRangeIndex(index);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName)
@@ -576,6 +542,9 @@ namespace Doxense.Diagnostics.Contracts
 			// ArgumentOutOfRange_NeedNonNegNum
 			return new ArgumentOutOfRangeException(paramName, "Non-negative number required");
 		}
+
+		[DoesNotReturn]
+		public static void ThrowArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName) => throw ArgumentOutOfRangeNeedNonNegNum(paramName);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentException ArgumentInvalidOffLen()
@@ -592,11 +561,7 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		[DoesNotReturn]
-		public static void ThrowNotSupportedReadOnlyCollection()
-		{
-			// NotSupported_ReadOnlyCollection
-			throw NotSupportedReadOnlyCollection();
-		}
+		public static void ThrowNotSupportedReadOnlyCollection() => throw NotSupportedReadOnlyCollection();
 
 		#endregion
 

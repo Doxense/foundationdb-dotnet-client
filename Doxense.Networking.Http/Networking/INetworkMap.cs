@@ -162,17 +162,22 @@ namespace Doxense.Networking
 	public sealed record VirtualHostIdentity
 	{
 
+		/// <summary>Name of the host (ex: <c>"PC042"</c>)</summary>
 		public string? HostName { get; set; }
 
+		/// <summary>Domain of the host (ex: <c>"acme.local"</c>)</summary>
 		public string? DnsSuffix { get; set; }
 
+		/// <summary>Fully qualified domain name of the host (ex: <c>"pc042.acme.local"</c>)</summary>
 		public string? Fqdn { get; set; }
 
+		/// <summary>List of aliases for this host (optional)</summary>
 		public List<string> Aliases { get; set; } = new List<string>();
 
+		/// <summary>List of IP addresses of this host</summary>
 		public List<IPAddress> Addresses { get; set; } = new List<IPAddress>();
 
-		/// <summary>If <c>true</c>, this is an actual physical device on the network, and requests will be sent over the network. If <c>false</c>, this is a virtualized host.</summary>
+		/// <summary>If <see langword="true"/>, this is an actual physical device on the network, and requests will be sent over the network. If <see langword="false"/>, this is a virtualized host.</summary>
 		public bool PassthroughToPhysicalNetwork { get; set; }
 
 	}
@@ -271,8 +276,6 @@ namespace Doxense.Networking
 		IVirtualNetworkLocation Location { get; }
 
 		string Id { get; }
-
-		int Index { get; }
 
 		NetworkInterfaceType Type { get; }
 

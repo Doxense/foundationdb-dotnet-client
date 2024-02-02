@@ -33,6 +33,7 @@ namespace Doxense.Networking
 	using System.Threading.Tasks;
 	using Doxense.Networking.Http;
 
+	/// <summary>HTTP handler that emulates requests to <see cref="IVirtualNetworkHost">virtual hosts</see> through a <see cref="IVirtualNetworkMap">virtual network</see></summary>
 	internal class VirtualHttpClientHandler : DelegatingHandler
 	{
 
@@ -43,29 +44,45 @@ namespace Doxense.Networking
 			this.Options = options;
 		}
 
+		/// <summary>Virtual network</summary>
 		public VirtualNetworkMap Map { get; }
 
+		/// <summary>Base address of the HTTP request</summary>
 		public Uri BaseAddress { get; }
 
+		/// <summary>Options used for the request</summary>
 		public BetterHttpClientOptions Options { get; }
 
 		protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
+			// note: we _could_ support non-async request, but I think this would be enough pressure to force the caller to transition to async requests!
 			throw new NotImplementedException("Non async client not supported. Why do you need it anyway?");
 		}
 
+		/// <summary>Create an exception that replicates a failed Host Name or DNS resolution.</summary>
+		/// <param name="hostName">Name of the host that could not be resolved (as part of the request URI)</param>
+		/// <param name="debugReason">Text description of the cause of this error (for troubleshooting)</param>
+		/// <returns>Returns an <see cref="HttpRequestException"/> with message <c>"An error occurred while sending the request."</c>, with an inner <see cref="WebException"/> with status <see cref="WebExceptionStatus.NameResolutionFailure"/> and message <c>"The remote name could not be resolved: '<paramref name="hostName"/>'"</c></returns>
 		public static Exception SimulateNameResolutionError(string hostName, string debugReason)
 		{
-			var webEx = new System.Net.WebException($"The remote name could not be resolved: '{hostName}'", WebExceptionStatus.NameResolutionFailure);
+			var webEx = new WebException($"The remote name could not be resolved: '{hostName}'", WebExceptionStatus.NameResolutionFailure);
 			return new HttpRequestException($"An error occurred while sending the request. [{debugReason}]", webEx);
 		}
 
+		/// <summary>Create an exception that replicates a tcp conenction to a remote host that is alive, but with no remote service bound to the specified port</summary>
+		/// <param name="hostName">Name of the remote host (part of the exception message)</param>
+		/// <param name="port">Port of the service (part of the exception message)</param>
+		/// <param name="debugReason">Text description of the cause of this error (for troubleshooting)</param>
+		/// <returns>Returns an <see cref="HttpRequestException"/> with message <c>"An error occurred while sending the request."</c>, with an inner <see cref="WebException"/> with status <see cref="WebExceptionStatus.ConnectFailure"/> and message <c>"No connection could be made because the target machine actively refused it <paramref name="hostName"/>:<param name="port"></param>"</c></returns>
 		public static Exception SimulatePortNotBoundFailure(string hostName, int port, string debugReason)
 		{
-			var webEx = new System.Net.WebException($"No connection could be made because the target machine actively refused it {hostName}:{port}", WebExceptionStatus.ConnectFailure);
+			var webEx = new WebException($"No connection could be made because the target machine actively refused it {hostName}:{port}", WebExceptionStatus.ConnectFailure);
 			return new HttpRequestException($"An error occurred while sending the request. [{debugReason}]", webEx);
 		}
 
+		/// <summary>Create an exception that replicates a tcp socket connection timeout</summary>
+		/// <param name="debugReason">Text description of the cause of this error (for troubleshooting)</param>
+		/// <returns>Returns an <see cref="HttpRequestException"/> with message <c>"An error occurred while sending the request."</c>, with an inner <see cref="WebException"/> with status <see cref="WebExceptionStatus.ConnectFailure"/> and message <c>"Unable to connect to the remove server"</c>, and itself with an inner <see cref="System.Net.Sockets.SocketException"/> with error code <c>10060</c> (<c>TimedOut</c>)</returns>
 		public static Exception SimulateConnectFailure(string debugReason)
 		{
 			var sockEx = new System.Net.Sockets.SocketException(10060); // TimedOut
@@ -85,18 +102,25 @@ namespace Doxense.Networking
 				uri = new Uri(this.BaseAddress, uri);
 			}
 
-			// a partir de l'hostname, on va regarder si on peut resolve l'ip, puis si on y a acces, puis on va récupérer le TestClient correspondant (ou sinon, simuler une exception adaptée)
-			//REVIEW: je sais pas s'il faut utiliser .DnsSafeHost ou .Host ?
-			string hostName = uri.DnsSafeHost;
+			// From the host name in the URI of the request, we will check:
+			// - if the remote host "exists" in the virtual network topology,
+			// - if we can resolve this into an IP address,
+			// - if we know the network location that corresspond to this ip,
+			// - if the source host can reach this network location,
+			// - if the remote host is offline or online
+			// - if the port on the remote host is bound to any HTTP service
+			// If all the conditions are met, then we will actual generate a virtual http handler that invokes that service.
+			// If not, then we will throw an exception that attempts to replicate the actual exception that would happen in "real life".
 
+			string hostName = uri.DnsSafeHost;
 			var host = this.Map.FindHost(hostName);
 			if (host == null)
-			{
+			{ // this host is not defined in the network map
 				throw SimulateNameResolutionError(hostName, $"Found no matching host for name '{hostName}' visible from simulated host '{this.Map.Host.Id}' ({this.Map.Host.Fqdn})");
 			}
 
 			if (host.Passthrough)
-			{ // ce host existe en vrai, on va faire la requête pour de vrai!
+			{ // this is an actual real physical host, and the request will be sent "to the real world".
 				var handler = new HttpClientHandler()
 				{
 					// ??
@@ -106,10 +130,38 @@ namespace Doxense.Networking
 				return invoker.SendAsync(request, cancellationToken);
 			}
 
+			// attempt to create a path from this host to the remote host
+			// - "local" corresponds to the local network adapter by which the request would be sent
+			// - "remote" corresponds to the remote network adapter on which the request would arrive
+			// - if they are both the same, it means they are on the same physical network (or both localhost)
 			var (local, remote) = this.Map.FindNetworkPath(host, hostName);
+
 			if (local != null && remote != null)
-			{
-				//TODO: check si les deux hosts veulent se parler quand meme!
+			{ // we found a valid path through the virtual network!
+
+				if (local.Type != VirtualNetworkType.LocalNetwork)
+				{
+					if (this.Map.Host.Offline)
+					{ // We are offline!
+						//TODO: maybe this would be a different error? if the local host has no online network adapter, the error may be different
+
+						// => for now, simply simulate a generic connection timeout
+						throw SimulateConnectFailure($"Local virtual host '{this.Map.Host.Id}' is currently marked as offline and cannot send any request to remote host {host.Id}.");
+					}
+
+					if (host.Offline)
+					{ // the host is offline (rebooting? disconnected from ethernet/wifi?)
+
+						//TODO: depending on the situation, we should either simulate a name resolution failure, OR a tcp connect timeout:
+						// - if the DNS entry for the host is statically assigned, OR the caller still as the IP in cache from an earlier query, it would attempt to connect with the remote host, and fail with a timeout.
+						// - if the host use DHCP, and/or has a very short TTL, and/or use WINS, then the caller would fail with a name resolution error.
+
+						// => for now, simply assume that the DNS is static and/or already cached, and simulate a socket connection timeout (ie: the host was alive at some point and now suddenly became offline)
+						throw SimulateConnectFailure($"Remote virtual host '{host.Id}' is currently marked as offline and will not respond to any request.");
+					}
+				}
+
+				// ask the remote host if it can respond on the specified port
 				int port = uri.Port;
 				var factory = host.FindHandler(remote, port);
 				if (factory != null)
@@ -123,10 +175,15 @@ namespace Doxense.Networking
 				throw SimulatePortNotBoundFailure(hostName, port, $"Found no port {port} bound on location '{remote}' of target host '{host.Id}', visible from host '{this.Map.Host.Id}' ({this.Map.Host.Fqdn})");
 			}
 
+			// we don't have a valid path between the local and remote host
 			if (IPAddress.TryParse(hostName, out var ip))
+			{ // request included the IP ("https://1.2.3.4/...") so it would fail with a socket connection timeout or maybe a "bad gateway"
 				throw SimulateConnectFailure($"Found not matching host for IP {ip} visible from host '{this.Map.Host.Id}' ({this.Map.Host.Fqdn})");
+			}
 			else
+			{ // request included a host name ("https://somehost/...") so it would most probably fail the name resolution
 				throw SimulateNameResolutionError(hostName, $"Found no matching host for name '{hostName}' visible from simulated host '{this.Map.Host.Id}' ({this.Map.Host.Fqdn})");
+			}
 		}
 
 	}
