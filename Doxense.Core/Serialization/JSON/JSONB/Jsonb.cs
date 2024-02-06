@@ -210,7 +210,7 @@ namespace Doxense.Serialization.Json.Binary
 			private void GetEntryAt(int index, uint entry, int dataOffset, int dataLen, out JValue result)
 			{
 				int baseAddr = this.BaseAddress;
-				if (!this.Data.Fits(baseAddr + dataOffset, dataLen)) throw ThrowHelper.FormatException("Malformed jsonb entry: data for entry {0} would be outside of the bounds of the container", index);
+				if (!this.Data.Fits(baseAddr + dataOffset, dataLen)) throw ThrowHelper.FormatException($"Malformed jsonb entry: data for entry {index} would be outside of the bounds of the container");
 
 				JType type = GetEntryType(entry);
 				switch (type)
@@ -233,13 +233,13 @@ namespace Doxense.Serialization.Json.Binary
 					{
 						// les containers sont alignés sur 32 bits
 						int padLen = ComputePadding(baseAddr + dataOffset);
-						if (padLen > dataLen) throw ThrowHelper.FormatException("Invalid jsonb entry: padding is larger than reported value size at array index {0}.", index);
+						if (padLen > dataLen) throw ThrowHelper.FormatException($"Invalid jsonb entry: padding is larger than reported value size at array index {index}.");
 						result = new JValue(JType.Container, this.Data.Slice(baseAddr + dataOffset + padLen, dataLen - padLen));
 						break;
 					}
 					default:
 					{
-						throw ThrowHelper.FormatException("Invalid jsonb entry: invalid entry type at array index {0}.", index);
+						throw ThrowHelper.FormatException($"Invalid jsonb entry: invalid entry type at array index {index}.");
 					}
 				}
 			}
@@ -297,7 +297,7 @@ namespace Doxense.Serialization.Json.Binary
 				if (!this.IsArray) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an array.");
 
 				int numElems = this.Count;
-				if (this.Data.Length < checked(4 + numElems * 4)) throw ThrowHelper.FormatException("Json container is too small for an array of size {0}.", numElems);
+				if (this.Data.Length < checked(4 + numElems * 4)) throw ThrowHelper.FormatException($"Json container is too small for an array of size {numElems}.");
 
 				// décode les items un par un
 				var arr = new JsonArray(numElems);
@@ -327,7 +327,7 @@ namespace Doxense.Serialization.Json.Binary
 				if (!this.IsObject) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an object.");
 
 				int numPairs = this.Count;
-				if (this.Data.Length  < checked(4 + numPairs * 2 * 4)) throw ThrowHelper.FormatException("Json container is too small for an object of size {0}.", numPairs);
+				if (this.Data.Length  < checked(4 + numPairs * 2 * 4)) throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
 
 				//TODO: utiliser un cache pour les buffers!
 				var keys = new string[numPairs];
@@ -373,7 +373,7 @@ namespace Doxense.Serialization.Json.Binary
 				if (!this.IsObject) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an object.");
 
 				int numPairs = this.Count;
-				if (this.Data.Length < 4 + numPairs * 2 * 4) throw ThrowHelper.FormatException("Json container is too small for an object of size {0}.", numPairs);
+				if (this.Data.Length < 4 + numPairs * 2 * 4) throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
 
 				// les clés sont de 0 à numParis -1
 
@@ -537,7 +537,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					default:
 					{
-						throw ThrowHelper.FormatException("Cannot convert jsonb value of type {0} into a key", this.Type);
+						throw ThrowHelper.FormatException($"Cannot convert jsonb value of type {this.Type} into a key");
 					}
 				}
 			}
@@ -546,7 +546,7 @@ namespace Doxense.Serialization.Json.Binary
 			{
 				Contract.Debug.Requires(key != null);
 				// pour l'instant, on ne gère que la comparaison avec des strings
-				if (this.Type != JType.String) throw ThrowHelper.InvalidOperationException("Cannot compare objet key with entry of type {0}", this.Type);
+				if (this.Type != JType.String) throw ThrowHelper.InvalidOperationException($"Cannot compare objet key with entry of type {this.Type}");
 
 				return new ReadOnlySpan<byte>(key->KeyBytes, key->KeyLength).SequenceEqual(this.Value);
 			}
@@ -642,7 +642,7 @@ namespace Doxense.Serialization.Json.Binary
 
 				int size = (int) (header & HEADER_SIZE_MASK);
 				// vérifie que le buffer est assez grand pour contenir le root container
-				if ((uint) size > data.Length) throw ThrowHelper.FormatException("The reported size of the jsonb container ({0}) is larger than the size of the buffer in memory ({1})", size, data.Length);
+				if ((uint) size > data.Length) throw ThrowHelper.FormatException($"The reported size of the jsonb container ({size}) is larger than the size of the buffer in memory ({data.Length})");
 
 				if ((header & HEADER_FLAGS_RESERVED) != 0)
 				{ // les extra flags doivent être à 0 pour le moment
@@ -976,7 +976,7 @@ namespace Doxense.Serialization.Json.Binary
 				int len = m_output.Position;
 
 				// varlena, uncompressed
-				if (len > HEADER_SIZE_MASK) throw ThrowHelper.InvalidOperationException("This jsonb document ({0} bytes) exceeds the maximum allowed size ({0} > {1} bytes).", len, HEADER_SIZE_MASK);
+				if (len > HEADER_SIZE_MASK) throw ThrowHelper.InvalidOperationException($"This jsonb document ({len} bytes) exceeds the maximum allowed size ({len} > {HEADER_SIZE_MASK} bytes).");
 				m_output.PatchUInt32(0, ((uint)len & HEADER_SIZE_MASK));
 
 				return len;
@@ -1060,7 +1060,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					default:
 					{
-						throw ThrowHelper.NotSupportedException("Invalid JSON scalar of type {0}", type);
+						throw ThrowHelper.NotSupportedException($"Invalid JSON scalar of type {type}");
 					}
 				}
 			}
@@ -1400,13 +1400,13 @@ namespace Doxense.Serialization.Json.Binary
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			private static Exception FailContainerTooManyElements()
 			{
-				return ThrowHelper.InvalidOperationException("A jsonb container cannot have more than {0} elements", JENTRY_OFFLENMASK);
+				return ThrowHelper.InvalidOperationException($"A jsonb container cannot have more than {JENTRY_OFFLENMASK} elements");
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			private static Exception FailContainerSizeTooBig()
 			{
-				return ThrowHelper.InvalidOperationException("A jsonb container cannot exceed the maximum size of {0} bytes", JENTRY_OFFLENMASK);
+				return ThrowHelper.InvalidOperationException($"A jsonb container cannot exceed the maximum size of {JENTRY_OFFLENMASK} bytes");
 			}
 		}
 

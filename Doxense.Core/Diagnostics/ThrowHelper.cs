@@ -26,13 +26,13 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
+	using JetBrains.Annotations;
 
 	[DebuggerNonUserCode, PublicAPI]
 	public static class ThrowHelper
@@ -41,390 +41,240 @@ namespace Doxense.Diagnostics.Contracts
 		#region ArgumentNullException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentNullException([InvokerParameterName] string paramName)
-		{
-			return new ArgumentNullException(paramName);
-		}
+		public static ArgumentNullException ArgumentNullException([InvokerParameterName] string paramName) => new(paramName);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentNullException([InvokerParameterName] string paramName, string message)
-		{
-			return new ArgumentNullException(paramName, message);
-		}
+		public static ArgumentNullException ArgumentNullException([InvokerParameterName] string paramName, string message) => new(paramName, message);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ArgumentNullException ArgumentNullException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => new(paramName, message.ToStringAndClear());
 
 		[DoesNotReturn]
-		public static void ThrowArgumentNullException([InvokerParameterName] string paramName)
-		{
-			throw ArgumentNullException(paramName);
-		}
+		public static void ThrowArgumentNullException([InvokerParameterName] string paramName) => throw ArgumentNullException(paramName);
 
 		[DoesNotReturn]
-		public static void ThrowArgumentNullException([InvokerParameterName] string paramName, string message)
-		{
-			throw ArgumentNullException(paramName, message);
-		}
+		public static void ThrowArgumentNullException([InvokerParameterName] string paramName, string message) => throw ArgumentNullException(paramName, message);
+
+		[DoesNotReturn]
+		public static void ThrowArgumentNullException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentNullException(paramName, message.ToStringAndClear());
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		[DoesNotReturn]
-		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName, string? message = null)
-		{
-			throw message != null ? new ArgumentNullException(paramName, message) : new ArgumentNullException(paramName);
-		}
+		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName) => throw ArgumentNullException(paramName);
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
+		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName, string message) => throw ArgumentNullException(paramName, message);
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
+		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentNullException(paramName, ref message);
 
 		#endregion
 
 		#region ArgumentException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentException([InvokerParameterName] string paramName, string? message = null)
-		{
-			// oui, c'est inversé :)
-			return new ArgumentException(message, paramName);
-		}
+		public static ArgumentException ArgumentException([InvokerParameterName] string paramName, string? message = null) => new(message, paramName);
 
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentException([InvokerParameterName] string paramName, string message, object? arg0)
-		{
-			// oui, c'est inversé :)
-			return new ArgumentException(string.Format(message, arg0), paramName);
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentException([InvokerParameterName] string paramName, string message, object? arg0, object? arg1)
-		{
-			// oui, c'est inversé :)
-			return new ArgumentException(string.Format(message, arg0, arg1), paramName);
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentException([InvokerParameterName] string paramName, string message, params object[] args)
-		{
-			// oui, c'est inversé :)
-			return new ArgumentException(string.Format(message, args), paramName);
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ArgumentException ArgumentException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear(), paramName);
 
 		[DoesNotReturn]
-		public static void ThrowArgumentException([InvokerParameterName] string paramName, string? message = null)
-		{
-			// oui, c'est inversé :)
-			throw ArgumentException(paramName, message);
-		}
+		public static void ThrowArgumentException([InvokerParameterName] string paramName, string? message = null) => throw ArgumentException(paramName, message);
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
 		[DoesNotReturn]
-		public static T ThrowArgumentException<T>([InvokerParameterName] string paramName, string? message = null)
-		{
-			// oui, c'est inversé :)
-			throw ArgumentException(paramName, message);
-		}
+		public static void ThrowArgumentException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentException(paramName, ref message);
+
+		[DoesNotReturn]
+		public static T ThrowArgumentException<T>([InvokerParameterName] string paramName, string? message = null) => throw ArgumentException(paramName, message);
+
+		[DoesNotReturn]
+		public static T ThrowArgumentException<T>([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentException(paramName, ref message);
 
 		#endregion
 
 		#region ArgumentOutOfRangeException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, string? message = null)
-		{
-			return new ArgumentOutOfRangeException(paramName, actualValue, message);
-		}
+		public static ArgumentOutOfRangeException ArgumentOutOfRangeException([InvokerParameterName] string paramName) => new(paramName);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentOutOfRangeException([InvokerParameterName] string paramName)
-		{
-			return new ArgumentOutOfRangeException(paramName);
-		}
+		public static ArgumentOutOfRangeException ArgumentOutOfRangeException([InvokerParameterName] string paramName, string? message) => new(paramName, message);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ArgumentOutOfRangeException ArgumentOutOfRangeException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => new(paramName, message.ToStringAndClear());
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ArgumentOutOfRangeException ArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, string? message) => new(paramName, actualValue, message);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ArgumentOutOfRangeException ArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, ref DefaultInterpolatedStringHandler message) => new(paramName, actualValue, message.ToStringAndClear());
 
 		[DoesNotReturn]
-		public static void ThrowArgumentOutOfRangeException()
-		{
-			// ReSharper disable once NotResolvedInText
-			throw ArgumentOutOfRangeException("index", "Index was out of range. Must be non-negative and less than the size of the collection.");
-		}
+		// ReSharper disable once NotResolvedInText
+		public static void ThrowArgumentOutOfRangeException() => throw ArgumentOutOfRangeException("index", "Index was out of range. Must be non-negative and less than the size of the collection.");
 
 		[DoesNotReturn]
-		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName)
-		{
-			throw ArgumentOutOfRangeException(paramName);
-		}
+		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName) => throw ArgumentOutOfRangeException(paramName);
 
 		[DoesNotReturn]
-		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, string message)
-		{
-			throw ArgumentOutOfRangeException(paramName, message);
-		}
+		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, string message) => throw ArgumentOutOfRangeException(paramName, null, message);
 
 		[DoesNotReturn]
-		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, string message)
-		{
-			throw ArgumentOutOfRangeException(paramName, actualValue, message);
-		}
+		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentOutOfRangeException(paramName, null, ref message);
+
+		[DoesNotReturn]
+		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, string message) => throw ArgumentOutOfRangeException(paramName, actualValue, message);
+
+		[DoesNotReturn]
+		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, ref DefaultInterpolatedStringHandler message) => throw ArgumentOutOfRangeException(paramName, actualValue, ref message);
 
 		#endregion
 
 		#region ObjectDisposedException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed)
-		{
-			return new ObjectDisposedException(disposed?.GetType().Name);
-		}
+		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed) => new(disposed?.GetType().Name);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException(Type type)
-		{
-			return new ObjectDisposedException(type.Name);
-		}
+		public static ObjectDisposedException ObjectDisposedException(Type type) => new(type.Name);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException(Type type, string message)
-		{
-			return new ObjectDisposedException(type.Name, message);
-		}
+		public static ObjectDisposedException ObjectDisposedException(Type type, string message) => new(type.Name, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed, string message)
-		{
-			return new ObjectDisposedException((disposed?.GetType() ?? typeof(TDisposed)).Name, message);
-		}
+		public static ObjectDisposedException ObjectDisposedException(Type type, ref DefaultInterpolatedStringHandler message) => new(type.Name, message.ToStringAndClear());
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException<TDisposed>(string message)
-		{
-			return new ObjectDisposedException(typeof(TDisposed).Name, message);
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException<TDisposed>(string message, object? arg0)
-		{
-			return new ObjectDisposedException(typeof(TDisposed).Name, string.Format(CultureInfo.InvariantCulture, message, arg0));
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException<TDisposed>(string message, params object?[] args)
-		{
-			return new ObjectDisposedException(typeof(TDisposed).Name, string.Format(CultureInfo.InvariantCulture, message, args));
-		}
+		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed, string message) => new((disposed?.GetType() ?? typeof(TDisposed)).Name, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException(string message, Exception? innerException)
-		{
-			return new ObjectDisposedException(message, innerException);
-		}
+		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed, ref DefaultInterpolatedStringHandler message) => new((disposed?.GetType() ?? typeof(TDisposed)).Name, message.ToStringAndClear());
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ObjectDisposedException ObjectDisposedException<TDisposed>(string message) => new(typeof(TDisposed).Name, message);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ObjectDisposedException ObjectDisposedException<TDisposed>(ref DefaultInterpolatedStringHandler message) => new(typeof(TDisposed).Name, message.ToStringAndClear());
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ObjectDisposedException ObjectDisposedException(string message, Exception? innerException) => new(message, innerException);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ObjectDisposedException ObjectDisposedException(ref DefaultInterpolatedStringHandler message, Exception? innerException) => new(message.ToStringAndClear(), innerException);
 
 		[DoesNotReturn]
-		public static void ThrowObjectDisposedException(Type type)
-		{
-			throw ObjectDisposedException(type);
-		}
+		public static void ThrowObjectDisposedException(Type type) => throw ObjectDisposedException(type);
 
 		[DoesNotReturn]
-		public static void ThrowObjectDisposedException(string message, Exception innerException)
-		{
-			throw ObjectDisposedException(message, innerException);
-		}
+		public static void ThrowObjectDisposedException(Type type, string message) => throw ObjectDisposedException(type, message);
 
-		[MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
 		[DoesNotReturn]
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType());
-		}
+		public static void ThrowObjectDisposedException(Type type, ref DefaultInterpolatedStringHandler message) => throw ObjectDisposedException(type, ref message);
 
-		[MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
 		[DoesNotReturn]
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType(), message);
-		}
+		public static void ThrowObjectDisposedException(string message, Exception innerException) => throw ObjectDisposedException(message, innerException);
 
-		[StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
 		[DoesNotReturn]
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message, object? arg0)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType(), string.Format(CultureInfo.InvariantCulture, message, arg0));
-		}
+		public static void ThrowObjectDisposedException(ref DefaultInterpolatedStringHandler message, Exception innerException) => throw ObjectDisposedException(ref message, innerException);
 
-		[StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
 		[DoesNotReturn]
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message, params object?[] args)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType(), string.Format(CultureInfo.InvariantCulture, message, args));
-		}
+		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed) where TDisposed : IDisposable => throw ObjectDisposedException(disposed.GetType());
+
+		[DoesNotReturn]
+		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message) where TDisposed : IDisposable => throw ObjectDisposedException(disposed.GetType(), message);
+
+		[DoesNotReturn]
+		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, ref DefaultInterpolatedStringHandler message) where TDisposed : IDisposable => throw ObjectDisposedException(disposed.GetType(), ref message);
 
 		#endregion
 
 		#region InvalidOperationException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static InvalidOperationException InvalidOperationException(string message)
-		{
-			return new InvalidOperationException(message);
-		}
+		public static InvalidOperationException InvalidOperationException(string message) => new(message);
 
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static InvalidOperationException InvalidOperationException(string message, object? arg0)
-		{
-			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, arg0));
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static InvalidOperationException InvalidOperationException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
 
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static InvalidOperationException InvalidOperationException(string message, object? arg0, object? arg1)
-		{
-			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, arg0, arg1));
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static InvalidOperationException InvalidOperationException(string message, params object?[] args)
-		{
-			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, args));
-		}
-
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn]
 		public static void ThrowInvalidOperationException(string message) => throw InvalidOperationException(message);
 
-		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, object? arg0) => throw InvalidOperationException(message, arg0);
+		public static void ThrowInvalidOperationException(ref DefaultInterpolatedStringHandler message) => throw InvalidOperationException(message.ToStringAndClear());
 
-		[StringFormatMethod("message")]
-		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1) => throw InvalidOperationException(message, arg0, arg1);
-
-		[StringFormatMethod("message")]
-		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, object? arg0, object? arg1, object? arg2) => throw InvalidOperationException(message, arg0, arg1, arg2);
-
-		[StringFormatMethod("message")]
-		[DoesNotReturn]
-		public static void ThrowInvalidOperationException(string message, params object?[] args) => throw InvalidOperationException(message, args);
-
-		[StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		[DoesNotReturn]
 		public static T ThrowInvalidOperationException<T>(string message) => throw InvalidOperationException(message);
+
+		[DoesNotReturn]
+		public static T ThrowInvalidOperationException<T>(ref DefaultInterpolatedStringHandler message) => throw InvalidOperationException(message.ToStringAndClear());
 
 		#endregion
 
 		#region FormatException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static FormatException FormatException(string message)
-		{
-			return new FormatException(message);
-		}
+		public static FormatException FormatException(string message) => new(message);
 
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static FormatException FormatException(string message, object? arg0)
-		{
-			return new FormatException(string.Format(CultureInfo.InvariantCulture, message, arg0));
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static FormatException FormatException(string message, object? arg0, object? arg1)
-		{
-			return new FormatException(string.Format(CultureInfo.InvariantCulture, message, arg0, arg1));
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static FormatException FormatException(string message, params object?[] args)
-		{
-			return new FormatException(string.Format(CultureInfo.InvariantCulture, message, args));
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static FormatException FormatException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
 
 		[DoesNotReturn]
-		public static void ThrowFormatException(string message)
-		{
-			throw FormatException(message);
-		}
+		public static void ThrowFormatException(string message) => throw FormatException(message);
 
-		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowFormatException(string message, object? arg0)
-		{
-			throw FormatException(message, arg0);
-		}
+		public static void ThrowFormatException(ref DefaultInterpolatedStringHandler message) => throw FormatException(ref message);
 
-		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowFormatException(string message, object? arg0, object? arg1)
-		{
-			throw FormatException(message, arg0, arg1);
-		}
+		public static T ThrowFormatException<T>(string message) => throw FormatException(message);
 
-		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowFormatException(string message, object? arg0, object? arg1, object? arg2)
-		{
-			throw FormatException(message, arg0, arg1, arg2);
-		}
-
-		[StringFormatMethod("message")]
-		[DoesNotReturn]
-		public static void ThrowFormatException(string message, params object?[] args)
-		{
-			throw FormatException(message, args);
-		}
+		public static T ThrowFormatException<T>(ref DefaultInterpolatedStringHandler message) => throw FormatException(ref message);
 
 		#endregion
 
 		#region OperationCanceledException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static OperationCanceledException OperationCanceledException(string message)
-		{
-			return new OperationCanceledException(message);
-		}
+		public static OperationCanceledException OperationCanceledException(string message) => new(message);
 
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static OperationCanceledException OperationCanceledException(string message, object? arg0)
-		{
-			return new OperationCanceledException(String.Format(CultureInfo.InvariantCulture, message, arg0));
-		}
-
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static OperationCanceledException OperationCanceledException(string message, params object?[] args)
-		{
-			return new OperationCanceledException(String.Format(CultureInfo.InvariantCulture, message, args));
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static OperationCanceledException OperationCanceledException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
 
 		[DoesNotReturn]
-		public static void ThrowOperationCanceledException(string message)
-		{
-			throw OperationCanceledException(message);
-		}
+		public static void ThrowOperationCanceledException(string message) => throw OperationCanceledException(message);
 
-		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowOperationCanceledException(string message, object? arg0)
-		{
-			throw OperationCanceledException(message, arg0);
-		}
+		public static void ThrowOperationCanceledException(ref DefaultInterpolatedStringHandler message) => throw OperationCanceledException(ref message);
 
-		[StringFormatMethod("message")]
 		[DoesNotReturn]
-		public static void ThrowOperationCanceledException(string message, params object?[] args)
-		{
-			throw OperationCanceledException(message, args);
-		}
+		public static T ThrowOperationCanceledException<T>(string message) => throw OperationCanceledException(message);
+
+		[DoesNotReturn]
+		public static T ThrowOperationCanceledException<T>(ref DefaultInterpolatedStringHandler message) => throw OperationCanceledException(ref message);
 
 		#endregion
 
 		#region NotSupportedException...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static NotSupportedException NotSupportedException(string message)
-		{
-			return new NotSupportedException(message);
-		}
+		public static NotSupportedException NotSupportedException(string message) => new(message);
 
-		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static NotSupportedException NotSupportedException(string message, params object?[] args)
-		{
-			return new NotSupportedException(String.Format(CultureInfo.InvariantCulture, message, args));
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static NotSupportedException NotSupportedException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
+
+		[DoesNotReturn]
+		public static void ThrowNotSupportedException(string message) => throw NotSupportedException(message);
+
+		[DoesNotReturn]
+		public static void ThrowNotSupportedException(ref DefaultInterpolatedStringHandler message) => throw NotSupportedException(ref message);
+
+		[DoesNotReturn]
+		public static T ThrowNotSupportedException<T>(string message) => throw NotSupportedException(message);
+
+		[DoesNotReturn]
+		public static T ThrowNotSupportedException<T>(ref DefaultInterpolatedStringHandler message) => throw NotSupportedException(ref message);
 
 		#endregion
 
@@ -500,22 +350,13 @@ namespace Doxense.Diagnostics.Contracts
 		#region Collection Errors...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static InvalidOperationException InvalidOperationNoElements()
-		{
-			return new InvalidOperationException("Sequence contains no elements.");
-		}
+		public static InvalidOperationException InvalidOperationNoElements() => new("Sequence contains no elements.");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static InvalidOperationException InvalidOperationNoMatchingElements()
-		{
-			return new InvalidOperationException("Sequence contains no matching element.");
-		}
+		public static InvalidOperationException InvalidOperationNoMatchingElements() => new("Sequence contains no matching element.");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static IndexOutOfRangeException IndexOutOfRangeException()
-		{
-			return new IndexOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection.");
-		}
+		public static IndexOutOfRangeException IndexOutOfRangeException() => new("Index was out of range. Must be non-negative and less than the size of the collection.");
 
 		[DoesNotReturn]
 		public static void ThrowIndexOutOfRangeException() => throw IndexOutOfRangeException();
@@ -524,11 +365,7 @@ namespace Doxense.Diagnostics.Contracts
 		public static T ThrowIndexOutOfRangeException<T>() => throw IndexOutOfRangeException();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ArgumentOutOfRangeException ArgumentOutOfRangeIndex(int index)
-		{
-			// ArgumentOutOfRange_NeedNonNegNum
-			return new ArgumentOutOfRangeException(nameof(index), index, "Index was out of range. Must be non-negative and less than the size of the collection.");
-		}
+		public static ArgumentOutOfRangeException ArgumentOutOfRangeIndex(int index) => new(nameof(index), index, "Index was out of range. Must be non-negative and less than the size of the collection.");
 
 		[DoesNotReturn]
 		public static void ThrowArgumentOutOfRangeIndex(int index) => throw ArgumentOutOfRangeIndex(index);
@@ -537,28 +374,16 @@ namespace Doxense.Diagnostics.Contracts
 		public static T ThrowArgumentOutOfRangeIndex<T>(int index) => throw ArgumentOutOfRangeIndex(index);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ArgumentOutOfRangeException ArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName)
-		{
-			// ArgumentOutOfRange_NeedNonNegNum
-			return new ArgumentOutOfRangeException(paramName, "Non-negative number required");
-		}
+		public static ArgumentOutOfRangeException ArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName) => new(paramName, "Non-negative number required");
 
 		[DoesNotReturn]
 		public static void ThrowArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName) => throw ArgumentOutOfRangeNeedNonNegNum(paramName);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ArgumentException ArgumentInvalidOffLen()
-		{
-			// Argument_InvalidOffLen
-			return new ArgumentException("Offset and length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.");
-		}
+		public static ArgumentException ArgumentInvalidOffLen() => new("Offset and length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static NotSupportedException NotSupportedReadOnlyCollection()
-		{
-			// NotSupported_ReadOnlyCollection
-			return new NotSupportedException("Collection is read-only.");
-		}
+		public static NotSupportedException NotSupportedReadOnlyCollection() => new("Collection is read-only.");
 
 		[DoesNotReturn]
 		public static void ThrowNotSupportedReadOnlyCollection() => throw NotSupportedReadOnlyCollection();

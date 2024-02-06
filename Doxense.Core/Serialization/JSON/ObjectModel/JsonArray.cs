@@ -506,7 +506,7 @@ namespace Doxense.Serialization.Json
 			get => m_items.Length;
 			set
 			{
-				if (value < m_size) throw ThrowHelper.ArgumentOutOfRangeException(nameof(value), "capacity was less than the current size.");
+				if (value < m_size) throw ThrowHelper.ArgumentOutOfRangeException(nameof(value), value, "capacity was less than the current size.");
 				if (value != m_items.Length)
 				{
 					ResizeBuffer(value);
@@ -2736,7 +2736,7 @@ namespace Doxense.Serialization.Json
 					}
 					default:
 					{
-						throw ThrowHelper.InvalidOperationException("Cannot project element of type {0} in JSON array", item.Type);
+						throw ThrowHelper.InvalidOperationException($"Cannot project element of type {item.Type} in JSON array");
 					}
 				}
 			}

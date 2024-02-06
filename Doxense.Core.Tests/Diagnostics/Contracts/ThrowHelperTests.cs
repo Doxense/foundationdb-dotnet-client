@@ -24,12 +24,14 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable NotResolvedInText
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 namespace Doxense.Diagnostics.Contracts.Tests
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using Doxense.Testing;
 	using NUnit.Framework;
@@ -46,39 +48,74 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
 		}
 
+		private static class TrustButVerify
+		{
+			public static string CallMe(string s)
+			{
+				DoxenseTest.Log("CallMe(string):" + s);
+				return "CallMe(string):" + s;
+			}
+
+			public static string CallMe(ref DefaultInterpolatedStringHandler s)
+			{
+				DoxenseTest.Log("CallMe(interpolated):" + s.ToString());
+				return "CallMe(interpolated):" + s.ToStringAndClear();
+			}
+		}
+
+		[Test, Order(0)]
+		public void Test_VerifyAssumptions()
+		{
+			// we need to check that given two overloads, one with a string, and one with an interpolated string handler,
+			// the compiler will invoke the former with literal strings, and the later with explict interportaled strings!
+
+			var hello = "hello";
+			var world = "world";
+
+			// should invoke the string overload
+			Assume.That(TrustButVerify.CallMe("hello"), Is.EqualTo("CallMe(string):hello"));
+			Assume.That(TrustButVerify.CallMe("hello" + " world!"), Is.EqualTo("CallMe(string):hello world!"));
+			Assume.That(TrustButVerify.CallMe(hello), Is.EqualTo("CallMe(string):hello"));
+
+			// should invoke the interpolated overload
+			Assume.That(TrustButVerify.CallMe($"{hello}, world!"), Is.EqualTo("CallMe(interpolated):hello, world!"));
+			Assume.That(TrustButVerify.CallMe($"{hello}, {world}!"), Is.EqualTo("CallMe(interpolated):hello, world!"));
+			Assume.That(TrustButVerify.CallMe($"{hello + ", " + world}!"), Is.EqualTo("CallMe(interpolated):hello, world!"));
+
+			// cornercases:
+			Assume.That(TrustButVerify.CallMe($"hello"), Is.EqualTo("CallMe(string):hello"), "Interpolated string without any argument is erased by the compiler");
+		}
+
 		[Test]
 		public void Test_ThrowInvalidOperationException()
 		{
+			// literal string
 
-			var x = Assert.Throws<InvalidOperationException>(() => ThrowHelper.ThrowInvalidOperationException("Hello world !!!"));
-			Assert.That(x.Message, Is.EqualTo("Hello world !!!"));
+			Assert.That(() => ThrowHelper.ThrowInvalidOperationException("Hello world !!!"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("Hello world !!!"));
 
-			// String.Format(..., strings)
+			Assert.That(() => throw ThrowHelper.InvalidOperationException("Hello world !!!"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("Hello world !!!"));
 
-			x = Assert.Throws<InvalidOperationException>(() => ThrowHelper.ThrowInvalidOperationException("{0} !!!", "Hello world"));
-			Assert.That(x.Message, Is.EqualTo("Hello world !!!"));
+			// Interpolated Strings
 
-			x = Assert.Throws<InvalidOperationException>(() => ThrowHelper.ThrowInvalidOperationException("{0} {1} !!!", "Hello", "world"));
-			Assert.That(x.Message, Is.EqualTo("Hello world !!!"));
+			var hello = "Hello";
+			var world = "World";
+			var exclamation = "!!!";
 
-			x = Assert.Throws<InvalidOperationException>(() => ThrowHelper.ThrowInvalidOperationException("{0} {1} {2}", "Hello", "world", "!!!"));
-			Assert.That(x.Message, Is.EqualTo("Hello world !!!"));
+			Assert.That(() => ThrowHelper.ThrowInvalidOperationException($"{hello}, World !!!"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("Hello, World !!!"));
 
-			// String.Format(... objects)
+			Assert.That(() => ThrowHelper.ThrowInvalidOperationException($"{hello}, {world} !!!"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("Hello, World !!!"));
 
-			x = Assert.Throws<InvalidOperationException>(() => ThrowHelper.ThrowInvalidOperationException("1+2={0}", 3));
-			Assert.That(x.Message, Is.EqualTo("1+2=3"));
+			Assert.That(() => ThrowHelper.ThrowInvalidOperationException($"{hello}, {world} {exclamation}"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("Hello, World !!!"));
 
-			x = Assert.Throws<InvalidOperationException>(() => ThrowHelper.ThrowInvalidOperationException("{0}+{1}=3", 1, 2));
-			Assert.That(x.Message, Is.EqualTo("1+2=3"));
+			Assert.That(() => ThrowHelper.ThrowInvalidOperationException($"1+2={3}"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("1+2=3"));
 
-			x = Assert.Throws<InvalidOperationException>(() => ThrowHelper.ThrowInvalidOperationException("{0}+{1}={2}", 1, 2, 3));
-			Assert.That(x.Message, Is.EqualTo("1+2=3"));
+			Assert.That(() => ThrowHelper.ThrowInvalidOperationException($"{1}+{2}=3"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("1+2=3"));
+
+			Assert.That(() => ThrowHelper.ThrowInvalidOperationException($"{1}+{2}={3}"), Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("1+2=3"));
 
 		}
 
 		[Test]
-		[SuppressMessage("ReSharper", "NotResolvedInText")]
 		public void Test_ThrowArgumentNullException()
 		{
 			// note: pas certain que le message par défaut ne change pas d'une version a l'autre de .NET, ou dépende de la langue système ...
@@ -93,7 +130,6 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		}
 
 		[Test]
-		[SuppressMessage("ReSharper", "NotResolvedInText")]
 		public void Test_ThrowArgumentException()
 		{
 			// note: pas certain que le message par défaut ne change pas d'une version a l'autre de .NET, ou dépende de la langue système ...
@@ -119,6 +155,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(x1.InnerException, Is.InstanceOf<InvalidOperationException>());
 			Assert.That(x1.InnerException?.Message, Is.EqualTo("I'm dead, Jim!"));
 		}
+
 	}
 
 }

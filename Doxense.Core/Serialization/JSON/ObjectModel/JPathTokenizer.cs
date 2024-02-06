@@ -161,7 +161,7 @@ namespace Doxense.Serialization.Json
 					if (c < '0' || c > '9') break;
 					index = checked(index * 10 + (c - 48));
 				}
-				throw ThrowHelper.FormatException("Invalid JPath array index at offset {0}: '{1}'", start, path);
+				throw ThrowHelper.FormatException($"Invalid JPath array index at offset {start}: '{path}'");
 			}
 
 			while (pos < end)

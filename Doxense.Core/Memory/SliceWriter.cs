@@ -294,7 +294,7 @@ namespace Doxense.Memory
 		public Slice Head(int count)
 		{
 			if (count == 0) return Slice.Empty;
-			if ((uint) count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
+			if ((uint) count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Buffer is too small");
 			return new Slice(this.Buffer!, 0, count);
 		}
 
@@ -312,7 +312,7 @@ namespace Doxense.Memory
 		public Slice Head(uint count)
 		{
 			if (count == 0) return Slice.Empty;
-			if (count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
+			if (count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Buffer is too small");
 			return new Slice(this.Buffer!, 0, (int) count);
 		}
 
@@ -330,7 +330,7 @@ namespace Doxense.Memory
 		{
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
-			if ((uint) count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
+			if ((uint) count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Buffer is too small");
 			return new Slice(this.Buffer!, p - count, count);
 		}
 
@@ -348,7 +348,7 @@ namespace Doxense.Memory
 		{
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
-			if (count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
+			if (count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Buffer is too small");
 			return new Slice(this.Buffer!, p - (int) count, (int) count);
 		}
 

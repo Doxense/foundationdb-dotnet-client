@@ -890,7 +890,7 @@ namespace Doxense.Serialization.Json
 					}
 					default:
 					{
-						throw ThrowHelper.InvalidOperationException("Unexpected {0} at offset {1}: '{2}'", token, tokenizer.Offset, path);
+						throw ThrowHelper.InvalidOperationException($"Unexpected {token} at offset {tokenizer.Offset}: '{path}'");
 					}
 				}
 			}
@@ -930,12 +930,12 @@ namespace Doxense.Serialization.Json
 				}
 				else if (!child.IsMap)
 				{
-					throw ThrowHelper.InvalidOperationException("The specified key '{0}' exists, but is of type {1} instead of expected Object", name, child.Type);
+					throw ThrowHelper.InvalidOperationException($"The specified key '{name}' exists, but is of type {child.Type} instead of expected Object");
 				}
 			}
 			else
 			{
-				if (!current.IsMap) throw ThrowHelper.InvalidOperationException("Selected value was of type {0} instead of expected Object", current.Type);
+				if (!current.IsMap) throw ThrowHelper.InvalidOperationException($"Selected value was of type {current.Type} instead of expected Object");
 				child = current;
 			}
 			return (JsonObject) child;
@@ -963,12 +963,12 @@ namespace Doxense.Serialization.Json
 				}
 				else if (!child.IsArray)
 				{
-					throw ThrowHelper.InvalidOperationException("The specified key '{0}' exists, but is of type {1} instead of expected Array", name, child.Type);
+					throw ThrowHelper.InvalidOperationException($"The specified key '{name}' exists, but is of type {child.Type} instead of expected Array");
 				}
 			}
 			else
 			{
-				if (!current.IsArray) throw ThrowHelper.InvalidOperationException("Selected value was of type {0} instead of expected Array", current.Type);
+				if (!current.IsArray) throw ThrowHelper.InvalidOperationException($"Selected value was of type {current.Type} instead of expected Array");
 				child = current;
 			}
 			return (JsonArray) child;
@@ -990,7 +990,7 @@ namespace Doxense.Serialization.Json
 			}
 			else if (!child.IsMap)
 			{
-				throw ThrowHelper.InvalidOperationException("Selected item at position {0} was of type {1} instead of expected Object", index, child.Type);
+				throw ThrowHelper.InvalidOperationException($"Selected item at position {index} was of type {child.Type} instead of expected Object");
 			}
 			return (JsonObject) child;
 		}
@@ -1011,7 +1011,7 @@ namespace Doxense.Serialization.Json
 			}
 			else if (!child.IsArray)
 			{
-				throw ThrowHelper.InvalidOperationException("Selected item at position {0} was of type {1} instead of expected Array", index, child.Type);
+				throw ThrowHelper.InvalidOperationException($"Selected item at position {index} was of type {child.Type} instead of expected Array");
 			}
 			return (JsonArray)child;
 		}
@@ -1128,7 +1128,7 @@ namespace Doxense.Serialization.Json
 					}
 					default:
 					{
-						throw ThrowHelper.FormatException("Invalid JPath token {0} at {1}: '{2}'", token, tokenizer.Offset, path);
+						throw ThrowHelper.FormatException($"Invalid JPath token {token} at {tokenizer.Offset}: '{path}'");
 					}
 				}
 				//Console.WriteLine(" => name={3}, index={4}, current = {5}, total = {6}", token, tokenizer.Offset, tokenizer.GetSourceToken(), name, index, current.ToJsonCompact(), this.ToJsonCompact());
@@ -1224,7 +1224,7 @@ namespace Doxense.Serialization.Json
 					}
 					default:
 					{
-						throw ThrowHelper.FormatException("Invalid JPath token {0} at {1}: '{2}'", token, tokenizer.Offset, path);
+						throw ThrowHelper.FormatException($"Invalid JPath token {token} at {tokenizer.Offset}: '{path}'");
 					}
 				}
 			}
@@ -1472,11 +1472,17 @@ namespace Doxense.Serialization.Json
 
 			foreach (var key in copy)
 			{
-				if (string.IsNullOrEmpty(key)) throw ThrowHelper.InvalidOperationException("Cannot project empty or null field name: [{0}]", string.Join(", ", copy));
+				if (string.IsNullOrEmpty(key))
+				{
+					throw ThrowHelper.InvalidOperationException($"Cannot project empty or null field name: [{string.Join(", ", keys.ToArray())}]");
+				}
 				set.Add(key);
 				res[p++] = new KeyValuePair<string, JsonValue?>(key, keepMissing ? JsonNull.Missing : null);
 			}
-			if (set.Count != copy.Length) throw ThrowHelper.InvalidOperationException("Cannot project duplicate field name: [{0}]", string.Join(", ", copy));
+			if (set.Count != keys.Length)
+			{
+				throw ThrowHelper.InvalidOperationException($"Cannot project duplicate field name: [{string.Join(", ", keys.ToArray())}]");
+			}
 
 			return res;
 		}
@@ -1487,7 +1493,7 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("defaults:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionDefaults(IDictionary<string, JsonValue?> defaults)
 		{
-			if (defaults == null) throw ThrowHelper.ArgumentNullException(nameof(defaults));
+			Contract.NotNull(defaults);
 
 			var res = new KeyValuePair<string, JsonValue?>[defaults.Count];
 			var set = new HashSet<string>();
@@ -1495,11 +1501,19 @@ namespace Doxense.Serialization.Json
 
 			foreach(var kvp in defaults)
 			{
-				if (string.IsNullOrEmpty(kvp.Key)) throw ThrowHelper.InvalidOperationException("Cannot project empty or null field name: [{0}]", string.Join(", ", defaults.Select(x => x.Key)));
+				if (string.IsNullOrEmpty(kvp.Key))
+				{
+					ThrowHelper.ThrowInvalidOperationException($"Cannot project empty or null field name: [{string.Join(", ", defaults.Select(x => x.Key))}]");
+				}
+
 				set.Add(kvp.Key);
 				res[p++] = kvp;
 			}
-			if (set.Count != defaults.Count) throw ThrowHelper.InvalidOperationException("Cannot project duplicate field name: [{0}]", string.Join(", ", defaults.Select(x => x.Key)));
+
+			if (set.Count != defaults.Count)
+			{
+				ThrowHelper.ThrowInvalidOperationException($"Cannot project duplicate field name: [{string.Join(", ", defaults.Select(x => x.Key))}]");
+			}
 
 			return res;
 		}
@@ -1507,7 +1521,7 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("defaults:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionDefaults(object defaults)
 		{
-			if (defaults == null) throw ThrowHelper.ArgumentNullException(nameof(defaults));
+			Contract.NotNull(defaults);
 
 			var obj = JsonObject.FromObject(defaults);
 			Contract.Debug.Assert(obj != null);

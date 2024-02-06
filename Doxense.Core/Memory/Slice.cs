@@ -2004,8 +2004,8 @@ namespace System
 		/// <returns>Smaller slice</returns>
 		public static Slice operator -(Slice s, int n)
 		{
-			if (n < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(n), "Cannot subtract a negative number from a slice");
-			if (n > s.Count) throw ThrowHelper.ArgumentOutOfRangeException(nameof(n), "Cannot subtract more bytes than the slice contains");
+			if (n < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(n), n, "Cannot subtract a negative number from a slice");
+			if (n > s.Count) throw ThrowHelper.ArgumentOutOfRangeException(nameof(n), n, "Cannot subtract more bytes than the slice contains");
 
 			if (n == 0) return s;
 			if (n == s.Count) return Empty;

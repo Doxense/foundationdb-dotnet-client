@@ -129,7 +129,7 @@ namespace Doxense.Serialization.Json
 			[Pure]
 			internal static Exception CannotBindJsonValue([InvokerParameterName] string paramName, Type sourceType, Type targetType)
 			{
-				return ThrowHelper.ArgumentException(paramName, "Cannot convert JSON value from type {0} to type {1}", sourceType.GetFriendlyName(), targetType.GetFriendlyName());
+				return ThrowHelper.ArgumentException(paramName, $"Cannot convert JSON value from type {sourceType.GetFriendlyName()} to type {targetType.GetFriendlyName()}");
 			}
 
 			[Pure]

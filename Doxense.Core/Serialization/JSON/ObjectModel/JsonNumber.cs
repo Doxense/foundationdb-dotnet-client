@@ -1132,12 +1132,12 @@ namespace Doxense.Serialization.Json
 		internal static unsafe JsonNumber Parse(byte* ptr, int size)
 		{
 			Contract.PointerNotNull(ptr);
-			if (size <= 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(size), "Size must be at least one");
+			if (size <= 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(size), size, "Size must be at least one");
 
 			string literal = new string((sbyte*)ptr, 0, size); //ASCII is ok
 
 			var num = CrystalJsonParser.ParseJsonNumber(literal);
-			if (num == null) throw ThrowHelper.FormatException("Invalid number literal '{0}'.", literal);
+			if (num == null) throw ThrowHelper.FormatException($"Invalid number literal '{literal}'.");
 			return num;
 		}
 
@@ -1173,7 +1173,7 @@ namespace Doxense.Serialization.Json
 				case Kind.Unsigned: return CrystalJsonFormatter.NumberToString(number.Unsigned);
 				case Kind.Double: return CrystalJsonFormatter.NumberToString(number.Double);
 				case Kind.Decimal: return CrystalJsonFormatter.NumberToString(number.Decimal);
-				default: throw new ArgumentException(nameof(kind));
+				default: throw new ArgumentOutOfRangeException(nameof(kind));
 			}
 		}
 
