@@ -32,7 +32,8 @@ namespace Doxense.Serialization.Json
 
 	public sealed class JsonValueComparer : IEqualityComparer<JsonValue>, IComparer<JsonValue>, System.Collections.IEqualityComparer, System.Collections.IComparer
 	{
-		public static readonly JsonValueComparer Default = new JsonValueComparer();
+
+		public static readonly JsonValueComparer Default = new();
 
 		private JsonValueComparer()
 		{ }
@@ -40,8 +41,7 @@ namespace Doxense.Serialization.Json
 		public bool Equals(JsonValue? x, JsonValue? y)
 		{
 			// il y a pas mal de singletons ou de valeurs interned, donc ca vaut le coup de comparer les pointers
-			return object.ReferenceEquals(x, y)
-			   || (object.ReferenceEquals(x, null) ? y!.IsNull : x.Equals(y));
+			return ReferenceEquals(x, y) || (x?.Equals(y) ?? y!.IsNull);
 		}
 
 		public int GetHashCode(JsonValue? obj)
@@ -51,10 +51,10 @@ namespace Doxense.Serialization.Json
 
 		bool System.Collections.IEqualityComparer.Equals(object? x, object? y)
 		{
-			if (object.ReferenceEquals(x, y)) return true; // catch aussi le null
+			if (ReferenceEquals(x, y)) return true; // catch aussi le null
 			var jx = (x as JsonValue) ?? JsonValue.FromValue(x);
 			var jy = (y as JsonValue) ?? JsonValue.FromValue(y);
-			Contract.Debug.Assert(!object.ReferenceEquals(jx, null) && !object.ReferenceEquals(jy, null));
+			Contract.Debug.Assert(jx is not null && jy is not null);
 			return jx.Equals(jy);
 		}
 
@@ -65,17 +65,18 @@ namespace Doxense.Serialization.Json
 
 		public int Compare(JsonValue? x, JsonValue? y)
 		{
-			return object.ReferenceEquals(x, y) ? 0 : (x ?? JsonNull.Null).CompareTo(y);
+			return ReferenceEquals(x, y) ? 0 : (x ?? JsonNull.Null).CompareTo(y);
 		}
 
 		int System.Collections.IComparer.Compare(object? x, object? y)
 		{
-			if (object.ReferenceEquals(x, y)) return 0; // catch aussi le null
+			if (ReferenceEquals(x, y)) return 0;
 			var jx = (x as JsonValue) ?? JsonValue.FromValue(x);
 			var jy = (y as JsonValue) ?? JsonValue.FromValue(y);
-			Contract.Debug.Assert(!object.ReferenceEquals(jx, null) && !object.ReferenceEquals(jy, null));
+			Contract.Debug.Assert(jx is not null && jy is not null);
 			return jx.CompareTo(jy);
 		}
+
 	}
 
 }

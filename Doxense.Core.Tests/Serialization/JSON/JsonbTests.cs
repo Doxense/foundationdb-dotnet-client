@@ -24,8 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable disable
-
+#pragma warning disable CS0618 // Type or member is obsolete
 // ReSharper disable StringLiteralTypo
 // ReSharper disable CommentTypo
 
@@ -33,6 +32,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO.Compression;
 	using System.Linq;
 	using Doxense.Testing;
@@ -140,10 +140,14 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			return res;
 		}
 
-		private static byte[] HexDecodeArray(string value)
+		[return: NotNullIfNotNull(nameof(value))]
+		private static byte[]? HexDecodeArray(string? value)
 		{
-			if (string.IsNullOrEmpty(value)) return value == null ? null : Array.Empty<byte>();
-			value = value.Trim().Replace(" ", String.Empty);
+			if (string.IsNullOrEmpty(value))
+			{
+				return value == null ? null : Array.Empty<byte>();
+			}
+			value = value.Trim().Replace(" ", string.Empty);
 			int n = value.Length;
 			if ((n & 1) > 0) throw new ArgumentException("Invalid input size! Hexadecimal string size must be even!");
 			byte[] r = new byte[n >> 1];
@@ -436,8 +440,8 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 		public sealed class FooDb
 		{
-			public int Version { get; set; }
-			public List<Vendor> Vendors { get; set; }
+			public required int Version { get; set; }
+			public required List<Vendor> Vendors { get; set; }
 
 			public enum DeviceType
 			{
@@ -449,29 +453,29 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 			public sealed class Vendor
 			{
-				public Guid Id { get; set; }
-				public string Label { get; set; }
-				public string Name { get; set; }
+				public required Guid Id { get; set; }
+				public required string Label { get; set; }
+				public required string Name { get; set; }
 
-				public Dictionary<Guid, Model> Models { get; set; }
+				public required Dictionary<Guid, Model> Models { get; set; }
 
 			}
 
 			public sealed class Model
 			{
-				public Guid Id { get; set; }
+				public required Guid Id { get; set; }
 
-				public string Name { get; set; }
+				public required string Name { get; set; }
 
-				public DeviceType Type { get; set; }
+				public required DeviceType Type { get; set; }
 
-				public bool ColorCapable { get; set; }
+				public required bool ColorCapable { get; set; }
 
-				public bool DuplexCapable { get; set; }
+				public required bool DuplexCapable { get; set; }
 
-				public DateTime Updated { get; set; }
+				public required DateTime Updated { get; set; }
 
-				public List<Rule> Rules { get; set; }
+				public required List<Rule> Rules { get; set; }
 
 				public static Model MakeRandom(Random rnd)
 				{
@@ -490,13 +494,13 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 			public sealed class Rule
 			{
-				public Guid Id { get; set; }
+				public required Guid Id { get; set; }
 
-				public List<Guid> Parents { get; set; }
+				public required List<Guid> Parents { get; set; }
 
-				public int Level { get; set; }
+				public required int Level { get; set; }
 
-				public string Expression { get; set; }
+				public required string Expression { get; set; }
 
 				public static Rule MakeRandom(Random rnd)
 				{
@@ -517,66 +521,60 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				var fooDb = new FooDb()
 				{
 					Version = 1,
-					Vendors = new List<Vendor>()
+					Vendors = new List<Vendor>
+					{
+						new()
+						{
+							Id = Guid.NewGuid(),
+							Label = "hp",
+							Name = "Hewlett-Packard",
+							Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
+						},
+						new()
+						{
+							Id = Guid.NewGuid(),
+							Label = "xerox",
+							Name = "Xerox",
+							Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
+						},
+						new()
+						{
+							Id = Guid.NewGuid(),
+							Label = "lex",
+							Name = "Lexmark",
+							Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
+						},
+						new()
+						{
+							Id = Guid.NewGuid(),
+							Label = "km",
+							Name = "Konica Minolta",
+							Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
+						},
+						new()
+						{
+							Id = Guid.NewGuid(),
+							Label = "kyo",
+							Name = "Kyocera",
+							Models = Enumerable.Range(0, 1000).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
+						},
+						new()
+						{
+							Id = Guid.NewGuid(),
+							Label = "samsung",
+							Name = "Samsung",
+							Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
+						},
+						new()
+						{
+							Id = Guid.NewGuid(),
+							Label = "tosh",
+							Name = "Toshiba",
+							Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
+						}
+					}
 				};
 
-				fooDb.Vendors.Add(new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Label = "hp",
-					Name = "Hewlett-Packard",
-					Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-				});
-
-				fooDb.Vendors.Add(new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Label = "xerox",
-					Name = "Xerox",
-					Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-				});
-
-				fooDb.Vendors.Add(new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Label = "lex",
-					Name = "Lexmark",
-					Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-				});
-
-
-				fooDb.Vendors.Add(new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Label = "km",
-					Name = "Konica Minolta",
-					Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-				});
-
-
-				fooDb.Vendors.Add(new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Label = "kyo",
-					Name = "Kyocera",
-					Models = Enumerable.Range(0, 1000).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-				});
-
-				fooDb.Vendors.Add(new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Label = "samsung",
-					Name = "Samsung",
-					Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-				});
-
-				fooDb.Vendors.Add(new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Label = "tosh",
-					Name = "Toshiba",
-					Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-				});
 
 				return fooDb;
 			}

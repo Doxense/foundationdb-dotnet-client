@@ -48,15 +48,22 @@ namespace Doxense.Serialization.Json
 			Error
 		}
 
-		/// <summary>Valeur null (explicitement)</summary>
+		/// <summary>Explicit null value</summary>
+		/// <remarks>This singleton is used to represent values that are present in the JSON document, usually represents by the <c>null</c> token.</remarks>
 		public static readonly JsonValue Null = new JsonNull(NullKind.Null);
 
-		/// <summary>Valeur null (manquante)</summary>
+		/// <summary>Missing value</summary>
+		/// <remarks>This singleton is returned when </remarks>
 		public static readonly JsonValue Missing = new JsonNull(NullKind.Missing);
 
-		/// <summary>Valeur null (error)</summary>
+		/// <summary>Result of an invalid operation</summary>
+		/// <remarks>
+		/// <para>This singleton is used to represent a null or missing value, which is due to some sort of error condition</para>
+		/// <para>For example, attempting to index an object (ex: obj[123]) or access the field of an array (ex: arr["foo"]) are 'soft errors'</para>
+		/// </remarks>
 		public static readonly JsonValue Error = new JsonNull(NullKind.Error);
 
+		/// <summary>Type of null</summary>
 		private readonly NullKind m_kind;
 
 		private JsonNull(NullKind kind)
@@ -70,10 +77,7 @@ namespace Doxense.Serialization.Json
 		public override string? ToStringOrDefault() => null;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Default<T>()
-		{
-			return DefaultCache<T>.Instance;
-		}
+		internal static T? Default<T>() => DefaultCache<T>.Instance;
 
 		[Pure, ContractAnnotation("=> null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static object? Default([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)

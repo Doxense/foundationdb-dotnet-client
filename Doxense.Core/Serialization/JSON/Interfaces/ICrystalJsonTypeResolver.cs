@@ -31,23 +31,23 @@ namespace Doxense.Serialization.Json
 	/// <summary>Resolveur JSON capable d'énumérer les membres d'un type</summary>
 	public interface ICrystalJsonTypeResolver : ICrystalTypeResolver
 	{
-		/// <summary>Inspecte un type pour retrouver la liste de ses membres</summary>
-		/// <param name="type">Type à inspecter</param>
-		/// <returns>Liste des members compilée, ou null si le type n'est pas compatible (primitive, delegate, ...)</returns>
-		/// <remarks>La liste est mise en cache pour la prochaine fois</remarks>
+		/// <summary>Inspect a type, and generate a list of all its members</summary>
+		/// <param name="type">Type to introspect</param>
+		/// <returns>List of compiled members, or <see langword="null"/> if the type is not compatible (primitive, delegate, ...)</returns>
+		/// <remarks>The list is computed on the first call for each type, and then cached in memory for subsequent calls</remarks>
 		CrystalJsonTypeDefinition? ResolveJsonType(Type type);
 
-		/// <summary>Bind une valeur JSON en type CLR correspondant (ValueType, Class, List, ...)</summary>
+		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
 		object? BindJsonValue(Type? type, JsonValue? value);
 
-		/// <summary>Bind un objet JSON en type CLR</summary>
+		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
+		T? BindJson<T>(JsonValue? value);
+
+		/// <summary>Bind a JSON object into the corresponding CLR type</summary>
 		object? BindJsonObject(Type? type, JsonObject? value);
 
-		/// <summary>Bind un liste JSON en liste d'objets CLR</summary>
+		/// <summary>Bind a JSON array into the corresponding CLR type</summary>
 		object? BindJsonArray(Type? type, JsonArray? array);
-
-		/// <summary>Bind une valeur JSON en un type CLR spécifique</summary>
-		T? BindJson<T>(JsonValue? value);
 
 	}
 

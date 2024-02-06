@@ -47,13 +47,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerNonUserCode]
 	public sealed class JsonObject : JsonValue, IDictionary<string, JsonValue>, IReadOnlyDictionary<string, JsonValue>, IEquatable<JsonObject>
 	{
-		// TODO: temporaire! a terme il faudrait implementer notre propre dico !
-		private readonly Dictionary<string, JsonValue?> m_items;
-		//INVARIANT: il ne doit pas y avoir de key ou de value == à null!
 
-		//REVIEW: s'inspirer de FrugalMap ( http://referencesource.microsoft.com/#WindowsBase/src/Shared/MS/Utility/FrugalMap.cs )
-		// => plusieurs variantes d'une map, suivant sa taille, qui essayent de minimiser le plus possible la taille des objets
-		// => on pourrait avoir une version avec 1 field, 3, 6, peut etre jusqu'a 12, et au dela wrapper un vrai Dictionary<,>
 
 		/// <summary>Objet vide</summary>
 		public static JsonObject Empty => new JsonObject();
@@ -74,6 +68,7 @@ namespace Doxense.Serialization.Json
 
 		#region Constructors...
 
+		/// <summary>Creates a new JSON object that is empty</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonObject()
 			: this(0, StringComparer.Ordinal)
@@ -83,6 +78,8 @@ namespace Doxense.Serialization.Json
 			: this(0, ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
 		{ }
 
+		/// <summary>Creates a new JSON object that is empty and has the specified capacity</summary>
+		/// <param name="capacity">The initial number of elements that the <see cref="JsonObject" /> can contain.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonObject(int capacity)
 			: this(capacity, StringComparer.Ordinal)
@@ -265,7 +262,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Instance de l'objet à convertir</param>
 		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
 		[ContractAnnotation("value:notnull => notnull")]
-		[return: NotNullIfNotNull("value")]
+		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<T>(T value)
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
@@ -273,7 +270,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[ContractAnnotation("value:notnull => notnull")]
-		[return: NotNullIfNotNull("value")]
+		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<T>(T value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
@@ -490,7 +487,6 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("halt<=key:null; =>true,array:notnull; =>false,array:null")]
 		public bool TryGetArray(string key, [MaybeNullWhen(false)] out JsonArray array)
 		{
-			Contract.NotNull(key);
 			m_items.TryGetValue(key, out var value);
 			array = value as JsonArray;
 			return array != null;
@@ -593,17 +589,17 @@ namespace Doxense.Serialization.Json
 			where TJson : JsonValue
 		{
 			if (!TryGetValue(key, out var value))
-			{ // La propriété n'est pas définie dans l'objet
+			{ // The property does not exist in this object
 				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(key);
 				return null;
 			}
 			if (value.Type == JsonType.Null)
-			{ // La propriété existe mais contient null
+			{ // The property exists, but is null or missing
 				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(key);
 				return null;
 			}
 			if (value.Type != expectedType)
-			{ // existe mais pas du type attendu ? :(
+			{ // The property exists, but is not of the expected type ??
 				throw Error_ExistingKeyTypeMismatch(key, value, expectedType);
 			}
 			return (TJson)value;
@@ -1194,8 +1190,6 @@ namespace Doxense.Serialization.Json
 					}
 					case JPathToken.End:
 					{ // "(current).(name)" ou "(current).(name)[index]"
-
-
 						if (index.HasValue)
 						{
 							// current.name doit être une array
@@ -1301,9 +1295,8 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(parent);
 
-			if (other != null && other.Count > 0)
+			if (other is not null && other.Count > 0)
 			{
-
 				// merge récursivement les propriétés
 				// * Copie tout ce qu'il y a dans other, en mergeant les propriétés qui existent déjà
 				// * Le merge de properties
@@ -1968,12 +1961,12 @@ namespace Doxense.Serialization.Json
 
 		public void CopyTo(KeyValuePair<string, JsonValue>[] array)
 		{
-			((ICollection<KeyValuePair<string, JsonValue>>)m_items).CopyTo(array, 0);
+			((ICollection<KeyValuePair<string, JsonValue>>) m_items).CopyTo(array, 0);
 		}
 
 		public void CopyTo(KeyValuePair<string, JsonValue>[] array, int arrayIndex)
 		{
-			((ICollection<KeyValuePair<string, JsonValue>>)m_items).CopyTo(array, arrayIndex);
+			((ICollection<KeyValuePair<string, JsonValue>>) m_items).CopyTo(array, arrayIndex);
 		}
 
 		public override void WriteTo(ref SliceWriter writer)
@@ -1985,7 +1978,14 @@ namespace Doxense.Serialization.Json
 				// par défaut, on ne sérialise pas les "Missing"
 				if (kv.Value.IsMissing()) break;
 
-				if (first) first = false; else writer.WriteByte(',');
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					writer.WriteByte(',');
+				}
 
 				if (JsonEncoding.NeedsEscaping(kv.Key))
 				{

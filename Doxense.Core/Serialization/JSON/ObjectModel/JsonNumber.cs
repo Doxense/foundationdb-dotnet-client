@@ -24,8 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-// ReSharper disable CompareOfFloatsByEqualityOperator
 //#define ENABLE_GRISU3_STRING_CONVERTER
+
+// ReSharper disable CompareOfFloatsByEqualityOperator
+// ReSharper disable RedundantNameQualifier
 
 namespace Doxense.Serialization.Json
 {
@@ -40,23 +42,17 @@ namespace Doxense.Serialization.Json
 	using JetBrains.Annotations;
 	using NodaTime;
 
-	//REVIEW: on a besoin de séparer les JsonNumber en plusieurs sous-types:
-	// - les JsonNumber "parsed": résultat d'un parsing, contient le littéral tel qu'il était dans le source (l'équivalent du JsonNumber actuel)
-	// - les JsonNumber "boxed": résultat d'un JsonValue.FromValue<int>(123) ou d'un JsonNumber.Return(123), ou le littéral est lazily generated (ou interned pour les singletons)
-	// - les JsonNumber "big": qui wrappent un System.Decimal ou un BigInteger (128bits ou plus) afin de ne pas alourdir pour rien les JsonNumber classiques
-
-	/// <summary>Nombre JSON</summary>
+	/// <summary>JSON number</summary>
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
 	[DebuggerNonUserCode]
 	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>, IEquatable<JsonString>, IEquatable<JsonBoolean>, IEquatable<JsonDateTime>, IEquatable<int>, IEquatable<long>, IEquatable<uint>, IEquatable<ulong>, IEquatable<float>, IEquatable<double>, IEquatable<decimal>, IEquatable<TimeSpan>
 	{
-		/// <summary>Cache de petits nombres, de <see cref="CACHED_SIGNED_MIN"/> à <see cref="CACHED_SIGNED_MAX"/> (inclus)</summary>
+		/// <summary>Cache of all small numbers, from <see cref="CACHED_SIGNED_MIN"/> to <see cref="CACHED_SIGNED_MAX"/> (included)</summary>
 		private static readonly JsonNumber[] SmallNumbers = PreGenSmallNumbers();
-		//NOTE: SmallNumbers doit être initialisé AVANT les autres champs static, sinon nullref au runtime!
+		//NOTE: SmallNumbers must be initialized before ALL the other static fields that rely on it!
 
 		internal const int CACHED_SIGNED_MIN = -128;
-		internal const int CACHED_SIGNED_MAX = 999; //note: doit être AU MOINS 255 car les 'byte' doivent passer dans le cache
-		/// <summary>Position du nombre 0 dans le cache</summary>
+		internal const int CACHED_SIGNED_MAX = 999; //note: must be at least 255 because all bytes must be in the cache
 		private const uint CACHED_OFFSET_ZERO = -CACHED_SIGNED_MIN;
 
 		private static JsonNumber[] PreGenSmallNumbers()
@@ -76,15 +72,15 @@ namespace Doxense.Serialization.Json
 		/// <summary>-1 (signed int)</summary>
 		public static readonly JsonNumber MinusOne = SmallNumbers[-1 + CACHED_OFFSET_ZERO];
 		/// <summary>0.0 (double)</summary>
-		public static readonly JsonNumber DecimalZero = new JsonNumber(new Number(0d), Kind.Double, "0"); //REVIEW: "0.0" ?
+		public static readonly JsonNumber DecimalZero = new(new Number(0d), Kind.Double, "0"); //REVIEW: "0.0" ?
 		/// <summary>1.0 (double)</summary>
-		public static readonly JsonNumber DecimalOne = new JsonNumber(new Number(1d), Kind.Double, "1"); //REVIEW: "1.0" ?
+		public static readonly JsonNumber DecimalOne = new(new Number(1d), Kind.Double, "1"); //REVIEW: "1.0" ?
 
-		public static readonly JsonNumber NaN = new JsonNumber(new Number(double.NaN), Kind.Double, "NaN");
+		public static readonly JsonNumber NaN = new(new Number(double.NaN), Kind.Double, "NaN");
 
-		public static readonly JsonNumber PositiveInfinity = new JsonNumber(new Number(double.PositiveInfinity), Kind.Double, "Infinity");
+		public static readonly JsonNumber PositiveInfinity = new(new Number(double.PositiveInfinity), Kind.Double, "Infinity");
 
-		public static readonly JsonNumber NegativeInfinity = new JsonNumber(new Number(double.NegativeInfinity), Kind.Double, "-Infinity");
+		public static readonly JsonNumber NegativeInfinity = new(new Number(double.NegativeInfinity), Kind.Double, "-Infinity");
 
 		//REVIEW: Signed vs Unsigned ?
 		// 1) est-ce qu'on marque signed si ca vient d'un Int32, et unsigned si UInt32?
@@ -98,20 +94,20 @@ namespace Doxense.Serialization.Json
 
 		private enum Kind
 		{
-			/// <summary>Nombre entier qui peut être casté en un Int64 (long.MinValue &lt;= x &lt;= long.MaxValue)</summary>
+			/// <summary>Integer that can be casted to Int64 (long.MinValue &lt;= x &lt;= long.MaxValue)</summary>
 			Signed = 0,
-			/// <summary>Nombre entier positif qui nécessite un UInt64 (x > long.MaxValue)</summary>
+			/// <summary>Positive integer that requires an UInt64 (x > long.MaxValue)</summary>
 			Unsigned,
-			/// <summary>128-bits Decimals</summary>
+			/// <summary>128-bits decimal floating point number</summary>
 			Decimal,
-			/// <summary>64-bits IEEE </summary>
+			/// <summary>64-bits IEEE floating point number</summary>
 			Double,
 		}
 
 		[StructLayout(LayoutKind.Explicit)]
 		private readonly struct Number
 		{
-			//REVIEW: a cause de Decimal, la struct prend 16 octets, alors qu'on pourrait baisser a 8 ?
+			//REVIEW: Because we need to support Decimal, the struct takes 16 octets, instead of 8.
 
 			#region Fields...
 
@@ -162,28 +158,22 @@ namespace Doxense.Serialization.Json
 			#endregion
 
 			[Pure]
-			public bool IsDefault(Kind kind)
+			public bool IsDefault(Kind kind) => kind switch
 			{
-				switch(kind)
-				{
-					case Kind.Decimal: return this.Decimal == 0m;
-					case Kind.Double: return this.Double == 0d;
-					case Kind.Signed: return this.Signed == 0L;
-					default: return this.Unsigned == 0UL;
-				}
-			}
+				Kind.Decimal => this.Decimal == 0m,
+				Kind.Double => this.Double == 0d,
+				Kind.Signed => this.Signed == 0L,
+				_ => this.Unsigned == 0UL
+			};
 
 			[Pure]
-			public bool IsNegative(Kind kind)
+			public bool IsNegative(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return this.Decimal < 0m;
-					case Kind.Double: return this.Double < 0d;
-					case Kind.Signed: return this.Signed < 0L;
-					default: return false;
-				}
-			}
+				Kind.Decimal => this.Decimal < 0m,
+				Kind.Double => this.Double < 0d,
+				Kind.Signed => this.Signed < 0L,
+				_ => false
+			};
 
 			public static bool Equals(in Number x, Kind xKind, in Number y, Kind yKind)
 			{
@@ -204,296 +194,193 @@ namespace Doxense.Serialization.Json
 				return (x.Signed == y.Signed) & (x.Signed >= 0); // x unsigned, y signed
 			}
 
-			public static int CompareTo(in Number x, Kind xKind, in Number y, Kind yKind)
+			public static int CompareTo(in Number x, Kind xKind, in Number y, Kind yKind) => yKind switch
 			{
-				switch (yKind)
-				{
-					case Kind.Decimal: return x.CompareTo(xKind, y.ToDecimal(yKind));
-					case Kind.Double:  return x.CompareTo(xKind, y.ToDouble(yKind));
-					case Kind.Signed:  return x.CompareTo(xKind, y.ToInt64(yKind));
-					default:           return x.CompareTo(xKind, y.ToUInt64(yKind));
-				}
-			}
+				Kind.Decimal => x.CompareTo(xKind, y.ToDecimal(yKind)),
+				Kind.Double => x.CompareTo(xKind, y.ToDouble(yKind)),
+				Kind.Signed => x.CompareTo(xKind, y.ToInt64(yKind)),
+				_ => x.CompareTo(xKind, y.ToUInt64(yKind))
+			};
 
 			/// <summary>Compare ce nombre avec un entier signé</summary>
 			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
 			[Pure]
-			public int CompareTo(Kind kind, long value)
+			public int CompareTo(Kind kind, long value) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal:
-					{
-						return this.Decimal.CompareTo(value);
-					}
-					case Kind.Double:
-					{
-						return this.Double.CompareTo(value);
-					}
-					case Kind.Signed:
-					{
-						return this.Signed.CompareTo(value);
-					}
-					default: //Unsigned
-					{
-						return value < 0 ? +1 : this.Unsigned.CompareTo((ulong)value);
-					}
-				}
-			}
+				Kind.Decimal => this.Decimal.CompareTo(value),
+				Kind.Double => this.Double.CompareTo(value),
+				Kind.Signed => this.Signed.CompareTo(value),
+				_ => value < 0 ? +1 : this.Unsigned.CompareTo((ulong) value)
+			};
 
 			/// <summary>Compare ce nombre avec un entier signé</summary>
 			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
 			[Pure]
-			public int CompareTo(Kind kind, ulong value)
+			public int CompareTo(Kind kind, ulong value) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal:
-					{
-						return this.Decimal.CompareTo(value);
-					}
-					case Kind.Double:
-					{
-						return this.Double.CompareTo(value);
-					}
-					case Kind.Signed:
-					{
-						long x = this.Signed;
-						return x < 0 ? -1 :  ((ulong)x).CompareTo(value);
-					}
-					default: //Unsigned
-					{
-						return this.Unsigned.CompareTo(value);
-					}
-				}
-			}
+				Kind.Decimal => this.Decimal.CompareTo(value),
+				Kind.Double => this.Double.CompareTo(value),
+				Kind.Signed => this.Signed < 0 ? -1 : ((ulong) this.Signed).CompareTo(value),
+				_ => this.Unsigned.CompareTo(value)
+			};
 
 			/// <summary>Compare ce nombre avec un entier signé</summary>
 			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
 			[Pure]
-			public int CompareTo(Kind kind, double value)
+			public int CompareTo(Kind kind, double value) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal:
-					{
-						return this.Decimal.CompareTo((decimal)value);
-					}
-					case Kind.Double:
-					{
-						return this.Double.CompareTo(value);
-					}
-					case Kind.Signed:
-					{
-						return ((double)this.Signed).CompareTo(value);
-					}
-					default: //Unsigned
-					{
-						return ((double)this.Unsigned).CompareTo(value);
-					}
-				}
-			}
+				Kind.Decimal => this.Decimal.CompareTo((decimal) value),
+				Kind.Double => this.Double.CompareTo(value),
+				Kind.Signed => ((double) this.Signed).CompareTo(value),
+				_ => ((double) this.Unsigned).CompareTo(value)
+			};
 
 			/// <summary>Compare ce nombre avec un entier signé</summary>
 			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
 			[Pure]
-			public int CompareTo(Kind kind, Decimal value)
+			public int CompareTo(Kind kind, decimal value) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal:
-					{
-						return this.Decimal.CompareTo(value);
-					}
-					case Kind.Double:
-					{
-						return new Decimal(this.Double).CompareTo(value);
-					}
-					case Kind.Signed:
-					{
-						return new Decimal((double) this.Signed).CompareTo(value);
-					}
-					default: //Unsigned
-					{
-						return new Decimal((double) this.Unsigned).CompareTo(value);
-					}
-				}
-			}
+				Kind.Decimal => this.Decimal.CompareTo(value),
+				Kind.Double => new decimal(this.Double).CompareTo(value),
+				Kind.Signed => new decimal((double) this.Signed).CompareTo(value),
+				_ => new decimal((double) this.Unsigned).CompareTo(value)
+			};
 
 			#region Conversion...
 
 			[Pure]
-			public object? ToObject(Kind kind)
+			public object? ToObject(Kind kind) => kind switch
 			{
-				switch(kind)
-				{
-					case Kind.Decimal: return this.Decimal;
-					case Kind.Double: return this.Double;
-					case Kind.Signed: return this.Signed;
-					case Kind.Unsigned: return this.Unsigned;
-					default: return null; //TODO: throw ?
-				}
-			}
+				Kind.Decimal => this.Decimal,
+				Kind.Double => this.Double,
+				Kind.Signed => this.Signed,
+				Kind.Unsigned => this.Unsigned,
+				_ => null
+			};
 
 			[Pure]
-			public bool ToBoolean(Kind kind)
+			public bool ToBoolean(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return this.Decimal != 0;
-					case Kind.Double: return this.Double != 0;
-					case Kind.Signed: return this.Signed != 0;
-					case Kind.Unsigned: return this.Unsigned != 0;
-					default: return false;
-				}
-			}
+				Kind.Decimal => this.Decimal != 0,
+				Kind.Double => this.Double != 0,
+				Kind.Signed => this.Signed != 0,
+				Kind.Unsigned => this.Unsigned != 0,
+				_ => false
+			};
 
 			[Pure]
-			public byte ToByte(Kind kind)
+			public byte ToByte(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToByte(this.Decimal);
-					case Kind.Double: return checked((byte)this.Double);
-					case Kind.Signed: return checked((byte)this.Signed);
-					case Kind.Unsigned: return checked((byte)this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToByte(this.Decimal),
+				Kind.Double => checked((byte) this.Double),
+				Kind.Signed => checked((byte) this.Signed),
+				Kind.Unsigned => checked((byte) this.Unsigned),
+				_ => 0
+			};
 
 			[Pure]
-			public sbyte ToSByte(Kind kind)
+			public sbyte ToSByte(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToSByte(this.Decimal);
-					case Kind.Double: return checked((sbyte)this.Double);
-					case Kind.Signed: return checked((sbyte)this.Signed);
-					case Kind.Unsigned: return checked((sbyte)this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToSByte(this.Decimal),
+				Kind.Double => checked((sbyte) this.Double),
+				Kind.Signed => checked((sbyte) this.Signed),
+				Kind.Unsigned => checked((sbyte) this.Unsigned),
+				_ => 0
+			};
 
 			[Pure]
-			public short ToInt16(Kind kind)
+			public short ToInt16(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToInt16(this.Decimal);
-					case Kind.Double: return checked((short)this.Double);
-					case Kind.Signed: return checked((short)this.Signed);
-					case Kind.Unsigned: return checked((short)this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToInt16(this.Decimal),
+				Kind.Double => checked((short) this.Double),
+				Kind.Signed => checked((short) this.Signed),
+				Kind.Unsigned => checked((short) this.Unsigned),
+				_ => 0
+			};
 
 			[Pure]
-			public ushort ToUInt16(Kind kind)
+			public ushort ToUInt16(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToUInt16(this.Decimal);
-					case Kind.Double: return checked((ushort)this.Double);
-					case Kind.Signed: return checked((ushort)this.Signed);
-					case Kind.Unsigned: return checked((ushort)this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToUInt16(this.Decimal),
+				Kind.Double => checked((ushort) this.Double),
+				Kind.Signed => checked((ushort) this.Signed),
+				Kind.Unsigned => checked((ushort) this.Unsigned),
+				_ => 0
+			};
 
 			[Pure]
-			public int ToInt32(Kind kind)
+			public int ToInt32(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToInt32(this.Decimal);
-					case Kind.Double: return checked((int)this.Double);
-					case Kind.Signed: return checked((int)this.Signed);
-					case Kind.Unsigned: return checked((int)this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToInt32(this.Decimal),
+				Kind.Double => checked((int) this.Double),
+				Kind.Signed => checked((int) this.Signed),
+				Kind.Unsigned => checked((int) this.Unsigned),
+				_ => 0
+			};
 
 			[Pure]
-			public uint ToUInt32(Kind kind)
+			public uint ToUInt32(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToUInt32(this.Decimal);
-					case Kind.Double: return checked((uint)this.Double);
-					case Kind.Signed: return checked((uint)this.Signed);
-					case Kind.Unsigned: return checked((uint)this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToUInt32(this.Decimal),
+				Kind.Double => checked((uint) this.Double),
+				Kind.Signed => checked((uint) this.Signed),
+				Kind.Unsigned => checked((uint) this.Unsigned),
+				_ => 0
+			};
 
 			[Pure]
-			public long ToInt64(Kind kind)
+			public long ToInt64(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToInt64(this.Decimal);
-					case Kind.Double: return checked((long)this.Double);
-					case Kind.Signed: return this.Signed;
-					case Kind.Unsigned: return checked((long)this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToInt64(this.Decimal),
+				Kind.Double => checked((long) this.Double),
+				Kind.Signed => this.Signed,
+				Kind.Unsigned => checked((long) this.Unsigned),
+				_ => 0
+			};
 
 			[Pure]
-			public ulong ToUInt64(Kind kind)
+			public ulong ToUInt64(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToUInt64(this.Decimal);
-					case Kind.Double: return checked((ulong)this.Double);
-					case Kind.Signed: return checked((ulong)this.Signed);
-					case Kind.Unsigned: return this.Unsigned;
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToUInt64(this.Decimal),
+				Kind.Double => checked((ulong) this.Double),
+				Kind.Signed => checked((ulong) this.Signed),
+				Kind.Unsigned => this.Unsigned,
+				_ => 0
+			};
 
 			[Pure]
-			public float ToSingle(Kind kind)
+			public float ToSingle(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToSingle(this.Decimal);
-					case Kind.Double: return (float) this.Double;
-					case Kind.Signed: return this.Signed;
-					case Kind.Unsigned: return this.Unsigned;
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToSingle(this.Decimal),
+				Kind.Double => (float) this.Double,
+				Kind.Signed => this.Signed,
+				Kind.Unsigned => this.Unsigned,
+				_ => 0
+			};
 
 			[Pure]
-			public double ToDouble(Kind kind)
+			public double ToDouble(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return decimal.ToDouble(this.Decimal);
-					case Kind.Double: return this.Double;
-					case Kind.Signed: return this.Signed;
-					case Kind.Unsigned: return this.Unsigned;
-					default: return 0;
-				}
-			}
+				Kind.Decimal => decimal.ToDouble(this.Decimal),
+				Kind.Double => this.Double,
+				Kind.Signed => this.Signed,
+				Kind.Unsigned => this.Unsigned,
+				_ => 0
+			};
 
 			[Pure]
-			public decimal ToDecimal(Kind kind)
+			public decimal ToDecimal(Kind kind) => kind switch
 			{
-				switch (kind)
-				{
-					case Kind.Decimal: return this.Decimal;
-					case Kind.Double: return new Decimal(this.Double);
-					case Kind.Signed: return new Decimal(this.Signed);
-					case Kind.Unsigned: return new Decimal(this.Unsigned);
-					default: return 0;
-				}
-			}
+				Kind.Decimal => this.Decimal,
+				Kind.Double => new decimal(this.Double),
+				Kind.Signed => new decimal(this.Signed),
+				Kind.Unsigned => new decimal(this.Unsigned),
+				_ => 0
+			};
 
 			#endregion
 
-			#region Arithmetric...
+			#region Arithmetic...
 
 			#region Addition...
 
@@ -643,9 +530,9 @@ namespace Doxense.Serialization.Json
 
 			#endregion
 
-			#region Addition...
+			#region Multiplication...
 
-			/// <summary>Add a number to another number</summary>
+			/// <summary>Multiply a number with another number</summary>
 			public static void Multiply(ref Number xValue, ref Kind xKind, in Number yValue, Kind yKind)
 			{
 				// We have to handle all combinations of kind for both x and y :(
@@ -774,7 +661,7 @@ namespace Doxense.Serialization.Json
 			private static void MultiplyDoubleDecimal(double x, decimal y, out Kind rKind, out Number result)
 			{
 				rKind = Kind.Decimal;
-				result = new Number((Decimal) x * y);
+				result = new Number((decimal) x * y);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -787,6 +674,7 @@ namespace Doxense.Serialization.Json
 			#endregion
 
 			#endregion
+
 		}
 
 		#endregion
@@ -833,80 +721,57 @@ namespace Doxense.Serialization.Json
 			m_literal = literal;
 		}
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(sbyte value)
-		{
-			// note: un sbyte est forcément dans le cache.
-			return SmallNumbers[value - CACHED_SIGNED_MIN];
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber Return(sbyte value) => SmallNumbers[value - CACHED_SIGNED_MIN];
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(sbyte? value) =>
+			value.HasValue
+				? Return(value.Value)
+				: JsonNull.Null;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber Return(string value) => CrystalJsonParser.ParseJsonNumber(value) ?? JsonNumber.Zero;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber Return(byte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(byte? value) =>
+			value.HasValue
+				? SmallNumbers[value.Value + CACHED_OFFSET_ZERO]
+				: JsonNull.Null;
 
 		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(sbyte? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
-
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(string value)
-		{
-			return CrystalJsonParser.ParseJsonNumber(value) ?? JsonNumber.Zero;
-		}
-
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(byte value)
-		{
-			// note: un byte est forcément dans le cache.
-			return SmallNumbers[value + CACHED_OFFSET_ZERO];
-		}
-
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(byte? value)
-		{
-			return value.HasValue ? SmallNumbers[value.Value + CACHED_OFFSET_ZERO] : JsonNull.Null;
-		}
-
-		[Pure]
-		public static JsonNumber Return(short value)
-		{
-			return value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
+		public static JsonNumber Return(short value) =>
+			value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
 				? SmallNumbers[value - CACHED_SIGNED_MIN]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
-		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(short? value) =>
+			value.HasValue
+				? Return(value.Value)
+				: JsonNull.Null;
 
 		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(short? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
-
-		[Pure]
-		public static JsonNumber Return(ushort value)
-		{
-			return value <= CACHED_SIGNED_MAX
+		public static JsonNumber Return(ushort value) =>
+			value <= CACHED_SIGNED_MAX
 				? SmallNumbers[value + CACHED_OFFSET_ZERO]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
-		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(ushort? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(ushort? value) =>
+			value.HasValue
+				? Return(value.Value)
+				: JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(int value)
-		{
-			return value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
+		public static JsonNumber Return(int value) =>
+			value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX
 				? SmallNumbers[value - CACHED_SIGNED_MIN]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
-		}
 
 		/// <summary>Retourne un petit nombre en cache</summary>
 		/// <param name="value">Valeur qui doit être comprise dans l'interval [-128, +255]</param>
@@ -915,119 +780,91 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonNumber GetCachedSmallNumber(int value)
 		{
-			Contract.Debug.Requires(value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX);
+			Contract.Debug.Requires(value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX);
 			return SmallNumbers[value - CACHED_SIGNED_MIN];
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(int? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(int? value) =>
+			value.HasValue
+				? Return(value.Value)
+				: JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(uint value)
-		{
-			return value <= CACHED_SIGNED_MAX
+		public static JsonNumber Return(uint value) =>
+			value <= CACHED_SIGNED_MAX
 				? SmallNumbers[value + CACHED_OFFSET_ZERO]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
-		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(uint? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(uint? value) =>
+			value.HasValue
+				? Return(value.Value)
+				: JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(long value)
-		{
-			return value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
+		public static JsonNumber Return(long value) =>
+			value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
 				? SmallNumbers[value - CACHED_SIGNED_MIN]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
-		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(long? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(long? value) =>
+			value.HasValue
+				? Return(value.Value)
+				: JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(ulong value)
-		{
-			return value <= CACHED_SIGNED_MAX
+		public static JsonNumber Return(ulong value) =>
+			value <= CACHED_SIGNED_MAX
 				? SmallNumbers[value + CACHED_OFFSET_ZERO]
 				: new JsonNumber(new Number(value), value <= long.MaxValue ? Kind.Signed : Kind.Unsigned, CrystalJsonFormatter.NumberToString(value));
-		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(ulong? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(ulong? value) =>
+			value.HasValue
+				? Return(value.Value)
+				: JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(double value)
-		{
-			return value == 0d ? DecimalZero
-				: value == 1d ? DecimalOne
-				: double.IsNaN(value) ? NaN
-				: new JsonNumber(new Number(value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
-		}
-
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(double? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
-
-		[Pure]
-		public static JsonNumber Return(float value)
-		{
-			return value == 0f ? DecimalZero
-				: value == 1f ? DecimalOne
-				: float.IsNaN(value) ? NaN
-				: new JsonNumber(new Number(value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
-		}
+		public static JsonNumber Return(double value) =>
+			  value == 0d ? DecimalZero
+			: value == 1d ? DecimalOne
+			: double.IsNaN(value) ? NaN
+			: new JsonNumber(new Number(value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(float? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(double? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(decimal value)
-		{
-			return new JsonNumber(new Number(value), Kind.Decimal, CrystalJsonFormatter.NumberToString(value));
-		}
-
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(decimal? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
-
-		[Pure]
-		public static JsonNumber Return(TimeSpan value)
-		{
-			return value == TimeSpan.Zero ? DecimalZero : Return(value.TotalSeconds);
-		}
+		public static JsonNumber Return(float value) =>
+			  value == 0f ? DecimalZero
+			: value == 1f ? DecimalOne
+			: float.IsNaN(value) ? NaN
+			: new JsonNumber(new Number(value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(TimeSpan? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(float? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+
+		[Pure]
+		public static JsonNumber Return(decimal value) => new(new Number(value), Kind.Decimal, CrystalJsonFormatter.NumberToString(value));
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(decimal? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+
+		[Pure]
+		public static JsonNumber Return(TimeSpan value) => value == TimeSpan.Zero ? DecimalZero : Return(value.TotalSeconds);
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(TimeSpan? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
 		public static JsonNumber Return(DateTime value)
@@ -1040,46 +877,31 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public static JsonValue Return(DateTime? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(DateTime? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(NodaTime.Instant value)
-		{
-			return value != default(NodaTime.Instant) ? Return((value - default(NodaTime.Instant)).TotalSeconds) : DecimalZero;
-		}
+		public static JsonNumber Return(NodaTime.Instant value) => value != default ? Return((value - default(NodaTime.Instant)).TotalSeconds) : DecimalZero;
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(NodaTime.Instant? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(NodaTime.Instant? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(NodaTime.Duration value)
-		{
-			if (value == NodaTime.Duration.Zero)
-				return DecimalZero;
-			else
-				return Return((double)value.BclCompatibleTicks / NodaTime.NodaConstants.TicksPerSecond);
-		}
+		public static JsonNumber Return(NodaTime.Duration value) => value == NodaTime.Duration.Zero ? DecimalZero : Return((double)value.BclCompatibleTicks / NodaTime.NodaConstants.TicksPerSecond);
 
 		[Pure]
-		public static JsonValue Return(NodaTime.Duration? value)
-		{
-			return value.HasValue ? Return(value.Value) : JsonNull.Null;
-		}
+		public static JsonValue Return(NodaTime.Duration? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
 		internal static JsonNumber ParseSigned(long value, string? literal)
 		{
-			if (value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX)
+			if (value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX)
 			{ // interning du pauvre
 				var num = SmallNumbers[value - CACHED_SIGNED_MIN];
-				if (literal == null || num.Literal == literal) return num;
+				if (literal == null || num.Literal == literal)
+				{
+					return num;
+				}
 			}
 
 			return new JsonNumber(new Number(value), Kind.Signed, literal);
@@ -1091,7 +913,10 @@ namespace Doxense.Serialization.Json
 			if (value <= CACHED_SIGNED_MAX)
 			{ // interning du pauvre
 				var num = SmallNumbers[value + CACHED_OFFSET_ZERO];
-				if (literal == null || num.Literal == literal) return num;
+				if (literal == null || num.Literal == literal)
+				{
+					return num;
+				}
 			}
 
 			return new JsonNumber(new Number(value), value <= long.MaxValue ? Kind.Signed : Kind.Unsigned, literal);
@@ -1106,7 +931,9 @@ namespace Doxense.Serialization.Json
 				return l == 0 ? Zero : l == 1 ? One : new JsonNumber(new Number(l), Kind.Signed, literal);
 			}
 			else
+			{
 				return new JsonNumber(new Number(value), Kind.Double, literal);
+			}
 		}
 
 		[Pure]
@@ -1181,28 +1008,19 @@ namespace Doxense.Serialization.Json
 		/// <param name="minInclusive">Valeur minimum (incluse)</param>
 		/// <param name="maxInclusive">Valeur maximum (incluse)</param>
 		/// <returns>True si <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
-		public bool IsBetween(long minInclusive, long maxInclusive)
-		{
-			return (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
-		}
+		public bool IsBetween(long minInclusive, long maxInclusive) => (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
 
 		/// <summary>Test si le nombre est compris entre deux bornes entières</summary>
 		/// <param name="minInclusive">Valeur minimum (incluse)</param>
 		/// <param name="maxInclusive">Valeur maximum (incluse)</param>
 		/// <returns>True si <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
-		public bool IsBetween(ulong minInclusive, ulong maxInclusive)
-		{
-			return (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
-		}
+		public bool IsBetween(ulong minInclusive, ulong maxInclusive) => (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
 
 		/// <summary>Test si le nombre est un entier compris entre deux bornes</summary>
 		/// <param name="minInclusive">Valeur minimum (incluse)</param>
 		/// <param name="maxInclusive">Valeur maximum (incluse)</param>
 		/// <returns>True si <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
-		public bool IsBetween(double minInclusive, double maxInclusive)
-		{
-			return (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
-		}
+		public bool IsBetween(double minInclusive, double maxInclusive) => (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
 
 		#region JsonValue Members...
 
@@ -1213,9 +1031,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Retourne la valeur de l'objet en utilisant le type le plus adapté</summary>
 		/// <returns>Retourne un int/long pour des entiers, ou un decimal pour les nombres à virgules</returns>
 		/// <remarks>Pour les entiers: si la valeur est entre int.MinValue et int.MaxValue, elle sera castée en int. Sinon elle sera castée en long.</remarks>
-		public override object? ToObject()
-		{
-			return m_value.ToObject(m_kind);
+		public override object? ToObject() => m_value.ToObject(m_kind);
 		}
 
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
@@ -1301,22 +1117,21 @@ namespace Doxense.Serialization.Json
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{ // si on est dans un JsonNumber c'est qu'on n'est pas null, donc traite les Nullable<T> comme des T
-				// cas les plus fréquents...
-
+				Contract.Debug.Assert(nullableType != type);
 				// rappel recursivement avec le type de base
 				return Bind(nullableType, resolver);
 			}
 
 			// autre ??
 
+			resolver ??= CrystalJson.DefaultResolver;
+
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
 			{ // on tente notre chance...
 				var obj = (IJsonBindable) Activator.CreateInstance(type)!;
-				obj.JsonUnpack(this, resolver ?? CrystalJson.DefaultResolver);
+				obj.JsonUnpack(this, resolver);
 				return obj;
 			}
-
-			resolver = resolver ?? CrystalJson.DefaultResolver;
 
 			// passe par un custom binder?
 			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques
@@ -1364,64 +1179,29 @@ namespace Doxense.Serialization.Json
 
 		#region ToXXX() ...
 
-		public override bool ToBoolean()
-		{
-			return m_value.ToBoolean(m_kind);
-		}
+		public override bool ToBoolean() => m_value.ToBoolean(m_kind);
 
-		public override byte ToByte()
-		{
-			return m_value.ToByte(m_kind);
-		}
+		public override byte ToByte() => m_value.ToByte(m_kind);
 
-		public override sbyte ToSByte()
-		{
-			return m_value.ToSByte(m_kind);
-		}
+		public override sbyte ToSByte() => m_value.ToSByte(m_kind);
 
-		public override short ToInt16()
-		{
-			return m_value.ToInt16(m_kind);
-		}
+		public override short ToInt16() => m_value.ToInt16(m_kind);
 
-		public override ushort ToUInt16()
-		{
-			return m_value.ToUInt16(m_kind);
-		}
+		public override ushort ToUInt16() => m_value.ToUInt16(m_kind);
 
-		public override int ToInt32()
-		{
-			return m_value.ToInt32(m_kind);
-		}
+		public override int ToInt32() => m_value.ToInt32(m_kind);
 
-		public override uint ToUInt32()
-		{
-			return m_value.ToUInt32(m_kind);
-		}
+		public override uint ToUInt32() => m_value.ToUInt32(m_kind);
 
-		public override long ToInt64()
-		{
-			return m_value.ToInt64(m_kind);
-		}
+		public override long ToInt64() => m_value.ToInt64(m_kind);
 
-		public override ulong ToUInt64()
-		{
-			return m_value.ToUInt64(m_kind);
-		}
+		public override ulong ToUInt64() => m_value.ToUInt64(m_kind);
 
-		public override float ToSingle()
-		{
-			return m_value.ToSingle(m_kind);
-		}
-		public override double ToDouble()
-		{
-			return m_value.ToDouble(m_kind);
-		}
+		public override float ToSingle() => m_value.ToSingle(m_kind);
 
-		public override decimal ToDecimal()
-		{
-			return m_value.ToDecimal(m_kind);
-		}
+		public override double ToDouble() => m_value.ToDouble(m_kind);
+
+		public override decimal ToDecimal() => m_value.ToDecimal(m_kind);
 
 		/// <summary>Convertit un JSON Number, correspondant au nombre de secondes écoulés depuis Unix Epoch, en DateTime UTC</summary>
 		/// <returns>DateTime (UTC) égale à epoch(1970-1-1Z) + seconds(value)</returns>
@@ -1525,10 +1305,7 @@ namespace Doxense.Serialization.Json
 			return default(NodaTime.Instant).Plus(ConvertSecondsToDurationUnsafe(secondsSinceEpoch));
 		}
 
-		public override char ToChar()
-		{
-			return (char)ToInt16();
-		}
+		public override char ToChar() => (char) ToInt16();
 
 		public override TEnum ToEnum<TEnum>()
 		{
@@ -1536,7 +1313,7 @@ namespace Doxense.Serialization.Json
 			int value = ToInt32();
 			var o = Convert.ChangeType(value, typeof(TEnum));
 			//note: pas de test Enum.IsDefined, car on pourrait écrire "return (FooEnum)42;" en code meme si 42 n'existe pas dans l'enum
-			return (TEnum)o;
+			return (TEnum) o;
 		}
 
 		#endregion
@@ -1548,39 +1325,34 @@ namespace Doxense.Serialization.Json
 			if (value == null) return false;
 			switch (System.Type.GetTypeCode(value.GetType()))
 			{
-				case TypeCode.Int32: return Equals((int)value);
-				case TypeCode.Int64: return Equals((long)value);
-				case TypeCode.UInt32: return Equals((int)value);
-				case TypeCode.UInt64: return Equals((long)value);
-				case TypeCode.Single: return Equals((float)value);
-				case TypeCode.Double: return Equals((double)value);
-				case TypeCode.Decimal: return Equals((decimal)value);
+				case TypeCode.Int32: return Equals((int) value);
+				case TypeCode.Int64: return Equals((long) value);
+				case TypeCode.UInt32: return Equals((int) value);
+				case TypeCode.UInt64: return Equals((long) value);
+				case TypeCode.Single: return Equals((float) value);
+				case TypeCode.Double: return Equals((double) value);
+				case TypeCode.Decimal: return Equals((decimal) value);
 				case TypeCode.Object:
 				{
-					if (value is TimeSpan) return Equals((TimeSpan)value);
+					if (value is TimeSpan ts) return Equals(ts);
 					break;
 				}
 			}
 			return base.Equals(value);
 		}
 
-		public override bool Equals(JsonValue? value)
+		public override bool Equals(JsonValue? value) => value switch
 		{
-			if (value == null) return false;
-			switch (value.Type)
-			{
-				case JsonType.Number: return Equals(value as JsonNumber);
-				case JsonType.String: return Equals(value as JsonString);
-				case JsonType.Boolean: return Equals(value as JsonBoolean);
-				case JsonType.DateTime: return Equals(value as JsonDateTime);
-				default: return false;
-			}
-		}
+			JsonNumber num => Equals(num),
+			JsonString str => Equals(str),
+			JsonBoolean b => Equals(b),
+			JsonDateTime dt => Equals(dt),
+			_ => false
+		};
 
 		public bool Equals(JsonNumber? value)
 		{
-			if (value == null) return false;
-			return Number.Equals(in m_value, m_kind, in value.m_value, value.m_kind);
+			return value != null && Number.Equals(in m_value, m_kind, in value.m_value, value.m_kind);
 		}
 
 		public bool Equals(JsonString? value)
@@ -1617,104 +1389,74 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		public bool Equals(JsonBoolean? value)
-		{
-			return value != null && ToBoolean() == value.Value;
-		}
+		public bool Equals(JsonBoolean? value) => value != null && ToBoolean() == value.Value;
 
-		public bool Equals(JsonDateTime? value)
-		{
-			return value != null && ToDouble() == value.ToDouble();
-		}
+		public bool Equals(JsonDateTime? value) => value != null && ToDouble() == value.ToDouble();
 
-		public bool Equals(int value)
+		public bool Equals(int value) => m_kind switch
 		{
-			switch (m_kind)
-			{
-				case Kind.Decimal: return m_value.Decimal == new decimal(value);
-				case Kind.Double: return m_value.Double == value;
-				case Kind.Signed: return m_value.Signed == value;
-				case Kind.Unsigned: return value >= 0 && m_value.Unsigned == (ulong)value;
-				default: return false;
-			}
-		}
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => value >= 0 && m_value.Unsigned == (ulong) value,
+			_ => false
+		};
 
-		public bool Equals(uint value)
+		public bool Equals(uint value) => m_kind switch
 		{
-			switch (m_kind)
-			{
-				case Kind.Decimal: return m_value.Decimal == new decimal(value);
-				case Kind.Double: return m_value.Double == value;
-				case Kind.Signed: return m_value.Signed == value;
-				case Kind.Unsigned: return m_value.Unsigned == value;
-				default: return false;
-			}
-		}
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => m_value.Unsigned == value,
+			_ => false
+		};
 
-		public bool Equals(long value)
+		public bool Equals(long value) => m_kind switch
 		{
-			switch (m_kind)
-			{
-				case Kind.Decimal: return m_value.Decimal == new decimal(value);
-				case Kind.Double: return m_value.Double == value;
-				case Kind.Signed: return m_value.Signed == value;
-				case Kind.Unsigned: return value >= 0 && m_value.Unsigned == (ulong)value;
-				default: return false;
-			}
-		}
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => value >= 0 && m_value.Unsigned == (ulong) value,
+			_ => false
+		};
 
-		public bool Equals(ulong value)
+		public bool Equals(ulong value) => m_kind switch
 		{
-			switch (m_kind)
-			{
-				case Kind.Decimal: return m_value.Decimal == new decimal(value);
-				case Kind.Double: return m_value.Double == value;
-				case Kind.Signed: return m_value.Signed == (long) value;
-				case Kind.Unsigned: return m_value.Unsigned == value;
-				default: return false;
-			}
-		}
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == (long) value,
+			Kind.Unsigned => m_value.Unsigned == value,
+			_ => false
+		};
 
-		public bool Equals(float value)
+		public bool Equals(float value) => m_kind switch
 		{
-			switch (m_kind)
-			{
-				case Kind.Decimal: return m_value.Decimal == new decimal(value);
-				case Kind.Double: return m_value.Double == value;
-				case Kind.Signed: return m_value.Signed == value;
-				case Kind.Unsigned: return value >= 0 && m_value.Unsigned == value;
-				default: return false;
-			}
-		}
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => value >= 0 && m_value.Unsigned == value,
+			_ => false
+		};
 
-		public bool Equals(double value)
+		public bool Equals(double value) => m_kind switch
 		{
-			switch (m_kind)
-			{
-				case Kind.Decimal: return m_value.Decimal == new Decimal(value);
-				case Kind.Double: return m_value.Double == value;
-				case Kind.Signed: return m_value.Signed == value;
-				case Kind.Unsigned: return value >= 0 && m_value.Unsigned == value;
-				default: return false;
-			}
-		}
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => value >= 0 && m_value.Unsigned == value,
+			_ => false
+		};
 
-		public bool Equals(decimal value)
+		public bool Equals(decimal value) => m_kind switch
 		{
-			switch (m_kind)
-			{
-				case Kind.Decimal: return m_value.Decimal == value;
-				case Kind.Double: return new Decimal(m_value.Double) == value;
-				case Kind.Signed: return new Decimal(m_value.Signed) == value;
-				case Kind.Unsigned: return value >= 0 && new Decimal(m_value.Unsigned) == value;
-				default: return false;
-			}
-		}
+			Kind.Decimal => m_value.Decimal == value,
+			Kind.Double => new decimal(m_value.Double) == value,
+			Kind.Signed => new decimal(m_value.Signed) == value,
+			Kind.Unsigned => value >= 0 && new decimal(m_value.Unsigned) == value,
+			_ => false
+		};
 
-		public bool Equals(TimeSpan value)
-		{
-			return ToDouble() == value.TotalSeconds;
-		}
+		public bool Equals(TimeSpan value) => ToDouble() == value.TotalSeconds;
 
 		public override int GetHashCode()
 		{
@@ -1752,38 +1494,26 @@ namespace Doxense.Serialization.Json
 
 		#region IComparable<...>
 
-		public override int CompareTo(JsonValue? other)
+		public override int CompareTo(JsonValue? other) => other switch
 		{
-			if (other is JsonNumber jn) return CompareTo(jn);
-			if (other is JsonString js) return CompareTo(js);
-			return base.CompareTo(other);
-		}
+			JsonNumber jn => CompareTo(jn),
+			JsonString js => CompareTo(js),
+			_ => base.CompareTo(other)
+		};
 
-		public int CompareTo(JsonNumber? other)
+		public int CompareTo(JsonNumber? other) => other switch
 		{
-			if (other == null) return +1;
-			return Number.CompareTo(in m_value, m_kind, in other.m_value, other.m_kind);
-		}
+			null => +1,
+			_ => Number.CompareTo(in m_value, m_kind, in other.m_value, other.m_kind)
+		};
 
-		public int CompareTo(long value)
-		{
-			return m_value.CompareTo(m_kind, value);
-		}
+		public int CompareTo(long value) => m_value.CompareTo(m_kind, value);
 
-		public int CompareTo(ulong value)
-		{
-			return m_value.CompareTo(m_kind, value);
-		}
+		public int CompareTo(ulong value) => m_value.CompareTo(m_kind, value);
 
-		public int CompareTo(float value)
-		{
-			return m_value.CompareTo(m_kind, value);
-		}
+		public int CompareTo(float value) => m_value.CompareTo(m_kind, value);
 
-		public int CompareTo(double value)
-		{
-			return m_value.CompareTo(m_kind, value);
-		}
+		public int CompareTo(double value) => m_value.CompareTo(m_kind, value);
 
 		public int CompareTo(JsonString? other)
 		{
@@ -1800,22 +1530,34 @@ namespace Doxense.Serialization.Json
 				{
 					case Kind.Decimal:
 					{
-						if (other.TryConvertDecimal(out var x)) return m_value.Decimal.CompareTo(x);
+						if (other.TryConvertDecimal(out var x))
+						{
+							return m_value.Decimal.CompareTo(x);
+						}
 						break;
 					}
 					case Kind.Double:
 					{
-						if (other.TryConvertDouble(out var x)) return m_value.Double.CompareTo(x);
+						if (other.TryConvertDouble(out var x))
+						{
+							return m_value.Double.CompareTo(x);
+						}
 						break;
 					}
 					case Kind.Signed:
 					{
-						if (other.TryConvertInt64(out var x)) return m_value.Signed.CompareTo(x);
+						if (other.TryConvertInt64(out var x))
+						{
+							return m_value.Signed.CompareTo(x);
+						}
 						break;
 					}
 					case Kind.Unsigned:
 					{
-						if (other.TryConvertUInt64(out var x)) return m_value.Unsigned.CompareTo(x);
+						if (other.TryConvertUInt64(out var x))
+						{
+							return m_value.Unsigned.CompareTo(x);
+						}
 						break;
 					}
 				}
@@ -1832,105 +1574,53 @@ namespace Doxense.Serialization.Json
 		// uniquement disponible si la valeur est castée en JsonNumber
 		// (pas exposés sur JsonValue)
 
-		public static bool operator ==(JsonNumber? number, long value)
-		{
-			return number != null && number.Equals(value);
-		}
-		public static bool operator !=(JsonNumber? number, long value)
-		{
-			return number == null || !number.Equals(value);
-		}
-		public static bool operator <(JsonNumber? number, long value)
-		{
-			return number != null && number.CompareTo(value) < 0;
-		}
-		public static bool operator <=(JsonNumber? number, long value)
-		{
-			return number != null && number.CompareTo(value) <= 0;
-		}
-		public static bool operator >(JsonNumber? number, long value)
-		{
-			return number != null && number.CompareTo(value) > 0;
-		}
-		public static bool operator >=(JsonNumber? number, long value)
-		{
-			return number != null && number.CompareTo(value) >= 0;
-		}
+		public static bool operator ==(JsonNumber? number, long value) => number != null && number.Equals(value);
 
-		public static bool operator ==(JsonNumber? number, ulong value)
-		{
-			return number != null && number.Equals(value);
-		}
-		public static bool operator !=(JsonNumber? number, ulong value)
-		{
-			return number == null || !number.Equals(value);
-		}
-		public static bool operator <(JsonNumber? number, ulong value)
-		{
-			return number != null && number.CompareTo(value) < 0;
-		}
-		public static bool operator <=(JsonNumber? number, ulong value)
-		{
-			return number != null && number.CompareTo(value) <= 0;
-		}
-		public static bool operator >(JsonNumber? number, ulong value)
-		{
-			return number != null && number.CompareTo(value) > 0;
-		}
-		public static bool operator >=(JsonNumber? number, ulong value)
-		{
-			return number != null && number.CompareTo(value) >= 0;
-		}
+		public static bool operator !=(JsonNumber? number, long value) => number == null || !number.Equals(value);
 
-		public static bool operator ==(JsonNumber? number, float value)
-		{
-			return number != null && number.Equals(value);
-		}
-		public static bool operator !=(JsonNumber? number, float value)
-		{
-			return number == null || !number.Equals(value);
-		}
-		public static bool operator <(JsonNumber? number, float value)
-		{
-			return number != null && number.CompareTo(value) < 0;
-		}
-		public static bool operator <=(JsonNumber? number, float value)
-		{
-			return number != null && number.CompareTo(value) <= 0;
-		}
-		public static bool operator >(JsonNumber? number, float value)
-		{
-			return number != null && number.CompareTo(value) > 0;
-		}
-		public static bool operator >=(JsonNumber? number, float value)
-		{
-			return number != null && number.CompareTo(value) >= 0;
-		}
+		public static bool operator <(JsonNumber? number, long value) => number != null && number.CompareTo(value) < 0;
 
-		public static bool operator ==(JsonNumber? number, double value)
-		{
-			return number != null && number.Equals(value);
-		}
-		public static bool operator !=(JsonNumber? number, double value)
-		{
-			return number == null || !number.Equals(value);
-		}
-		public static bool operator <(JsonNumber? number, double value)
-		{
-			return number != null && number.CompareTo(value) < 0;
-		}
-		public static bool operator <=(JsonNumber? number, double value)
-		{
-			return number != null && number.CompareTo(value) <= 0;
-		}
-		public static bool operator >(JsonNumber? number, double value)
-		{
-			return number != null && number.CompareTo(value) > 0;
-		}
-		public static bool operator >=(JsonNumber? number, double value)
-		{
-			return number != null && number.CompareTo(value) >= 0;
-		}
+		public static bool operator <=(JsonNumber? number, long value) => number != null && number.CompareTo(value) <= 0;
+
+		public static bool operator >(JsonNumber? number, long value) => number != null && number.CompareTo(value) > 0;
+
+		public static bool operator >=(JsonNumber? number, long value) => number != null && number.CompareTo(value) >= 0;
+
+		public static bool operator ==(JsonNumber? number, ulong value) => number != null && number.Equals(value);
+
+		public static bool operator !=(JsonNumber? number, ulong value) => number == null || !number.Equals(value);
+
+		public static bool operator <(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) < 0;
+
+		public static bool operator <=(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) <= 0;
+
+		public static bool operator >(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) > 0;
+
+		public static bool operator >=(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) >= 0;
+
+		public static bool operator ==(JsonNumber? number, float value) => number != null && number.Equals(value);
+
+		public static bool operator !=(JsonNumber? number, float value) => number == null || !number.Equals(value);
+
+		public static bool operator <(JsonNumber? number, float value) => number != null && number.CompareTo(value) < 0;
+
+		public static bool operator <=(JsonNumber? number, float value) => number != null && number.CompareTo(value) <= 0;
+
+		public static bool operator >(JsonNumber? number, float value) => number != null && number.CompareTo(value) > 0;
+
+		public static bool operator >=(JsonNumber? number, float value) => number != null && number.CompareTo(value) >= 0;
+
+		public static bool operator ==(JsonNumber? number, double value) => number != null && number.Equals(value);
+
+		public static bool operator !=(JsonNumber? number, double value) => number == null || !number.Equals(value);
+
+		public static bool operator <(JsonNumber? number, double value) => number != null && number.CompareTo(value) < 0;
+
+		public static bool operator <=(JsonNumber? number, double value) => number != null && number.CompareTo(value) <= 0;
+
+		public static bool operator >(JsonNumber? number, double value) => number != null && number.CompareTo(value) > 0;
+
+		public static bool operator >=(JsonNumber? number, double value) => number != null && number.CompareTo(value) >= 0;
 
 		[Pure]
 		public JsonNumber Plus(JsonNumber number)
@@ -1969,15 +1659,9 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		public override string ToString()
-		{
-			return this.Literal;
-		}
+		public override string ToString() => this.Literal;
 
-		public override string ToJson(CrystalJsonSettings? settings = null)
-		{
-			return this.Literal;
-		}
+		public override string ToJson(CrystalJsonSettings? settings = null) => this.Literal;
 
 		public override void WriteTo(ref SliceWriter writer)
 		{

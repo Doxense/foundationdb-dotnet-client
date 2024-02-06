@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable RedundantExplicitArrayCreation
+// ReSharper disable UseArrayEmptyMethod
 // ReSharper disable RedundantArgumentDefaultValue
 // ReSharper disable HeuristicUnreachableCode
 // ReSharper disable AccessToDisposedClosure
@@ -35,10 +37,7 @@
 // ReSharper disable UseRawString
 // ReSharper disable JoinDeclarationAndInitializer
 // ReSharper disable UseObjectOrCollectionInitializer
-#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-#pragma warning disable 618
-#nullable disable //note: too much nullability warnings!
-
+// ReSharper disable RedundantTypeArgumentsOfMethod
 // ReSharper disable HeapView.BoxingAllocation
 // ReSharper disable HeapView.DelegateAllocation
 // ReSharper disable HeapView.ClosureAllocation
@@ -48,6 +47,13 @@
 // ReSharper disable CompareOfFloatsByEqualityOperator
 // ReSharper disable PossibleMultipleEnumeration
 // ReSharper disable AccessToModifiedClosure
+// ReSharper disable RedundantNameQualifier
+// ReSharper disable ConvertClosureToMethodGroup
+// ReSharper disable RedundantExplicitParamsArrayCreation
+
+#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+#pragma warning disable 618
+#nullable disable //note: too much nullability warnings!
 
 namespace Doxense.Serialization.Json.Tests
 {
@@ -2448,6 +2454,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region JSON Object Model...
 
+		#region JsonNull...
+
 		[Test]
 		public void Test_JsonNull_Explicit()
 		{
@@ -2654,6 +2662,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(SerializeToSlice(jerror), Is.EqualTo(Slice.FromString("null")));
 		}
 
+		#endregion
+
 		[Test]
 		public void Test_JsonBoolean()
 		{
@@ -2733,6 +2743,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(SerializeToSlice(JsonBoolean.False), Is.EqualTo(Slice.FromString("false")), "False ~= \"False\"");
 			Assert.That(SerializeToSlice(JsonBoolean.True), Is.EqualTo(Slice.FromString("true")), "True ~= \"True\"");
 		}
+
+		#region JsonString...
 
 		[Test]
 		public void Test_JsonString()
@@ -3059,6 +3071,109 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.Return(123).CompareTo(JsonString.Return("100")),  Is.GreaterThan(0), "123 cmp '100'");
 			Assert.That(JsonNumber.Return(123).CompareTo(JsonString.Return("1000")), Is.LessThan(0),    "123 cmp '1000'");
 		}
+
+		[Test]
+		public void Test_JsonDateTime()
+		{
+			{
+				var value = JsonDateTime.MinValue;
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.True);
+				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MinValue));
+				Assert.That(value.IsLocalTime, Is.False, "MinValue should be unspecifed");
+				Assert.That(value.IsUtc, Is.False, "MinValue should be unspecified");
+			}
+
+			{
+				var value = JsonDateTime.MaxValue;
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MaxValue));
+				Assert.That(value.IsLocalTime, Is.False, "MaxValue should be unspecified");
+				Assert.That(value.IsUtc, Is.False, "MaxValue should be unspecified");
+			}
+
+			{
+				var value = new JsonDateTime(1974, 3, 24);
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24)));
+				Assert.That(value.IsLocalTime, Is.False, "TZ is unspecified");
+				Assert.That(value.IsUtc, Is.False, "TZ is unspecified");
+			}
+
+			{
+				var value = new JsonDateTime(1974, 3, 24, 12, 34, 56, DateTimeKind.Utc);
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24, 12, 34, 56, DateTimeKind.Utc)));
+				Assert.That(value.IsLocalTime, Is.False);
+				Assert.That(value.IsUtc, Is.True);
+			}
+
+			{
+				var value = new JsonDateTime(1974, 3, 24, 12, 34, 56, 789, DateTimeKind.Local);
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24, 12, 34, 56, 789, DateTimeKind.Local)));
+				Assert.That(value.IsLocalTime, Is.True);
+				Assert.That(value.IsUtc, Is.False);
+			}
+
+			{
+				var now = DateTime.UtcNow;
+				var value = new JsonDateTime(now.Ticks, DateTimeKind.Utc);
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToDateTime(), Is.EqualTo(now));
+				Assert.That(value.IsLocalTime, Is.False);
+				Assert.That(value.IsUtc, Is.True);
+			}
+
+			// Nullables
+
+			Assert.That(JsonDateTime.Return((DateTime?)null).Type, Is.EqualTo(JsonType.Null));
+			Assert.That(JsonDateTime.Return((DateTimeOffset?)null).Type, Is.EqualTo(JsonType.Null));
+			Assert.That(JsonDateTime.Return((DateTime?)DateTime.Now).Type, Is.EqualTo(JsonType.DateTime));
+			Assert.That(JsonDateTime.Return((DateTimeOffset?)DateTimeOffset.Now).Type, Is.EqualTo(JsonType.DateTime));
+		}
+
+		[Test]
+		public void Test_JsonGuid()
+		{
+			var guid = Guid.NewGuid();
+
+			var value = JsonString.Return(guid);
+			Assert.That(value, Is.Not.Null);
+			Assert.That(value.Type, Is.EqualTo(JsonType.String)); //note: pour le moment les Guid sont stockés comme des strings
+			Assert.That(value.IsDefault, Is.False);
+			Assert.That(value.IsNull, Is.False);
+			Assert.That(value.ToString(), Is.EqualTo(guid.ToString("D"))); // "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+			Assert.That(value.ToGuid(), Is.EqualTo(guid));
+			Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("\"" + guid.ToString("D") + "\"")));
+
+			value = JsonString.Return(Guid.Empty);
+			Assert.That(value, Is.Not.Null);
+			Assert.That(value.Type, Is.EqualTo(JsonType.Null)); //TODO: pour le moment Guid.Empty => JsonNull.Null. Remplacer par JsonString.Empty?
+			Assert.That(value.ToString(), Is.EqualTo(string.Empty));
+			Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("null")), "SerializeToSlice");
+
+			// Nullables
+
+			Assert.That(JsonString.Return((Guid?)null).Type, Is.EqualTo(JsonType.Null));
+			Assert.That(JsonString.Return((Guid?)Guid.Empty).Type, Is.EqualTo(JsonType.Null)); //TODO: pour le moment Guid.Empty => JsonNull.Null. Remplacer par JsonString.Empty?
+			Assert.That(JsonString.Return((Guid?)Guid.NewGuid()).Type, Is.EqualTo(JsonType.String));
+		}
+
+		#endregion
+
+		#region JsonNumber...
 
 		[Test]
 		public void Test_JsonNumber()
@@ -3556,104 +3671,9 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		[Test]
-		public void Test_JsonDateTime()
-		{
-			{
-				var value = JsonDateTime.MinValue;
-				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
-				Assert.That(value.IsNull, Is.False);
-				Assert.That(value.IsDefault, Is.True);
-				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MinValue));
-				Assert.That(value.IsLocalTime, Is.False, "MinValue should be unspecifed");
-				Assert.That(value.IsUtc, Is.False, "MinValue should be unspecified");
-			}
+		#endregion
 
-			{
-				var value = JsonDateTime.MaxValue;
-				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
-				Assert.That(value.IsNull, Is.False);
-				Assert.That(value.IsDefault, Is.False);
-				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MaxValue));
-				Assert.That(value.IsLocalTime, Is.False, "MaxValue should be unspecified");
-				Assert.That(value.IsUtc, Is.False, "MaxValue should be unspecified");
-			}
-
-			{
-				var value = new JsonDateTime(1974, 3, 24);
-				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
-				Assert.That(value.IsNull, Is.False);
-				Assert.That(value.IsDefault, Is.False);
-				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24)));
-				Assert.That(value.IsLocalTime, Is.False, "TZ is unspecified");
-				Assert.That(value.IsUtc, Is.False, "TZ is unspecified");
-			}
-
-			{
-				var value = new JsonDateTime(1974, 3, 24, 12, 34, 56, DateTimeKind.Utc);
-				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
-				Assert.That(value.IsNull, Is.False);
-				Assert.That(value.IsDefault, Is.False);
-				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24, 12, 34, 56, DateTimeKind.Utc)));
-				Assert.That(value.IsLocalTime, Is.False);
-				Assert.That(value.IsUtc, Is.True);
-			}
-
-			{
-				var value = new JsonDateTime(1974, 3, 24, 12, 34, 56, 789, DateTimeKind.Local);
-				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
-				Assert.That(value.IsNull, Is.False);
-				Assert.That(value.IsDefault, Is.False);
-				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24, 12, 34, 56, 789, DateTimeKind.Local)));
-				Assert.That(value.IsLocalTime, Is.True);
-				Assert.That(value.IsUtc, Is.False);
-			}
-
-			{
-				var now = DateTime.UtcNow;
-				var value = new JsonDateTime(now.Ticks, DateTimeKind.Utc);
-				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
-				Assert.That(value.IsNull, Is.False);
-				Assert.That(value.IsDefault, Is.False);
-				Assert.That(value.ToDateTime(), Is.EqualTo(now));
-				Assert.That(value.IsLocalTime, Is.False);
-				Assert.That(value.IsUtc, Is.True);
-			}
-
-			// Nullables
-
-			Assert.That(JsonDateTime.Return((DateTime?)null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonDateTime.Return((DateTimeOffset?)null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonDateTime.Return((DateTime?)DateTime.Now).Type, Is.EqualTo(JsonType.DateTime));
-			Assert.That(JsonDateTime.Return((DateTimeOffset?)DateTimeOffset.Now).Type, Is.EqualTo(JsonType.DateTime));
-		}
-
-		[Test]
-		public void Test_JsonGuid()
-		{
-			var guid = Guid.NewGuid();
-
-			var value = JsonString.Return(guid);
-			Assert.That(value, Is.Not.Null);
-			Assert.That(value.Type, Is.EqualTo(JsonType.String)); //note: pour le moment les Guid sont stockés comme des strings
-			Assert.That(value.IsDefault, Is.False);
-			Assert.That(value.IsNull, Is.False);
-			Assert.That(value.ToString(), Is.EqualTo(guid.ToString("D"))); // "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-			Assert.That(value.ToGuid(), Is.EqualTo(guid));
-			Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("\"" + guid.ToString("D") + "\"")));
-
-			value = JsonString.Return(Guid.Empty);
-			Assert.That(value, Is.Not.Null);
-			Assert.That(value.Type, Is.EqualTo(JsonType.Null)); //TODO: pour le moment Guid.Empty => JsonNull.Null. Remplacer par JsonString.Empty?
-			Assert.That(value.ToString(), Is.EqualTo(string.Empty));
-			Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("null")), "SerializeToSlice");
-
-			// Nullables
-
-			Assert.That(JsonString.Return((Guid?)null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonString.Return((Guid?)Guid.Empty).Type, Is.EqualTo(JsonType.Null)); //TODO: pour le moment Guid.Empty => JsonNull.Null. Remplacer par JsonString.Empty?
-			Assert.That(JsonString.Return((Guid?)Guid.NewGuid()).Type, Is.EqualTo(JsonType.String));
-		}
+		#region JsonArray...
 
 		[Test]
 		public void Test_JsonArray()
@@ -5468,7 +5488,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonValue.FromValue(value), Is.SameAs(value));
 		}
 
-#endregion
+		#endregion
 
 		#region Parse...
 

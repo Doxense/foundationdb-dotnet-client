@@ -39,10 +39,7 @@ namespace Doxense.Serialization.Json
 		//REVIEW: est-ce qu'on ne devrait pas caster en JsonString, plutot que JsonValue?
 
 		[Pure]
-		public static implicit operator JsonValue(string? value)
-		{
-			return JsonString.Return(value);
-		}
+		public static implicit operator JsonValue(string? value) => JsonString.Return(value);
 
 		[Pure]
 		public static explicit operator string?(JsonValue? value)
@@ -53,17 +50,15 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public static implicit operator JsonValue(StringBuilder? value)
-		{
-			return JsonString.Return(value);
-		}
+		public static implicit operator JsonValue(StringBuilder? value) => JsonString.Return(value);
 
 		[Pure]
 		public static implicit operator JsonValue(char[]? value)
 		{
-			if (value == null) return JsonNull.Null;
-			return JsonString.Return(value, 0, value.Length);
+			return value == null ? JsonNull.Null : JsonString.Return(value, 0, value.Length);
 		}
+
+		public static implicit operator JsonValue(ReadOnlySpan<char> value) => JsonString.Return(value);
 
 		//TODO: ajouter aussi Utf8String et AsciiString?
 
@@ -632,13 +627,10 @@ namespace Doxense.Serialization.Json
 		#region Uri...
 
 		[Pure]
-		public static implicit operator JsonValue(Uri? value)
-		{
-			return JsonString.Return(value);
-		}
+		public static implicit operator JsonValue(Uri? value) => JsonString.Return(value);
 
 		[Pure]
-		public static explicit operator Uri?(JsonValue? value)
+		public static explicit operator Uri?(JsonValue? value) => value.IsNullOrMissing() ? default : new Uri(value.ToString());
 		{
 			return value.IsNullOrMissing() ? default(Uri) : new Uri(value.ToString());
 		}

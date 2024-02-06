@@ -37,7 +37,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Tools;
 	using JetBrains.Annotations;
 
-	/// <summary>Chaîne de texte JSON</summary>
+	/// <summary>JSON string literal</summary>
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
 	[DebuggerNonUserCode]
 	public sealed class JsonString : JsonValue, IEquatable<JsonString>, IEquatable<string>, IEquatable<Guid>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
@@ -503,44 +503,28 @@ namespace Doxense.Serialization.Json
 					return ToDecimal();
 				}
 				else if (typeof(Guid) == type)
-				{ // conversion en guid ?
+				{
 					return ToGuid();
 				}
 				else if (typeof(Uuid128) == type)
 				{
-					return new Uuid128(ToGuid());
+					return ToUuid128();
 				}
 				else if (typeof(Uuid64) == type)
 				{
-					return Uuid64.Parse(m_value);
+					return ToUInt64();
 				}
 				else if (typeof(Uuid96) == type)
 				{
-					return Uuid96.Parse(m_value);
+					return ToUuid96();
 				}
 				else if (typeof(Uuid80) == type)
 				{
-					return Uuid80.Parse(m_value);
+					return ToUuid80();
 				}
 				else if (typeof(TimeSpan) == type)
-				{ // conversion en timespan ?
+				{
 					return ToTimeSpan();
-				}
-				else if (typeof(NodaTime.Instant) == type)
-				{
-					return ToInstant();
-				}
-				else if (typeof(NodaTime.Duration) == type)
-				{
-					return ToDuration();
-				}
-				else if (typeof(NodaTime.LocalDate) == type)
-				{
-					return ToLocalDate();
-				}
-				else if (typeof(NodaTime.LocalDateTime) == type)
-				{
-					return ToLocalDateTime();
 				}
 				else if (typeof(char[]) == type)
 				{ // tableau de chars, c'est facile..
@@ -577,42 +561,15 @@ namespace Doxense.Serialization.Json
 
 				#region NodaTime types...
 
-				if (typeof(NodaTime.Instant) == type)
-				{
-					return ToInstant();
-				}
-				if (typeof(NodaTime.Duration) == type)
-				{
-					return ToDuration();
-				}
-				if (typeof(NodaTime.LocalDateTime) == type)
-				{
-					return ToLocalDateTime();
-				}
-				if (typeof(NodaTime.ZonedDateTime) == type)
-				{
-					return ToZonedDateTime();
-				}
-				if (typeof(NodaTime.OffsetDateTime) == type)
-				{
-					return ToOffsetDateTime();
-				}
-				if (typeof(NodaTime.DateTimeZone).IsAssignableFrom(type))
-				{
-					return ToDateTimeZone();
-				}
-				if (typeof(NodaTime.Offset) == type)
-				{
-					return ToOffset();
-				}
-				if (typeof(NodaTime.LocalDate) == type)
-				{
-					return ToLocalDate();
-				}
-				if (typeof(NodaTime.LocalTime) == type)
-				{
-					return CrystalJsonNodaPatterns.LocalTimes.Parse(m_value).Value;
-				}
+				if (typeof(NodaTime.Instant) == type) return ToInstant();
+				if (typeof(NodaTime.Duration) == type) return ToDuration();
+				if (typeof(NodaTime.LocalDate) == type) return ToLocalDate();
+				if (typeof(NodaTime.LocalDateTime) == type) return ToLocalDateTime();
+				if (typeof(NodaTime.ZonedDateTime) == type) return ToZonedDateTime();
+				if (typeof(NodaTime.OffsetDateTime) == type) return ToOffsetDateTime();
+				if (typeof(NodaTime.Offset) == type) return ToOffset();
+				if (typeof(NodaTime.LocalTime) == type) return CrystalJsonNodaPatterns.LocalTimes.Parse(m_value).Value;
+				if (typeof(NodaTime.DateTimeZone).IsAssignableFrom(type)) return ToDateTimeZone();
 
 				#endregion
 
@@ -676,7 +633,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region IJsonSerializable
+		#region IJsonSerializable...
 
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
@@ -685,7 +642,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region IEquatable<...>
+		#region IEquatable<...>...
 
 		public override bool Equals(object? obj)
 		{
@@ -1088,49 +1045,25 @@ namespace Doxense.Serialization.Json
 			{
 				return Guid.TryParse(m_value, out value);
 			}
-			value = default(Guid);
+			value = default;
 			return false;
 		}
 
-		public override Uuid128 ToUuid128()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid128) : Uuid128.Parse(m_value);
-		}
+		public override Uuid128 ToUuid128() => string.IsNullOrEmpty(m_value) ? default : Uuid128.Parse(m_value);
 
-		public override Uuid128? ToUuid128OrDefault()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid128?) : Uuid128.Parse(m_value);
-		}
+		public override Uuid128? ToUuid128OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid128.Parse(m_value);
 
-		public override Uuid96 ToUuid96()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid96) : Uuid96.Parse(m_value);
-		}
+		public override Uuid96 ToUuid96() => string.IsNullOrEmpty(m_value) ? default : Uuid96.Parse(m_value);
 
-		public override Uuid96? ToUuid96OrDefault()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid96?) : Uuid96.Parse(m_value);
-		}
+		public override Uuid96? ToUuid96OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid96.Parse(m_value);
 
-		public override Uuid80 ToUuid80()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid80) : Uuid80.Parse(m_value);
-		}
+		public override Uuid80 ToUuid80() => string.IsNullOrEmpty(m_value) ? default : Uuid80.Parse(m_value);
 
-		public override Uuid80? ToUuid80OrDefault()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid80?) : Uuid80.Parse(m_value);
-		}
+		public override Uuid80? ToUuid80OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid80.Parse(m_value);
 
-		public override Uuid64 ToUuid64()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid64) : Uuid64.Parse(m_value);
-		}
+		public override Uuid64 ToUuid64() => string.IsNullOrEmpty(m_value) ? default : Uuid64.Parse(m_value);
 
-		public override Uuid64? ToUuid64OrDefault()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(Uuid64?) : Uuid64.Parse(m_value);
-		}
+		public override Uuid64? ToUuid64OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid64.Parse(m_value);
 
 		#endregion
 
@@ -1395,6 +1328,8 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region ISliceSerializable...
+
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			var value = m_value;
@@ -1415,6 +1350,8 @@ namespace Doxense.Serialization.Json
 			writer.WriteStringUtf8(m_value);
 			writer.WriteByte('"');
 		}
+
+		#endregion
 	}
 
 }

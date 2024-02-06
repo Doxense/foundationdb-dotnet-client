@@ -51,28 +51,16 @@ namespace Doxense.Serialization.Json
 		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Indique si cette valeur est null</summary>
-		public virtual bool IsNull
-		{
-			[Pure]
-			get => false;
-		}
+		public virtual bool IsNull { [Pure] get => false; }
 
 		/// <summary>Indique si cette valeur correspond au défaut du type (0, null, empty)</summary>
 		public abstract bool IsDefault { [Pure] get; }
 
 		/// <summary>Indique si cette valeur est une array qui contient d'autres valeurs</summary>
-		public bool IsArray
-		{
-			[Pure]
-			get => this.Type == JsonType.Array;
-		}
+		public bool IsArray { [Pure] get => this.Type == JsonType.Array; }
 
 		/// <summary>Indique si cette valeur est une dictionnaire qui contient d'autres valeurs</summary>
-		public bool IsMap
-		{
-			[Pure]
-			get => this.Type == JsonType.Object;
-		}
+		public bool IsMap { [Pure] get => this.Type == JsonType.Object; }
 
 		/// <summary>Heuristique qui détermine si cette valeur est considérée comme "petite" et peut être dumpée dans un log sans flooder</summary>
 		internal abstract bool IsSmallValue();
@@ -80,7 +68,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Indique si ce type de valeur est assez petite pour être affichée en une seule ligne quand présente dans un petit tableau</summary>
 		/// <returns></returns>
 		internal abstract bool IsInlinable();
-		
 		/// <summary>Sérialise une valeur JSON en string</summary>
 		/// <param name="settings">Settings JSON à utiliser (optionnel)</param>
 		/// <returns>Chaîne de texte correspondant à la valeur JSON</returns>

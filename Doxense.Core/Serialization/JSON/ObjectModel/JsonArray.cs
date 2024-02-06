@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable RedundantTypeArgumentsOfMethod
+
 namespace Doxense.Serialization.Json
 {
 	using System;
@@ -54,72 +56,18 @@ namespace Doxense.Serialization.Json
 		/// <summary>Capacité maximale pour la croissance automatique</summary>
 		private const int MAX_GROWTH_CAPACITY = 0X7FEFFFFF;
 
-		//TODO: OPTIMIZE: quelle intial_size et growth_ratio?
-
-		// => .NET démarre a 4 et utilise n*2 ce qui minimise le cout d'une insertion, mais maximize la consommation mémoire
-		//    > [4], 8, 16, 32, 64, 128, 256, 512, 1024, 2048, ...
-		//	  -    3 (  24 bytes) =>    4 slots (  32 bytes) =>   1 waste (   8 bytes) =>    3 writes (   24 bytes) =>  1 allocations,  0 resize
-		//	  -   10 (  80 bytes) =>   16 slots ( 128 bytes) =>   6 waste (  48 bytes) =>   22 writes (  176 bytes) =>  3 allocations,  2 resize
-		//	  -   31 ( 248 bytes) =>   32 slots ( 256 bytes) =>   1 waste (   8 bytes) =>   59 writes (  472 bytes) =>  4 allocations,  3 resize
-		//	  -   60 ( 480 bytes) =>   64 slots ( 512 bytes) =>   4 waste (  32 bytes) =>  120 writes (  960 bytes) =>  5 allocations,  4 resize
-		//	  -  100 ( 800 bytes) =>  128 slots (1024 bytes) =>  28 waste ( 224 bytes) =>  224 writes ( 1792 bytes) =>  6 allocations,  5 resize
-		//	  -  366 (2928 bytes) =>  512 slots (4096 bytes) => 146 waste (1168 bytes) =>  874 writes ( 6992 bytes) =>  8 allocations,  7 resize
-		//	  - 1000 (8000 bytes) => 1024 slots (8192 bytes) =>  24 waste ( 192 bytes) => 2020 writes (16160 bytes) =>  9 allocations,  8 resize
-
-		// => JAVA démarre a 10 et utilise (n*3/2)+1 (+50%), a savoir si ca nous donne le meilleur compromis, ou un sidecar :) (1.7 fois plus de resize de .NET, pour 2x moins de waste de mémoire en moyenne)
-		//    > [10], 16, 25, 38, 58, 88, 133, 200, 301, 452, 679, 1019, 1529, 2294, ...
-		//	  -    3 (  24 bytes) =>   10 slots (  80 bytes) =>   7 waste (  56 bytes) =>    3 writes (   24 bytes) =>  1 allocations,  0 resize
-		//	  -   10 (  80 bytes) =>   10 slots (  80 bytes) =>   0 waste (   0 bytes) =>   10 writes (   80 bytes) =>  1 allocations,  0 resize
-		//	  -   31 ( 248 bytes) =>   38 slots ( 304 bytes) =>   7 waste (  56 bytes) =>   82 writes (  656 bytes) =>  4 allocations,  3 resize
-		//	  -   60 ( 480 bytes) =>   88 slots ( 704 bytes) =>  28 waste ( 224 bytes) =>  207 writes ( 1656 bytes) =>  6 allocations,  5 resize
-		//	  -  100 ( 800 bytes) =>  133 slots (1064 bytes) =>  33 waste ( 264 bytes) =>  335 writes ( 2680 bytes) =>  7 allocations,  6 resize
-		//	  -  366 (2928 bytes) =>  452 slots (3616 bytes) =>  86 waste ( 688 bytes) => 1235 writes ( 9880 bytes) => 10 allocations,  9 resize
-		//	  - 1000 (8000 bytes) => 1019 slots (8152 bytes) =>  19 waste ( 152 bytes) => 3000 writes (24000 bytes) => 12 allocations, 11 resize
-
-		// => CPython démarre a 4 utilise n*9/8 (+12.5%)) avec de l'aide au démarrage ce qui minimise la consommation mémoire, mais augmente le nombre de resize (6 fois plus de resize que .NET environ, mais 8x moins de waste mémoire en moyenne)
-		//    > [4], 8, 16, 25, 35, 46, 58, 72, 88, 106, 126, 148, 173, 201, 233, 269, 309, 354, 405, 462, 526, 598, 679, 771, 874, 990, 1120, 1267, 1432, 1618, 1827, 2062, ...
-		//	  -    3 (  24 bytes) =>    4 slots (  32 bytes) =>   1 waste (   8 bytes) =>    3 writes (   24 bytes) =>  1 allocations,  0 resize
-		//	  -   10 (  80 bytes) =>   16 slots ( 128 bytes) =>   6 waste (  48 bytes) =>   22 writes (  176 bytes) =>  3 allocations,  2 resize
-		//	  -   31 ( 248 bytes) =>   35 slots ( 280 bytes) =>   4 waste (  32 bytes) =>   84 writes (  672 bytes) =>  5 allocations,  4 resize
-		//	  -   60 ( 480 bytes) =>   72 slots ( 576 bytes) =>  12 waste (  96 bytes) =>  252 writes ( 2016 bytes) =>  8 allocations,  7 resize
-		//	  -  100 ( 800 bytes) =>  106 slots ( 848 bytes) =>   6 waste (  48 bytes) =>  452 writes ( 3616 bytes) => 10 allocations,  9 resize
-		//	  -  366 (2928 bytes) =>  405 slots (3240 bytes) =>  39 waste ( 312 bytes) => 2637 writes (21096 bytes) => 19 allocations, 18 resize
-		//	  - 1000 (8000 bytes) => 1120 slots (8960 bytes) => 120 waste ( 960 bytes) => 8576 writes (68608 bytes) => 27 allocations, 26 resize
-
 		private JsonValue?[] m_items; // 8 + sizeof(ARRAY_HEADER) + capacity * 8
 		private int m_size; // 4
-		//note: on a encore 4 bytes de padding utilisable !
-
-		// Memory Footprint:
-		// -----------------
-		// - JsonArray   : this=16 + m_items=8 + m_size=4 + (pad)=4  = 32 bytes
-		// - JsonValue[] : this=32 + capacity * 8  = 32 + 8*capacity
-		// > Total: 64 bytes + capacity * 8 bytes
-		//      0 ..     4 entries =>    96 bytes
-		//      5 ..     8 entries =>   128 bytes
-		//      9 ..    16 entries =>   192 bytes
-		//     17 ..    32 entries =>   320 bytes
-		//     33 ..    64 entries =>   576 bytes
-		//     65 ..   128 entries => 1,088 bytes
-		//    129 ..   256 entries => 2,112 bytes
-		//    257 ..   512 entries => 4,160 bytes
-		//    513 .. 1,024 entries => 8,256 bytes
 
 		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 		private class DebugView
 		{
 			private readonly JsonArray m_array;
 
-			public DebugView(JsonArray array)
-			{
-				m_array = array;
-			}
+			public DebugView(JsonArray array) => m_array = array;
 
 			[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-			public JsonValue[] Items
-			{
-				get { return m_array.ToArray(); }
-			}
+			public JsonValue[] Items => m_array.ToArray();
 		}
 
 		#region Constructors...
@@ -722,7 +670,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -765,7 +713,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// we should have a JIT optimized version of As<T> for these as well!
 				foreach (var item in items)
 				{
 					Add(FromValue<T>(item));
@@ -884,7 +832,7 @@ namespace Doxense.Serialization.Json
 			EnsureCapacity(checked(this.Count + items.Length));
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
 			if (typeof(TOutput) == typeof(bool)
 			 || typeof(TOutput) == typeof(char)
@@ -927,7 +875,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(TOutput) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// we should have a JIT optimized version of FromValue<T> for these as well
 				foreach (var item in items)
 				{
 					Add(FromValue<TOutput>(transform(item)));
@@ -968,7 +916,7 @@ namespace Doxense.Serialization.Json
 			EnsureCapacity(this.Count + items.Length);
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -1011,7 +959,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// we should have a JIT optimized version of FromValue<T> for these as well
 				foreach (var item in items)
 				{
 					Add(FromValue<T>(item));
@@ -1051,7 +999,7 @@ namespace Doxense.Serialization.Json
 			EnsureCapacity(this.Count + items.Count);
 
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -1094,7 +1042,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// we should have a JIT optimized version of FromValue<T> for these as well
 				foreach (var item in items)
 				{
 					Add(FromValue<T>(item));
@@ -1456,17 +1404,6 @@ namespace Doxense.Serialization.Json
 			}
 			m_items[m_size] = null!;
 
-			//TODO: OPTIMIZE: pas forcément une bonne idée pour des algos qui remplissent une array de "TODO" items, et la vident progressivement jusqu'a ce qu'elle soit vide
-			// => on pourrait déferrer le shrink en cas d'insert après un delete ?
-			// => on ne peut pas non plus shrinker si un insert observe une trop grand capacité, car c'est le cas quand on pré-alloue une array avant de la remplir...
-			// => ne rien faire, et rendre le shrink explicite ?
-			/* DISABLED
-			if (m_size < m_items.Length >> 1)
-			{ // shrink??
-				this.Capacity = m_items.Length >> 1;
-			}
-			 */
-			//TODO: versionning?
 		}
 
 		[CollectionAccess(CollectionAccessType.Read)]
@@ -1622,20 +1559,11 @@ namespace Doxense.Serialization.Json
 
 		#region Enumerator...
 
-		public Enumerator GetEnumerator()
-		{
-			return new Enumerator(m_items, m_size);
-		}
+		public Enumerator GetEnumerator() => new(m_items, m_size);
 
-		IEnumerator<JsonValue> IEnumerable<JsonValue>.GetEnumerator()
-		{
-			return new Enumerator(m_items, m_size);
-		}
+		IEnumerator<JsonValue> IEnumerable<JsonValue>.GetEnumerator() => new Enumerator(m_items, m_size);
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => new Enumerator(m_items, m_size);
 
 		public struct Enumerator : IEnumerator<JsonValue>
 		{
@@ -1926,6 +1854,7 @@ namespace Doxense.Serialization.Json
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
+			//note: we cannot use JIT optimization here, because the type will usually be an array or list of value types, which itself is not a value type.
 			return (resolver ?? CrystalJson.DefaultResolver).BindJsonArray(type, this);
 		}
 
@@ -1944,7 +1873,7 @@ namespace Doxense.Serialization.Json
 		public T?[] ToArray<T>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -1987,7 +1916,7 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
+				// we should have a JIT optimized version for these as well
 				return ToPrimitiveArray<T>();
 			}
 #endif
@@ -2042,7 +1971,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<T[]>() : null;
 			if (!value.IsArray) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
-			if (!(value is JsonArray array)) throw CrystalJson.Errors.Binding_UnsupportedInternalJsonArrayType(value);
+			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_UnsupportedInternalJsonArrayType(value);
 			return array.ToArray<T>(customResolver);
 		}
 
@@ -2193,20 +2122,22 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Retourne une <see cref="List&lt;JsonValue&gt;"/> contenant les mêmes éléments comme cette array</summary>
-		/// <remarks>Effectue une shallow copy de la liste.</remarks>
+		/// <summary>Return a <see cref="List{JsonValue}">List&lt;JsonValue&gt;</see> with the same elements as this array</summary>
+		/// <returns>A shallow copy of the original items</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<JsonValue> ToList()
 		{
 			return new List<JsonValue>(m_items.Take(m_size)!);
 		}
 
+		/// <summary>Return a <see cref="List{JsonValue}">List&lt;JsonValue&gt;</see> with the same elements as this array</summary>
+		/// <returns>A shallow copy of the original items</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<T?> ToList<T>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			#region <JIT_HACK>
 
-			// pattern reconnu et optimisé par le JIT en Release
+			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
 			if (typeof(T) == typeof(bool)
 			 || typeof(T) == typeof(char)
@@ -2249,7 +2180,6 @@ namespace Doxense.Serialization.Json
 			 || typeof(T) == typeof(NodaTime.Duration?)
 			)
 			{
-				// version également optimisée!
 				return ToPrimitiveList<T>();
 			}
 #endif
@@ -2275,6 +2205,9 @@ namespace Doxense.Serialization.Json
 			return list;
 		}
 
+		/// <summary>Return a <see cref="List{T}"/> with the transformed elements of this array</summary>
+		/// <param name="transform">Transforamtion that is applied on each element of the array</param>
+		/// <returns>A list of all elements that have been converted <paramref name="transform"/></returns>
 		[Pure]
 		public List<T> ToList<T>([InstantHandle] Func<JsonValue, T> transform)
 		{
@@ -2289,20 +2222,18 @@ namespace Doxense.Serialization.Json
 			return list;
 		}
 
-		/// <summary>Désérialise une JSON Array en List d'objets dont le type est défini</summary>
+		/// <summary>Deserialize a JSON Array into a list of objects of the specified type</summary>
 		/// <typeparam name="T">Type des éléments de la liste</typeparam>
-		/// <param name="value">Tableau JSON contenant des objets a priori de type T</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required"></param>
-		/// <returns>Retourne une IList&lt;T&gt; contenant les éléments désérialisés</returns>
+		/// <param name="value">JSON array that contains the elements to bind</param>
+		/// <param name="customResolver">Optional type resolver</param>
+		/// <param name="required">If <see langword="true"/> the array cannot be null</param>
+		/// <returns>A list of all elements that have been deserialized into instance of type <typeparamref name="T"/></returns>
 		[Pure, ContractAnnotation("value:null => null")]
 		public static List<T?>? BindList<T>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
 		{
 			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<T?>>() : null;
 			if (!value.IsArray) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
-
-			if (!(value is JsonArray array)) throw CrystalJson.Errors.Binding_UnsupportedInternalJsonArrayType(value);
-
+			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_UnsupportedInternalJsonArrayType(value);
 			return array.ToList<T>(customResolver);
 		}
 
@@ -2318,6 +2249,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="bool"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<bool> ToBoolList()
 		{
@@ -2329,6 +2261,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="int"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<int> ToInt32List()
 		{
@@ -2340,6 +2273,8 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Return the sum of all the items in JSON array interpreted as 32-bit signed integers</summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;int&gt;().Sum()</c></remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public int SumInt32()
 		{
@@ -2362,6 +2297,8 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Return the sum of all the items in JSON array interpreted as 32-bit unsigned integers</summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;uint&gt;().Sum()</c></remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public uint SumUInt32()
 		{
@@ -2373,7 +2310,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-
+		/// <summary>Deserialize this JSON array into a list of <see cref="long"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<long> ToInt64List()
 		{
@@ -2396,6 +2333,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="ulong"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<ulong> ToUInt64List()
 		{
@@ -2418,6 +2356,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="float"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<float> ToSingleList()
 		{
@@ -2440,6 +2379,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="double"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<double> ToDoubleList()
 		{
@@ -2462,6 +2402,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="decimal"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<decimal> ToDecimalList()
 		{
@@ -2484,6 +2425,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="Guid"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<Guid> ToGuidList()
 		{
@@ -2495,6 +2437,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="NodaTime.Instant"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<NodaTime.Instant> ToInstantList()
 		{
@@ -2506,6 +2449,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="string"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<string?> ToStringList()
 		{
@@ -3196,11 +3140,11 @@ namespace Doxense.Serialization.Json
 	{
 		//note: this is to convert JsonValue into JsonArray, JsonObject, JsonType, ...
 
-		private readonly JsonValue?[] m_items;
+		private readonly JsonValue[] m_items;
 		private readonly int m_size;
 		private readonly bool m_required;
 
-		internal JsonArray(JsonValue?[] items, int size, bool required)
+		internal JsonArray(JsonValue[] items, int size, bool required)
 		{
 			m_items = items;
 			m_size = size;
@@ -3208,36 +3152,27 @@ namespace Doxense.Serialization.Json
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Enumerator GetEnumerator()
-		{
-			return new Enumerator(m_items, m_size, m_required);
-		}
+		public Enumerator GetEnumerator() => new(m_items, m_size, m_required);
 
-		IEnumerator<TJson> IEnumerable<TJson>.GetEnumerator()
-		{
-			return GetEnumerator();
-		}
+		IEnumerator<TJson> IEnumerable<TJson>.GetEnumerator() => new Enumerator(m_items, m_size, m_required);
 
-		IEnumerator IEnumerable.GetEnumerator()
-		{
-			return GetEnumerator();
-		}
+		IEnumerator IEnumerable.GetEnumerator() => new Enumerator(m_items, m_size, m_required);
 
 		/// <summary>Enumerator qui cast chaque élément d'une <see cref="JsonArray"/> en un <b>TJson</b>.</summary>
 		public struct Enumerator : IEnumerator<TJson>
 		{
-			private readonly JsonValue?[] m_items;
+			private readonly JsonValue[] m_items;
 			private readonly int m_size;
 			private int m_index;
 			private TJson? m_current;
 			private readonly bool m_required;
 
-			internal Enumerator(JsonValue?[] items, int size, bool required)
+			internal Enumerator(JsonValue[] items, int size, bool required)
 			{
 				m_items = items;
 				m_size = size;
 				m_index = 0;
-				m_current = default(TJson);
+				m_current = default;
 				m_required = required;
 			}
 
@@ -3249,7 +3184,7 @@ namespace Doxense.Serialization.Json
 				//TODO: check versioning?
 				if ((uint) m_index < (uint) m_size)
 				{
-					if (!(m_items[m_index] is TJson val))
+					if (m_items[m_index] is not TJson val)
 					{ // null ou autre type de Json
 						return MoveNextNullOrInvalidCast();
 					}
@@ -3288,7 +3223,7 @@ namespace Doxense.Serialization.Json
 			{
 				//TODO: check versioning?
 				m_index = m_size + 1;
-				m_current = default(TJson);
+				m_current = default;
 				return false;
 			}
 
@@ -3308,7 +3243,7 @@ namespace Doxense.Serialization.Json
 			{
 				//TODO: check versioning?
 				m_index = 0;
-				m_current = default(TJson);
+				m_current = default;
 			}
 
 			public TJson Current => m_current!;
@@ -3336,15 +3271,15 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static InvalidCastException FailElementAtIndexCannotBeConverted(int index, JsonValue val) => new InvalidCastException($"The JSON element at index {index} contains a {val.GetType().Name} that cannot be converted into a {typeof(TJson).Name}");
+		private static InvalidCastException FailElementAtIndexCannotBeConverted(int index, JsonValue val) => new($"The JSON element at index {index} contains a {val.GetType().Name} that cannot be converted into a {typeof(TJson).Name}");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static InvalidOperationException FailElementAtIndexNullOrMissing(int index) => new InvalidOperationException($"The JSON element at index {index} is null or missing");
+		private static InvalidOperationException FailElementAtIndexNullOrMissing(int index) => new($"The JSON element at index {index} is null or missing");
 
 		[Pure]
 		public TJson[] ToArray()
 		{
-			if (m_size == 0) return Array.Empty<TJson>();
+			if (m_size == 0) return [];
 			var res = new TJson[m_size];
 			int p = 0;
 			foreach (var item in this)
@@ -3360,7 +3295,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(transform);
 
-			if (m_size == 0) return Array.Empty<T>();
+			if (m_size == 0) return [];
 			var res = new T[m_size];
 			int p = 0;
 			foreach (var item in this)

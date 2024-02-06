@@ -49,6 +49,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Resolver JSON qui utilise la reflection pour énumérer les membres d'un type</summary>
 	public class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
 	{
+
 		#region Private Members...
 
 		private readonly QuasiImmutableCache<Type, CrystalJsonTypeDefinition?> m_typeDefinitionCache = new (TypeEqualityComparer.Default);
@@ -140,7 +141,7 @@ namespace Doxense.Serialization.Json
 
 		private CrystalJsonTypeDefinition CreateFromKeyValuePair(Type type)
 		{
-			// on a en entrée: "{ Key: ..., Value: ... }" et on veut en sortie un KeyValuePair<TKey, TValue>
+			// We have an input that looks like "{ Key: ..., Value: ... }", and we want to convert it into the corresponding KeyValuePair<TKey, TValue>
 
 			// (value, _, resolver) =>
 			// {
@@ -226,14 +227,14 @@ namespace Doxense.Serialization.Json
 			return Type.GetType(classId);
 		}
 
-		/// <summary>Bind une valeur JSON en un type CLR spécifique</summary>
+		/// <inheritdoc />
 		public T? BindJson<T>(JsonValue? value)
 		{
 			var res = BindJsonValue(typeof(T), value);
 			return res == null ? default(T)! : (T) res;
 		}
 
-		/// <summary>Bind une valeur JSON en type CLR correspondant (ValueType, Class, List, ...)</summary>
+		/// <inheritdoc />
 		public virtual object? BindJsonValue(Type? type, JsonValue? value)
 		{
 #if DEBUG_JSON_BINDER
@@ -263,7 +264,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Bind un objet JSON en type CLR</summary>
+		/// <inheritdoc />
 		public virtual object? BindJsonObject(Type? type, JsonObject? value)
 		{
 #if DEBUG_JSON_BINDER
@@ -288,7 +289,7 @@ namespace Doxense.Serialization.Json
 
 		private static readonly Func<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> JsonArrayBinderCallback = CreateDefaultJsonArrayBinder;
 
-		/// <summary>Bind un liste JSON en liste d'objets CLR</summary>
+		/// <inheritdoc />
 		public virtual object? BindJsonArray(Type? type, JsonArray? array)
 		{
 			// ReSharper disable once ConvertClosureToMethodGroup
@@ -302,24 +303,27 @@ namespace Doxense.Serialization.Json
 #endif
 
 			if (type == null || typeof(object) == type)
-			{ // Auto-detection ?
+			{ // Auto-detect?
 				return (_, array) => array?.ToObject();
 			}
 
 			if (typeof(JsonArray) == type || typeof(JsonValue) == type)
-			{ // C'est déjà une Array !
+			{ // This is already an Array!
 				return (_, array) => array;
 			}
 
 			if (typeof(string) == type)
-			{ // on ne peut pas convertir une JSON Array en string
+			{ // We cannot convert an array into a string
 				return CreateDefaultJsonArrayBinder_Invalid(type); //note: pour éviter que ca matche le cas IEnumerable plus bas!
 			}
 
-			// ex: si on nous appel avec int[] c'est qu'on bind un int[][]
-			// si on nous appel avec int c'est qu'on ne veut probablement plus de sous arrays...
 			if (type.IsArray)
-			{ // on veut binder dans un tableau
+			{ // return type is an array (T[])
+
+				// ex:
+				// if we are called with type == typeof(int), we must output an int[]
+				// if we are called with type == typeof(int[]), we must output a 2-dimensional array of type 'int[][]'
+
 				Type elementType = type.GetElementType()!;
 				if (elementType == typeof(bool)) return (_, array) => array?.ToBoolArray();
 				if (elementType == typeof(string)) return (_, array) => array?.ToStringArray();
@@ -332,17 +336,16 @@ namespace Doxense.Serialization.Json
 				return CreateDefaultJsonArrayBinder_Filler(nameof(FillArray), elementType);
 			}
 
-			// est-ce une liste générique ?
+			// is this a List<T> or other generic collection type?
 			if (type.IsGenericType)
 			{
-				// Si le type dérive de ICollection<> / IList<> on va créer une List<T> modifiable
-				// Si le type ne dérive que de IEnumerable<> on va créer une ReadOnlyCollection<T>
+				// If the type derives from ICollection<> or IList<>, we will create a mutable List<T>
+				// If the type only implements IEnumerable<>, we will create a ReadOnlyCollection<T>
 
-				// Si l'appelant nous donne une interface, on va chercher la classe la plus adaptée
-				// Si l'appelant nous donne une classe spécifique
-				// > Si c'est un type connu (List<T>, ReadOnlyCollection<T>, ImmutableList<T>) on utilise le filler correspondant
-				// > Sinon, on construit le type manuellement, et on appelle Add() ou AddRange() (comme le fait le compilateur avec les collection initializers)
-
+				// If the caller requests an interface, we will choose the most appropriate type
+				// If the caller specifies a concret type:
+				// - If this is a known type (List<T>, ReadOnlyCollection<T>, ImmutableList<T>), we can use the dedicated filler method
+				// - If not, we have to construct the type manually, and call Add() or AddRange() (like the compiler does with collection initializers)
 				string? filler = null;
 
 				if (type.IsGenericInstanceOf(typeof(IEnumerable<>)))
@@ -376,17 +379,17 @@ namespace Doxense.Serialization.Json
 								filler = nameof(FillHashSet);
 							}
 							else
-							{ // => List<T> aussi ?
+							{ // => List<T> also ?
 								filler = nameof(FillList);
 							}
 						}
 						else
-						{ // => l'appelant accepte n'importe quoi
+						{ // => caller does not care
 							filler = nameof(FillEnumerable);
 						}
 					}
 					else
-					{ // on va regarder si c'est quelque chose qu'on connaît
+					{ // is this something we know about ?
 
 						if (type.IsGenericInstanceOf(typeof(List<>)))
 						{
@@ -1497,15 +1500,16 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static InvalidOperationException FailCannotDeserializeNotJsonObject(Type t)
-		{
-			return new InvalidOperationException($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonObject");
-		}
+		private static InvalidOperationException FailCannotDeserializeNotJsonObject(Type t) => new($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonObject");
 
 		private static CrystalJsonTypeBinder? CreateBinderForKeyValuePair([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
 		{
 			var args = type.GetGenericArguments();
-			if (args.Length != 2) return null; // <= on ne supporte que les KeyValuePair<K, V>
+			if (args.Length != 2)
+			{
+				return null; // <= on ne supporte que les KeyValuePair<K, V>
+			}
+
 			var keyType = args[0];
 			var valueType = args[1];
 
@@ -1529,7 +1533,8 @@ namespace Doxense.Serialization.Json
 		{
 			return (v, t, r) =>
 			{
-				if (v == null || v.IsNull) return empty;
+				if (v is null or JsonNull) return empty;
+				Contract.Debug.Assert(v is JsonArray);
 
 				var arr = (JsonArray) v;
 				if (arr.Count == 0) return empty;
@@ -1543,14 +1548,11 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static InvalidOperationException FailCannotDeserializeNotJsonArrayPair(Type t)
-		{
-			return new InvalidOperationException($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonArray with 2 elements");
-		}
+		private static InvalidOperationException FailCannotDeserializeNotJsonArrayPair(Type t) => new($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonArray with 2 elements");
 
 		private static CrystalJsonTypeBinder CreateBinderForValueTuple(Type type)
 		{
-			// on veut écrire: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].As<Ti>(resolver), ...)
+			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].As<Ti>(resolver), ...)
 
 			var prmValue = Expression.Parameter(typeof(JsonValue), "value");
 			var prmType = Expression.Parameter(typeof(Type), "type");
@@ -1562,14 +1564,14 @@ namespace Doxense.Serialization.Json
 			if (args.Length > 0)
 			{
 				// JsonValue JsonValue[int index]
-				var arrayIndexer = typeof(JsonValue).GetProperty("Item", typeof(JsonValue), new[] { typeof(int) });
+				var arrayIndexer = typeof(JsonValue).GetProperty("Item", typeof(JsonValue), [ typeof(int) ]);
 
 				// JsonValue.As<T>(resolver)
 				var asMethod = typeof(JsonValueExtensions).GetMethod(
 					nameof(JsonValueExtensions.As),
 					BindingFlags.Static | BindingFlags.Public,
 					null,
-					new [] {typeof(JsonValue), typeof(ICrystalJsonTypeResolver)},
+					[ typeof(JsonValue), typeof(ICrystalJsonTypeResolver) ],
 					null);
 				Contract.Debug.Assert(asMethod != null, "Could not find the JsonValue.As<...>(...) extension method!");
 
@@ -1579,7 +1581,7 @@ namespace Doxense.Serialization.Json
 					// value[i].As<Ti>(resolver)
 					items[i] = Expression.Call(
 						asMethod.MakeGenericMethod(args[i]),
-						Expression.MakeIndex(prmValue, arrayIndexer, new Expression[] {Expression.Constant(i)}),
+						Expression.MakeIndex(prmValue, arrayIndexer, [ Expression.Constant(i) ]),
 						prmResolver
 					);
 				}
@@ -1599,7 +1601,7 @@ namespace Doxense.Serialization.Json
 				expr = Expression.Constant(ValueTuple.Create()).BoxToObject();
 			}
 
-			return Expression.Lambda<CrystalJsonTypeBinder>(expr, "<>_VT_" + args.Length + "_" + type.Name + "_Unpack", true, new[] {prmValue, prmType, prmResolver}).Compile();
+			return Expression.Lambda<CrystalJsonTypeBinder>(expr, "<>_VT_" + args.Length + "_" + type.Name + "_Unpack", true, new[] { prmValue, prmType, prmResolver }).Compile();
 		}
 
 	}

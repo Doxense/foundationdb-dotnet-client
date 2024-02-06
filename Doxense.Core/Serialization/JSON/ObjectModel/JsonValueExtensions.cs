@@ -43,7 +43,7 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("null=>true"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsNullOrMissing([NotNullWhen(false)] this JsonValue? value)
 		{
-			return object.ReferenceEquals(value, null) || value.IsNull;
+			return value is null || value.IsNull;
 		}
 
 		/// <summary>Test si une valeur JSON est l'équivalent logique de 'missing'</summary>
@@ -54,7 +54,7 @@ namespace Doxense.Serialization.Json
 		public static bool IsMissing([NotNullWhen(false)] this JsonValue? value)
 		{
 			//note: JsonNull.Error est un singleton, donc on peut le comparer par référence!
-			return !object.ReferenceEquals(value, null) && object.ReferenceEquals(value, JsonNull.Missing);
+			return ReferenceEquals(value, JsonNull.Missing);
 		}
 
 
@@ -66,7 +66,7 @@ namespace Doxense.Serialization.Json
 		public static bool IsError([NotNullWhen(false)] this JsonValue? value)
 		{
 			//note: JsonNull.Error est un singleton, donc on peut le comparer par référence!
-			return !object.ReferenceEquals(value, null) && object.ReferenceEquals(value, JsonNull.Error);
+			return ReferenceEquals(value, JsonNull.Error);
 		}
 
 		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
@@ -75,7 +75,7 @@ namespace Doxense.Serialization.Json
 		[ ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Required(this JsonValue? value)
 		{
-			return IsNullOrMissing(value) ? FailValueIsNullOrMissing() : value;
+			return value is not null && !value.IsNull ? value : FailValueIsNullOrMissing();
 		}
 
 		/// <summary>Vérifie qu'une valeur JSON est bien présente dans une array</summary>
@@ -85,7 +85,7 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue RequiredIndex(this JsonValue? value, int index)
 		{
-			return IsNullOrMissing(value) ? FailIndexIsNullOrMissing(index) : value;
+			return value is not null && !value.IsNull ? value : FailIndexIsNullOrMissing(index);
 		}
 
 		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
@@ -95,7 +95,7 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue RequiredField(this JsonValue? value, string field)
 		{
-			return IsNullOrMissing(value) ? FailFieldIsNullOrMissing(field) : value;
+			return value is not null && !value.IsNull ? value : FailFieldIsNullOrMissing(field);
 		}
 
 		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
@@ -105,7 +105,7 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue RequiredPath(this JsonValue? value, string path)
 		{
-			return IsNullOrMissing(value) ? FailPathIsNullOrMissing(path) : value;
+			return value is not null && !value.IsNull ? value : FailPathIsNullOrMissing(path);
 		}
 
 		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
@@ -114,8 +114,7 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("null => halt")]
 		public static JsonArray Required(this JsonArray? value)
 		{
-			if (IsNullOrMissing(value)) return FailArrayIsNullOrMissing();
-			return value;
+			return value is not null && !value.IsNull ? value : FailArrayIsNullOrMissing();
 		}
 
 		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
@@ -124,45 +123,26 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("null => halt")]
 		public static JsonObject Required(this JsonObject? value)
 		{
-			if (IsNullOrMissing(value)) return FailObjectIsNullOrMissing();
-			return value;
+			return value is not null && !value.IsNull ? value : FailObjectIsNullOrMissing();
 		}
 
 		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailValueIsNullOrMissing()
-		{
-			throw new InvalidOperationException("Required JSON value was null or missing.");
-		}
+		internal static JsonValue FailValueIsNullOrMissing() => throw new InvalidOperationException("Required JSON value was null or missing.");
 
 		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonArray FailArrayIsNullOrMissing()
-		{
-			throw new InvalidOperationException("Required JSON array was null or missing.");
-		}
+		internal static JsonArray FailArrayIsNullOrMissing() => throw new InvalidOperationException("Required JSON array was null or missing.");
 
 		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailIndexIsNullOrMissing(int index)
-		{
-			throw new InvalidOperationException($"Required JSON field at index {index} was null or missing.");
-		}
+		internal static JsonValue FailIndexIsNullOrMissing(int index) => throw new InvalidOperationException($"Required JSON field at index {index} was null or missing.");
 
 		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailFieldIsNullOrMissing(string field)
-		{
-			throw new InvalidOperationException($"Required JSON field '{field}' was null or missing.");
-		}
+		internal static JsonValue FailFieldIsNullOrMissing(string field) => throw new InvalidOperationException($"Required JSON field '{field}' was null or missing.");
 
 		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailFieldIsEmpty(string field)
-		{
-			throw new InvalidOperationException($"Required JSON field '{field}' was empty.");
-		}
+		internal static JsonValue FailFieldIsEmpty(string field) => throw new InvalidOperationException($"Required JSON field '{field}' was empty.");
 
 		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailPathIsNullOrMissing(string path)
-		{
-			throw new InvalidOperationException($"Required JSON path '{path}' was null or missing.");
-		}
+		internal static JsonValue FailPathIsNullOrMissing(string path) => throw new InvalidOperationException($"Required JSON path '{path}' was null or missing.");
 
 		#region ToStuff(...)
 
@@ -219,9 +199,6 @@ namespace Doxense.Serialization.Json
 		#endregion
 
 		#region As<T>...
-
-		//REVIEW: "AsXXX()" en général c'est pour du casting, et "ToXXX()" pour de la conversion...
-		//note: appelé ToObject<T> dans Json.NET
 
 		/// <summary>Bind cette valeur JSON en une instance d'un type CLR</summary>
 		/// <remarks>Si la valeur est null, retourne default(<typeparam name="T"/>)</remarks>
@@ -529,7 +506,7 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("missingValue:notnull => notnull")]
 		public static JsonValue OrDefault(this JsonValue? value, JsonValue missingValue)
 		{
-			return value.IsNullOrMissing() ? missingValue : value;
+			return value is not null && !value.IsNull ? value : missingValue;
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -538,7 +515,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault(this JsonValue? value, Func<JsonValue?> factory)
 		{
-			return value.IsNullOrMissing() ? (factory() ?? JsonNull.Null) : value;
+			return value is not null && !value.IsNull ? value : (factory() ?? JsonNull.Null);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -548,7 +525,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault<TArg>(this JsonValue? value, Func<TArg, JsonValue?> factory, TArg arg)
 		{
-			return value.IsNullOrMissing() ? (factory(arg) ?? JsonNull.Null) : value;
+			return value is not null && !value.IsNull ? value : (factory(arg) ?? JsonNull.Null);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -557,7 +534,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, string missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonString.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -566,7 +543,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, bool missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonBoolean.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonBoolean.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -575,7 +552,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, int missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonNumber.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -584,7 +561,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, long missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonNumber.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -593,7 +570,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, double missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonNumber.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -602,7 +579,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, float missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonNumber.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -611,7 +588,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, Guid missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonString.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonString.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -620,7 +597,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, TimeSpan missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonNumber.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonNumber.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -629,7 +606,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, DateTime missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonDateTime.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -638,7 +615,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault(this JsonValue? value, DateTimeOffset missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonDateTime.Return(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonDateTime.Return(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -647,7 +624,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue OrDefault<TValue>(this JsonValue? value, TValue? missingValue)
 		{
-			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(missingValue) : value;
+			return value is not null && !value.IsNull ? value : JsonValue.FromValue<TValue>(missingValue);
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -656,7 +633,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault<TValue>(this JsonValue? value, Func<TValue> factory)
 		{
-			return value.IsNullOrMissing() ? JsonValue.FromValue<TValue>(factory()) : value;
+			return value is not null && !value.IsNull ? value : JsonValue.FromValue<TValue>(factory());
 		}
 
 		/// <summary>Retourne une valeur par défaut si la valeur JSON est null ou manquante</summary>
@@ -666,7 +643,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si <paramref name="factory"/> return null, la valeur retournée sera <see cref="JsonNull.Null"/></remarks>
 		public static JsonValue OrDefault<TValue, TArg>(this JsonValue? value, Func<TArg?, TValue> factory, TArg? arg)
 		{
-			return value.IsNullOrMissing() ? JsonValue.FromValue(factory(arg)) : value;
+			return value is not null && !value.IsNull ? value : JsonValue.FromValue(factory(arg));
 		}
 
 		#endregion
@@ -720,16 +697,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonObject FailObjectIsNullOrMissing()
-		{
-			throw new InvalidOperationException("Required JSON object was null or missing.");
-		}
+		internal static JsonObject FailObjectIsNullOrMissing() => throw new InvalidOperationException("Required JSON object was null or missing.");
 
 		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonObject FailValueIsNotAnObject(JsonValue value)
-		{
-			throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value.Type);
-		}
+		internal static JsonObject FailValueIsNotAnObject(JsonValue value) => throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value.Type);
 
 		[Pure]
 		public static JsonObject ToJsonObject([InstantHandle] this IEnumerable<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)

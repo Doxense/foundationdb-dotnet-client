@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Caching;
 	using JetBrains.Annotations;
@@ -39,6 +40,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerNonUserCode]
 	public sealed class CrystalJsonSettings : IEquatable<CrystalJsonSettings>
 	{
+
 		#region Nested Enums ...
 
 		/// <summary>Mode de formatage du texte JSON généré</summary>
@@ -191,65 +193,75 @@ namespace Doxense.Serialization.Json
 		public OptionFlags Flags
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return m_flags; } }
+			get => m_flags;
+		}
 
 		/// <summary>Language cible de la sérialisation (JSON, JavaScript, ...)</summary>
 		public Target TargetLanguage
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (Target)(((int)m_flags >> 16) & 0x3); }
+			get => (Target) (((int) m_flags >> 16) & 0x3);
 		}
 
 		private static OptionFlags SetTargetLanguage(OptionFlags flags, Target value)
 		{
-			if (value < Target.Json || value > Target.JavaScript) throw new ArgumentException("Invalid target language mode", nameof(value));
-			return (flags & ~OptionFlags.Target_Mask) | (OptionFlags)(((int)value & 0x3) << 16);
+			return value is >= Target.Json and <= Target.JavaScript ? (flags & ~OptionFlags.Target_Mask) | (OptionFlags) (((int) value & 0x3) << 16) : FailInvalidTargetLanguage();
+
+			[DoesNotReturn]
+			static OptionFlags FailInvalidTargetLanguage() => throw new ArgumentException("Invalid target language mode", nameof(value));
 		}
 
 		/// <summary>Mode de formattage du texte</summary>
 		public Layout TextLayout
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (Layout) (((int)m_flags >> 8) & 0x3); }
+			get => (Layout) (((int)m_flags >> 8) & 0x3);
 		}
 
 		private static OptionFlags SetTextLayout(OptionFlags flags, Layout value)
 		{
-			if (value < Layout.Formatted || value > Layout.Compact) throw new ArgumentException("Invalid text layout mode", nameof(value));
-			return (flags & ~OptionFlags.Layout_Mask) | (OptionFlags)(((int)value & 0x3) << 8);
+			return value is >= Layout.Formatted and <= Layout.Compact ? (flags & ~OptionFlags.Layout_Mask) | (OptionFlags) (((int) value & 0x3) << 8) : FailInvalidTextLayout();
+
+			[DoesNotReturn]
+			static OptionFlags FailInvalidTextLayout() => throw new ArgumentException("Invalid text layout mode", nameof(value));
 		}
 
 		/// <summary>Format de conversion de dates</summary>
 		public DateFormat DateFormatting
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (DateFormat)(((int)m_flags >> 10) & 0x3); }
+			get => (DateFormat) (((int) m_flags >> 10) & 0x3);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetDateFormatting(OptionFlags flags, DateFormat value)
 		{
-			if (value < DateFormat.Default || value > DateFormat.JavaScript) throw new ArgumentException("Invalid date format mode", nameof(value));
-			return (flags & ~OptionFlags.DateFormat_Mask) | (OptionFlags)(((int)value & 0x3) << 10);
+			return value is >= DateFormat.Default and <= DateFormat.JavaScript ? (flags & ~OptionFlags.DateFormat_Mask) | (OptionFlags) (((int) value & 0x3) << 10) : FailInvalidDateFormatting();
+
+			[DoesNotReturn]
+			static OptionFlags FailInvalidDateFormatting() => throw new ArgumentException("Invalid date format mode", nameof(value));
 		}
 
 		/// <summary>Si true, n'interne pas les noms de propriétés des objets</summary>
 		public StringInterning InterningMode
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (StringInterning)(((int)m_flags >> 12) & 0x3); }
+			get => (StringInterning)(((int)m_flags >> 12) & 0x3);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetInterningMode(OptionFlags flags, StringInterning value)
 		{
-			if (value < StringInterning.Default || value > StringInterning.IncludeValues) throw new ArgumentException("Invalid string interning mode", nameof(value));
-			return (flags & ~OptionFlags.StringInterning_Mask) | (OptionFlags) (((int) value & 0x3) << 12);
+			return value is >= StringInterning.Default and <= StringInterning.IncludeValues ? (flags & ~OptionFlags.StringInterning_Mask) | (OptionFlags) (((int) value & 0x3) << 12) : FailInvalidInterningMode();
+
+			static OptionFlags FailInvalidInterningMode() => throw new ArgumentException("Invalid string interning mode", nameof(value));
 		}
 
 		/// <summary>Si true, convertit les noms de propriétés en camelCasing</summary>
 		public bool UseCamelCasingForNames
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.UseCamelCasingForName) != 0; }
+			get => (m_flags & OptionFlags.UseCamelCasingForName) != 0;
 		}
 
 		private static OptionFlags SetUseCamelCasingForNames(OptionFlags flags, bool value)
@@ -261,137 +273,129 @@ namespace Doxense.Serialization.Json
 		public bool IgnoreCaseForNames
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.FieldsIgnoreCase) != 0; }
+			get => (m_flags & OptionFlags.FieldsIgnoreCase) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetIgnoreCaseForNames(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.FieldsIgnoreCase : flags & ~OptionFlags.FieldsIgnoreCase;
-		}
+			=> value ? flags | OptionFlags.FieldsIgnoreCase : flags & ~OptionFlags.FieldsIgnoreCase;
 
 		/// <summary>Si true, sérialise quand même les membres null (class ou Nullable) d'un objet.</summary>
 		/// <remarks>Ignoré si HideDefaultValues = true</remarks>
 		public bool ShowNullMembers
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.ShowNullMembers) != 0; }
+			get => (m_flags & OptionFlags.ShowNullMembers) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetShowNullMembers(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.ShowNullMembers : flags & ~OptionFlags.ShowNullMembers;
-		}
+			=> value ? flags | OptionFlags.ShowNullMembers : flags & ~OptionFlags.ShowNullMembers;
 
 		/// <summary>Si true, ne sérialise pas les members égal à default(T) (null, 0, false, DateTime.MinValue, etc..)</summary>
 		/// <remarks>Override ShowNullMembers si true</remarks>
 		public bool HideDefaultValues
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.HideDefaultValues) != 0; }
+			get => (m_flags & OptionFlags.HideDefaultValues) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetHideDefaultValues(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.HideDefaultValues : flags & ~OptionFlags.HideDefaultValues;
-		}
+			=> value ? flags | OptionFlags.HideDefaultValues : flags & ~OptionFlags.HideDefaultValues;
 
 		/// <summary>Si true, ne sérialise pas les members égal à default(T) (null, 0, false, DateTime.MinValue, etc..)</summary>
 		public bool EnumsAsString
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.EnumsAsString) != 0; }
+			get => (m_flags & OptionFlags.EnumsAsString) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetEnumsAsString(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.EnumsAsString : flags & ~OptionFlags.EnumsAsString;
-		}
+			=> value ? flags | OptionFlags.EnumsAsString : flags & ~OptionFlags.EnumsAsString;
 
 		/// <summary>Si true, convertit les énumérations en camelCasing</summary>
 		public bool UseCamelCasingForEnums
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.UseCamelCasingForEnums) != 0; }
+			get => (m_flags & OptionFlags.UseCamelCasingForEnums) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetUseCamelCasingForEnums(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.UseCamelCasingForEnums : flags & ~OptionFlags.UseCamelCasingForEnums;
-		}
+			=> value ? flags | OptionFlags.UseCamelCasingForEnums : flags & ~OptionFlags.UseCamelCasingForEnums;
 
 		/// <summary>Si true, ne track pas les objets visités (protection contre la récursion)</summary>
 		/// <remarks>Il reste toujours la protection contre la profondeur maximale</remarks>
 		public bool DoNotTrackVisitedObjects
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.DoNotTrackVisited) != 0; }
+			get => (m_flags & OptionFlags.DoNotTrackVisited) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetDoNotTrackVisitedObjects(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.DoNotTrackVisited : flags & ~OptionFlags.DoNotTrackVisited;
-		}
+			=> value ? flags | OptionFlags.DoNotTrackVisited : flags & ~OptionFlags.DoNotTrackVisited;
 
 		/// <summary>Si true, on s'attend a ce que le JSON généré soit de taille conséquente.</summary>
 		/// <remarks>Augmente la taille des buffer utilisés pour la sérialisation / désérialisation</remarks>
 		public bool OptimizeForLargeData
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.OptimizeForLargeData) != 0; }
+			get => (m_flags & OptionFlags.OptimizeForLargeData) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetOptimizeForLargeData(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.OptimizeForLargeData : flags & ~OptionFlags.OptimizeForLargeData;
-		}
+			=> value ? flags | OptionFlags.OptimizeForLargeData : flags & ~OptionFlags.OptimizeForLargeData;
 
 		/// <summary>Si true, ne génère pas l'attribut "_class" dans le JSON généré</summary>
 		public bool HideClassId
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.HideClassId) != 0; }
+			get => (m_flags & OptionFlags.HideClassId) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetHideClassId(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.HideClassId : flags & ~OptionFlags.HideClassId;
-		}
+			=> value ? flags | OptionFlags.HideClassId : flags & ~OptionFlags.HideClassId;
 
 		/// <summary>Si true, interdit les ',' en trops à la fin d'une array ou d'un objet.</summary>
 		public bool DenyTrailingCommas
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.DenyTrailingComma) != 0; }
+			get => (m_flags & OptionFlags.DenyTrailingComma) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetDenyTrailingComma(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.DenyTrailingComma : flags & ~OptionFlags.DenyTrailingComma;
-		}
+			=> value ? flags | OptionFlags.DenyTrailingComma : flags & ~OptionFlags.DenyTrailingComma;
 
 		/// <summary>Si true, écrase les champs en doublons dans un objet en ne gardant que la dernière valeur. Si false, throw un exception</summary>
 		public bool OverwriteDuplicateFields
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (m_flags & OptionFlags.OverwriteDuplicateFields) != 0; }
+			get => (m_flags & OptionFlags.OverwriteDuplicateFields) != 0;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static OptionFlags SetOverwriteDuplicateFields(OptionFlags flags, bool value)
-		{
-			return value ? flags | OptionFlags.OverwriteDuplicateFields : flags & ~OptionFlags.OverwriteDuplicateFields;
-		}
+			=> value ? flags | OptionFlags.OverwriteDuplicateFields : flags & ~OptionFlags.OverwriteDuplicateFields;
 
 		/// <summary>Format de conversion de dates</summary>
 		public FloatFormat FloatFormatting
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (FloatFormat) (((int) m_flags >> 24) & 0x7); }
+			get => (FloatFormat) (((int) m_flags >> 24) & 0x7);
 		}
 
 		private static OptionFlags SetFloatFormatting(OptionFlags flags, FloatFormat value)
 		{
-			if (value < FloatFormat.Default || value > FloatFormat.Null) throw new ArgumentException("Invalid float formatting mode", nameof(value));
-			return (flags & ~OptionFlags.FloatFormat_Mask) | (OptionFlags) (((int) value & 0x7) << 24);
+			return value is >= FloatFormat.Default and <= FloatFormat.Null ? (flags & ~OptionFlags.FloatFormat_Mask) | (OptionFlags) (((int) value & 0x7) << 24) : FailInvalidFloatFormatting();
+
+			[DoesNotReturn]
+			static OptionFlags FailInvalidFloatFormatting() => throw new ArgumentException("Invalid float formatting mode", nameof(value));
 		}
 
 		#endregion
@@ -669,7 +673,7 @@ namespace Doxense.Serialization.Json
 
 		#region Default Globals...
 
-		/// <summary>Sérialization JSON (avec le minimum de formatage)</summary>
+		/// <summary>JSON serialiation, with only minimum formatting (single line, but still readable by humans)</summary>
 		public static CrystalJsonSettings Json { get; } = new CrystalJsonSettings();
 
 		/// <summary>Sérialization JSON (le plus compact possible)</summary>

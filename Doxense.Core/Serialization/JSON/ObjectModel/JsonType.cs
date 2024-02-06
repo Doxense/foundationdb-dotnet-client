@@ -31,22 +31,39 @@ namespace Doxense.Serialization.Json
 	/// <summary>Type d'une valeur JSON (String, Number, ...)</summary>
 	public enum JsonType
 	{
-		//note: l'ordre des valeurs influe sur l'ordre de tri de JsonValue de type différents (sauf null qui est toujours dernier)
+		//IMPORTANT: the order of these values has an impact on the ordering of JSON values when sorting (except Null which is always last)
 
-		/// <summary>Représente une valeur null, ou manquante. i.e: l'absence de valeur</summary>
+		/// <summary>Empty value, can either by an <see cref="JsonNull.Null">explicit null</see> (usually denoted by the <c>null</c> literal in the source document), a <see cref="JsonNull.Missing">missing value</see> (ex: <c>obj["does_not_exist"]</c>), or <see cref="JsonNull.Error">an error</see> of some kind</summary>
+		/// <remarks>The <see cref="JsonNull.Missing"/> is used when chaining (ex: <c>obj["foo"]["bar"]["baz"]) and allows distinguishing between explicit null entries denoted by <see cref="JsonNull.Null"/>, vs missing fields.</c></remarks>
 		Null,
-		/// <summary>True, ou False.</summary>
+
+		/// <summary>JSON Boolean, either <see cref="JsonBoolean.True"/> or <see cref="JsonBoolean.False"/>.</summary>
 		Boolean,
-		/// <summary>Nombre entier, ou décimal</summary>
+
+		/// <summary>JSON Number, any integer, floating point, or decimal value.</summary>
+		/// <remarks>Can express integer types up to <see cref="ulong.MaxValue"/>, which may not be compatible with remote targets like JavaScript or Python.</remarks>
 		Number,
-		/// <summary>[EXTENSION] Représente une date (sous forme de <see cref="String"/>). Utilisé uniquement pour optimiser certaines opérations</summary>
+
+		/// <summary>[EXTENSION] JSON Date, with or without a timezone.</summary>
+		/// <remarks>
+		/// <para>This type only exists in memory while serializing CLR objects (for optimization purpose), and is serialized as a string literal.</para>
+		/// <para>The same field will be parsed back as a <see cref="JsonType.String"/> value.</para>
+		/// <para>This type behaves the same way as a <see cref="JsonString"/>, and the developper should not use this type explicitely.</para>
+		/// </remarks>
 		DateTime,
-		/// <summary>Représente une chaîne de texte (éventuellement vide, mais pas null)</summary>
+
+		/// <summary>JSON String literal, a sequence of zero or more Unicode characters.</summary>
+		/// <remarks>Includes the empty string (<c>""</c>), but cannot be null.</remarks>
 		String,
-		/// <summary>Représente une liste de valeurs JSON (éventuellement vide, mais pas null)</summary>
+
+		/// <summary>JSON Array, an ordered list of zero or more elements.</summary>
+		/// <remarks>Includes the empty array (<c>[]</c>), but cannot be null.</remarks>
 		Array,
-		/// <summary>Représente une objet JSON (éventuellement vide, mais pas null)</summary>
+
+		/// <summary>JSON Object, an unordered set of name/values pairs.</summary>
+		/// <remarks>Includes the empty object (<c>{}</c>), but cannot be null.</remarks>
 		Object,
+
 	}
 
 }
