@@ -290,7 +290,7 @@ namespace Doxense.Threading.Operations
 
 	public interface IOperationWorflow<TRequest, TResult> : IOperationWorflow
 	{
-		Task<OperationResult<TResult>> ExecuteAsync();
+		Task<OperationResult<TResult>> ExecuteAsync(TRequest request);
 	}
 
 	public interface IOperationWorflow<TWorkflow, TRequest, TResult> : IOperationWorflow<TRequest, TResult>
@@ -314,12 +314,12 @@ namespace Doxense.Threading.Operations
 			this.Context = context;
 		}
 
-		public Task<OperationResult<TResult>> ExecuteAsync()
+		public Task<OperationResult<TResult>> ExecuteAsync(TParameter request)
 		{
-			return this.Context.Scheduler.ExecuteOperation<TResult>(this.Context, _ => this.ExecuteInternalAsync());
+			return this.Context.Scheduler.ExecuteOperation<TResult>(this.Context, _ => this.ExecuteInternalAsync(request));
 		}
 
-		protected abstract Task<OperationResult<TResult>> ExecuteInternalAsync();
+		protected abstract Task<OperationResult<TResult>> ExecuteInternalAsync(TParameter request);
 
 		protected CancellationToken Cancellation => this.Context.Cancellation;
 
@@ -342,7 +342,7 @@ namespace Doxense.Threading.Operations
 		protected OperationResult<TResult> Throw(Exception exception) => this.Context.Throw(exception);
 		//TOD: les autres!
 
-		public static TWorkflow CreateInstance(IServiceProvider services, string name, IOperationScheduler scheduler, TParameter req, CancellationToken ct)
+		public static TWorkflow CreateInstance(IServiceProvider services, string name, IOperationScheduler scheduler, CancellationToken ct)
 		{
 			var ctx = scheduler.Create<TResult>(name, null, null, ct);
 			return CreateInstance(services, ctx);
