@@ -1166,8 +1166,7 @@ namespace Doxense.Memory
 
 			// max encoded size is 10 bytes
 			var buffer = EnsureBytes(UnsafeHelpers.SizeOfVarInt(value));
-			ref byte start = ref buffer[this.Position];
-			ref byte ptr = ref start;
+			ref byte ptr = ref buffer[this.Position];
 			while (value >= MASK)
 			{
 				ptr = (byte) ((value & (MASK - 1)) | MASK);
@@ -1175,7 +1174,7 @@ namespace Doxense.Memory
 				ptr = ref Unsafe.Add(ref ptr, 1);
 			}
 			ptr = (byte) value;
-			this.Position = Unsafe.ByteOffset(ref start, ref ptr).ToInt32() + 1;
+			this.Position = Unsafe.ByteOffset(ref buffer[0], ref ptr).ToInt32() + 1;
 		}
 
 #if NET8_0_OR_GREATER
@@ -1193,8 +1192,7 @@ namespace Doxense.Memory
 
 			// max encoded size is 10 bytes
 			var buffer = EnsureBytes(UnsafeHelpers.SizeOfVarInt(value));
-			ref byte start = ref buffer[this.Position];
-			ref byte ptr = ref start;
+			ref byte ptr = ref buffer[this.Position];
 			while (value >= MASK)
 			{
 				byte x = (byte) value;
@@ -1203,7 +1201,7 @@ namespace Doxense.Memory
 				ptr = ref Unsafe.Add(ref ptr, 1);
 			}
 			ptr = (byte) value;
-			this.Position = Unsafe.ByteOffset(ref start, ref ptr).ToInt32() + 1;
+			this.Position = Unsafe.ByteOffset(ref buffer[0], ref ptr).ToInt32() + 1;
 		}
 
 #endif
