@@ -1181,7 +1181,7 @@ namespace Doxense.Testing
 			};
 			using (var writer = XmlWriter.Create(sb, settings))
 			{
-				writer.WriteNode(node.CreateNavigator(), true);
+				writer.WriteNode(node.CreateNavigator()!, true);
 			}
 
 			string xml = sb.ToString();
@@ -1533,6 +1533,237 @@ namespace Doxense.Testing
 		}
 
 #endif
+
+		#endregion
+
+		#region Randomness...
+
+		/// <summary>Return the random generator used by this test run</summary>
+		protected Randomizer Rnd => TestContext.CurrentContext.Random;
+
+		#region 32-bit...
+
+		/// <summary>Return a random 32-bit positive integer</summary>
+		/// <returns>Random value from <see langword="0"/> to <see langword="0xFFFFFFFFu"/> (included)</returns>
+		protected static uint NextRawBits32(Random rnd) => (uint) rnd.NextInt64(0, 0x100000000L);
+
+		/// <summary>Return a random 32-bit positive integer, with only the specified number of bits of enthropy</summary>
+		/// <returns>Random value from <see langword="0"/> to <c>(<see langword="1u"/> &lt;&lt; <paramref name="bits"/>) - <see langword="1"/></c> (included)</returns>
+		/// <example><c>NextRawBits32(rnd, 9)</c> will return values that range from <see langword="0"/> to <see langword="511"/> (included)</example>
+		protected static uint NextRawBits32(Random rnd, int bits) => bits switch
+		{
+			32 => NextRawBits32(rnd),
+			>= 1 and < 32 => (uint) rnd.NextInt64(0, 0x1L << bits),
+			_ => throw new ArgumentOutOfRangeException(nameof(bits), bits, "Can only generate between 1 and 32 bits or randomness")
+		};
+
+		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="int.MaxValue"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
+		protected int NextInt32() => NextInt32(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
+		protected int NextInt32(int max) => NextInt32(TestContext.CurrentContext.Random, max);
+
+		/// <summary>Return a random 33-bit integer X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/>></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
+		protected int NextInt32(int min, int max) => NextInt32(TestContext.CurrentContext.Random, min, max);
+
+		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="int.MaxValue"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
+		protected static int NextInt32(Random rnd) => rnd.Next();
+
+		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
+		protected static int NextInt32(Random rnd, int max) => rnd.Next(max);
+
+		/// <summary>Return a random 33-bit integer X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/>></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
+		protected static int NextInt32(Random rnd, int min, int max) => rnd.Next(min, max);
+
+		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="uint.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="uint.MaxValue"/></remarks>
+		protected uint NextUInt32() => NextUInt32(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random 32-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/></remarks>
+		protected uint NextUInt32(uint max) => NextUInt32(TestContext.CurrentContext.Random, max);
+
+		/// <summary>Return a random 32-bit positive integer X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/></remarks>
+		protected uint NextUInt32(uint min, uint max) => NextUInt32(TestContext.CurrentContext.Random, min, max);
+
+		/// <summary>Return a random 32-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="uint.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="uint.MaxValue"/></remarks>
+		protected static uint NextUInt32(Random rnd) => (uint) rnd.NextInt64(0, uint.MaxValue);
+
+		/// <summary>Return a random 32-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/></remarks>
+		protected static uint NextUInt32(Random rnd, uint max) => (uint) rnd.NextInt64(0, max);
+
+		/// <summary>Return a random 32-bit positive integer X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/></remarks>
+		protected static uint NextUInt32(Random rnd, uint min, uint max) => (uint) rnd.NextInt64(min, max);
+
+		#endregion
+
+		#region 64-bit...
+
+		/// <summary>Return a random 64-bit positive integer</summary>
+		/// <remarks>This method can return <see cref="ulong.MaxValue"/></remarks>
+		protected static ulong NextRawBits64(Random rnd)
+		{
+			// genereate 2 x 32 bits of enthropy
+			ulong a = (ulong) rnd.NextInt64(0, 0x100000000L);
+			ulong b = (ulong) rnd.NextInt64(0, 0x100000000L);
+			return (a << 32) | b;
+		}
+
+		/// <summary>Return a random 64-bit positive integer, with up to <paramref name="bits"/> bits of enthropy</summary>
+		/// <returns>Random value from <see langword="0"/> to <c>(<see langword="1u"/> &lt;&lt; <paramref name="bits"/>) - <see langword="1"/></c> (included)</returns>
+		/// <example><c>NextRawBits64(rnd, 42)</c> will return values that range from <see langword="0"/> to <see langword="4_398_046_511_103"/> (included)</example>
+		protected static ulong NextRawBits64(Random rnd, int bits) => bits switch
+		{
+			64 => NextRawBits64(rnd),
+			32 => NextRawBits32(rnd),
+			>= 1 and < 32 => (ulong) rnd.NextInt64(0, 0x1L << (bits - 1)),
+			< 64 => ((ulong) rnd.NextInt64(0, 0x1L << (bits - 32)) << 32) | NextRawBits32(rnd),
+			_ => throw new ArgumentOutOfRangeException(nameof(bits), bits, "Can only generate between 1 and 64 bits or randomness")
+		};
+
+		/// <summary>Return a random 63-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="long.MaxValue"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="long.MaxValue"/></remarks>
+		protected long NextInt64() => NextInt64(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random 63-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="long.MaxValue"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <see cref="long.MaxValue"/></remarks>
+		protected static long NextInt64(Random rnd) => rnd.NextInt64();
+
+		/// <summary>Return a random 63-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <paramref name="max"/></remarks>
+		protected static long NextInt64(Random rnd, long max) => rnd.NextInt64(0, max);
+
+		/// <summary>Return a random 63-bit positive integer X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result cannot be negative, and does not include <paramref name="max"/></remarks>
+		protected static long NextInt64(Random rnd, long min, long max) => rnd.NextInt64(min, max);
+
+		/// <summary>Return a random 63-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="ulong.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
+		protected ulong NextUInt64() => NextUInt64(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random 64-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="ulong.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
+		protected static ulong NextUInt64(Random rnd) => (ulong) rnd.NextInt64(long.MinValue, long.MaxValue);
+
+		/// <summary>Return a random 64-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/></remarks>
+		protected static ulong NextUInt64(Random rnd, ulong max)
+		{
+			if (max <= long.MaxValue)
+			{
+				return (ulong) rnd.NextInt64(0, (long) max);
+			}
+
+			if (max == ulong.MaxValue)
+			{ // full range
+				return (ulong) rnd.NextInt64(long.MinValue, long.MaxValue);
+			}
+
+			ulong a = (ulong) rnd.NextInt64(); // 0 <= a < long.MaxValue
+			ulong b = (ulong) rnd.NextInt64(0, (long) (max + 1 - long.MaxValue)); // 0 <= a <= (max - long.MaxValue)
+			return a + b;
+		}
+
+		/// <summary>Return a random 64-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/></remarks>
+		protected static ulong NextUInt64(Random rnd, ulong min, ulong max)
+		{
+			if (min <= long.MaxValue && max <= long.MaxValue)
+			{ // max 63 bits
+				return (ulong) rnd.NextInt64((long) min, (long) max);
+			}
+
+			if (min == 0 && max == ulong.MaxValue)
+			{ // full range
+				return (ulong) rnd.NextInt64(long.MinValue, long.MaxValue);
+			}
+
+			//REVIEW: I'm not sure if we are missing 1 value or not? for ex if min=1 && max=ulong.MaxValue ?
+			ulong r = max - min;
+			ulong a = (ulong) rnd.NextInt64(); // 0 <= a < long.MaxValue
+			ulong b = (ulong) rnd.NextInt64(0, (long) (r + 1 - long.MaxValue)); // 0 <= a <= (max - long.MaxValue)
+			return min + a + b;
+		}
+
+		#endregion
+
+		#region 128-bit...
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Return a random 127-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="Int128.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="Int128.MaxValue"/></remarks>
+		protected Int128 NextInt128() => NextInt128(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random 127-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="Int128.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="Int128.MaxValue"/></remarks>
+		protected static Int128 NextInt128(Random rnd) => new((ulong) NextInt64(rnd), NextRawBits64(rnd));
+
+		/// <summary>Return a random 128-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="UInt128.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
+		protected static UInt128 NextUInt128() => NextUInt128(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random 128-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="UInt128.MaxValue"/></summary>
+		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
+		protected static UInt128 NextUInt128(Random rnd) => new(NextUInt64(rnd), NextRawBits64(rnd));
+
+#endif
+
+		#endregion
+
+		#region Single...
+
+		/// <summary>Return a random IEEE 32-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
+		/// <remarks>The result does not include <see langword="1.0"/></remarks>
+		protected float NextSingle() => NextSingle(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random IEEE 32-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/></remarks>
+		protected float NextSingle(float max) => NextSingle(TestContext.CurrentContext.Random, max);
+
+		/// <summary>Return a random IEEE 32-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
+		/// <remarks>The result does not include <see langword="1.0"/></remarks>
+		protected static float NextSingle(Random rnd) => (float) rnd.NextDouble();
+
+		/// <summary>Return a random IEEE 32-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
+		/// <remarks>The result does not include <see langword="1.0"/></remarks>
+		protected static float NextSingle(Random rnd, float max) => max * (float) rnd.NextDouble();
+
+		#endregion
+
+		#region Double...
+
+		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
+		/// <remarks>The result does not include <see langword="1.0"/></remarks>
+		protected double NextDouble() => NextDouble(TestContext.CurrentContext.Random);
+
+		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <param name="max"></param></summary>
+		/// <remarks>The result does not include <see langword="1.0"/></remarks>
+		protected double NextDouble(double max) => NextDouble(TestContext.CurrentContext.Random, max);
+
+		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
+		/// <remarks>The result does not include <see langword="1.0"/></remarks>
+		protected static double NextDouble(Random rnd) => rnd.NextDouble();
+
+		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that 0.0 &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <see langword="1.0"/></remarks>
+		protected static double NextDouble(Random rnd, double max) => max * rnd.NextDouble();
+
+		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/></summary>
+		/// <remarks>The result does not include <paramref name="max"/>/></remarks>
+		protected static double NextDouble(Random rnd, double min, double max) => min + ((max - min) * rnd.NextDouble());
+
+		#endregion
 
 		#endregion
 
