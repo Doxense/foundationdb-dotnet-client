@@ -316,14 +316,10 @@ namespace Doxense.Serialization.Json.Binary
 
 					GetEntryAt(i, entry, dataOffset, dataLen, out JValue item);
 					arr[i] = item.ToJsonValue(table);
-#if DEBUG
-					if (!arr[i].IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
-#endif
-
 					dataOffset += dataLen;
 					childOffset += JENTRY_SIZEOF;
 				}
-				return new JsonArray(arr, numElems, readOnly: true);
+				return new JsonArray(arr, numElems, readOnly: false);
 			}
 
 			private JsonObject DecodeObject(StringTable? table)
@@ -360,11 +356,8 @@ namespace Doxense.Serialization.Json.Binary
 				for (int i = 0; i < numPairs; i++)
 				{
 					map[keys[i]] = values[i];
-#if DEBUG
-					if (!values[i].IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
-#endif
 				}
-				return new JsonObject(map, readOnly: true);
+				return new JsonObject(map, readOnly: false);
 			}
 
 			public JsonValue ToJsonValue(StringTable? table = null)

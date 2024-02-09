@@ -775,7 +775,7 @@ namespace Doxense.Serialization.Json.Binary
 		{
 			if (token == (int) TypeTokens.ArrayEmpty)
 			{
-				return JsonArray.EmptyReadOnly;
+				return JsonArray.Create();
 			}
 
 			//note: ARRAY_START has already been parsed
@@ -787,11 +787,8 @@ namespace Doxense.Serialization.Json.Binary
 				var val = (ReadValue(ref reader, next, settings) ?? JsonNull.Null);
 				arr ??= new JsonArray();
 				arr.Add(val);
-#if DEBUG
-				if (!val.IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
-#endif
 			}
-			return arr?.FreezeUnsafe() ?? JsonArray.EmptyReadOnly;
+			return arr ?? JsonArray.Create();
 		}
 
 		private static string? ParseSmallString(ref SliceReader reader, int token)
@@ -839,12 +836,9 @@ namespace Doxense.Serialization.Json.Binary
 				var val = ReadValue(ref reader, next, settings) ?? JsonNull.Null;
 				items ??= new Dictionary<string, JsonValue>(StringComparer.Ordinal);
 				items.Add(key, val);
-#if DEBUG
-				if (!val.IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
-#endif
 			}
 			// skip the OBJECT_STOP token
-			return items != null ? new JsonObject(items, readOnly: true) : JsonObject.EmptyReadOnly;
+			return items != null ? new JsonObject(items, readOnly: false) : JsonObject.Create();
 		}
 
 		#endregion
