@@ -68,7 +68,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public (Slice Token, Exception? Error) ReadBytes(int count)
 		{
-			if (this.Input.TryReadBytes(count, out var bytes))
+			if (this.Input.TryReadBytes(count, out Slice bytes))
 			{
 				return (bytes, null);
 			}

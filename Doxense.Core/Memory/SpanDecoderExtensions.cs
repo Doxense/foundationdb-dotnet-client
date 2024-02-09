@@ -791,10 +791,7 @@ namespace System
 		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 8 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static long ToInt64BE(this ReadOnlySpan<byte> span)
-		{
-			return span.Length <= 4 ? ToInt32BE(span) : ToInt64BESlow(span);
-		}
+		public static long ToInt64BE(this ReadOnlySpan<byte> span) => span.Length <= 4 ? ToInt32BE(span) : ToInt64BESlow(span);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long ToInt64BE(this Span<byte> span) => ToInt64BE((ReadOnlySpan<byte>) span);
@@ -1068,6 +1065,142 @@ namespace System
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 ToUuid128(this Span<byte> span) => ToUuid128((ReadOnlySpan<byte>) span);
+
+#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0 but we don't support it)
+
+		/// <summary>Converts a span into a little-endian encoded, signed 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Int128 ToInt128(this ReadOnlySpan<byte> span)
+		{
+			switch (span.Length)
+			{
+				case 0: return 0;
+				case 1: return span[0];
+				case 2: return MemoryMarshal.Read<ushort>(span);
+				case 3: return span[0] | (span[1] << 8) | (span[2] << 16);
+				case 4: return MemoryMarshal.Read<uint>(span);
+				case 8: return MemoryMarshal.Read<ulong>(span);
+				case 16: return MemoryMarshal.Read<Int128>(span);
+				default: return ToInt128Slow(span);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Int128 ToInt128(this Span<byte> span) => ToInt128((ReadOnlySpan<byte>) span);
+
+		[Pure]
+		private static Int128 ToInt128Slow(ReadOnlySpan<byte> span)
+		{
+			int n = span.Length;
+			if ((uint) n > 16) goto fail;
+
+			int p = n - 1;
+			Int128 value = span[p--];
+			while (--n > 0)
+			{
+				value = (value << 8) | span[p--];
+			}
+
+			return value;
+		fail:
+			throw new FormatException("Cannot convert span into an Int128 because it is larger than 16 bytes.");
+		}
+
+		/// <summary>Converts a span into a big-endian encoded, signed 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Int128 ToInt128BE(this ReadOnlySpan<byte> span) => span.Length <= 4 ? ToInt32BE(span) : ToInt128BESlow(span);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Int128 ToInt128BE(this Span<byte> span) => ToInt128BE((ReadOnlySpan<byte>) span);
+
+		[Pure]
+		private static Int128 ToInt128BESlow(ReadOnlySpan<byte> span)
+		{
+			int n = span.Length;
+			if (n == 0) return 0L;
+			if ((uint) n > 16) goto fail;
+
+			int p = 0;
+			Int128 value = span[p++];
+			while (--n > 0)
+			{
+				value = (value << 8) | span[p++];
+			}
+			return value;
+		fail:
+			throw new FormatException("Cannot convert span into an Int128 because it is larger than 16 bytes.");
+		}
+
+		/// <summary>Converts a span into a little-endian encoded, unsigned 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
+		[Pure]
+		public static UInt128 ToUInt128(this ReadOnlySpan<byte> span)
+		{
+			switch (span.Length)
+			{
+				case 0:  return 0;
+				case 1:  return span[0];
+				case 2:  return MemoryMarshal.Read<ushort>(span);
+				case 3:  return (UInt128) (span[0] | (span[1] << 8) | (span[2] << 16));
+				case 4:  return MemoryMarshal.Read<uint>(span);
+				case 8:  return MemoryMarshal.Read<ulong>(span);
+				case 16:  return MemoryMarshal.Read<UInt128>(span);
+				default: return ToUInt128Slow(span);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static UInt128 ToUInt128(this Span<byte> span) => ToUInt128((ReadOnlySpan<byte>) span);
+
+		private static UInt128 ToUInt128Slow(ReadOnlySpan<byte> span)
+		{
+			int n = span.Length;
+			if (n == 0) return 0L;
+			if ((uint) n > 16) goto fail;
+
+			int p = n - 1;
+			UInt128 value = span[p--];
+			while (--n > 0)
+			{
+				value = (value << 8) | span[p--];
+			}
+			return value;
+		fail:
+			throw new FormatException("Cannot convert span into an UInt128 because it is larger than 16 bytes.");
+		}
+
+		/// <summary>Converts a span into a little-endian encoded, unsigned 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static UInt128 ToUInt128BE(this ReadOnlySpan<byte> span) => span.Length <= 4 ? ToUInt32BE(span) : ToUInt128BESlow(span);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static UInt128 ToUInt128BE(this Span<byte> span) => ToUInt128BE((ReadOnlySpan<byte>) span);
+
+		private static UInt128 ToUInt128BESlow(ReadOnlySpan<byte> span)
+		{
+			int n = span.Length;
+			if (n == 0) return 0L;
+			if ((uint) n > 16) goto fail;
+
+			int p = 0;
+			UInt128 value = span[p++];
+			while (--n > 0)
+			{
+				value = (value << 8) | span[p++];
+			}
+			return value;
+		fail:
+			throw new FormatException("Cannot convert span into an UInt128 because it is larger than 16 bytes.");
+		}
+
+#endif
 
 		#endregion
 

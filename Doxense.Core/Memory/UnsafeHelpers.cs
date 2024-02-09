@@ -37,6 +37,7 @@
 namespace Doxense.Memory
 {
 	using System;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
@@ -261,6 +262,27 @@ namespace Doxense.Memory
 				return 10;
 			}
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Return the size (in bytes) that a 128-bit number would need when encoded as a VarInt</summary>
+		/// <param name="value">Number that needs to be encoded</param>
+		/// <returns>Number of bytes needed (1-19)</returns>
+		public static uint SizeOfVarInt(UInt128 value)
+		{
+			if (value < ((UInt128) 1UL << 63)) return SizeOfVarInt((ulong) value);
+			if (value < ((UInt128) 1UL << 70)) return 10;
+			if (value < ((UInt128) 1UL << 77)) return 11;
+			if (value < ((UInt128) 1UL << 84)) return 12;
+			if (value < ((UInt128) 1UL << 91)) return 13;
+			if (value < ((UInt128) 1UL << 98)) return 14;
+			if (value < ((UInt128) 1UL << 105)) return 15;
+			if (value < ((UInt128) 1UL << 112)) return 16;
+			if (value < ((UInt128) 1UL << 119)) return 17;
+			if (value < ((UInt128) 1UL << 126)) return 18;
+			return 19;
+		}
+#endif
 
 		/// <summary>Return the size (in bytes) that a variable-size array of bytes would need when encoded as a VarBytes</summary>
 		/// <param name="size">Size (in bytes) of the array</param>
@@ -2105,6 +2127,7 @@ namespace Doxense.Memory
 		[Pure]
 #if NET8_0_OR_GREATER
 		[Obsolete("System.Text.Ascii.IsValid(...) instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		public static bool IsAsciiString(ReadOnlySpan<char> value)
 		{
@@ -2235,6 +2258,7 @@ namespace Doxense.Memory
 		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
 #if NET8_0_OR_GREATER
 		[Obsolete("Use System.Text.Ascii.IsValid(...) instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		public static bool IsAsciiBytes(ReadOnlySpan<byte> buffer)
 		{
@@ -2430,116 +2454,64 @@ namespace Doxense.Memory
 		{
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static OverflowException PowerOfTwoOverflow()
-			{
-				return new OverflowException("Cannot compute the next power of two because the value would overflow.");
-			}
+			public static OverflowException PowerOfTwoOverflow() => new("Cannot compute the next power of two because the value would overflow.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static OverflowException PowerOfTwoNegative()
-			{
-				return new OverflowException("Cannot compute the next power of two for negative numbers.");
-			}
-
-			/// <summary>Reject an attempt to write past the end of a buffer</summary>
-			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static InvalidOperationException BufferOutOfBound()
-			{
-				return new InvalidOperationException("Attempt to write outside of the buffer, or at a position that would overflow past the end.");
-			}
-
-			[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowOffsetOutsideSlice()
-			{
-				throw OffsetOutsideSlice();
-			}
+			public static OverflowException PowerOfTwoNegative() => new("Cannot compute the next power of two for negative numbers.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static Exception OffsetOutsideSlice()
-			{
-				// ReSharper disable once NotResolvedInText
-				return ThrowHelper.ArgumentOutOfRangeException("offset", "Offset is outside the bounds of the slice.");
-			}
+			public static InvalidOperationException BufferOutOfBound() => new("Attempt to write outside of the buffer, or at a position that would overflow past the end.");
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void ThrowOffsetOutsideSlice() => throw OffsetOutsideSlice();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static IndexOutOfRangeException IndexOutOfBound()
-			{
-				return new IndexOutOfRangeException("Index is outside the slice");
-			}
+			// ReSharper disable once NotResolvedInText
+			public static ArgumentOutOfRangeException OffsetOutsideSlice() => new("offset", "Offset is outside the bounds of the slice.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static FormatException SliceOffsetNotNeg()
-			{
-				return new FormatException("The specified slice has a negative offset, which is not legal. This may be a side effect of memory corruption.");
-			}
-
-			[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowSliceCountNotNeg()
-			{
-				throw SliceCountNotNeg();
-			}
+			public static IndexOutOfRangeException IndexOutOfBound() => new("Index is outside the slice");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static FormatException SliceCountNotNeg()
-			{
-				return new FormatException("The specified slice has a negative size, which is not legal. This may be a side effect of memory corruption.");
-			}
+			public static FormatException SliceOffsetNotNeg() => new("The specified slice has a negative offset, which is not legal. This may be a side effect of memory corruption.");
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void ThrowSliceCountNotNeg() => throw SliceCountNotNeg();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static FormatException SliceBufferNotNull()
-			{
-				return new FormatException("The specified slice is missing its underlying buffer.");
-			}
+			public static FormatException SliceCountNotNeg() => new("The specified slice has a negative size, which is not legal. This may be a side effect of memory corruption.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static FormatException SliceBufferTooSmall()
-			{
-				return new FormatException("The specified slice is larger than its underlying buffer.");
-			}
+			public static FormatException SliceBufferNotNull() => new("The specified slice is missing its underlying buffer.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static FormatException SliceInvalid()
-			{
-				return new FormatException("The specified slice is invalid.");
-			}
-
-			[ContractAnnotation("=>halt"), MethodImpl(MethodImplOptions.NoInlining)]
-			public static T ThrowSliceTooLargeForConversion<T>(int size)
-			{
-				throw new FormatException($"Cannot convert slice to value of type {typeof(T).Name} because it is larger than {size} bytes.");
-			}
+			public static FormatException SliceBufferTooSmall() => new("The specified slice is larger than its underlying buffer.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static ArgumentException BufferArrayNotNull()
-			{
-				// ReSharper disable once NotResolvedInText
-				return new ArgumentException("The specified segment is missing its underlying buffer.", "array");
-			}
-
-			[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowBufferArrayToSmall()
-			{
-				throw BufferArrayToSmall();
-			}
+			public static FormatException SliceInvalid() => new("The specified slice is invalid.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static ArgumentException BufferArrayToSmall()
-			{
-				// ReSharper disable once NotResolvedInText
-				return new ArgumentException("The specified segment is larger than its underlying buffer.", "count");
-			}
+			public static FormatException SliceTooLargeForConversion<T>(int size) => new($"Cannot convert slice to value of type {typeof(T).Name} because it is larger than {size} bytes.");
+
+			[DoesNotReturn]
+			public static T ThrowSliceTooLargeForConversion<T>(int size) => throw SliceTooLargeForConversion<T>(size);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static FormatException VarIntOverflow()
-			{
-				return new FormatException("Malformed Varint would overflow the expected range");
-			}
+			// ReSharper disable once NotResolvedInText
+			public static ArgumentException BufferArrayNotNull() => new("The specified segment is missing its underlying buffer.", "array");
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void ThrowBufferArrayToSmall() => throw BufferArrayToSmall();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			public static FormatException VarIntTruncated()
-			{
-				return new FormatException("Malformed Varint seems to be truncated");
-			}
+			// ReSharper disable once NotResolvedInText
+			public static ArgumentException BufferArrayToSmall() => new("The specified segment is larger than its underlying buffer.", "count");
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			public static FormatException VarIntOverflow() => new("Malformed Varint would overflow the expected range");
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			public static FormatException VarIntTruncated() => new("Malformed Varint seems to be truncated");
 
 		}
 

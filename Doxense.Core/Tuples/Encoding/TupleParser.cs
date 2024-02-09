@@ -763,7 +763,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var span = writer.Output.AllocateSpan(17);
 			span[0] = TupleTypes.Uuid128;
 			// Guids should be stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid (handled by Uuid128)
-			new Uuid128(value).WriteToUnsafe(span.Slice(1));
+			new Uuid128(value).WriteTo(span.Slice(1));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -784,7 +784,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var span = writer.Output.AllocateSpan(17);
 			span[0] = TupleTypes.Uuid128;
-			value.WriteToUnsafe(span.Slice(1));
+			value.WriteTo(span.Slice(1));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

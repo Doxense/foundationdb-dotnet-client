@@ -533,7 +533,7 @@ namespace Doxense.Memory
 		{
 			var buffer = EnsureBytes(16);
 			int p = this.Position;
-			new Uuid128(value).WriteToUnsafe(buffer.AsSpan(p));
+			new Uuid128(value).WriteTo(buffer.AsSpan(p));
 			this.Position = p + 16;
 			return new Slice(buffer, p, 16);
 		}
@@ -545,7 +545,7 @@ namespace Doxense.Memory
 		{
 			var buffer = EnsureBytes(16);
 			int p = this.Position;
-			value.WriteToUnsafe(buffer.AsSpan(p));
+			value.WriteTo(buffer.AsSpan(p));
 			this.Position = p + 16;
 			return new Slice(buffer, p, 16);
 		}

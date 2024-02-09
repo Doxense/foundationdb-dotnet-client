@@ -29,6 +29,7 @@ namespace Doxense.Memory
 	using System;
 	using System.Buffers;
 	using System.Buffers.Binary;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
@@ -722,7 +723,8 @@ namespace Doxense.Memory
 
 		/// <summary>Write a chunk of a byte array to the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use ReadOnlySpan<byte> instead.")]
+		[Obsolete("Use WriteBytes(ReadOnlySpan<byte>) instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void WriteBytes(byte[] data, int offset, int count)
 		{
 			if (count > 0)
@@ -731,34 +733,31 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Write a segment of bytes to the end of the buffer</summary>
+		/// <summary>Write a slice of bytes to the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(Slice data)
 		{
 			WriteBytes(data.Span);
 		}
 
-		/// <summary>Write a segment of bytes to the end of the buffer</summary>
+		/// <summary>Write a slice of bytes to the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(MutableSlice data)
 		{
 			WriteBytes(data.Span);
 		}
 
-		/// <summary>Write a segment of bytes to the end of the buffer</summary>
+		/// <summary>Write a span of bytes to the end of the buffer</summary>
 		public void WriteBytes(ReadOnlySpan<byte> data)
 		{
-			int count = data.Length;
-			if (count > 0)
-			{
-				int p = this.Position;
-				data.CopyTo(EnsureBytes(count).AsSpan(p));
-				this.Position = checked(p + count);
-			}
+			int p = this.Position;
+			data.CopyTo(EnsureBytes(data.Length).AsSpan(p));
+			this.Position = checked(p + data.Length);
 		}
 
 		/// <summary>Write a chunk of a byte array to the end of the buffer, with a prefix</summary>
-		[Obsolete("Use ReadOnlySpan<byte> instead.")]
+		[Obsolete("Use WriteBytes(byte, ReadOnlySpan<byte>) instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void WriteBytes(byte prefix, byte[] data, int offset, int count)
 		{
 			WriteBytes(prefix, count != 0 ? data.AsSpan(offset, count) : default);
@@ -785,7 +784,10 @@ namespace Doxense.Memory
 			var buffer = EnsureBytes(checked(count + 1));
 			int p = this.Position;
 			buffer[p] = prefix;
-			if (count > 0) data.CopyTo(buffer.AsSpan(p + 1));
+			if (count > 0)
+			{
+				data.CopyTo(buffer.AsSpan(p + 1));
+			}
 			this.Position = checked(p + count + 1);
 		}
 
@@ -831,7 +833,8 @@ namespace Doxense.Memory
 
 		/// <summary>Append a chunk of a byte array to the end of the buffer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use ReadOnlySpan<byte> instead.")]
+		[Obsolete("Use ReadOnlySpan<byte> instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public Slice AppendBytes(byte[] data, int offset, int count)
 		{
 			return count != 0 ? AppendBytes(data.AsSpan(offset, count)) : Slice.Empty;
@@ -880,17 +883,13 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
-		public void WriteFixed16(short value)
-		{
-			BinaryPrimitives.WriteInt16LittleEndian(AllocateSpan(2), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed16(short value) => BinaryPrimitives.WriteInt16LittleEndian(AllocateSpan(2), value);
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
-		public void WriteFixed16(ushort value)
-		{
-			BinaryPrimitives.WriteUInt16LittleEndian(AllocateSpan(2), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed16(ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(AllocateSpan(2), value);
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
@@ -920,31 +919,37 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a 32-bit signed integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
-		public void WriteFixed32(int value)
-		{
-			BinaryPrimitives.WriteInt32LittleEndian(AllocateSpan(4), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed32(int value) => BinaryPrimitives.WriteInt32LittleEndian(AllocateSpan(4), value);
 
 		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
-		public void WriteFixed32(uint value)
-		{
-			BinaryPrimitives.WriteUInt32LittleEndian(AllocateSpan(4), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed32(uint value) => BinaryPrimitives.WriteUInt32LittleEndian(AllocateSpan(4), value);
 
 		/// <summary>Writes a 64-bit signed integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
-		public void WriteFixed64(long value)
-		{
-			BinaryPrimitives.WriteInt64LittleEndian(AllocateSpan(8), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed64(long value) => BinaryPrimitives.WriteInt64LittleEndian(AllocateSpan(8), value);
 
 		/// <summary>Writes a 64-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
-		public void WriteFixed64(ulong value)
-		{
-			BinaryPrimitives.WriteUInt64LittleEndian(AllocateSpan(8), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed64(ulong value) => BinaryPrimitives.WriteUInt64LittleEndian(AllocateSpan(8), value);
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Writes a 128-bit signed integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed128(Int128 value) => BinaryPrimitives.WriteInt128LittleEndian(AllocateSpan(16), value);
+
+		/// <summary>Writes a 128-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed128(UInt128 value) => BinaryPrimitives.WriteUInt128LittleEndian(AllocateSpan(16), value);
+
+#endif
 
 		#endregion
 
@@ -952,17 +957,13 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a 16-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
-		public void WriteFixed16BE(short value)
-		{
-			BinaryPrimitives.WriteInt16BigEndian(AllocateSpan(2), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed16BE(short value) => BinaryPrimitives.WriteInt16BigEndian(AllocateSpan(2), value);
 
 		/// <summary>Writes a 16-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
-		public void WriteFixed16BE(ushort value)
-		{
-			BinaryPrimitives.WriteUInt16BigEndian(AllocateSpan(2), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed16BE(ushort value) => BinaryPrimitives.WriteUInt16BigEndian(AllocateSpan(2), value);
 
 		/// <summary>Writes a 24-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
@@ -992,31 +993,37 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a 32-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
-		public void WriteFixed32BE(int value)
-		{
-			BinaryPrimitives.WriteInt32BigEndian(AllocateSpan(4), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed32BE(int value) => BinaryPrimitives.WriteInt32BigEndian(AllocateSpan(4), value);
 
 		/// <summary>Writes a 32-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
-		public void WriteFixed32BE(uint value)
-		{
-			BinaryPrimitives.WriteUInt32BigEndian(AllocateSpan(4), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed32BE(uint value) => BinaryPrimitives.WriteUInt32BigEndian(AllocateSpan(4), value);
 
 		/// <summary>Writes a 64-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
-		public void WriteFixed64BE(long value)
-		{
-			BinaryPrimitives.WriteInt64BigEndian(AllocateSpan(8), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed64BE(long value) => BinaryPrimitives.WriteInt64BigEndian(AllocateSpan(8), value);
 
 		/// <summary>Writes a 64-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
-		public void WriteFixed64BE(ulong value)
-		{
-			BinaryPrimitives.WriteUInt64BigEndian(AllocateSpan(8), value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed64BE(ulong value) => BinaryPrimitives.WriteUInt64BigEndian(AllocateSpan(8), value);
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Writes a 128-bit signed integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed128BE(Int128 value) => BinaryPrimitives.WriteInt128BigEndian(AllocateSpan(16), value);
+
+		/// <summary>Writes a 128-bit unsigned integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteFixed128BE(UInt128 value) => BinaryPrimitives.WriteUInt128BigEndian(AllocateSpan(16), value);
+
+#endif
 
 		#endregion
 
@@ -1068,6 +1075,7 @@ namespace Doxense.Memory
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void WriteVarInt16Slow(ushort value)
 		{
 			const uint MASK = 128;
@@ -1104,6 +1112,7 @@ namespace Doxense.Memory
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void WriteVarInt32Slow(uint value)
 		{
 			const uint MASK = 128;
@@ -1147,9 +1156,14 @@ namespace Doxense.Memory
 		/// <summary>Writes a 7-bit encoded unsigned long (aka 'Varint64') at the end, and advances the cursor</summary>
 		public void WriteVarInt64(ulong value)
 		{
-			//note: if the size if 64-bits, we probably expect values to always be way above 128 so no need to optimize for this case here
-
 			const uint MASK = 128;
+
+			if (value < MASK)
+			{
+				WriteByte((byte) value);
+				return;
+			}
+
 			// max encoded size is 10 bytes
 			var buffer = EnsureBytes(UnsafeHelpers.SizeOfVarInt(value));
 			ref byte start = ref buffer[this.Position];
@@ -1163,6 +1177,36 @@ namespace Doxense.Memory
 			ptr = (byte) value;
 			this.Position = Unsafe.ByteOffset(ref start, ref ptr).ToInt32() + 1;
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Writes a 7-bit encoded unsigned 128-bit integer (aka 'Varint128') at the end, and advances the cursor</summary>
+		public void WriteVarInt128(UInt128 value)
+		{
+			const uint MASK = 128;
+
+			if (value < MASK)
+			{
+				WriteByte((byte) value);
+				return;
+			}
+
+			// max encoded size is 10 bytes
+			var buffer = EnsureBytes(UnsafeHelpers.SizeOfVarInt(value));
+			ref byte start = ref buffer[this.Position];
+			ref byte ptr = ref start;
+			while (value >= MASK)
+			{
+				byte x = (byte) value;
+				ptr = (byte) ((x & (MASK - 1)) | MASK);
+				value >>= 7;
+				ptr = ref Unsafe.Add(ref ptr, 1);
+			}
+			ptr = (byte) value;
+			this.Position = Unsafe.ByteOffset(ref start, ref ptr).ToInt32() + 1;
+		}
+
+#endif
 
 		#endregion
 
@@ -1178,7 +1222,8 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use ReadOnlySpan<byte> instead.")]
+		[Obsolete("Use ReadOnlySpan<byte> instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void WriteVarBytes(byte[] bytes, int offset, int count)
 		{
 			Contract.Debug.Requires(count == 0 || bytes != null);
@@ -1359,25 +1404,25 @@ namespace Doxense.Memory
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
 		public void WriteUuid128(in Uuid128 value)
 		{
-			value.WriteToUnsafe(AllocateSpan(Uuid128.SizeOf));
+			value.WriteTo(AllocateSpan(Unsafe.SizeOf<Uuid128>()));
 		}
 
 		/// <summary>Write a 96-bit UUID, and advances the cursor</summary>
 		public void WriteUuid96(in Uuid96 value)
 		{
-			value.WriteToUnsafe(AllocateSpan(Uuid96.SizeOf));
+			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid96>()));
 		}
 
 		/// <summary>Write a 80-bit UUID, and advances the cursor</summary>
 		public void WriteUuid80(in Uuid80 value)
 		{
-			value.WriteToUnsafe(AllocateSpan(Uuid80.SizeOf));
+			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid80>()));
 		}
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
 		public void WriteUuid64(Uuid64 value)
 		{
-			value.WriteToUnsafe(AllocateSpan(Uuid64.SizeOf));
+			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid64>()));
 		}
 
 		#endregion
@@ -1387,15 +1432,29 @@ namespace Doxense.Memory
 		/// <summary>Write a string using UTF-8</summary>
 		/// <param name="value">Text to write</param>
 		/// <returns>Number of bytes written</returns>
+		/// <example><c>writer.WriteString("Hello, World!")</c></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int WriteString(string? value)
 		{
 			return WriteStringUtf8(value);
 		}
 
+		/// <summary>Write a string that is already encoded in UTF-8</summary>
+		/// <param name="value">Encoded text to write</param>
+		/// <returns>Number of bytes written</returns>
+		/// <example><c>writer.WriteString("Hello, World!"u8)</c></example>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int WriteString(ReadOnlySpan<byte> value)
+		{
+			//note: this is the same as WriteBytes, but people may looks for "WriteString" if they are writing a keyword of magic signature...
+			WriteBytes(value);
+			return value.Length;
+		}
+
 		/// <summary>Write a string using UTF-8</summary>
 		/// <param name="value">Text to write</param>
 		/// <returns>Number of bytes written</returns>
+		/// <example><c>writer.WriteString("Hello, World!".AsSpan(7))</c></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int WriteString(ReadOnlySpan<char> value)
 		{
@@ -1406,9 +1465,11 @@ namespace Doxense.Memory
 		/// <param name="value">Text to write</param>
 		/// <param name="encoding">Encoding used to convert the text to bytes</param>
 		/// <returns>Number of bytes written</returns>
-		public int WriteString(string? value, Encoding encoding)
+		/// <example><c>writer.WriteString("Héllô, Wörld!", Encoding.Latin1)</c></example>
+		public int WriteString(string? value, Encoding? encoding)
 		{
 			if (string.IsNullOrEmpty(value)) return 0;
+			encoding ??= Encoding.UTF8;
 
 			// In order to estimate the required capacity, we try to guess for very small strings, but compute the actual value for larger strings,
 			// so that we don't waste to much memory (up to 6x the string length in the worst case scenario)
@@ -1436,6 +1497,7 @@ namespace Doxense.Memory
 		/// <summary>Write a string using UTF-8</summary>
 		/// <param name="value">Text to write</param>
 		/// <returns>Number of bytes written</returns>
+		/// <example><c>writer.WriteStringUtf8("Hello, World!")</c></example>
 		public int WriteStringUtf8(string? value)
 		{
 			if (string.IsNullOrEmpty(value)) return 0;
@@ -1454,7 +1516,8 @@ namespace Doxense.Memory
 
 		/// <summary>Write a string using UTF-8</summary>
 		/// <returns>Number of bytes written</returns>
-		[Obsolete("Use ReadOnlySpan<char> instead.")]
+		[Obsolete("Use ReadOnlySpan<char> instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public int WriteStringUtf8(char[] chars, int offset, int count)
 		{
 			return WriteStringUtf8(new ReadOnlySpan<char>(chars, offset, count));
@@ -1744,7 +1807,8 @@ namespace Doxense.Memory
 
 		/// <summary>Overwrite a section of the buffer that was already written, with the specified data</summary>
 		/// <remarks>You must ensure that replaced section does not overlap with the current position!</remarks>
-		[Obsolete("Use ReadOnlySpan<byte> instead.")]
+		[Obsolete("Use ReadOnlySpan<byte> instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void PatchBytes(int index, byte[] buffer, int offset, int count)
 		{
 			if (index + count > this.Position) throw ThrowHelper.IndexOutOfRangeException();

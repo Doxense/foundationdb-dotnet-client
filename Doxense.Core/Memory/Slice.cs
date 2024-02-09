@@ -298,6 +298,13 @@ namespace System
 			get => new ReadOnlySpan<byte>(this.Array, this.Offset, this.Count);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal ReadOnlySpan<byte> ValidateSpan()
+		{
+			EnsureSliceIsValid();
+			return new ReadOnlySpan<byte>(this.Array, this.Offset, this.Count);
+		}
+
 		/// <summary>Returns a <see cref="ReadOnlyMemory{T}">ReadOnlyMemory&lt;byte&gt;</see> that wraps the content of this slice</summary>
 		public ReadOnlyMemory<byte> Memory
 		{

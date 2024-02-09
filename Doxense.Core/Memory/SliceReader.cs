@@ -162,6 +162,20 @@ namespace Doxense.Memory
 			return b;
 		}
 
+		/// <summary>Read the next byte from the buffer, unless we already reached the end.</summary>
+		public bool TryReadByte(out byte value)
+		{
+			var pos = this.Position;
+			if ((uint) pos >= (uint) this.Buffer.Count)
+			{
+				value = default;
+				return false;
+			}
+			value = this.Buffer[pos];
+			this.Position = pos + 1;
+			return true;
+		}
+
 		/// <summary>Read the next 2 bytes from the buffer</summary>
 		private ReadOnlySpan<byte> ReadTwoBytesSpan()
 		{
@@ -170,6 +184,21 @@ namespace Doxense.Memory
 			this.Position = p + 2;
 			// this way will not re-validate the arguments a second time
 			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 2);
+		}
+
+		/// <summary>Read the next 2 bytes from the buffer</summary>
+		private bool TryReadTwoBytesSpan(out ReadOnlySpan<byte> span)
+		{
+			int p = this.Position;
+			if ((uint) (p + 2) > (uint) this.Buffer.Count)
+			{
+				span = default;
+				return false;
+			}
+			this.Position = p + 2;
+			// this way will not re-validate the arguments a second time
+			span = MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 2);
+			return true;
 		}
 
 		/// <summary>Read the next 3 bytes from the buffer</summary>
@@ -192,6 +221,21 @@ namespace Doxense.Memory
 			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 4);
 		}
 
+		/// <summary>Read the next 4 bytes from the buffer</summary>
+		private bool TryReadFourBytesSpan(out ReadOnlySpan<byte> span)
+		{
+			int p = this.Position;
+			if ((uint) (p + 4) > (uint) this.Buffer.Count)
+			{
+				span = default;
+				return false;
+			}
+			this.Position = p + 4;
+			// this way will not re-validate the arguments a second time
+			span = MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 4);
+			return true;
+		}
+
 		/// <summary>Read the next 8 bytes from the buffer</summary>
 		private ReadOnlySpan<byte> ReadEightBytesSpan()
 		{
@@ -200,6 +244,21 @@ namespace Doxense.Memory
 			this.Position = p + 8;
 			// this way will not re-validate the arguments a second time
 			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 8);
+		}
+
+		/// <summary>Read the next 8 bytes from the buffer</summary>
+		private bool TryReadEightBytesSpan(out ReadOnlySpan<byte> span)
+		{
+			int p = this.Position;
+			if ((uint) (p + 8) > (uint) this.Buffer.Count)
+			{
+				span = default;
+				return false;
+			}
+			this.Position = p + 8;
+			// this way will not re-validate the arguments a second time
+			span = MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 8);
+			return true;
 		}
 
 		/// <summary>Read the next 16 bytes from the buffer</summary>
@@ -212,6 +271,22 @@ namespace Doxense.Memory
 			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 16);
 		}
 
+		/// <summary>Read the next 16 bytes from the buffer</summary>
+		private bool TryReadSixteenBytesSpan(out ReadOnlySpan<byte> span)
+		{
+			int p = this.Position;
+			if ((uint) (p + 8) > (uint) this.Buffer.Count)
+			{
+				span = default;
+				return false;
+			}
+			this.Position = p + 16;
+			// this way will not re-validate the arguments a second time
+			span = MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 16);
+			return true;
+		}
+
+
 		/// <summary>Read the next <paramref name="count"/> bytes from the buffer</summary>
 		public Slice ReadBytes(int count)
 		{
@@ -223,24 +298,47 @@ namespace Doxense.Memory
 			return this.Buffer.Substring(p, count);
 		}
 
-		/// <summary>Read the next <paramref name="count"/> bytes from the buffer, if there is enough data remaining</summary>
-		public bool TryReadBytes(int count, out Slice bytes)
+		/// <summary>Read the next <paramref name="count"/> bytes from the buffer, unless we already reached the end.</summary>
+		public bool TryReadBytes(int count, out Slice value)
 		{
-			if (count == 0)
+			int p = this.Position;
+			if ((uint) (p + count) > (uint) this.Buffer.Count)
 			{
-				bytes = Slice.Empty;
-				return true;
-			}
-
-			if (this.Remaining < count)
-			{
-				bytes = default;
+				value = default;
 				return false;
 			}
-
-			int p = this.Position;
 			this.Position = p + count;
-			bytes = this.Buffer.Substring(p, count);
+			// this way will not re-validate the arguments a second time
+			value = this.Buffer.Substring(p, count);
+			return true;
+		}
+
+		/// <summary>Read the next <paramref name="count"/> bytes from the buffer, unless we already reached the end.</summary>
+		public bool TryReadBytes(int count, out ReadOnlySpan<byte> value)
+		{
+			int p = this.Position;
+			var span = this.Buffer.Span;
+			if ((uint) (p + count) > (uint) span.Length)
+			{
+				value = default;
+				return false;
+			}
+			this.Position = p + count;
+			value = span.Slice(p, count);
+			return true;
+		}
+
+		/// <summary>Read the next <paramref name="count"/> bytes from the buffer, unless we already reached the end.</summary>
+		public bool TryCopyBytes(int count, Span<byte> buffer)
+		{
+			int p = this.Position;
+			var span = this.Buffer.Span;
+			if ((uint) (p + count) > (uint) span.Length)
+			{
+				return false;
+			}
+			this.Position = p + count;
+			span.Slice(p, count).CopyTo(buffer);
 			return true;
 		}
 
@@ -282,17 +380,24 @@ namespace Doxense.Memory
 			}
 		}
 
+		/// <summary>Read and consume the remaining data</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ReadToEnd()
-		{
-			return ReadBytes(this.Remaining);
-		}
+		public Slice ReadToEnd() => ReadBytes(this.Remaining);
 
 		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ushort ReadFixed16()
+		public ushort ReadFixed16() => BinaryPrimitives.ReadUInt16LittleEndian(ReadTwoBytesSpan());
+
+		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian, unless we already reached the end.</summary>
+		public bool TryReadFixed16(out ushort value)
 		{
-			return BinaryPrimitives.ReadUInt16LittleEndian(ReadTwoBytesSpan());
+			if (!TryReadTwoBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt16LittleEndian(span);
+			return true;
 		}
 
 		/// <summary>Read the next 3 bytes as an unsigned 24-bit integer, encoded in little-endian</summary>
@@ -309,26 +414,72 @@ namespace Doxense.Memory
 			}
 		}
 
-
 		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public uint ReadFixed32()
+		public uint ReadFixed32() => BinaryPrimitives.ReadUInt32LittleEndian(ReadFourBytesSpan());
+
+		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in little-endian, unless we already reached the end.</summary>
+		public bool TryReadFixed32(out uint value)
 		{
-			return BinaryPrimitives.ReadUInt32LittleEndian(ReadFourBytesSpan());
+			if (!TryReadFourBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt32LittleEndian(span);
+			return true;
 		}
 
 		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ulong ReadFixed64()
+		public ulong ReadFixed64() => BinaryPrimitives.ReadUInt64LittleEndian(ReadEightBytesSpan());
+
+		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian, unless we already reached the end.</summary>
+		public bool TryReadFixed64(out ulong value)
 		{
-			return BinaryPrimitives.ReadUInt64LittleEndian(ReadEightBytesSpan());
+			if (!TryReadEightBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt64LittleEndian(span);
+			return true;
 		}
+
+#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0 but we don't support it)
+
+		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public UInt128 ReadFixed128() => BinaryPrimitives.ReadUInt128LittleEndian(ReadSixteenBytesSpan());
+
+		/// <summary>Read the next 116 bytes as an unsigned 128-bit integer, encoded in little-endian, unless we already reached the end.</summary>
+		public bool TryReadFixedInt128(out UInt128 value)
+		{
+			if (!TryReadSixteenBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt128LittleEndian(span);
+			return true;
+		}
+
+#endif
 
 		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ushort ReadFixed16BE()
+		public ushort ReadFixed16BE() => BinaryPrimitives.ReadUInt16BigEndian(ReadTwoBytesSpan());
+
+		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in big-endian, unless we already reached the end.</summary>
+		public bool TryReadFixed16BE(out ushort value)
 		{
-			return BinaryPrimitives.ReadUInt16BigEndian(ReadTwoBytesSpan());
+			if (!TryReadTwoBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt16BigEndian(span);
+			return true;
 		}
 
 		/// <summary>Read the next 3 bytes as an unsigned 24-bit integer, encoded in big-endian</summary>
@@ -346,30 +497,86 @@ namespace Doxense.Memory
 
 		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public uint ReadFixed32BE()
+		public uint ReadFixed32BE() => BinaryPrimitives.ReadUInt32BigEndian(ReadFourBytesSpan());
+
+		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in big-endian, unless we already reached the end.</summary>
+		public bool TryReadFixed32BE(out uint value)
 		{
-			return BinaryPrimitives.ReadUInt32BigEndian(ReadFourBytesSpan());
+			if (!TryReadFourBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt32BigEndian(span);
+			return true;
 		}
 
 		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ulong ReadFixed64BE()
+		public ulong ReadFixed64BE() => BinaryPrimitives.ReadUInt64BigEndian(ReadEightBytesSpan());
+
+		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in big-endian, unless we already reached the end.</summary>
+		public bool TryReadFixed64BE(out ulong value)
 		{
-			return BinaryPrimitives.ReadUInt64BigEndian(ReadEightBytesSpan());
+			if (!TryReadEightBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt64BigEndian(span);
+			return true;
 		}
+
+#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0 but we don't support it)
+
+		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in big-endian</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public UInt128 ReadFixed128BE() => BinaryPrimitives.ReadUInt128BigEndian(ReadSixteenBytesSpan());
+
+		/// <summary>Read the next 116 bytes as an unsigned 128-bit integer, encoded in big-endian, unless we already reached the end.</summary>
+		public bool TryReadFixedInt128BE(out UInt128 value)
+		{
+			if (!TryReadSixteenBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadUInt128BigEndian(span);
+			return true;
+		}
+
+#endif
 
 		/// <summary>Read the next 4 bytes as an IEEE 32-bit floating point number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public float ReadSingle()
+		public float ReadSingle() => ReadFourBytesSpan().ToSingle();
+
+		/// <summary>Read the next 4 bytes as an IEEE 32-bit floating point number, unless we already reached the end.</summary>
+		public bool TryReadSingle(out float value)
 		{
-			return ReadFourBytesSpan().ToSingle();
+			if (!TryReadFourBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadSingleLittleEndian(span);
+			return true;
 		}
 
 		/// <summary>Read the next 8 bytes as an IEEE 64-bit floating point number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public double ReadDouble()
+		public double ReadDouble() => ReadEightBytesSpan().ToDouble();
+
+		/// <summary>Read the next 4 bytes as an IEEE 32-bit floating point number, unless we already reached the end.</summary>
+		public bool TryReadDouble(out double value)
 		{
-			return ReadEightBytesSpan().ToDouble();
+			if (!TryReadEightBytesSpan(out var span))
+			{
+				value = default;
+				return false;
+			}
+			value = BinaryPrimitives.ReadDoubleLittleEndian(span);
+			return true;
 		}
 
 		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
@@ -522,17 +729,12 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a 128-bit UUID</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128 ReadUuid128()
-		{
-			return ReadSixteenBytesSpan().ToUuid128();
-		}
+		public Uuid128 ReadUuid128() => ReadSixteenBytesSpan().ToUuid128();
 
 		/// <summary>Reads a 64-bit UUID</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid64 ReadUuid64()
-		{
-			return ReadEightBytesSpan().ToUuid64();
-		}
+		public Uuid64 ReadUuid64() => ReadEightBytesSpan().ToUuid64();
+
 	}
 
 }

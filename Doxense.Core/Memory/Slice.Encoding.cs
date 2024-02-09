@@ -28,6 +28,7 @@ namespace System
 {
 	using System;
 	using System.Buffers.Binary;
+	using System.ComponentModel;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -35,6 +36,7 @@ namespace System
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
+	using Microsoft.Extensions.Logging;
 
 	public partial struct Slice
 	{
@@ -73,72 +75,48 @@ namespace System
 
 		/// <summary>Encode a signed 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromInt16(short value)
+		public static Slice FromInt16(short value) => value switch
 		{
-			if (value >= 0)
-			{
-				return value <= 255
-					? Slice.FromByte((byte) value)
-					: new Slice(new byte[] { (byte) (value & 0xFF), (byte) (value >> 8) }, 0, 2);
-			}
-
-			return FromFixed16(value);
-		}
+			< 0      => FromFixed16(value),
+			< 1 << 8 => FromByte((byte) value),
+			_        => new Slice([ (byte) (value & 0xFF), (byte) (value >> 8) ], 0, 2)
+		};
 
 		/// <summary>Encode a signed 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromInt16BE(short value)
+		public static Slice FromInt16BE(short value) => value switch
 		{
-			if (value >= 0)
-			{
-				return value <= 255
-					? Slice.FromByte((byte) value)
-					: new Slice(new byte[] { (byte) (value >> 8), (byte) (value & 0xFF) }, 0, 2);
-			}
-
-			return FromFixed16BE(value);
-		}
+			< 0      => FromFixed16BE(value),
+			< 1 << 8 => FromByte((byte) value),
+			_        => new Slice([ (byte) (value >> 8), (byte) (value & 0xFF) ], 0, 2)
+		};
 
 		/// <summary>Encode a signed 16-bit integer into a 2-byte slice in little-endian</summary>
 		[Pure]
 		public static Slice FromFixed16(short value)
 		{
-			return new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
+			return new Slice([ (byte) value, (byte) (value >> 8) ], 0, 2);
 		}
 
 		/// <summary>Encode a signed 16-bit integer into a 2-byte slice in little-endian</summary>
 		[Pure]
 		public static Slice FromFixed16BE(short value)
 		{
-			return new Slice(new byte[2] { (byte) (value >> 8), (byte) (value & 0xFF) }, 0, 2);
+			return new Slice([ (byte) (value >> 8), (byte) (value & 0xFF) ], 0, 2);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
 		[Pure]
 		public static Slice FromUInt16(ushort value)
 		{
-			if (value <= 255)
-			{
-				return FromByte((byte)value);
-			}
-			else
-			{
-				return FromFixedU16(value);
-			}
+			return value <= 255 ? FromByte((byte) value) : FromFixedU16(value);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
 		[Pure]
 		public static Slice FromUInt16BE(ushort value)
 		{
-			if (value <= 255)
-			{
-				return FromByte((byte)value);
-			}
-			else
-			{
-				return FromFixedU16BE(value);
-			}
+			return value <= 255 ? FromByte((byte) value) : FromFixedU16BE(value);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in little-endian</summary>
@@ -146,7 +124,7 @@ namespace System
 		[Pure]
 		public static Slice FromFixedU16(ushort value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[2] { (byte) (value & 0xFF), (byte) (value >> 8) }, 0, 2);
+			return new Slice([ (byte) (value & 0xFF), (byte) (value >> 8) ], 0, 2);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in big-endian</summary>
@@ -154,7 +132,7 @@ namespace System
 		[Pure]
 		public static Slice FromFixedU16BE(ushort value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[2] { (byte) (value >> 8), (byte) (value & 0xFF) }, 0, 4);
+			return new Slice([ (byte) (value >> 8), (byte) (value & 0xFF) ], 0, 4);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into 7-bit encoded unsigned int (aka 'Varint16')</summary>
@@ -165,12 +143,10 @@ namespace System
 			{
 				return FromByte((byte)value);
 			}
-			else
-			{
-				var writer = new SliceWriter(3);
-				writer.WriteVarInt16(value);
-				return writer.ToSlice();
-			}
+
+			var writer = new SliceWriter(3);
+			writer.WriteVarInt16(value);
+			return writer.ToSlice();
 		}
 
 		#endregion
@@ -179,85 +155,49 @@ namespace System
 
 		/// <summary>Encode a signed 32-bit integer into a variable size slice (1 to 4 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromInt32(int value)
+		public static Slice FromInt32(int value) => value switch
 		{
-			if (value >= 0)
-			{
-				if (value <= (1 << 8) - 1)
-				{
-					return Slice.FromByte((byte)value);
-				}
-				if (value <= (1 << 16) - 1)
-				{
-					//TODO: possible micro optimization is for values like 0x100, 0x201, 0x1413 or 0x4342, where we could use 2 consecutive bytes in the ByteSprite,
-					return unchecked(new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2));
-				}
-				if (value <= (1 << 24) - 1)
-				{
-					return unchecked(new Slice(new byte[3] { (byte) value, (byte) (value >> 8), (byte) (value >> 16) }, 0, 3));
-				}
-			}
-
-			return FromFixed32(value);
-		}
+			< 0 or >= 1 << 24 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) ], 0, 4)),
+			< 1 << 8  => FromByte(value),
+			< 1 << 16 => unchecked(new Slice([ (byte) value, (byte) (value >> 8) ], 0, 2)),
+			_ => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16) ], 0, 3)),
+		};
 
 		/// <summary>Encode a signed 32-bit integer into a 4-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed32(int value)
 		{
-			return unchecked(new Slice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4));
+			return unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) ], 0, 4));
 		}
 
 		/// <summary>Encode a signed 32-bit integer into a variable size slice (1 to 4 bytes) in big-endian</summary>
 		[Pure]
-		public static Slice FromInt32BE(int value)
+		public static Slice FromInt32BE(int value) => value switch
 		{
-			if (value >= 0)
-			{
-				if (value <= (1 << 8) - 1)
-				{
-					return FromByte((byte)value);
-				}
-				if (value <= (1 << 16) - 1)
-				{
-					//TODO: possible micro optimization is for values like 0x100, 0x201, 0x1413 or 0x4342, where we could use 2 consecutive bytes in the ByteSprite,
-					return unchecked(new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2));
-				}
-				if (value <= (1 << 24) - 1)
-				{
-					return unchecked(new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3));
-				}
-			}
-			return FromFixed32BE(value);
-		}
+			< 0 or >= 1 << 24 => unchecked(new Slice([ (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 4)),
+			< 1 << 8 => FromByte(value),
+			< 1 << 16 => unchecked(new Slice([ (byte) (value >> 8), (byte) value ], 0, 2)),
+			_ => unchecked(new Slice([ (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 3)),
+		};
 
 		/// <summary>Encode a signed 32-bit integer into a 4-byte slice in big-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed32BE(int value)
 		{
-			return unchecked(new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value, }, 0, 4));
+			return unchecked(new Slice([ (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 4));
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into a variable size slice (1 to 4 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromUInt32(uint value)
+		public static Slice FromUInt32(uint value) => value switch
 		{
-			if (value <= (1 << 8) - 1)
-			{
-				return FromByte((byte) value);
-			}
-			if (value <= (1 << 16) - 1)
-			{
-				return unchecked(new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2));
-			}
-			if (value <= (1 << 24) - 1)
-			{
-				return unchecked(new Slice(new byte[3] { (byte) value, (byte) (value >> 8), (byte) (value >> 16) }, 0, 3));
-			}
-			return FromFixedU32(value);
-		}
+			< 1 << 8  => FromByte((byte) value),
+			< 1 << 16 => unchecked(new Slice([ (byte) value, (byte) (value >> 8) ], 0, 2)),
+			< 1 << 24 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16) ], 0, 3)),
+			_         => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) ], 0, 4))
+		};
 
 		/// <summary>Encode an unsigned 32-bit integer into a 4-byte slice in little-endian</summary>
 		/// <remarks>0x11223344 => 11 22 33 44</remarks>
@@ -265,7 +205,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixedU32(uint value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4);
+			return new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) ], 0, 4);
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into a variable size slice (1 to 4 bytes) in big-endian</summary>
@@ -316,96 +256,58 @@ namespace System
 
 		/// <summary>Encode a signed 64-bit integer into a variable size slice (1 to 8 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromInt64(long value)
+		public static Slice FromInt64(long value) => value switch
 		{
-			if (value >= 0)
-			{
-				if (value <= (1L << 32) - 1)
-				{
-					return FromInt32((int) value);
-				}
-				if (value <= (1L << 40) - 1)
-				{
-					return unchecked(new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5));
-				}
-				if (value <= (1L << 48) - 1)
-				{
-					return unchecked(new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6));
-				}
-				if (value <= (1L << 56) - 1)
-				{
-					return unchecked(new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7));
-				}
-			}
-
-			return FromFixed64(value);
-		}
+			< 0L or >= (1L << 56) => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) ], 0, 8)),
+			< 1L << 8 => FromByte(unchecked((int) value)),
+			< 1L << 16 => unchecked(new Slice([ (byte) value, (byte) (value >> 8) ], 0, 2)),
+			< 1L << 24 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16) ], 0, 3)),
+			< 1L << 32 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) ], 0, 4)),
+			< 1L << 40 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) ], 0, 5)),
+			< 1L << 48 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) ], 0, 6)),
+			_ => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) ], 0, 7)),
+		};
 
 		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed64(long value)
 		{
-			return unchecked(new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8));
+			return unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) ], 0, 8));
 		}
 
 		/// <summary>Encode a signed 64-bit integer into a variable size slice (1 to 8 bytes) in big-endian</summary>
 		[Pure]
-		public static Slice FromInt64BE(long value)
+		public static Slice FromInt64BE(long value) => value switch
 		{
-			if (value >= 0)
-			{
-				if (value <= (1L << 32) - 1)
-				{
-					return FromInt32BE((int) value);
-				}
-				if (value <= (1L << 40) - 1)
-				{
-					return unchecked(new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5));
-				}
-				if (value <= (1L << 48) - 1)
-				{
-					return unchecked(new Slice(new byte[6] { (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 6));
-				}
-				if (value <= (1L << 56) - 1)
-				{
-					return unchecked(new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7));
-				}
-			}
-
-			return FromFixed64BE(value);
-		}
+			< 0 or >= 1L << 56 => unchecked(new Slice([ (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 8)),
+			< 1L << 8 => FromByte(unchecked((int) value)),
+			< 1L << 16 => unchecked(new Slice([ (byte) (value >> 8), (byte) value ], 0, 2)),
+			< 1L << 24 => unchecked(new Slice([ (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 3)),
+			< 1L << 32 => unchecked(new Slice([ (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 4)),
+			< 1L << 40 => unchecked(new Slice([ (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 5)),
+			< 1L << 48 => unchecked(new Slice([ (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 6)),
+			_ => unchecked(new Slice([ (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 7)),
+		};
 
 		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in big-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed64BE(long value)
 		{
-			return unchecked(new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8));
+			return unchecked(new Slice([ (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 8));
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into a variable size slice (1 to 8 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromUInt64(ulong value)
+		public static Slice FromUInt64(ulong value) => value switch
 		{
-			if (value <= (1UL << 32) - 1)
-			{
-				return FromUInt32((uint) value);
-			}
-			if (value <= (1UL << 40) - 1)
-			{
-				return unchecked(new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5));
-			}
-			if (value <= (1UL << 48) - 1)
-			{
-				return unchecked(new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6));
-			}
-			if (value <= (1UL << 56) - 1)
-			{
-				return unchecked(new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7));
-			}
-			return FromFixedU64(value);
-		}
+			<= (1UL << 32) - 1 => FromUInt32(unchecked((uint) value)),
+			<= (1UL << 40) - 1 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) ], 0, 5)),
+			<= (1UL << 48) - 1 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) ], 0, 6)),
+			<= (1UL << 56) - 1 => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) ], 0, 7)),
+			_ => FromFixedU64(value)
+		};
 
 		/// <summary>Encode an unsigned 64-bit integer into a 8-byte slice in little-endian</summary>
 		/// <remarks>0x1122334455667788 => 11 22 33 44 55 66 77 88</remarks>
@@ -413,7 +315,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixedU64(ulong value) //REVIEW: we could drop the 'U' here
 		{
-			return unchecked(new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8));
+			return unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) ], 0, 8));
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into a variable size slice (1 to 8 bytes) in big-endian</summary>
@@ -426,15 +328,15 @@ namespace System
 			}
 			if (value <= (1UL << 40) - 1)
 			{
-				return unchecked(new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5));
+				return unchecked(new Slice([ (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 5));
 			}
 			if (value <= (1UL << 48) - 1)
 			{
-				return unchecked(new Slice(new byte[6] { (byte)(value >> 40), (byte)(value >> 32), (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value }, 0, 6));
+				return unchecked(new Slice([ (byte)(value >> 40), (byte)(value >> 32), (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value ], 0, 6));
 			}
 			if (value <= (1UL << 56) - 1)
 			{
-				return unchecked(new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7));
+				return unchecked(new Slice([ (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 7));
 			}
 			return FromFixedU64BE(value);
 		}
@@ -445,7 +347,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixedU64BE(ulong value) //REVIEW: we could drop the 'U' here
 		{
-			return unchecked(new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8));
+			return unchecked(new Slice([ (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 8));
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into 7-bit encoded unsigned int (aka 'Varint64')</summary>
@@ -475,38 +377,196 @@ namespace System
 
 		#region 128-bit integers
 
-		// we model 128-bit integers as two 64-bit integers (low and high)
+#if NET8_0_OR_GREATER
 
-		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in little-endian</summary>
+		private static void DeconstructInt128(in Int128 value, out ulong upper, out ulong lower)
+		{
+			upper = (ulong) (value >> 64);
+			lower = (ulong) value;
+		}
+
+		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed128(long lo, long hi)
+		public static Slice FromInt128(Int128 value)
 		{
-			return new Slice(
-				new byte[16]
+			if (value == 0)
+			{
+				return FromByte(0);
+			}
+
+			if (value < 0)
+			{ // negative values always require 16 bytes
+				return FromFixed128(value);
+			}
+
+			// split into two 64-bit parts
+			DeconstructInt128(in value, out var upper, out var lower);
+
+			if (upper == 0)
+			{ // only the lower 64-bits are used
+				return FromUInt64(lower);
+			}
+
+			if (upper > 0x00FFFFFFFFFFFFFFUL)
+			{ // 128 bits required
+				return FromFixed128(value);
+			}
+
+			return FromFixed128Slow(in value);
+
+			static Slice FromFixed128Slow(in Int128 value)
+			{
+				// we now that we need between 9 and 15 bytes
+				// we will write the full 16 bytes into the stack,
+				// find the highest non-zero byte, and return this chunk as a new slice
+				Span<byte> tmp = stackalloc byte[16];
+				BinaryPrimitives.WriteInt128LittleEndian(tmp, value);
+				int p = tmp.Length;
+				while (p-- > 0)
 				{
-					(byte) (lo), (byte) (lo >> 8), (byte) (lo >> 16), (byte) (lo >> 24), (byte) (lo >> 32), (byte) (lo >> 40), (byte) (lo >> 48), (byte) (lo >> 56),
-					(byte) (hi), (byte) (hi >> 8), (byte) (hi >> 16), (byte) (hi >> 24), (byte) (hi >> 32), (byte) (hi >> 40), (byte) (hi >> 48), (byte) (hi >> 56),
-				},
-				0,
-				16
-			);
+					if (tmp[p] != 0)
+					{ // copy this into a slice
+						return new Slice(tmp[..(p + 1)].ToArray());
+					}
+				}
+				return FromByte(0);
+			}
+
+		}
+
+		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in little-endian</summary>
+		public static Slice FromFixed128(Int128 value)
+		{
+			var tmp = new byte[16];
+			BinaryPrimitives.WriteInt128LittleEndian(tmp, value);
+			return new Slice(tmp);
+		}
+
+		/// <summary>Encode a unsigned 128-bit integer into a 16-byte slice in little-endian</summary>
+		public static Slice FromFixedU128(UInt128 value)
+		{
+			var tmp = new byte[16];
+			BinaryPrimitives.WriteUInt128LittleEndian(tmp, value);
+			return new Slice(tmp);
+		}
+
+		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in big-endian</summary>
+		public static Slice FromFixed128BE(Int128 value)
+		{
+			var tmp = new byte[16];
+			BinaryPrimitives.WriteInt128BigEndian(tmp, value);
+			return new Slice(tmp);
+		}
+
+		/// <summary>Encode a unsigned 128-bit integer into a 16-byte slice in big-endian</summary>
+		public static Slice FromFixedU128BE(UInt128 value)
+		{
+			var tmp = new byte[16];
+			BinaryPrimitives.WriteUInt128BigEndian(tmp, value);
+			return new Slice(tmp);
+		}
+
+#endif
+
+		// these overloads are there for .NET 6.0 that does not support Int128. We split it into an upper and lower 64-bit integers, similar to the Int128(ulong, ulong) ctor
+
+		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in little-endian</summary>
+		/// <param name="upper">Upper 64-bit of the value</param>
+		/// <param name="lower">Lower 64-bit of the value</param>
+		/// <remarks>This method is equivalent to calling <c>FromFixed128(new Int128(upper, lower))</c></remarks>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice FromFixed128(ulong upper, ulong lower)
+		{
+			var tmp = new byte[16];
+#if NET8_0_OR_GREATER
+			BinaryPrimitives.WriteInt128LittleEndian(tmp, new Int128(upper, lower));
+#else
+			if (BitConverter.IsLittleEndian)
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], upper);
+				Unsafe.WriteUnaligned(ref tmp[8], lower);
+			}
+			else
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], BinaryPrimitives.ReverseEndianness(lower));
+				Unsafe.WriteUnaligned(ref tmp[8], BinaryPrimitives.ReverseEndianness(upper));
+			}
+#endif
+			return new Slice(tmp);
+		}
+
+		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in little-endian</summary>
+		/// <param name="upper">Upper 64-bit of the value</param>
+		/// <param name="lower">Lower 64-bit of the value</param>
+		/// <remarks>This method is equivalent to calling <c>FromFixed128(new Int128((ulong) upper, lower))</c></remarks>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice FromFixed128(long upper, ulong lower)
+		{
+			var tmp = new byte[16];
+#if NET8_0_OR_GREATER
+			BinaryPrimitives.WriteInt128LittleEndian(tmp, new Int128((ulong) upper, lower));
+#else
+			if (BitConverter.IsLittleEndian)
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], upper);
+				Unsafe.WriteUnaligned(ref tmp[8], lower);
+			}
+			else
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], BinaryPrimitives.ReverseEndianness(lower));
+				Unsafe.WriteUnaligned(ref tmp[8], BinaryPrimitives.ReverseEndianness(upper));
+			}
+#endif
+			return new Slice(tmp);
 		}
 
 		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in big-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed128BE(long lo, long hi)
+		public static Slice FromFixed128BE(ulong upper, ulong lower)
 		{
-			return new Slice(
-				new byte[16]
-				{
-					(byte) (hi >> 56), (byte) (hi >> 48), (byte) (hi >> 40), (byte) (hi >> 32), (byte) (hi >> 24), (byte) (hi >> 16), (byte) (hi >> 8), (byte) (hi),
-					(byte) (lo >> 56), (byte) (lo >> 48), (byte) (lo >> 40), (byte) (lo >> 32), (byte) (lo >> 24), (byte) (lo >> 16), (byte) (lo >> 8), (byte) (lo),
-				},
-				0,
-				16
-			);
+			var tmp = new byte[16];
+#if NET8_0_OR_GREATER
+			BinaryPrimitives.WriteInt128LittleEndian(tmp, new Int128(upper, lower));
+#else
+			if (BitConverter.IsLittleEndian)
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], BinaryPrimitives.ReverseEndianness(lower));
+				Unsafe.WriteUnaligned(ref tmp[8], BinaryPrimitives.ReverseEndianness(upper));
+			}
+			else
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], upper);
+				Unsafe.WriteUnaligned(ref tmp[8], lower);
+			}
+#endif
+			return new Slice(tmp);
+		}
+
+		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in big-endian</summary>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice FromFixed128BE(long upper, ulong lower)
+		{
+			var tmp = new byte[16];
+#if NET8_0_OR_GREATER
+			BinaryPrimitives.WriteInt128LittleEndian(tmp, new Int128((ulong) upper, lower));
+#else
+			if (BitConverter.IsLittleEndian)
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], BinaryPrimitives.ReverseEndianness(lower));
+				Unsafe.WriteUnaligned(ref tmp[8], BinaryPrimitives.ReverseEndianness(upper));
+			}
+			else
+			{
+				Unsafe.WriteUnaligned(ref tmp[0], upper);
+				Unsafe.WriteUnaligned(ref tmp[8], lower);
+			}
+#endif
+			return new Slice(tmp);
 		}
 
 		#endregion
@@ -893,7 +953,8 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, ContractAnnotation("=> buffer:notnull")]
-		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead")]
+		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice FromStringUtf8(string value, [Positive] int offset, [Positive] int count, ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (count == 0)
@@ -1777,21 +1838,17 @@ namespace System
 		public int ToInt32()
 		{
 			// note: we ensure that offset is not negative by doing a cast to uint
-			uint off = checked((uint)this.Offset);
+			uint off = checked((uint) this.Offset);
 			var arr = this.Array; // if null, will throw later with a nullref
-			switch (this.Count) // if negative, will throw in the default case below
+			return this.Count switch
 			{
-				case 0: return 0;
-				case 1: return arr[off];
-				case 2: return arr[off] | (arr[off + 1] << 8);
-				case 3: return arr[off] | (arr[off + 1] << 8) | (arr[off + 2] << 16);
-				case 4: return arr[off] | (arr[off + 1] << 8) | (arr[off + 2] << 16) | (arr[off + 3] << 24);
-				default:
-				{
-					if (this.Count < 0) UnsafeHelpers.Errors.ThrowSliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<int>(4);
-				}
-			}
+				0   => 0,
+				1   => arr[off],
+				2   => MemoryMarshal.Read<ushort>(MemoryMarshal.CreateSpan(ref arr[off], 2)),
+				3   => arr[off] | (arr[off + 1] << 8) | (arr[off + 2] << 16),
+				4   => MemoryMarshal.Read<int>(MemoryMarshal.CreateSpan(ref arr[off], 4)),
+				_ => this.Count < 0 ? throw UnsafeHelpers.Errors.SliceCountNotNeg() : throw UnsafeHelpers.Errors.SliceTooLargeForConversion<int>(4),
+			};
 		}
 
 		/// <summary>Converts a slice into a big-endian encoded, signed 32-bit integer.</summary>
@@ -1824,22 +1881,16 @@ namespace System
 		[Pure]
 		public uint ToUInt32()
 		{
-			// note: we ensure that offset is not negative by doing a cast to uint
-			uint off = checked((uint)this.Offset);
-			var arr = this.Array; // if null, will throw later with a nullref
-			switch (this.Count) // if negative, will throw in the default case below
+			var span = ValidateSpan();
+			return span.Length switch
 			{
-				case 0: return 0;
-				case 1: return arr[off];
-				case 2: return (uint)(arr[off] | (arr[off + 1] << 8));
-				case 3: return (uint)(arr[off] | (arr[off + 1] << 8) | (arr[off + 2] << 16));
-				case 4: return (uint)(arr[off] | (arr[off + 1] << 8) | (arr[off + 2] << 16) | (arr[off + 3] << 24));
-				default:
-				{
-					if (this.Count < 0) UnsafeHelpers.Errors.ThrowSliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<uint>(4);
-				}
-			}
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
+				3 => (uint) (span[0] | (span[1] << 8) | (span[2] << 16)),
+				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
+				_ => throw UnsafeHelpers.Errors.SliceTooLargeForConversion<uint>(4)
+			};
 		}
 
 		/// <summary>Converts a slice into a big-endian encoded, unsigned 32-bit integer.</summary>
@@ -1848,22 +1899,16 @@ namespace System
 		[Pure]
 		public uint ToUInt32BE()
 		{
-			// note: we ensure that offset is not negative by doing a cast to uint
-			uint off = checked((uint)this.Offset);
-			var arr = this.Array; // if null, will throw later with a nullref
-			switch (this.Count) // if negative, will throw in the default case below
+			var span = ValidateSpan();
+			return this.Count switch
 			{
-				case 0: return 0;
-				case 1: return arr[off];
-				case 2: return (uint)((arr[off] << 8) | arr[off + 1]);
-				case 3: return (uint)((arr[off] << 16) | (arr[off + 1] << 8) | arr[off + 2]);
-				case 4: return (uint)((arr[off] << 24) | (arr[off + 1] << 16) | (arr[off + 2] << 8) | arr[off + 3]);
-				default:
-				{
-					if (this.Count < 0) UnsafeHelpers.Errors.ThrowSliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<uint>(4);
-				}
-			}
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16BigEndian(span),
+				3 => (uint) ((span[0] << 16) | (span[1] << 8) | span[2]),
+				4 => BinaryPrimitives.ReadUInt32BigEndian(span),
+				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<uint>(4)
+			};
 		}
 
 		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
@@ -1920,28 +1965,33 @@ namespace System
 		[Pure]
 		public long ToInt64()
 		{
-			return this.Count <= 4 ? ToUInt32() : ToInt64Slow();
-		}
-
-		[Pure]
-		private long ToInt64Slow()
-		{
-			int n = this.Count;
-			if ((uint) n > 8) goto fail;
-			EnsureSliceIsValid();
-
-			var buffer = this.Array;
-			int p = this.Offset + n - 1;
-
-			long value = buffer[p--];
-			while (--n > 0)
+			var span = ValidateSpan();
+			return span.Length switch
 			{
-				value = (value << 8) | buffer[p--];
-			}
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
+				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
+				8 => BinaryPrimitives.ReadInt64LittleEndian(span),
+				_ => ToInt64Slow(span),
+			};
 
-			return value;
-		fail:
-			throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes.");
+			static long ToInt64Slow(ReadOnlySpan<byte> span)
+			{
+				int n = span.Length;
+				if ((uint) n > 8) goto fail;
+
+				int p = n - 1;
+				long value = span[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | span[p--];
+				}
+				return value;
+
+			fail:
+				throw UnsafeHelpers.Errors.SliceTooLargeForConversion<int>(8);
+			}
 		}
 
 		/// <summary>Converts a slice into a big-endian encoded, signed 64-bit integer.</summary>
@@ -1950,28 +2000,32 @@ namespace System
 		[Pure]
 		public long ToInt64BE()
 		{
-			return this.Count <= 4 ? ToInt32BE() : ToInt64BESlow();
-		}
-
-		[Pure]
-		private long ToInt64BESlow()
-		{
-			int n = this.Count;
-			if (n == 0) return 0L;
-			if ((uint) n > 8) goto fail;
-			EnsureSliceIsValid();
-
-			var buffer = this.Array;
-			int p = this.Offset;
-
-			long value = buffer[p++];
-			while (--n > 0)
+			var span = ValidateSpan();
+			return span.Length switch
 			{
-				value = (value << 8) | buffer[p++];
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16BigEndian(span),
+				4 => BinaryPrimitives.ReadUInt32BigEndian(span),
+				8 => BinaryPrimitives.ReadInt64BigEndian(span),
+				_ => ToInt64BESlow(span),
+			};
+
+			static long ToInt64BESlow(ReadOnlySpan<byte> span)
+			{
+				Contract.Debug.Requires(span.Length > 2);
+				if (span.Length > 8) goto fail;
+
+				long value = 0;
+				foreach (var b in span)
+				{
+					value = (value << 8) | b;
+				}
+				return value;
+
+			fail:
+				throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes.");
 			}
-			return value;
-		fail:
-			throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes.");
 		}
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
@@ -1980,22 +2034,33 @@ namespace System
 		[Pure]
 		public ulong ToUInt64()
 		{
-			int n = this.Count;
-			if (n == 0) return 0L;
-			if ((uint) n > 8) goto fail;
-			EnsureSliceIsValid();
-
-			var buffer = this.Array;
-			int p = this.Offset + n - 1;
-
-			ulong value = buffer[p--];
-			while (--n > 0)
+			var span = ValidateSpan();
+			return span.Length switch
 			{
-				value = (value << 8) | buffer[p--];
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
+				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
+				8 => BinaryPrimitives.ReadUInt64LittleEndian(span),
+				_ => ToUInt64Slow(span),
+			};
+
+			static ulong ToUInt64Slow(ReadOnlySpan<byte> buffer)
+			{
+				int n = buffer.Length;
+				if (n > 8) goto fail;
+
+				int p = n - 1;
+				ulong value = buffer[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | buffer[p--];
+				}
+				return value;
+
+			fail:
+				throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes.");
 			}
-			return value;
-		fail:
-			throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes.");
 		}
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
@@ -2004,22 +2069,35 @@ namespace System
 		[Pure]
 		public ulong ToUInt64BE()
 		{
-			int n = this.Count;
-			if (n == 0) return 0L;
-			if ((uint) n > 8) goto fail;
-			EnsureSliceIsValid();
-
-			var buffer = this.Array;
-			int p = this.Offset;
-
-			ulong value = buffer[p++];
-			while (--n > 0)
+			var span = ValidateSpan();
+			return span.Length switch
 			{
-				value = (value << 8) | buffer[p++];
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16BigEndian(span),
+				4 => BinaryPrimitives.ReadUInt32BigEndian(span),
+				8 => BinaryPrimitives.ReadUInt64BigEndian(span),
+				_ => ToUInt64BESlow(span),
+			};
+
+			static ulong ToUInt64BESlow(ReadOnlySpan<byte> buffer)
+			{
+				Contract.Debug.Requires(buffer.Length > 2);
+				if (buffer.Length > 8)
+				{
+					goto fail;
+				}
+
+				ulong value = 0;
+				foreach(var b in buffer)
+				{
+					value = (value << 8) | b;
+				}
+				return value;
+
+			fail:
+				throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes.");
 			}
-			return value;
-		fail:
-			throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes.");
 		}
 
 		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
@@ -2216,25 +2294,33 @@ namespace System
 		[Pure]
 		public Guid ToGuid()
 		{
-			if (this.Count == 0) return default;
 			EnsureSliceIsValid();
+			switch (this.Count)
+			{
+				case 0:
+				{
+					return default;
+				}
+				case 16:
+				{ // direct byte array
 
-			if (this.Count == 16)
-			{ // direct byte array
+					// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
+					// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
 
-				// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
-				// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
+					return new Uuid128(this).ToGuid();
+				}
 
-				return new Uuid128(this).ToGuid();
+				case 36:
+				{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
+
+					// ReSharper disable once AssignNullToNotNullAttribute
+					return Guid.Parse(ToByteString() ?? string.Empty);
+				}
+				default:
+				{
+					throw ThrowHelper.FormatException("Cannot convert slice into a Guid because it has an incorrect size.");
+				}
 			}
-
-			if (this.Count == 36)
-			{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
-			  // ReSharper disable once AssignNullToNotNullAttribute
-				return Guid.Parse(ToByteString() ?? string.Empty);
-			}
-
-			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size.");
 		}
 
 		/// <summary>Converts a slice into a 128-bit UUID.</summary>
@@ -2243,22 +2329,196 @@ namespace System
 		[Pure]
 		public Uuid128 ToUuid128()
 		{
-			if (this.Count == 0) return default;
+			EnsureSliceIsValid();
+			return this.Count switch
+			{
+				0 => default,
+				16 => new Uuid128(this),
+				36 => Uuid128.Parse(ToByteString()!),
+				_ => throw ThrowHelper.FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size.")
+			};
+		}
+
+#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0 but we don't support it)
+
+		/// <summary>Converts a slice into a little-endian encoded, signed 128-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public Int128 ToInt128()
+		{
+			var span = ValidateSpan();
+			return span.Length switch
+			{
+				0 => default,
+				1 => this[0],
+				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
+				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
+				8 => BinaryPrimitives.ReadUInt64LittleEndian(span),
+				16 => BinaryPrimitives.ReadInt128LittleEndian(span),
+				_ => ToInt128Slow(span),
+			};
+
+			static Int128 ToInt128Slow(ReadOnlySpan<byte> buffer)
+			{
+				int n = buffer.Length;
+				if (n > 16) goto fail;
+
+				int p = n - 1;
+				Int128 value = buffer[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | buffer[p--];
+				}
+				return value;
+
+			fail:
+				throw new FormatException("Cannot convert slice into an Int128 because it is larger than 16 bytes.");
+			}
+		}
+
+		/// <summary>Converts a slice into a big-endian encoded, signed 128-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public Int128 ToInt128BE()
+		{
+			var span = ValidateSpan();
+			return span.Length switch
+			{
+				0 => default,
+				1 => this[0],
+				2 => BinaryPrimitives.ReadUInt16BigEndian(span),
+				4 => BinaryPrimitives.ReadUInt32BigEndian(span),
+				8 => BinaryPrimitives.ReadUInt64BigEndian(span),
+				16 => BinaryPrimitives.ReadInt128BigEndian(span),
+				_ => ToInt128BESlow(span),
+			};
+
+			static Int128 ToInt128BESlow(ReadOnlySpan<byte> buffer)
+			{
+				if (buffer.Length > 16) goto fail;
+
+				Int128 value = default;
+				foreach(var b in buffer)
+				{
+					value = (value << 8) | b;
+				}
+				return value;
+
+			fail:
+				throw new FormatException("Cannot convert slice into an Int128 because it is larger than 16 bytes.");
+			}
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 128-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the slice</exception>
+		[Pure]
+		public UInt128 ToUInt128()
+		{
+			var span = ValidateSpan();
+			return span.Length switch
+			{
+				0 => default,
+				1 => this[0],
+				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
+				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
+				8 => BinaryPrimitives.ReadUInt64LittleEndian(span),
+				16 => BinaryPrimitives.ReadUInt128LittleEndian(span),
+				_ => ToUInt128Slow(span),
+			};
+
+			static UInt128 ToUInt128Slow(ReadOnlySpan<byte> buffer)
+			{
+				int n = buffer.Length;
+				if (n > 16) goto fail;
+
+
+				int p = n - 1;
+				UInt128 value = buffer[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | buffer[p--];
+				}
+				return value;
+
+			fail:
+				throw new FormatException("Cannot convert slice into an UInt128 because it is larger than 16 bytes.");
+			}
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 128-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the slice</exception>
+		[Pure]
+		public UInt128 ToUInt128BE()
+		{
+			int n = this.Count;
+			if (n == 0) return 0L;
+			if ((uint) n > 16) goto fail;
 			EnsureSliceIsValid();
 
-			if (this.Count == 16)
-			{
-				return new Uuid128(this);
-			}
+			var buffer = this.Array;
+			int p = this.Offset;
 
-			if (this.Count == 36)
+			UInt128 value = buffer[p++];
+			while (--n > 0)
 			{
-				// ReSharper disable once AssignNullToNotNullAttribute
-				return Uuid128.Parse(ToByteString()!);
+				value = (value << 8) | buffer[p++];
 			}
-
-			throw new FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size.");
+			return value;
+		fail:
+			throw new FormatException("Cannot convert slice into an UInt128 because it is larger than 16 bytes.");
 		}
+
+		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <param name="offset">Relative offset of the first byte</param>
+		/// <param name="bytes">Number of bytes to read (up to 16)</param>
+		/// <returns>Decoded unsigned integer.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="bytes"/> is less than zero, or more than 16.</exception>
+		[Pure]
+		public UInt128 ReadUInt128(int offset, int bytes)
+		{
+			if (bytes == 0) return 0UL;
+			if ((uint) bytes > 16) goto fail;
+
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset) + bytes - 1;
+
+			UInt128 value = buffer[p--];
+			while (--bytes > 0)
+			{
+				value = (value << 8) | buffer[p--];
+			}
+			return value;
+		fail:
+			throw new ArgumentOutOfRangeException(nameof(bytes));
+		}
+
+		/// <summary>Read a variable-length, big-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <param name="offset">Relative offset of the first byte</param>
+		/// <param name="bytes">Number of bytes to read (up to 16)</param>
+		/// <returns>Decoded unsigned integer.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="bytes"/> is less than zero, or more than 16.</exception>
+		[Pure]
+		public UInt128 ReadUInt128BE(int offset, int bytes)
+		{
+			if (bytes == 0) return 0UL;
+			if ((uint) bytes > 8) throw ThrowHelper.ArgumentOutOfRangeException(nameof(bytes));
+
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset);
+
+			UInt128 value = buffer[p++];
+			while (--bytes > 0)
+			{
+				value = (value << 8) | buffer[p++];
+			}
+			return value;
+		}
+
+#endif
 
 		#endregion
 

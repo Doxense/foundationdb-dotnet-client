@@ -1076,6 +1076,214 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 		#endregion
 
+		#region 128-bits
+
+		#region Little-Endian
+
+		[Test]
+		public void Test_Slice_FromInt128()
+		{
+			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
+
+			static void Verify(Int128 value, string expected)
+			{
+				var s = Slice.FromInt128(value);
+				if (s.ToHexaString() != expected)
+				{
+					var x = Slice.FromHexa(expected);
+					DumpVersus(s, x);
+					Assert.That(s.ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				}
+			}
+
+			Verify(0x12, "12");
+			Verify(0x1234, "3412");
+			Verify(0x123456, "563412");
+			Verify(0x12345678, "78563412");
+			Verify(0x123456789A, "9A78563412");
+			Verify(0x123456789ABC, "BC9A78563412");
+			Verify(0x123456789ABCDE, "DEBC9A78563412");
+			Verify(0x123456789ABCDEF0, "F0DEBC9A78563412");
+			Verify(0xDEADBEEFBADC0FEEUL, "EE0FDCBAEFBEADDE");
+			Verify(new Int128(0x12, 0), "000000000000000012");
+			Verify(new Int128(0x1234, 0), "00000000000000003412");
+			Verify(new Int128(0x123456, 0), "0000000000000000563412");
+			Verify(new Int128(0x12345678, 0), "000000000000000078563412");
+			Verify(new Int128(0x123456789A, 0), "00000000000000009A78563412");
+			Verify(new Int128(0x123456789ABC, 0), "0000000000000000BC9A78563412");
+			Verify(new Int128(0x123456789ABCDE, 0), "0000000000000000DEBC9A78563412");
+			Verify(new Int128(0x123456789ABCDEF0, 0), "0000000000000000F0DEBC9A78563412");
+
+			Verify(0, "00");
+			Verify(1, "01");
+			Verify(255, "FF");
+			Verify(256, "0001");
+			Verify(65535, "FFFF");
+			Verify(65536, "000001");
+			Verify(16777215, "FFFFFF");
+			Verify(16777216, "00000001");
+			Verify(int.MaxValue, "FFFFFF7F");
+			Verify(1L + int.MaxValue, "00000080");
+			Verify(long.MaxValue, "FFFFFFFFFFFFFF7F");
+			Verify(int.MinValue, "00000080FFFFFFFFFFFFFFFFFFFFFFFF");
+			Verify(long.MinValue, "0000000000000080FFFFFFFFFFFFFFFF");
+
+			var rnd = new Random();
+			for (int i = 0; i < 100; i++)
+			{
+				int n = 1 + rnd.Next(16);
+				Int128 x;
+				if (n <= 8)
+				{
+					ulong lo = n == 8 ? NextUInt64(rnd) : NextUInt64(rnd, 1UL << (n * 8));
+					lo |= 1ul << ((n - 1) * 8);
+					x = new Int128(0, lo);
+				}
+				else
+				{
+					ulong hi = n == 16 ? NextUInt64(rnd) : NextUInt64(rnd, 1UL << ((n - 8) * 8));
+					hi |= 1ul << ((n - 9) * 8);
+					ulong lo = NextUInt64(rnd);
+					x = new Int128(hi, lo);
+				}
+
+				var s = Slice.FromInt128(x);
+				Assert.That(s.Count, Is.EqualTo(n));
+				Assert.That(s.ToInt128(), Is.EqualTo(x));
+			}
+		}
+
+		[Test]
+		public void Test_Slice_FromFixed128()
+		{
+			// FromFixed64 always produce 8 bytes and uses Little Endian
+
+			static void Verify(Int128 value, byte[] expected)
+			{
+				var s = Slice.FromFixed128(value);
+				Assert.That(s.Count, Is.EqualTo(16));
+				if (!s.Equals(expected))
+				{
+					Log("Invalid encoding (actual vs expected):");
+					DumpVersus(s.Span, expected);
+					Assert.That(s.ToHexaString(), Is.EqualTo(expected.AsSlice().ToHexaString()), $"Invalid encoding for {value}");
+				}
+			}
+
+			Verify((Int128) 0, new byte[16]);
+
+			Verify((Int128) 1, [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 8, [ 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 16, [ 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 24, [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 32, [ 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 40, [ 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 48, [ 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 56, [ 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 64, [ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 72, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 80, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 88, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 ]);
+			Verify((Int128) 1 << 96, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ]);
+			Verify((Int128) 1 << 104, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 ]);
+			Verify((Int128) 1 << 112, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ]);
+			Verify((Int128) 1 << 120, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ]);
+
+			Verify(sbyte.MaxValue, [ 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(short.MaxValue, [ 255, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(int.MaxValue, [ 255, 255, 255, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(long.MaxValue, [ 255, 255, 255, 255, 255, 255, 255, 127, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(new Int128((ulong) sbyte.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 127, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(new Int128((ulong) short.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 127, 0, 0, 0, 0, 0, 0 ]);
+			Verify(new Int128((ulong) int.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127, 0, 0, 0, 0 ]);
+			Verify(new Int128((ulong) long.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127 ]);
+
+			Verify(byte.MaxValue, [ 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(ushort.MaxValue, [ 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(uint.MaxValue, [ 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(ulong.MaxValue, [ 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(new Int128(byte.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(new Int128(ushort.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0 ]);
+			Verify(new Int128(uint.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0 ]);
+			Verify(new Int128(ulong.MaxValue, ulong.MaxValue), [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+
+			Verify(-1L, [ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-256L, [ 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-65536L, [ 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-16777216L, [ 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-4294967296L, [ 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-1099511627776L, [ 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-281474976710656L, [ 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-72057594037927936L, [ 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+
+			Verify(long.MinValue, [ 0, 0, 0, 0, 0, 0, 0, 128, 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(Int128.MinValue, [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128 ]);
+
+			var rnd = new Random();
+			for (int i = 0; i < 1000; i++)
+			{
+				ulong hi = NextRawBits64(rnd);
+				ulong lo = NextRawBits64(rnd);
+				var x = new Int128(hi, lo);
+				// (hi, lo)
+				var s = Slice.FromFixed128(hi, lo);
+				Assert.That(s.Count, Is.EqualTo(16));
+				Assert.That(s.ToInt128(), Is.EqualTo(x));
+				Assert.That(s[..8].ToUInt64(), Is.EqualTo(lo));
+				Assert.That(s[8..].ToUInt64(), Is.EqualTo(hi));
+				// (Int128)
+				s = Slice.FromFixed128(x);
+				Assert.That(s.Count, Is.EqualTo(16));
+				Assert.That(s.ToInt128(), Is.EqualTo(x));
+				Assert.That(s[..8].ToUInt64(), Is.EqualTo(lo));
+				Assert.That(s[8..].ToUInt64(), Is.EqualTo(hi));
+			}
+		}
+
+		[Test]
+		public void Test_Slice_ToInt128()
+		{
+			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x12));
+			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x1234));
+			Assert.That(new byte[] { 0x56, 0x34, 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x123456));
+			Assert.That(new byte[] { 0x56, 0x34, 0x12, 0x00 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x123456));
+			Assert.That(new byte[] { 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x12345678));
+			Assert.That(new byte[] { 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x123456789A));
+			Assert.That(new byte[] { 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x123456789ABC));
+			Assert.That(new byte[] { 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x123456789ABCDE));
+			Assert.That(new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0x123456789ABCDEF0));
+
+			Assert.That(new byte[] { }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0L));
+			Assert.That(new byte[] { 0 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 0L));
+			Assert.That(new byte[] { 255 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 255L));
+			Assert.That(new byte[] { 0, 1 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 256L));
+			Assert.That(new byte[] { 255, 255 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 65535L));
+			Assert.That(new byte[] { 0, 0, 1 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 1L << 16));
+			Assert.That(new byte[] { 0, 0, 1, 0 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 1L << 16));
+			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToInt128(), Is.EqualTo((Int128) ((1L << 24) - 1)));
+			Assert.That(new byte[] { 0, 0, 0, 1 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 1L << 24));
+			Assert.That(new byte[] { 0, 0, 0, 0, 1 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 1L << 32));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 1 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 1L << 40));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 1L << 48));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToInt128(), Is.EqualTo((Int128) 1L << 56));
+			Assert.That(new byte[] { 255, 255, 255, 127 }.AsSlice().ToInt128(), Is.EqualTo((Int128) int.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }.AsSlice().ToInt128(), Is.EqualTo((Int128) long.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToInt128(), Is.EqualTo((Int128) ulong.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127 }.AsSlice().ToInt128(), Is.EqualTo(Int128.MaxValue));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128 }.AsSlice().ToInt128(), Is.EqualTo(Int128.MinValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToInt128(), Is.EqualTo((Int128) (-1L)));
+
+			// should validate the arguments
+			var x = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF }.AsSlice();
+			Assert.That(() => MutateOffset(x, -1).ToInt128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 17).ToInt128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToInt128(), Throws.InstanceOf<FormatException>());
+		}
+
+		#endregion
+
+		#endregion
+
 		#endregion
 
 		#region Unsigned...
@@ -1356,6 +1564,73 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(() => MutateOffset(x, -1).ToUInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToUInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null!).ToUInt64(), Throws.InstanceOf<FormatException>());
+		}
+
+		[Test]
+		public void Test_Slice_ToUInt128()
+		{
+			Assert.That(new byte[] { 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x12));
+			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x1234));
+			Assert.That(new byte[] { 0x56, 0x34, 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x123456));
+			Assert.That(new byte[] { 0x56, 0x34, 0x12, 00 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x123456));
+			Assert.That(new byte[] { 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x12345678));
+			Assert.That(new byte[] { 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x123456789A));
+			Assert.That(new byte[] { 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x123456789ABC));
+			Assert.That(new byte[] { 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x123456789ABCDE));
+			Assert.That(new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0x123456789ABCDEF0));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0)));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8800000000000000UL)));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8899000000000000UL)));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8899AA0000000000UL)));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8899AABB00000000UL)));
+			Assert.That(new byte[] { 0, 0, 0, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8899AABBCC000000UL)));
+			Assert.That(new byte[] { 0, 0, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8899AABBCCDD0000UL)));
+			Assert.That(new byte[] { 0, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8899AABBCCDDEE00UL)));
+			Assert.That(new byte[] { 0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 }.AsSlice().ToUInt128(), Is.EqualTo(new UInt128(0x0011223344556677UL, 0x8899AABBCCDDEEFFUL)));
+
+			Assert.That(new byte[] { }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0));
+			Assert.That(new byte[] { 0 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 0));
+			Assert.That(new byte[] { 255 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 255));
+			Assert.That(new byte[] { 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 256));
+			Assert.That(new byte[] { 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 65535));
+			Assert.That(new byte[] { 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 16));
+			Assert.That(new byte[] { 0, 0, 1, 0 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 16));
+			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 24) - 1));
+			Assert.That(new byte[] { 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 24));
+			Assert.That(new byte[] { 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 32));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 40));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 48));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 56));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 64));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 72));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 80));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 88));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 96));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 104));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 112));
+			Assert.That(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) 1 << 120));
+			Assert.That(new byte[] { 255, 255, 255, 127 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) int.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) uint.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 0, 0, }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) uint.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 0, 0, 0, 0 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) uint.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) long.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) ulong.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) ulong.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0 }.AsSlice().ToUInt128(), Is.EqualTo((UInt128) ulong.MaxValue));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 72) - 1));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 80) - 1));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 88) - 1));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 96) - 1));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 104) - 1));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 112) - 1));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(((UInt128) 1 << 120) - 1));
+			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt128(), Is.EqualTo(UInt128.MaxValue));
+
+			// should validate the arguments
+			var x = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF }.AsSlice();
+			Assert.That(() => MutateOffset(x, -1).ToUInt128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 17).ToUInt128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null!).ToUInt128(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]

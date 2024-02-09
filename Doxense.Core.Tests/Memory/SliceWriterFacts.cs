@@ -333,6 +333,28 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		}
 
 		[Test]
+		public void Test_WriteFixed128_Unsigned()
+		{
+			static void Test(ref SliceWriter writer, UInt128 value) => writer.WriteFixed128(value);
+
+			PerformWriterTest<UInt128>(Test, 0UL, "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 1UL, "01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0x12UL, "12 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0x1234UL, "34 12 00 00 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, ushort.MaxValue, "FF FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0x123456UL, "56 34 12 00 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0x12345678UL, "78 56 34 12 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, uint.MaxValue, "FF FF FF FF 00 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0x123456789AUL, "9A 78 56 34 12 00 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0x123456789ABCUL, "BC 9A 78 56 34 12 00 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0x123456789ABCDEUL, "DE BC 9A 78 56 34 12 00 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, 0xBADC0FFEE0DDF00DUL, "0D F0 DD E0 FE 0F DC BA 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, ulong.MaxValue, "FF FF FF FF FF FF FF FF 00 00 00 00 00 00 00 00");
+			PerformWriterTest<UInt128>(Test, UInt128.MaxValue, "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF");
+		}
+
+
+		[Test]
 		public void Test_WriteVarint32()
 		{
 			static void Test(ref SliceWriter writer, uint value) => writer.WriteVarInt32(value);
@@ -380,6 +402,37 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			PerformWriterTest(Test, 9223372036854775807UL, "FF FF FF FF FF FF FF FF 7F");
 			PerformWriterTest(Test, 9223372036854775808UL, "80 80 80 80 80 80 80 80 80 01");
 			PerformWriterTest(Test, ulong.MaxValue, "FF FF FF FF FF FF FF FF FF 01");
+		}
+
+		[Test]
+		public void Test_WriteVarint128()
+		{
+			static void Test(ref SliceWriter writer, UInt128 value) => writer.WriteVarInt128(value);
+
+			PerformWriterTest(Test, (UInt128) 0UL, "00");
+			PerformWriterTest(Test, (UInt128) 1UL, "01");
+			PerformWriterTest(Test, (UInt128) 127UL, "7F");
+			PerformWriterTest(Test, (UInt128) 128UL, "80 01");
+			PerformWriterTest(Test, (UInt128) 255UL, "FF 01");
+			PerformWriterTest(Test, (UInt128) 256UL, "80 02");
+			PerformWriterTest(Test, (UInt128) 16383UL, "FF 7F");
+			PerformWriterTest(Test, (UInt128) 16384UL, "80 80 01");
+			PerformWriterTest(Test, (UInt128) 2097151UL, "FF FF 7F");
+			PerformWriterTest(Test, (UInt128) 2097152UL, "80 80 80 01");
+			PerformWriterTest(Test, (UInt128) 268435455UL, "FF FF FF 7F");
+			PerformWriterTest(Test, (UInt128) 268435456UL, "80 80 80 80 01");
+			PerformWriterTest(Test, (UInt128) 34359738367UL, "FF FF FF FF 7F");
+			PerformWriterTest(Test, (UInt128) 34359738368UL, "80 80 80 80 80 01");
+			PerformWriterTest(Test, (UInt128) 4398046511103UL, "FF FF FF FF FF 7F");
+			PerformWriterTest(Test, (UInt128) 4398046511104UL, "80 80 80 80 80 80 01");
+			PerformWriterTest(Test, (UInt128) 562949953421311UL, "FF FF FF FF FF FF 7F");
+			PerformWriterTest(Test, (UInt128) 562949953421312UL, "80 80 80 80 80 80 80 01");
+			PerformWriterTest(Test, (UInt128) 72057594037927935UL, "FF FF FF FF FF FF FF 7F");
+			PerformWriterTest(Test, (UInt128) 72057594037927936UL, "80 80 80 80 80 80 80 80 01");
+			PerformWriterTest(Test, (UInt128) 9223372036854775807UL, "FF FF FF FF FF FF FF FF 7F");
+			PerformWriterTest(Test, (UInt128) 9223372036854775808UL, "80 80 80 80 80 80 80 80 80 01");
+			PerformWriterTest(Test, (UInt128) ulong.MaxValue, "FF FF FF FF FF FF FF FF FF 01");
+			PerformWriterTest(Test, UInt128.MaxValue, "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 03");
 		}
 
 		[Test]

@@ -99,36 +99,18 @@ namespace System
 		#region Constructors...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Guid guid)
-			: this()
-		{
-			m_packed = guid;
-		}
+		public Uuid128(Guid guid) : this() => m_packed = guid;
 
-		public Uuid128(string value)
-			: this(new Guid(value))
-		{ }
+		public Uuid128(string value) : this(new Guid(value)) { }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Slice slice)
-			: this()
-		{
-			m_packed = Convert(slice.Span);
-		}
+		public Uuid128(Slice slice) : this() => m_packed = Convert(slice.Span);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(byte[] bytes)
-			: this()
-		{
-			m_packed = Convert(bytes.AsSpan());
-		}
+		public Uuid128(byte[] bytes) : this() => m_packed = Convert(bytes.AsSpan());
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(ReadOnlySpan<byte> bytes)
-			: this()
-		{
-			m_packed = Convert(bytes);
-		}
+		public Uuid128(ReadOnlySpan<byte> bytes) : this() => m_packed = Convert(bytes);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(int a, short b, short c, byte[] d)
@@ -146,30 +128,32 @@ namespace System
 		{ }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Uuid64 a, Uuid64 b)
-			: this()
-		{
-			m_packed = Convert(a, b);
-		}
+		public Uuid128(Uuid64 a, Uuid64 b) : this() => m_packed = Convert(a, b);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Uuid64 a, uint b, uint c)
-			: this()
-		{
-			m_packed = Convert(a, b, c);
-		}
+		public Uuid128(Uuid64 a, uint b, uint c) : this() => m_packed = Convert(a, b, c);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator Guid(Uuid128 uuid)
-		{
-			return uuid.m_packed;
-		}
+		public static explicit operator Guid(Uuid128 uuid) => uuid.m_packed;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator Uuid128(Guid guid)
-		{
-			return new Uuid128(guid);
-		}
+		public static explicit operator Uuid128(Guid guid) => new(guid);
+
+#if NET8_0_OR_GREATER
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid128(Int128 a) : this() => m_packed = Convert((UInt128) a);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid128(UInt128 a) : this() => m_packed = Convert(a);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Uuid128(Int128 a) => new(a);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Uuid128(UInt128 a) => new(a);
+
+#endif
 
 		/// <summary>Uuid with all bits set to 0</summary>
 		public static readonly Uuid128 Empty;
@@ -229,6 +213,17 @@ namespace System
 				return Read(buf);
 			}
 		}
+
+#if NET8_0_OR_GREATER
+
+		public static Guid Convert(UInt128 a)
+		{
+			Span<byte> tmp = stackalloc byte[16];
+			BinaryPrimitives.WriteUInt128BigEndian(tmp, a);
+			return Convert(tmp);
+		}
+
+#endif
 
 		public static Uuid128 Parse(string input)
 		{
@@ -374,9 +369,13 @@ namespace System
 			return true;
 		}
 
+		// ReSharper disable once NotResolvedInText
+		private static ArgumentException ErrorDestinationBufferTooSmall() => new("The destination buffer is too small", "buffer");
+
 		public static unsafe void Write(in Guid value, Span<byte> buffer)
 		{
-			if (buffer.Length < 16) throw new ArgumentException("The destination buffer is too small", nameof(buffer));
+			if (buffer.Length < 16) throw ErrorDestinationBufferTooSmall();
+
 			fixed (Guid* inp = &value)
 			fixed (byte* outp = &MemoryMarshal.GetReference(buffer))
 			{
@@ -408,10 +407,50 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteToUnsafe(Span<byte> buffer)
+		[Obsolete("Renamed to WriteTo(..)")]
+		public void WriteToUnsafe(Span<byte> buffer) => Write(in m_packed, buffer);
+
+		/// <summary>Write the bytes of this instance to the specified <paramref name="buffer"/></summary>
+		/// <param name="buffer">Buffer where the bytes will be written to, with a capacity of at least 16 bytes</param>
+		/// <exception cref="ArgumentException">If <paramref name="buffer"/> is smaller than 16 bytes</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteTo(Span<byte> buffer) => Write(in m_packed, buffer);
+
+		/// <summary>Write the bytes of this instance to the specified <paramref name="buffer"/>, if it is large enough</summary>
+		/// <param name="buffer">Buffer where the bytes will be written to, with a capacity of at least 16 bytes</param>
+		/// <returns><see langword="true"/> if <paramref name="buffer"/> was large enough; otherwise, <see langword="false"/>.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryWriteTo(Span<byte> buffer)
 		{
+			if (buffer.Length < 16)
+			{
+				return false;
+			}
 			Write(in m_packed, buffer);
+			return true;
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Return the equivalent <see cref="UInt128"/></summary>
+		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		public UInt128 ToUInt128()
+		{
+			Span<byte> tmp = stackalloc byte[16];
+			Write(in m_packed, tmp);
+			return BinaryPrimitives.ReadUInt128BigEndian(tmp);
+		}
+
+		/// <summary>Return the equivalent <see cref="Int128"/></summary>
+		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		public Int128 ToInt128()
+		{
+			Span<byte> tmp = stackalloc byte[16];
+			Write(in m_packed, tmp);
+			return BinaryPrimitives.ReadInt128BigEndian(tmp);
+		}
+
+#endif
 
 		#endregion
 

@@ -174,6 +174,20 @@ namespace Doxense.Slices.Tests
 		}
 
 		[Test]
+		public void Test_ReadFixed128()
+		{
+			var data = Slice.FromString("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef");
+			var reader = data.ToSliceReader();
+			Assert.That(reader.ReadFixed128(), Is.EqualTo(new UInt128(0x4645444342413938, 0x3736353433323130)));
+			Assert.That(reader.Position, Is.EqualTo(16));
+			Assert.That(reader.ReadFixed128BE(), Is.EqualTo(new UInt128(0x4748494A4B4C4D4E, 0x4F50515253545556)));
+			Assert.That(reader.Position, Is.EqualTo(32));
+			Assert.That(() => reader.ReadFixed128(), Throws.InstanceOf<FormatException>());
+			Assert.That(reader.Position, Is.EqualTo(32));
+			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("WXYZabcdef")));
+		}
+
+		[Test]
 		public void Test_ReadUuid64()
 		{
 			var data = Slice.FromString("0123456789ABCDEFGH");
