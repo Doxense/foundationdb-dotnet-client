@@ -31,31 +31,32 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
-	/// <summary>Booléen JSON</summary>
+	/// <summary>JSON Boolean, that can be either <see langword="true"/> or <see langword="false"/></summary>
 	[DebuggerDisplay("JSON Boolean({m_value})")]
 	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public sealed class JsonBoolean : JsonValue, IEquatable<JsonBoolean>, IComparable<JsonBoolean>, IEquatable<JsonNumber>, IEquatable<JsonString>, IEquatable<bool>
 	{
-		/// <summary>True</summary>
-		public static readonly JsonBoolean True = new JsonBoolean(true);
 
-		/// <summary>False</summary>
-		public static readonly JsonBoolean False = new JsonBoolean(false);
+		/// <summary>JSON value that is equal to <see langword="true"/></summary>
+		/// <remarks>This singleton is immutable and can be cached</remarks>
+		public static readonly JsonBoolean True = new(true);
+
+		/// <summary>JSON value that is equal to <see langword="false"/></summary>
+		/// <remarks>This singleton is immutable and can be cached</remarks>
+		public static readonly JsonBoolean False = new(false);
 
 		private readonly bool m_value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal JsonBoolean(bool value)
-		{
-			m_value = value;
-		}
+		internal JsonBoolean(bool value) => m_value = value;
 
+		/// <summary>Returns either <see cref="JsonBoolean.True"/> or <see cref="JsonBoolean.False"/></summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonBoolean Return(bool value) => value ? True : False;
 
-		public static JsonValue Return(bool? value)
-		{
-			return !value.HasValue ? JsonNull.Null : value.Value ? JsonBoolean.True : JsonBoolean.False;
-		}
+		/// <summary>Returns either <see cref="JsonBoolean.True"/>, <see cref="JsonBoolean.False"/> or <see cref="JsonNull.Null"/></summary>
+		public static JsonValue Return(bool? value) => value == null ? JsonNull.Null : value.Value ? JsonBoolean.True : JsonBoolean.False;
 
 		public bool Value => m_value;
 
@@ -65,22 +66,49 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsDefault => !m_value;
 
+		public override bool IsReadOnly => true; //note: booleans are immutable
+
 		public override object ToObject() => m_value;
 
-		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null) => JsonValue.BindNative<JsonBoolean, bool>(this, m_value, type, resolver);
+		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		{
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(T) == typeof(bool)) return (T) (object) ToBoolean();
+			if (typeof(T) == typeof(byte)) return (T) (object) ToByte();
+			if (typeof(T) == typeof(sbyte)) return (T) (object) ToSByte();
+			if (typeof(T) == typeof(char)) return (T) (object) ToChar();
+			if (typeof(T) == typeof(short)) return (T) (object) ToInt16();
+			if (typeof(T) == typeof(ushort)) return (T) (object) ToUInt16();
+			if (typeof(T) == typeof(int)) return (T) (object) ToInt32();
+			if (typeof(T) == typeof(uint)) return (T) (object) ToUInt32();
+			if (typeof(T) == typeof(ulong)) return (T) (object) ToUInt64();
+			if (typeof(T) == typeof(long)) return (T) (object) ToInt64();
+			if (typeof(T) == typeof(float)) return (T) (object) ToSingle();
+			if (typeof(T) == typeof(double)) return (T) (object) ToDouble();
+			if (typeof(T) == typeof(decimal)) return (T) (object) ToDecimal();
+			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
+			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
+			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
+			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
+			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
+			if (typeof(T) == typeof(Uuid80)) return (T) (object) ToUuid80();
+			if (typeof(T) == typeof(Uuid64)) return (T) (object) ToUuid64();
+			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
+			if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) ToDuration();
+#endif
+			#endregion
+
+			return (T?) BindNative<JsonBoolean, bool>(this, m_value, typeof(T), resolver);
+		}
+
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null) => BindNative<JsonBoolean, bool>(this, m_value, type, resolver);
 
 		internal override bool IsSmallValue() => true;
 
 		internal override bool IsInlinable() => true;
-
-		#endregion
-
-		#region IJsonSerializable
-
-		public override void JsonSerialize(CrystalJsonWriter writer)
-		{
-			writer.WriteValue(m_value);
-		}
 
 		#endregion
 
@@ -102,54 +130,31 @@ namespace Doxense.Serialization.Json
 			return base.Equals(value);
 		}
 
-		public override bool Equals(JsonValue? value)
+		public override bool Equals(JsonValue? value) => value switch
 		{
-			if (object.ReferenceEquals(value, null)) return false;
-			switch(value)
-			{
-				case JsonBoolean b:
-					return Equals(b);
-				case JsonNumber n:
-					return Equals(n);
-				case JsonString s:
-					return Equals(s);
-				default:
-					return false;
-			}
-		}
-
-		public bool Equals(JsonBoolean? obj)
-		{
-			return !object.ReferenceEquals(obj, null) && obj.m_value == m_value;
-		}
-
-		public bool Equals(JsonNumber? obj)
-		{
-			return !object.ReferenceEquals(obj, null) && obj.ToBoolean() == m_value;
-		}
-
-		public bool Equals(JsonString? obj)
-		{
-			return !object.ReferenceEquals(obj, null) && m_value != string.IsNullOrEmpty(obj.Value);
-		}
+			JsonBoolean b => Equals(b),
+			JsonNumber n => Equals(n),
+			JsonString s => Equals(s),
+			_ => false
+		};
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(bool value)
-		{
-			return m_value == value;
-		}
+		public bool Equals(JsonBoolean? obj) => obj is not null && obj.m_value == m_value;
 
-		public override int GetHashCode()
-		{
-			// false.GetHashcode() => 0
-			// true.GetHashcode() => 1
-			return m_value ? 1 : 0;
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(JsonNumber? obj) => obj is not null && obj.ToBoolean() == m_value;
 
-		public static implicit operator bool(JsonBoolean? obj)
-		{
-			return obj?.m_value == true;
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(JsonString? obj) => obj is not null && m_value != string.IsNullOrEmpty(obj.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(bool value) => m_value == value;
+
+		public override int GetHashCode() => m_value ? 1 : 0;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator bool(JsonBoolean? obj) => obj?.m_value == true;
+		//TODO: REVIEW: is this usefull ? when do we have a variable of explicit type JsonBoolean?
 
 		#endregion
 
@@ -216,18 +221,31 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region IJsonSerializable
+
+		public override void JsonSerialize(CrystalJsonWriter writer)
+		{
+			writer.WriteValue(m_value);
+		}
+
+		#endregion
+
+		#region ISliceSerializable
+
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			if (m_value)
 			{ // 'true' => 74 72 75 65
-				writer.WriteFixed32(0x65757274);
+				writer.WriteBytes("true"u8);
 			}
 			else
 			{ // 'false' => 66 61 6C 73 65
-				writer.WriteFixed32(0x736C6166);
-				writer.WriteByte(0x65);
+				writer.WriteBytes("false"u8);
 			}
 		}
+
+		#endregion
+
 	}
 
 }

@@ -73,8 +73,8 @@ namespace Doxense.Serialization.Json
 		{
 			var comparer = JsonValueComparer.Default;
 			if (left.Type != right.Type) ThrowHelper.ThrowArgumentException(nameof(right), "Both items must be of the same type");
-			if (left.IsMap) return DiffMap((JsonObject)left, (JsonObject)right, comparer);
-			if (left.IsArray) return DiffArray((JsonArray)left, (JsonArray)right, comparer);
+			if (left is JsonObject lobj) return DiffMap(lobj, (JsonObject) right, comparer);
+			if (left is JsonArray larr) return DiffArray(larr, (JsonArray) right, comparer);
 			return !comparer.Equals(left, right) ? right : null;
 		}
 
@@ -82,7 +82,7 @@ namespace Doxense.Serialization.Json
 		{
 			// return la liste des champs de lefts qui ont été modifiés pour arriver jusqu'à right
 
-			var diff = JsonObject.Empty;
+			var diff = JsonObject.Create();
 
 			var inRight = right.Copy(deep: false);
 
@@ -98,14 +98,14 @@ namespace Doxense.Serialization.Json
 				{ // type has changed!
 					diff[kvp.Key] = JsonObject.Create("_replace", kvp.Value, "_by", val);
 				}
-				else if (val.IsMap)
+				else if (val is JsonObject valObj)
 				{
-					var obj = DiffMap((JsonObject)kvp.Value, (JsonObject)val, comparer);
+					var obj = DiffMap((JsonObject)kvp.Value, valObj, comparer);
 					if (obj != null) diff[kvp.Key] = obj;
 				}
-				else if (val.IsArray)
+				else if (val is JsonArray valArr)
 				{
-					var arr = DiffArray((JsonArray)kvp.Value, (JsonArray)val, comparer);
+					var arr = DiffArray((JsonArray)kvp.Value, valArr, comparer);
 					if (arr != null) diff[kvp.Key] = arr;
 				}
 				else if (!comparer.Equals(kvp.Value, val))
@@ -152,7 +152,7 @@ namespace Doxense.Serialization.Json
 			{ // more items than before
 				if (common > 0)
 				{
-					var tail = right.Substring(common);
+					var tail = right.GetRange(common);
 					if (common == nl)
 					{ // all items in left were preserved
 						return JsonObject.Create("_append", tail);
@@ -177,7 +177,7 @@ namespace Doxense.Serialization.Json
 					}
 					else
 					{ // items were removed and less were added?
-						var tail = right.Substring(common);
+						var tail = right.GetRange(common);
 						return JsonObject.Create("_truncate", common, "_append", tail);
 					}
 				}
@@ -200,13 +200,13 @@ namespace Doxense.Serialization.Json
 			var res = new List<(string Path, string Action, JsonValue? Before, JsonValue? After)>();
 			var comparer = JsonValueComparer.Default;
 			if (left.Type != right.Type) ThrowHelper.ThrowArgumentException(nameof(right), "Both items must be of the same type");
-			if (left.IsMap)
+			if (left is JsonObject lobj)
 			{
-				FlatDiffMap(res, "", (JsonObject)left, (JsonObject)right, comparer);
+				FlatDiffMap(res, "", lobj, (JsonObject) right, comparer);
 			}
-			else if (left.IsArray)
+			else if (left is JsonArray larr)
 			{
-				FlatDiffArray(res, "", (JsonArray)left, (JsonArray)right, comparer);
+				FlatDiffArray(res, "", larr, (JsonArray)right, comparer);
 			}
 			else if (!comparer.Equals(left, right))
 			{
@@ -246,13 +246,13 @@ namespace Doxense.Serialization.Json
 						res.Add((prefix + kvp.Key, "update", kvp.Value, val));
 					}
 				}
-				else if (val.IsMap)
+				else if (val is JsonObject obj)
 				{
-					FlatDiffMap(res, prefix + kvp.Key + ".", (JsonObject) kvp.Value, (JsonObject) val, comparer);
+					FlatDiffMap(res, prefix + kvp.Key + ".", (JsonObject) kvp.Value, obj, comparer);
 				}
-				else if (val.IsArray)
+				else if (val is JsonArray arr)
 				{
-					FlatDiffArray(res, prefix + kvp.Key + ".", (JsonArray) kvp.Value, (JsonArray) val, comparer);
+					FlatDiffArray(res, prefix + kvp.Key + ".", (JsonArray) kvp.Value, arr, comparer);
 				}
 				else if (!comparer.Equals(kvp.Value, val))
 				{ // changed in right
@@ -382,7 +382,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Liste de transformations qui, si appliquées dans l'ordre, produise <paramref name="after"/> en partant de <paramref name="before"/></returns>
 		public static JsonArray ComputeDiffSet(JsonObject before, JsonObject after, IEqualityComparer<JsonValue>? comparer = null)
 		{
-			var ops = JsonArray.Empty;
+			var ops = JsonArray.Create();
 			comparer ??= JsonValueComparer.Default;
 			AppendToDiffSet(ops, before, after, comparer);
 			return ops;
@@ -449,10 +449,9 @@ namespace Doxense.Serialization.Json
 						ops.Add(JsonArray.Create(Commands.Set, kvp.Key, kvp.Value));
 					}
 				}
-				else if (prev.IsMap)
+				else if (prev is JsonObject prevMap)
 				{
-					var prevMap = (JsonObject)prev;
-					var curMap = (JsonObject)kvp.Value;
+					var curMap = (JsonObject) kvp.Value;
 					//TODO!
 					if (prevMap.Count == 0)
 					{
@@ -463,11 +462,11 @@ namespace Doxense.Serialization.Json
 					}
 					else if (curMap.Count == 0)
 					{
-						ops.Add(JsonArray.Create(Commands.Set, kvp.Key, JsonObject.Empty));
+						ops.Add(JsonArray.Create(Commands.Set, kvp.Key, JsonObject.EmptyReadOnly));
 					}
 					else
 					{
-						var subOps = JsonArray.Empty;
+						var subOps = JsonArray.Create();
 						AppendToDiffSet(subOps, prevMap, curMap, comparer);
 						if (subOps.Count > 0)
 						{
@@ -475,10 +474,9 @@ namespace Doxense.Serialization.Json
 						}
 					}
 				}
-				else if (prev.IsArray)
+				else if (prev is JsonArray prevArray)
 				{
-					var prevArray = (JsonArray)prev;
-					var curArray = (JsonArray)kvp.Value;
+					var curArray = (JsonArray) kvp.Value;
 
 					if (prevArray.Count == 0)
 					{
@@ -510,7 +508,7 @@ namespace Doxense.Serialization.Json
 							}
 							if (common < curArray.Count)
 							{
-								ops.Add(JsonArray.Create(Commands.Append, kvp.Key, curArray.Substring(common)));
+								ops.Add(JsonArray.Create(Commands.Append, kvp.Key, curArray.GetRange(common)));
 							}
 						}
 					}
@@ -566,8 +564,7 @@ namespace Doxense.Serialization.Json
 
 			for (int i = 0; i < ops.Count;i++)
 			{
-				if (!ops[i].IsArray) throw new FormatException($"Malformed JSON Diff: array expected at position {i} but was {ops[i].Type}");
-				var op = (JsonArray) ops[i];
+				if (ops[i] is not JsonArray op) throw new FormatException($"Malformed JSON Diff: array expected at position {i} but was {ops[i].Type}");
 				if (op.Count == 0) throw new InvalidOperationException($"Malformed JSON Diff: empty array at position {i}");
 
 				switch (op[0].ToString())
@@ -654,7 +651,7 @@ namespace Doxense.Serialization.Json
 						var arr = state.GetPath(path).AsArray(required: false);
 						if (arr != null)
 						{
-							state[path] = arr.Substring(0, count);
+							state[path] = arr.GetRange(0, count);
 						}
 						break;
 					}

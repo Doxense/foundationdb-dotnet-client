@@ -45,6 +45,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>JSON number</summary>
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
 	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>, IEquatable<JsonString>, IEquatable<JsonBoolean>, IEquatable<JsonDateTime>, IEquatable<int>, IEquatable<long>, IEquatable<uint>, IEquatable<ulong>, IEquatable<float>, IEquatable<double>, IEquatable<decimal>, IEquatable<TimeSpan>
 	{
 		/// <summary>Cache of all small numbers, from <see cref="CACHED_SIGNED_MIN"/> to <see cref="CACHED_SIGNED_MAX"/> (included)</summary>
@@ -1028,10 +1029,45 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsDefault => m_value.IsDefault(m_kind);
 
+		public override bool IsReadOnly => true; //note: numbers are immutable
+
 		/// <summary>Retourne la valeur de l'objet en utilisant le type le plus adapté</summary>
 		/// <returns>Retourne un int/long pour des entiers, ou un decimal pour les nombres à virgules</returns>
 		/// <remarks>Pour les entiers: si la valeur est entre int.MinValue et int.MaxValue, elle sera castée en int. Sinon elle sera castée en long.</remarks>
 		public override object? ToObject() => m_value.ToObject(m_kind);
+
+		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		{
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(T) == typeof(bool)) return (T) (object) ToBoolean();
+			if (typeof(T) == typeof(byte)) return (T) (object) ToByte();
+			if (typeof(T) == typeof(sbyte)) return (T) (object) ToSByte();
+			if (typeof(T) == typeof(char)) return (T) (object) ToChar();
+			if (typeof(T) == typeof(short)) return (T) (object) ToInt16();
+			if (typeof(T) == typeof(ushort)) return (T) (object) ToUInt16();
+			if (typeof(T) == typeof(int)) return (T) (object) ToInt32();
+			if (typeof(T) == typeof(uint)) return (T) (object) ToUInt32();
+			if (typeof(T) == typeof(ulong)) return (T) (object) ToUInt64();
+			if (typeof(T) == typeof(long)) return (T) (object) ToInt64();
+			if (typeof(T) == typeof(float)) return (T) (object) ToSingle();
+			if (typeof(T) == typeof(double)) return (T) (object) ToDouble();
+			if (typeof(T) == typeof(decimal)) return (T) (object) ToDecimal();
+			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
+			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
+			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
+			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
+			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
+			if (typeof(T) == typeof(Uuid80)) return (T) (object) ToUuid80();
+			if (typeof(T) == typeof(Uuid64)) return (T) (object) ToUuid64();
+			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
+			if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) ToDuration();
+#endif
+			#endregion
+
+			return (T?) Bind(typeof(T), resolver);
 		}
 
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)

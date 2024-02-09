@@ -66,4 +66,14 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	//public enum JsonMutability
+	//{
+	//	/// <summary>The value can be mutated at any time</summary>
+	//	Mutable = 0,
+	//	/// <summary>The value is read-only, but at least of its direct or indirect childen is mutable.</summary>
+	//	ReadOnly = 1,
+	//	/// <summary>The value is read-only, and the whole sub-tree of children is also read-only.</summary>
+	//	Immutable = 2,
+	//}
+
 }

@@ -40,6 +40,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>JSON string literal</summary>
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
 	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public sealed class JsonString : JsonValue, IEquatable<JsonString>, IEquatable<string>, IEquatable<Guid>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
 	{
 		public static readonly JsonValue Empty = new JsonString(string.Empty);
@@ -57,6 +58,11 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(string? value)
 		{
 			return value == null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value);
+		}
+
+		public static JsonValue Return(ReadOnlySpan<char> value)
+		{
+			return value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
 		}
 
 		public static JsonValue Return(System.Text.StringBuilder? value)
@@ -436,6 +442,8 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsDefault => false; //note: string empty is NOT "default"
 
+		public override bool IsReadOnly => true; //note: strings are immutable
+
 		public byte[] ToBuffer() //REVIEW: => GetBytes()? DecodeBase64() ?
 		{
 			return m_value.Length != 0 ? Convert.FromBase64String(m_value) : Array.Empty<byte>();
@@ -444,6 +452,43 @@ namespace Doxense.Serialization.Json
 		public override object ToObject()
 		{
 			return m_value;
+		}
+
+		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		{
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(T) == typeof(bool)) return (T) (object) ToBoolean();
+			if (typeof(T) == typeof(byte)) return (T) (object) ToByte();
+			if (typeof(T) == typeof(sbyte)) return (T) (object) ToSByte();
+			if (typeof(T) == typeof(char)) return (T) (object) ToChar();
+			if (typeof(T) == typeof(short)) return (T) (object) ToInt16();
+			if (typeof(T) == typeof(ushort)) return (T) (object) ToUInt16();
+			if (typeof(T) == typeof(int)) return (T) (object) ToInt32();
+			if (typeof(T) == typeof(uint)) return (T) (object) ToUInt32();
+			if (typeof(T) == typeof(ulong)) return (T) (object) ToUInt64();
+			if (typeof(T) == typeof(long)) return (T) (object) ToInt64();
+			if (typeof(T) == typeof(float)) return (T) (object) ToSingle();
+			if (typeof(T) == typeof(double)) return (T) (object) ToDouble();
+			if (typeof(T) == typeof(decimal)) return (T) (object) ToDecimal();
+			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
+			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
+			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
+			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
+			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
+			if (typeof(T) == typeof(Uuid80)) return (T) (object) ToUuid80();
+			if (typeof(T) == typeof(Uuid64)) return (T) (object) ToUuid64();
+			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
+			if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) ToDuration();
+			if (typeof(T) == typeof(NodaTime.LocalDateTime)) return (T) (object) ToLocalDateTime();
+			if (typeof(T) == typeof(NodaTime.LocalDate)) return (T) (object) ToLocalDate();
+			if (typeof(T) == typeof(NodaTime.Offset)) return (T) (object) ToOffset();
+#endif
+			#endregion
+
+			return typeof(T) == typeof(string) ? (T) (object) m_value : (T?) Bind(typeof(T), resolver);
 		}
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
@@ -1352,6 +1397,33 @@ namespace Doxense.Serialization.Json
 		}
 
 		#endregion
+
+		public static class WellKnown
+		{
+			/// <summary>PascalCase</summary>
+			public static class PascalCase
+			{
+				/// <summary><c>"Id"</c></summary>
+				public static readonly JsonString Id = new("Id");
+				/// <summary><c>"Name"</c></summary>
+				public static readonly JsonString Name = new("Name");
+				/// <summary><c>"Error"</c></summary>
+				public static readonly JsonString Error = new("Error");
+			}
+
+			/// <summary>camelCase</summary>
+			public static class CamelCase
+			{
+				/// <summary><c>"id"</c></summary>
+				public static readonly JsonString Id = new("id");
+				/// <summary><c>"name"</c></summary>
+				public static readonly JsonString Name = new("name");
+				/// <summary><c>"error"</c></summary>
+				public static readonly JsonString Error = new("error");
+			}
+
+		}
+
 	}
 
 }

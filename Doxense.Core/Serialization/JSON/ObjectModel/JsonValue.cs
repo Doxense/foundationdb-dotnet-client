@@ -27,6 +27,8 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.ComponentModel;
+	using System.Diagnostics;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
@@ -34,7 +36,8 @@ namespace Doxense.Serialization.Json
 
 	[Serializable]
 	[CannotApplyEqualityOperator]
-	//[DebuggerNonUserCode]
+	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonDynamic, IJsonSerializable, IJsonConvertible, IFormattable, ISliceSerializable
 	{
 		/// <summary>Type du token JSON</summary>
@@ -42,25 +45,47 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Conversion en object CLR (type automatique)</summary>
 		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract object? ToObject();
 
 		/// <summary>Bind vers un type CLR spécifique</summary>
 		/// <param name="type">Type CLR désiré</param>
 		/// <param name="resolver">Resolver (optionnel)</param>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		[Pure]
 		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
 
+		/// <summary>Bind vers un type CLR spécifique</summary>
+		/// <typeparam name="T">Type CLR désiré</typeparam>
+		/// <param name="resolver">Resolver (optionnel)</param>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		public virtual T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) => (T?) Bind(typeof(T), resolver);
+
 		/// <summary>Indique si cette valeur est null</summary>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual bool IsNull { [Pure] get => false; }
 
 		/// <summary>Indique si cette valeur correspond au défaut du type (0, null, empty)</summary>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract bool IsDefault { [Pure] get; }
 
 		/// <summary>Indique si cette valeur est une array qui contient d'autres valeurs</summary>
+		[Obsolete("Either check that the Type property is JsonType.Array, or cast to JsonArray")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool IsArray { [Pure] get => this.Type == JsonType.Array; }
 
 		/// <summary>Indique si cette valeur est une dictionnaire qui contient d'autres valeurs</summary>
+		[Obsolete("Either check that the Type property is JsonType.Object, or cast to JsonObject")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool IsMap { [Pure] get => this.Type == JsonType.Object; }
+
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public abstract bool IsReadOnly { [Pure] get; }
+
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public virtual JsonValue Freeze() => this;
+
+		public virtual JsonValue ToReadOnly() => this;
 
 		/// <summary>Heuristique qui détermine si cette valeur est considérée comme "petite" et peut être dumpée dans un log sans flooder</summary>
 		internal abstract bool IsSmallValue();
@@ -68,6 +93,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Indique si ce type de valeur est assez petite pour être affichée en une seule ligne quand présente dans un petit tableau</summary>
 		/// <returns></returns>
 		internal abstract bool IsInlinable();
+
 		/// <summary>Sérialise une valeur JSON en string</summary>
 		/// <param name="settings">Settings JSON à utiliser (optionnel)</param>
 		/// <returns>Chaîne de texte correspondant à la valeur JSON</returns>
@@ -76,7 +102,7 @@ namespace Doxense.Serialization.Json
 		{
 			// implémentation générique
 			if (this.IsNull) return JsonTokens.Null;
-			var sb = new StringBuilder(this.IsArray || this.IsMap ? 256 : 64);
+			var sb = new StringBuilder(this is JsonArray or JsonObject ? 256 : 64);
 			var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, null);
 			JsonSerialize(writer);
 			return sb.ToString();
@@ -167,26 +193,14 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Crée une copie de l'objet (en copier les références sur ses fils, s'il en a)</summary>
-		/// <returns>Nouvelle version de l'objet (note: peut être le même pour les valeurs immutable)</returns>
-		/// <remarks>Ne clone pas les éléments de cet objet (JsonArray, JsonObject)</remarks>
+		/// <summary>Create a copy of this object</summary>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of the object, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
+		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
+		/// <remarks>Immutable JSON values (like strings, numbers, ...) will return themselves without any change.</remarks>
 		[Pure]
-		public JsonValue Copy()
-		{
-			return Clone(false);
-		}
-
-		/// <summary>Crée une copie complète de l'objet, en clonant éventuellement les éléments de cet objet (s'il en a)</summary>
-		/// <param name="deep">Si true, clone également les fils de cet object. Si false, ne copie que les références.</param>
-		/// <returns>Nouvelle version de l'objet (note: peut être le même pour les valeurs immutable)</returns>
-		[Pure]
-		public virtual JsonValue Copy(bool deep)
-		{
-			return Clone(deep);
-		}
-
-		[Pure]
-		protected virtual JsonValue Clone(bool deep)
+		public virtual JsonValue Copy(bool deep = false, bool readOnly = false)
 		{
 			// la plupart des implémentation sont immutable
 			return this;
@@ -212,11 +226,15 @@ namespace Doxense.Serialization.Json
 			if (object.ReferenceEquals(this, other)) return 0;
 
 			// protection contre les JsonObject
-			if (other.IsMap) throw ThrowHelper.InvalidOperationException("Cannot compare a JSON value with a JsonObject");
+			if (other is JsonObject) throw ThrowHelper.InvalidOperationException("Cannot compare a JSON value with a JsonObject");
 
 			// pas vraiment de solution magique, on va comparer les type et les hashcode (pas pire que mieux)
 			int c = ((int)this.Type).CompareTo((int)other.Type);
-			if (c == 0) c = this.GetHashCode().CompareTo(other.GetHashCode());
+			if (c == 0)
+			{
+				c = this.GetHashCode().CompareTo(other.GetHashCode());
+			}
+
 			return c;
 		}
 
@@ -227,6 +245,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de ce champ, ou missing si le champ n'existe. Une exception si cette valeur n'est pas un objet JSON</returns>
 		/// <exception cref="System.ArgumentNullException">Si <paramref name="key"/> est null.</exception>
 		/// <exception cref="System.InvalidOperationException">Cet valeur JSON ne supporte pas la notion d'indexation</exception>
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public virtual JsonValue this[string key]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -240,6 +259,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de l'élément à l'index spécifié. Une exception si cette valeur n'est pas une array JSON, ou si l'index est en dehors des bornes</returns>
 		/// <exception cref="System.InvalidOperationException">Cet valeur JSON ne supporte pas la notion d'indexation</exception>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public virtual JsonValue this[int index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -416,6 +436,7 @@ namespace Doxense.Serialization.Json
 
 		#region ISliceSerializable...
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract void WriteTo(ref SliceWriter writer);
 
 		#endregion

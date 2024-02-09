@@ -2001,13 +2001,13 @@ namespace Doxense.Serialization.Json
 							// If there is already a child with the same name, it will become an array
 							if (obj.TryGetValue(name, out var previous))
 							{
-								if (previous.IsArray)
+								if (previous is JsonArray prevArray)
 								{
-									((JsonArray)previous).Add(converted);
+									prevArray.Add(converted);
 								}
 								else
 								{
-									var arr = new JsonArray { previous, converted };
+									var arr = JsonArray.Create(previous, converted);
 									obj[name] = arr;
 								}
 							}
@@ -2037,7 +2037,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (tuple == null) return JsonNull.Null;
 			int n = tuple.Count;
-			if (n == 0) return JsonArray.Empty;
+			if (n == 0) return JsonArray.Create(); //BUGBUG: TODO: readonly?
 			var arr = new JsonArray(n);
 			for (int i = 0; i < n; i++)
 			{
@@ -2051,7 +2051,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (tuple == null) return JsonNull.Null;
 			int n = tuple.Length;
-			if (n == 0) return JsonArray.Empty;
+			if (n == 0) return JsonArray.Create(); //BUGBUG: TODO: readonly?
 			var arr = new JsonArray(n);
 			for (int i = 0; i < n; i++)
 			{

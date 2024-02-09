@@ -154,6 +154,10 @@ namespace Doxense.Serialization.Json
 			FloatFormat_Null       = 0x0_3_000000,
 			FloatFormat_JavaScript = 0x0_4_000000,
 			FloatFormat_Mask       = 0x0_7_000000, // tous les bits à 1
+
+			// Mutability
+			Mutability_Mutable     = 0x00_000000,
+			Mutability_ReadOnly    = 0x10_000000,
 		}
 		// ReSharper restore InconsistentNaming
 
@@ -398,6 +402,16 @@ namespace Doxense.Serialization.Json
 			static OptionFlags FailInvalidFloatFormatting() => throw new ArgumentException("Invalid float formatting mode", nameof(value));
 		}
 
+		public bool ReadOnly
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => (m_flags & OptionFlags.Mutability_ReadOnly) != 0;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static OptionFlags SetReadOnly(OptionFlags flags, bool readOnly)
+			=> readOnly ? flags | OptionFlags.Mutability_ReadOnly : flags & ~OptionFlags.Mutability_ReadOnly;
+
 		#endregion
 
 		#region Equality ...
@@ -559,31 +573,130 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public CrystalJsonSettings WithFloatFormat(FloatFormat format) => Update(SetFloatFormatting(m_flags, format));
 
+		/// <summary>All JSON values parsed with these settings will be read-only</summary>
+		[Pure]
+		public CrystalJsonSettings AsReadOnly() => Update(SetReadOnly(m_flags, true));
+
+		/// <summary>All JSON values parsed with these settings will be mutable (default)</summary>
+		[Pure]
+		public CrystalJsonSettings AsMutable() => Update(SetReadOnly(m_flags, false));
+
+		/// <summary>Set if JSON values parsed with these settings should be read-only (<see langword="true"/>) or mutable (<see langword="false"/>, by default)</summary>
+		[Pure]
+		public CrystalJsonSettings AsReadOnly(bool readOnly) => Update(SetReadOnly(m_flags, readOnly));
+
 		#endregion
 
 		#region Default Globals...
 
-		/// <summary>JSON serialiation, with only minimum formatting (single line, but still readable by humans)</summary>
+		#region JSON...
+
+		/// <summary>Parse or serialize JSON, with only minimum formatting</summary>
+		/// <remarks>
+		/// <para>This will produce a single line, but keep spaces between items: <c>{ "hello": "world", "foo": [ 1, 2, 3 ] }</c></para>
+		/// </remarks>
 		public static CrystalJsonSettings Json { get; } = new CrystalJsonSettings();
 
-		/// <summary>Sérialization JSON (le plus compact possible)</summary>
+		/// <summary>Serialize JSON into the most compact possible form</summary>
+		/// <remarks>
+		/// <para>This will remove all extra white spaces and new lines: <c>{"hello":"world","foo":[1,2,3]}</c></para>
+		/// </remarks>
 		public static CrystalJsonSettings JsonCompact { get; } = new CrystalJsonSettings(OptionFlags.Target_Json | OptionFlags.Layout_Compact);
 
-		/// <summary>Sérialization JSON (indentée pour être lisible par un être humain)</summary>
+		/// <summary>Serialize JSON into a form readable by humans</summary>
+		/// <remarks>
+		/// <para>This will produce an indented multi-line output, suitable for log files or debug consoles:
+		/// <code>{
+		///	  "hello": "world",
+		///	  "foo": [
+		///	    1,
+		///	    2,
+		///	    3
+		///	  ]
+		/// }</code></para>
+		/// </remarks>
 		public static CrystalJsonSettings JsonIndented { get; } = new CrystalJsonSettings(OptionFlags.Target_Json | OptionFlags.Layout_Indented);
 
-		/// <summary>Parsing JSON en mode stricte</summary>
-		/// <remarks>Interdit les trailing commas en fin d'objet ou d'array</remarks>
+		/// <summary>Parse JSON using strict rules (no support for trailing commas, comments, ...)</summary>
 		public static CrystalJsonSettings JsonStrict { get; } = new CrystalJsonSettings(OptionFlags.Target_Json | OptionFlags.DenyTrailingComma);
 
-		/// <summary>Sérialization JavaScript optimisée (avec le minimum de formatage)</summary>
+		/// <summary>Parse JSON values, with case-insensitive field names in objects</summary>
+		/// <remarks>
+		/// <para>These three forms are all equivalent: <c>{ "hello": "world" } == { "HELLO": "world" } == { "HeLLo": "world" }</c></para>
+		/// <para>The casing of the field names will be the same as the original. In case of duplicate keys with different case, the last value will be used, but the casing of the key will be unspecified</para>
+		/// </remarks>
+		public static CrystalJsonSettings JsonIgnoreCase { get; } = new CrystalJsonSettings(OptionFlags.FieldsIgnoreCase);
+
+		/// <summary>Parse JSON read-only immutable values</summary>
+		/// <remarks>
+		/// <para>Any object or array will be read-only and immutable. As such, they can be safely shared, cached, or used as a singleton.</para>
+		/// <para>If you need to modify the parsed result, either use a <see cref="Json">non-readonly variant</see>, or create a new mutable copy.</para>
+		/// </remarks>
+		public static CrystalJsonSettings JsonReadOnly { get; } = new CrystalJsonSettings(OptionFlags.Mutability_ReadOnly);
+
+		/// <summary>Parse JSON read-only immutable values, with case-insensitive field names in JSON objects</summary>
+		/// <remarks>
+		/// <para>These three forms are all equivalent: <c>{ "hello": "world" } == { "HELLO": "world" } == { "HeLLo": "world" }</c></para>
+		/// <para>The casing of the field names will be the same as the original. In case of duplicate keys with different case, the last value will be used, but the casing of the key will be unspecified</para>
+		/// <para>Any object or array will be read-only and immutable. As such, they can be safely shared, cached, or used as a singleton.</para>
+		/// <para>If you need to modify the parsed result, either use a <see cref="JsonIgnoreCase">non-readonly variant</see>, or create a new mutable copy.</para>
+		/// </remarks>
+		public static CrystalJsonSettings JsonReadOnlyIgnoreCase { get; } = new CrystalJsonSettings(OptionFlags.Mutability_ReadOnly | OptionFlags.FieldsIgnoreCase);
+
+		#endregion
+
+		#region JavaScript...
+
+		/// <summary>Parse or serialize JavaScript objects, with minimum formatting</summary>
+		/// <remarks>
+		/// <para>This will produce a single line, but keep spaces between items: <c>{ hello: 'world', foo: [ 1, 2, 3 ] }</c></para>
+		/// </remarks>
 		public static CrystalJsonSettings JavaScript { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript);
 
-		/// <summary>Sérialization JavaScript (le plus compact possible)</summary>
+		/// <summary>Serialize Javascript into the most compact possible form</summary>
+		/// <remarks>
+		/// <para>This will remove all extra white spaces and new lines: <c>{hello:'world',foo:[1,2,3]}</c></para>
+		/// </remarks>
 		public static CrystalJsonSettings JavaScriptCompact { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript | OptionFlags.Layout_Compact);
 
-		/// <summary>Sérialization JavaScript (indentée pour être lisible par un être humain)</summary>
+		/// <summary>Serialize JavaScript into a form readable by humans</summary>
+		/// <remarks>
+		/// <para>This will produce an indented multi-line output, suitable for log files or debug consoles:
+		/// <code>{
+		///	  hello: 'world',
+		///	  foo: [
+		///	    1,
+		///	    2,
+		///	    3
+		///	  ]
+		/// }</code></para>
+		/// </remarks>
 		public static CrystalJsonSettings JavaScriptIndented { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript | OptionFlags.Layout_Indented);
+
+		/// <summary>Parse JSON values, with case-insensitive field names in objects</summary>
+		/// <remarks>
+		/// <para>These three forms are all equivalent: <c>{ hello: 'world'} == { HELLO: 'world' } == { HeLLo: "world" }</c></para>
+		/// <para>The casing of the field names will be the same as the original. In case of duplicate keys with different case, the last value will be used, but the casing of the key will be unspecified</para>
+		/// </remarks>
+		public static CrystalJsonSettings JavaScriptIgnoreCase { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript | OptionFlags.FieldsIgnoreCase);
+
+		/// <summary>Parse JavaScript read-only immutable values</summary>
+		/// <remarks>
+		/// <para>Any object or array will be read-only and immutable. As such, they can be safely shared, cached, or used as a singleton.</para>
+		/// <para>If you need to modify the parsed result, either use a <see cref="JavaScript">non-readonly variant</see>, or create a new mutable copy.</para>
+		/// </remarks>
+		public static CrystalJsonSettings JavaScriptReadOnly { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript | OptionFlags.Mutability_ReadOnly);
+
+		/// <summary>Parse JavaScript read-only immutable values, with case-insensitive field names in objects</summary>
+		/// <remarks>
+		/// <para>These three forms are all equivalent: <c>{ hello: 'world' } == { HELLO: 'world' } == { HeLLo: 'world' }</c></para>
+		/// <para>The casing of the field names will be the same as the original. In case of duplicate keys with different case, the last value will be used, but the casing of the key will be unspecified</para>
+		/// <para>Any object or array will be read-only and immutable. As such, they can be safely shared, cached, or used as a singleton.</para>
+		/// <para>If you need to modify the parsed result, either use a <see cref="JavaScriptIgnoreCase">non-readonly variant</see>, or create a new mutable copy.</para>
+		/// </remarks>
+		public static CrystalJsonSettings JavaScriptReadOnlyIgnoreCase { get; } = new CrystalJsonSettings(OptionFlags.Target_JavaScript | OptionFlags.Mutability_ReadOnly | OptionFlags.FieldsIgnoreCase);
+
+		#endregion
 
 		private static readonly QuasiImmutableCache<int, CrystalJsonSettings> Cached;
 
@@ -591,7 +704,7 @@ namespace Doxense.Serialization.Json
 		{
 			// create the initial cache for most defaults
 			var defaults = new Dictionary<int, CrystalJsonSettings>();
-			foreach (var s in new[] {Json, JsonCompact, JsonIndented, JsonStrict, JavaScript, JavaScriptCompact, JavaScriptIndented})
+			foreach (var s in new[] { Json, JsonCompact, JsonIndented, JsonStrict, JsonIgnoreCase, JsonReadOnly, JsonReadOnlyIgnoreCase, JavaScript, JavaScriptCompact, JavaScriptIndented, JavaScriptIgnoreCase, JavaScriptReadOnly, JavaScriptReadOnlyIgnoreCase })
 			{
 				defaults[(int) s.Flags] = s;
 				// also cache the versions with enum as strings

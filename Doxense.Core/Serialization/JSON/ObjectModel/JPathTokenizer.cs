@@ -32,7 +32,7 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 
-	internal enum JPathToken
+	public enum JPathToken
 	{
 		/// <summary>Fin du path</summary>
 		End = 0,
@@ -52,7 +52,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Structure utilisée pour parser un JPath (ex: "foo.bar[1].baz") en réduisant le nombre d'allocations nécessaires</summary>
 	[DebuggerDisplay("Path={Path}, Offset={Offset}, Cursor={Cursor}, IndexOrSize={IndexOrSize}")]
-	internal struct JPathTokenizer
+	public struct JPathTokenizer
 	{
 
 		/// <summary>Valeur du JPath</summary>

@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.Net;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using JetBrains.Annotations;
@@ -631,8 +632,20 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		public static explicit operator Uri?(JsonValue? value) => value.IsNullOrMissing() ? default : new Uri(value.ToString());
+
+		#endregion
+
+		#region IPAddress...
+
+		[Pure]
+		public static implicit operator JsonValue(System.Net.IPAddress? value) => JsonString.Return(value);
+
+		[Pure]
+		public static explicit operator System.Net.IPAddress?(JsonValue? value)
 		{
-			return value.IsNullOrMissing() ? default(Uri) : new Uri(value.ToString());
+			if (value.IsNullOrMissing()) return default;
+			var str = value.ToString();
+			return str.Length == 0 ? IPAddress.Any : IPAddress.Parse(str);
 		}
 
 		#endregion
@@ -907,7 +920,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(string?[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -919,7 +932,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(bool[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -931,7 +944,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(int[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -943,7 +956,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(uint[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -955,7 +968,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(long[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -967,7 +980,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(ulong[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -979,7 +992,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(float[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -991,7 +1004,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(double[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddRange(values);
+			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

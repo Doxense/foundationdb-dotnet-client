@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json.Binary
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 	using Diagnostics.Contracts;
 	using Doxense.Memory;
@@ -368,7 +369,6 @@ namespace Doxense.Serialization.Json.Binary
 		}
 
 		#endregion
-
 
 		#region Writing JsonPack...
 
@@ -773,7 +773,10 @@ namespace Doxense.Serialization.Json.Binary
 
 		private static JsonArray ParseArray(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
-			if (token == (int) TypeTokens.ArrayEmpty) return JsonArray.Empty;
+			if (token == (int) TypeTokens.ArrayEmpty)
+			{
+				return JsonArray.Create(); //BUGBUG: TODO: readonly?
+			}
 
 			//note: ARRAY_START has already been parsed
 			int next;
@@ -785,7 +788,7 @@ namespace Doxense.Serialization.Json.Binary
 				if (arr == null) arr = new JsonArray();
 				arr.Add(val ?? JsonNull.Null);
 			}
-			return arr ?? JsonArray.Empty;
+			return arr ?? JsonArray.Create(); //BUGBUG: TODO: readonly?
 		}
 
 		private static string? ParseSmallString(ref SliceReader reader, int token)
@@ -813,11 +816,11 @@ namespace Doxense.Serialization.Json.Binary
 
 		public static JsonObject ParseObject(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
-			if (token == (int) TypeTokens.ObjectEmpty) return JsonObject.Empty;
+			if (token == (int) TypeTokens.ObjectEmpty) return JsonObject.Create(); //BGUBUG: TODO: settings.ReadOnly ?
 
 			//note: OBJECT_START has already been parsed
 			int next;
-			JsonObject? obj = null;
+			Dictionary<string, JsonValue>? items = null;
 			while ((next = reader.ReadByte()) != (int) TypeTokens.ObjectStop)
 			{
 				if (next < 0) throw new FormatException("Unexpected end of JSONPack Object: missing key.");
@@ -830,12 +833,15 @@ namespace Doxense.Serialization.Json.Binary
 				if (next < 0) throw new FormatException("Unexpected end of JSONPack Object: missing value.");
 
 				// next is the value for this key
-				var val = ReadValue(ref reader, next, settings);
-				if (obj == null) obj = new JsonObject();
-				obj.Add(key, val ?? JsonNull.Null);
+				var val = ReadValue(ref reader, next, settings) ?? JsonNull.Null;
+				items ??= new Dictionary<string, JsonValue>(StringComparer.Ordinal);
+				items.Add(key, val);
+#if DEBUG
+				if (!val.IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+#endif
 			}
 			// skip the OBJECT_STOP token
-			return obj ?? JsonObject.Empty;
+			return items != null ? new JsonObject(items, readOnly: true) : JsonObject.EmptyReadOnly;
 		}
 
 		#endregion
@@ -843,4 +849,3 @@ namespace Doxense.Serialization.Json.Binary
 	}
 
 }
-

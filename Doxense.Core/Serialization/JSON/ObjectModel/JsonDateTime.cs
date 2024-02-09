@@ -32,6 +32,8 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Date JSON</summary>
 	[DebuggerDisplay("JSON DateTime({m_value}, {m_value}+{m_offset})")]
+	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public class JsonDateTime : JsonValue, IEquatable<JsonDateTime>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
 	{
 		private const long UNIX_EPOCH_TICKS = 621355968000000000L;
@@ -237,9 +239,22 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsDefault => m_value == DateTime.MinValue;
 
-		public override object? ToObject()
+		public override bool IsReadOnly => true; //note: datres are immutable
+
+		public override object ToObject() => m_value;
+
+		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
-			return m_value;
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
+			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
+#endif
+			#endregion
+
+			return (T?) JsonValue.BindNative<JsonDateTime, long>(this, this.Ticks, typeof(T), resolver);
 		}
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)

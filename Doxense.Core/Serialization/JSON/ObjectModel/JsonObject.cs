@@ -24,12 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#define CHECK_INVARIANTS
+
 namespace Doxense.Serialization.Json
 {
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Dynamic;
@@ -37,22 +38,41 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Runtime.Serialization;
 	using System.Text;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using System.ComponentModel;
 
 	/// <summary>JSON Object with fields</summary>
 	[Serializable]
-	[DebuggerDisplay("JSON Object[{Count}] {GetCompactRepresentation(0),nq}")]
+	[DebuggerDisplay("JSON Object[{Count}]{GetMutabilityDebugLiteral(),nq} {GetCompactRepresentation(0),nq}")]
 	[DebuggerTypeProxy(typeof(JsonObject.DebugView))]
 	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public sealed class JsonObject : JsonValue, IDictionary<string, JsonValue>, IReadOnlyDictionary<string, JsonValue>, IEquatable<JsonObject>
 	{
+		// A JSON object can be writable (mutable), or read-only (immutable)
+		// - Writable means that items can be added or removed from the "top-level" of this object.
+		// - Read-only means that no items can be added or removed, BUT it does not mean that any children is itself readonly!
+		// A JSON object can track the mutability of its children, and will maintain a flag it there was at least one mutable children at some point.
+		// - We could track and update this state in real-time, but we are mostly interested in keeping track of readonly objects that were immutable from the moment of creation.
 
+		/// <summary>Map of the properties of this object</summary>
+		/// <remarks>If <see cref="m_readOnly"/> is not <see langword="0"/>, then any attempt to modify this dictionary should throw an exception</remarks>
+		private readonly Dictionary<string, JsonValue> m_items;
 
-		/// <summary>Objet vide</summary>
-		public static JsonObject Empty => new JsonObject();
+		/// <summary>Defines the mutability of this object.</summary>
+		/// <remarks>Mutability can change from Immutable to any of the ReadOnlyXYZ variants, but not the over way arround!</remarks>
+		private bool m_readOnly;
 
-		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+		/// <summary>Returns a new empty JSON object</summary>
+		[Obsolete("Use JsonObject.Create() for a mutable empty object, or JsonObject.EmptyReadOnly for an immutable emtpy singleton")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonObject Empty => new(new Dictionary<string, JsonValue>(0, StringComparer.Ordinal), readOnly: false);
+
+		/// <summary>Empty read-only JSON object singleton</summary>
+		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
+		public static readonly JsonObject EmptyReadOnly = new(new Dictionary<string, JsonValue>(0, StringComparer.Ordinal), readOnly: true);
+
+		[JetBrains.Annotations.UsedImplicitly(JetBrains.Annotations.ImplicitUseTargetFlags.WithMembers)]
 		private class DebugView
 		{
 			private readonly JsonObject m_obj;
@@ -74,10 +94,6 @@ namespace Doxense.Serialization.Json
 			: this(0, StringComparer.Ordinal)
 		{ }
 
-		public JsonObject(bool ignoreCase)
-			: this(0, ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
-		{ }
-
 		/// <summary>Creates a new JSON object that is empty and has the specified capacity</summary>
 		/// <param name="capacity">The initial number of elements that the <see cref="JsonObject" /> can contain.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,101 +101,59 @@ namespace Doxense.Serialization.Json
 			: this(capacity, StringComparer.Ordinal)
 		{ }
 
+		/// <summary>Creates a new JSON object that is empty, and uses the specified <see cref="T:System.Collections.Generic.IEqualityComparer`1" />.</summary>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="StringComparer.Ordinal">ordinal string comparer</see>.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonObject(IEqualityComparer<string>? comparer)
-			: this(0, comparer ?? StringComparer.Ordinal)
-		{ }
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonObject(JsonObject copy)
+		public JsonObject(IEqualityComparer<string>? comparer) //REVIEW: remove this method and force to use ctor(capacity, comparer) instead?
 		{
-			Contract.NotNull(copy);
-			m_items = new Dictionary<string, JsonValue?>(copy.m_items, copy.Comparer);
+			m_items = new Dictionary<string, JsonValue>(0, comparer ?? StringComparer.Ordinal);
 		}
 
 		public JsonObject(int capacity, IEqualityComparer<string>? comparer)
 		{
-			if (capacity < 0) throw ThrowHelper.ArgumentOutOfRangeNeedNonNegNum(nameof(capacity));
-			m_items = new Dictionary<string, JsonValue?>(capacity, comparer ?? StringComparer.Ordinal);
+			Contract.Positive(capacity);
+			m_items = new Dictionary<string, JsonValue>(capacity, comparer ?? StringComparer.Ordinal);
 		}
 
-		/// <summary>Crée un JsonObject à partir d'une liste de clé/valeurs</summary>
-		/// <param name="items">Séquence de noms et valeurs</param>
-		/// <param name="comparer">Comparateur utilisé pour les clés de ce JsonObject</param>
-		/// <remarks> Si <paramref name="comparer"/> n'est pas précisé, mais que <paramref name="items"/> est un <see cref="Dictionary{K,V}"/> ou un <see cref="JsonObject"/>, le même Comparer sera utilisé. Sinon, <see cref="StringComparer.Ordinal"/> sera utilisé. </remarks>
-		public JsonObject(IEnumerable<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use obj.Copy() to clone an object")]
+		public JsonObject(JsonObject copy)
+		{
+			Contract.NotNull(copy);
+			
+			// we have to create a defensive copy
+			m_items = new Dictionary<string, JsonValue>(copy.m_items, copy.Comparer);
+			CheckInvariants();
+		}
+
+		/// <summary>Creates a new <see cref="JsonObject"/> that will wrap the specified items</summary>
+		/// <param name="items">Pre-computed map of elements</param>
+		/// <param name="readOnly">If the object is marked as read-only</param>
+		/// <remarks>If <paramref name="readOnly"/> is <see langword="true"/> then all elements in <paramref name="items"/> MUST also be read-only!</remarks>
+		internal JsonObject(Dictionary<string, JsonValue> items, bool readOnly)
 		{
 			Contract.Debug.Requires(items != null);
-
-			if (items is JsonObject obj)
-			{ // Clone l'objet directement
-				m_items = new Dictionary<string, JsonValue?>(obj.m_items, comparer ?? obj.Comparer);
-				return;
-			}
-
-			// devines la capacité et le comparer...
-			var map = new Dictionary<string, JsonValue?>(
-				(items as ICollection<KeyValuePair<string, JsonValue>>)?.Count ?? 0,
-				comparer ?? ExtractKeyComparer(items) ?? StringComparer.Ordinal
-			);
-			foreach (var item in items)
-			{
-				//note: on utilise Add(..) pour détecter les doublons
-				//REVIEW: faut-il rejeter ou accepter les doublons? si on rempalce Add par [], le dernier écrase le premier...
-				map.Add(item.Key, item.Value ?? JsonNull.Null);
-			}
-			m_items = map;
-
+			m_items = items;
+			m_readOnly = readOnly;
+			CheckInvariants();
 		}
 
-		/// <summary>Crée un JsonObject à partir d'un dictionnaire de JsonValue existant</summary>
-		/// <param name="items">Contenu pré-calculé du JsonObject</param>
-		/// <param name="owner">Si true, l'instance utilisera <paramref name="items"/> directement. Si false, elle transfert les items dans un autre dictionnaire</param>
-		/// <remarks>Cette instance utilisera <paramref name="items"/> directement, sans faire de copie</remarks>
-		internal JsonObject(Dictionary<string, JsonValue?> items, bool owner)
+		[Conditional("CHECK_INVARIANTS")]
+		private void CheckInvariants()
 		{
-			Contract.Debug.Requires(items != null);
-			m_items = owner ? items : new Dictionary<string, JsonValue?>(items, items.Comparer);
-		}
-
-		/// <summary>Crée un JsonObject à partir d'une liste dynamique de noms et de valeures</summary>
-		/// <param name="items">Liste des noms des champs et des valeurs (de taille supérieure ou égale à <paramref name="count"/>)</param>
-		/// <param name="count">Nombre de valeurs à lire dans <paramref name="items"/></param>
-		/// <param name="comparer">Comparateur utilisé pour les clés de ce JsonObject</param>
-		internal JsonObject(KeyValuePair<string, JsonValue>[] items, int count, IEqualityComparer<string> comparer)
-		{
-			Contract.Debug.Requires(items != null && count >= 0 && count <= items.Length && comparer != null);
-
-			//note: on écrase en cas de doublons. L'appelant peut détecter la présence de doublons en comparent 'count' et 'dictionary.Count'
-			var map = new Dictionary<string, JsonValue?>(count, comparer);
-			for (int i = 0; i < count; i++)
+#if CHECK_INVARIANTS
+			if (m_readOnly)
 			{
-				map[items[i].Key] = items[i].Value;
+				foreach (var kv in m_items)
+				{
+					if (!kv.Value.IsReadOnly) Contract.Fail($"Immutable JSON object cannot contain mutable children '{kv.Key}' of type {kv.Value.Type}");
+				}
 			}
-			m_items = map;
-		}
-
-		/// <summary>Crée un JsonObject à partir d'une liste dynamique de noms et de valeures</summary>
-		/// <param name="keys">Liste des noms des champs (de taille supérieure ou égale à <paramref name="count"/>)</param>
-		/// <param name="values">List des valeurs (de taille supérieure ou égale à <paramref name="count"/>)</param>
-		/// <param name="count">Nombre de valeurs à lire dans <paramref name="keys"/> et <paramref name="values"/></param>
-		/// <param name="comparer">Comparateur utilisé pour les clés de ce JsonObject</param>
-		internal JsonObject(string[] keys, JsonValue[] values, int count, IEqualityComparer<string> comparer)
-		{
-			Contract.Debug.Requires(keys != null && values != null && count >= 0 && count <= keys.Length && count <= values.Length && comparer != null);
-
-			//note: redondant avec le ctor qui prend un KeyValuePair<string, JsonValue>[], mais c'est plus pratique, pour les decodeurs qui stockent les clés et les valeurs séparemment, d'avoir deux array distinctes (vu que KVP<K,V> est immutable!)
-
-			var map = new Dictionary<string, JsonValue?>(count, comparer);
-			for (int i = 0; i < count; i++)
-			{
-				map[keys[i]] = values[i];
-			}
-			m_items = map;
+#endif
 		}
 
 		/// <summary>Essayes d'extraire le KeyComparer d'un dictionnaire existant</summary>
-		internal static IEqualityComparer<string>? ExtractKeyComparer<T>([NoEnumeration] IEnumerable<KeyValuePair<string, T>> items)
+		internal static IEqualityComparer<string>? ExtractKeyComparer<T>([JetBrains.Annotations.NoEnumeration] IEnumerable<KeyValuePair<string, T>> items)
 		{
 			//note: pour le cas où T == JsonValue, on check quand même si c'est un JsonObject!
 			// ReSharper disable once SuspiciousTypeConversion.Global
@@ -187,81 +161,178 @@ namespace Doxense.Serialization.Json
 			return (items as JsonObject)?.Comparer ?? (items as Dictionary<string, T>)?.Comparer;
 		}
 
-		/// <summary>Crée un objet JSON qui ne contient qu'un seul champ</summary>
-		/// <param name="key0">Clé du champ</param>
-		/// <param name="value0">Valeur du champ</param>
-		/// <returns>JsonObject contenant un seul item</returns>
-		[Pure]
-		public static JsonObject Create(string key0, JsonValue value0)
+		/// <summary>Freeze this object, once it has been initialized, by switching it to read-only mode.</summary>
+		/// <remarks>Once "frozen", the operation cannot be reverted, and if additional mutation is required, a new copy of the object must be used.</remarks>
+		public override JsonObject Freeze()
 		{
-			return new JsonObject(1, StringComparer.Ordinal)
-			{
-				[key0] = value0 ?? JsonNull.Null
-			};
+			if (!m_readOnly)
+			{ // at least one mutable children must be frozen as well!
+				foreach (var value in m_items.Values)
+				{
+					value.Freeze();
+				}
+				m_readOnly = true;
+			}
+
+			CheckInvariants();
+			return this;
 		}
 
-		/// <summary>Crée un objet JSON qui ne contient que deux champs</summary>
-		/// <param name="key0">Clé du premier champ</param>
-		/// <param name="value0">Valeur du premier champ</param>
-		/// <param name="key1">Clé du deuxième champ</param>
-		/// <param name="value1">Valeur du deuxième champ</param>
-		/// <returns>JsonObject contenant deux items</returns>
-		[Pure]
-		public static JsonObject Create(string key0, JsonValue value0, string key1, JsonValue value1)
+		/// <summary>Return an immutable version of this object</summary>
+		/// <returns>The same object, if it is already immutable; otherwise, a deep copy marked as read-only.</returns>
+		/// <remarks>A JSON object that is immutable is truly safe against any modification, including of any of its direct or indirect children.</remarks>
+		public override JsonObject ToReadOnly()
 		{
-			return new JsonObject(2, StringComparer.Ordinal)
+			if (m_readOnly)
 			{
-				[key0] = value0 ?? JsonNull.Null,
-				[key1] = value1 ?? JsonNull.Null,
-			};
+				CheckInvariants();
+				return this;
+			}
+
+			var items = m_items;
+			var map = new Dictionary<string, JsonValue>(items.Count, items.Comparer);
+			foreach (var item in items)
+			{
+				var child = item.Value.Copy(deep: true, readOnly: true);
+#if DEBUG
+				Contract.Debug.Assert(child.IsReadOnly);
+#endif
+				map[item.Key] = child;
+			}
+			return new(map, readOnly: true);
 		}
 
-		/// <summary>Crée un objet JSON qui ne contient que trois champs</summary>
-		/// <param name="key0">Clé du premier champ</param>
-		/// <param name="value0">Valeur du premier champ</param>
-		/// <param name="key1">Clé du deuxième champ</param>
-		/// <param name="value1">Valeur du deuxième champ</param>
-		/// <param name="key2">Clé du troisième champ</param>
-		/// <param name="value2">Valeur du troisième champ</param>
-		/// <returns>JsonObject contenant trois items</returns>
-		[Pure]
-		public static JsonObject Create(string key0, JsonValue value0, string key1, JsonValue value1, string key2, JsonValue value2)
-		{
-			return new JsonObject(3, StringComparer.Ordinal)
-			{
-				[key0] = value0 ?? JsonNull.Null,
-				[key1] = value1 ?? JsonNull.Null,
-				[key2] = value2 ?? JsonNull.Null
-			};
-		}
+		/// <summary>Create a new empty JSON object</summary>
+		/// <returns>JSON object of size 0, that can be modified.</returns>
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonObject Create() => new(new Dictionary<string, JsonValue>(0, StringComparer.Ordinal), readOnly: false);
 
-		/// <summary>Crée un objet JSON qui ne contient que quatre champs</summary>
-		/// <param name="key0">Clé du premier champ</param>
-		/// <param name="value0">Valeur du premier champ</param>
-		/// <param name="key1">Clé du deuxième champ</param>
-		/// <param name="value1">Valeur du deuxième champ</param>
-		/// <param name="key2">Clé du troisième champ</param>
-		/// <param name="value2">Valeur du troisième champ</param>
-		/// <param name="key3">Clé du quatrième champ</param>
-		/// <param name="value3">Valeur du quatrième champ</param>
-		/// <returns>JsonObject contenant trois items</returns>
-		[Pure]
-		public static JsonObject Create(string key0, JsonValue value0, string key1, JsonValue value1, string key2, JsonValue value2, string key3, JsonValue value3)
+		/// <summary>Create a new empty read-only JSON object</summary>
+		/// <returns>JSON object of size 0, that cannot be modified.</returns>
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonObject CreateReadOnly() => EmptyReadOnly;
+
+		/// <summary>Create a new JSON object with a single field</summary>
+		/// <param name="key0">Name of the field</param>
+		/// <param name="value0">Value of the field</param>
+		/// <returns>JSON object of size 1, that can be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject Create(string key0, JsonValue? value0) => new(new Dictionary<string, JsonValue>(1, StringComparer.Ordinal)
 		{
-			return new JsonObject(4, StringComparer.Ordinal)
-			{
-				[key0] = value0 ?? JsonNull.Null,
-				[key1] = value1 ?? JsonNull.Null,
-				[key2] = value2 ?? JsonNull.Null,
-				[key3] = value3 ?? JsonNull.Null
-			};
-		}
+			[key0] = value0 ?? JsonNull.Null
+		}, readOnly: false);
+
+		/// <summary>Create a new immutable JSON object with a single field</summary>
+		/// <param name="key0">Name of the field</param>
+		/// <param name="value0">Value of the field</param>
+		/// <returns>JSON object of size 1, that cannot be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject CreateReadOnly(string key0, JsonValue? value0) => new(new Dictionary<string, JsonValue>(1, StringComparer.Ordinal)
+		{
+			[key0] = (value0 ?? JsonNull.Null).ToReadOnly()
+		}, readOnly: true);
+
+		/// <summary>Create a new JSON object with 2 fields</summary>
+		/// <param name="key0">Name of the first field</param>
+		/// <param name="value0">Value of the first field</param>
+		/// <param name="key1">Name of the second field</param>
+		/// <param name="value1">Value of the second field</param>
+		/// <returns>JSON object of size 2, that can be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
+		{
+			{ key0, value0 ?? JsonNull.Null },
+			{ key1, value1 ?? JsonNull.Null },
+		}, readOnly: false);
+
+		/// <summary>Create a new immutable JSON object with 2 fields</summary>
+		/// <param name="key0">Name of the first field</param>
+		/// <param name="value0">Value of the first field</param>
+		/// <param name="key1">Name of the second field</param>
+		/// <param name="value1">Value of the second field</param>
+		/// <returns>JSON object of size 2, that cannot be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject CreateReadOnly(string key0, JsonValue? value0, string key1, JsonValue? value1) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
+		{
+			{ key0, (value0 ?? JsonNull.Null).ToReadOnly() },
+			{ key1, (value1 ?? JsonNull.Null).ToReadOnly() },
+		}, readOnly: true);
+
+		/// <summary>Create a new JSON object with 3 fields</summary>
+		/// <param name="key0">Name of the first field</param>
+		/// <param name="value0">Value of the first field</param>
+		/// <param name="key1">Name of the second field</param>
+		/// <param name="value1">Value of the second field</param>
+		/// <param name="key2">Name of the third field</param>
+		/// <param name="value2">Value of the third field</param>
+		/// <returns>JSON object of size 3, that can be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
+		{
+			{ key0, value0 ?? JsonNull.Null },
+			{ key1, value1 ?? JsonNull.Null },
+			{ key2, value2 ?? JsonNull.Null },
+		}, readOnly: false);
+
+		/// <summary>Create a new immutable JSON object with 3 fields</summary>
+		/// <param name="key0">Name of the first field</param>
+		/// <param name="value0">Value of the first field</param>
+		/// <param name="key1">Name of the second field</param>
+		/// <param name="value1">Value of the second field</param>
+		/// <param name="key2">Name of the third field</param>
+		/// <param name="value2">Value of the third field</param>
+		/// <returns>JSON object of size 3, that cannot be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject CreateReadOnly(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
+		{
+			{ key0, (value0 ?? JsonNull.Null).ToReadOnly() },
+			{ key1, (value1 ?? JsonNull.Null).ToReadOnly() },
+			{ key2, (value2 ?? JsonNull.Null).ToReadOnly() },
+		}, readOnly: true);
+
+		/// <summary>Create a new JSON object with 4 fields</summary>
+		/// <param name="key0">Name of the first field</param>
+		/// <param name="value0">Value of the first field</param>
+		/// <param name="key1">Name of the second field</param>
+		/// <param name="value1">Value of the second field</param>
+		/// <param name="key2">Name of the third field</param>
+		/// <param name="value2">Value of the third field</param>
+		/// <param name="key3">Name of the fourth field</param>
+		/// <param name="value3">Value of the fourth field</param>
+		/// <returns>JSON object of size 4, that can be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2, string key3, JsonValue? value3) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
+		{
+			{ key0, value0 ?? JsonNull.Null },
+			{ key1, value1 ?? JsonNull.Null },
+			{ key2, value2 ?? JsonNull.Null },
+			{ key3, value3 ?? JsonNull.Null },
+		}, readOnly: false);
+
+		/// <summary>Create a immutable new JSON object with 4 fields</summary>
+		/// <param name="key0">Name of the first field</param>
+		/// <param name="value0">Value of the first field</param>
+		/// <param name="key1">Name of the second field</param>
+		/// <param name="value1">Value of the second field</param>
+		/// <param name="key2">Name of the third field</param>
+		/// <param name="value2">Value of the third field</param>
+		/// <param name="key3">Name of the fourth field</param>
+		/// <param name="value3">Value of the fourth field</param>
+		/// <returns>JSON object of size 4, that cannot be modified.</returns>
+		[System.Diagnostics.Contracts.Pure]
+		public static JsonObject CreateReadOnly(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2, string key3, JsonValue? value3) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
+		{
+			{ key0, (value0 ?? JsonNull.Null).ToReadOnly() },
+			{ key1, (value1 ?? JsonNull.Null).ToReadOnly() },
+			{ key2, (value2 ?? JsonNull.Null).ToReadOnly() },
+			{ key3, (value3 ?? JsonNull.Null).ToReadOnly() },
+		}, readOnly: false);
 
 		/// <summary>Transforme un objet CLR en un JsonObject</summary>
 		/// <typeparam name="T">Type de l'objet à convertir</typeparam>
 		/// <param name="value">Instance de l'objet à convertir</param>
 		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
-		[ContractAnnotation("value:notnull => notnull")]
+		[JetBrains.Annotations.ContractAnnotation("value:notnull => notnull")]
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<T>(T value)
 		{
@@ -269,7 +340,19 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(T)).AsObject(required: false);
 		}
 
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Transforme un objet CLR en un JsonObject</summary>
+		/// <typeparam name="T">Type de l'objet à convertir</typeparam>
+		/// <param name="value">Instance de l'objet à convertir</param>
+		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
+		[JetBrains.Annotations.ContractAnnotation("value:notnull => notnull")]
+		[return: NotNullIfNotNull(nameof(value))]
+		public static JsonObject? FromObjectImmutable<T>(T value)
+		{
+			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
+			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(T)).AsObject(required: false);
+		}
+
+		[JetBrains.Annotations.ContractAnnotation("value:notnull => notnull")]
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<T>(T value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -279,18 +362,55 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
 		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		public static JsonObject Create(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
+		{
+			Contract.NotNull(members);
+
+			var map = new Dictionary<string, JsonValue>(members.Count, comparer ?? ExtractKeyComparer(members) ?? StringComparer.Ordinal);
+			foreach (var kvp in members)
+			{
+				map.Add(kvp.Key, FromValue(kvp.Value));
+			}
+			return new JsonObject(map, readOnly: false);
+		}
+
+		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
+		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		public static JsonObject CreateReadOnly(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
+		{
+			Contract.NotNull(members);
+
+			var map = new Dictionary<string, JsonValue>(members.Count, comparer ?? ExtractKeyComparer(members) ?? StringComparer.Ordinal);
+			foreach (var kvp in members)
+			{
+				map.Add(kvp.Key, FromValueReadOnly(kvp.Value));
+			}
+			return new JsonObject(map, readOnly: true);
+		}
+		
+		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
+		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		[Obsolete("Use JsonObject.Create(...) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject FromDictionary(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
+		{
+			return Create(members, comparer);
+		}
+
+		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
+		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		public static JsonObject FromDictionaryImmutable(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
 
 			comparer ??= ExtractKeyComparer(members) ?? StringComparer.Ordinal;
 
-			var items = new Dictionary<string, JsonValue?>(members.Count, comparer);
+			var items = new Dictionary<string, JsonValue>(members.Count, comparer);
 			foreach (var kvp in members)
 			{
-				items.Add(kvp.Key, JsonValue.FromValue(kvp.Value));
+				items.Add(kvp.Key, JsonValue.FromValueReadOnly(kvp.Value));
 			}
-			return new JsonObject(items, owner: true);
+			return new JsonObject(items, readOnly: true);
 		}
 
 		public static JsonObject FromDictionary<TValue>(IDictionary<string, TValue> members, Func<TValue, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
@@ -299,12 +419,26 @@ namespace Doxense.Serialization.Json
 
 			comparer ??= ExtractKeyComparer(members) ?? StringComparer.Ordinal;
 
-			var items = new Dictionary<string, JsonValue?>(members.Count, comparer);
+			var items = new Dictionary<string, JsonValue>(members.Count, comparer);
 			foreach (var kvp in members)
 			{
 				items.Add(kvp.Key, valueSelector(kvp.Value) ?? JsonNull.Missing);
 			}
-			return new JsonObject(items, owner: true);
+			return new JsonObject(items, readOnly: false);
+		}
+
+		public static JsonObject FromDictionaryImmutable<TValue>(IDictionary<string, TValue> members, Func<TValue, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
+		{
+			Contract.NotNull(members);
+
+			comparer ??= ExtractKeyComparer(members) ?? StringComparer.Ordinal;
+
+			var items = new Dictionary<string, JsonValue>(members.Count, comparer);
+			foreach (var kvp in members)
+			{
+				items.Add(kvp.Key, (valueSelector(kvp.Value) ?? JsonNull.Missing).ToReadOnly());
+			}
+			return new JsonObject(items, readOnly: true);
 		}
 
 		public static JsonObject FromDictionary<TValue>(IDictionary<string, TValue> members, Func<TValue, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
@@ -313,34 +447,73 @@ namespace Doxense.Serialization.Json
 
 			comparer ??= ExtractKeyComparer(members) ?? StringComparer.Ordinal;
 
-			var items = new Dictionary<string, JsonValue?>(members.Count, comparer);
+			var items = new Dictionary<string, JsonValue>(members.Count, comparer);
 			var context = new CrystalJsonDomWriter.VisitingContext();
 			foreach (var kvp in members)
 			{
 				items.Add(kvp.Key, JsonValue.FromValue(CrystalJsonDomWriter.Default, ref context, valueSelector(kvp.Value)));
 			}
-			return new JsonObject(items, owner: true);
+			return new JsonObject(items, readOnly: false);
 		}
 
-		public static JsonObject FromValues<TElement>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
+		public static JsonObject Create<TElement>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
-			var obj = new JsonObject((source as ICollection<TElement>)?.Count ?? 0, comparer ?? StringComparer.Ordinal);
+			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
 			foreach (var item in source)
 			{
-				obj.Add(keySelector(item), valueSelector(item) ?? JsonNull.Missing);
+				map.Add(keySelector(item), valueSelector(item) ?? JsonNull.Missing);
 			}
-			return obj;
+			return new JsonObject(map, readOnly: false);
 		}
 
-		public static JsonObject FromValues<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
+		public static JsonObject CreateReadOnly<TElement>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
-			var obj = new JsonObject((source as ICollection<TElement>)?.Count ?? 0, comparer ?? StringComparer.Ordinal);
+			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
+			foreach (var item in source)
+			{
+				var child = (valueSelector(item) ?? JsonNull.Missing).ToReadOnly();
+				map.Add(keySelector(item), child);
+			}
+			return new JsonObject(map, readOnly: true);
+		}
+
+		[Obsolete("Use JsonObject.Create(...) instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonObject FromValues<TElement>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
+		{
+			return Create<TElement>(source, keySelector, valueSelector, comparer);
+		}
+
+		public static JsonObject Create<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
+		{
+			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
 			var context = new CrystalJsonDomWriter.VisitingContext();
 			foreach (var item in source)
 			{
-				obj.Add(keySelector(item), JsonValue.FromValue<TValue>(CrystalJsonDomWriter.Default, ref context, valueSelector(item)));
+				var child = FromValue<TValue>(CrystalJsonDomWriter.Default, ref context, valueSelector(item));
+				map.Add(keySelector(item), child);
 			}
-			return obj;
+			return new JsonObject(map, readOnly: false);
+		}
+
+		public static JsonObject CreateReadOnly<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
+		{
+			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
+			var context = new CrystalJsonDomWriter.VisitingContext();
+			foreach (var item in source)
+			{
+				var child = FromValue<TValue>(CrystalJsonDomWriter.DefaultReadOnly, ref context, valueSelector(item));
+				Contract.Debug.Assert(child.IsReadOnly);
+				map.Add(keySelector(item), child);
+			}
+			return new JsonObject(map, readOnly: true);
+		}
+
+		[Obsolete("Use JsonObject.Create(...) instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonObject FromValues<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
+		{
+			return Create<TElement, TValue>(source, keySelector, valueSelector, comparer);
 		}
 
 #if NET8_0_OR_GREATER
@@ -354,9 +527,10 @@ namespace Doxense.Serialization.Json
 		/// The exception must implement <see cref="ISerializable"/>, and CANNOT contain cycles or self-references!
 		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
 		/// </remarks>
-		[Pure]
+		[System.Diagnostics.Contracts.Pure]
 #if NET8_0_OR_GREATER
 		[Obsolete("Formatter-based serialization is obsolete and should not be used.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		public static JsonObject FromException(Exception ex, bool includeTypes = true)
 		{
@@ -373,7 +547,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
 		/// </remarks>
-		[Pure]
+		[System.Diagnostics.Contracts.Pure]
 #if NET8_0_OR_GREATER
 		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
 		[EditorBrowsable(EditorBrowsableState.Never)]
@@ -431,60 +605,52 @@ namespace Doxense.Serialization.Json
 
 		IEnumerable<string> IReadOnlyDictionary<string, JsonValue>.Keys => m_items.Keys;
 
-		public Dictionary<string, JsonValue>.KeyCollection Keys => m_items.Keys!;
+		public Dictionary<string, JsonValue>.KeyCollection Keys => m_items.Keys;
 
-		ICollection<JsonValue> IDictionary<string, JsonValue>.Values => m_items.Values!;
+		ICollection<JsonValue> IDictionary<string, JsonValue>.Values => m_items.Values;
 
-		IEnumerable<JsonValue> IReadOnlyDictionary<string, JsonValue>.Values => m_items.Values!;
+		IEnumerable<JsonValue> IReadOnlyDictionary<string, JsonValue>.Values => m_items.Values;
 
-		public Dictionary<string, JsonValue>.ValueCollection Values => m_items.Values!;
+		public Dictionary<string, JsonValue>.ValueCollection Values => m_items.Values;
 
-		public Dictionary<string, JsonValue>.Enumerator GetEnumerator()
-		{
-			return m_items.GetEnumerator()!;
-		}
+		public Dictionary<string, JsonValue>.Enumerator GetEnumerator() => m_items.GetEnumerator();
 
-		IEnumerator<KeyValuePair<string, JsonValue>> IEnumerable<KeyValuePair<string, JsonValue>>.GetEnumerator()
-		{
-			return m_items.GetEnumerator();
-		}
+		IEnumerator<KeyValuePair<string, JsonValue>> IEnumerable<KeyValuePair<string, JsonValue>>.GetEnumerator() => m_items.GetEnumerator();
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return m_items.GetEnumerator();
-		}
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => m_items.GetEnumerator();
 
-		public bool IsReadOnly => false;
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public override bool IsReadOnly => m_readOnly;
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public IEqualityComparer<string> Comparer => m_items.Comparer;
 
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		private static void FailObjectIsReadOnly() => throw new InvalidOperationException("Cannot mutate a read-only JSON object.");
+
+		[System.Diagnostics.CodeAnalysis.AllowNull]
 		public override JsonValue this[string key]
 		{
 			get
 			{
 				Contract.Debug.Requires(key != null);
-				return m_items.TryGetValue(key, out var value) ? (value ?? JsonNull.Null) : JsonNull.Missing;
+				return m_items.TryGetValue(key, out var value) ? value : JsonNull.Missing;
 			}
 			set
 			{
-				Contract.Debug.Requires(key != null && !object.ReferenceEquals(this, value));
+				if (m_readOnly) FailObjectIsReadOnly();
+				Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
 				m_items[key] = value ?? JsonNull.Null;
 			}
 		}
 
-		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
+		[JetBrains.Annotations.ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public bool TryGetValue(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
-			Contract.NotNull(key);
-			if (m_items.TryGetValue(key, out value))
-			{
-				value ??= JsonNull.Null;
-				return true;
-			}
-			return false;
+			return m_items.TryGetValue(key, out value);
 		}
 
-		[ContractAnnotation("halt<=key:null; =>true,array:notnull; =>false,array:null")]
+		[JetBrains.Annotations.ContractAnnotation("halt<=key:null; =>true,array:notnull; =>false,array:null")]
 		public bool TryGetArray(string key, [MaybeNullWhen(false)] out JsonArray array)
 		{
 			m_items.TryGetValue(key, out var value);
@@ -492,7 +658,7 @@ namespace Doxense.Serialization.Json
 			return array != null;
 		}
 
-		[ContractAnnotation("halt<=key:null; =>true,obj:notnull; =>false,obj:null")]
+		[JetBrains.Annotations.ContractAnnotation("halt<=key:null; =>true,obj:notnull; =>false,obj:null")]
 		public bool TryGetObject(string key, [MaybeNullWhen(false)] out JsonObject obj)
 		{
 			Contract.NotNull(key);
@@ -501,69 +667,312 @@ namespace Doxense.Serialization.Json
 			return obj != null;
 		}
 
-		public void Add(string key, JsonValue value)
+		public void Add(string key, JsonValue? value)
 		{
-			Contract.Debug.Requires(key != null && !object.ReferenceEquals(this, value));
+			if (m_readOnly) FailObjectIsReadOnly();
+			Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
 			m_items.Add(key, value ?? JsonNull.Null);
+		}
+
+		public bool TryAdd(string key, JsonValue? value)
+		{
+			if (m_readOnly) FailObjectIsReadOnly();
+			Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
+			return m_items.TryAdd(key, value ?? JsonNull.Null);
 		}
 
 		public void Add(KeyValuePair<string, JsonValue> item)
 		{
-			Contract.Debug.Requires(item.Key != null && item.Value != null);
-			((ICollection<KeyValuePair<string, JsonValue>>) m_items).Add(item);
+			if (m_readOnly) FailObjectIsReadOnly();
+			Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+			// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
+		}
+
+		public void AddRange(IEnumerable<KeyValuePair<string, JsonValue>> items)
+		{
+			if (m_readOnly) FailObjectIsReadOnly();
+			var self = m_items;
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{
+				self.EnsureCapacity(self.Count + count);
+			}
+
+			foreach (var item in items)
+			{
+				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+				self.Add(item.Key, item.Value ?? JsonNull.Null);
+			}
 		}
 
 		public bool Remove(string key)
 		{
+			if (m_readOnly) FailObjectIsReadOnly();
 			Contract.Debug.Requires(key != null);
 			return m_items.Remove(key);
 		}
 
+		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <param name="value">The removed element.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		public bool Remove(string key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			if (m_readOnly) FailObjectIsReadOnly();
+			Contract.Debug.Requires(key != null);
+			return m_items.Remove(key, out value);
+		}
+
 		public bool Remove(KeyValuePair<string, JsonValue> keyValuePair)
 		{
+			if (m_readOnly) FailObjectIsReadOnly();
 			Contract.Debug.Requires(keyValuePair.Key != null);
-			//BUGBUG: gérer la comparaison avec .Value avant de delete!
+			if (!m_items.TryGetValue(keyValuePair.Key, out var prev) || !prev.Equals(keyValuePair.Value))
+			{
+				return false;
+			}
 			return m_items.Remove(keyValuePair.Key);
 		}
 
 		public void Clear()
 		{
+			if (m_readOnly) FailObjectIsReadOnly();
 			m_items.Clear();
 		}
 
-		protected override JsonValue Clone(bool deep)
-		{
-			return this.Copy(deep);
-		}
+		/// <summary>Ensures that the dictionary can hold up to a specified number of entries without any further expansion of its backing storage.</summary>
+		/// <param name="capacity">The number of entries.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException">
+		/// <paramref name="capacity" /> is less than 0.</exception>
+		/// <returns>The current capacity of the <see cref="T:System.Collections.Generic.Dictionary`2" />.</returns>
+		public int EnsureCapacity(int capacity) => m_items.EnsureCapacity(capacity);
 
-		public new JsonObject Copy()
-		{
-			return this.Copy(false);
-		}
+		/// <summary>Sets the capacity of this dictionary to what it would be if it had been originally initialized with all its entries.</summary>
+		public void TrimExcess() => this.TrimExcess(this.Count);
 
-		public new JsonObject Copy(bool deep)
-		{
-			return JsonObject.Copy(m_items, deep);
-		}
+		/// <summary>Sets the capacity of this dictionary to hold up a specified number of entries without any further expansion of its backing storage.</summary>
+		/// <param name="capacity">The new capacity.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException">
+		/// <paramref name="capacity" /> is less than <see cref="Count" />.</exception>
+		public void TrimExcess(int capacity) => m_items.TrimExcess(capacity);
 
-		public static JsonObject Copy(IDictionary<string, JsonValue?> value, bool deep)
+		/// <summary>Create a copy of this object</summary>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of the object, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
+		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
+		public override JsonObject Copy(bool deep = false, bool readOnly = false)
 		{
-			Contract.NotNull(value);
+			if (readOnly && m_readOnly)
+			{ // we are already immutable, we can simply return ourselves!
+				return this;
+			}
 
-			Dictionary<string, JsonValue?> obj;
-			if (deep)
+			var items = m_items;
+			if (!deep && !readOnly)
+			{ // simply create a shallow copy of the top-level
+				return new JsonObject(new Dictionary<string, JsonValue>(items, items.Comparer), readOnly);
+			}
+			
+			// we want to make sure that any mutable children is copied as well
+			var map = new Dictionary<string, JsonValue>(items.Count, items.Comparer);
+			if (readOnly)
 			{
-				obj = new Dictionary<string, JsonValue?>(value.Count, ExtractKeyComparer(value));
-				foreach (var kvp in value)
+				foreach (var kvp in items)
 				{
-					obj[kvp.Key] = kvp.Value?.Copy(deep: true);
+					var child = kvp.Value.ToReadOnly();
+					map[kvp.Key] = child;
 				}
 			}
 			else
 			{
-				obj = new Dictionary<string, JsonValue?>(value, ExtractKeyComparer(value));
+				foreach (var kvp in items)
+				{
+					var child = kvp.Value.Copy(deep: true, false);
+					map[kvp.Key] = child;
+				}
 			}
-			return new JsonObject(obj, owner:  true);
+
+			// since we just performed a deep-copy, all children should be 
+			return new JsonObject(map, readOnly);
+		}
+
+		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <param name="items">Map of key/values to copy</param>
+		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		public static JsonObject Create(IDictionary<string, JsonValue?> items)
+		{
+			Contract.NotNull(items);
+
+			if (items is JsonObject j)
+			{
+				return j.Copy();
+			}
+
+			var map = new Dictionary<string, JsonValue>(items.Count, ExtractKeyComparer(items));
+			foreach (var kvp in items)
+			{
+				map[kvp.Key] = kvp.Value ?? JsonNull.Null;
+			}
+			return new JsonObject(map, readOnly: false);
+		}
+
+		/// <summary>Create a new immutable JSON object from the specified items</summary>
+		/// <param name="items">Map of key/values</param>
+		/// <returns>New immutable JSON object with the immutable copies of the elements in <see cref="items"/>.</returns>
+		/// <remarks>
+		/// <para>Any change in <paramref name="items"/> or the new object will not be visible by the other.</para>
+		/// <para>Any value that is already immutable will be used by reference. Values that are immutable will be copied (using deep copy semantic)</para>
+		/// </remarks>
+		public static JsonObject CreateReadOnly(IDictionary<string, JsonValue?> items)
+		{
+			Contract.NotNull(items);
+
+			if (items is JsonObject j)
+			{
+				return j.ToReadOnly();
+			}
+
+			var map = new Dictionary<string, JsonValue>(items.Count, ExtractKeyComparer(items));
+			foreach (var kvp in items)
+			{
+				map[kvp.Key] = (kvp.Value ?? JsonNull.Null).ToReadOnly();
+			}
+			return new JsonObject(map, readOnly: true);
+		}
+
+		///// <summary>Create a new JSON object with a copy of the specified items</summary>
+		///// <param name="items">Map of key/values to copy</param>
+		///// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		///// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		///// <returns>New JSON object with the same content as <see cref="items"/></returns>
+		///// <remarks>If <paramref name="items"/> contains any duplicate keys, the last value will overwrite any previous values.</remarks>
+		//[Obsolete("Use JsonObject.Create(...) or JsonCreate.CreateImmutable(...) instead")]
+		//[EditorBrowsable(EditorBrowsableState.Never)]
+		//public static JsonObject Copy(IDictionary<string, JsonValue?> items, bool deep, bool readOnly = false)
+		//{
+		//	Contract.NotNull(items);
+
+		//	if (items is JsonObject j)
+		//	{
+		//		return j.Copy(deep, readOnly);
+		//	}
+
+		//	var map = new Dictionary<string, JsonValue>(items.Count, ExtractKeyComparer(items));
+		//	bool mutable = false;
+		//	if (deep)
+		//	{
+		//		foreach (var kvp in items)
+		//		{
+		//			var child = kvp.Value?.Copy(deep: true, readOnly) ?? JsonNull.Null;
+		//			map[kvp.Key] = child;
+		//			mutable |= child.IsMutable();
+		//		}
+		//	}
+		//	else
+		//	{
+		//		foreach (var kvp in items)
+		//		{
+		//			var child = kvp.Value ?? JsonNull.Null;
+		//			map[kvp.Key] = child;
+		//			mutable |= child.IsMutable();
+		//		}
+		//	}
+		//	return new JsonObject(map, !readOnly ? JsonMutability.Mutable : mutable ? JsonMutability.ReadOnly : JsonMutability.Immutable);
+		//}
+
+		public static JsonObject Create(IEnumerable<KeyValuePair<string, JsonValue?>> items, IEqualityComparer<string>? comparer = null)
+		{
+			Contract.NotNull(items);
+
+			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? ExtractKeyComparer(items) ?? StringComparer.Ordinal);
+			foreach (var kvp in items)
+			{
+				map[kvp.Key] = kvp.Value ?? JsonNull.Null;
+			}
+			return new JsonObject(map, readOnly: false);
+		}
+
+		public static JsonObject CreateReadOnly(IEnumerable<KeyValuePair<string, JsonValue?>> items, IEqualityComparer<string>? comparer = null)
+		{
+			Contract.NotNull(items);
+
+			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? ExtractKeyComparer(items) ?? StringComparer.Ordinal);
+			foreach (var kvp in items)
+			{
+				map[kvp.Key] = kvp.Value?.ToReadOnly() ?? JsonNull.Null;
+			}
+			return new JsonObject(map, readOnly: true);
+		}
+
+		public static JsonObject Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> items, IEqualityComparer<string>? comparer = null)
+		{
+			Contract.NotNull(items);
+
+			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? ExtractKeyComparer(items) ?? StringComparer.Ordinal);
+			foreach (var kvp in items)
+			{
+				var child = FromValue(kvp.Value);
+				map[kvp.Key] = child;
+			}
+			return new JsonObject(map, readOnly: false);
+		}
+
+		public static JsonObject CreateReadOnly<TValue>(IEnumerable<KeyValuePair<string, TValue?>> items)
+		{
+			Contract.NotNull(items);
+
+			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, ExtractKeyComparer(items));
+			foreach (var kvp in items)
+			{
+				map[kvp.Key] = FromValueReadOnly(kvp.Value);
+			}
+			return new JsonObject(map, readOnly: true);
+		}
+
+		/// <summary>Create a new JSON object with a copy of the specified items</summary>
+		/// <param name="items">Sequence of key/value pairs to copy</param>
+		/// <param name="deep">If <see langword="true" />, perform a deep copy of all the items (arrays and objects). If <see langword="false" />, they are stored as-is.</param>
+		/// <param name="readOnly"></param>
+		/// <returns>New JSON object with the same content as <see cref="items"/></returns>
+		/// <remarks>If <paramref name="items"/> contains any duplicate keys, the last value will overwrite any previous values.</remarks>
+		[Obsolete("Use JsonObject.Create(...) or JsonObject.CreateImmutable(...) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonObject Copy(IEnumerable<KeyValuePair<string, JsonValue?>> items, bool deep, bool readOnly = false)
+		{
+			Contract.NotNull(items);
+
+			if (items is JsonObject j)
+			{
+				return j.Copy(deep, readOnly);
+			}
+
+			//TODO: BUGBUG: fix me!
+
+			if (!deep && !readOnly)
+			{ // just create a shallow copy
+				return new(new Dictionary<string, JsonValue>(items, ExtractKeyComparer(items)), readOnly);
+			}
+
+			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, ExtractKeyComparer(items));
+			if (deep)
+			{
+				foreach (var kvp in items)
+				{
+					map[kvp.Key] = kvp.Value?.Copy(deep: true, readOnly) ?? JsonNull.Null;
+				}
+			}
+			else
+			{
+				foreach (var kvp in items)
+				{
+					map[kvp.Key] = kvp.Value ?? JsonNull.Null;
+				}
+			}
+			return new JsonObject(map, readOnly);
 		}
 
 		#region Public Properties...
@@ -584,7 +993,7 @@ namespace Doxense.Serialization.Json
 
 		#region Getters...
 
-		[ContractAnnotation("required:true => notnull")]
+		[JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
 		private TJson? InternalGet<TJson>(JsonType expectedType, string key, bool required)
 			where TJson : JsonValue
 		{
@@ -605,64 +1014,64 @@ namespace Doxense.Serialization.Json
 			return (TJson)value;
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static ArgumentException Error_ExistingKeyTypeMismatch(string key, JsonValue value, JsonType expectedType)
 		{
 			return new ArgumentException($"The specified key '{key}' exists, but is a {value.Type} instead of expected {expectedType}", nameof(key));
 		}
 
-		public bool ContainsKey(string key)
-		{
-			//note: retourne true même si la propriété vaut null
-			return m_items.ContainsKey(key);
-		}
-
-		bool ICollection<KeyValuePair<string, JsonValue>>.Contains(KeyValuePair<string, JsonValue> keyValuePair)
-		{
-			return ((ICollection<KeyValuePair<string, JsonValue>>)m_items).Contains(keyValuePair);
-		}
-
-
-		/// <summary>Indique si la propriété <paramref name="key"/> existe et contient une valeur différent de null</summary>
-		/// <param name="key">Nom de la clé à vérifier</param>
-		/// <returns>Retourne false si la clé n'existe pas, ou s'il est contient null.</returns>
+		/// <summary>Test if the object contains the <paramref name="key"/> property.</summary>
+		/// <param name="key">Name of the property</param>
+		/// <returns>Returns <see langword="true" /> if the entry is present; otherwise, <see langword="false" /></returns>
+		/// <remarks>Please note that this will return <see langword="true" /> even if the property value is null. To treat <c>null</c> the same as missing, plase use <see cref="Has(string)"/> instead.</remarks>
 		/// <example>
 		/// { Foo: "..." }.Has("Foo") => true
-		/// { Foo: ""    }.Has("Foo") => true    // présent même si vide
-		/// { Foo: null  }.Has("Foo") => false // présent mais null!
-		/// { Bar: ".."  }.Has("Foo") => false // absent!
+		/// { Foo: ""    }.Has("Foo") => true  // empty string
+		/// { Foo: null  }.Has("Foo") => true  // explicit null
+		/// { Bar: ".."  }.Has("Foo") => false // not found
 		/// </example>
-		public bool Has(string key)
-		{
-			return TryGetValue(key, out var value) && !value.IsNullOrMissing();
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool ContainsKey(string key) => m_items.ContainsKey(key);
 
-		/// <summary>Retourne la valeur d'une propriété de cet objet</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriété contient null ou n'existe pas.</returns>
-		/// <example>
-		/// obj.Get&lt;string&gt;("FieldThatExists") // returns the value of the field as an int
-		/// obj.Get&lt;string&gt;("FieldThatIsMissing") // returns null
-		/// obj.Get&lt;string&gt;("FieldThatIsNull") // returns null
-		/// obj.Get&lt;int&gt;("FieldThatIsMissing") // returns 0
-		/// obj.Get&lt;int&gt;("FieldThatIsNull") // returns 0
-		/// </example>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T? Get<T>(string key)
-		{
-			return this[key].As<T>();
-		}
+		bool ICollection<KeyValuePair<string, JsonValue>>.Contains(KeyValuePair<string, JsonValue> keyValuePair) => ((ICollection<KeyValuePair<string, JsonValue>>)m_items).Contains(keyValuePair);
 
-		/// <summary>Retourne la valeur d'une propriété de cet objet</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="value">Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>) si la propriété contient null ou n'existe pas.</param>
+		/// <summary>Test if the object contains the <paramref name="key"/> property, and that its value is not <c>null</c></summary>
+		/// <param name="key">Name of the property</param>
+		/// <returns>Retourns <see langword="true" /> if the entry is present and not <see cref="JsonNull.Null"/> or <see cref="JsonNull.Missing"/>.</returns>
 		/// <example>
-		/// obj.TryGet&lt;string&gt;("FieldThatExists") // returns the value of the field as an int
-		/// obj.Get&lt;string&gt;("FieldThatIsMissing") // returns null
-		/// obj.Get&lt;string&gt;("FieldThatIsNull") // returns null
-		/// obj.Get&lt;int&gt;("FieldThatIsMissing") // returns 0
-		/// obj.Get&lt;int&gt;("FieldThatIsNull") // returns 0
+		/// { Foo: "..." }.Has("Foo") => true
+		/// { Foo: ""    }.Has("Foo") => true  // empty string is not 'null'
+		/// { Foo: null  }.Has("Foo") => false // found but explicit null
+		/// { Bar: ".."  }.Has("Foo") => false // not found
 		/// </example>
+		public bool Has(string key) => TryGetValue(key, out var value) && !value.IsNullOrMissing();
+
+		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object.</summary>
+		/// <param name="key">Name of the property</param>
+		/// <returns>Converted value of the <paramref name="key"/> property into the type <typeparamref name="T"/>, or default(<typeparamref name="T"/>) if the property does not exist, or contains a <c>null</c> entry.</returns>
+		/// <example>
+		/// ({ "Hello": "World" }).Get&lt;string&gt;("Hello") // returns <c>"World"</c>
+		/// ({ }).Get&lt;string&gt;("Hello") // returns <c>null</c>
+		/// ({ }).Get&lt;int&gt;("Hello") // returns <c>0</c>
+		/// ({ "Hello": null }).Get&lt;string&gt;("Hello") // returns <c>null</c>
+		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // returns <c>0</c>
+		/// </example>
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T? Get<T>(string key) => this[key].As<T>();
+
+		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
+		/// <param name="key">Name of the property</param>
+		/// <param name="value">If the property exists and is not equal to <c>null</c>, will receive its value converted into type <typeparamref name="T"/>.</param>
+		/// <returns>Returns <see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ({ "Hello": "World"}).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ({ "Hello": "123"}).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>123"</c>
+		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>null</c>
+		/// ({ }).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>0</c>
+		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <c>null</c>
+		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
+		/// </example>
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("=> false, value:null")]
 		public bool TryGet<T>(string key, out T? value)
 		{
 			if (TryGetValue(key, out var item) && !item.IsNullOrMissing())
@@ -689,8 +1098,8 @@ namespace Doxense.Serialization.Json
 		/// obj.Get&lt;string&gt;"FieldThatIsNull", required: true) // => throws
 		/// </example>
 		/// <remarks> Cette méthode est équivalente à <code>obj[key].RequiredField(key).As&lt;T&gt;()</code> </remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[ContractAnnotation("required:true => notnull")]
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
 		public T? Get<T>(string key, bool required)
 		{
 			var val = this[key];
@@ -703,7 +1112,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Résolveur spécifique utilisé pour la conversion.</param>
 		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>} si la propriété contient null ou n'existe pas.</returns>
 		/// <remarks>Cette méthode est équivalente à <code>obj[key].As&lt;T&gt;(defaultValue, resolver)</code></remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T? Get<T>(string key, ICrystalJsonTypeResolver resolver)
 		{
 			return this[key].As<T>(resolver);
@@ -713,7 +1122,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">Nom de la propriété recherchée</param>
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
 		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue GetValue(string key)
 		{
 			return this[key];
@@ -724,7 +1133,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="required"></param>
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
 		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue GetValue(string key, bool required)
 		{
 			var val = this[key];
@@ -737,74 +1146,74 @@ namespace Doxense.Serialization.Json
 		/// <param name="missingValue">Valeur par défaut retournée si l'objet ne contient cette propriété</param>
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété existe et contient null, ou <paramref name="missingValue"/> si la propriété n'existe pas.</returns>
 		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retourné à la place.</remarks>
-		[Pure, ContractAnnotation("halt<=key:null")]
-		public JsonValue GetValueOrDefault(string key, JsonValue missingValue)
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("halt<=key:null")]
+		public JsonValue GetValueOrDefault(string key, JsonValue? missingValue)
 		{
-			return TryGetValue(key, out var value) ? (value ?? JsonNull.Null) : (missingValue ?? JsonNull.Missing);
+			return TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
-		/// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas un object.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
-		[Pure]
-		public JsonObject? GetObject(string key)
-		{
-			return InternalGet<JsonObject>(JsonType.Object, key, required: false);
-		}
+		///// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
+		///// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
+		///// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas un object.</returns>
+		///// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
+		//[System.Diagnostics.Contracts.Pure]
+		//public JsonObject? GetObject(string key)
+		//{
+		//	return InternalGet<JsonObject>(JsonType.Object, key, required: false);
+		//}
 
 		/// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
 		/// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
 		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient null, une exception est lancée. Sinon, la méthode retourne null.</param>
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas et <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas un object.</returns>
 		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public JsonObject? GetObject(string key, bool required)
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
+		public JsonObject? GetObject(string key, bool required = false)
 		{
 			return InternalGet<JsonObject>(JsonType.Object, key, required);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonObject? GetObjectPath(string path)
-		{
-			return GetPath(path).AsObject(required: false);
-		}
+		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		//public JsonObject? GetObjectPath(string path)
+		//{
+		//	return GetPath(path).AsObject(required: false);
+		//}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining), ContractAnnotation("required:true => notnull")]
-		public JsonObject? GetObjectPath(string path, bool required)
+		[MethodImpl(MethodImplOptions.AggressiveInlining), JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
+		public JsonObject? GetObjectPath(string path, bool required = false)
 		{
 			return GetPath(path).AsObject(required);
 		}
 
-		/// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
-		/// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas une array.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
-		[Pure]
-		public JsonArray? GetArray(string key)
-		{
-			return InternalGet<JsonArray>(JsonType.Array, key, required: false);
-		}
+		///// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
+		///// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
+		///// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas une array.</returns>
+		///// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
+		//[System.Diagnostics.Contracts.Pure]
+		//public JsonArray? GetArray(string key)
+		//{
+		//	return InternalGet<JsonArray>(JsonType.Array, key, required: false);
+		//}
 
 		/// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
 		/// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
 		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient <b>null</b>, une exception est lancée. Sinon, la méthode retourne null.</param>
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas et que <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas une array.</returns>
 		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public JsonArray? GetArray(string key, bool required)
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
+		public JsonArray? GetArray(string key, bool required = false)
 		{
 			return InternalGet<JsonArray>(JsonType.Array, key, required);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonArray? GetArrayPath(string path)
-		{
-			return GetPath(path).AsArray(required: false);
-		}
+		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		//public JsonArray? GetArrayPath(string path)
+		//{
+		//	return GetPath(path).AsArray(required: false);
+		//}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining), ContractAnnotation("required:true => notnull")]
-		public JsonArray? GetArrayPath(string path, bool required)
+		[MethodImpl(MethodImplOptions.AggressiveInlining), JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
+		public JsonArray? GetArrayPath(string path, bool required = false)
 		{
 			return GetPath(path).AsArray(required);
 		}
@@ -842,7 +1251,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Retourne une valeur à partir de son chemin</summary>
 		/// <param name="path">Chemin vers la valeur à lire, au format "foo", "foo.bar" ou "foo[2].baz"</param>
 		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvée</returns>
-		[Pure]
+		[System.Diagnostics.Contracts.Pure]
 		public JsonValue GetPath(string path)
 		{
 			Contract.NotNullOrEmpty(path);
@@ -896,7 +1305,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="path">Chemin vers la valeur à lire, au format "foo", "foo.bar" ou "foo[2].baz"</param>
 		/// <param name="required">Si true et que le champ n'existe pas dans l'objet, une exception est générée</param>
 		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvée</returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
 		public T? GetPath<T>(string path, bool required = false)
 		{
 			var val = GetPath(path);
@@ -909,7 +1318,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="name">Nom du fils de <paramref name="current"/> qui devrait être un objet (ou null)</param>
 		/// <param name="createIfMissing">Si true, crée l'objet s'il n'existait pas. Si false, retourne null</param>
 		/// <returns>Valeur du fils, initialisée à un objet vide si manquante</returns>
-		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonObject? GetOrCreateChildObject(JsonValue current, string? name, bool createIfMissing)
 		{
 			Contract.Debug.Assert(current != null && current.Type == JsonType.Object);
@@ -920,18 +1329,24 @@ namespace Doxense.Serialization.Json
 				child = current[name];
 				if (child.IsNullOrMissing())
 				{
-					if (!createIfMissing) return null;
-					child = JsonObject.Empty;
+					if (!createIfMissing)
+					{
+						return null;
+					}
+					child = new JsonObject();
 					current[name] = child;
 				}
-				else if (!child.IsMap)
+				else if (child is not JsonObject)
 				{
 					throw ThrowHelper.InvalidOperationException($"The specified key '{name}' exists, but is of type {child.Type} instead of expected Object");
 				}
 			}
 			else
 			{
-				if (!current.IsMap) throw ThrowHelper.InvalidOperationException($"Selected value was of type {current.Type} instead of expected Object");
+				if (current is not JsonObject)
+				{
+					throw ThrowHelper.InvalidOperationException($"Selected value was of type {current.Type} instead of expected Object");
+				}
 				child = current;
 			}
 			return (JsonObject) child;
@@ -942,7 +1357,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="name">Nom du fils de <paramref name="current"/> qui devrait être un objet (ou null)</param>
 		/// <param name="createIfMissing">Si true, crée l'array si elle n'existait pas. Si false, retourne null</param>
 		/// <returns>Valeur du fils, initialisée à une array vide si manquante</returns>
-		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonArray? GetOrCreateChildArray(JsonValue current, string? name, bool createIfMissing)
 		{
 			Contract.Debug.Assert(current != null && current.Type == JsonType.Object);
@@ -953,18 +1368,21 @@ namespace Doxense.Serialization.Json
 				child = current[name];
 				if (child.IsNullOrMissing())
 				{
-					if (!createIfMissing) return null;
-					child = JsonArray.Empty;
+					if (!createIfMissing)
+					{
+						return null;
+					}
+					child = JsonArray.Create(); // we assume the intent is to modify it
 					current[name] = child;
 				}
-				else if (!child.IsArray)
+				else if (child is not JsonArray)
 				{
 					throw ThrowHelper.InvalidOperationException($"The specified key '{name}' exists, but is of type {child.Type} instead of expected Array");
 				}
 			}
 			else
 			{
-				if (!current.IsArray) throw ThrowHelper.InvalidOperationException($"Selected value was of type {current.Type} instead of expected Array");
+				if (current is not JsonArray) throw ThrowHelper.InvalidOperationException($"Selected value was of type {current.Type} instead of expected Array");
 				child = current;
 			}
 			return (JsonArray) child;
@@ -974,35 +1392,36 @@ namespace Doxense.Serialization.Json
 		/// <param name="array">Noeud courrant (doit être une array)</param>
 		/// <param name="index">Index de l'entrée dans <paramref name="array"/> qui devrait être un objet (ou null)</param>
 		/// <param name="createIfMissing">Si true, crée l'objet s'il n'existait pas. Si false, retourne null</param>
-		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonObject? GetOrCreateEntryObject(JsonArray array, int index, bool createIfMissing)
 		{
 			var child = index < array.Count ? array[index] : null;
 			if (child.IsNullOrMissing())
 			{
-				if (!createIfMissing) return null;
-				child = JsonObject.Empty;
-				array.Set(index, child);
+				if (!createIfMissing)
+				{
+					return null;
+				}
+				var empty = JsonObject.Create(); // we assume the intent is to modify it, so create a mutable object!
+				array.Set(index, empty);
+				return empty;
 			}
-			else if (!child.IsMap)
-			{
-				throw ThrowHelper.InvalidOperationException($"Selected item at position {index} was of type {child.Type} instead of expected Object");
-			}
-			return (JsonObject) child;
+
+			return child as JsonObject ?? throw ThrowHelper.InvalidOperationException($"Selected item at position {index} was of type {child.Type} instead of expected Object");
 		}
 
 		/// <summary>Retourne ou crée une entrée d'une array, qui doit être aussi une array</summary>
 		/// <param name="array">Noeud courrant (doit être une array)</param>
 		/// <param name="index">Index de l'entrée dans <paramref name="array"/> qui devrait être une array (ou null)</param>
 		/// <param name="createIfMissing">Si true, crée l'array si elle n'existait pas. Si false, retourne null</param>
-		[Pure, ContractAnnotation("createIfMissing:true => notnull")]
+		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonArray? GetOrCreateEntryArray(JsonArray array, int index, bool createIfMissing)
 		{
 			var child = index < array.Count ? array[index] : null;
 			if (child.IsNullOrMissing())
 			{
 				if (!createIfMissing) return null;
-				child = JsonArray.Empty;
+				child = JsonArray.Create(); // we assume the intent is to modify it, so create a mutable array!
 				array.Set(index, child);
 			}
 			else if (!child.IsArray)
@@ -1015,7 +1434,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Crée ou modifie une valeur à partir de son chemin</summary>
 		/// <param name="path">Chemin vers la valeur à créer ou modifier.</param>
 		/// <param name="value">Nouvelle valeur</param>
-		public void SetPath(string path, JsonValue value)
+		public void SetPath(string path, JsonValue? value)
 		{
 			Contract.NotNullOrEmpty(path);
 
@@ -1025,6 +1444,7 @@ namespace Doxense.Serialization.Json
 
 		private JsonValue SetPathInternal(string path, JsonValue? valueToSet, JsonType expectedType)
 		{
+			//Console.WriteLine($"SetPath({path}, {valueToSet}, {expectedType})");
 			JsonValue current = this;
 			var tokenizer = new JPathTokenizer(path);
 			int? index = null;
@@ -1032,7 +1452,7 @@ namespace Doxense.Serialization.Json
 			while (true)
 			{
 				var token = tokenizer.ReadNext();
-				//Console.WriteLine("{0}@{1} = '{2}'; name={3}, index={4}, current = {5}, total = {6}", token, tokenizer.Offset, tokenizer.GetSourceToken(), name, index, current.ToJsonCompact(), this.ToJsonCompact());
+				//Console.WriteLine($"- {token}@{tokenizer.Offset} = '{tokenizer.GetSourceToken()}'; name={name}, index={index}, current = {current.Type} {current.ToJsonCompact()}, total = {this.ToJsonCompact()}");
 				switch (token)
 				{
 					case JPathToken.Identifier:
@@ -1101,7 +1521,7 @@ namespace Doxense.Serialization.Json
 						}
 
 						// current doit être un objet
-						if (!current.IsMap) throw ThrowHelper.InvalidOperationException("TODO: object expected");
+						if (current is not JsonObject) throw ThrowHelper.InvalidOperationException("TODO: object expected");
 
 						if (name == null) throw ThrowHelper.FormatException("TODO: missing identifier at end of JPath");
 
@@ -1127,8 +1547,7 @@ namespace Doxense.Serialization.Json
 						throw ThrowHelper.FormatException($"Invalid JPath token {token} at {tokenizer.Offset}: '{path}'");
 					}
 				}
-				//Console.WriteLine(" => name={3}, index={4}, current = {5}, total = {6}", token, tokenizer.Offset, tokenizer.GetSourceToken(), name, index, current.ToJsonCompact(), this.ToJsonCompact());
-
+				//Console.WriteLine($"  => name={name}, index={index}, current = {current.ToJsonCompact()}, total = {this.ToJsonCompact()}");
 			}
 		}
 
@@ -1159,8 +1578,8 @@ namespace Doxense.Serialization.Json
 						if (index.HasValue)
 						{ // combo d'indexer: foo[1][2]..
 							var array = GetOrCreateChildArray(current, name, createIfMissing: false);
-							if (array.IsNullOrMissing()) return false;
-							current = GetOrCreateEntryArray(array!, index.Value, createIfMissing: false);
+							if (array == null) return false;
+							current = GetOrCreateEntryArray(array, index.Value, createIfMissing: false);
 							if (current.IsNullOrMissing()) return false;
 							name = null;
 						}
@@ -1176,8 +1595,8 @@ namespace Doxense.Serialization.Json
 						if (index.HasValue)
 						{
 							var array = GetOrCreateChildArray(current, name, createIfMissing: false);
-							if (array.IsNullOrMissing()) return false;
-							current = GetOrCreateEntryObject(array!, index.Value, createIfMissing: false);
+							if (array == null) return false;
+							current = GetOrCreateEntryObject(array, index.Value, createIfMissing: false);
 							index = null;
 						}
 						else
@@ -1201,7 +1620,7 @@ namespace Doxense.Serialization.Json
 							else
 							{
 								array = GetOrCreateChildArray(current, name, createIfMissing: false);
-								if (array.IsNullOrMissing()) return false;
+								if (array == null) return false;
 							}
 							//TODO: set to null? removeAt?
 							array.RemoveAt(index.Value);
@@ -1209,7 +1628,7 @@ namespace Doxense.Serialization.Json
 						}
 
 						// current doit être un objet
-						if (!current.IsMap) throw ThrowHelper.InvalidOperationException("TODO: object expected");
+						if (current is not JsonObject) throw ThrowHelper.InvalidOperationException("TODO: object expected");
 
 						if (name == null) throw ThrowHelper.FormatException("TODO: missing identifier at end of JPath");
 
@@ -1229,14 +1648,14 @@ namespace Doxense.Serialization.Json
 		#region Setters...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonObject Set<T>(string key, T value)
+		public JsonObject Set<T>(string key, T? value)
 		{
-			m_items[key] = JsonValue.FromValue<T>(value);
+			m_items[key] = FromValue<T>(value);
 			return this;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonObject Set(string key, JsonValue value)
+		public JsonObject Set(string key, JsonValue? value)
 		{
 			m_items[key] = value ?? JsonNull.Null;
 			return this;
@@ -1291,7 +1710,7 @@ namespace Doxense.Serialization.Json
 			Merge(this, other, deepCopy);
 		}
 
-		public static JsonObject Merge(JsonObject parent, JsonObject other, bool deepCopy = false)
+		public static JsonObject Merge(JsonObject parent, JsonObject? other, bool deepCopy = false)
 		{
 			Contract.NotNull(parent);
 
@@ -1343,12 +1762,12 @@ namespace Doxense.Serialization.Json
 								break;
 							}
 
-							if (!kvp.Value.IsMap)
+							if (kvp.Value is not JsonObject obj)
 							{ // on ne peut merger qu'un objet avec un autre object
 								throw ThrowHelper.InvalidOperationException($"Cannot merge a JSON '{kvp.Value.Type}' into an Object for key '{kvp.Key}'");
 							}
 
-							((JsonObject)mine).MergeWith((JsonObject)kvp.Value, deepCopy);
+							((JsonObject) mine).MergeWith(obj, deepCopy);
 							break;
 						}
 
@@ -1387,83 +1806,80 @@ namespace Doxense.Serialization.Json
 		#region Projection...
 
 		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
-		public static Func<JsonObject, JsonObject> Picker(params string[] fields)
+		public static Func<JsonObject, JsonObject> CreatePicker(ReadOnlySpan<string> fields, bool removeFromSource = false)
 		{
-			var projections = JsonObject.CheckProjectionFields(fields, false);
-			return (obj) => JsonObject.Project(obj, projections);
+			var projections = CheckProjectionFields(fields, removeFromSource);
+			return (obj) => Project(obj, projections);
 		}
 
 		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
-		public static Func<JsonObject, JsonObject> Picker(IEnumerable<string> fields, bool keepMissing, bool removeFromSource = false)
+		public static Func<JsonObject, JsonObject> CreatePicker(IEnumerable<string> fields, bool keepMissing, bool removeFromSource = false)
 		{
-			var projections = JsonObject.CheckProjectionFields(fields, keepMissing);
-			return (obj) => JsonObject.Project(obj, projections, removeFromSource);
+			var projections = CheckProjectionFields(fields as string[] ?? fields.ToArray(), keepMissing);
+			return (obj) => Project(obj, projections, removeFromSource);
 		}
 
 		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
-		public static Func<JsonObject, JsonObject> Picker(IDictionary<string, JsonValue?> defaults, bool removeFromSource = false)
+		public static Func<JsonObject, JsonObject> CreatePicker(IDictionary<string, JsonValue?> defaults, bool removeFromSource = false)
 		{
-			var projections = JsonObject.CheckProjectionDefaults(defaults);
-			return (obj) => JsonObject.Project(obj, projections, removeFromSource);
-		}
-
-		public JsonObject Pick(string field)
-		{
-			//TODO: uniquement la pour éviter ambiguïté avec Pick(object defaults).
-			return JsonObject.Project(this, JsonObject.CheckProjectionFields(new[] { field }, false));
-		}
-
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="fields">Liste des noms des champs à conserver</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
-		public JsonObject Pick(params string[] fields)
-		{
-			return JsonObject.Project(this, JsonObject.CheckProjectionFields(fields, false));
+			var projections = CheckProjectionDefaults(defaults);
+			return (obj) => Project(obj, projections, removeFromSource);
 		}
 
 		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
 		/// <param name="fields">Liste des noms des champs à conserver</param>
 		/// <param name="keepMissing">Si false, les champs projetés qui n'existent pas dans l'objet source ne seront pas présent dans le résultat. Si true, les champs seront présents dans le résultat avec une valeur à 'null'</param>
 		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
-		public JsonObject Pick(IEnumerable<string> fields, bool keepMissing)
+		public JsonObject Pick(ReadOnlySpan<string> fields, bool keepMissing = false)
 		{
-			return JsonObject.Project(this, JsonObject.CheckProjectionFields(fields, keepMissing));
+			return Project(this, CheckProjectionFields(fields, keepMissing));
+		}
+
+		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
+		/// <param name="fields">Liste des noms des champs à conserver</param>
+		/// <param name="keepMissing">Si false, les champs projetés qui n'existent pas dans l'objet source ne seront pas présent dans le résultat. Si true, les champs seront présents dans le résultat avec une valeur à 'null'</param>
+		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
+		public JsonObject Pick(string[] fields, bool keepMissing = false)
+		{
+			return Project(this, CheckProjectionFields(fields, keepMissing));
+		}
+
+		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
+		/// <param name="fields">Liste des noms des champs à conserver</param>
+		/// <param name="keepMissing">Si false, les champs projetés qui n'existent pas dans l'objet source ne seront pas présent dans le résultat. Si true, les champs seront présents dans le résultat avec une valeur à 'null'</param>
+		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
+		public JsonObject Pick(IEnumerable<string> fields, bool keepMissing = false)
+		{
+			return Project(this, CheckProjectionFields(fields as string[] ?? fields.ToArray(), keepMissing));
 		}
 
 		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
 		/// <param name="defaults">Liste des des champs à conserver, avec une éventuelle valeur par défaut</param>
 		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="defaults"/></returns>
-		public JsonObject Pick(IDictionary<string, JsonValue?> defaults)
+		public JsonObject PickFrom(IDictionary<string, JsonValue?> defaults)
 		{
-			//TODO: renommer en PickWithDefaults() ?
-			return JsonObject.Project(this, JsonObject.CheckProjectionDefaults(defaults));
+			return Project(this, CheckProjectionDefaults(defaults));
 		}
 
 		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
 		/// <param name="defaults">Liste des des champs à conserver, avec une éventuelle valeur par défaut</param>
 		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="defaults"/></returns>
-		public JsonObject Pick(object defaults)
+		public JsonObject PickFrom(object defaults)
 		{
-			//REVIEW: crée un conflit avec Pick(params[] string) si on passe un seul argument!
-			//TODO: renommer en PickWithDefaults() ?
-			return JsonObject.Project(this, JsonObject.CheckProjectionDefaults(defaults));
+			return Project(this, CheckProjectionDefaults(defaults));
 		}
 
 		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
 		/// <param name="keys">Liste de nom de champs à projeter</param>
 		/// <param name="keepMissing"></param>
-		[ContractAnnotation("keys:null => halt")]
-		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionFields(IEnumerable<string> keys, bool keepMissing)
+		[JetBrains.Annotations.ContractAnnotation("keys:null => halt")]
+		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionFields(ReadOnlySpan<string> keys, bool keepMissing)
 		{
-			if (keys == null) throw ThrowHelper.ArgumentNullException(nameof(keys));
-
-			var copy = keys as string[] ?? keys.ToArray();
-
-			var res = new KeyValuePair<string, JsonValue?>[copy.Length];
+			var res = new KeyValuePair<string, JsonValue?>[keys.Length];
 			var set = new HashSet<string>();
 			int p = 0;
 
-			foreach (var key in copy)
+			foreach (var key in keys)
 			{
 				if (string.IsNullOrEmpty(key))
 				{
@@ -1483,7 +1899,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
 		/// <param name="defaults">Liste des clés à projeter, avec leur valeur par défaut</param>
 		/// <remarks>Si un champ est manquant dans l'objet source, la valeur par défaut est utilisée, sauf si elle est égale à null.</remarks>
-		[ContractAnnotation("defaults:null => halt")]
+		[JetBrains.Annotations.ContractAnnotation("defaults:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionDefaults(IDictionary<string, JsonValue?> defaults)
 		{
 			Contract.NotNull(defaults);
@@ -1511,12 +1927,12 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		[ContractAnnotation("defaults:null => halt")]
+		[JetBrains.Annotations.ContractAnnotation("defaults:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionDefaults(object defaults)
 		{
 			Contract.NotNull(defaults);
 
-			var obj = JsonObject.FromObject(defaults);
+			var obj = FromObjectImmutable(defaults);
 			Contract.Debug.Assert(obj != null);
 			//note: garantit sans doublons et sans clés vides
 			return obj.ToArray()!;
@@ -1538,7 +1954,10 @@ namespace Doxense.Serialization.Json
 				if (item.TryGetValue(prop.Key, out var value))
 				{
 					obj[prop.Key] = value;
-					if (removeFromSource) item.Remove(prop.Key);
+					if (removeFromSource)
+					{
+						item.Remove(prop.Key);
+					}
 				}
 				else if (prop.Value != null)
 				{
@@ -1654,47 +2073,50 @@ namespace Doxense.Serialization.Json
 		{
 			result = null!;
 
-			if (item.IsMap)
+			switch (item)
 			{
-				var obj = (JsonObject)item;
-				if (TrySortByKeys(obj.m_items, comparer, out var subItems))
+				case JsonObject obj:
 				{
-					result = new JsonObject(subItems, owner: true);
-					return true;
-				}
-				return false;
-			}
-
-			if (item.IsArray)
-			{
-				var arr = (JsonArray)item;
-
-				// on n'alloue le buffer d'items que si au moins un a changé!
-				JsonValue[]? items = null;
-				for (int i = 0; i < arr.Count;i++)
-				{
-					if (TrySortValue(arr[i], comparer, out var val))
+					if (TrySortByKeys(obj.m_items, comparer, out var subItems))
 					{
-						if (items == null) items = arr.ToArray();
-						items[i] = val;
+						result = new JsonObject(subItems, obj.m_readOnly);
+						return true;
 					}
-				}
-				if (items != null)
-				{ // au moins un item a changé
-					result = new JsonArray(items, items.Length);
-					return true;
-				}
-				return false;
-			}
 
-			return false;
+					return false;
+				}
+				case JsonArray arr:
+				{
+					// only allocate the buffer if at least one children has changed
+					JsonValue[]? items = null;
+					for (int i = 0; i < arr.Count; i++)
+					{
+						if (TrySortValue(arr[i], comparer, out var val))
+						{
+							(items ??= arr.ToArray())[i] = val;
+						}
+					}
+
+					if (items != null)
+					{ // at least one change
+						result = new JsonArray(items, items.Length, arr.IsReadOnly);
+						return true;
+					}
+
+					return false;
+				}
+				default:
+				{
+					return false;
+				}
+			}
 		}
 
 		/// <summary>Tri les clés d'un dictionnaire, en utilisant un comparer spécifique</summary>
 		/// <param name="items">Dictionnaire contenant les items à trier</param>
 		/// <param name="comparer">Comparer à utiliser</param>
 		/// <param name="result">Dictionnaire dont les clés ont été insérées dans le bon ordre</param>
-		private static bool TrySortByKeys(Dictionary<string, JsonValue?> items, IComparer<string> comparer, [MaybeNullWhen(false)] out Dictionary<string, JsonValue?> result)
+		private static bool TrySortByKeys(Dictionary<string, JsonValue> items, IComparer<string> comparer, [MaybeNullWhen(false)] out Dictionary<string, JsonValue> result)
 		{
 			//ATTENTION: cet algo se base sur le fait qu'actuellement (.NET 4.0 / 4.5) un Dictionary<K,V> conserve l'ordre d'insertion des clés, tant que personne ne supprime de clés.
 			// => si jamais cela n'est plus vrai dans une nouvelle version de .NET, il faudra trouver une nouvelle méthode!
@@ -1750,7 +2172,7 @@ namespace Doxense.Serialization.Json
 			if (changed)
 			{ // aucune modification n'a été faite dans la sous-branche correspondant à cet objet
 				// génère la nouvelle version de cet objet
-				result = new Dictionary<string, JsonValue?>(keys.Length, items.Comparer);
+				result = new Dictionary<string, JsonValue>(keys.Length, items.Comparer);
 				for (int i = 0; i < keys.Length; i++)
 				{
 					result[keys[i]] = values[indexes[i]];
@@ -1765,6 +2187,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>L'instance est modifiée si les clés n'étaient pas dans le bon ordre</remarks>
 		public void SortKeys(IComparer<string>? comparer = null)
 		{
+			if (m_readOnly) FailObjectIsReadOnly();
 			if (TrySortByKeys(m_items, comparer ?? StringComparer.Ordinal, out var items))
 			{
 				m_items.Clear();
@@ -1785,7 +2208,7 @@ namespace Doxense.Serialization.Json
 
 			if (TrySortByKeys(map.m_items, comparer ?? StringComparer.Ordinal, out var items))
 			{
-				return new JsonObject(items, owner: true);
+				return new JsonObject(items, map.m_readOnly);
 			}
 
 			//TODO: to copy or not to copy?
@@ -1805,15 +2228,25 @@ namespace Doxense.Serialization.Json
 		internal override bool IsSmallValue()
 		{
 			const int LARGE_OBJECT = 5;
-			if (m_items.Count >= LARGE_OBJECT) return false;
+			if (m_items.Count >= LARGE_OBJECT)
+			{
+				return false;
+			}
+
 			foreach(var v in m_items.Values)
 			{
-				if (v?.IsSmallValue() == false) return false;
+				if (v.IsSmallValue())
+				{
+					return false;
+				}
 			}
+
 			return true;
 		}
 
 		internal override bool IsInlinable() => false;
+
+		private string GetMutabilityDebugLiteral() => m_readOnly ? " ReadOnly" : "";
 
 		internal override string GetCompactRepresentation(int depth)
 		{
@@ -1832,9 +2265,9 @@ namespace Doxense.Serialization.Json
 				if (i > 0) sb.Append(", ");
 
 				sb.Append(kv.Key).Append(": ");
-				if (depth == 0 || (kv.Value?.IsSmallValue() ?? true))
+				if (depth == 0 || kv.Value.IsSmallValue())
 				{ 
-					sb.Append(kv.Value?.GetCompactRepresentation(depth + 1));
+					sb.Append(kv.Value.GetCompactRepresentation(depth + 1));
 				}
 				else
 				{
@@ -1857,21 +2290,15 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
 		}
 
+		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		{
+			var res = (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(T), this);
+			return default(T) == null && res == null ? JsonNull.Default<T>() : (T?) res;
+		}
+
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(type, this);
-		}
-
-		public T Deserialize<T>(ICrystalJsonTypeResolver? customResolver = null)
-		{
-			return (T) Bind(typeof(T), customResolver)!;
-		}
-
-		/// <summary>Retourne une JsonArray contenant les valeurs de cet objet</summary>
-		/// <returns>JsonArray contenant toutes les valeurs (sans les clés) de cet objet</returns>
-		public JsonArray ToJsonArray()
-		{
-			return this.Count == 0 ? JsonArray.Empty : new JsonArray(this.Values);
 		}
 
 		#endregion
@@ -1892,24 +2319,38 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>
 
-		public override bool Equals(JsonValue? obj)
-		{
-			if (object.ReferenceEquals(obj, null)) return false;
-			if (obj.Type == JsonType.Object) return Equals(obj as JsonObject);
-			return false;
-		}
+		public override bool Equals(JsonValue? other) => other is JsonObject obj && Equals(obj);
 
-		public bool Equals(JsonObject? obj)
+		public bool Equals(JsonObject? other)
 		{
-			if (object.ReferenceEquals(obj, null) || obj.Count != this.Count)
+			if (other is null || other.Count != this.Count)
 			{
 				return false;
 			}
-			var cmp = JsonValueComparer.Default;
+
 			foreach (var kvp in this)
 			{
-				if (!obj.TryGetValue(kvp.Key, out var o) || !cmp.Equals(o, kvp.Value))
+				if (!other.TryGetValue(kvp.Key, out var o) || !o.Equals(kvp.Value))
+				{
 					return false;
+				}
+			}
+			return true;
+		}
+
+		public bool Equals(JsonObject? other, IEqualityComparer<JsonValue>? comparer)
+		{
+			if (other is null || other.Count != this.Count)
+			{
+				return false;
+			}
+			comparer ??= JsonValueComparer.Default;
+			foreach (var kvp in this)
+			{
+				if (!other.TryGetValue(kvp.Key, out var o) || !comparer.Equals(o, kvp.Value))
+				{
+					return false;
+				}
 			}
 			return true;
 		}
@@ -1947,7 +2388,7 @@ namespace Doxense.Serialization.Json
 			var map = (IDictionary<string, object?>) expando;
 			foreach (var kvp in m_items)
 			{
-				map.Add(kvp.Key, kvp.Value?.ToObject());
+				map.Add(kvp.Key, kvp.Value.ToObject());
 			}
 			return expando;
 		}

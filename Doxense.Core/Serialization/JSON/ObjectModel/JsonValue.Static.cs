@@ -234,13 +234,14 @@ namespace Doxense.Serialization.Json
 			return CrystalJson.Parse(jsonText, settings).AsArray(required);
 		}
 
-		/// <summary>Parse une chaîne de texte contenant un object JSON</summary>
-		/// <param name="jsonText">Chaîne de texte JSON à parser</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <returns>Objet JSON correspondant. Si <paramref name="jsonText"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
+		/// <summary>Parse a string literal containing a JSON Object</summary>
+		/// <param name="jsonText">Input text to parse</param>
+		/// <param name="settings">Settings used during parsing (optional)</param>
+		/// <param name="required">If <paramref name="jsonText"/> is empty or equal to the token <c>"null"</c>, the method will either throw an exception if <see langword="true"/>, or return <see langword="null"/> if <see langword="false"/></param>
+		/// <returns>Parsed JSON , or <see langword="null"/> if <paramref name="required"/> is <see langword="false"/> and <paramref name="jsonText"/> is empty or equal to <c>"null"</c></returns>
+		/// <remarks>The JSON object that is returned is mutable and ca be modified. If you require an immutable/readonly version, please call <see cref="ParseObjectImmutable"/> or enable immutability in the <paramref name="settings"/></remarks>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>, and <paramref name="required"/> is <see langword="true"/>.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(
 #if NET8_0_OR_GREATER
@@ -252,6 +253,25 @@ namespace Doxense.Serialization.Json
 		)
 		{
 			return CrystalJson.Parse(jsonText, settings).AsObject(required);
+		}
+
+		/// <summary>Parse a string literal containing a JSON Object</summary>
+		/// <param name="jsonText">Input text to parse</param>
+		/// <param name="required">If <paramref name="jsonText"/> is empty or equal to the token <c>"null"</c>, the method will either throw an exception if <see langword="true"/>, or return <see langword="null"/> if <see langword="false"/></param>
+		/// <returns>Parsed JSON , or <see langword="null"/> if <paramref name="required"/> is <see langword="false"/> and <paramref name="jsonText"/> is empty or equal to <c>"null"</c></returns>
+		/// <remarks>The JSON object that is returned is immutable, and is safe for use as a singleton, a cached document, or for multithreaded operations. If you require an mutable version, please call <see cref="ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?,bool)"/></remarks>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>, and <paramref name="required"/> is <see langword="true"/>.</exception>
+		[Pure, ContractAnnotation("required:true => notnull")]
+		public static JsonObject? ParseObjectImmutable(
+#if NET8_0_OR_GREATER
+			[StringSyntax("json")]
+#endif
+			string? jsonText,
+			bool required = false
+		)
+		{
+			return CrystalJson.Parse(jsonText, CrystalJsonSettings.JsonReadOnly).AsObject(required);
 		}
 
 		/// <summary>Parse un buffer contenant du JSON (encodé en UTF8)</summary>
@@ -355,6 +375,19 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonDomWriter.Default.ParseObject(value, type, type);
 		}
 
+		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON</summary>
+		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
+		/// <returns>Valeur JSON correspondante (JsonNumber, JsonObject, JsonArray, ...), ou JsonNull.Null si <paramref name="value"/> est null</returns>
+		/// <remarks>Perf Hint: Utilisez <see cref="FromValue{T}(T)"/> pour des struct ou classes quand c'est possible, et les implicit cast pour des strings, numbers ou booleans</remarks>
+		public static JsonValue FromValueReadOnly(object? value)
+		{
+			if (value is null) return JsonNull.Null;
+			if (value is JsonValue jv) return jv;
+			var type = value.GetType();
+			//TODO: PERF: Pooling?
+			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, type, type);
+		}
+
 		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
 		/// <param name="settings">Paramètre de conversion à utiliser</param>
@@ -371,6 +404,20 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
+		/// <param name="settings">Paramètre de conversion à utiliser</param>
+		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <returns>Valeur JSON correspondante (JsonNumber, JsonObject, JsonArray, ...), ou JsonNull.Null si <paramref name="value"/> est null</returns>
+		/// <remarks>Perf Hint: Utilisez <see cref="FromValue{T}(T,CrystalJsonSettings,ICrystalJsonTypeResolver)"/> pour des struct ou classes quand c'est possible, et les implicit cast pour des strings, numbers ou booleans</remarks>
+		public static JsonValue FromValueReadOnly(object? value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (value is null) return JsonNull.Null;
+			if (value is JsonValue jv) return jv;
+			var type = value.GetType();
+			return CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, type, type);
+		}
+
+		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
+		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
 		/// <param name="declaredType">Type du champ parent qui contenait la valeur de l'objet, qui peut être une interface ou une classe abstraite</param>
 		/// <param name="settings">Paramètre de conversion à utiliser</param>
 		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
@@ -380,6 +427,20 @@ namespace Doxense.Serialization.Json
 		{
 			return value != null
 				? CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, declaredType, value.GetType())
+				: JsonNull.Null;
+		}
+
+		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
+		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
+		/// <param name="declaredType">Type du champ parent qui contenait la valeur de l'objet, qui peut être une interface ou une classe abstraite</param>
+		/// <param name="settings">Paramètre de conversion à utiliser</param>
+		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <remarks>Perf Hint: Utilisez <see cref="FromValue{T}(T,CrystalJsonSettings,ICrystalJsonTypeResolver)"/> pour des struct ou classes quand c'est possible, et les implicit cast pour des strings, numbers ou booleans</remarks>
+		[Pure]
+		public static JsonValue FromValueReadOnly(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return value != null
+				? CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, declaredType, value.GetType())
 				: JsonNull.Null;
 		}
 
@@ -400,49 +461,140 @@ namespace Doxense.Serialization.Json
 			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
 			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
 
-#if !DEBUG // trop lent en debug !
-			if (typeof (T) == typeof (bool)) return JsonBoolean.Return((bool) (object) value);
-			if (typeof (T) == typeof (char)) return JsonString.Return((char) (object) value);
-			if (typeof (T) == typeof (byte)) return JsonNumber.Return((byte) (object) value);
-			if (typeof (T) == typeof (sbyte)) return JsonNumber.Return((sbyte) (object) value);
-			if (typeof (T) == typeof (short)) return JsonNumber.Return((short) (object) value);
-			if (typeof (T) == typeof (ushort)) return JsonNumber.Return((ushort) (object) value);
-			if (typeof (T) == typeof (int)) return JsonNumber.Return((int) (object) value);
-			if (typeof (T) == typeof (uint)) return JsonNumber.Return((uint) (object) value);
-			if (typeof (T) == typeof (long)) return JsonNumber.Return((long) (object) value);
-			if (typeof (T) == typeof (ulong)) return JsonNumber.Return((ulong) (object) value);
-			if (typeof (T) == typeof (float)) return JsonNumber.Return((float) (object) value);
-			if (typeof (T) == typeof (double)) return JsonNumber.Return((double) (object) value);
-			if (typeof (T) == typeof (decimal)) return JsonNumber.Return((decimal) (object) value);
-			if (typeof (T) == typeof (Guid)) return JsonString.Return((Guid) (object) value);
-			if (typeof (T) == typeof (TimeSpan)) return JsonNumber.Return((TimeSpan) (object) value);
-			if (typeof (T) == typeof (DateTime)) return JsonDateTime.Return((DateTime) (object) value);
-			if (typeof (T) == typeof (DateTimeOffset)) return JsonDateTime.Return((DateTimeOffset) (object) value);
-			if (typeof (T) == typeof (NodaTime.Instant)) return JsonString.Return((NodaTime.Instant) (object) value);
-			if (typeof (T) == typeof (NodaTime.Duration)) return JsonNumber.Return((NodaTime.Duration) (object) value);
-			if (typeof (T) == typeof (bool?)) return JsonBoolean.Return((bool?) (object) value);
-			if (typeof (T) == typeof (char?)) return JsonString.Return((char?) (object) value);
-			if (typeof (T) == typeof (byte?)) return JsonNumber.Return((byte?) (object) value);
-			if (typeof (T) == typeof (sbyte?)) return JsonNumber.Return((sbyte?) (object) value);
-			if (typeof (T) == typeof (short?)) return JsonNumber.Return((short?) (object) value);
-			if (typeof (T) == typeof (ushort?)) return JsonNumber.Return((ushort?) (object) value);
-			if (typeof (T) == typeof (int?)) return JsonNumber.Return((int?) (object) value);
-			if (typeof (T) == typeof (uint?)) return JsonNumber.Return((uint?) (object) value);
-			if (typeof (T) == typeof (long?)) return JsonNumber.Return((long?) (object) value);
-			if (typeof (T) == typeof (ulong?)) return JsonNumber.Return((ulong?) (object) value);
-			if (typeof (T) == typeof (float?)) return JsonNumber.Return((float?) (object) value);
-			if (typeof (T) == typeof (double?)) return JsonNumber.Return((double?) (object) value);
-			if (typeof (T) == typeof (decimal?)) return JsonNumber.Return((decimal?) (object) value);
-			if (typeof (T) == typeof (Guid?)) return JsonString.Return((Guid?) (object) value);
-			if (typeof (T) == typeof (TimeSpan?)) return JsonNumber.Return((TimeSpan?) (object) value);
-			if (typeof (T) == typeof (DateTime?)) return JsonDateTime.Return((DateTime?) (object) value);
-			if (typeof (T) == typeof (DateTimeOffset?)) return JsonDateTime.Return((DateTimeOffset?) (object) value);
-			if (typeof (T) == typeof (NodaTime.Instant?)) return JsonString.Return((NodaTime.Instant?) (object) value);
-			if (typeof (T) == typeof (NodaTime.Duration?)) return JsonNumber.Return((NodaTime.Duration?) (object) value);
+#if !DEBUG
+			if (typeof (T) == typeof (bool)) return JsonBoolean.Return((bool) (object) value!);
+			if (typeof (T) == typeof (char)) return JsonString.Return((char) (object) value!);
+			if (typeof (T) == typeof (byte)) return JsonNumber.Return((byte) (object) value!);
+			if (typeof (T) == typeof (sbyte)) return JsonNumber.Return((sbyte) (object) value!);
+			if (typeof (T) == typeof (short)) return JsonNumber.Return((short) (object) value!);
+			if (typeof (T) == typeof (ushort)) return JsonNumber.Return((ushort) (object) value!);
+			if (typeof (T) == typeof (int)) return JsonNumber.Return((int) (object) value!);
+			if (typeof (T) == typeof (uint)) return JsonNumber.Return((uint) (object) value!);
+			if (typeof (T) == typeof (long)) return JsonNumber.Return((long) (object) value!);
+			if (typeof (T) == typeof (ulong)) return JsonNumber.Return((ulong) (object) value!);
+			if (typeof (T) == typeof (float)) return JsonNumber.Return((float) (object) value!);
+			if (typeof (T) == typeof (double)) return JsonNumber.Return((double) (object) value!);
+			if (typeof (T) == typeof (decimal)) return JsonNumber.Return((decimal) (object) value!);
+			if (typeof (T) == typeof (Guid)) return JsonString.Return((Guid) (object) value!);
+			if (typeof (T) == typeof (Uuid128)) return JsonString.Return((Uuid128) (object) value!);
+			if (typeof (T) == typeof (Uuid96)) return JsonString.Return((Uuid96) (object) value!);
+			if (typeof (T) == typeof (Uuid80)) return JsonString.Return((Uuid80) (object) value!);
+			if (typeof (T) == typeof (Uuid64)) return JsonString.Return((Uuid64) (object) value!);
+			if (typeof (T) == typeof (TimeSpan)) return JsonNumber.Return((TimeSpan) (object) value!);
+			if (typeof (T) == typeof (DateTime)) return JsonDateTime.Return((DateTime) (object) value!);
+			if (typeof (T) == typeof (DateTimeOffset)) return JsonDateTime.Return((DateTimeOffset) (object) value!);
+			if (typeof (T) == typeof (NodaTime.Instant)) return JsonString.Return((NodaTime.Instant) (object) value!);
+			if (typeof (T) == typeof (NodaTime.Duration)) return JsonNumber.Return((NodaTime.Duration) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalDateTime)) return JsonString.Return((NodaTime.LocalDateTime) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalDate)) return JsonString.Return((NodaTime.LocalDate) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalTime)) return JsonString.Return((NodaTime.LocalTime) (object) value!);
+			if (typeof (T) == typeof (NodaTime.ZonedDateTime)) return JsonString.Return((NodaTime.ZonedDateTime) (object) value!);
+			// nullable types
+			if (typeof (T) == typeof (bool?)) return JsonBoolean.Return((bool?) (object?) value);
+			if (typeof (T) == typeof (char?)) return JsonString.Return((char?) (object?) value);
+			if (typeof (T) == typeof (byte?)) return JsonNumber.Return((byte?) (object?) value);
+			if (typeof (T) == typeof (sbyte?)) return JsonNumber.Return((sbyte?) (object?) value);
+			if (typeof (T) == typeof (short?)) return JsonNumber.Return((short?) (object?) value);
+			if (typeof (T) == typeof (ushort?)) return JsonNumber.Return((ushort?) (object?) value);
+			if (typeof (T) == typeof (int?)) return JsonNumber.Return((int?) (object?) value);
+			if (typeof (T) == typeof (uint?)) return JsonNumber.Return((uint?) (object?) value);
+			if (typeof (T) == typeof (long?)) return JsonNumber.Return((long?) (object?) value);
+			if (typeof (T) == typeof (ulong?)) return JsonNumber.Return((ulong?) (object?) value);
+			if (typeof (T) == typeof (float?)) return JsonNumber.Return((float?) (object?) value);
+			if (typeof (T) == typeof (double?)) return JsonNumber.Return((double?) (object?) value);
+			if (typeof (T) == typeof (decimal?)) return JsonNumber.Return((decimal?) (object?) value);
+			if (typeof (T) == typeof (Guid?)) return JsonString.Return((Guid?) (object?) value);
+			if (typeof (T) == typeof (Uuid128?)) return JsonString.Return((Uuid128?) (object?) value);
+			if (typeof (T) == typeof (Uuid96?)) return JsonString.Return((Uuid96?) (object?) value);
+			if (typeof (T) == typeof (Uuid80?)) return JsonString.Return((Uuid80?) (object?) value);
+			if (typeof (T) == typeof (Uuid64?)) return JsonString.Return((Uuid64?) (object?) value);
+			if (typeof (T) == typeof (TimeSpan?)) return JsonNumber.Return((TimeSpan?) (object?) value);
+			if (typeof (T) == typeof (DateTime?)) return JsonDateTime.Return((DateTime?) (object?) value);
+			if (typeof (T) == typeof (DateTimeOffset?)) return JsonDateTime.Return((DateTimeOffset?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.Instant?)) return JsonString.Return((NodaTime.Instant?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.Duration?)) return JsonNumber.Return((NodaTime.Duration?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalDateTime?)) return JsonString.Return((NodaTime.LocalDateTime?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalDate?)) return JsonString.Return((NodaTime.LocalDate?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalTime?)) return JsonString.Return((NodaTime.LocalTime?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.ZonedDateTime?)) return JsonString.Return((NodaTime.ZonedDateTime?) (object?) value);
 #endif
 			#endregion </JIT_HACK>
 
 			return CrystalJsonDomWriter.Default.ParseObject(value, typeof (T));
+		}
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue FromValueReadOnly<T>(T? value)
+		{
+			#region <JIT_HACK>
+
+			// En mode RELEASE, le JIT reconnaît les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une méthode générique Foo<T> quand T est un ValueType,
+			// et les remplace par des "if (true) { ...}" ce qui permet d'éliminer le reste du code (très efficace si le if contient un return!)
+			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour éviter le boxing inutile (le cast intermédiaire en object est pour faire taire le compilateur)
+			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
+			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
+
+#if !DEBUG
+			if (typeof (T) == typeof (bool)) return JsonBoolean.Return((bool) (object) value!);
+			if (typeof (T) == typeof (char)) return JsonString.Return((char) (object) value!);
+			if (typeof (T) == typeof (byte)) return JsonNumber.Return((byte) (object) value!);
+			if (typeof (T) == typeof (sbyte)) return JsonNumber.Return((sbyte) (object) value!);
+			if (typeof (T) == typeof (short)) return JsonNumber.Return((short) (object) value!);
+			if (typeof (T) == typeof (ushort)) return JsonNumber.Return((ushort) (object) value!);
+			if (typeof (T) == typeof (int)) return JsonNumber.Return((int) (object) value!);
+			if (typeof (T) == typeof (uint)) return JsonNumber.Return((uint) (object) value!);
+			if (typeof (T) == typeof (long)) return JsonNumber.Return((long) (object) value!);
+			if (typeof (T) == typeof (ulong)) return JsonNumber.Return((ulong) (object) value!);
+			if (typeof (T) == typeof (float)) return JsonNumber.Return((float) (object) value!);
+			if (typeof (T) == typeof (double)) return JsonNumber.Return((double) (object) value!);
+			if (typeof (T) == typeof (decimal)) return JsonNumber.Return((decimal) (object) value!);
+			if (typeof (T) == typeof (Guid)) return JsonString.Return((Guid) (object) value!);
+			if (typeof (T) == typeof (Uuid128)) return JsonString.Return((Uuid128) (object) value!);
+			if (typeof (T) == typeof (Uuid96)) return JsonString.Return((Uuid96) (object) value!);
+			if (typeof (T) == typeof (Uuid80)) return JsonString.Return((Uuid80) (object) value!);
+			if (typeof (T) == typeof (Uuid64)) return JsonString.Return((Uuid64) (object) value!);
+			if (typeof (T) == typeof (TimeSpan)) return JsonNumber.Return((TimeSpan) (object) value!);
+			if (typeof (T) == typeof (DateTime)) return JsonDateTime.Return((DateTime) (object) value!);
+			if (typeof (T) == typeof (DateTimeOffset)) return JsonDateTime.Return((DateTimeOffset) (object) value!);
+			if (typeof (T) == typeof (NodaTime.Instant)) return JsonString.Return((NodaTime.Instant) (object) value!);
+			if (typeof (T) == typeof (NodaTime.Duration)) return JsonNumber.Return((NodaTime.Duration) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalDateTime)) return JsonString.Return((NodaTime.LocalDateTime) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalDate)) return JsonString.Return((NodaTime.LocalDate) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalTime)) return JsonString.Return((NodaTime.LocalTime) (object) value!);
+			if (typeof (T) == typeof (NodaTime.ZonedDateTime)) return JsonString.Return((NodaTime.ZonedDateTime) (object) value!);
+			// nullable types
+			if (typeof (T) == typeof (bool?)) return JsonBoolean.Return((bool?) (object?) value);
+			if (typeof (T) == typeof (char?)) return JsonString.Return((char?) (object?) value);
+			if (typeof (T) == typeof (byte?)) return JsonNumber.Return((byte?) (object?) value);
+			if (typeof (T) == typeof (sbyte?)) return JsonNumber.Return((sbyte?) (object?) value);
+			if (typeof (T) == typeof (short?)) return JsonNumber.Return((short?) (object?) value);
+			if (typeof (T) == typeof (ushort?)) return JsonNumber.Return((ushort?) (object?) value);
+			if (typeof (T) == typeof (int?)) return JsonNumber.Return((int?) (object?) value);
+			if (typeof (T) == typeof (uint?)) return JsonNumber.Return((uint?) (object?) value);
+			if (typeof (T) == typeof (long?)) return JsonNumber.Return((long?) (object?) value);
+			if (typeof (T) == typeof (ulong?)) return JsonNumber.Return((ulong?) (object?) value);
+			if (typeof (T) == typeof (float?)) return JsonNumber.Return((float?) (object?) value);
+			if (typeof (T) == typeof (double?)) return JsonNumber.Return((double?) (object?) value);
+			if (typeof (T) == typeof (decimal?)) return JsonNumber.Return((decimal?) (object?) value);
+			if (typeof (T) == typeof (Guid?)) return JsonString.Return((Guid?) (object?) value);
+			if (typeof (T) == typeof (Uuid128?)) return JsonString.Return((Uuid128?) (object?) value);
+			if (typeof (T) == typeof (Uuid96?)) return JsonString.Return((Uuid96?) (object?) value);
+			if (typeof (T) == typeof (Uuid80?)) return JsonString.Return((Uuid80?) (object?) value);
+			if (typeof (T) == typeof (Uuid64?)) return JsonString.Return((Uuid64?) (object?) value);
+			if (typeof (T) == typeof (TimeSpan?)) return JsonNumber.Return((TimeSpan?) (object?) value);
+			if (typeof (T) == typeof (DateTime?)) return JsonDateTime.Return((DateTime?) (object?) value);
+			if (typeof (T) == typeof (DateTimeOffset?)) return JsonDateTime.Return((DateTimeOffset?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.Instant?)) return JsonString.Return((NodaTime.Instant?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.Duration?)) return JsonNumber.Return((NodaTime.Duration?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalDateTime?)) return JsonString.Return((NodaTime.LocalDateTime?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalDate?)) return JsonString.Return((NodaTime.LocalDate?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalTime?)) return JsonString.Return((NodaTime.LocalTime?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.ZonedDateTime?)) return JsonString.Return((NodaTime.ZonedDateTime?) (object?) value);
+#endif
+			#endregion </JIT_HACK>
+
+			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(T));
 		}
 
 		[Pure]
@@ -457,45 +609,62 @@ namespace Doxense.Serialization.Json
 			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
 			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
 
-#if !DEBUG // trop lent en debug !
-			if (typeof (T) == typeof (bool)) return JsonBoolean.Return((bool) (object) value);
-			if (typeof (T) == typeof (char)) return JsonString.Return((char) (object) value);
-			if (typeof (T) == typeof (byte)) return JsonNumber.Return((byte) (object) value);
-			if (typeof (T) == typeof (sbyte)) return JsonNumber.Return((sbyte) (object) value);
-			if (typeof (T) == typeof (short)) return JsonNumber.Return((short) (object) value);
-			if (typeof (T) == typeof (ushort)) return JsonNumber.Return((ushort) (object) value);
-			if (typeof (T) == typeof (int)) return JsonNumber.Return((int) (object) value);
-			if (typeof (T) == typeof (uint)) return JsonNumber.Return((uint) (object) value);
-			if (typeof (T) == typeof (long)) return JsonNumber.Return((long) (object) value);
-			if (typeof (T) == typeof (ulong)) return JsonNumber.Return((ulong) (object) value);
-			if (typeof (T) == typeof (float)) return JsonNumber.Return((float) (object) value);
-			if (typeof (T) == typeof (double)) return JsonNumber.Return((double) (object) value);
-			if (typeof (T) == typeof (decimal)) return JsonNumber.Return((decimal) (object) value);
-			if (typeof (T) == typeof (Guid)) return JsonString.Return((Guid) (object) value);
-			if (typeof (T) == typeof (TimeSpan)) return JsonNumber.Return((TimeSpan) (object) value);
-			if (typeof (T) == typeof (DateTime)) return JsonDateTime.Return((DateTime) (object) value);
-			if (typeof (T) == typeof (DateTimeOffset)) return JsonDateTime.Return((DateTimeOffset) (object) value);
-			if (typeof (T) == typeof (NodaTime.Instant)) return JsonString.Return((NodaTime.Instant) (object) value);
-			if (typeof (T) == typeof (NodaTime.Duration)) return JsonNumber.Return((NodaTime.Duration) (object) value);
-			if (typeof (T) == typeof (bool?)) return JsonBoolean.Return((bool?) (object) value);
-			if (typeof (T) == typeof (char?)) return JsonString.Return((char?) (object) value);
-			if (typeof (T) == typeof (byte?)) return JsonNumber.Return((byte?) (object) value);
-			if (typeof (T) == typeof (sbyte?)) return JsonNumber.Return((sbyte?) (object) value);
-			if (typeof (T) == typeof (short?)) return JsonNumber.Return((short?) (object) value);
-			if (typeof (T) == typeof (ushort?)) return JsonNumber.Return((ushort?) (object) value);
-			if (typeof (T) == typeof (int?)) return JsonNumber.Return((int?) (object) value);
-			if (typeof (T) == typeof (uint?)) return JsonNumber.Return((uint?) (object) value);
-			if (typeof (T) == typeof (long?)) return JsonNumber.Return((long?) (object) value);
-			if (typeof (T) == typeof (ulong?)) return JsonNumber.Return((ulong?) (object) value);
-			if (typeof (T) == typeof (float?)) return JsonNumber.Return((float?) (object) value);
-			if (typeof (T) == typeof (double?)) return JsonNumber.Return((double?) (object) value);
-			if (typeof (T) == typeof (decimal?)) return JsonNumber.Return((decimal?) (object) value);
-			if (typeof (T) == typeof (Guid?)) return JsonString.Return((Guid?) (object) value);
-			if (typeof (T) == typeof (TimeSpan?)) return JsonNumber.Return((TimeSpan?) (object) value);
-			if (typeof (T) == typeof (DateTime?)) return JsonDateTime.Return((DateTime?) (object) value);
-			if (typeof (T) == typeof (DateTimeOffset?)) return JsonDateTime.Return((DateTimeOffset?) (object) value);
-			if (typeof (T) == typeof (NodaTime.Instant?)) return JsonString.Return((NodaTime.Instant?) (object) value);
-			if (typeof (T) == typeof (NodaTime.Duration?)) return JsonNumber.Return((NodaTime.Duration?) (object) value);
+#if !DEBUG
+			if (typeof (T) == typeof (bool)) return JsonBoolean.Return((bool) (object) value!);
+			if (typeof (T) == typeof (char)) return JsonString.Return((char) (object) value!);
+			if (typeof (T) == typeof (byte)) return JsonNumber.Return((byte) (object) value!);
+			if (typeof (T) == typeof (sbyte)) return JsonNumber.Return((sbyte) (object) value!);
+			if (typeof (T) == typeof (short)) return JsonNumber.Return((short) (object) value!);
+			if (typeof (T) == typeof (ushort)) return JsonNumber.Return((ushort) (object) value!);
+			if (typeof (T) == typeof (int)) return JsonNumber.Return((int) (object) value!);
+			if (typeof (T) == typeof (uint)) return JsonNumber.Return((uint) (object) value!);
+			if (typeof (T) == typeof (long)) return JsonNumber.Return((long) (object) value!);
+			if (typeof (T) == typeof (ulong)) return JsonNumber.Return((ulong) (object) value!);
+			if (typeof (T) == typeof (float)) return JsonNumber.Return((float) (object) value!);
+			if (typeof (T) == typeof (double)) return JsonNumber.Return((double) (object) value!);
+			if (typeof (T) == typeof (decimal)) return JsonNumber.Return((decimal) (object) value!);
+			if (typeof (T) == typeof (Guid)) return JsonString.Return((Guid) (object) value!);
+			if (typeof (T) == typeof (Uuid128)) return JsonString.Return((Uuid128) (object) value!);
+			if (typeof (T) == typeof (Uuid96)) return JsonString.Return((Uuid96) (object) value!);
+			if (typeof (T) == typeof (Uuid80)) return JsonString.Return((Uuid80) (object) value!);
+			if (typeof (T) == typeof (Uuid64)) return JsonString.Return((Uuid64) (object) value!);
+			if (typeof (T) == typeof (TimeSpan)) return JsonNumber.Return((TimeSpan) (object) value!);
+			if (typeof (T) == typeof (DateTime)) return JsonDateTime.Return((DateTime) (object) value!);
+			if (typeof (T) == typeof (DateTimeOffset)) return JsonDateTime.Return((DateTimeOffset) (object) value!);
+			if (typeof (T) == typeof (NodaTime.Instant)) return JsonString.Return((NodaTime.Instant) (object) value!);
+			if (typeof (T) == typeof (NodaTime.Duration)) return JsonNumber.Return((NodaTime.Duration) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalDateTime)) return JsonString.Return((NodaTime.LocalDateTime) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalDate)) return JsonString.Return((NodaTime.LocalDate) (object) value!);
+			if (typeof (T) == typeof (NodaTime.LocalTime)) return JsonString.Return((NodaTime.LocalTime) (object) value!);
+			if (typeof (T) == typeof (NodaTime.ZonedDateTime)) return JsonString.Return((NodaTime.ZonedDateTime) (object) value!);
+			// nullable types
+			if (typeof (T) == typeof (bool?)) return JsonBoolean.Return((bool?) (object?) value);
+			if (typeof (T) == typeof (char?)) return JsonString.Return((char?) (object?) value);
+			if (typeof (T) == typeof (byte?)) return JsonNumber.Return((byte?) (object?) value);
+			if (typeof (T) == typeof (sbyte?)) return JsonNumber.Return((sbyte?) (object?) value);
+			if (typeof (T) == typeof (short?)) return JsonNumber.Return((short?) (object?) value);
+			if (typeof (T) == typeof (ushort?)) return JsonNumber.Return((ushort?) (object?) value);
+			if (typeof (T) == typeof (int?)) return JsonNumber.Return((int?) (object?) value);
+			if (typeof (T) == typeof (uint?)) return JsonNumber.Return((uint?) (object?) value);
+			if (typeof (T) == typeof (long?)) return JsonNumber.Return((long?) (object?) value);
+			if (typeof (T) == typeof (ulong?)) return JsonNumber.Return((ulong?) (object?) value);
+			if (typeof (T) == typeof (float?)) return JsonNumber.Return((float?) (object?) value);
+			if (typeof (T) == typeof (double?)) return JsonNumber.Return((double?) (object?) value);
+			if (typeof (T) == typeof (decimal?)) return JsonNumber.Return((decimal?) (object?) value);
+			if (typeof (T) == typeof (Guid?)) return JsonString.Return((Guid?) (object?) value);
+			if (typeof (T) == typeof (Uuid128?)) return JsonString.Return((Uuid128?) (object?) value);
+			if (typeof (T) == typeof (Uuid96?)) return JsonString.Return((Uuid96?) (object?) value);
+			if (typeof (T) == typeof (Uuid80?)) return JsonString.Return((Uuid80?) (object?) value);
+			if (typeof (T) == typeof (Uuid64?)) return JsonString.Return((Uuid64?) (object?) value);
+			if (typeof (T) == typeof (TimeSpan?)) return JsonNumber.Return((TimeSpan?) (object?) value);
+			if (typeof (T) == typeof (DateTime?)) return JsonDateTime.Return((DateTime?) (object?) value);
+			if (typeof (T) == typeof (DateTimeOffset?)) return JsonDateTime.Return((DateTimeOffset?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.Instant?)) return JsonString.Return((NodaTime.Instant?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.Duration?)) return JsonNumber.Return((NodaTime.Duration?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalDateTime?)) return JsonString.Return((NodaTime.LocalDateTime?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalDate?)) return JsonString.Return((NodaTime.LocalDate?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.LocalTime?)) return JsonString.Return((NodaTime.LocalTime?) (object?) value);
+			if (typeof (T) == typeof (NodaTime.ZonedDateTime?)) return JsonString.Return((NodaTime.ZonedDateTime?) (object?) value);
 #endif
 			#endregion </JIT_HACK>
 
@@ -514,6 +683,19 @@ namespace Doxense.Serialization.Json
 		public static JsonValue FromValue<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return value != null ? CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
+		}
+
+		/// <summary>Convertit un objet CLR de type bien déterminé, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
+		/// <typeparam name="T">Type déclaré de la valeur à convertir</typeparam>
+		/// <param name="value">Valeur à convertir (primitive, classe, struct, array, ...)</param>
+		/// <param name="settings">Paramètre de conversion à utiliser</param>
+		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <returns>Valeur JSON correspondante (string, number, object, array, ...), ou JsonNull.Null si <paramref name="value"/> est null</returns>
+		/// <remarks>Perf Hint: pour des strings, numbers ou bools, utilisez plutôt le cast implicit!</remarks>
+		[Pure]
+		public static JsonValue FromValueReadOnly<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return value != null ? CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
 		}
 
 		#region Specialized Converters...

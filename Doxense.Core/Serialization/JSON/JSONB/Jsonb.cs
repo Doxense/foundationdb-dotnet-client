@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json.Binary
 {
 	using System;
 	using System.Buffers;
+	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Diagnostics.Contracts;
@@ -300,7 +301,7 @@ namespace Doxense.Serialization.Json.Binary
 				if (this.Data.Length < checked(4 + numElems * 4)) throw ThrowHelper.FormatException($"Json container is too small for an array of size {numElems}.");
 
 				// décode les items un par un
-				var arr = new JsonArray(numElems);
+				var arr = new JsonValue[numElems];
 				int childOffset = JCONTAINER_CHILDREN_OFFSET;
 				int dataOffset = 0;
 				for (int i = 0; i < numElems; i++)
@@ -314,12 +315,15 @@ namespace Doxense.Serialization.Json.Binary
 					}
 
 					GetEntryAt(i, entry, dataOffset, dataLen, out JValue item);
-					arr.Add(item.ToJsonValue(table));
+					arr[i] = item.ToJsonValue(table);
+#if DEBUG
+					if (!arr[i].IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+#endif
 
 					dataOffset += dataLen;
 					childOffset += JENTRY_SIZEOF;
 				}
-				return arr;
+				return new JsonArray(arr, numElems, readOnly: true);
 			}
 
 			private JsonObject DecodeObject(StringTable? table)
@@ -350,7 +354,17 @@ namespace Doxense.Serialization.Json.Binary
 					values[i] = item.ToJsonValue(table);
 				}
 
-				return new JsonObject(keys, values, numPairs, StringComparer.Ordinal);
+				//note: by default we will create immutable objects!
+				//REVIEW: if we need to make this configurable, we would need to add a way to pass settings to this method!
+				var map = new Dictionary<string, JsonValue>(numPairs, StringComparer.Ordinal);
+				for (int i = 0; i < numPairs; i++)
+				{
+					map[keys[i]] = values[i];
+#if DEBUG
+					if (!values[i].IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+#endif
+				}
+				return new JsonObject(map, readOnly: true);
 			}
 
 			public JsonValue ToJsonValue(StringTable? table = null)
@@ -1074,15 +1088,15 @@ namespace Doxense.Serialization.Json.Binary
 
 				JsonArray? array;
 				int numElems;
-				if (!arrayOrScalar.IsArray)
+				if (arrayOrScalar is not JsonArray jsonArr)
 				{ // fait comme si c'était une array de taille 1
-					if (level > 0 || arrayOrScalar.IsMap) throw ThrowHelper.InvalidOperationException("Should only be called with a scalar for the top level");
+					if (level > 0 || arrayOrScalar is JsonObject) throw ThrowHelper.InvalidOperationException("Should only be called with a scalar for the top level");
 					array = null;
 					numElems = 1;
 				}
 				else
 				{
-					array = (JsonArray) arrayOrScalar;
+					array = jsonArr;
 					numElems = array.Count;
 				}
 				Contract.Debug.Assert(array != null || numElems == 1);

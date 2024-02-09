@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
@@ -40,24 +41,34 @@ namespace Doxense.Serialization.Json
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
+
+	// JetBrains annotation mappings
+	using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
+	using UsedImplicitly = JetBrains.Annotations.UsedImplicitlyAttribute;
+	using ImplicitUseTargetFlags = JetBrains.Annotations.ImplicitUseTargetFlags;
+	using CollectionAccess = JetBrains.Annotations.CollectionAccessAttribute;
+	using CollectionAccessType = JetBrains.Annotations.CollectionAccessType;
+	using InstantHandle = JetBrains.Annotations.InstantHandleAttribute;
+	using Pure = System.Diagnostics.Contracts.PureAttribute;
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]
 	[DebuggerDisplay("JSON Array[{m_size}] {GetCompactRepresentation(0),nq}")]
-	[DebuggerTypeProxy(typeof(JsonArray.DebugView))]
+	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public sealed class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>
 	{
 		/// <summary>Taille initiale de l'array</summary>
-		private const int DEFAULT_CAPACITY = 4;
+		internal const int DEFAULT_CAPACITY = 4;
 		/// <summary>Capacité maximale pour conserver le buffer en cas de clear</summary>
-		private const int MAX_KEEP_CAPACITY = 1024;
+		internal const int MAX_KEEP_CAPACITY = 1024;
 		/// <summary>Capacité maximale pour la croissance automatique</summary>
-		private const int MAX_GROWTH_CAPACITY = 0X7FEFFFFF;
+		internal const int MAX_GROWTH_CAPACITY = 0X7FEFFFFF;
 
-		private JsonValue?[] m_items; // 8 + sizeof(ARRAY_HEADER) + capacity * 8
-		private int m_size; // 4
+		private JsonValue[] m_items;
+		private int m_size;
+		private bool m_readOnly;
 
 		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 		private class DebugView
@@ -73,17 +84,23 @@ namespace Doxense.Serialization.Json
 		#region Constructors...
 
 		/// <summary>Retourne une nouvelle array vide</summary>
+		[Obsolete("Use JsonArray.CreateEmpty() instead, or use JsonArray.EmptyReadOnly or a readonly emtpy singleton")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonArray Empty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new JsonArray(0);
+			get => new([], 0, readOnly: false);
 		}
+
+		/// <summary>Return an empty, read-only, JSON array singleton</summary>
+		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
+		public static readonly JsonArray EmptyReadOnly = new([], 0, readOnly: true);
 
 		/// <summary>Crée une nouvelle array vide</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray()
 		{
-			m_items = Array.Empty<JsonValue?>();
+			m_items = [];
 		}
 
 		/// <summary>Crée une nouvelle array avec une capacité initiale</summary>
@@ -92,107 +109,22 @@ namespace Doxense.Serialization.Json
 		{
 			if (capacity < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(capacity), "Non-negative number required.");
 
-			m_items = capacity == 0 ? Array.Empty<JsonValue?>() : new JsonValue?[capacity];
-		}
-
-		/// <summary>Create a new JsonArray, and fill it with a sequence of elements</summary>
-		/// <param name="collection">Sequence of elements that will be copied to the array</param>
-		public JsonArray(IEnumerable<JsonValue> collection)
-		{
-			Contract.NotNull(collection);
-
-			//note: optimisé car fréquemment utilisé lorsqu'on manipule des array JSON (via LINQ par exemple)
-
-			switch (collection)
-			{
-				case JsonArray j:
-				{ // copy directly from the source after resizing
-					int count = j.m_size;
-					if (count == 0)
-					{
-						m_items = Array.Empty<JsonValue?>();
-					}
-					else
-					{
-						var items = j.m_items.AsSpan(0, count).ToArray();
-						FillNullValues(items);
-						m_items = items;
-						m_size = count;
-					}
-					break;
-				}
-
-				case JsonValue[] arr:
-				{ // copy directly after resizing
-					int count = arr.Length;
-					if (count == 0)
-					{
-						m_items = Array.Empty<JsonValue?>();
-					}
-					else
-					{
-						var items = arr.AsSpan(0, count).ToArray();
-						FillNullValues(items);
-						m_items = items;
-						m_size = count;
-					}
-					break;
-				}
-
-				case ICollection<JsonValue> c:
-				{
-					int count = c.Count;
-					if (count == 0)
-					{
-						m_items = Array.Empty<JsonValue>();
-					}
-					else
-					{
-						m_items = new JsonValue?[count];
-						c.CopyTo(m_items!, 0);
-						FillNullValues(m_items);
-						m_size = count;
-					}
-					break;
-				}
-
-				default:
-				{
-					m_items = Array.Empty<JsonValue?>();
-					using (var en = collection.GetEnumerator())
-					{
-						while (en.MoveNext()) Add(en.Current);
-					}
-					break;
-				}
-			}
+			m_items = capacity == 0 ? [] : new JsonValue[capacity];
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal JsonArray(JsonValue?[] items, int count)
+		internal JsonArray(JsonValue[] items, int count, bool readOnly)
 		{
 			Contract.Debug.Requires(items != null && count <= items.Length);
 			m_items = items;
 			m_size = count;
-#if DEBUG
+			m_readOnly = readOnly;
+#if FULL_DEBUG
 			for (int i = 0; i < count; i++) Contract.Debug.Requires(items[i] != null, "Array cannot contain nulls");
 #endif
 		}
 
-		[Pure]
-		public static JsonArray CopyFrom(ReadOnlySpan<JsonValue> items)
-		{
-			if (items.Length == 0) return new JsonArray();
-
-			var local = new JsonValue[items.Length];
-			for (int i = 0; i < items.Length; i++)
-			{
-				local[i] = items[i] ?? throw ThrowHelper.InvalidOperationException($"Internal JSON array cannot contain null value at index {i}.");
-			}
-			return new JsonArray(local, items.Length);
-		}
-
-		/// <summary>Remplace toute occurence de null par JsonNull.Null</summary>
+		/// <summary>Fill all occurrences of <see langword="null"/> with <see cref="JsonNull.Null"/> in the specified array</summary>
 		private static void FillNullValues(Span<JsonValue?> items)
 		{
 			for (int i = 0; i < items.Length; i++)
@@ -201,214 +133,443 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Test if there is at least one mutable element in the specified array</summary>
+		private static bool CheckAnyMutable(ReadOnlySpan<JsonValue> items)
+		{
+			foreach (var item in items)
+			{
+				if (!item.IsReadOnly)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/// <summary>Freeze this object and all its children, and mark it as read-only.</summary>
+		/// <remarks>
+		/// <para>This is similar to the <c>{ get; init; }</c> pattern for CLR records, and allows initializing a JSON object and then marking it as read-only once it is ready to be returned and/or shared, without performing extra memory allocations.</para>
+		/// <para>Please note that, once "frozen", the operation cannot be reverted, and if additional mutations are required, a new copy of the object must be created.</para>
+		/// </remarks>
+		public override JsonArray Freeze()
+		{
+			if (!m_readOnly)
+			{
+				// we need to ensure that all children are also frozen!
+				foreach(var item in AsSpan())
+				{
+					item.Freeze();
+				}
+				m_readOnly = true;
+			}
+
+			return this;
+		}
+
+		/// <summary>[DANGEROUS] Mark this array as read-only, without performing any extra checks!</summary>
+		internal JsonArray FreezeUnsafe()
+		{
+			if (m_readOnly && m_size == 0)
+			{ // ensure that we always return the empty singleton !
+				return EmptyReadOnly;
+			}
+			m_readOnly = true;
+			return this;
+		}
+
+		/// <summary>Return an immutable read-only version of this object (and all of its children)</summary>
+		/// <returns>The same object, if it is already read-only; otherwise, a deep copy marked as read-only.</returns>
+		/// <remarks>A JSON object that is immutable is truly safe against any modification, including of any of its direct or indirect children.</remarks>
+		public override JsonArray ToReadOnly()
+		{
+			if (m_readOnly)
+			{ // already immutable
+				return this;
+			}
+
+			var items = AsSpan();
+			var res = new JsonValue[items.Length];
+			for(int i = 0; i < items.Length; i++)
+			{
+				res[i] = items[i].ToReadOnly();
+			}
+			return new(res, items.Length, readOnly: true);
+		}
+
+		#region Create [JsonValue] ...
+
+		// these methods take the items as JsonValue, and create a new mutable array that wraps them
+
+		#region Mutable...
+
+		/// <summary>Create a new empty array, that can be modified</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Create() => new();
+
 		/// <summary>Create a new JsonArray that will hold a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Create(JsonValue value)
-		{
-			Contract.Debug.Requires(value != null);
-			return new JsonArray(new [] { value }, 1);
-		}
+		public static JsonArray Create(JsonValue? value) => new([
+			value ?? JsonNull.Null
+		], 1, readOnly: false);
 
 		/// <summary>Create a new JsonArray that will hold a pair of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Create(JsonValue value1, JsonValue value2)
-		{
-			Contract.Debug.Requires(value1 != null && value2 != null);
-			return new JsonArray(new [] { value1, value2 }, 2);
-		}
+		public static JsonArray Create(JsonValue? value1, JsonValue? value2) => new([
+			value1 ?? JsonNull.Null,
+			value2 ?? JsonNull.Null
+		], 2, readOnly: false);
 
 		/// <summary>Create a new JsonArray that will hold three elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Create(JsonValue value1, JsonValue value2, JsonValue value3)
-		{
-			Contract.Debug.Requires(value1 != null && value2 != null && value3 != null);
-			return new JsonArray(new [] { value1, value2, value3 }, 3);
-		}
+		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
+			value1 ?? JsonNull.Null,
+			value2 ?? JsonNull.Null,
+			value3 ?? JsonNull.Null
+		], 3, readOnly: false);
 
 		/// <summary>Create a new JsonArray that will hold four elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Create(JsonValue value1, JsonValue value2, JsonValue value3, JsonValue value4)
+		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
+			value1 ?? JsonNull.Null,
+			value2 ?? JsonNull.Null,
+			value3 ?? JsonNull.Null,
+			value4 ?? JsonNull.Null
+		], 4, readOnly: false);
+
+		/// <summary>Create a new JsonArray using a list of elements</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Create(params JsonValue?[] values)
 		{
-			Contract.Debug.Requires(value1 != null && value2 != null && value3 != null && value4 != null);
-			return new JsonArray(new [] { value1, value2, value3, value4 }, 4);
+			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
+			Contract.NotNull(values);
+			return values.Length == 0 ? new JsonArray() : new JsonArray().AddRange(values.AsSpan()!);
+		}
+
+		#endregion
+
+		#region Immutable...
+
+		/// <summary>Create a new JsonArray that will hold a single element</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray CreateReadOnly(JsonValue? value) => new([
+			(value ?? JsonNull.Null).ToReadOnly()
+		], 1, readOnly: true);
+
+		/// <summary>Create a new JsonArray that will hold a pair of elements</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2) => new([
+			(value1 ?? JsonNull.Null).ToReadOnly(),
+			(value2 ?? JsonNull.Null).ToReadOnly()
+		], 2, readOnly: true);
+
+		/// <summary>Create a new JsonArray that will hold three elements</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
+			(value1 ?? JsonNull.Null).ToReadOnly(),
+			(value2 ?? JsonNull.Null).ToReadOnly(),
+			(value3 ?? JsonNull.Null).ToReadOnly()
+		], 3, readOnly: true);
+
+		/// <summary>Create a new JsonArray that will hold four elements</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
+			(value1 ?? JsonNull.Null).ToReadOnly(),
+			(value2 ?? JsonNull.Null).ToReadOnly(),
+			(value3 ?? JsonNull.Null).ToReadOnly(),
+			(value4 ?? JsonNull.Null).ToReadOnly()
+		], 4, readOnly: true);
+
+		[Pure]
+		public static JsonArray CreateReadOnly(params JsonValue?[] items)
+		{
+			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
+			Contract.NotNull(items);
+			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items.AsSpan()!).FreezeUnsafe();
+		}
+
+		#endregion
+
+		#endregion
+
+		#region Copy [JsonValues] ...
+
+		#region Mutable...
+
+		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <param name="values">Elements of the new array</param>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonArray Copy(ReadOnlySpan<JsonValue> values)
+		{
+			return new JsonArray().AddRange(values);
 		}
 
 		/// <summary>Create a new JsonArray using a list of elements</summary>
 		/// <param name="values">Elements of the new array</param>
-		/// <remarks>The JSON array returned will keep a reference on the <paramref name="values"/> array. Any changes made to it will be visible on the JSON Array!
-		/// Use <see cref="CopyFrom(System.ReadOnlySpan{Doxense.Serialization.Json.JsonValue})"/> if you want to <i>copy</i> the items!</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Create(params JsonValue[] values)
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonArray Copy(JsonValue?[] values)
 		{
 			Contract.NotNull(values);
-			return values.Length > 0 ? new JsonArray(values, values.Length) : new JsonArray();
+			return new JsonArray().AddRange(values.AsSpan());
 		}
+
+		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <param name="values">Elements of the new array</param>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonArray Copy(IEnumerable<JsonValue?> values)
+		{
+			return new JsonArray().AddRange(values);
+		}
+
+		#endregion
+
+		#region Immutable...
+
+		/// <summary>Create a new JsonArray from a list of elements</summary>
+		[Pure]
+		public static JsonArray CopyReadOnly(ReadOnlySpan<JsonValue> items)
+		{
+			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items).FreezeUnsafe();
+		}
+
+		/// <summary>Create a new JsonArray from a list of elements</summary>
+		public static JsonArray CopyReadOnly(JsonValue[] items)
+		{
+			Contract.NotNull(items);
+			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items.AsSpan()).FreezeUnsafe();
+		}
+
+		/// <summary>Create a new JsonArray from a list of elements</summary>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public static JsonArray CopyReadOnly(IEnumerable<JsonValue?> items)
+		{
+			Contract.NotNull(items);
+
+			return items.TryGetNonEnumeratedCount(out var count) && count == 0
+				? EmptyReadOnly
+				: new JsonArray().AddRangeReadOnly(items).FreezeUnsafe();
+		}
+
+		#endregion
+
+		#endregion
+
+		#region FromValues [of T] ...
+
+		#region Mutable...
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValues<T>(ReadOnlySpan<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return new JsonArray().AddValues<T>(values, settings, resolver);
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValues<T>(T[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(values);
+			return new JsonArray().AddValues<T>(values.AsSpan(), settings, resolver);
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <param name="values">Séquences d'éléments à convertir</param>
+		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValues<T>(IEnumerable<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return new JsonArray().AddValues<T>(values, settings, resolver);
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValues<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(selector);
+			return new JsonArray().AddValues(values, selector, settings, resolver);
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValues<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(values);
+			return new JsonArray().AddValues(values.AsSpan(), selector, settings, resolver);
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
+		/// <param name="values">Séquences d'éléments à convertir</param>
+		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <returns>JsonArray contenant tous les valeurs de la séquence, convertis en JsonValue</returns>
+		[Pure]
+		public static JsonArray FromValues<TItem, TValue>(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return new JsonArray().AddValues(values, selector, settings, resolver);
+		}
+
+		#endregion
+
+		#region Immutable...
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValuesReadOnly<T>(ReadOnlySpan<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly<T>(values, settings, resolver).FreezeUnsafe();
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValuesReadOnly<T>(T[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(values);
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly<T>(values.AsSpan(), settings, resolver).FreezeUnsafe();
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
+		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <param name="values">Séquences d'éléments à convertir</param>
+		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValuesReadOnly<T>(IEnumerable<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(values);
+			return values.TryGetNonEnumeratedCount(out var count) && count == 0
+				? EmptyReadOnly
+				: new JsonArray().AddRangeReadOnly<T>(values, settings, resolver).FreezeUnsafe();
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValuesReadOnly<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(selector);
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(values, selector, settings, resolver).FreezeUnsafe();
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
+		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray FromValuesReadOnly<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(values);
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(values.AsSpan(), selector, settings, resolver).FreezeUnsafe();
+		}
+
+		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
+		/// <typeparam name="TItem">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
+		/// <param name="values">Séquences d'éléments à convertir</param>
+		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <returns>JsonArray contenant tous les valeurs de la séquence, convertis en JsonValue</returns>
+		[Pure]
+		public static JsonArray FromValuesReadOnly<TItem, TValue>(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(values);
+			return values.TryGetNonEnumeratedCount(out var count) && count == 0
+				? EmptyReadOnly
+				: new JsonArray().AddRangeReadOnly(values, selector, settings, resolver).FreezeUnsafe();
+		}
+
+		#endregion
+
+		#endregion
+
+		#region Tuples...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Return<T1>(ValueTuple<T1> tuple) => new([FromValue<T1>(tuple.Item1)], 1, readOnly: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Return<T1, T2>(ValueTuple<T1, T2> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2)], 2, readOnly: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Return<T1, T2, T3>(ValueTuple<T1, T2, T3> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3)], 3, readOnly: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Return<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4)], 4, readOnly: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Return<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5)], 5, readOnly: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Return<T1, T2, T3, T4, T5, T6>(ValueTuple<T1, T2, T3, T4, T5, T6> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6)], 6, readOnly: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Return<T1, T2, T3, T4, T5, T6, T7>(ValueTuple<T1, T2, T3, T4, T5, T6, T7> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6), FromValue<T7>(tuple.Item7)], 7, readOnly: false);
+
+		#endregion
 
 		/// <summary>Combine two JsonArrays into a single new array</summary>
 		/// <remarks>The new array is contain a copy of the items of the two input arrays</remarks>
 		public static JsonArray Combine(JsonArray arr1, JsonArray arr2)
 		{
+			// combine the items
 			int size1 = arr1.m_size;
 			int size2 = arr2.m_size;
-			var tmp = new JsonValue?[checked(size1 + size2)];
-			arr1.m_items.AsSpan(0, size1).CopyTo(tmp);
-			arr2.m_items.AsSpan(0, size2).CopyTo(tmp.AsSpan(size1));
-			return new JsonArray(tmp, size1 + size2);
+			var newSize = checked(size1 + size2);
+
+			var tmp = new JsonValue[newSize];
+			arr1.AsSpan().CopyTo(tmp);
+			arr2.AsSpan().CopyTo(tmp.AsSpan(size1));
+
+			return new JsonArray(tmp, newSize, readOnly: false);
 		}
 
 		/// <summary>Combine three JsonArrays into a single new array</summary>
 		/// <remarks>The new array is contain a copy of the items of the three input arrays</remarks>
 		public static JsonArray Combine(JsonArray arr1, JsonArray arr2, JsonArray arr3)
 		{
+			// combine the items
 			int size1 = arr1.m_size;
 			int size2 = arr2.m_size;
 			int size3 = arr3.m_size;
-			var tmp = new JsonValue?[checked(size1 + size2 + size3)];
-			arr1.m_items.AsSpan(0, size1).CopyTo(tmp);
-			arr2.m_items.AsSpan(0, size2).CopyTo(tmp.AsSpan(size1));
-			arr3.m_items.AsSpan(0, size3).CopyTo(tmp.AsSpan(size1 + size2));
-			return new JsonArray(tmp, size1 + size2 + size3);
-		}
+			var newSize = checked(size1 + size2 + size3);
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Séquences d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<T>(IEnumerable<T> values)
-		{
-			return new JsonArray().AddRange<T>(values);
-		}
+			var tmp = new JsonValue[newSize];
+			arr1.CopyTo(tmp);
+			arr2.CopyTo(tmp.AsSpan(size1));
+			arr3.CopyTo(tmp.AsSpan(size1 + size2));
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TCollection">Type de base de la séquence</typeparam>
-		/// <typeparam name="TElement">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Séquences d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<TCollection, TElement>(TCollection values)
-			where TCollection : struct, ICollection<TElement>
-		{
-			var arr = new JsonArray(values.Count);
-			foreach (var item in arr)
-			{
-				arr.Add(item);
-			}
-			return arr;
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TItem">Type de base des éléments de la séquence</typeparam>
-		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
-		/// <param name="items">Séquences d'éléments à convertir</param>
-		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
-		/// <returns>JsonArray contenant tous les valeurs de la séquence, convertis en JsonValue</returns>
-		[Pure]
-		[return: MaybeNull, NotNullIfNotNull("items")]
-		public static JsonArray FromValues<TItem, TValue>(IEnumerable<TItem>? items, Func<TItem, TValue> selector)
-		{
-			Contract.NotNull(selector);
-			if (items == null) return JsonArray.Empty;
-
-			return new JsonArray().AddRange(items, selector);
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'une liste d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la liste</typeparam>
-		/// <param name="values">Liste d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<T>(List<T> values)
-		{
-			return new JsonArray().AddRange<T>(values);
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Tableau d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<T>(T[] values)
-		{
-			return new JsonArray().AddRange<T>(values);
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
-		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
-		/// <param name="items">Tableau d'éléments à convertir</param>
-		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
-		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<TItem, TValue>(TItem[]? items, Func<TItem, TValue> selector)
-		{
-			Contract.NotNull(selector);
-			return items == null ? JsonArray.Empty : new JsonArray().AddRange(items.AsSpan(), selector);
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
-		/// <param name="values">Tableau d'éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<T>(ReadOnlySpan<T> values)
-		{
-			return values.Length == 0 ? JsonArray.Empty : new JsonArray().AddRange<T>(values);
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
-		/// <typeparam name="TItem">Type de base des éléments du tableau</typeparam>
-		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
-		/// <param name="items">Tableau d'éléments à convertir</param>
-		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
-		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<TItem, TValue>(ReadOnlySpan<TItem> items, Func<TItem, TValue> selector)
-		{
-			Contract.NotNull(selector);
-			return items.Length == 0 ? JsonArray.Empty : new JsonArray().AddRange(items, selector);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1>(ValueTuple<T1> tuple)
-		{
-			return new JsonArray(new [] { FromValue<T1>(tuple.Item1) }, 1);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2>(ValueTuple<T1, T2> tuple)
-		{
-			return new JsonArray(new [] { FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2) }, 2);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3>(ValueTuple<T1, T2, T3> tuple)
-		{
-			return new JsonArray(new [] { FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3) }, 3);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> tuple)
-		{
-			return new JsonArray(new [] { FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4) }, 4);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> tuple)
-		{
-			return new JsonArray(new [] { FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5) }, 5);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4, T5, T6>(ValueTuple<T1, T2, T3, T4, T5, T6> tuple)
-		{
-			return new JsonArray(new [] { FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6) }, 6);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4, T5, T6, T7>(ValueTuple<T1, T2, T3, T4, T5, T6, T7> tuple)
-		{
-			return new JsonArray(new[] { FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6), FromValue<T7>(tuple.Item7) }, 7);
+			return new JsonArray(tmp, newSize, readOnly: false);
 		}
 
 		#endregion
@@ -416,31 +577,28 @@ namespace Doxense.Serialization.Json
 		public override JsonType Type => JsonType.Array;
 
 		/// <summary>Une Array ne peut pas être null</summary>
-		public override bool IsNull
-		{
-			[ContractAnnotation("=> false")]
-			get => false;
-		}
+		public override bool IsNull => false;
 
 		/// <summary>La valeur par défaut pour une array est null, donc retourne toujours false</summary>
-		public override bool IsDefault
-		{
-			[ContractAnnotation("=> false")]
-			get => false;
-		}
+		public override bool IsDefault => false;
+
+		public override bool IsReadOnly => m_readOnly;
 
 		/// <summary>Indique si le tableau est vide</summary>
-		public bool IsEmpty
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[Obsolete("Use 'arr.Count == 0' instead.")]
+		public bool IsEmpty //REVIEW: remove this? (Count == 0)
 		{
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_size == 0;
 		}
 
 		#region List<T>...
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int Count
 		{
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_size;
 		}
 
@@ -451,6 +609,7 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public int Capacity
 		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_items.Length;
 			set
 			{
@@ -464,9 +623,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Vérifie la capacité du buffer interne, et resize le ci besoin</summary>
 		/// <param name="min">Taille minimum du buffer</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void EnsureCapacity(int min)
 		{
-			// devrait être inliné
 			if (m_items.Length < min)
 			{
 				GrowBuffer(min);
@@ -499,16 +658,19 @@ namespace Doxense.Serialization.Json
 		{
 			if (size > 0)
 			{
-				var tmp = new JsonValue?[size];
-				// copie les anciennes valeurs
-				if (m_size > 0) m_items.AsSpan(0, m_size).CopyTo(tmp);
+				var tmp = new JsonValue[size];
+				this.AsSpan().CopyTo(tmp);
 				m_items = tmp;
 			}
 			else
 			{
-				m_items = Array.Empty<JsonValue?>();
+				m_items = [];
 			}
 		}
+
+		/// <summary>Returns a span of all items in this array</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal Span<JsonValue> AsSpan() => m_items.AsSpan(0, m_size);
 
 		/// <summary>Réajuste la taille du buffer interne, afin d'optimiser la consommation mémoire</summary>
 		/// <remarks>A utiliser après un batch d'insertion, si on sait qu'on n'ajoutera plus d'items dans la liste</remarks>
@@ -522,6 +684,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		private static void FailArrayIsReadOnly() => throw new InvalidOperationException("Cannot mutate a read-only JSON array.");
+
 		/// <inheritdoc cref="JsonValue.this[int]"/>
 		public override JsonValue this[int index]
 		{
@@ -530,22 +695,44 @@ namespace Doxense.Serialization.Json
 			{
 				// Following trick can reduce the range check by one
 				if ((uint) index >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
-				//TODO: REVIEW: support negative indexing ?
-				return m_items[index] ?? JsonNull.Null;
+				return m_items[index];
 			}
 			set
 			{
-				Contract.Debug.Requires(!object.ReferenceEquals(this, value));
+				if (m_readOnly) FailArrayIsReadOnly();
+				Contract.Debug.Requires(!ReferenceEquals(this, value));
 				if ((uint) index >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
-				//TODO: REVIEW: support negative indexing ?
+				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 				m_items[index] = value ?? JsonNull.Null;
 			}
 		}
 
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public void Add(JsonValue value)
+		public JsonValue this[Index index]
 		{
-			Contract.Debug.Requires(!object.ReferenceEquals(this, value));
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get
+			{
+				var offset = index.GetOffset(m_size);
+				// Following trick can reduce the range check by one
+				if ((uint) offset >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(offset);
+				return m_items[offset];
+			}
+			set
+			{
+				if (m_readOnly) FailArrayIsReadOnly();
+				Contract.Debug.Requires(!ReferenceEquals(this, value));
+				var offset = index.GetOffset(m_size);
+				if ((uint) offset >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(offset);
+				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+				m_items[offset] = value ?? JsonNull.Null;
+			}
+		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public void Add(JsonValue? value)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.Debug.Requires(!ReferenceEquals(this, value));
 			// invariant: adding 'null' will add JsonNull.Null
 			int size = m_size;
 			if (size == m_items.Length) EnsureCapacity(size + 1);
@@ -556,12 +743,14 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddNull()
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
 			Add(JsonNull.Null);
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddValue<T>(T value)
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
 			Add(FromValue<T>(value));
 		}
 
@@ -570,103 +759,724 @@ namespace Doxense.Serialization.Json
 		//note: AddRange(..) est appelé par beaucoup de helpers comme ToJsonArray(), CreateRange(), ....
 		// => c'est ici qu'on doit centraliser toute la logique d'optimisations (pour éviter d'en retrouver partout)
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		#region AddRange [JsonValue] ...
+
+		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(JsonArray items)
+		public JsonArray AddRange(ReadOnlySpan<JsonValue> array)
 		{
-			return AddRange(items, deepCopy: false);
+			if (m_readOnly) FailArrayIsReadOnly();
+			if (array.Length > 0)
+			{
+				int size = m_size;
+				EnsureCapacity(size + array.Length);
+
+				var items = m_items;
+				Contract.Debug.Assert(items != null && size + array.Length <= items.Length);
+
+				var tail = items.AsSpan(size, array.Length);
+				array.CopyTo(tail);
+				FillNullValues(tail!);
+				m_size = size + array.Length;
+			}
+			return this;
 		}
 
 		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(JsonValue[] items)
 		{
-			return AddRange(items.AsSpan(), deepCopy: false);
+			Contract.NotNull(items);
+			return AddRange(items.AsSpan()!);
 		}
 
 		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(ReadOnlySpan<JsonValue> items)
+		public JsonArray AddRangeReadOnly(JsonValue[] items)
 		{
-			return AddRange(items, deepCopy: false);
-		}
-
-		/// <summary>Append une autre séquence en copiant ses éléments à la fin</summary>
-		/// <param name="items">Séquence à ajouter</param>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(IEnumerable<JsonValue> items)
-		{
-			return AddRange(items, deepCopy: false);
-		}
-
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		internal JsonArray AddRangeBoxed(IEnumerable<object?> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			//note: internal pour éviter que ce soit trop facile de passer par 'object' au lieu de 'T'
 			Contract.NotNull(items);
+			return AddRangeReadOnly(items.AsSpan()!);
+		}
 
-			// si c'est déjà une collection de JsonValue, on n'a pas besoin de les convertir
-			if (items is IEnumerable<JsonValue> values)
+		/// <summary>Append une autre array en copiant ou collant ses éléments à la fin</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRange(JsonArray array)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(array);
+
+			if (array.Count > 0)
 			{
-				AddRange(values);
-				return this;
-			}
+				// resize
+				int count = array.m_size;
+				int size = m_size;
+				int newSize = checked(size + count);
+				EnsureCapacity(newSize);
 
-			settings ??= CrystalJsonSettings.Json;
-			resolver ??= CrystalJson.DefaultResolver;
-
-			// pré-alloue si on connaît à l'avance la taille
-			if (items is ICollection coll) EnsureCapacity(this.Count + coll.Count);
-
-			foreach (var value in items)
-			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
-				Add(JsonValue.FromValue(value, settings, resolver));
+				// append
+				var tail = m_items.AsSpan(size, count);
+				array.AsSpan().CopyTo(tail);
+				m_size = newSize;
 			}
 
 			return this;
 		}
 
+		/// <summary>Append une autre array en copiant ou collant ses éléments à la fin</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange<T>(IEnumerable<T> items, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddRangeReadOnly(JsonArray array)
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(array);
+
+			if (array.Count > 0)
+			{
+				// resize
+				int count = array.m_size;
+				int size = m_size;
+				int newSize = checked(size + count);
+				EnsureCapacity(newSize);
+
+				// append
+				var items = array.AsSpan();
+				var tail = m_items.AsSpan(size, items.Length);
+				for (int i = 0; i < tail.Length; i++)
+				{
+					tail[i] = items[i].ToReadOnly();
+				}
+				m_size = newSize;
+			}
+
+			return this;
+		}
+
+		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonValue> array)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			if (array.Length > 0)
+			{
+				// resize
+				int size = m_size;
+				EnsureCapacity(size + array.Length);
+				var items = m_items;
+				Contract.Debug.Assert(items != null && size + array.Length <= items.Length);
+
+				// append
+				var tail = items.AsSpan(size, array.Length);
+				for (int i = 0; i < tail.Length; i++)
+				{
+					tail[i] = (array[i] ?? JsonNull.Null).ToReadOnly();
+				}
+				m_size = size + array.Length;
+			}
+			return this;
+		}
+
+		/// <summary>Append une séquence d'éléments en copiant ou clonant ses éléments à la fin</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRange(IEnumerable<JsonValue?> items)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(items);
 
-			if (CrystalJsonDomWriter.AreDefaultSettings(settings, resolver))
+			// JsonArray
+			if (items is JsonArray jarr)
+			{ // optimized
+				return AddRange(jarr);
+			}
+
+			// Regular Array
+			if (items is JsonValue[] arr)
+			{ // optimized
+				return AddRange(arr.AsSpan());
+			}
+
+			// Collection
+			if (items is List<JsonValue> list)
 			{
-				return AddRange<T>(items);
+				return AddRange(CollectionsMarshal.AsSpan(list));
+			}
+
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{ // we can pre-allocate to the new size and copy into tail of the buffer
+
+				int newSize = checked(m_size + count);
+				EnsureCapacity(newSize);
+
+				// append to the tail
+				var tail = m_items.AsSpan(m_size, count);
+				int i = 0;
+				foreach (var item in items)
+				{
+					tail[i] = item ?? JsonNull.Null;
+				}
+				m_size = newSize;
+			}
+			else
+			{ // we don't know the size in advance, we may need to resize multiple times
+				foreach (var item in items)
+				{
+					Add(item ?? JsonNull.Null);
+				}
+			}
+
+			return this;
+		}
+
+		/// <summary>Append une séquence d'éléments en copiant ou clonant ses éléments à la fin</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRangeReadOnly(IEnumerable<JsonValue?> items)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(items);
+
+			// JsonArray
+			if (items is JsonArray jarr)
+			{ // optimized
+				return AddRangeReadOnly(jarr);
+			}
+
+			// Regular Array
+			if (items is JsonValue[] arr)
+			{ // optimized
+				return AddRangeReadOnly(arr.AsSpan());
+			}
+
+			// Collection
+			if (items is List<JsonValue> list)
+			{
+				return AddRangeReadOnly(CollectionsMarshal.AsSpan(list));
+			}
+
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{
+				// pre-resize to the new capacity
+				int newSize = checked(m_size + count);
+				EnsureCapacity(newSize);
+
+				// append to the tail
+				var tail = m_items.AsSpan(m_size, count);
+				int i = 0;
+				foreach (var item in items)
+				{
+					tail[i] = (item ?? JsonNull.Null).ToReadOnly();
+				}
+				m_size = newSize;
+			}
+			else
+			{
+				// may trigger multiple resizes!
+				foreach (var item in items)
+				{
+					Add((item ?? JsonNull.Null).ToReadOnly());
+				}
+			}
+
+			return this;
+		}
+
+		#endregion
+
+		#region AddRange [of T] ...
+
+		#region Mutable...
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddValues<T>(ReadOnlySpan<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			if (items.Length == 0) return this;
+
+			// pré-alloue si on connait à l'avance la taille
+			int newSize = checked(this.Count + items.Length);
+			EnsureCapacity(newSize);
+			var tail = m_items.AsSpan(m_size, items.Length);
+
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(T) == typeof(bool)
+			 || typeof(T) == typeof(char)
+			 || typeof(T) == typeof(byte)
+			 || typeof(T) == typeof(sbyte)
+			 || typeof(T) == typeof(short)
+			 || typeof(T) == typeof(ushort)
+			 || typeof(T) == typeof(int)
+			 || typeof(T) == typeof(uint)
+			 || typeof(T) == typeof(long)
+			 || typeof(T) == typeof(ulong)
+			 || typeof(T) == typeof(float)
+			 || typeof(T) == typeof(double)
+			 || typeof(T) == typeof(decimal)
+			 || typeof(T) == typeof(Guid)
+			 || typeof(T) == typeof(DateTime)
+			 || typeof(T) == typeof(DateTimeOffset)
+			 || typeof(T) == typeof(TimeSpan)
+			 || typeof(T) == typeof(NodaTime.Instant)
+			 || typeof(T) == typeof(NodaTime.Duration)
+			 // nullables!
+			 || typeof(T) == typeof(bool?)
+			 || typeof(T) == typeof(char?)
+			 || typeof(T) == typeof(byte?)
+			 || typeof(T) == typeof(sbyte?)
+			 || typeof(T) == typeof(short?)
+			 || typeof(T) == typeof(ushort?)
+			 || typeof(T) == typeof(int?)
+			 || typeof(T) == typeof(uint?)
+			 || typeof(T) == typeof(long?)
+			 || typeof(T) == typeof(ulong?)
+			 || typeof(T) == typeof(float?)
+			 || typeof(T) == typeof(double?)
+			 || typeof(T) == typeof(decimal?)
+			 || typeof(T) == typeof(Guid?)
+			 || typeof(T) == typeof(DateTime?)
+			 || typeof(T) == typeof(DateTimeOffset?)
+			 || typeof(T) == typeof(TimeSpan?)
+			 || typeof(T) == typeof(NodaTime.Instant?)
+			 || typeof(T) == typeof(NodaTime.Duration?)
+			)
+			{
+				// use the JIT optimized version of FromValue<T>
+				for(int i = 0; i < items.Length; i++)
+				{
+					tail[i] = FromValue<T>(items[i]); // this should be inlined
+				}
+				m_size = newSize;
+				return this;
+			}
+#endif
+			#endregion </JIT_HACK>
+
+			if (typeof(T) == typeof(JsonValue))
+			{
+				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<T, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
+				return AddRange(json);
 			}
 
 			var dom = CrystalJsonDomWriter.Create(settings, resolver);
+			var context = new CrystalJsonDomWriter.VisitingContext();
+			var type = typeof(T);
+			for(int i = 0; i < items.Length; i++)
+			{
+				tail[i] = dom.ParseObjectInternal(ref context, items[i], type, null);
+			}
+			m_size = newSize;
+			return this;
+		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddValues<T>(T[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(items);
+			return AddValues<T>(items.AsSpan(), settings, resolver);
+		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddValues<T>(IEnumerable<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(items);
+
+			if (items is T[] arr)
+			{ // fast path for arrays
+				return AddValues<T>(arr.AsSpan(), settings, resolver);
+			}
+
+			if (items is List<T> list)
+			{ // fast path for lists
+				return AddValues<T>(CollectionsMarshal.AsSpan(list), settings, resolver);
+			}
+
+			if (items is IEnumerable<JsonValue?> json)
+			{ // fast path if already JSON values
+				return AddRange(json);
+			}
+
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{ // pre-allocated to the new size 
+				EnsureCapacity(checked(this.Count + count));
+			}
+
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(T) == typeof(bool)
+			 || typeof(T) == typeof(char)
+			 || typeof(T) == typeof(byte)
+			 || typeof(T) == typeof(sbyte)
+			 || typeof(T) == typeof(short)
+			 || typeof(T) == typeof(ushort)
+			 || typeof(T) == typeof(int)
+			 || typeof(T) == typeof(uint)
+			 || typeof(T) == typeof(long)
+			 || typeof(T) == typeof(ulong)
+			 || typeof(T) == typeof(float)
+			 || typeof(T) == typeof(double)
+			 || typeof(T) == typeof(decimal)
+			 || typeof(T) == typeof(Guid)
+			 || typeof(T) == typeof(DateTime)
+			 || typeof(T) == typeof(DateTimeOffset)
+			 || typeof(T) == typeof(TimeSpan)
+			 || typeof(T) == typeof(NodaTime.Instant)
+			 || typeof(T) == typeof(NodaTime.Duration)
+			 // nullables!
+			 || typeof(T) == typeof(bool?)
+			 || typeof(T) == typeof(char?)
+			 || typeof(T) == typeof(byte?)
+			 || typeof(T) == typeof(sbyte?)
+			 || typeof(T) == typeof(short?)
+			 || typeof(T) == typeof(ushort?)
+			 || typeof(T) == typeof(int?)
+			 || typeof(T) == typeof(uint?)
+			 || typeof(T) == typeof(long?)
+			 || typeof(T) == typeof(ulong?)
+			 || typeof(T) == typeof(float?)
+			 || typeof(T) == typeof(double?)
+			 || typeof(T) == typeof(decimal?)
+			 || typeof(T) == typeof(Guid?)
+			 || typeof(T) == typeof(DateTime?)
+			 || typeof(T) == typeof(DateTimeOffset?)
+			 || typeof(T) == typeof(TimeSpan?)
+			 || typeof(T) == typeof(NodaTime.Instant?)
+			 || typeof(T) == typeof(NodaTime.Duration?)
+			)
+			{
+				// we should have a JIT optimized version of As<T> for these as well!
+				foreach (var item in items)
+				{
+					Add(FromValue<T>(item));
+				}
+				return this;
+			}
+
+#endif
+			#endregion </JIT_HACK>
+
+			var dom = CrystalJsonDomWriter.Create(settings, resolver);
+			var context = new CrystalJsonDomWriter.VisitingContext();
+			var type = typeof(T);
 			foreach (var value in items)
 			{
 				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
-				Add(dom.ParseObject(value, typeof(T)));
+				Add(dom.ParseObjectInternal(ref context, value, type, null));
 			}
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
+		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
+		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
+		/// <param name="items">Séquence d'éléments d'origine</param>
+		/// <param name="transform">Transformation appliquée à chaque élément</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange<T>(IEnumerable<T> items)
+		public JsonArray AddValues<TInput, TOutput>(ReadOnlySpan<TInput> items, Func<TInput, TOutput> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(transform);
+			if (items.Length == 0) return this;
+
+			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
+			// donc ca vaut le coup tenter de pré-allouer l'array
+			int newSize = this.Count + items.Length;
+			EnsureCapacity(checked(newSize));
+			var tail = m_items.AsSpan(m_size, items.Length);
+
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(TOutput) == typeof(bool)
+			 || typeof(TOutput) == typeof(char)
+			 || typeof(TOutput) == typeof(byte)
+			 || typeof(TOutput) == typeof(sbyte)
+			 || typeof(TOutput) == typeof(short)
+			 || typeof(TOutput) == typeof(ushort)
+			 || typeof(TOutput) == typeof(int)
+			 || typeof(TOutput) == typeof(uint)
+			 || typeof(TOutput) == typeof(long)
+			 || typeof(TOutput) == typeof(ulong)
+			 || typeof(TOutput) == typeof(float)
+			 || typeof(TOutput) == typeof(double)
+			 || typeof(TOutput) == typeof(decimal)
+			 || typeof(TOutput) == typeof(Guid)
+			 || typeof(TOutput) == typeof(DateTime)
+			 || typeof(TOutput) == typeof(DateTimeOffset)
+			 || typeof(TOutput) == typeof(TimeSpan)
+			 || typeof(TOutput) == typeof(NodaTime.Instant)
+			 || typeof(TOutput) == typeof(NodaTime.Duration)
+			 // nullables!
+			 || typeof(TOutput) == typeof(bool?)
+			 || typeof(TOutput) == typeof(char?)
+			 || typeof(TOutput) == typeof(byte?)
+			 || typeof(TOutput) == typeof(sbyte?)
+			 || typeof(TOutput) == typeof(short?)
+			 || typeof(TOutput) == typeof(ushort?)
+			 || typeof(TOutput) == typeof(int?)
+			 || typeof(TOutput) == typeof(uint?)
+			 || typeof(TOutput) == typeof(long?)
+			 || typeof(TOutput) == typeof(ulong?)
+			 || typeof(TOutput) == typeof(float?)
+			 || typeof(TOutput) == typeof(double?)
+			 || typeof(TOutput) == typeof(decimal?)
+			 || typeof(TOutput) == typeof(Guid?)
+			 || typeof(TOutput) == typeof(DateTime?)
+			 || typeof(TOutput) == typeof(DateTimeOffset?)
+			 || typeof(TOutput) == typeof(TimeSpan?)
+			 || typeof(TOutput) == typeof(NodaTime.Instant?)
+			 || typeof(TOutput) == typeof(NodaTime.Duration?)
+			)
+			{
+				// use the JIT optimized version of FromValue<T>
+				for(int i = 0; i < tail.Length; i++)
+				{
+					tail[i] = FromValue<TOutput>(transform(items[i])); // this should be inlined
+				}
+				m_size = newSize;
+				return this;
+			}
+#endif
+			#endregion </JIT_HACK>
+
+			var dom = CrystalJsonDomWriter.Create(settings, resolver);
+			var context = new CrystalJsonDomWriter.VisitingContext();
+			var type = typeof(TOutput);
+			for(int i = 0; i < tail.Length; i++)
+			{
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				tail[i] = dom.ParseObjectInternal(ref context, transform(items[i]), type, null);
+			}
+			m_size = newSize;
+			return this;
+		}
+
+		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
+		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
+		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
+		/// <param name="items">Séquence d'éléments d'origine</param>
+		/// <param name="transform">Transformation appliquée à chaque élément</param>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddValues<TInput, TOutput>(TInput[] items, Func<TInput, TOutput> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
+			return AddValues(items.AsSpan(), transform, settings, resolver);
+		}
 
-			{ // fast path pour des array
-				if (items is T[] arr) return AddRange<T>(arr);
+		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
+		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
+		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
+		/// <param name="items">Séquence d'éléments d'origine</param>
+		/// <param name="transform">Transformation appliquée à chaque élément</param>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddValues<TInput, TOutput>(IEnumerable<TInput> items, Func<TInput, TOutput> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(items);
+			Contract.NotNull(transform);
+
+			if (items is TInput[] arr)
+			{
+				return AddValues(arr.AsSpan(), transform, settings, resolver);
 			}
-			{ // fast path pour des listes
-				if (items is List<T> list) return AddRange<T>(list);
+
+			if (items is List<TInput> list)
+			{
+				return AddValues(CollectionsMarshal.AsSpan(list), transform, settings, resolver);
 			}
-			{ // si c'est déja une collection de JsonValue, on n'a pas besoin de les convertir
-				if (items is IEnumerable<JsonValue> json) return AddRange(json, deepCopy: false);
+
+			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
+			// donc ca vaut le coup tenter de pré-allouer l'array
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{
+				EnsureCapacity(checked(this.Count + count));
 			}
-			{ // pré-alloue si on connait à l'avance la taille
-				if (items is ICollection<T> coll) EnsureCapacity(this.Count + coll.Count);
+
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(TOutput) == typeof(bool)
+			    || typeof(TOutput) == typeof(char)
+			    || typeof(TOutput) == typeof(byte)
+			    || typeof(TOutput) == typeof(sbyte)
+			    || typeof(TOutput) == typeof(short)
+			    || typeof(TOutput) == typeof(ushort)
+			    || typeof(TOutput) == typeof(int)
+			    || typeof(TOutput) == typeof(uint)
+			    || typeof(TOutput) == typeof(long)
+			    || typeof(TOutput) == typeof(ulong)
+			    || typeof(TOutput) == typeof(float)
+			    || typeof(TOutput) == typeof(double)
+			    || typeof(TOutput) == typeof(decimal)
+			    || typeof(TOutput) == typeof(Guid)
+			    || typeof(TOutput) == typeof(DateTime)
+			    || typeof(TOutput) == typeof(DateTimeOffset)
+			    || typeof(TOutput) == typeof(TimeSpan)
+			    || typeof(TOutput) == typeof(NodaTime.Instant)
+			    || typeof(TOutput) == typeof(NodaTime.Duration)
+			    // nullables!
+			    || typeof(TOutput) == typeof(bool?)
+			    || typeof(TOutput) == typeof(char?)
+			    || typeof(TOutput) == typeof(byte?)
+			    || typeof(TOutput) == typeof(sbyte?)
+			    || typeof(TOutput) == typeof(short?)
+			    || typeof(TOutput) == typeof(ushort?)
+			    || typeof(TOutput) == typeof(int?)
+			    || typeof(TOutput) == typeof(uint?)
+			    || typeof(TOutput) == typeof(long?)
+			    || typeof(TOutput) == typeof(ulong?)
+			    || typeof(TOutput) == typeof(float?)
+			    || typeof(TOutput) == typeof(double?)
+			    || typeof(TOutput) == typeof(decimal?)
+			    || typeof(TOutput) == typeof(Guid?)
+			    || typeof(TOutput) == typeof(DateTime?)
+			    || typeof(TOutput) == typeof(DateTimeOffset?)
+			    || typeof(TOutput) == typeof(TimeSpan?)
+			    || typeof(TOutput) == typeof(NodaTime.Instant?)
+			    || typeof(TOutput) == typeof(NodaTime.Duration?)
+			   )
+			{
+				// we shoud have a JIT optimized version of FromValue<T> for these as well
+				foreach (var item in items)
+				{
+					Add(FromValue<TOutput>(transform(item)));
+				}
+				return this;
+			}
+#endif
+			#endregion </JIT_HACK>
+
+			var dom = CrystalJsonDomWriter.Create(settings, resolver);
+			var context = new CrystalJsonDomWriter.VisitingContext();
+			var type = typeof(TOutput);
+			foreach (var item in items)
+			{
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
+			}
+			return this;
+		}
+
+		#endregion
+
+		#region Immutable...
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRangeReadOnly<T>(ReadOnlySpan<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			if (items.Length == 0) return this;
+
+			// pré-alloue si on connait à l'avance la taille
+			int newSize = checked(this.Count + items.Length);
+			EnsureCapacity(newSize);
+			var tail = m_items.AsSpan(m_size, items.Length);
+
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(T) == typeof(bool)
+			 || typeof(T) == typeof(char)
+			 || typeof(T) == typeof(byte)
+			 || typeof(T) == typeof(sbyte)
+			 || typeof(T) == typeof(short)
+			 || typeof(T) == typeof(ushort)
+			 || typeof(T) == typeof(int)
+			 || typeof(T) == typeof(uint)
+			 || typeof(T) == typeof(long)
+			 || typeof(T) == typeof(ulong)
+			 || typeof(T) == typeof(float)
+			 || typeof(T) == typeof(double)
+			 || typeof(T) == typeof(decimal)
+			 || typeof(T) == typeof(Guid)
+			 || typeof(T) == typeof(DateTime)
+			 || typeof(T) == typeof(DateTimeOffset)
+			 || typeof(T) == typeof(TimeSpan)
+			 || typeof(T) == typeof(NodaTime.Instant)
+			 || typeof(T) == typeof(NodaTime.Duration)
+			 // nullables!
+			 || typeof(T) == typeof(bool?)
+			 || typeof(T) == typeof(char?)
+			 || typeof(T) == typeof(byte?)
+			 || typeof(T) == typeof(sbyte?)
+			 || typeof(T) == typeof(short?)
+			 || typeof(T) == typeof(ushort?)
+			 || typeof(T) == typeof(int?)
+			 || typeof(T) == typeof(uint?)
+			 || typeof(T) == typeof(long?)
+			 || typeof(T) == typeof(ulong?)
+			 || typeof(T) == typeof(float?)
+			 || typeof(T) == typeof(double?)
+			 || typeof(T) == typeof(decimal?)
+			 || typeof(T) == typeof(Guid?)
+			 || typeof(T) == typeof(DateTime?)
+			 || typeof(T) == typeof(DateTimeOffset?)
+			 || typeof(T) == typeof(TimeSpan?)
+			 || typeof(T) == typeof(NodaTime.Instant?)
+			 || typeof(T) == typeof(NodaTime.Duration?)
+			)
+			{
+				// use the JIT optimized version of FromValue<T> for these as well
+				for(int i = 0; i < items.Length; i++)
+				{
+					tail[i] = FromValue<T>(items[i]); // this should be inlined
+				}
+				m_size = newSize;
+				return this;
+			}
+#endif
+			#endregion </JIT_HACK>
+
+			if (typeof(T) == typeof(JsonValue))
+			{
+				// force cast to a ReadOnlySpan<JsonValue>
+				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<T, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
+				// then add these values directly
+				return AddRangeReadOnly(json);
+			}
+
+			var dom = CrystalJsonDomWriter.Create(settings, resolver);
+			var context = new CrystalJsonDomWriter.VisitingContext();
+			var type = typeof(T);
+			for (int i = 0; i < items.Length; i++)
+			{
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				tail[i] = dom.ParseObjectInternal(ref context, items[i], type, null);
+			}
+			m_size = newSize;
+			return this;
+		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRangeReadOnly<T>(T[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(items);
+			return AddRangeReadOnly<T>(items.AsSpan(), settings, resolver);
+		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRangeReadOnly<T>(IEnumerable<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(items);
+
+			if (items is T[] arr)
+			{ // fast path for arrays
+				return AddRangeReadOnly<T>(arr.AsSpan(), settings, resolver);
+			}
+
+			if (items is List<T> list)
+			{ // fast path for lists
+				return AddRangeReadOnly<T>(CollectionsMarshal.AsSpan(list), settings, resolver);
+			}
+
+			if (items is IEnumerable<JsonValue?> json)
+			{ // fast path if already JSON values
+				return AddRangeReadOnly(json);
+			}
+
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{ // pre-allocated to the new size 
+				EnsureCapacity(checked(this.Count + count));
 			}
 
 			#region <JIT_HACK>
@@ -723,7 +1533,7 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-			var dom = CrystalJsonDomWriter.Default;
+			var dom = CrystalJsonDomWriter.CreateReadOnly(settings, resolver);
 			var context = new CrystalJsonDomWriter.VisitingContext();
 			var type = typeof(T);
 			foreach (var value in items)
@@ -740,487 +1550,263 @@ namespace Doxense.Serialization.Json
 		/// <param name="items">Séquence d'éléments d'origine</param>
 		/// <param name="transform">Transformation appliquée à chaque élément</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange<TInput, TOutput>(IEnumerable<TInput> items, Func<TInput, TOutput> transform)
+		public JsonArray AddRangeReadOnly<TInput, TOutput>(ReadOnlySpan<TInput> items, Func<TInput, TOutput> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			Contract.NotNull(items);
+			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(transform);
-
-			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
-			if (items is ICollection<TInput> coll)
-			{
-				EnsureCapacity(this.Count + coll.Count);
-			}
-
-			#region <JIT_HACK>
-			// pattern reconnu et optimisé par le JIT en Release
-#if !DEBUG
-			if (typeof(TOutput) == typeof(bool)
-			 || typeof(TOutput) == typeof(char)
-			 || typeof(TOutput) == typeof(byte)
-			 || typeof(TOutput) == typeof(sbyte)
-			 || typeof(TOutput) == typeof(short)
-			 || typeof(TOutput) == typeof(ushort)
-			 || typeof(TOutput) == typeof(int)
-			 || typeof(TOutput) == typeof(uint)
-			 || typeof(TOutput) == typeof(long)
-			 || typeof(TOutput) == typeof(ulong)
-			 || typeof(TOutput) == typeof(float)
-			 || typeof(TOutput) == typeof(double)
-			 || typeof(TOutput) == typeof(decimal)
-			 || typeof(TOutput) == typeof(Guid)
-			 || typeof(TOutput) == typeof(DateTime)
-			 || typeof(TOutput) == typeof(DateTimeOffset)
-			 || typeof(TOutput) == typeof(TimeSpan)
-			 || typeof(TOutput) == typeof(NodaTime.Instant)
-			 || typeof(TOutput) == typeof(NodaTime.Duration)
-			 // nullables!
-			 || typeof(TOutput) == typeof(bool?)
-			 || typeof(TOutput) == typeof(char?)
-			 || typeof(TOutput) == typeof(byte?)
-			 || typeof(TOutput) == typeof(sbyte?)
-			 || typeof(TOutput) == typeof(short?)
-			 || typeof(TOutput) == typeof(ushort?)
-			 || typeof(TOutput) == typeof(int?)
-			 || typeof(TOutput) == typeof(uint?)
-			 || typeof(TOutput) == typeof(long?)
-			 || typeof(TOutput) == typeof(ulong?)
-			 || typeof(TOutput) == typeof(float?)
-			 || typeof(TOutput) == typeof(double?)
-			 || typeof(TOutput) == typeof(decimal?)
-			 || typeof(TOutput) == typeof(Guid?)
-			 || typeof(TOutput) == typeof(DateTime?)
-			 || typeof(TOutput) == typeof(DateTimeOffset?)
-			 || typeof(TOutput) == typeof(TimeSpan?)
-			 || typeof(TOutput) == typeof(NodaTime.Instant?)
-			 || typeof(TOutput) == typeof(NodaTime.Duration?)
-			)
-			{
-				// version également optimisée!
-				foreach (var item in items)
-				{
-					Add(FromValue<TOutput>(transform(item)));
-				}
-				return this;
-			}
-#endif
-			#endregion </JIT_HACK>
-
-			var dom = CrystalJsonDomWriter.Default;
-			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(TOutput);
-			foreach (var item in items)
-			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
-				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
-			}
-			return this;
-		}
-
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange<TInput, TOutput>(ReadOnlySpan<TInput> items, Func<TInput, TOutput> transform)
-		{
-			Contract.NotNull(transform);
-
-			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
-			EnsureCapacity(checked(this.Count + items.Length));
-
-			#region <JIT_HACK>
-			// pattern recognized and optimized by the JIT, only in Release build
-#if !DEBUG
-			if (typeof(TOutput) == typeof(bool)
-			 || typeof(TOutput) == typeof(char)
-			 || typeof(TOutput) == typeof(byte)
-			 || typeof(TOutput) == typeof(sbyte)
-			 || typeof(TOutput) == typeof(short)
-			 || typeof(TOutput) == typeof(ushort)
-			 || typeof(TOutput) == typeof(int)
-			 || typeof(TOutput) == typeof(uint)
-			 || typeof(TOutput) == typeof(long)
-			 || typeof(TOutput) == typeof(ulong)
-			 || typeof(TOutput) == typeof(float)
-			 || typeof(TOutput) == typeof(double)
-			 || typeof(TOutput) == typeof(decimal)
-			 || typeof(TOutput) == typeof(Guid)
-			 || typeof(TOutput) == typeof(DateTime)
-			 || typeof(TOutput) == typeof(DateTimeOffset)
-			 || typeof(TOutput) == typeof(TimeSpan)
-			 || typeof(TOutput) == typeof(NodaTime.Instant)
-			 || typeof(TOutput) == typeof(NodaTime.Duration)
-			 // nullables!
-			 || typeof(TOutput) == typeof(bool?)
-			 || typeof(TOutput) == typeof(char?)
-			 || typeof(TOutput) == typeof(byte?)
-			 || typeof(TOutput) == typeof(sbyte?)
-			 || typeof(TOutput) == typeof(short?)
-			 || typeof(TOutput) == typeof(ushort?)
-			 || typeof(TOutput) == typeof(int?)
-			 || typeof(TOutput) == typeof(uint?)
-			 || typeof(TOutput) == typeof(long?)
-			 || typeof(TOutput) == typeof(ulong?)
-			 || typeof(TOutput) == typeof(float?)
-			 || typeof(TOutput) == typeof(double?)
-			 || typeof(TOutput) == typeof(decimal?)
-			 || typeof(TOutput) == typeof(Guid?)
-			 || typeof(TOutput) == typeof(DateTime?)
-			 || typeof(TOutput) == typeof(DateTimeOffset?)
-			 || typeof(TOutput) == typeof(TimeSpan?)
-			 || typeof(TOutput) == typeof(NodaTime.Instant?)
-			 || typeof(TOutput) == typeof(NodaTime.Duration?)
-			)
-			{
-				// we should have a JIT optimized version of FromValue<T> for these as well
-				foreach (var item in items)
-				{
-					Add(FromValue<TOutput>(transform(item)));
-				}
-				return this;
-			}
-#endif
-			#endregion </JIT_HACK>
-
-			var dom = CrystalJsonDomWriter.Default;
-			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(TOutput);
-			foreach (var item in items)
-			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
-				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
-			}
-			return this;
-		}
-
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange<T>(params T[] items)
-		{
-			Contract.NotNull(items);
-			return AddRange<T>(items.AsSpan());
-		}
-
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange<T>(ReadOnlySpan<T> items)
-		{
 			if (items.Length == 0) return this;
 
-			// pré-alloue si on connait à l'avance la taille
-			EnsureCapacity(this.Count + items.Length);
+			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
+			// donc ca vaut le coup tenter de pré-allouer l'array
+			int newSize = this.Count + items.Length;
+			EnsureCapacity(checked(newSize));
+			var tail = m_items.AsSpan(m_size, items.Length);
 
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
+			if (typeof(TOutput) == typeof(bool)
+			 || typeof(TOutput) == typeof(char)
+			 || typeof(TOutput) == typeof(byte)
+			 || typeof(TOutput) == typeof(sbyte)
+			 || typeof(TOutput) == typeof(short)
+			 || typeof(TOutput) == typeof(ushort)
+			 || typeof(TOutput) == typeof(int)
+			 || typeof(TOutput) == typeof(uint)
+			 || typeof(TOutput) == typeof(long)
+			 || typeof(TOutput) == typeof(ulong)
+			 || typeof(TOutput) == typeof(float)
+			 || typeof(TOutput) == typeof(double)
+			 || typeof(TOutput) == typeof(decimal)
+			 || typeof(TOutput) == typeof(Guid)
+			 || typeof(TOutput) == typeof(DateTime)
+			 || typeof(TOutput) == typeof(DateTimeOffset)
+			 || typeof(TOutput) == typeof(TimeSpan)
+			 || typeof(TOutput) == typeof(NodaTime.Instant)
+			 || typeof(TOutput) == typeof(NodaTime.Duration)
 			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
+			 || typeof(TOutput) == typeof(bool?)
+			 || typeof(TOutput) == typeof(char?)
+			 || typeof(TOutput) == typeof(byte?)
+			 || typeof(TOutput) == typeof(sbyte?)
+			 || typeof(TOutput) == typeof(short?)
+			 || typeof(TOutput) == typeof(ushort?)
+			 || typeof(TOutput) == typeof(int?)
+			 || typeof(TOutput) == typeof(uint?)
+			 || typeof(TOutput) == typeof(long?)
+			 || typeof(TOutput) == typeof(ulong?)
+			 || typeof(TOutput) == typeof(float?)
+			 || typeof(TOutput) == typeof(double?)
+			 || typeof(TOutput) == typeof(decimal?)
+			 || typeof(TOutput) == typeof(Guid?)
+			 || typeof(TOutput) == typeof(DateTime?)
+			 || typeof(TOutput) == typeof(DateTimeOffset?)
+			 || typeof(TOutput) == typeof(TimeSpan?)
+			 || typeof(TOutput) == typeof(NodaTime.Instant?)
+			 || typeof(TOutput) == typeof(NodaTime.Duration?)
 			)
 			{
-				// we should have a JIT optimized version of FromValue<T> for these as well
+				// use the JIT optimized version of FromValue<T>
+				for(int i = 0; i < tail.Length; i++)
+				{
+					tail[i] = FromValue<TOutput>(transform(items[i])); // this should be inlined
+				}
+				m_size = newSize;
+				return this;
+			}
+#endif
+			#endregion </JIT_HACK>
+
+			var dom = CrystalJsonDomWriter.CreateReadOnly(settings ?? CrystalJsonSettings.JsonReadOnly, resolver);
+			var context = new CrystalJsonDomWriter.VisitingContext();
+			var type = typeof(TOutput);
+			for(int i = 0; i < tail.Length; i++)
+			{
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				tail[i] = dom.ParseObjectInternal(ref context, transform(items[i]), type, null);
+			}
+			m_size = newSize;
+			return this;
+		}
+
+		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
+		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
+		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
+		/// <param name="items">Séquence d'éléments d'origine</param>
+		/// <param name="transform">Transformation appliquée à chaque élément</param>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRangeReadOnly<TInput, TOutput>(TInput[] items, Func<TInput, TOutput> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(items);
+			return AddRangeReadOnly(items.AsSpan(), transform, settings, resolver);
+		}
+
+		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
+		/// <typeparam name="TInput">Type des éléments de <paramref name="items"/></typeparam>
+		/// <typeparam name="TOutput">Type du résultat transformé</typeparam>
+		/// <param name="items">Séquence d'éléments d'origine</param>
+		/// <param name="transform">Transformation appliquée à chaque élément</param>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonArray AddRangeReadOnly<TInput, TOutput>(IEnumerable<TInput> items, Func<TInput, TOutput> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (m_readOnly) FailArrayIsReadOnly();
+			Contract.NotNull(items);
+			Contract.NotNull(transform);
+
+			if (items is TInput[] arr)
+			{
+				return AddRangeReadOnly(arr.AsSpan(), transform, settings, resolver);
+			}
+
+			if (items is List<TInput> list)
+			{
+				return AddRangeReadOnly(CollectionsMarshal.AsSpan(list), transform, settings, resolver);
+			}
+
+			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
+			// donc ca vaut le coup tenter de pré-allouer l'array
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{
+				EnsureCapacity(checked(this.Count + count));
+			}
+
+			#region <JIT_HACK>
+			// pattern recognized and optimized by the JIT, only in Release build
+#if !DEBUG
+			if (typeof(TOutput) == typeof(bool)
+			    || typeof(TOutput) == typeof(char)
+			    || typeof(TOutput) == typeof(byte)
+			    || typeof(TOutput) == typeof(sbyte)
+			    || typeof(TOutput) == typeof(short)
+			    || typeof(TOutput) == typeof(ushort)
+			    || typeof(TOutput) == typeof(int)
+			    || typeof(TOutput) == typeof(uint)
+			    || typeof(TOutput) == typeof(long)
+			    || typeof(TOutput) == typeof(ulong)
+			    || typeof(TOutput) == typeof(float)
+			    || typeof(TOutput) == typeof(double)
+			    || typeof(TOutput) == typeof(decimal)
+			    || typeof(TOutput) == typeof(Guid)
+			    || typeof(TOutput) == typeof(DateTime)
+			    || typeof(TOutput) == typeof(DateTimeOffset)
+			    || typeof(TOutput) == typeof(TimeSpan)
+			    || typeof(TOutput) == typeof(NodaTime.Instant)
+			    || typeof(TOutput) == typeof(NodaTime.Duration)
+			    // nullables!
+			    || typeof(TOutput) == typeof(bool?)
+			    || typeof(TOutput) == typeof(char?)
+			    || typeof(TOutput) == typeof(byte?)
+			    || typeof(TOutput) == typeof(sbyte?)
+			    || typeof(TOutput) == typeof(short?)
+			    || typeof(TOutput) == typeof(ushort?)
+			    || typeof(TOutput) == typeof(int?)
+			    || typeof(TOutput) == typeof(uint?)
+			    || typeof(TOutput) == typeof(long?)
+			    || typeof(TOutput) == typeof(ulong?)
+			    || typeof(TOutput) == typeof(float?)
+			    || typeof(TOutput) == typeof(double?)
+			    || typeof(TOutput) == typeof(decimal?)
+			    || typeof(TOutput) == typeof(Guid?)
+			    || typeof(TOutput) == typeof(DateTime?)
+			    || typeof(TOutput) == typeof(DateTimeOffset?)
+			    || typeof(TOutput) == typeof(TimeSpan?)
+			    || typeof(TOutput) == typeof(NodaTime.Instant?)
+			    || typeof(TOutput) == typeof(NodaTime.Duration?)
+			   )
+			{
+				// we shoud have a JIT optimized version of FromValue<T> for these as well
 				foreach (var item in items)
 				{
-					Add(FromValue<T>(item));
+					Add(FromValue<TOutput>(transform(item)));
 				}
 				return this;
 			}
 #endif
 			#endregion </JIT_HACK>
 
-			if (typeof(T) == typeof(JsonValue))
-			{
-				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<T, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
-				return AddRange(json, deepCopy: false);
-			}
-
-			var dom = CrystalJsonDomWriter.Default;
+			var dom = CrystalJsonDomWriter.CreateReadOnly(settings, resolver);
 			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(T);
-			foreach (var value in items)
+			var type = typeof(TOutput);
+			foreach (var item in items)
 			{
 				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
-				Add(dom.ParseObjectInternal(ref context, value, type, null));
+				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
 			}
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
+		#endregion
+
+		#endregion
+
+		#region AddRange [object] (boxed) ...
+
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange<T>(List<T> items)
+		internal JsonArray AddRangeBoxed(IEnumerable<object?> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
+			//note: internal pour éviter que ce soit trop facile de passer par 'object' au lieu de 'T'
+			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(items);
 
-			if (items.Count == 0) return this;
+			// si c'est déjà une collection de JsonValue, on n'a pas besoin de les convertir
+			if (items is IEnumerable<JsonValue?> values)
+			{
+				AddRange(values);
+				return this;
+			}
+
+			settings ??= CrystalJsonSettings.Json;
+			resolver ??= CrystalJson.DefaultResolver;
 
 			// pré-alloue si on connaît à l'avance la taille
-			EnsureCapacity(this.Count + items.Count);
-
-			#region <JIT_HACK>
-			// pattern recognized and optimized by the JIT, only in Release build
-#if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
-			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
-			)
+			if (items.TryGetNonEnumeratedCount(out var count))
 			{
-				// we should have a JIT optimized version of FromValue<T> for these as well
-				foreach (var item in items)
-				{
-					Add(FromValue<T>(item));
-				}
-				return this;
-			}
-#endif
-			#endregion </JIT_HACK>
-
-			// si c'est déja une liste de JsonValue, on n'a pas besoin de les convertir
-			if (items is List<JsonValue> json)
-			{
-				return AddRange(json, deepCopy: false);
+				EnsureCapacity(checked(this.Count + count));
 			}
 
-			var dom = CrystalJsonDomWriter.Default;
-			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(T);
 			foreach (var value in items)
 			{
 				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
-				Add(dom.ParseObjectInternal(ref context, value, type, null));
-			}
-			return this;
-		}
-
-		/// <summary>Append une autre array en copiant ou collant ses éléments à la fin</summary>
-		/// <param name="array">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="array"/> avant de les copier.</param>
-		/// <remarks>Optimisation: utilise Array.Copy() si deepCopy==false</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(JsonArray array, bool deepCopy)
-		{
-			Contract.NotNull(array);
-
-			int count = array.m_size;
-			if (count > 0)
-			{
-				// resize une seul fois...
-				int size = m_size;
-				EnsureCapacity(size + count);
-
-				if (deepCopy)
-				{ // on doit copier les éléments
-					int p = size;
-					var myItems = m_items;
-					var otherItems = array.m_items;
-					for (int i = 0; i < count; i++)
-					{
-						myItems[p++] = otherItems[i]?.Copy(deep: true) ?? JsonNull.Null;
-					}
-				}
-				else
-				{ // on peut transférer directement les éléments
-					Array.Copy(array.m_items, 0, m_items, size, count);
-				}
-				m_size = size + count;
-			}
-			return this;
-		}
-
-		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="array">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="array"/> avant de les copier.</param>
-		/// <remarks>Optimisation: utilise Array.Copy() si deepCopy==false</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(JsonValue[] array, bool deepCopy)
-		{
-			Contract.NotNull(array);
-			return AddRange(array.AsSpan(), deepCopy);
-		}
-
-		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="array">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="array"/> avant de les copier.</param>
-		/// <remarks>Optimisation: utilise Array.Copy() si deepCopy==false</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(ReadOnlySpan<JsonValue> array, bool deepCopy)
-		{
-			if (array.Length > 0)
-			{
-				// resize une seul fois...
-				int size = m_size;
-				EnsureCapacity(size + array.Length);
-
-				var items = m_items;
-				Contract.Debug.Assert(items != null && size + array.Length <= items.Length);
-
-				if (deepCopy)
-				{ // on doit copier les éléments
-					int p = size;
-					foreach (var item in array)
-					{
-						items[p++] = item.Copy(deep: true);
-					}
-				}
-				else
-				{ // on peut transférer directement les éléments
-					array.CopyTo(items.AsSpan(size)!);
-				}
-				m_size = size + array.Length;
+				Add(JsonValue.FromValue(value, settings, resolver));
 			}
 
 			return this;
 		}
 
-		/// <summary>Append une autre collection en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="collection">Collection à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="collection"/> avant de les copier.</param>
-		/// <remarks>Optimisation: utilise collection.CopyTo() si deepCopy==false</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(ICollection<JsonValue> collection, bool deepCopy)
+		internal JsonArray AddRangeBoxedReadOnly(IEnumerable<object?> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			Contract.NotNull(collection);
-
-			int count = collection.Count;
-			if (count > 0)
-			{
-				// resize une seul fois...
-				int size = m_size;
-				EnsureCapacity(size + count);
-
-				if (deepCopy)
-				{ // need to copy first :(
-					var items = m_items;
-					int p = size;
-					Contract.Debug.Assert(items != null && p + count <= items.Length);
-					foreach (var item in collection)
-					{
-						items[p++] = item.Copy(deep: true);
-					}
-					Contract.Debug.Assert(p == size + count);
-				}
-				else
-				{ // can copy directory
-					collection.CopyTo(m_items!, size);
-				}
-				m_size = size + count;
-			}
-			return this;
-		}
-
-		/// <summary>Append une séquence d'éléments en copiant ou clonant ses éléments à la fin</summary>
-		/// <param name="items">Array à ajouter</param>
-		/// <param name="deepCopy">Si true, clone les éléments de <paramref name="items"/> avant de les copier.</param>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(IEnumerable<JsonValue> items, bool deepCopy)
-		{
+			//note: internal pour éviter que ce soit trop facile de passer par 'object' au lieu de 'T'
+			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(items);
 
-			// JsonArray
-			if (items is JsonArray jarr)
-			{ // optimized
-				return AddRange(jarr, deepCopy);
-			}
-
-			// Regular Array
-			if (items is JsonValue[] arr)
-			{ // optimized
-				return AddRange(arr, deepCopy);
-			}
-
-			// Collection
-			if (items is ICollection<JsonValue> c)
+			// si c'est déjà une collection de JsonValue, on n'a pas besoin de les convertir
+			if (items is IEnumerable<JsonValue?> values)
 			{
-				return AddRange(c, deepCopy);
+				AddRangeReadOnly(values);
+				return this;
 			}
 
-			// Enumerable
-			using (var en = items.GetEnumerator())
+			settings ??= CrystalJsonSettings.Json;
+			resolver ??= CrystalJson.DefaultResolver;
+
+			// pré-alloue si on connaît à l'avance la taille
+			if (items.TryGetNonEnumeratedCount(out var count))
 			{
-				while (en.MoveNext())
-				{
-					Add(deepCopy ? en.Current.Copy(deep: true) : en.Current);
-				}
+				EnsureCapacity(checked(this.Count + count));
 			}
+
+			settings = settings?.AsReadOnly() ?? CrystalJsonSettings.JsonReadOnly;
+			foreach (var value in items)
+			{
+				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
+				Add(JsonValue.FromValue(value, settings, resolver));
+			}
+
 			return this;
 		}
+
+		#endregion
 
 		#endregion
 
@@ -1230,6 +1816,8 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void Clear()
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
+
 			int size = m_size;
 			if (size > 0 && size <= MAX_KEEP_CAPACITY)
 			{ // pas trop grand, on garde le buffer
@@ -1237,43 +1825,49 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{ // clear
-				m_items = Array.Empty<JsonValue>();
+				m_items = [];
 			}
 			m_size = 0;
 			//TODO: versionning?
 		}
 
-		public bool IsReadOnly => false;
-
 		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
-		/// <typeparam name="T">Type attendu de la valeur</typeparam>
 		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array, où si la valeur ne peut pas être bindé vers le type <typeparamref name="T"/></returns>
+		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue Get(int index) => this[index];
+
+		/// <summary>Returns the converted value at the specified index in this array</summary>
+		/// <typeparam name="T">Target CLR type used to bind the JSON value</typeparam>
+		/// <param name="index">Index of the value in the array</param>
+		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="T"/></returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T? Get<T>(int index) => this[index].As<T>();
 
 		[CollectionAccess(CollectionAccessType.Read)]
-		public bool TryGet<T>(int index, out T? result)
+		public bool TryGet(int index, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (index >= 0 & index < this.Count)
 			{
-				result = this[index].As<T>();
+				value = this[index];
 				return true;
 			}
-			result = default(T);
+			value = default;
 			return false;
 		}
 
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
-		/// <param name="index">Index de l'objet à retourner</param>
-		/// <returns>Valeur de l'objet à l'index spécifié, ou null si l'array contient null à cet index, ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas un objet</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas un objet JSON.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonObject? GetObject(int index)
+		[CollectionAccess(CollectionAccessType.Read)]
+		public bool TryGet<T>(int index, out T? value)
 		{
-			return this[index].AsObject(required: false);
+			if (index >= 0 & index < this.Count)
+			{
+				value = this[index].As<T>();
+				return true;
+			}
+			value = default(T);
+			return false;
 		}
 
 		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
@@ -1284,21 +1878,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
 		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas un objet JSON.</exception>
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read)]
-		public JsonObject? GetObject(int index, bool required)
-		{
-			return this[index].AsObject(required);
-		}
-
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'array JSON</summary>
-		/// <param name="index">Index de l'array à retourner</param>
-		/// <returns>Valeur à l'index spécifié, ou null si l'array contient null à cet index, ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas une array</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonArray? GetArray(int index)
-		{
-			return this[index].AsArray(required: false);
-		}
+		public JsonObject? GetObject(int index, bool required = false) => this[index].AsObject(required);
 
 		/// <summary>Retourne la valeur à l'index spécifié sous forme d'array JSON</summary>
 		/// <param name="index">Index de l'array à retourner</param>
@@ -1308,17 +1888,17 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
 		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonArray? GetArray(int index, bool required)
-		{
-			return this[index].AsArray(required);
-		}
+		public JsonArray? GetArray(int index, bool required = false) => this[index].AsArray(required);
 
+		/// <summary>Determines the index of a specific value in the JSON array.</summary>
+		/// <param name="item">The value to locate in the array.</param>
+		/// <returns>The index of <paramref name="item" /> if found in the array; otherwise, <see langword="-1"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public int IndexOf(JsonValue item)
-		{
-			return Array.IndexOf(m_items, item, 0, m_size);
-		}
+		public int IndexOf(JsonValue item) => this.AsSpan().IndexOf(item);
 
+		/// <summary>Determines whether the JSON array contains a specific JSON value.</summary>
+		/// <param name="item">The value to locate in the array.</param>
+		/// <returns> <see langword="true" /> if <paramref name="item" /> is found in the array; otherwise, <see langword="false" />.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public override bool Contains(JsonValue? item)
 		{
@@ -1345,41 +1925,62 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Set(int index, JsonValue? item)
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
 			if (index < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
 
-			// s'il n'y a pas assez de place, on doit insérer autant de JsonNull.Null que nécessaire
-			var empty = JsonNull.Null;
-			if (index >= m_size)
+			if (index < m_size)
 			{
-				EnsureCapacity(index + 1);
-				var items = m_items;
-				for (int i = m_size; i < index; i++)
-				{
-					items[i] = empty;
-				}
-				m_size = index + 1;
+				m_items[index] = item ?? JsonNull.Null;
 			}
-			m_items[index] = item ?? empty;
+			else
+			{
+				SetAfterResize(index, item);
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void SetAfterResize(int index, JsonValue? item)
+		{
+			var size = m_size;
+			Contract.Debug.Requires(index >= size);
+			EnsureCapacity(index + 1);
+			var items = m_items;
+			int gap = index - size;
+			if (gap > 0) m_items.AsSpan(size, gap).Fill(JsonNull.Null);
+			items[index] = item ?? JsonNull.Null;
+			m_size = index + 1;
+		}
+
+		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Insert(int index, JsonValue? item)
 		{
-			if ((uint)index > (uint)m_size) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
+			if (m_readOnly) FailArrayIsReadOnly();
+			var size = m_size;
+			if ((uint) index > size) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
 
-			if (m_size == m_items.Length) EnsureCapacity(m_size + 1);
-			if (index < m_size)
+			if (m_size == m_items.Length)
 			{
-				Array.Copy(m_items, index, m_items, index + 1, m_size - index);
+				EnsureCapacity(size + 1);
 			}
-			m_items[index] = item ?? JsonNull.Null;
-			m_size++;
+
+			var items = m_items;
+			if (index < size)
+			{
+				items.AsSpan(index, size - index).CopyTo(items.AsSpan(index + 1));
+			}
+
+			items[index] = item ?? JsonNull.Null;
+			m_size = size + 1;
 			//TODO: versionning?
 		}
 
+		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public bool Remove(JsonValue item)
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
+
 			int index = IndexOf(item);
 			if (index >= 0)
 			{
@@ -1389,41 +1990,54 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void RemoveAt(int index)
 		{
-			if ((uint)index >= (uint)m_size)
+			if (m_readOnly) FailArrayIsReadOnly();
+			var size = m_size;
+			if ((uint) index >= size) ThrowHelper.ThrowArgumentOutOfRangeException();
+
+			--size;
+			var items = m_items;
+			if (index < size)
 			{
-				ThrowHelper.ThrowArgumentOutOfRangeException();
+				items.AsSpan(index + 1, size - index).CopyTo(items.AsSpan(index));
 			}
-
-			m_size--;
-			if (index < m_size)
-			{
-				Array.Copy(m_items, index + 1, m_items, index, m_size - index);
-			}
-			m_items[m_size] = null!;
-
+		
+			items[size] = default!; // clear the reference to prevent any GC leak!
+			m_size = size;
 		}
+
+		/// <summary>Copies the contents of this JSON array into a destination <see cref="T:System.Span`1" />.</summary>
+		/// <param name="destination">The destination <see cref="T:System.Span`1" /> object.</param>
+		/// <exception cref="T:System.ArgumentException"><paramref name="destination" /> is shorter than the source <see cref="T:System.Span`1" />.</exception>
+		[CollectionAccess(CollectionAccessType.Read)]
+		public void CopyTo(Span<JsonValue> destination) => this.AsSpan().CopyTo(destination);
+
+		/// <summary>Attempts to copy the contents of this JSON array to a destination <see cref="T:System.Span`1" /> and returns a value that indicates whether the copy operation succeeded.</summary>
+		/// <param name="destination">The target of the copy operation.</param>
+		/// <returns> <see langword="true" /> if the copy operation succeeded; otherwise, <see langword="false" />.</returns>
+		[CollectionAccess(CollectionAccessType.Read)]
+		public bool TryCopyTo(Span<JsonValue> destination) => this.AsSpan().TryCopyTo(destination);
+
+		/// <inheritdoc />
+		[CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public void CopyTo(JsonValue[] array, int arrayIndex) => this.AsSpan().CopyTo(array.AsSpan(arrayIndex));
+		//TODO: REVIEW: make this explicit? (to force callers to use the Span overload)
 
 		[CollectionAccess(CollectionAccessType.Read)]
-		public void CopyTo(JsonValue[] array)
-		{
-			CopyTo(array, 0);
-		}
+		[Obsolete("Use arr.GetSpan(index).CopyTo(Span<JsonValue>) instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void CopyTo(int index, Span<JsonValue> array) => this.AsSpan().Slice(index).CopyTo(array);
+		//TODO: REMOVE ME!
 
 		[CollectionAccess(CollectionAccessType.Read)]
-		public void CopyTo(JsonValue?[] array, int arrayIndex)
-		{
-			m_items.AsSpan(0, m_size).CopyTo(array.AsSpan(arrayIndex));
-		}
-
-		[CollectionAccess(CollectionAccessType.Read)]
-		public void CopyTo(int index, JsonValue?[] array, int arrayIndex, int count)
-		{
-			if (m_size - index < count) ThrowHelper.ThrowArgumentException(nameof(index), "Offset or length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.");
-			m_items.AsSpan(index, count).CopyTo(array.AsSpan(arrayIndex));
-		}
+		[Obsolete("Use arr.GetSpan(index, count).CopyTo(Span<JsonValue>) instead.", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void CopyTo(int index, int count, Span<JsonValue> array) => this.AsSpan().Slice(index, count).CopyTo(array);
+		//TODO: REMOVE ME!
 
 		#endregion
 
@@ -1436,6 +2050,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public int KeepOnly([InstantHandle] Func<JsonValue, bool> predicate)
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(predicate);
 
 			// if already empty, nothing much to do
@@ -1445,12 +2060,16 @@ namespace Doxense.Serialization.Json
 			var items = m_items;
 			for (int i = 0; i < m_size; i++)
 			{
-				if (predicate(items[i] ?? JsonNull.Null))
+				if (predicate(items[i]))
 				{
 					items[p++] = i;
 				}
 			}
 			Contract.Debug.Ensures(p <= m_size);
+			if (p < m_size)
+			{
+				items.AsSpan(p, m_size - p).Clear();
+			}
 			m_size = p;
 			return p;
 		}
@@ -1462,6 +2081,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public int RemoveAll([InstantHandle] Func<JsonValue, bool> predicate)
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(predicate);
 
 			// if already empty, nothing much to do
@@ -1471,19 +2091,19 @@ namespace Doxense.Serialization.Json
 			var items = m_items;
 			for (int i = 0; i < m_size; i++)
 			{
-				if (!predicate(items[i] ?? JsonNull.Null))
+				if (!predicate(items[i]))
 				{
 					items[p++] = i;
 				}
 			}
-			Contract.Debug.Assert(p <= m_size);
-			int r = m_size;
-			for (int i = p; i < r; i++)
+			int r = m_size - p;
+			Contract.Debug.Assert(r >= 0);
+			if (r > 0)
 			{
-				items[i] = null;
+				items.AsSpan(p, r).Clear();
 			}
 			m_size = p;
-			return r - p;
+			return r;
 		}
 
 		/// <summary>Remove duplicate elements from this array</summary>
@@ -1491,6 +2111,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void RemoveDuplicates()
 		{
+			if (m_readOnly) FailArrayIsReadOnly();
 			if (m_size <= 1)
 			{ // no duplicates possible
 				return;
@@ -1513,47 +2134,97 @@ namespace Doxense.Serialization.Json
 			var items = m_items;
 			for (int i = 0; i < m_size; i++)
 			{
-				if (set.Remove(items[i] ?? JsonNull.Null))
+				if (set.Remove(items[i]))
 				{ // it was in the set, keep it
 					items[p++] = items[i];
 				}
 				//else: it has already been copied
 			}
 			Contract.Debug.Assert(p == set.Count);
+			if (p < m_size)
+			{
+				items.AsSpan(p, m_size - p).Clear();
+			}
 			m_size = p;
 		}
 
-		/// <summary>Retourne une nouvelle array ne contenant que les éléments de cette array à partir de l'index indiqué</summary>
-		/// <param name="index">Index de l'élément de cette array qui sera le premier dans la nouvelle array</param>
-		/// <returns>Nouvelle array (copie de la précédente)</returns>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public JsonArray Substring(int index)
+		[Obsolete("Use GetRange(index) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public JsonArray Substring(int index) => GetRange(index);
+
+		/// <summary>Returns a new JSON array with a shallow copy of all the items starting from the specified index</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonArray GetRange(int index)
 		{
-			int count = this.Count - index;
+			if (index == 0 && m_readOnly)
+			{ // return the whole immutable array
+				return this;
+			}
 
-			if (count < 0 || count > this.Count) throw ThrowHelper.ArgumentOutOfRangeIndex(index);
-			if (count == 0) return JsonArray.Empty;
+			// get the corresponding slice
+			var tmp = this.AsSpan().Slice(index);
+			if (tmp.Length == 0)
+			{ // empty
+				return m_readOnly ? EmptyReadOnly : new JsonArray();
+			}
 
-			var tmp = new JsonValue[count];
-			Array.Copy(m_items, index, tmp, 0, count);
-			return new JsonArray(tmp, count);
+			// return a new array wrapping these items
+			return new JsonArray(tmp.ToArray(), tmp.Length, m_readOnly);
 		}
 
 		[CollectionAccess(CollectionAccessType.Read)]
-		public JsonArray Substring(int index, int count)
+		[Obsolete("Use GetRange(index, count) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public JsonArray Substring(int index, int count) => GetRange(index, count);
+
+		/// <summary>Returns a new JSON array with a shallow copy of all the items in the specified range</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonArray GetRange(int index, int count)
 		{
-			//REVIEW: renommer en GetRange? (cf List<T>.GetRange(index, count))
+			if (index == 0 && count == m_size && m_readOnly)
+			{ // return the whole immutable array
+				return this;
+			}
 
-			int remaining = this.Count - index;
-			if (remaining < 0 || remaining > this.Count) throw ThrowHelper.ArgumentOutOfRangeIndex(index);
+			// get the corresponding slice
+			var tmp = this.AsSpan().Slice(index, count);
+			if (tmp.Length == 0)
+			{ // empty
+				return m_readOnly ? EmptyReadOnly : new JsonArray();
+			}
 
-			if (count < 0 || count > remaining) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count));
-			if (count == 0) return JsonArray.Empty;
-
-			var tmp = new JsonValue[count];
-			Array.Copy(m_items, index, tmp, 0, count);
-			return new JsonArray(tmp, count);
+			// return a new array wrapping these items
+			return new JsonArray(tmp.ToArray(), tmp.Length, m_readOnly);
 		}
+
+		/// <summary>Return a new JSON array with a shallow copy of all the items in the specified range</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonArray GetRange(Range range)
+		{
+			var (index, count) = range.GetOffsetAndLength(m_size);
+			return GetRange(index, count);
+		}
+
+		/// <summary>Returns a read-only span of all items in this array</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlySpan<JsonValue> GetSpan() => this.AsSpan();
+
+		/// <summary>Returns a read-only span of the items in this array, starting from the specified index</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlySpan<JsonValue> GetSpan(int start) => this.AsSpan().Slice(start);
+
+		/// <summary>Returns a read-only span of the items in this array, starting from the specified index for a specified length</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlySpan<JsonValue> GetSpan(int start, int length) => this.AsSpan().Slice(start, length);
+
+		/// <summary>Returns a read-only span of the items in this array, for the specified range</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlySpan<JsonValue> GetSpan(Range range) => this.AsSpan()[range];
 
 		#endregion
 
@@ -1563,16 +2234,16 @@ namespace Doxense.Serialization.Json
 
 		IEnumerator<JsonValue> IEnumerable<JsonValue>.GetEnumerator() => new Enumerator(m_items, m_size);
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => new Enumerator(m_items, m_size);
+		IEnumerator IEnumerable.GetEnumerator() => new Enumerator(m_items, m_size);
 
 		public struct Enumerator : IEnumerator<JsonValue>
 		{
-			private readonly JsonValue?[] m_items;
+			private readonly JsonValue[] m_items;
 			private readonly int m_size;
 			private int m_index;
 			private JsonValue? m_current;
 
-			internal Enumerator(JsonValue?[] items, int size)
+			internal Enumerator(JsonValue[] items, int size)
 			{
 				m_items = items;
 				m_size = size;
@@ -1588,7 +2259,7 @@ namespace Doxense.Serialization.Json
 				//TODO: check versionning?
 				if ((uint)m_index < (uint)m_size)
 				{
-					m_current = m_items[m_index] ?? JsonNull.Null;
+					m_current = m_items[m_index];
 					m_index++;
 					return true;
 				}
@@ -1602,7 +2273,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			object System.Collections.IEnumerator.Current
+			object IEnumerator.Current
 			{
 				get
 				{
@@ -1614,7 +2285,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			void System.Collections.IEnumerator.Reset()
+			void IEnumerator.Reset()
 			{
 				m_index = 0;
 				m_current = null;
@@ -1750,7 +2421,7 @@ namespace Doxense.Serialization.Json
 					return false;
 				}
 
-				object System.Collections.IEnumerator.Current
+				object IEnumerator.Current
 				{
 					get
 					{
@@ -1762,7 +2433,7 @@ namespace Doxense.Serialization.Json
 					}
 				}
 
-				void System.Collections.IEnumerator.Reset()
+				void IEnumerator.Reset()
 				{
 					//TODO: check versionning?
 					m_index = 0;
@@ -1775,18 +2446,16 @@ namespace Doxense.Serialization.Json
 
 		}
 
-
 		#endregion
 
 		internal override bool IsSmallValue()
 		{
 			const int LARGE_ARRAY = 5;
-			var size = m_size;
-			if (size >= LARGE_ARRAY) return false;
-			var items = m_items;
-			for (int i = 0; i < size; i++)
+			var items = this.AsSpan();
+			if (items.Length >= LARGE_ARRAY) return false;
+			foreach(var item in items)
 			{
-				if (!(items[i] ?? JsonNull.Null).IsSmallValue()) return false;
+				if (!item.IsSmallValue()) return false;
 			}
 			return true;
 		}
@@ -1797,13 +2466,14 @@ namespace Doxense.Serialization.Json
 		{
 			int size = m_size;
 			if (size == 0) return "[ ]"; // empty
+
 			var items = m_items;
 
 			if (depth >= 3 || (depth == 2 && !IsSmallValue()))
 			{
 				if (size == 1)
 				{
-					return "[ " + (items[0] ?? JsonNull.Null).GetCompactRepresentation(depth + 1) + " ]";
+					return "[ " + items[0].GetCompactRepresentation(depth + 1) + " ]";
 				}
 				switch (GetElementsTypeOrDefault())
 				{
@@ -1820,18 +2490,18 @@ namespace Doxense.Serialization.Json
 			// Dump les 4 premiers, et rajoutes des ", ... X more" si plus que 4.
 			// On va quand même dumper le 5 eme s'il y a exactement 5 items, pour éviter le " .... 1 more" qui prend autant de places que de l'écrire!
 			++depth;
-			sb.Append("[ ").Append((items[0] ?? JsonNull.Null).GetCompactRepresentation(depth));
-			if (size >= 2) sb.Append(", ").Append((items[1] ?? JsonNull.Null).GetCompactRepresentation(depth));
-			if (size >= 3) sb.Append(", ").Append((items[2] ?? JsonNull.Null).GetCompactRepresentation(depth));
+			sb.Append("[ ").Append(items[0].GetCompactRepresentation(depth));
+			if (size >= 2) sb.Append(", ").Append(items[1].GetCompactRepresentation(depth));
+			if (size >= 3) sb.Append(", ").Append(items[2].GetCompactRepresentation(depth));
 			if (depth == (0+1))
 			{ // on va jusqu'à 4 items (5eme joker)
-				if (size >= 4) sb.Append(", ").Append((items[3] ?? JsonNull.Null).GetCompactRepresentation(depth));
-				if (size == 5) sb.Append(", ").Append((items[4] ?? JsonNull.Null).GetCompactRepresentation(depth));
+				if (size >= 4) sb.Append(", ").Append(items[3].GetCompactRepresentation(depth));
+				if (size == 5) sb.Append(", ").Append(items[4].GetCompactRepresentation(depth));
 				else if (size > 5) sb.Append($", /* … {size - 4:N0} more */");
 			}
 			else
 			{ // on va jusqu'à 3 items (4eme joker)
-				if (size == 4) sb.Append(", ").Append((items[3] ?? JsonNull.Null).GetCompactRepresentation(depth));
+				if (size == 4) sb.Append(", ").Append(items[3].GetCompactRepresentation(depth));
 				else if (size > 4) sb.Append($", /* … {size - 3:N0} more */");
 			}
 			sb.Append(" ]");
@@ -1845,7 +2515,7 @@ namespace Doxense.Serialization.Json
 			//TODO2: pourquoi ne pas retourner un object[] plutôt qu'une List<object> ?
 
 			var list = new List<object?>(this.Count);
-			foreach (var value in this)
+			foreach (var value in this.AsSpan())
 			{
 				list.Add(value.ToObject());
 			}
@@ -1861,13 +2531,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Retourne une <see cref="JsonValue"/>[] contenant les mêmes éléments comme cette array JSON</summary>
 		/// <remarks>Effectue une shallow copy des éléments.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public JsonValue[] ToArray()
-		{
-			if (m_size == 0) return Array.Empty<JsonValue>();
-			var res = new JsonValue[m_size];
-			Array.Copy(m_items, res, res.Length);
-			return res;
-		}
+		public JsonValue[] ToArray() => this.AsSpan().ToArray();
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public T?[] ToArray<T>(ICrystalJsonTypeResolver? resolver = null)
@@ -1923,12 +2587,18 @@ namespace Doxense.Serialization.Json
 			#endregion </JIT_HACK>
 
 			//testé au runtime, mais il est probable que la majorité des array soient des string[] ??
-			if (typeof (T) == typeof (string)) return (T[]) (object) ToStringArray();
+			if (typeof(T) == typeof(string))
+			{
+				return (T[]) (object) ToStringArray();
+			}
 
-			var size = m_size;
-			if (size == 0) return Array.Empty<T>();
-			var result = new T?[size];
-			var items = m_items;
+			var items = this.AsSpan();
+			if (items.Length == 0)
+			{
+				return [];
+			}
+
+			var result = new T?[items.Length];
 			if (resolver == null || resolver == CrystalJson.DefaultResolver)
 			{
 				for (int i = 0; i < result.Length; i++)
@@ -1946,18 +2616,39 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+#if !DEBUG // <JIT_HACK>
+
+		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
+		private T?[] ToPrimitiveArray<T>()
+		{
+			//IMPORTANT! typeof(T) doit être un type primitif reconnu par As<T> via compile time scanning!!!
+
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+			var buf = new T?[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = items[i].As<T>();
+			}
+			return buf;
+		}
+
+#endif
+
 		[Pure]
 		public T[] ToArray<T>([InstantHandle] Func<JsonValue, T> transform)
 		{
 			Contract.NotNull(transform);
-			var size = m_size;
-			var items = m_items;
-			var arr = new T[size];
-			for (int i = 0; i < arr.Length; i++)
+
+			var items = this.AsSpan();
+			var buf = new T[items.Length];
+
+			for (int i = 0; i < items.Length; i++)
 			{
-				arr[i] = transform(items[i] ?? JsonNull.Null);
+				buf[i] = transform(items[i]);
 			}
-			return arr;
+
+			return buf;
 		}
 
 		/// <summary>Désérialise une JSON Array en array d'objets dont le type est défini</summary>
@@ -1969,142 +2660,152 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static T?[]? BindArray<T>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
 		{
-			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<T[]>() : null;
-			if (!value.IsArray) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
-			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_UnsupportedInternalJsonArrayType(value);
-			return array.ToArray<T>(customResolver);
-		}
-
-		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
-		private T?[] ToPrimitiveArray<T>()
-		//IMPORTANT! T doit être un type primitif reconnu par As<T> via compile time scanning!!!
-		{
-			if (this.Count == 0) return Array.Empty<T?>();
-			var result = new T?[this.Count];
-			var items = m_items;
-			for (int i = 0; i < result.Length; i++)
+			if (value is not JsonArray array)
 			{
-				result[i] = items[i].As<T>();
+				return value == null || value.IsNull
+					? (required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<T[]>() : null)
+					: throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
 			}
-			return result;
+
+			return array.ToArray<T>(customResolver);
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool[] ToBoolArray()
 		{
-			if (this.Count == 0) return Array.Empty<bool>();
-			var result = new bool[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new bool[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToBoolean();
+				buf[i] = items[i].ToBoolean();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public int[] ToInt32Array()
 		{
-			if (this.Count == 0) return Array.Empty<int>();
-			var result = new int[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new int[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToInt32();
+				buf[i] = items[i].ToInt32();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public uint[] ToUInt32Array()
 		{
-			if (this.Count == 0) return Array.Empty<uint>();
-			var result = new uint[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new uint[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToUInt32();
+				buf[i] = items[i].ToUInt32();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public long[] ToInt64Array()
 		{
-			if (this.Count == 0) return Array.Empty<long>();
-			var result = new long[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new long[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToInt64();
+				buf[i] = items[i].ToInt64();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public ulong[] ToUInt64Array()
 		{
-			if (this.Count == 0) return Array.Empty<ulong>();
-			var result = new ulong[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new ulong[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToUInt64();
+				buf[i] = items[i].ToUInt64();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public float[] ToSingleArray()
 		{
-			if (this.Count == 0) return Array.Empty<float>();
-			var result = new float[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new float[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToSingle();
+				buf[i] = items[i].ToSingle();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public double[] ToDoubleArray()
 		{
-			if (this.Count == 0) return Array.Empty<double>();
-			var result = new double[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new double[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToDouble();
+				buf[i] = items[i].ToDouble();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public decimal[] ToDecimalArray()
 		{
-			if (this.Count == 0) return Array.Empty<decimal>();
-			var result = new decimal[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new decimal[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToDecimal();
+				buf[i] = items[i].ToDecimal();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public Guid[] ToGuidArray()
 		{
-			if (this.Count == 0) return Array.Empty<Guid>();
-			var result = new Guid[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new Guid[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToGuid();
+				buf[i] = items[i].ToGuid();
 			}
-			return result;
+			return buf;
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public NodaTime.Instant[] ToInstantArray()
 		{
-			if (this.Count == 0) return Array.Empty<NodaTime.Instant>();
-			var result = new NodaTime.Instant[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var result = new NodaTime.Instant[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToInstant();
+				result[i] = items[i].ToInstant();
 			}
 			return result;
 		}
@@ -2112,12 +2813,13 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public string?[] ToStringArray()
 		{
-			if (this.Count == 0) return Array.Empty<string>();
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
 
-			var result = new string?[this.Count];
-			for (int i = 0; i < result.Length; i++)
+			var result = new string?[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = this[i].ToStringOrDefault();
+				result[i] = items[i].ToStringOrDefault();
 			}
 			return result;
 		}
@@ -2127,7 +2829,17 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<JsonValue> ToList()
 		{
-			return new List<JsonValue>(m_items.Take(m_size)!);
+			var items = this.AsSpan();
+			var res = new List<JsonValue>(items.Length);
+#if NET8_0_OR_GREATER
+			res.AddRange(items);
+#else
+			foreach(var item in items)
+			{
+				res.Add(item);
+			}
+#endif
+			return res;
 		}
 
 		/// <summary>Return a <see cref="List{JsonValue}">List&lt;JsonValue&gt;</see> with the same elements as this array</summary>
@@ -2185,21 +2897,20 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-			var size = m_size;
-			var items = m_items;
-			var list = new List<T?>(size);
+			var items = this.AsSpan();
+			var list = new List<T?>(items.Length);
 			if (resolver == null || resolver == CrystalJson.DefaultResolver)
 			{
-				for (int i = 0; i < size; i++)
+				foreach(var item in items)
 				{
-					list.Add(items[i].As<T>());
+					list.Add(item.As<T>());
 				}
 			}
 			else
 			{
-				for (int i = 0; i < size; i++)
+				foreach(var item in items)
 				{
-					list.Add(items[i].As<T>(resolver));
+					list.Add(item.As<T>(resolver));
 				}
 			}
 			return list;
@@ -2212,12 +2923,11 @@ namespace Doxense.Serialization.Json
 		public List<T> ToList<T>([InstantHandle] Func<JsonValue, T> transform)
 		{
 			Contract.NotNull(transform);
-			var size = m_size;
-			var items = m_items;
-			var list = new List<T>(size);
-			for (int i = 0; i < size; i++)
+			var items = this.AsSpan();
+			var list = new List<T>(items.Length);
+			foreach(var item in items)
 			{
-				list.Add(transform(items[i] ?? JsonNull.Null));
+				list.Add(transform(item));
 			}
 			return list;
 		}
@@ -2232,29 +2942,33 @@ namespace Doxense.Serialization.Json
 		public static List<T?>? BindList<T>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
 		{
 			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<T?>>() : null;
-			if (!value.IsArray) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
-			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_UnsupportedInternalJsonArrayType(value);
+			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
 			return array.ToList<T>(customResolver);
 		}
 
+#if !DEBUG // <JIT_HACK>
+
 		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
 		private List<T?> ToPrimitiveList<T>()
-			//IMPORTANT! T doit être un type primitif reconnu par As<T> via compile time scanning!!!
 		{
-			var result = new List<T?>(this.Count);
-			foreach (var item in this)
+			//IMPORTANT! T doit être un type primitif reconnu par As<T> via compile time scanning!!!
+			var items = this.AsSpan();
+			var result = new List<T?>(items.Length);
+			foreach(var item in items)
 			{
 				result.Add(item.As<T>());
 			}
 			return result;
 		}
 
+#endif
+
 		/// <summary>Deserialize this JSON array into a list of <see cref="bool"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<bool> ToBoolList()
 		{
 			var result = new List<bool>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToBoolean());
 			}
@@ -2266,7 +2980,7 @@ namespace Doxense.Serialization.Json
 		public List<int> ToInt32List()
 		{
 			var result = new List<int>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToInt32());
 			}
@@ -2279,18 +2993,19 @@ namespace Doxense.Serialization.Json
 		public int SumInt32()
 		{
 			int total = 0;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				total += item.ToInt32();
 			}
 			return total;
 		}
 
+		/// <summary>Deserialize this JSON array into a list of <see cref="uint"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<uint> ToUInt32List()
 		{
 			var result = new List<uint>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToUInt32());
 			}
@@ -2303,7 +3018,7 @@ namespace Doxense.Serialization.Json
 		public uint SumUInt32()
 		{
 			uint total = 0;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				total += item.ToUInt32();
 			}
@@ -2315,7 +3030,7 @@ namespace Doxense.Serialization.Json
 		public List<long> ToInt64List()
 		{
 			var result = new List<long>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToInt64());
 			}
@@ -2326,7 +3041,7 @@ namespace Doxense.Serialization.Json
 		public long SumInt64()
 		{
 			long total = 0;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				total += item.ToInt64();
 			}
@@ -2338,7 +3053,7 @@ namespace Doxense.Serialization.Json
 		public List<ulong> ToUInt64List()
 		{
 			var result = new List<ulong>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToUInt64());
 			}
@@ -2349,7 +3064,7 @@ namespace Doxense.Serialization.Json
 		public ulong SumUInt64()
 		{
 			ulong total = 0;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				total += item.ToUInt64();
 			}
@@ -2361,7 +3076,7 @@ namespace Doxense.Serialization.Json
 		public List<float> ToSingleList()
 		{
 			var result = new List<float>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToSingle());
 			}
@@ -2372,7 +3087,7 @@ namespace Doxense.Serialization.Json
 		public float SumSingle()
 		{
 			float total = 0;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				total += item.ToSingle();
 			}
@@ -2384,7 +3099,7 @@ namespace Doxense.Serialization.Json
 		public List<double> ToDoubleList()
 		{
 			var result = new List<double>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToDouble());
 			}
@@ -2395,7 +3110,7 @@ namespace Doxense.Serialization.Json
 		public double SumDouble()
 		{
 			double total = 0;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				total += item.ToDouble();
 			}
@@ -2407,7 +3122,7 @@ namespace Doxense.Serialization.Json
 		public List<decimal> ToDecimalList()
 		{
 			var result = new List<decimal>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToDecimal());
 			}
@@ -2418,7 +3133,7 @@ namespace Doxense.Serialization.Json
 		public decimal SumDecimal()
 		{
 			decimal total = 0;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				total += item.ToDecimal();
 			}
@@ -2430,7 +3145,7 @@ namespace Doxense.Serialization.Json
 		public List<Guid> ToGuidList()
 		{
 			var result = new List<Guid>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToGuid());
 			}
@@ -2442,7 +3157,7 @@ namespace Doxense.Serialization.Json
 		public List<NodaTime.Instant> ToInstantList()
 		{
 			var result = new List<NodaTime.Instant>(this.Count);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToInstant());
 			}
@@ -2454,8 +3169,7 @@ namespace Doxense.Serialization.Json
 		public List<string?> ToStringList()
 		{
 			var result = new List<string?>(this.Count);
-
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
 				result.Add(item.ToStringOrDefault());
 			}
@@ -2467,63 +3181,85 @@ namespace Doxense.Serialization.Json
 		{
 			resolver ??= CrystalJson.DefaultResolver;
 			var list = ImmutableList.CreateBuilder<T?>();
-			Type t = typeof(T);
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
-				list.Add((T?) item.Bind(t, resolver)!);
+				list.Add(item.Bind<T>(resolver));
 			}
 			return list.ToImmutable();
 		}
 
-		protected override JsonValue Clone(bool deep)
-		{
-			return Copy(deep);
-		}
-
+		/// <summary>Create a copy of this array</summary>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of the array, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
+		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
 		[Pure]
-		public new JsonArray Copy()
+		public override JsonArray Copy(bool deep = false, bool readOnly = false)
 		{
-			return Copy(false);
+			return Copy(this, deep, readOnly);
 		}
 
-		[Pure]
-		public new JsonArray Copy(bool deep)
-		{
-			return Copy(this, deep);
-		}
-
-		/// <summary>Crée une copie d'une array JSON, en clonant éventuellement ses éléments</summary>
-		/// <param name="value">Array JSON à copier</param>
-		/// <param name="deep">Si true, clone les éléments de <paramref name="value"/>. Si false, la nouvelle array contiendra les mêmes éléments.</param>
-		/// <returns>Clone de <paramref name="value"/>.</returns>
+		/// <summary>Create a copy of a JSON array</summary>
+		/// <param name="value">JSON Array to clone</param>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of <paramref name="value"/>, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public static JsonArray Copy(JsonArray value, bool deep)
+		public static JsonArray Copy(JsonArray value, bool deep, bool readOnly = false)
 		{
 			Contract.NotNull(value);
 
-			var array = new JsonArray(value.Count);
-			array.AddRange(value, deep);
-			return array;
+			if (readOnly)
+			{
+				if (value.Count == 0)
+				{ // empty readonly singleton
+					return EmptyReadOnly;
+				}
+				if (value.m_readOnly)
+				{ // the array is completely immutable, so it is safe to return the same instance
+					return value;
+				}
+			}
+
+			if (value.Count == 0)
+			{ // empty mutable singleton
+				return new JsonArray();
+			}
+
+			var items = value.AsSpan();
+			var buf = new JsonValue[items.Length];
+			if (deep)
+			{
+				for (int i = 0; i < items.Length; i++)
+				{
+					buf[i] = items[i].Copy(deep: true, readOnly);
+				}
+				// if readOnly and deep copy, then all the sub-tree is guaranteed to be immutable
+				return new JsonArray(buf, items.Length, readOnly);
+			}
+			else
+			{
+				items.CopyTo(buf);
+				return new JsonArray(buf, items.Length, readOnly);
+			}
 		}
 
 		/// <summary>Indique si l'array contient au moins un élément</summary>
 		/// <returns>True si <see cref="Count"/> &gt; 0; Sinon, false</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public bool Any()
-		{
-			return m_size > 0;
-		}
+		public bool Any() => m_size > 0;
 
 		/// <summary>Indique si au moins un élément de l'array est du type indiqué</summary>
 		/// <param name="type">Type d'élément JSON recherché</param>
 		/// <remarks>Retourne toujours false pour une array vide.</remarks>
 		public bool Any(JsonType type)
 		{
-			int count = m_size;
-			var items = m_items;
-			for (int i = 0; i < count; i++)
+			foreach (var item in this.AsSpan())
 			{
-				if ((items[i] ?? JsonNull.Null).Type != type) return true;
+				if (item.Type != type)
+				{
+					return true;
+				}
 			}
 			return false;
 		}
@@ -2535,11 +3271,9 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(predicate);
 
-			int count = m_size;
-			var items = m_items;
-			for (int i = 0; i < count; i++)
+			foreach (var item in this.AsSpan())
 			{
-				if (predicate(items[i] ?? JsonNull.Null)) return true;
+				if (predicate(item)) return true;
 			}
 			return false;
 		}
@@ -2549,11 +3283,9 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Retourne toujours true pour une array vide.</remarks>
 		public bool All(JsonType type)
 		{
-			int count = m_size;
-			var items = m_items;
-			for (int i = 0; i < count; i++)
+			foreach (var item in this.AsSpan())
 			{
-				if ((items[i] ?? JsonNull.Null).Type != type) return false;
+				if (item.Type != type) return false;
 			}
 			return true;
 		}
@@ -2565,11 +3297,9 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(predicate);
 
-			int count = m_size;
-			var items = m_items;
-			for (int i = 0; i < count; i++)
+			foreach (var item in this.AsSpan())
 			{
-				if (!predicate(items[i] ?? JsonNull.Null)) return false;
+				if (!predicate(item)) return false;
 			}
 			return true;
 		}
@@ -2582,12 +3312,10 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public JsonType? GetElementsTypeOrDefault()
 		{
-			var size = m_size;
-			var items = m_items;
 			JsonType? type = null;
-			for (int i = 0; i < size; i++)
+			foreach (var item in this.AsSpan())
 			{
-				var t = items[i]?.Type ?? JsonType.Null;
+				var t = item.Type;
 				if (type == null)
 				{ // on n'a pas encore eu d'éléments non null
 					type = t;
@@ -2699,22 +3427,23 @@ namespace Doxense.Serialization.Json
 		public JsonArray Flatten(bool deep = false)
 		{
 			var array = new JsonArray();
-			FlattenRecursive(m_items, array, deep ? int.MaxValue : 1);
+			FlattenRecursive(this, array, deep ? int.MaxValue : 1);
 			return array;
 		}
 
-		private static void FlattenRecursive(IEnumerable<JsonValue?> value, JsonArray output, int limit)
+		private static void FlattenRecursive(JsonArray items, JsonArray output, int limit)
 		{
-			Contract.Debug.Requires(value != null && output != null);
-			foreach(var item in value)
+			Contract.Debug.Requires(items != null && output != null);
+			foreach(var item in items.AsSpan())
 			{
-				if (limit > 0 && item != null && item.IsArray)
+				if (limit > 0 && item is JsonArray arr)
 				{
-					FlattenRecursive((JsonArray)item, output, limit - 1);
+					Contract.Debug.Requires(!ReferenceEquals(arr, items));
+					FlattenRecursive(arr, output, limit - 1);
 				}
 				else
 				{
-					output.Add(item ?? JsonNull.Null);
+					output.Add(item);
 				}
 			}
 		}
@@ -2739,7 +3468,7 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable
 
-		private static bool ShouldInlineArray(JsonValue?[] items, int size)
+		private static bool ShouldInlineArray(JsonValue[] items, int size)
 		{
 			switch (size)
 			{
@@ -2766,11 +3495,11 @@ namespace Doxense.Serialization.Json
 			{
 				var state = writer.BeginInlineArray();
 				writer.WriteInlineHeadSeparator();
-				(items[0] ?? JsonNull.Null).JsonSerialize(writer);
+				items[0].JsonSerialize(writer);
 				for (int i = 1; i < count; i++)
 				{
 					writer.WriteInlineTailSeparator();
-					(items[i] ?? JsonNull.Null).JsonSerialize(writer);
+					items[i].JsonSerialize(writer);
 				}
 				writer.EndInlineArray(state);
 			}
@@ -2778,11 +3507,11 @@ namespace Doxense.Serialization.Json
 			{
 				var state = writer.BeginArray();
 				writer.WriteHeadSeparator();
-				(items[0] ?? JsonNull.Null).JsonSerialize(writer);
+				items[0].JsonSerialize(writer);
 				for (int i = 1; i < count; i++)
 				{
 					writer.WriteTailSeparator();
-					(items[i] ?? JsonNull.Null).JsonSerialize(writer);
+					items[i].JsonSerialize(writer);
 				}
 				writer.EndArray(state);
 			}
@@ -2793,24 +3522,44 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>
 
-		public override bool Equals(JsonValue? value)
+		public override bool Equals(JsonValue? other) => other is JsonArray arr && Equals(arr);
+
+		public bool Equals(JsonArray? other)
 		{
-			return value?.Type == JsonType.Array && Equals((JsonArray) value);
+			int n = m_size;
+			if (other == null || other.Count != n)
+			{
+				return false;
+			}
+			var l = m_items;
+			var r = other.m_items;
+			for (int i = 0; i < n; i++)
+			{
+				if (!l[i].Equals(r[i]))
+				{
+					return false;
+				}
+			}
+			return true;
 		}
 
-		public bool Equals(JsonArray? value)
+		public bool Equals(JsonArray? other, IEqualityComparer<JsonValue>? comparer)
 		{
-			if (value == null || value.Count != this.Count)
+			int n = m_size;
+			if (other == null || other.Count != n)
 			{
 				return false;
 			}
 
-			int n = m_size;
+			comparer ??= JsonValueComparer.Default;
 			var l = m_items;
-			var r = value.m_items;
+			var r = other.m_items;
 			for (int i = 0; i < n; i++)
 			{
-				if (!(l[i] ?? JsonNull.Null).Equals(r[i])) return false;
+				if (!comparer.Equals(l[i], r[i]))
+				{
+					return false;
+				}
 			}
 			return true;
 		}
@@ -2818,7 +3567,7 @@ namespace Doxense.Serialization.Json
 		public override int GetHashCode()
 		{
 			// le hashcode de l'objet ne doit pas changer meme s'il est modifié (sinon on casse les hashtables!)
-			return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);
+			return RuntimeHelpers.GetHashCode(this);
 
 			//TODO: si on jour on gère les Read-Only Arrays, on peut utiliser ce code
 			//int n = Math.Min(m_size, 4);
@@ -2846,7 +3595,7 @@ namespace Doxense.Serialization.Json
 			var r = other.m_items;
 			for (int i = 0; i < n;i++)
 			{
-				int c = (l[i] ?? JsonNull.Null).CompareTo(r[i]);
+				int c = l[i].CompareTo(r[i]);
 				if (c != 0) return c;
 			}
 			return m_size - other.m_size;
@@ -2854,25 +3603,34 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region ISliceSerializable
+
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			writer.WriteByte('[');
 			bool first = true;
-			foreach (var item in this)
+			foreach (var item in this.AsSpan())
 			{
-				if (first) first = false; else writer.WriteByte(',');
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					writer.WriteByte(',');
+				}
+
 				item.WriteTo(ref writer);
 			}
 			writer.WriteByte(']');
 		}
 
+		#endregion
+
 	}
 
 	public static class JsonArrayExtensions
 	{
-
-		// magic cast entre JsonValue et JsonArray
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
 
 		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
 		/// <param name="value">Valeur JSON qui doit être une array</param>
@@ -2880,12 +3638,8 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas une array.</exception>
 		[Pure, ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use AsArray(required: true) instead", error: true)]
-		public static JsonArray AsArray(this JsonValue? value)
-		{
-			return value.IsNullOrMissing() ? FailArrayIsNullOrMissing()
-				: !value.IsArray ? FailValueIsNotAnArray(value) // => throws
-				: (JsonArray) value;
-		}
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonArray AsArray(this JsonValue? value) => value.IsNullOrMissing() ? FailArrayIsNullOrMissing() : value as JsonArray ?? FailValueIsNotAnArray(value);
 
 		/// <summary>Retourne la valeur JSON sous forme d'array, ou null si elle est null ou manquante.</summary>
 		/// <param name="value">Valeur JSON qui doit être soit une array, soit null/missing.</param>
@@ -2893,12 +3647,8 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> n'est ni null, ni une array.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use AsArray(required: false) instead", error: true)]
-		public static JsonArray? AsArrayOrDefault(this JsonValue? value)
-		{
-			return value.IsNullOrMissing() ? null
-				: !value.IsArray ? FailValueIsNotAnArray(value) // => throws
-				: (JsonArray) value;
-		}
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonArray? AsArrayOrDefault(this JsonValue? value) => value.IsNullOrMissing() ? null : value as JsonArray ?? FailValueIsNotAnArray(value);
 
 		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
 		/// <param name="value">Valeur JSON qui doit être une array</param>
@@ -2906,135 +3656,123 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur castée en JsonArray si elle existe, ou null si la valeur est null/missing et que <paramref name="required"/> vaut false. Throw dans tous les autres cas</returns>
 		/// <exception cref="InvalidOperationException">Si <paramref name="value"/> est null ou missing et que <paramref name="required"/> vaut true. Ou si <paramref name="value"/> n'est pas une array.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? AsArray(this JsonValue? value, bool required)
-		{
-			if (value.IsNullOrMissing())
-			{ // null, vide, ...
-				// ReSharper disable once ExpressionIsAlwaysNull
-				return required ? FailArrayIsNullOrMissing() : null;
-			}
-			if (value.Type != JsonType.Array)
-			{ // non-null mais pas une array
-				return FailValueIsNotAnArray(value); // => throws
-			}
-			return (JsonArray) value;
-		}
+		public static JsonArray? AsArray(this JsonValue? value, bool required) =>
+			value.IsNullOrMissing()
+				? (required ? FailArrayIsNullOrMissing() : null)
+				: value as JsonArray ?? FailValueIsNotAnArray(value);
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonArray FailArrayIsNullOrMissing()
-		{
-			throw new InvalidOperationException("Required JSON array was null or missing.");
-		}
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static JsonArray FailArrayIsNullOrMissing() => throw new InvalidOperationException("Required JSON array was null or missing.");
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonArray FailValueIsNotAnArray(JsonValue value)
-		{
-			throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
-		}
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static JsonArray FailValueIsNotAnArray(JsonValue value) => throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
 
 		#region ToJsonArray...
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonValue> source)
-		{
-			//note: même si source est déjà un JsonArray, on veut quand même copier!
-			return new JsonArray(source);
-		}
+		#region Mutable...
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonArray> source)
-		{
-			//note: même si source est déja un JsonArray, on veut quand même copier!
-			return new JsonArray(source);
-		}
+		public static JsonArray ToJsonArray([InstantHandle] this ReadOnlySpan<JsonValue> source)
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonObject> source)
-		{
-			//note: même si source est déja un JsonArray, on veut quand même copier!
-			return new JsonArray(source);
-		}
+		public static JsonArray ToJsonArray([InstantHandle] this Span<JsonValue> source)
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray<TElement>([InstantHandle] this IEnumerable<TElement> source, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return new JsonArray().AddRange<TElement>(source, settings, resolver);
-		}
+		public static JsonArray ToJsonArray([InstantHandle] this JsonValue[] source)
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray<TElement>([InstantHandle] this IEnumerable<TElement> source)
-		{
-			return new JsonArray().AddRange<TElement>(source);
-		}
+		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonValue?> source)
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray<TElement>(this TElement[] source)
-		{
-			return new JsonArray().AddRange<TElement>(source);
-		}
+		public static JsonArray ToJsonArray<TElement>([InstantHandle] this IEnumerable<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddValues<TElement>(source, settings, resolver);
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray<TElement>(this List<TElement> source)
-		{
-			return new JsonArray().AddRange<TElement>(source);
-		}
+		public static JsonArray ToJsonArray<TElement>(this ReadOnlySpan<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddValues<TElement>(source, settings, resolver);
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArray<TElement>(this TElement[] source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddValues<TElement>(source, settings, resolver);
 
 		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
-		public static JsonArray ToJsonArray<TInput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonValue> selector)
-		{
-			var arr = new JsonArray((source as ICollection<TInput>)?.Count ?? 0);
-			foreach (var item in source)
-			{
-				arr.Add(selector(item));
-			}
-			return arr;
-		}
+		public static JsonArray ToJsonArray<TInput>(this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonValue?> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddValues(source, selector, settings, resolver);
 
 		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
-		public static JsonArray ToJsonArray<TInput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonObject> selector)
-		{
-			var arr = new JsonArray((source as ICollection<TInput>)?.Count ?? 0);
-			foreach (var item in source)
-			{
-				arr.Add(selector(item));
-			}
-			return arr;
-		}
+		public static JsonArray ToJsonArray<TInput, TOutput>(this IEnumerable<TInput> source, [InstantHandle] Func<TInput, TOutput> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddValues(source, selector, settings, resolver);
+
+		#endregion
+
+		#region Immutable...
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArrayReadOnly(this ReadOnlySpan<JsonValue> source)
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArrayReadOnly(this Span<JsonValue> source)
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArrayReadOnly(this JsonValue[] source)
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArrayReadOnly(this IEnumerable<JsonValue?> source)
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArrayReadOnly<TElement>(this IEnumerable<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddRangeReadOnly<TElement>(source, settings, resolver).FreezeUnsafe();
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArrayReadOnly<TElement>(this ReadOnlySpan<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddRangeReadOnly<TElement>(source, settings, resolver).FreezeUnsafe();
+
+		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray ToJsonArrayReadOnly<TElement>(this TElement[] source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddRangeReadOnly<TElement>(source, settings, resolver).FreezeUnsafe();
 
 		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
-		public static JsonArray ToJsonArray<TInput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonArray> selector)
-		{
-			var arr = new JsonArray((source as ICollection<TInput>)?.Count ?? 0);
-			foreach (var item in source)
-			{
-				arr.Add(selector(item));
-			}
-			return arr;
-		}
+		public static JsonArray ToJsonArrayReadOnly<TInput>(this IEnumerable<TInput> source, [InstantHandle] Func<TInput, JsonValue?> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddRangeReadOnly(source, selector, settings, resolver).FreezeUnsafe();
 
 		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
-		public static JsonArray ToJsonArray<TInput, TOutput>([InstantHandle] this IEnumerable<TInput> source, [InstantHandle] Func<TInput, TOutput> selector)
-		{
-			return new JsonArray((source as ICollection<TInput>)?.Count ?? 0).AddRange(source, selector);
-		}
+		public static JsonArray ToJsonArrayReadOnly<TInput, TOutput>(this IEnumerable<TInput> source, [InstantHandle] Func<TInput, TOutput> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			=> new JsonArray().AddRangeReadOnly(source, selector, settings, resolver).FreezeUnsafe();
+
+		#endregion
 
 		#endregion
 
 		#region Pick...
 
 		/// <summary>Retourne une liste d'objets copiés, et filtrés pour ne contenir que les champs autorisés dans <param name="keys"/>.</summary>
-		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue> source, params string[] keys)
+		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue?> source, ReadOnlySpan<string> keys, bool keepMissing = false)
 		{
 			Contract.NotNull(source);
 
-			return JsonArray.Project(source, JsonObject.CheckProjectionFields(keys, keepMissing: false));
+			return JsonArray.Project(source, JsonObject.CheckProjectionFields(keys, keepMissing));
 		}
 
 		/// <summary>Retourne une liste d'objets copiés, et filtrés pour ne contenir que les champs autorisés dans <param name="keys"/>.</summary>
@@ -3042,26 +3780,35 @@ namespace Doxense.Serialization.Json
 		/// <param name="keys">Liste des clés à conserver sur les éléments de la liste</param>
 		/// <param name="keepMissing">Si true, toute propriété manquante sera ajoutée avec la valeur 'null' / JsonNull.Missing.</param>
 		/// <returns>Nouvelle liste contenant le résultat de la projection sur chaque élément de la liste</returns>
-		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue> source, IEnumerable<string> keys, bool keepMissing = false)
+		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue?> source, IEnumerable<string> keys, bool keepMissing = false)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(keys);
 
-			return JsonArray.Project(source, JsonObject.CheckProjectionFields(keys, keepMissing));
+			return JsonArray.Project(source, JsonObject.CheckProjectionFields(keys as string[] ?? keys.ToArray(), keepMissing));
 		}
 
 		/// <summary>Retourne une liste d'objets copiés, et filtrés pour ne contenir que les champs autorisés dans <param name="defaults"/>.</summary>
 		/// <param name="source"></param>
 		/// <param name="defaults">Liste des clés à conserver sur les éléments de la liste</param>
 		/// <returns>Nouvelle liste contenant le résultat de la projection sur chaque élément de la liste</returns>
-		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue> source, IDictionary<string, JsonValue?> defaults)
+		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue?> source, JsonObject defaults)
 		{
 			Contract.NotNull(source);
+			return JsonArray.Project(source, JsonObject.CheckProjectionDefaults(defaults!));
+		}
 
+		/// <summary>Retourne une liste d'objets copiés, et filtrés pour ne contenir que les champs autorisés dans <param name="defaults"/>.</summary>
+		/// <param name="source"></param>
+		/// <param name="defaults">Liste des clés à conserver sur les éléments de la liste</param>
+		/// <returns>Nouvelle liste contenant le résultat de la projection sur chaque élément de la liste</returns>
+		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue?> source, IDictionary<string, JsonValue?> defaults)
+		{
+			Contract.NotNull(source);
 			return JsonArray.Project(source, JsonObject.CheckProjectionDefaults(defaults));
 		}
 
-		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue> source, object defaults)
+		public static JsonArray Pick([InstantHandle] this IEnumerable<JsonValue?> source, object defaults)
 		{
 			Contract.NotNull(source);
 
@@ -3085,7 +3832,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.InvalidOperationException">Si un élément de l'array est null, ou s'il n'est pas dy type attendu</exception>
 		/// <remarks>Attention, l'Array ne doit pas contenir de valeur null !</remarks>
 		public static IDictionary<TKey, TValue> MapTo<TKey, TValue>(
-			[InstantHandle] this IEnumerable<JsonValue> source,
+			[InstantHandle] this IEnumerable<JsonValue?> source,
 			IDictionary<TKey, TValue> target,
 			JsonType? expectedType,
 			[InstantHandle] Func<JsonValue, JsonValue> keySelector,
@@ -3130,6 +3877,32 @@ namespace Doxense.Serialization.Json
 			}
 
 			return target;
+		}
+
+
+		internal static void BufferAdd<T>(ref T[] buffer, ref int index, T value)
+		{
+			if ((uint) index < (uint) buffer.Length)
+			{
+				buffer[index] = value;
+				++index;
+			}
+			else
+			{
+				BufferAddWithResize(ref buffer, ref index, value);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static void BufferAddWithResize<T>(ref T[] buffer, ref int index, T value)
+		{
+			int capacity = index + 1;
+			int newSize = buffer.Length == 0 ? 4 : 2 * buffer.Length;
+			if ((uint) newSize > 2147483591U) newSize = 2147483591;
+			if (newSize < capacity) newSize = capacity;
+			Array.Resize(ref buffer, newSize);
+			buffer[index] = value;
+			index = capacity;
 		}
 
 	}
@@ -3227,7 +4000,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			object System.Collections.IEnumerator.Current
+			object IEnumerator.Current
 			{
 				get
 				{
@@ -3239,7 +4012,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			void System.Collections.IEnumerator.Reset()
+			void IEnumerator.Reset()
 			{
 				//TODO: check versioning?
 				m_index = 0;

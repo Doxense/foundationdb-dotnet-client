@@ -230,8 +230,31 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public T? BindJson<T>(JsonValue? value)
 		{
-			var res = BindJsonValue(typeof(T), value);
-			return res == null ? default(T)! : (T) res;
+			switch (value)
+			{
+				case null:
+				{
+					return default;
+				}
+				case JsonNull:
+				{
+					return default;
+				}
+				case JsonArray arr:
+				{
+					var res = BindJsonArray(typeof(T), arr);
+					return default(T) == null || res != null ? (T?) res : default;
+				}
+				case JsonObject obj:
+				{
+					var res = BindJsonObject(typeof(T), obj);
+					return default(T) == null || res != null ? (T?) res : default;
+				}
+				default:
+				{
+					return value.Bind<T>();
+				}
+			}
 		}
 
 		/// <inheritdoc />
@@ -296,7 +319,7 @@ namespace Doxense.Serialization.Json
 			return DefaultArrayBinders.GetOrAdd(type ?? typeof(object), JsonArrayBinderCallback)(this, array);
 		}
 
-		public static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type? type)
+		internal static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type? type)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindArray(" + type + ", " + array + ")");
@@ -1128,8 +1151,7 @@ namespace Doxense.Serialization.Json
 			return (v, t, r) =>
 			{
 				if (v == null || v.IsNull) return null;
-				if (!v.IsMap) throw FailCannotDeserializeNotJsonObject(t);
-				var obj = (JsonObject) v;
+				if (v is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(t);
 
 				var items = new object?[fields.Length];
 				for (int i = 0; i < fields.Length; i++)
@@ -1153,7 +1175,7 @@ namespace Doxense.Serialization.Json
 			return (v, t, r) =>
 			{
 				if (v == null || v.IsNull) return null;
-				if (!v.IsMap) throw FailCannotDeserializeNotJsonObject(t);
+				if (v is not JsonObject) throw FailCannotDeserializeNotJsonObject(t);
 
 				// create new instance
 				var instance = (IJsonSerializable) generator();
@@ -1394,9 +1416,7 @@ namespace Doxense.Serialization.Json
 			var instance = ImmutableDictionary.CreateBuilder<string, TValue?>(obj.Comparer);
 			foreach (var item in obj)
 			{
-				object? o = resolver.BindJsonValue(typeof(TValue), item.Value);
-				TValue? v = o is null ? default(TValue?) : (TValue?) o;
-				instance.Add(item.Key, v);
+				instance.Add(item.Key, resolver.BindJson<TValue>(item.Value));
 			}
 			return instance.ToImmutable();
 		}
@@ -1418,9 +1438,7 @@ namespace Doxense.Serialization.Json
 			var instance = ImmutableDictionary.CreateBuilder<int, TValue?>();
 			foreach (var item in obj)
 			{
-				object? o = resolver.BindJsonValue(typeof(TValue), item.Value);
-				TValue? v = o is null ? default(TValue?) : (TValue?) o;
-				instance.Add(StringConverters.ToInt32(item.Key, 0), v);
+				instance.Add(StringConverters.ToInt32(item.Key, 0), resolver.BindJson<TValue>(item.Value));
 			}
 			return instance.ToImmutable();
 		}
@@ -1468,9 +1486,8 @@ namespace Doxense.Serialization.Json
 			return (v, t, r) =>
 			{
 				if (v == null || v.IsNull) return null;
-				if (!v.IsMap) throw FailCannotDeserializeNotJsonObject(t);
+				if (v is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(t);
 
-				var obj = (JsonObject) v;
 				var instance = (IDictionary) generator();
 				foreach (var item in obj)
 				{
@@ -1485,10 +1502,11 @@ namespace Doxense.Serialization.Json
 		{
 			return (v, t, r) =>
 			{
-				if (v == null || v.IsNull) return null;
-				if (!v.IsMap) throw FailCannotDeserializeNotJsonObject(t);
+				if (v is not JsonObject obj)
+				{
+					return v == null || v.IsNull ? null : throw FailCannotDeserializeNotJsonObject(t);
+				}
 
-				var obj = (JsonObject) v;
 				var instance = (IDictionary) generator();
 				foreach (var item in obj)
 				{

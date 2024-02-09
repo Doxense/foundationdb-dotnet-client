@@ -130,13 +130,22 @@ namespace Doxense.Serialization.Json
 			m_keyComparer = m_settings.IgnoreCaseForNames ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 		}
 
-		/// <summary>Retourne une instance d'un DOM writer, configurée par défaut</summary>
-		public static readonly CrystalJsonDomWriter Default = new CrystalJsonDomWriter(CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
+		/// <summary>JSON DOM writer, with default settings</summary>
+		public static readonly CrystalJsonDomWriter Default = new(CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
+
+		/// <summary>JSON DOM writer, with default settings, that produces read-only values</summary>
+		public static readonly CrystalJsonDomWriter DefaultReadOnly = new(CrystalJsonSettings.JsonReadOnly, CrystalJson.DefaultResolver);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static CrystalJsonDomWriter Create(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			return AreDefaultSettings(settings, resolver) ? Default : new CrystalJsonDomWriter(settings, resolver);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static CrystalJsonDomWriter CreateReadOnly(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			return AreDefaultSettings(settings, resolver) ? DefaultReadOnly : new CrystalJsonDomWriter(settings?.AsReadOnly() ?? CrystalJsonSettings.JsonReadOnly, resolver);
 		}
 
 		public static bool AreDefaultSettings(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)

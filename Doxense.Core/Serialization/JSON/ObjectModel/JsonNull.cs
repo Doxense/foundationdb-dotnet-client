@@ -37,6 +37,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Valeur JSON null</summary>
 	[DebuggerDisplay("JSON Null({m_kind})")]
 	[DebuggerNonUserCode]
+	[JetBrains.Annotations.PublicAPI]
 	public sealed class JsonNull : JsonValue, IEquatable<JsonNull>
 	{
 		//REVIEW: il faudrait soit renommer JsonNull en JsonNil, ou alors .Null en .Nil, pour éviter l'ambiguité "JsonNull.Null" et aussi "get_IsNull" qui retourne true aussi pour missing/error
@@ -80,14 +81,11 @@ namespace Doxense.Serialization.Json
 		internal static T? Default<T>() => DefaultCache<T>.Instance;
 
 		[Pure, ContractAnnotation("=> null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static object? Default([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
+		internal static object? Default([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
 		{
-			if (type.IsValueType) return ValueTypeDefault(type);
-			if (typeof(JsonValue) == type || typeof(JsonNull) == type)
-			{
-				return JsonNull.Null;
-			}
-			return null;
+			return type.IsValueType ? ValueTypeDefault(type)
+				: typeof(JsonValue) == type || typeof(JsonNull) == type ? JsonNull.Null
+				: null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -98,14 +96,14 @@ namespace Doxense.Serialization.Json
 			if (type == typeof(long)) return BoxedZeroInt64;
 			if (type == typeof(bool)) return BoxedFalse;
 			if (type == typeof(Guid)) return BoxedEmptyGuid;
+			if (type == typeof(double)) return BoxedZeroDouble;
+			if (type == typeof(float)) return BoxedZeroSingle;
 			// dans tous les autres cas, un appelant pourrait muter par erreur la struct et impacter tout le monde!
 			return Activator.CreateInstance(type);
 		}
 
 		private static class DefaultCache<T>
 		{
-			//note: je suis quasi certain que j'ai déja un truc équivalent quelquepart! a refactoriser dés que possible!
-
 			// ReSharper disable once ExpressionIsAlwaysNull
 			public static readonly T? Instance = (T?) Default(typeof(T))!;
 		}
@@ -115,6 +113,15 @@ namespace Doxense.Serialization.Json
 		public override JsonType Type => JsonType.Null;
 
 		public override object? ToObject() => null;
+
+		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		{
+			if (default(T) == null && (typeof(T) == typeof(JsonValue) || typeof(T) == typeof(JsonNull)))
+			{
+				return (T?) (object) this;
+			}
+			return default;
+		}
 
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -137,18 +144,14 @@ namespace Doxense.Serialization.Json
 		private static readonly object BoxedZeroInt64 = default(long);
 		private static readonly object BoxedFalse = default(bool);
 		private static readonly object BoxedEmptyGuid = default(Guid);
+		private static readonly object BoxedZeroSingle = default(float);
+		private static readonly object BoxedZeroDouble = default(double);
 
-		public override bool IsNull
-		{
-			[ContractAnnotation("=> true")]
-			get => true;
-		}
+		public override bool IsNull => true;
 
-		public override bool IsDefault
-		{
-			[ContractAnnotation("=> true")]
-			get => true;
-		}
+		public override bool IsDefault => true;
+
+		public override bool IsReadOnly => true; //note: null is immutable
 
 		public bool IsMissing
 		{

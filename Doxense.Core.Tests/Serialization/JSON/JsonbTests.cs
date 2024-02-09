@@ -55,6 +55,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			var decoded = Jsonb.Decode(bytes);
 			DumpCompact("DECODED", decoded);
 			Assert.That(decoded, Is.EqualTo(value), "Decoded JSON value does not match original");
+			Assert.That(decoded.IsReadOnly, Is.True, "JSON values created from jsonb are immutable by default");
 
 			var compressed = bytes.ZstdCompress(0);
 			if (compressed.Count < bytes.Count)
@@ -329,10 +330,9 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			VerifyRoundtrip(JsonArray.Empty);
 
 			// simple arrays
-
-			VerifyRoundtrip(JsonArray.Create("hello", "world"));
-			VerifyRoundtrip(JsonArray.Create(1, 2, 3));
-			VerifyRoundtrip(JsonArray.Create(1.1, 2.2, 3.3));
+			VerifyRoundtrip(JsonArray.FromValues([ "hello", "world" ]));
+			VerifyRoundtrip(JsonArray.FromValues([ 1, 2, 3 ]));
+			VerifyRoundtrip(JsonArray.FromValues([ 1.1, 2.2, 3.3 ]));
 
 			// mixed types
 			VerifyRoundtrip(JsonArray.Create("hello", 123, true, JsonNull.Null, Math.PI, false, Guid.NewGuid()));
@@ -378,6 +378,10 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		{
 			// { }
 			VerifyRoundtrip(JsonObject.Empty);
+			VerifyRoundtrip(JsonObject.Create());
+			VerifyRoundtrip(JsonObject.CreateReadOnly());
+			VerifyRoundtrip(new JsonObject());
+			VerifyRoundtrip(new JsonObject(0));
 
 			// { "hello": "world" }
 			VerifyRoundtrip(JsonObject.Create("hello", "world"));

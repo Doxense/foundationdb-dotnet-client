@@ -932,6 +932,8 @@ namespace Doxense.Serialization.Json
 
 				char c = '\0';
 				string? name = null;
+				var createReadOnly = reader.Settings.ReadOnly;
+
 				while (true)
 				{
 					char prev = c;
@@ -967,7 +969,21 @@ namespace Doxense.Serialization.Json
 							System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonObject(...) [END] read " + map.Count + " fields");
 #endif
 
-							var obj = new JsonObject(props, index, reader.FieldComparer);
+							if (index == 0)
+							{ // empty object
+								return createReadOnly ? JsonObject.EmptyReadOnly : JsonObject.Create();
+							}
+
+							// convert into the dictionary
+							var map = new Dictionary<string, JsonValue>(index, reader.FieldComparer);
+							foreach (var kv in props.AsSpan(0, index))
+							{
+								map[kv.Key] = kv.Value;
+#if DEBUG
+								if (createReadOnly && !kv.Value.IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+#endif
+							}
+							var obj = new JsonObject(map, createReadOnly);
 							if (obj.Count != index && !reader.Settings.OverwriteDuplicateFields)
 							{
 								var x = new HashSet<string>(reader.FieldComparer);
@@ -1117,6 +1133,7 @@ namespace Doxense.Serialization.Json
 
 				bool commaRequired = false;
 				bool valueRequired = false;
+				bool readOnly = reader.Settings.ReadOnly;
 
 				while (true)
 				{
@@ -1132,11 +1149,13 @@ namespace Doxense.Serialization.Json
 #if DEBUG_JSON_PARSER
 						System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonArray(...) [END] read " + list.Count + " values");
 #endif
-						if (index == 0) return new JsonArray();
+						if (index == 0)
+						{ // empty object
+							return readOnly ? JsonArray.EmptyReadOnly : JsonArray.Create();
+						}
 
-						var tmp = new JsonValue[index];
-						Array.Copy(buffer, 0, tmp, 0, index);
-						return new JsonArray(tmp, index);
+						var tmp = buffer.AsSpan(0, index).ToArray();
+						return new JsonArray(tmp, index, readOnly);
 					}
 
 					if (c == ',')
