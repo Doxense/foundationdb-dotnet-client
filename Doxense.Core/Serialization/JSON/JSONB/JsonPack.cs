@@ -775,7 +775,7 @@ namespace Doxense.Serialization.Json.Binary
 		{
 			if (token == (int) TypeTokens.ArrayEmpty)
 			{
-				return JsonArray.Create(); //BUGBUG: TODO: readonly?
+				return JsonArray.EmptyReadOnly;
 			}
 
 			//note: ARRAY_START has already been parsed
@@ -784,11 +784,14 @@ namespace Doxense.Serialization.Json.Binary
 			while ((next = reader.ReadByte()) != (int) TypeTokens.ArrayStop)
 			{
 				if (next < 0) throw new FormatException("Unexpected end of JSONPack Array.");
-				var val = ReadValue(ref reader, next, settings);
-				if (arr == null) arr = new JsonArray();
-				arr.Add(val ?? JsonNull.Null);
+				var val = (ReadValue(ref reader, next, settings) ?? JsonNull.Null);
+				arr ??= new JsonArray();
+				arr.Add(val);
+#if DEBUG
+				if (!val.IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+#endif
 			}
-			return arr ?? JsonArray.Create(); //BUGBUG: TODO: readonly?
+			return arr?.FreezeUnsafe() ?? JsonArray.EmptyReadOnly;
 		}
 
 		private static string? ParseSmallString(ref SliceReader reader, int token)
