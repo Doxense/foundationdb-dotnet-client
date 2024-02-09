@@ -426,248 +426,138 @@ namespace Doxense.Serialization.Json
 
 		#region Fluent API...
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal CrystalJsonSettings Update(OptionFlags flags)
-		{
-			return flags == m_flags ? this : Create(flags);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal CrystalJsonSettings Update(OptionFlags flags) => flags == m_flags ? this : Create(flags);
 
 		[Pure]
-		public CrystalJsonSettings WithTextLayout(Layout layout)
-		{
-			return Update(SetTextLayout(m_flags, layout));
-		}
+		public CrystalJsonSettings WithTextLayout(Layout layout) => Update(SetTextLayout(m_flags, layout));
 
 		[Pure]
-		public CrystalJsonSettings Compacted()
-		{
-			return Update(SetTextLayout(m_flags, Layout.Compact));
-		}
+		public CrystalJsonSettings Compacted() => Update(SetTextLayout(m_flags, Layout.Compact));
 
 		[Pure]
-		public CrystalJsonSettings Formatted()
-		{
-			return Update(SetTextLayout(m_flags, Layout.Formatted));
-		}
+		public CrystalJsonSettings Formatted() => Update(SetTextLayout(m_flags, Layout.Formatted));
 
 		[Pure]
-		public CrystalJsonSettings Indented()
-		{
-			return Update(SetTextLayout(m_flags, Layout.Indented));
-		}
+		public CrystalJsonSettings Indented() => Update(SetTextLayout(m_flags, Layout.Indented));
 
 		[Pure]
-		public CrystalJsonSettings WithoutNullMembers()
-		{
-			return Update(SetShowNullMembers(m_flags, false));
-		}
+		public CrystalJsonSettings WithoutNullMembers() => Update(SetShowNullMembers(m_flags, false));
 
 		[Pure]
-		public CrystalJsonSettings WithNullMembers()
-		{
-			return Update(SetShowNullMembers(m_flags, true));
-		}
+		public CrystalJsonSettings WithNullMembers() => Update(SetShowNullMembers(m_flags, true));
 
 		/// <summary>Fluent helper pour fixer HideDefaultValues à true</summary>
 		[Pure]
-		public CrystalJsonSettings WithoutDefaultValues()
-		{
-			return Update(SetHideDefaultValues(m_flags, true));
-		}
+		public CrystalJsonSettings WithoutDefaultValues() => Update(SetHideDefaultValues(m_flags, true));
 
 		/// <summary>Fluent helper pour fixer HideDefaultValues à false</summary>
 		[Pure]
-		public CrystalJsonSettings WithDefaultValues(bool show = false)
-		{
-			return Update(SetHideDefaultValues(m_flags, show));
-		}
+		public CrystalJsonSettings WithDefaultValues(bool show = false) => Update(SetHideDefaultValues(m_flags, show));
 
 		/// <summary>Spécifie le format utilisé pour sérialiser les dates</summary>
 		[Pure]
-		public CrystalJsonSettings WithDateFormat(DateFormat format)
-		{
-			return Update(SetDateFormatting(m_flags, format));
-		}
+		public CrystalJsonSettings WithDateFormat(DateFormat format) => Update(SetDateFormatting(m_flags, format));
 
 		/// <summary>Sérialise les dates en utilisant le format Iso8601 ("YYYY-MM-DDTHH:mm:ss.ffff+TZ")</summary>
 		/// <returns></returns>
 		[Pure]
-		public CrystalJsonSettings WithIso8601Dates()
-		{
-			return Update(SetDateFormatting(m_flags, DateFormat.TimeStampIso8601));
-		}
+		public CrystalJsonSettings WithIso8601Dates() => Update(SetDateFormatting(m_flags, DateFormat.TimeStampIso8601));
 
 		/// <summary>Sérialise les dates en utilisant le format Microsoft ("\/Date(xxxxx)\/")</summary>
 		[Pure]
-		public CrystalJsonSettings WithMicrosoftDates()
-		{
-			return Update(SetDateFormatting(m_flags, DateFormat.Microsoft));
-		}
+		public CrystalJsonSettings WithMicrosoftDates() => Update(SetDateFormatting(m_flags, DateFormat.Microsoft));
 
 		/// <summary>Sérialise les dates en utilisant le format JavaScript ("new Date(xxxx)")</summary>
 		[Pure]
-		public CrystalJsonSettings WithJavaScriptDates()
-		{
-			return Update(SetDateFormatting(m_flags, DateFormat.JavaScript));
-		}
+		public CrystalJsonSettings WithJavaScriptDates() => Update(SetDateFormatting(m_flags, DateFormat.JavaScript));
 
 		/// <summary>Fluent helper pour passer en mode de sérialisation Javascript (format date, ....)</summary>
 		[Pure]
-		public CrystalJsonSettings ForJavaScript()
-		{
-			var flags = SetTargetLanguage(m_flags, Target.JavaScript);
-			flags = SetDateFormatting(flags, DateFormat.JavaScript);
-			return Update(flags);
-		}
+		public CrystalJsonSettings ForJavaScript() => Update(SetDateFormatting(SetTargetLanguage(m_flags, Target.JavaScript), DateFormat.JavaScript));
 
 		/// <summary>Sérialise les noms de propriétés en Pascal Case ("FirstName", comme en C#)</summary>
 		[Pure]
-		public CrystalJsonSettings PascalCased()
-		{
-			return Update(SetUseCamelCasingForNames(m_flags, false));
-		}
+		public CrystalJsonSettings PascalCased() => Update(SetUseCamelCasingForNames(m_flags, false));
 
 		/// <summary>Sérialise les noms de propriétés en Camel Case ("firstName", comme en JS)</summary>
 		[Pure]
-		public CrystalJsonSettings CamelCased()
-		{
-			return Update(SetUseCamelCasingForNames(m_flags, true));
-		}
+		public CrystalJsonSettings CamelCased() => Update(SetUseCamelCasingForNames(m_flags, true));
 
 		/// <summary>Les énumérations doivent être sérialisées sous forme de nombre</summary>
 		[Pure]
-		public CrystalJsonSettings WithEnumAsNumbers()
-		{
-			return Update(SetEnumsAsString(m_flags, false));
-		}
+		public CrystalJsonSettings WithEnumAsNumbers() => Update(SetEnumsAsString(m_flags, false));
 
 		/// <summary>Les énumérations doivent être sérialisées sous forme de chaînes de texte</summary>
 		[Pure]
-		public CrystalJsonSettings WithEnumAsStrings()
-		{
-			return Update(SetEnumsAsString(m_flags, true));
-		}
+		public CrystalJsonSettings WithEnumAsStrings() => Update(SetEnumsAsString(m_flags, true));
 
 		/// <summary>Fluent helper pour fixer EnumAsStrings à true</summary>
 		/// <param name="camelCased">Indique s'il faut convertir les enumeration en camelCased (true) ou les laisser au format natif</param>
 		[Pure]
-		public CrystalJsonSettings WithEnumAsStrings(bool camelCased)
-		{
-			var flags = SetEnumsAsString(m_flags, true);
-			flags = SetUseCamelCasingForEnums(flags, camelCased);
-			return Update(flags);
-		}
+		public CrystalJsonSettings WithEnumAsStrings(bool camelCased) => Update(SetUseCamelCasingForEnums(SetEnumsAsString(m_flags, true), camelCased));
 
 		/// <summary>Fluent helper pour fixer DoNotTrackVisitedObjects à true</summary>
 		[Pure]
-		public CrystalJsonSettings WithoutObjectTracking() //REVIEW: "DisableObjectTracking()" ?
-		{
-			return Update(SetDoNotTrackVisitedObjects(m_flags, true));
-		}
+		public CrystalJsonSettings WithoutObjectTracking() => Update(SetDoNotTrackVisitedObjects(m_flags, true));
 
 		/// <summary>Fluent helper pour fixer DoNotTrackVisitedObjects à false</summary>
 		[Pure]
-		public CrystalJsonSettings WithObjectTracking(bool enabled = false)
-		{
-			return Update(SetDoNotTrackVisitedObjects(m_flags, enabled));
-		}
+		public CrystalJsonSettings WithObjectTracking(bool enabled = false) => Update(SetDoNotTrackVisitedObjects(m_flags, enabled));
 
 		/// <summary>Configure l'interning de strings, pour réduire la consommation mémoire (suivant les scenario)</summary>
 		/// <param name="mode">Mode d'interning des chaines de texte</param>
-		/// <returns></returns>
 		[Pure]
-		public CrystalJsonSettings WithInterning(StringInterning mode)
-		{
-			return Update(SetInterningMode(m_flags, mode));
-		}
+		public CrystalJsonSettings WithInterning(StringInterning mode) => Update(SetInterningMode(m_flags, mode));
 
 		/// <summary>Désactive complètement l'interning des strings</summary>
 		[Pure]
-		public CrystalJsonSettings DisableInterning()
-		{
-			return Update(SetInterningMode(m_flags, StringInterning.Disabled));
-		}
+		public CrystalJsonSettings DisableInterning() => Update(SetInterningMode(m_flags, StringInterning.Disabled));
 
 		/// <summary>Active les optimisation pour un résultat JSON de grande taille</summary>
 		[Pure]
-		public CrystalJsonSettings ExpectLargeData()
-		{
-			return Update(SetOptimizeForLargeData(m_flags, true));
-		}
+		public CrystalJsonSettings ExpectLargeData() => Update(SetOptimizeForLargeData(m_flags, true));
 
 		/// <summary>Active les optimisation pour un résultat JSON de petite taille</summary>
 		/// <returns></returns>
 		[Pure]
-		public CrystalJsonSettings OptimizedFor(bool largeData)
-		{
-			return Update(SetOptimizeForLargeData(m_flags, largeData));
-		}
+		public CrystalJsonSettings OptimizedFor(bool largeData) => Update(SetOptimizeForLargeData(m_flags, largeData));
 
 		/// <summary>Active ou désactive la génération des attributs "_class" dans le JSON généré</summary>
 		[Pure]
-		public CrystalJsonSettings WithClassId(bool enabled = false)
-		{
-			return Update(SetHideClassId(m_flags, enabled));
-		}
+		public CrystalJsonSettings WithClassId(bool enabled = false) => Update(SetHideClassId(m_flags, enabled));
 
 		/// <summary>Désactive la génération des attributs "_class" dans le JSON généré</summary>
 		[Pure]
-		public CrystalJsonSettings WithoutClassId()
-		{
-			return Update(SetHideClassId(m_flags, true));
-		}
+		public CrystalJsonSettings WithoutClassId() => Update(SetHideClassId(m_flags, true));
 
 		/// <summary>Rend la désérialisation case-sensitive ou case insensitive sur le nom des champs d'un objet (état par défaut)</summary>
 		[Pure]
-		public CrystalJsonSettings WithCaseOnFields(bool ignoreCase = false)
-		{
-			return Update(SetIgnoreCaseForNames(m_flags, ignoreCase));
-		}
+		public CrystalJsonSettings WithCaseOnFields(bool ignoreCase = false) => Update(SetIgnoreCaseForNames(m_flags, ignoreCase));
 
 		/// <summary>Rend la désérialisation case-insensitive sur le nom des champs d'un objet</summary>
 		[Pure]
-		public CrystalJsonSettings WithoutCaseOnFields()
-		{
-			return Update(SetIgnoreCaseForNames(m_flags, true));
-		}
+		public CrystalJsonSettings WithoutCaseOnFields() => Update(SetIgnoreCaseForNames(m_flags, true));
 
 		/// <summary>Autorise la présence de virgules supplémentaires en fin d'objet ou d'array (état par défaut)</summary>
 		[Pure]
-		public CrystalJsonSettings WithTrailingCommas()
-		{
-			return Update(SetDenyTrailingComma(m_flags, false));
-		}
+		public CrystalJsonSettings WithTrailingCommas() => Update(SetDenyTrailingComma(m_flags, false));
 
 		/// <summary>Interdit la présence de virgules supplémentaires en fin d'objet ou d'array, en les ignorant</summary>
 		[Pure]
-		public CrystalJsonSettings WithoutTrailingCommas()
-		{
-			return Update(SetDenyTrailingComma(m_flags, true));
-		}
+		public CrystalJsonSettings WithoutTrailingCommas() => Update(SetDenyTrailingComma(m_flags, true));
 
 		/// <summary>Si un objet contient plusieurs fois le même champ, seul le dernier est conservé</summary>
-		/// <returns></returns>
 		[Pure]
-		public CrystalJsonSettings FlattenDuplicateFields()
-		{
-			return Update(SetOverwriteDuplicateFields(m_flags, true));
-		}
+		public CrystalJsonSettings FlattenDuplicateFields() => Update(SetOverwriteDuplicateFields(m_flags, true));
 
 		/// <summary>Si un object contient plusieurs fois le même champ, une exception est générée</summary>
-		/// <returns></returns>
 		[Pure]
-		public CrystalJsonSettings ThrowOnDuplicateFields()
-		{
-			return Update(SetOverwriteDuplicateFields(m_flags, false));
-		}
+		public CrystalJsonSettings ThrowOnDuplicateFields() => Update(SetOverwriteDuplicateFields(m_flags, false));
 
 		/// <summary>Défini le format de sérialisation des nombres à virgules</summary>
 		[Pure]
-		public CrystalJsonSettings WithFloatFormat(FloatFormat format)
-		{
-			return Update(SetFloatFormatting(m_flags, format));
-		}
+		public CrystalJsonSettings WithFloatFormat(FloatFormat format) => Update(SetFloatFormatting(m_flags, format));
 
 		#endregion
 
@@ -704,7 +594,7 @@ namespace Doxense.Serialization.Json
 			foreach (var s in new[] {Json, JsonCompact, JsonIndented, JsonStrict, JavaScript, JavaScriptCompact, JavaScriptIndented})
 			{
 				defaults[(int) s.Flags] = s;
-				//also cache the versions with enum as strings
+				// also cache the versions with enum as strings
 				var s2 = new CrystalJsonSettings(s.Flags | OptionFlags.EnumsAsString);
 				defaults[(int) s2.Flags] = s2;
 			}

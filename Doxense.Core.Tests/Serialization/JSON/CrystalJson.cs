@@ -52,8 +52,8 @@
 // ReSharper disable RedundantExplicitParamsArrayCreation
 
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+#pragma warning disable CA1861 // Avoid constant arrays as arguments
 #pragma warning disable 618
-#nullable disable //note: too much nullability warnings!
 
 namespace Doxense.Serialization.Json.Tests
 {

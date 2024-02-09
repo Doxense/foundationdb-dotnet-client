@@ -173,7 +173,6 @@ namespace Doxense.Serialization.Json
 
 		internal JsonValue ParseObjectInternal(ref VisitingContext context, object? value, Type declaredType, Type? runtimeType)
 		{
-
 			Contract.Debug.Requires(declaredType != null);
 
 			if (value == null)
@@ -188,19 +187,26 @@ namespace Doxense.Serialization.Json
 
 			// already a JSON DOM element ?
 			JsonValue? result = value as JsonValue;
-			if (result != null) return result;
+			if (result != null)
+			{
+				return result;
+			}
 
 			runtimeType ??= value.GetType();
 
 			if (runtimeType.IsPrimitive)
 			{ // int, bool, char, float, ...
 				if (TryConvertPrimitiveObject(value, runtimeType, out result))
+				{
 					return result;
+				}
 			}
 			else if (runtimeType.IsValueType)
 			{ // struct, datetime, guids, ...
 				if (TryConvertValueTypeObject(ref context, value, runtimeType, out result))
+				{
 					return result;
+				}
 			}
 			else if (runtimeType.IsArray)
 			{ // T[]

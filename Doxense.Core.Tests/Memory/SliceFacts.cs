@@ -26,6 +26,8 @@
 
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ImplicitlyCapturedClosure
+// ReSharper disable RedundantCast
+// ReSharper disable UseArrayEmptyMethod
 
 namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
 {
@@ -109,8 +111,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.IsNullOrEmpty, Is.False);
 			Assert.That(slice.IsPresent, Is.True);
 
-			Assert.That(slice.GetBytes(), Is.EqualTo(new byte[3] { 65, 66, 67 }));
-			Assert.That(slice.GetBytesOrEmpty(), Is.EqualTo(new byte[3] { 65, 66, 67 }));
+			Assert.That(slice.GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
+			Assert.That(slice.GetBytesOrEmpty(), Is.EqualTo("ABC"u8.ToArray()));
 			Assert.That(slice.ToByteString(), Is.EqualTo("ABC"));
 			Assert.That(slice.ToUnicode(), Is.EqualTo("ABC"));
 			Assert.That(slice.PrettyPrint(), Is.EqualTo("'ABC'"));
@@ -119,7 +121,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_Zero_With_Capacity()
 		{
-			Assert.That(Slice.Zero(0).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(Slice.Zero(0).GetBytes(), Is.EqualTo(Array.Empty<byte>()));
 			Assert.That(Slice.Zero(16).GetBytes(), Is.EqualTo(new byte[16]));
 
 			Assert.That(() => Slice.Zero(-1), Throws.InstanceOf<ArgumentException>());
@@ -129,7 +131,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_Slice_Create_With_Byte_Array()
 		{
 			Assert.That(default(byte[]).AsSlice().GetBytes(), Is.EqualTo(null));
-			Assert.That(new byte[0].AsSlice().GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(Array.Empty<byte>().AsSlice().GetBytes(), Is.EqualTo(Array.Empty<byte>()));
 			Assert.That(new byte[] { 1, 2, 3 }.AsSlice().GetBytes(), Is.EqualTo(new byte[] { 1, 2, 3 }));
 
 			// the array return by GetBytes() should not be the same array that was passed to Create !
@@ -152,7 +154,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
 
 			Assert.That(default(byte[]).AsSlice(), Is.EqualTo(Slice.Nil));
-			Assert.That(new byte[0].AsSlice(), Is.EqualTo(Slice.Empty));
+			Assert.That(Array.Empty<byte>().AsSlice(), Is.EqualTo(Slice.Empty));
 		}
 
 		[Test]
@@ -166,9 +168,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			// ReSharper restore AssignNullToNotNullAttribute
 
 			// empty array only allowed with offset=0 and count=0
-			Assert.That(() => new byte[0].AsSlice(0, 1), Throws.InstanceOf<ArgumentException>());
-			Assert.That(() => new byte[0].AsSlice(1, 0), Throws.Nothing, "Count 0 ignores offset");
-			Assert.That(() => new byte[0].AsSlice(1, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Array.Empty<byte>().AsSlice(0, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Array.Empty<byte>().AsSlice(1, 0), Throws.Nothing, "Count 0 ignores offset");
+			Assert.That(() => Array.Empty<byte>().AsSlice(1, 1), Throws.InstanceOf<ArgumentException>());
 
 			// last item must fit in the buffer
 			Assert.That(() => new byte[3].AsSlice(0, 4), Throws.InstanceOf<ArgumentException>());
@@ -203,7 +205,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
 
 			Assert.That(default(ArraySegment<byte>).AsSlice(), Is.EqualTo(Slice.Nil));
-			Assert.That(new ArraySegment<byte>(new byte[0]).AsSlice(), Is.EqualTo(Slice.Empty));
+			Assert.That(new ArraySegment<byte>([ ]).AsSlice(), Is.EqualTo(Slice.Empty));
 		}
 
 		[Test]
@@ -261,13 +263,13 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			Assert.That(Slice.FromStringAscii(default(string)).GetBytes(), Is.Null);
 			Assert.That(Slice.FromStringAscii(string.Empty).GetBytes(), Is.EqualTo(Array.Empty<byte>()));
-			Assert.That(Slice.FromStringAscii("A").GetBytes(), Is.EqualTo(new byte[] { 0x41 }));
-			Assert.That(Slice.FromStringAscii("AB").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42 }));
-			Assert.That(Slice.FromStringAscii("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromStringAscii("ABCD").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43, 0x44 }));
+			Assert.That(Slice.FromStringAscii("A").GetBytes(), Is.EqualTo("A"u8.ToArray()));
+			Assert.That(Slice.FromStringAscii("AB").GetBytes(), Is.EqualTo("AB"u8.ToArray()));
+			Assert.That(Slice.FromStringAscii("ABC").GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
+			Assert.That(Slice.FromStringAscii("ABCD").GetBytes(), Is.EqualTo("ABCD"u8.ToArray()));
 			Assert.That(Slice.FromStringAscii("\xFF/ABC").GetBytes(), Is.EqualTo(new byte[] { 0xFF, 0x2F, 0x41, 0x42, 0x43 }));
 			Assert.That(Slice.FromStringAscii("héllô").GetBytes(), Is.EqualTo(new byte[] { (byte)'h', 0xE9, (byte)'l', (byte)'l', 0xF4 }));
-			Assert.That(Slice.FromStringAscii("This is a test of the emergency encoding system").GetBytes(), Is.EqualTo(Encoding.ASCII.GetBytes("This is a test of the emergency encoding system")));
+			Assert.That(Slice.FromStringAscii("This is a test of the emergency encoding system").GetBytes(), Is.EqualTo("This is a test of the emergency encoding system"u8.ToArray()));
 
 			// if the string contains non-ASCII chars, it would be corrupted so FromAscii() should throw
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
@@ -279,26 +281,26 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			Assert.That(Slice.Nil.ToStringAscii(), Is.Null);
 			Assert.That(Slice.Empty.ToStringAscii(), Is.EqualTo(String.Empty));
-			Assert.That(new byte[] { 0x41 }.AsSlice().ToStringAscii(), Is.EqualTo("A"));
-			Assert.That(new byte[] { 0x41, 0x42 }.AsSlice().ToStringAscii(), Is.EqualTo("AB"));
-			Assert.That(new byte[] { 0x41, 0x42, 0x43 }.AsSlice().ToStringAscii(), Is.EqualTo("ABC"));
-			Assert.That(new byte[] { 0x41, 0x42, 0x43, 0x44 }.AsSlice().ToStringAscii(), Is.EqualTo("ABCD"));
+			Assert.That("A"u8.ToArray().AsSlice().ToStringAscii(), Is.EqualTo("A"));
+			Assert.That("AB"u8.ToArray().AsSlice().ToStringAscii(), Is.EqualTo("AB"));
+			Assert.That("ABC"u8.ToArray().AsSlice().ToStringAscii(), Is.EqualTo("ABC"));
+			Assert.That("ABCD"u8.ToArray().AsSlice().ToStringAscii(), Is.EqualTo("ABCD"));
 			Assert.That(new byte[] { 0x7F, 0x00, 0x1F }.AsSlice().ToStringAscii(), Is.EqualTo("\x7F\x00\x1F"));
-			Assert.That(new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46 }.AsSlice(2, 3).ToStringAscii(), Is.EqualTo("CDE"));
-			Assert.That(Encoding.ASCII.GetBytes("This is a test of the emergency encoding system").AsSlice().ToStringAscii(), Is.EqualTo("This is a test of the emergency encoding system"));
+			Assert.That("ABCDEF"u8.ToArray().AsSlice(2, 3).ToStringAscii(), Is.EqualTo("CDE"));
+			Assert.That("This is a test of the emergency encoding system"u8.ToArray().AsSlice().ToStringAscii(), Is.EqualTo("This is a test of the emergency encoding system"));
 
 			// If the slice contain anything other than 7+bit ASCII, it should throw!
 			Assert.That(() => new byte[] { 0xFF, 0x41, 0x42, 0x43 }.AsSlice().ToStringAscii(), Throws.Exception, "\\xFF is not valid in 7-bit ASCII strings!");
 			Assert.That(() => Encoding.Default.GetBytes("héllô").AsSlice().ToStringAscii(), Throws.Exception, "String that contain code points >= 0x80 should trow");
-			Assert.That(() => Encoding.UTF8.GetBytes("héllo 世界").AsSlice().ToStringAscii(), Throws.Exception, "String that contains code points >= 0x80 should throw");
+			Assert.That(() => "héllo 世界"u8.ToArray().AsSlice().ToStringAscii(), Throws.Exception, "String that contains code points >= 0x80 should throw");
 		}
 
 		[Test]
 		public void Test_Slice_FromByteString()
 		{
 			Assert.That(Slice.FromByteString(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromByteString(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromByteString("ABC").GetBytes(), Is.EqualTo(new [] { (byte) 'A', (byte) 'B', (byte) 'C' }));
+			Assert.That(Slice.FromByteString(string.Empty).GetBytes(), Is.EqualTo(Array.Empty<byte>()));
+			Assert.That(Slice.FromByteString("ABC").GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
 			Assert.That(Slice.FromByteString("\xFF/ABC").GetBytes(), Is.EqualTo(new [] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' }));
 			Assert.That(Slice.FromByteString("héllô").GetBytes(), Is.EqualTo(new byte[] { (byte)'h', 0xE9, (byte)'l', (byte)'l', 0xF4 }));
 
@@ -318,8 +320,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			//note: FromStringAnsi uses Encoding.Default which varies from system to system! (win-1252, utf8-, ...)
 
 			Assert.That(Slice.FromStringAnsi(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromStringAnsi(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromStringAnsi("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
+			Assert.That(Slice.FromStringAnsi(string.Empty).GetBytes(), Is.EqualTo(Array.Empty<byte>()));
+			Assert.That(Slice.FromStringAnsi("ABC").GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
 			Assert.That(Slice.FromStringAnsi("\xFF/ABC").GetBytes(), Is.EqualTo(Encoding.Default.GetBytes("\xFF/ABC")));
 			Assert.That(Slice.FromStringAnsi("héllô").GetBytes(), Is.EqualTo(Encoding.Default.GetBytes("héllô"))); //note: this depends on your OS locale!
 
@@ -337,7 +339,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			Assert.That(Slice.Nil.ToStringAnsi(), Is.Null);
 			Assert.That(Slice.Empty.ToStringAnsi(), Is.EqualTo(String.Empty));
-			Assert.That(new[] { (byte) 'A', (byte) 'B', (byte) 'C' }.AsSlice().ToStringAnsi(), Is.EqualTo("ABC"));
+			Assert.That("ABC"u8.ToArray().AsSlice().ToStringAnsi(), Is.EqualTo("ABC"));
 			Assert.That(Encoding.Default.GetBytes("héllô").AsSlice().ToStringAnsi(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
 			Assert.That(new[] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' }.AsSlice().ToStringAnsi(), Is.EqualTo(Encoding.Default.GetString(new[] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' })));
 		}
@@ -346,47 +348,47 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_Slice_FromString_Uses_UTF8()
 		{
 			Assert.That(Slice.FromString(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromString(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromString("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromString("é").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
+			Assert.That(Slice.FromString(string.Empty).GetBytes(), Is.EqualTo(Array.Empty<byte>()));
+			Assert.That(Slice.FromString("ABC").GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
+			Assert.That(Slice.FromString("é").GetBytes(), Is.EqualTo("é"u8.ToArray()));
 
 			// if the string contains UTF-8 characters, it should be encoded properly
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
 			var slice = Slice.FromString("héllø 世界"); // 8 'letters'
-			Assert.That(slice.GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("héllø 世界")));
+			Assert.That(slice.GetBytes(), Is.EqualTo("héllø 世界"u8.ToArray()));
 			Assert.That(slice.ToUnicode(), Is.EqualTo("héllø 世界"), "non-ASCII chars should not be corrupted");
 			Assert.That(slice.Count, Is.EqualTo(14));
 
 			// UTF8 does not map \xFF or \xFE directly to a single byte (but at least it should round-trip)
-			Assert.That(Slice.FromString("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBF }));
-			Assert.That(Slice.FromString("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBE }));
-			Assert.That(new byte[] { 0xC3, 0xBF }.AsSlice().ToUnicode(), Is.EqualTo("\xFF"));
-			Assert.That(new byte[] { 0xC3, 0xBE }.AsSlice().ToUnicode(), Is.EqualTo("\xFE"));
+			Assert.That(Slice.FromString("\xFF").GetBytes(), Is.EqualTo("ÿ"u8.ToArray()));
+			Assert.That(Slice.FromString("\xFE").GetBytes(), Is.EqualTo("þ"u8.ToArray()));
+			Assert.That("ÿ"u8.ToArray().AsSlice().ToUnicode(), Is.EqualTo("\xFF"));
+			Assert.That("þ"u8.ToArray().AsSlice().ToUnicode(), Is.EqualTo("\xFE"));
 		}
 
 		[Test]
 		public void Test_Slice_FromStringUtf8()
 		{
 			Assert.That(Slice.FromStringUtf8(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromStringUtf8(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromStringUtf8("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromStringUtf8("é").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
+			Assert.That(Slice.FromStringUtf8(string.Empty).GetBytes(), Is.EqualTo(Array.Empty<byte>()));
+			Assert.That(Slice.FromStringUtf8("ABC").GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
+			Assert.That(Slice.FromStringUtf8("é").GetBytes(), Is.EqualTo("é"u8.ToArray()));
 
 			// if the string contains UTF-8 characters, it should be encoded properly
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
 			var slice = Slice.FromStringUtf8("héllø 世界"); // 8 'letters'
-			Assert.That(slice.GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("héllø 世界")));
+			Assert.That(slice.GetBytes(), Is.EqualTo("héllø 世界"u8.ToArray()));
 			Assert.That(slice.ToStringUtf8(), Is.EqualTo("héllø 世界"), "non-ASCII chars should not be corrupted");
 			Assert.That(slice.ToUnicode(), Is.EqualTo("héllø 世界"), "non-ASCII chars should not be corrupted");
 			Assert.That(slice.Count, Is.EqualTo(14));
 
 			// UTF8 does not map \xFF or \xFE directly to a single byte (but at least it should round-trip)
-			Assert.That(Slice.FromStringUtf8("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBF }));
-			Assert.That(Slice.FromStringUtf8("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBE }));
-			Assert.That(new byte[] { 0xC3, 0xBF }.AsSlice().ToStringUtf8(), Is.EqualTo("\xFF"));
-			Assert.That(new byte[] { 0xC3, 0xBF }.AsSlice().ToUnicode(), Is.EqualTo("\xFF"));
-			Assert.That(new byte[] { 0xC3, 0xBE }.AsSlice().ToStringUtf8(), Is.EqualTo("\xFE"));
-			Assert.That(new byte[] { 0xC3, 0xBE }.AsSlice().ToUnicode(), Is.EqualTo("\xFE"));
+			Assert.That(Slice.FromStringUtf8("\xFF").GetBytes(), Is.EqualTo("ÿ"u8.ToArray()));
+			Assert.That(Slice.FromStringUtf8("\xFE").GetBytes(), Is.EqualTo("þ"u8.ToArray()));
+			Assert.That("ÿ"u8.ToArray().AsSlice().ToStringUtf8(), Is.EqualTo("\xFF"));
+			Assert.That("ÿ"u8.ToArray().AsSlice().ToUnicode(), Is.EqualTo("\xFF"));
+			Assert.That("þ"u8.ToArray().AsSlice().ToStringUtf8(), Is.EqualTo("\xFE"));
+			Assert.That("þ"u8.ToArray().AsSlice().ToUnicode(), Is.EqualTo("\xFE"));
 		}
 
 		[Test]
@@ -394,9 +396,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			Assert.That(Slice.Nil.ToStringUtf8(), Is.Null);
 			Assert.That(Slice.Empty.ToStringUtf8(), Is.EqualTo(String.Empty));
-			Assert.That(new[] { (byte) 'A', (byte) 'B', (byte) 'C' }.AsSlice().ToStringUtf8(), Is.EqualTo("ABC"));
-			Assert.That(Encoding.UTF8.GetBytes("héllô").AsSlice().ToStringUtf8(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
-			Assert.That(Encoding.UTF8.GetBytes("世界").AsSlice().ToStringUtf8(), Is.EqualTo("世界"));
+			Assert.That("ABC"u8.ToArray().AsSlice().ToStringUtf8(), Is.EqualTo("ABC"));
+			Assert.That("héllô"u8.ToArray().AsSlice().ToStringUtf8(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
+			Assert.That("世界"u8.ToArray().AsSlice().ToStringUtf8(), Is.EqualTo("世界"));
 
 			// should remove the bom!
 			Assert.That(new byte[] { 0xEF, 0xBB, 0xBF, (byte) 'A', (byte) 'B', (byte) 'C' }.AsSlice().ToStringUtf8(), Is.EqualTo("ABC"), "BOM should be removed");
@@ -422,7 +424,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			// if the string contains UTF-8 characters, it should be encoded properly
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
 			var slice = Slice.FromStringUtf8WithBom("héllø 世界"); // 8 'letters'
-			Assert.That(slice.GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.UTF8.GetBytes("héllø 世界")).ToArray()));
+			Assert.That(slice.GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }.Concat("héllø 世界"u8.ToArray()).ToArray()));
 			Assert.That(slice.ToStringUtf8(), Is.EqualTo("héllø 世界"), "The BOM should be removed");
 			Assert.That(slice.ToUnicode(), Is.EqualTo("\xFEFFhéllø 世界"), "The BOM should be preserved");
 			Assert.That(slice.Count, Is.EqualTo(3 + 14));
@@ -872,24 +874,24 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			}
 
 			Verify(0L, new byte[8]);
-			Verify(1L, new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 });
-			Verify(1L << 8, new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 });
-			Verify(1L << 16, new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 });
-			Verify(1L << 24, new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 });
-			Verify(1L << 32, new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 });
-			Verify(1L << 40, new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 });
-			Verify(1L << 48, new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 });
-			Verify(1L << 56, new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 });
-			Verify(short.MaxValue, new byte[] { 255, 127, 0, 0, 0, 0, 0, 0 });
-			Verify(int.MaxValue, new byte[] { 255, 255, 255, 127, 0, 0, 0, 0 });
-			Verify(long.MaxValue, new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 });
+			Verify(1L, [ 1, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(1L << 8, [ 0, 1, 0, 0, 0, 0, 0, 0 ]);
+			Verify(1L << 16, [ 0, 0, 1, 0, 0, 0, 0, 0 ]);
+			Verify(1L << 24, [ 0, 0, 0, 1, 0, 0, 0, 0 ]);
+			Verify(1L << 32, [ 0, 0, 0, 0, 1, 0, 0, 0 ]);
+			Verify(1L << 40, [ 0, 0, 0, 0, 0, 1, 0, 0 ]);
+			Verify(1L << 48, [ 0, 0, 0, 0, 0, 0, 1, 0 ]);
+			Verify(1L << 56, [ 0, 0, 0, 0, 0, 0, 0, 1 ]);
+			Verify(short.MaxValue, [ 255, 127, 0, 0, 0, 0, 0, 0 ]);
+			Verify(int.MaxValue, [ 255, 255, 255, 127, 0, 0, 0, 0 ]);
+			Verify(long.MaxValue, [ 255, 255, 255, 255, 255, 255, 255, 127 ]);
 
-			Verify(-1L, new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 });
-			Verify(-256L, new byte[] { 0, 255, 255, 255, 255, 255, 255, 255 });
-			Verify(-65536L, new byte[] { 0, 0, 255, 255, 255, 255, 255, 255 });
-			Verify(-16777216L, new byte[] { 0, 0, 0, 255, 255, 255, 255, 255 });
-			Verify(-4294967296L, new byte[] { 0, 0, 0, 0, 255, 255, 255, 255 });
-			Verify(long.MinValue, new byte[] { 0, 0, 0, 0, 0, 0, 0, 128 });
+			Verify(-1L, [ 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-256L, [ 0, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-65536L, [ 0, 0, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-16777216L, [ 0, 0, 0, 255, 255, 255, 255, 255 ]);
+			Verify(-4294967296L, [ 0, 0, 0, 0, 255, 255, 255, 255 ]);
+			Verify(long.MinValue, [ 0, 0, 0, 0, 0, 0, 0, 128 ]);
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
@@ -1004,24 +1006,24 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			}
 
 			Verify(0L, new byte[8]);
-			Verify(1L, new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 });
-			Verify(1L << 8, new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 });
-			Verify(1L << 16, new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 });
-			Verify(1L << 24, new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 });
-			Verify(1L << 32, new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 });
-			Verify(1L << 40, new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 });
-			Verify(1L << 48, new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 });
-			Verify(1L << 56, new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 });
-			Verify(short.MaxValue, new byte[] { 0, 0, 0, 0, 0, 0, 127, 255 });
-			Verify(int.MaxValue, new byte[] { 0, 0, 0, 0, 127, 255, 255, 255 });
-			Verify(long.MaxValue, new byte[] { 127, 255, 255, 255, 255, 255, 255, 255 });
+			Verify(1L, [ 0, 0, 0, 0, 0, 0, 0, 1 ]);
+			Verify(1L << 8, [ 0, 0, 0, 0, 0, 0, 1, 0 ]);
+			Verify(1L << 16, [ 0, 0, 0, 0, 0, 1, 0, 0 ]);
+			Verify(1L << 24, [ 0, 0, 0, 0, 1, 0, 0, 0 ]);
+			Verify(1L << 32, [ 0, 0, 0, 1, 0, 0, 0, 0 ]);
+			Verify(1L << 40, [ 0, 0, 1, 0, 0, 0, 0, 0 ]);
+			Verify(1L << 48, [ 0, 1, 0, 0, 0, 0, 0, 0 ]);
+			Verify(1L << 56, [ 1, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(short.MaxValue, [ 0, 0, 0, 0, 0, 0, 127, 255 ]);
+			Verify(int.MaxValue, [ 0, 0, 0, 0, 127, 255, 255, 255 ]);
+			Verify(long.MaxValue, [ 127, 255, 255, 255, 255, 255, 255, 255 ]);
 
-			Verify(-1L, new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 });
-			Verify(-256L, new byte[] { 255, 255, 255, 255, 255, 255, 255, 0 });
-			Verify(-65536L, new byte[] { 255, 255, 255, 255, 255, 255, 0, 0 });
-			Verify(-16777216L, new byte[] { 255, 255, 255, 255, 255, 0, 0, 0 });
-			Verify(-4294967296L, new byte[] { 255, 255, 255, 255, 0, 0, 0, 0 });
-			Verify(long.MinValue, new byte[] { 128, 0, 0, 0, 0, 0, 0, 0 });
+			Verify(-1L, [ 255, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(-256L, [ 255, 255, 255, 255, 255, 255, 255, 0 ]);
+			Verify(-65536L, [ 255, 255, 255, 255, 255, 255, 0, 0 ]);
+			Verify(-16777216L, [ 255, 255, 255, 255, 255, 0, 0, 0 ]);
+			Verify(-4294967296L, [ 255, 255, 255, 255, 0, 0, 0, 0 ]);
+			Verify(long.MinValue, [ 128, 0, 0, 0, 0, 0, 0, 0 ]);
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
@@ -1118,13 +1120,13 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			}
 
 			Verify(0, new byte[4]);
-			Verify(1, new byte[] { 1, 0, 0, 0 });
-			Verify(256, new byte[] { 0, 1, 0, 0 });
-			Verify(ushort.MaxValue, new byte[] { 255, 255, 0, 0 });
-			Verify(65536, new byte[] { 0, 0, 1, 0 });
-			Verify(16777216, new byte[] { 0, 0, 0, 1 });
-			Verify(int.MaxValue, new byte[] { 255, 255, 255, 127 });
-			Verify(uint.MaxValue, new byte[] { 255, 255, 255, 255 });
+			Verify(1, [ 1, 0, 0, 0 ]);
+			Verify(256, [ 0, 1, 0, 0 ]);
+			Verify(ushort.MaxValue, [ 255, 255, 0, 0 ]);
+			Verify(65536, [ 0, 0, 1, 0 ]);
+			Verify(16777216, [ 0, 0, 0, 1 ]);
+			Verify(int.MaxValue, [ 255, 255, 255, 127 ]);
+			Verify(uint.MaxValue, [ 255, 255, 255, 255 ]);
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
@@ -1200,13 +1202,13 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			}
 
 			Verify(0, new byte[4]);
-			Verify(1, new byte[] { 0, 0, 0, 1 });
-			Verify(256, new byte[] { 0, 0, 1, 0 });
-			Verify(ushort.MaxValue, new byte[] { 0, 0, 255, 255 });
-			Verify(65536, new byte[] { 0, 1, 0, 0 });
-			Verify(16777216, new byte[] { 1, 0, 0, 0 });
-			Verify(int.MaxValue, new byte[] { 127, 255, 255, 255 });
-			Verify(uint.MaxValue, new byte[] { 255, 255, 255, 255 });
+			Verify(1, [ 0, 0, 0, 1 ]);
+			Verify(256, [ 0, 0, 1, 0 ]);
+			Verify(ushort.MaxValue, [ 0, 0, 255, 255 ]);
+			Verify(65536, [ 0, 1, 0, 0 ]);
+			Verify(16777216, [ 1, 0, 0, 0 ]);
+			Verify(int.MaxValue, [ 127, 255, 255, 255 ]);
+			Verify(uint.MaxValue, [ 255, 255, 255, 255 ]);
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
@@ -1294,19 +1296,19 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			}
 
 			Verify(0UL, new byte[8]);
-			Verify(1UL, new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 });
-			Verify(1UL << 8, new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 });
-			Verify(1UL << 16, new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 });
-			Verify(1UL << 24, new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 });
-			Verify(1UL << 32, new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 });
-			Verify(1UL << 40, new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 });
-			Verify(1UL << 48, new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 });
-			Verify(1UL << 56, new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 });
-			Verify(ushort.MaxValue, new byte[] { 255, 255, 0, 0, 0, 0, 0, 0 });
-			Verify(int.MaxValue, new byte[] { 255, 255, 255, 127, 0, 0, 0, 0 });
-			Verify(uint.MaxValue, new byte[] { 255, 255, 255, 255, 0, 0, 0, 0 });
-			Verify(long.MaxValue, new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 });
-			Verify(ulong.MaxValue, new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 });
+			Verify(1UL, [ 1, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(1UL << 8, [ 0, 1, 0, 0, 0, 0, 0, 0 ]);
+			Verify(1UL << 16, [ 0, 0, 1, 0, 0, 0, 0, 0 ]);
+			Verify(1UL << 24, [ 0, 0, 0, 1, 0, 0, 0, 0 ]);
+			Verify(1UL << 32, [ 0, 0, 0, 0, 1, 0, 0, 0 ]);
+			Verify(1UL << 40, [ 0, 0, 0, 0, 0, 1, 0, 0 ]);
+			Verify(1UL << 48, [ 0, 0, 0, 0, 0, 0, 1, 0 ]);
+			Verify(1UL << 56, [ 0, 0, 0, 0, 0, 0, 0, 1 ]);
+			Verify(ushort.MaxValue, [ 255, 255, 0, 0, 0, 0, 0, 0 ]);
+			Verify(int.MaxValue, [ 255, 255, 255, 127, 0, 0, 0, 0 ]);
+			Verify(uint.MaxValue, [ 255, 255, 255, 255, 0, 0, 0, 0 ]);
+			Verify(long.MaxValue, [ 255, 255, 255, 255, 255, 255, 255, 127 ]);
+			Verify(ulong.MaxValue, [ 255, 255, 255, 255, 255, 255, 255, 255 ]);
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
@@ -1350,9 +1352,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt64(), Is.EqualTo(ulong.MaxValue));
 
 			// should validate the arguments
-			var x = new byte[] { 0x78, 0x56, 0x34, 0x12 }.AsSlice();
+			var x = new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice();
 			Assert.That(() => MutateOffset(x, -1).ToUInt64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 5).ToUInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 9).ToUInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null!).ToUInt64(), Throws.InstanceOf<FormatException>());
 		}
 
@@ -1402,19 +1404,19 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			}
 
 			Verify(0UL, new byte[8]);
-			Verify(1L, new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 });
-			Verify(1L << 8, new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 });
-			Verify(1L << 16, new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 });
-			Verify(1L << 24, new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 });
-			Verify(1L << 32, new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 });
-			Verify(1L << 40, new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 });
-			Verify(1L << 48, new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 });
-			Verify(1L << 56, new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 });
-			Verify(ushort.MaxValue, new byte[] { 0, 0, 0, 0, 0, 0, 255, 255 });
-			Verify(int.MaxValue, new byte[] { 0, 0, 0, 0, 127, 255, 255, 255 });
-			Verify(uint.MaxValue, new byte[] { 0, 0, 0, 0, 255, 255, 255, 255 });
-			Verify(long.MaxValue, new byte[] { 127, 255, 255, 255, 255, 255, 255, 255 });
-			Verify(ulong.MaxValue, new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 });
+			Verify(1L, [ 0, 0, 0, 0, 0, 0, 0, 1 ]);
+			Verify(1L << 8, [ 0, 0, 0, 0, 0, 0, 1, 0 ]);
+			Verify(1L << 16, [ 0, 0, 0, 0, 0, 1, 0, 0 ]);
+			Verify(1L << 24, [ 0, 0, 0, 0, 1, 0, 0, 0 ]);
+			Verify(1L << 32, [ 0, 0, 0, 1, 0, 0, 0, 0 ]);
+			Verify(1L << 40, [ 0, 0, 1, 0, 0, 0, 0, 0 ]);
+			Verify(1L << 48, [ 0, 1, 0, 0, 0, 0, 0, 0 ]);
+			Verify(1L << 56, [ 1, 0, 0, 0, 0, 0, 0, 0 ]);
+			Verify(ushort.MaxValue, [ 0, 0, 0, 0, 0, 0, 255, 255 ]);
+			Verify(int.MaxValue, [ 0, 0, 0, 0, 127, 255, 255, 255 ]);
+			Verify(uint.MaxValue, [ 0, 0, 0, 0, 255, 255, 255, 255 ]);
+			Verify(long.MaxValue, [ 127, 255, 255, 255, 255, 255, 255, 255 ]);
+			Verify(ulong.MaxValue, [ 255, 255, 255, 255, 255, 255, 255, 255 ]);
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
@@ -1832,11 +1834,11 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice, Is.EqualTo(Slice.Empty));
 
 			// UUIDs should be stored in lexicographical order
-			slice = Slice.FromBase64(Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello, World!")));
+			slice = Slice.FromBase64(Convert.ToBase64String("Hello, World!"u8.ToArray()));
 			Assert.That(slice.ToUnicode(), Is.EqualTo("Hello, World!"));
 
 			// malformed
-			Assert.That(() => Slice.FromBase64(Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello, World!")).Substring(1)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.FromBase64(Convert.ToBase64String("Hello, World!"u8.ToArray()).Substring(1)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => Slice.FromBase64("This is not a base64 string!"), Throws.InstanceOf<FormatException>());
 		}
 
@@ -1991,7 +1993,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_Equality_TwoByteArrayWithSameContentFromSameOriginalBufferShouldReturnTrue()
 		{
-			var origin = System.Text.Encoding.ASCII.GetBytes("abcdabcd");
+			var origin = "abcdabcd"u8.ToArray();
 			var a1 = new ArraySegment<byte>(origin, 0, 4); //"abcd", refer first part of origin buffer
 			var s1 = a1.AsSlice(); //
 			var a2 = new ArraySegment<byte>(origin, 4, 4);//"abcd", refer second part of origin buffer
@@ -2163,8 +2165,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 		#endregion
 
-		private static readonly string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
-		private static readonly byte[] UNICODE_BYTES = Encoding.UTF8.GetBytes(UNICODE_TEXT);
+		private const string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
+		private static readonly byte[] UNICODE_BYTES = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします"u8.ToArray();
 
 		[Test]
 		public void Test_Slice_FromStream()
@@ -2208,8 +2210,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var tmp = Path.GetTempFileName();
 			try
 			{
-				File.WriteAllBytes(tmp, UNICODE_BYTES);
-				using(var fs = File.OpenRead(tmp))
+				await File.WriteAllBytesAsync(tmp, UNICODE_BYTES, this.Cancellation);
+				using (var fs = File.OpenRead(tmp))
 				{
 					slice = await Slice.FromStreamAsync(fs, this.Cancellation);
 				}
@@ -2337,7 +2339,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var c = Value("CCC");
 
 			// empty separator should just join all slices together
-			Assert.That(Slice.Join(Slice.Empty, new Slice[0]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(Slice.Empty, Array.Empty<Slice>()), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Join(Slice.Empty, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Join(Slice.Empty, new[] { a }), Is.EqualTo(Value("A")));
 			Assert.That(Slice.Join(Slice.Empty, new[] { a, b }), Is.EqualTo(Value("ABB")));
@@ -2347,7 +2349,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			// single byte separator
 			var sep = Slice.FromChar(',');
-			Assert.That(Slice.Join(sep, new Slice[0]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(sep, Array.Empty<Slice>()), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Join(sep, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Value("A")));
 			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Value("A,BB")));
@@ -2361,7 +2363,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			// multi byte separator, with a non-0 offset
 			sep = Value("!<@>!").Substring(1, 3);
 			Assert.That(sep.Offset, Is.EqualTo(1));
-			Assert.That(Slice.Join(sep, new Slice[0]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(sep, Array.Empty<Slice>()), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Join(sep, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Value("A")));
 			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Value("A<@>BB")));
@@ -2432,7 +2434,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(joined, Is.Not.Null);
 			Assert.That(joined.Length, Is.EqualTo(0));
 
-			joined = Slice.JoinBytes(sep, Array.Empty<Slice>(), 0, 0);
+			joined = Slice.JoinBytes(sep, [ ], 0, 0);
 			Assert.That(joined, Is.Not.Null);
 			Assert.That(joined.Length, Is.EqualTo(0));
 
@@ -2464,14 +2466,14 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(Value("A,BB,CCC").Split(comma), Is.EqualTo(new[] { a, b, c }));
 
 			// empty values should be kept or discarded, depending on the option settings
-			Assert.That(Value("A,,CCC").Split(comma, StringSplitOptions.None), Is.EqualTo(new[] { a, Slice.Empty, c }));
+			Assert.That(Value("A,,CCC").Split(comma), Is.EqualTo(new[] { a, Slice.Empty, c }));
 			Assert.That(Value("A,,CCC").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new[] { a, c }));
 
 			// edge cases
 			// > should behave the same as String.Split()
-			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.None), Is.EqualTo(new [] { Slice.Empty }));
+			Assert.That(Slice.Empty.Split(comma), Is.EqualTo(new [] { Slice.Empty }));
 			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(Array.Empty<Slice>()));
-			Assert.That(Value("A,").Split(comma, StringSplitOptions.None), Is.EqualTo(new[] { a, Slice.Empty }));
+			Assert.That(Value("A,").Split(comma), Is.EqualTo(new[] { a, Slice.Empty }));
 			Assert.That(Value("A,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new [] { a }));
 			Assert.That(Value(",").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(Array.Empty<Slice>()));
 			Assert.That(Value(",,,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(Array.Empty<Slice>()));
@@ -2490,7 +2492,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			span = Slice.Empty.Span;
 			Assert.That(span.Length, Is.Zero, "Slice.Empty => empty span");
 
-			var buffer = Encoding.ASCII.GetBytes("$$$Hello, World!$$$$$");
+			var buffer = "$$$Hello, World!$$$$$"u8.ToArray();
 			var x = buffer.AsSlice(3, 13);
 			Assume.That(x.ToStringUtf8(), Is.EqualTo("Hello, World!"));
 			var bytes = x.GetBytesOrEmpty();
@@ -2503,25 +2505,25 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			span = x.Substring(7).Span;
 			Assert.That(span.Length, Is.EqualTo(6));
 			Assert.That((char)span[0], Is.EqualTo('W'));
-			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("World!")));
+			Assert.That(span.ToArray(), Is.EqualTo("World!"u8.ToArray()));
 
 			span = x.Substring(7, 5).Span;
 			Assert.That(span.Length, Is.EqualTo(5));
 			Assert.That((char)span[0], Is.EqualTo('W'));
-			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("World")));
+			Assert.That(span.ToArray(), Is.EqualTo("World"u8.ToArray()));
 
 			//note: mutating the slice behind our back should be visible via the span
 			span = x.Substring(0, 5).Span;
-			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("Hello")));
+			Assert.That(span.ToArray(), Is.EqualTo("Hello"u8.ToArray()));
 			buffer[4] = (byte) '3';
-			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("H3llo")));
+			Assert.That(span.ToArray(), Is.EqualTo("H3llo"u8.ToArray()));
 		}
 
 		[Test]
 		public void Test_Slice_ReadExactly_MemoryStream()
 		{
 			// passing in a memory stream
-			var data = Encoding.UTF8.GetBytes("This is a test of the emergency broadcast system.");
+			var data = "This is a test of the emergency broadcast system."u8.ToArray();
 			using (var ms = new MemoryStream(data, 0, data.Length, writable: false, publiclyVisible: true))
 			{
 				// from the start

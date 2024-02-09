@@ -38,15 +38,19 @@ namespace Doxense.Serialization.Json
 		CrystalJsonTypeDefinition? ResolveJsonType(Type type);
 
 		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		object? BindJsonValue(Type? type, JsonValue? value);
 
 		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		T? BindJson<T>(JsonValue? value);
 
 		/// <summary>Bind a JSON object into the corresponding CLR type</summary>
+		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>
 		object? BindJsonObject(Type? type, JsonObject? value);
 
 		/// <summary>Bind a JSON array into the corresponding CLR type</summary>
+		/// <exception cref="JsonBindingException">If the array cannot be bound to the specified type.</exception>
 		object? BindJsonArray(Type? type, JsonArray? array);
 
 	}

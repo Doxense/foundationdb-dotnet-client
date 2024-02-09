@@ -1517,7 +1517,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="text">Chaîne à encoder</param>
 		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
 		/// <remarks>Chaine correctement encodée. Note: retourne "null" si text==null</remarks>
-		public static string StringEncode(string text)
+		public static string StringEncode(string? text)
 		{
 			return JsonEncoding.Encode(text);
 		}
@@ -1527,7 +1527,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="text">Chaîne à encoder</param>
 		/// <returns>Le StringBuilder passé en paramètre (pour chainage)</returns>
 		/// <remarks>Note: Ajoute "null" si text==null && includeQuotes==true</remarks>
-		public static StringBuilder StringAppend(StringBuilder sb, string text)
+		public static StringBuilder StringAppend(StringBuilder sb, string? text)
 		{
 			return JsonEncoding.Append(sb, text);
 		}

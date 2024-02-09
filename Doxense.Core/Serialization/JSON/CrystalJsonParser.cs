@@ -955,9 +955,13 @@ namespace Doxense.Serialization.Json
 							if (state != EXPECT_NEXT)
 							{
 								if (state == EXPECT_PROPERTY && prev == ',' && reader.Settings.DenyTrailingCommas)
+								{
 									throw reader.FailInvalidSyntax("Missing field before end of object");
+								}
 								if (state == EXPECT_VALUE)
+								{
 									throw reader.FailInvalidSyntax("Missing value for field #{0} at the end of object definition", index);
+								}
 							}
 #if DEBUG_JSON_PARSER
 							System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonObject(...) [END] read " + map.Count + " fields");
@@ -1126,7 +1130,7 @@ namespace Doxense.Serialization.Json
 					{
 						if (valueRequired && reader.Settings.DenyTrailingCommas) throw reader.FailInvalidSyntax("Missing value before end of array");
 #if DEBUG_JSON_PARSER
-					System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonArray(...) [END] read " + list.Count + " values");
+						System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonArray(...) [END] read " + list.Count + " values");
 #endif
 						if (index == 0) return new JsonArray();
 

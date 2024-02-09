@@ -769,7 +769,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteGuid(ref TupleWriter writer, Guid? value)
 		{
-			if (!value.HasValue) WriteNil(ref writer); else WriteGuid(ref writer, value.Value);
+			if (!value.HasValue)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteGuid(ref writer, value.Value);
+			}
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
@@ -783,7 +790,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid128(ref TupleWriter writer, Uuid128? value)
 		{
-			if (!value.HasValue) WriteNil(ref writer); else WriteUuid128(ref writer, value.Value);
+			if (!value.HasValue)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteUuid128(ref writer, value.Value);
+			}
 		}
 
 		/// <summary>Writes a 96-bit UUID</summary>
@@ -797,7 +811,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid96(ref TupleWriter writer, Uuid96? value)
 		{
-			if (!value.HasValue) WriteNil(ref writer); else WriteUuid96(ref writer, value.Value);
+			if (!value.HasValue)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteUuid96(ref writer, value.Value);
+			}
 		}
 
 		/// <summary>Writes a 80-bit UUID</summary>
@@ -811,7 +832,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid80(ref TupleWriter writer, Uuid80? value)
 		{
-			if (!value.HasValue) WriteNil(ref writer); else WriteUuid80(ref writer, value.Value);
+			if (!value.HasValue)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteUuid80(ref writer, value.Value);
+			}
 		}
 
 		/// <summary>Writes a 64-bit UUID</summary>
@@ -825,7 +853,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid64(ref TupleWriter writer, Uuid64? value)
 		{
-			if (!value.HasValue) WriteNil(ref writer); else WriteUuid64(ref writer, value.Value);
+			if (!value.HasValue)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteUuid64(ref writer, value.Value);
+			}
 		}
 
 		public static void WriteVersionStamp(ref TupleWriter writer, VersionStamp value)
@@ -847,7 +882,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteVersionStamp(ref TupleWriter writer, VersionStamp? value)
 		{
-			if (!value.HasValue) WriteNil(ref writer); else WriteVersionStamp(ref writer, value.Value);
+			if (!value.HasValue)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteVersionStamp(ref writer, value.Value);
+			}
 		}
 
 		public static void WriteUserType(ref TupleWriter writer, TuPackUserType? value)
