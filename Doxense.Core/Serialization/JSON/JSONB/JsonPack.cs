@@ -29,7 +29,7 @@ namespace Doxense.Serialization.Json.Binary
 	using System;
 	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using Diagnostics.Contracts;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Text;
 	using JetBrains.Annotations;

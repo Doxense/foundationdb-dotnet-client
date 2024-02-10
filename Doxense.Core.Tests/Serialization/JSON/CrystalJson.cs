@@ -4307,10 +4307,10 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			var arr = new JsonArray()
 			{
-				JsonObject.FromObjectImmutable(new { Id = 1, Name = "Walter White", Pseudo = "Einsenberg", Job = "Cook", Sickness = "Lung Cancer" }),
-				JsonObject.FromObjectImmutable(new { Id = 2, Name = "Jesse Pinkman", Job = "Drug Dealer" }),
-				JsonObject.FromObjectImmutable(new { Id = 3, Name = "Walter White, Jr", Pseudo = "Flynn", Sickness = "Cerebral Palsy" }),
-				JsonObject.FromObjectImmutable(new { Foo = "bar", Version = 1 }), // completely unrelated object (probably a bug)
+				JsonObject.FromObjectReadOnly(new { Id = 1, Name = "Walter White", Pseudo = "Einsenberg", Job = "Cook", Sickness = "Lung Cancer" }),
+				JsonObject.FromObjectReadOnly(new { Id = 2, Name = "Jesse Pinkman", Job = "Drug Dealer" }),
+				JsonObject.FromObjectReadOnly(new { Id = 3, Name = "Walter White, Jr", Pseudo = "Flynn", Sickness = "Cerebral Palsy" }),
+				JsonObject.FromObjectReadOnly(new { Foo = "bar", Version = 1 }), // completely unrelated object (probably a bug)
 				JsonObject.EmptyReadOnly, // empty object
 				JsonNull.Null, // Null should not be changed
 				JsonNull.Missing, // Missing should be converted to Null
@@ -5359,7 +5359,7 @@ namespace Doxense.Serialization.Json.Tests
 			AssertIsImmutable(JsonObject.CreateReadOnly("one", 1));
 			AssertIsImmutable(JsonObject.CreateReadOnly("one", 1, "two", 2));
 			AssertIsImmutable(JsonObject.CreateReadOnly("one", 1, "two", 2, "three", 3));
-			AssertIsImmutable(JsonObject.CreateReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
+			AssertIsImmutable(JsonObject.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
 
 			// creating an immutable version of a writable object with only immutable should return an immutable object
 			AssertIsImmutable(JsonObject.Create("one", 1).ToReadOnly());
