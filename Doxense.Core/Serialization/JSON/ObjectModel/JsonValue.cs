@@ -193,6 +193,15 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Create a deep copy of this value (and all of its children)</summary>
+		/// <returns>A new instance, isolated from the original.</returns>
+		/// <remarks>
+		/// <para>Any changes to this copy will not have any effect of the original, and vice-versa</para>
+		/// <para>If the value is an immutable type (like <see cref="JsonString"/>, <see cref="JsonNumber"/>, <see cref="JsonBoolean"/>, ...) then the same instance will be returned.</para>
+		/// <para>If the value is an array then a new array containing a </para>
+		/// </remarks>
+		public virtual JsonValue Copy() => Copy(deep: true, readOnly: false);
+
 		/// <summary>Create a copy of this object</summary>
 		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
 		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
@@ -200,7 +209,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
 		/// <remarks>Immutable JSON values (like strings, numbers, ...) will return themselves without any change.</remarks>
 		[Pure]
-		public virtual JsonValue Copy(bool deep = false, bool readOnly = false)
+		protected internal virtual JsonValue Copy(bool deep, bool readOnly)
 		{
 			// la plupart des implémentation sont immutable
 			return this;

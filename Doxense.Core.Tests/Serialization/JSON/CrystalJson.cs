@@ -5343,13 +5343,14 @@ namespace Doxense.Serialization.Json.Tests
 			CheckEmptyReadOnly(JsonObject.CreateReadOnly(Array.Empty<KeyValuePair<string, JsonValue>>()));
 			CheckEmptyReadOnly(JsonObject.CreateReadOnly(new Dictionary<string, JsonValue>()));
 			CheckEmptyReadOnly(JsonObject.Create().ToReadOnly());
-			CheckEmptyReadOnly(JsonObject.Create().Copy(deep: false, readOnly: true));
-			CheckEmptyReadOnly(JsonObject.Create().Copy(deep: true, readOnly: true));
+			CheckEmptyReadOnly(JsonObject.Copy(JsonObject.Create(), deep: false, readOnly: true));
+			CheckEmptyReadOnly(JsonObject.Copy(JsonObject.Create(), deep: true, readOnly: true));
 
 			var obj = JsonObject.Create("hello", "world");
 			obj.Remove("hello");
-			CheckEmptyReadOnly(obj.Copy(deep: false, readOnly: true));
-			CheckEmptyReadOnly(obj.Copy(deep: true, readOnly: true));
+			CheckEmptyReadOnly(obj.ToReadOnly());
+			CheckEmptyReadOnly(JsonObject.Copy(obj, deep: false, readOnly: true));
+			CheckEmptyReadOnly(JsonObject.Copy(obj, deep: true, readOnly: true));
 		}
 
 		[Test]
@@ -5421,7 +5422,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj2.ToJsonCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
 
 			// if we want to mutate, we have to create a copy
-			var obj3 = obj2.Copy(deep: true);
+			var obj3 = obj2.Copy();
 
 			// the copy should still be equal to the original
 			Assert.That(obj3, Is.Not.SameAs(obj2), "it should return a new instance");
@@ -5591,14 +5592,33 @@ namespace Doxense.Serialization.Json.Tests
 				["foo"] = new JsonObject { ["bar"] = "baz" },
 				["bar"] = new JsonArray { 1, 2, 3 }
 			}.Freeze();
-
+			Dump("Original", original);
 			EnsureDeepImmutabilityInvariant(original);
 
-			// create a "mutable version of the entire tree
-			var obj = original.Copy(deep: true, readOnly: false);
+			// create a "mutable" version of the entire tree
+			var obj = original.Copy();
+			Dump("Copy", obj);
 			Assert.That(obj.IsReadOnly, Is.False, "Copy should be not be read-only!");
-
+			Assert.That(obj, Is.Not.SameAs(original));
+			Assert.That(obj, Is.EqualTo(original));
+			Assert.That(obj.GetObject("foo"), Is.Not.SameAs(original.GetObject("foo")));
+			Assert.That(obj.GetArray("bar"), Is.Not.SameAs(original.GetArray("bar")));
 			EnsureDeepMutabilityInvariant(obj);
+
+			obj["hello"] = "le monde";
+			obj["level"] = 42;
+			obj.GetObject("foo")!.Remove("bar");
+			obj.GetObject("foo")!.Add("baz", "bar");
+			obj.GetArray("bar")!.Add(4);
+			Dump("Mutated", obj);
+			Assert.That(obj, Is.Not.EqualTo(original));
+
+			// ensure the original is not mutated
+			Assert.That(original.Get<string>("hello"), Is.EqualTo("world"));
+			Assert.That(original.Get<int?>("level"), Is.Null);
+			Assert.That(original.GetPath<string>("foo.bar"), Is.EqualTo("baz"));
+			Assert.That(original.GetPath<string>("foo.baz"), Is.Null);
+			Assert.That(original.GetArray("bar"), Has.Count.EqualTo(3));
 		}
 
 		#endregion

@@ -200,7 +200,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Return an immutable version of this object</summary>
+		/// <summary>Return a new immutable read-only version of this JSON object (and all of its children)</summary>
 		/// <returns>The same object, if it is already immutable; otherwise, a deep copy marked as read-only.</returns>
 		/// <remarks>A JSON object that is immutable is truly safe against any modification, including of any of its direct or indirect children.</remarks>
 		public override JsonObject ToReadOnly()
@@ -222,6 +222,60 @@ namespace Doxense.Serialization.Json
 				map[item.Key] = child;
 			}
 			return new(map, readOnly: true);
+		}
+
+		/// <summary>Return a new mutable copy of this JSON array (and all of its children)</summary>
+		/// <returns>A deep copy of this array and its children.</returns>
+		/// <remarks>
+		/// <para>This will recursively copy all JSON objects or arrays present in the array, even if they are already mutable.</para>
+		/// <para>The new instance can be freely modified without any effect on its parent. Likewise, if the parent is modified, it will not have any effect on the copy.</para>
+		/// </remarks>
+		public override JsonObject Copy()
+		{
+			var items = m_items;
+			if (items.Count == 0) return new JsonObject();
+
+			var map = new Dictionary<string, JsonValue>(items.Count, items.Comparer);
+			// we want to make sure that any mutable children is copied as well
+			foreach (var kvp in items)
+			{
+				map[kvp.Key] = kvp.Value.Copy();
+			}
+
+			return new JsonObject(map, readOnly: false);
+		}
+
+		/// <summary>Create a copy of this object</summary>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of the object, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
+		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
+		protected internal override JsonObject Copy(bool deep, bool readOnly) => Copy(this, deep, readOnly);
+
+		/// <summary>Create a copy of a JSON object</summary>
+		/// <param name="obj">Object to copy</param>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of the object, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
+		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonObject Copy(JsonObject obj, bool deep = false, bool readOnly = false)
+		{
+			Contract.NotNull(obj);
+
+			if (readOnly)
+			{
+				return obj.ToReadOnly();
+			}
+
+			if (deep)
+			{
+				return obj.Copy();
+			} 
+			
+			// simply create a shallow copy of the top-level
+			var items = obj.m_items;
+			return new JsonObject(new Dictionary<string, JsonValue>(items, items.Comparer), readOnly: false);
 		}
 
 		#region Create...
@@ -761,6 +815,7 @@ namespace Doxense.Serialization.Json
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
 		private static void FailObjectIsReadOnly() => throw new InvalidOperationException("Cannot mutate a read-only JSON object.");
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		[System.Diagnostics.CodeAnalysis.AllowNull]
 		public override JsonValue this[string key]
 		{
@@ -777,12 +832,14 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		[JetBrains.Annotations.ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public bool TryGetValue(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			return m_items.TryGetValue(key, out value);
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		[JetBrains.Annotations.ContractAnnotation("halt<=key:null; =>true,array:notnull; =>false,array:null")]
 		public bool TryGetArray(string key, [MaybeNullWhen(false)] out JsonArray array)
 		{
@@ -791,6 +848,7 @@ namespace Doxense.Serialization.Json
 			return array != null;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		[JetBrains.Annotations.ContractAnnotation("halt<=key:null; =>true,obj:notnull; =>false,obj:null")]
 		public bool TryGetObject(string key, [MaybeNullWhen(false)] out JsonObject obj)
 		{
@@ -800,6 +858,7 @@ namespace Doxense.Serialization.Json
 			return obj != null;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Add(string key, JsonValue? value)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -807,6 +866,7 @@ namespace Doxense.Serialization.Json
 			m_items.Add(key, value ?? JsonNull.Null);
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryAdd(string key, JsonValue? value)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -814,6 +874,7 @@ namespace Doxense.Serialization.Json
 			return m_items.TryAdd(key, value ?? JsonNull.Null);
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public void Add(KeyValuePair<string, JsonValue> item)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -826,6 +887,7 @@ namespace Doxense.Serialization.Json
 
 		#region Mutable...
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -844,12 +906,14 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(KeyValuePair<string, JsonValue>[] items)
 		{
 			Contract.NotNull(items);
 			return AddRange(items.AsSpan());
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(JsonObject items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -870,6 +934,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(Dictionary<string, JsonValue> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -888,6 +953,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ImmutableDictionary<string, JsonValue> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -906,6 +972,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -957,6 +1024,7 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -975,32 +1043,36 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(KeyValuePair<string, JsonValue>[] items)
 		{
 			Contract.NotNull(items);
 			return AddRangeReadOnly(items.AsSpan());
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(JsonObject items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
 
 			var other = items.m_items;
-			if (other.Count == 0) return this;
-
-			var self = m_items;
-			self.EnsureCapacity(unchecked(self.Count + other.Count));
-
-			foreach (var item in other)
+			if (other.Count != 0)
 			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+				var self = m_items;
+				self.EnsureCapacity(unchecked(self.Count + other.Count));
+
+				foreach (var item in other)
+				{
+					Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+					self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+				}
 			}
 
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(Dictionary<string, JsonValue> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1020,6 +1092,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(ImmutableDictionary<string, JsonValue> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1039,6 +1112,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1094,6 +1168,7 @@ namespace Doxense.Serialization.Json
 
 		#region Mutable...
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<T>(ReadOnlySpan<KeyValuePair<string, T>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1111,12 +1186,14 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<T>(KeyValuePair<string, T>[] items)
 		{
 			Contract.NotNull(items);
 			return AddValues<T>(items.AsSpan());
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<T>(Dictionary<string, T> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1135,6 +1212,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<T>(List<KeyValuePair<string, T>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1153,6 +1231,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<T>(IEnumerable<KeyValuePair<string, T>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1195,6 +1274,7 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<T>(ReadOnlySpan<KeyValuePair<string, T>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1212,12 +1292,14 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<T>(KeyValuePair<string, T>[] items)
 		{
 			Contract.NotNull(items);
 			return AddValuesReadOnly<T>(items.AsSpan());
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<T>(Dictionary<string, T> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1236,6 +1318,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<T>(List<KeyValuePair<string, T>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1254,6 +1337,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<T>(IEnumerable<KeyValuePair<string, T>> items)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1296,6 +1380,11 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		/// <summary>Removes the value with the specified key from this object.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Remove(string key)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1308,6 +1397,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">The removed element.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1315,6 +1405,7 @@ namespace Doxense.Serialization.Json
 			return m_items.Remove(key, out value);
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(KeyValuePair<string, JsonValue> keyValuePair)
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1326,6 +1417,7 @@ namespace Doxense.Serialization.Json
 			return m_items.Remove(keyValuePair.Key);
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Clear()
 		{
 			if (m_readOnly) FailObjectIsReadOnly();
@@ -1337,57 +1429,19 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="T:System.ArgumentOutOfRangeException">
 		/// <paramref name="capacity" /> is less than 0.</exception>
 		/// <returns>The current capacity of the <see cref="T:System.Collections.Generic.Dictionary`2" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public int EnsureCapacity(int capacity) => m_items.EnsureCapacity(capacity);
 
 		/// <summary>Sets the capacity of this dictionary to what it would be if it had been originally initialized with all its entries.</summary>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public void TrimExcess() => this.TrimExcess(this.Count);
 
 		/// <summary>Sets the capacity of this dictionary to hold up a specified number of entries without any further expansion of its backing storage.</summary>
 		/// <param name="capacity">The new capacity.</param>
 		/// <exception cref="T:System.ArgumentOutOfRangeException">
 		/// <paramref name="capacity" /> is less than <see cref="Count" />.</exception>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public void TrimExcess(int capacity) => m_items.TrimExcess(capacity);
-
-		/// <summary>Create a copy of this object</summary>
-		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
-		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
-		/// <returns>Copy of the object, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
-		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
-		public override JsonObject Copy(bool deep = false, bool readOnly = false)
-		{
-			if (readOnly && m_readOnly)
-			{ // we are already immutable, we can simply return ourselves!
-				return this;
-			}
-
-			var items = m_items;
-			if (!deep && !readOnly)
-			{ // simply create a shallow copy of the top-level
-				return new JsonObject(new Dictionary<string, JsonValue>(items, items.Comparer), readOnly);
-			}
-			
-			// we want to make sure that any mutable children is copied as well
-			var map = new Dictionary<string, JsonValue>(items.Count, items.Comparer);
-			if (readOnly)
-			{
-				foreach (var kvp in items)
-				{
-					var child = kvp.Value.ToReadOnly();
-					map[kvp.Key] = child;
-				}
-			}
-			else
-			{
-				foreach (var kvp in items)
-				{
-					var child = kvp.Value.Copy(deep: true, false);
-					map[kvp.Key] = child;
-				}
-			}
-
-			// since we just performed a deep-copy, all children should be 
-			return new JsonObject(map, readOnly);
-		}
 
 		/// <summary>Create a new JSON object with a copy of the specified items</summary>
 		/// <param name="items">Sequence of key/value pairs to copy</param>
@@ -1395,7 +1449,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="readOnly"></param>
 		/// <returns>New JSON object with the same content as <see cref="items"/></returns>
 		/// <remarks>If <paramref name="items"/> contains any duplicate keys, the last value will overwrite any previous values.</remarks>
-		[Obsolete("Use JsonObject.Create(...) or JsonObject.CreateImmutable(...) instead.")]
+		[Obsolete("Use JsonObject.Create(...) or JsonObject.CreateImmutable(...) instead.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Copy(IEnumerable<KeyValuePair<string, JsonValue?>> items, bool deep, bool readOnly = false)
 		{
@@ -1471,10 +1525,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static ArgumentException Error_ExistingKeyTypeMismatch(string key, JsonValue value, JsonType expectedType)
-		{
-			return new ArgumentException($"The specified key '{key}' exists, but is a {value.Type} instead of expected {expectedType}", nameof(key));
-		}
+		private static ArgumentException Error_ExistingKeyTypeMismatch(string key, JsonValue value, JsonType expectedType) => new($"The specified key '{key}' exists, but is a {value.Type} instead of expected {expectedType}", nameof(key));
 
 		/// <summary>Test if the object contains the <paramref name="key"/> property.</summary>
 		/// <param name="key">Name of the property</param>
@@ -1487,6 +1538,7 @@ namespace Doxense.Serialization.Json
 		/// { Bar: ".."  }.Has("Foo") => false // not found
 		/// </example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool ContainsKey(string key) => m_items.ContainsKey(key);
 
 		bool ICollection<KeyValuePair<string, JsonValue>>.Contains(KeyValuePair<string, JsonValue> keyValuePair) => ((ICollection<KeyValuePair<string, JsonValue>>)m_items).Contains(keyValuePair);
@@ -1500,6 +1552,7 @@ namespace Doxense.Serialization.Json
 		/// { Foo: null  }.Has("Foo") => false // found but explicit null
 		/// { Bar: ".."  }.Has("Foo") => false // not found
 		/// </example>
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Has(string key) => TryGetValue(key, out var value) && !value.IsNullOrMissing();
 
 		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object.</summary>
@@ -1513,6 +1566,7 @@ namespace Doxense.Serialization.Json
 		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // returns <c>0</c>
 		/// </example>
 		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public T? Get<T>(string key) => this[key].As<T>();
 
 		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
@@ -1528,6 +1582,7 @@ namespace Doxense.Serialization.Json
 		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
 		/// </example>
 		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("=> false, value:null")]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGet<T>(string key, out T? value)
 		{
 			if (TryGetValue(key, out var item) && !item.IsNullOrMissing())
@@ -1569,6 +1624,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="T"/>, ou default(<typeparamref name="T"/>} si la propriété contient null ou n'existe pas.</returns>
 		/// <remarks>Cette méthode est équivalente à <code>obj[key].As&lt;T&gt;(defaultValue, resolver)</code></remarks>
 		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public T? Get<T>(string key, ICrystalJsonTypeResolver resolver)
 		{
 			return this[key].As<T>(resolver);
@@ -1579,10 +1635,8 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
 		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
 		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonValue GetValue(string key)
-		{
-			return this[key];
-		}
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public JsonValue GetValue(string key) => this[key];
 
 		/// <summary>Retourne la valeur JSON d'une propriété de cet objet</summary>
 		/// <param name="key">Nom de la propriété recherchée</param>
@@ -1590,11 +1644,11 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
 		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
 		[System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public JsonValue GetValue(string key, bool required)
 		{
 			var val = this[key];
-			if (required) val = val.RequiredField(key);
-			return val;
+			return required ? val.RequiredField(key) : val;
 		}
 
 		/// <summary>Retourne la valeur JSON d'une propriété de cet objet, ou une valeur JSON par défaut</summary>
@@ -1603,20 +1657,8 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété existe et contient null, ou <paramref name="missingValue"/> si la propriété n'existe pas.</returns>
 		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retourné à la place.</remarks>
 		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("halt<=key:null")]
-		public JsonValue GetValueOrDefault(string key, JsonValue? missingValue)
-		{
-			return TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
-		}
-
-		///// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
-		///// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
-		///// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas un object.</returns>
-		///// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
-		//[System.Diagnostics.Contracts.Pure]
-		//public JsonObject? GetObject(string key)
-		//{
-		//	return InternalGet<JsonObject>(JsonType.Object, key, required: false);
-		//}
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public JsonValue GetValueOrDefault(string key, JsonValue? missingValue) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
 		/// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
 		/// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
@@ -1624,32 +1666,10 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas et <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas un object.</returns>
 		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
 		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
-		public JsonObject? GetObject(string key, bool required = false)
-		{
-			return InternalGet<JsonObject>(JsonType.Object, key, required);
-		}
-
-		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		//public JsonObject? GetObjectPath(string path)
-		//{
-		//	return GetPath(path).AsObject(required: false);
-		//}
+		public JsonObject? GetObject(string key, bool required = false) => InternalGet<JsonObject>(JsonType.Object, key, required);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining), JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
-		public JsonObject? GetObjectPath(string path, bool required = false)
-		{
-			return GetPath(path).AsObject(required);
-		}
-
-		///// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
-		///// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
-		///// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas. Génère une exception si la propriété ne contient pas une array.</returns>
-		///// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
-		//[System.Diagnostics.Contracts.Pure]
-		//public JsonArray? GetArray(string key)
-		//{
-		//	return InternalGet<JsonArray>(JsonType.Array, key, required: false);
-		//}
+		public JsonObject? GetObjectPath(string path, bool required = false) => GetPath(path).AsObject(required);
 
 		/// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
 		/// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
@@ -1657,22 +1677,10 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas et que <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas une array.</returns>
 		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
 		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
-		public JsonArray? GetArray(string key, bool required = false)
-		{
-			return InternalGet<JsonArray>(JsonType.Array, key, required);
-		}
-
-		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		//public JsonArray? GetArrayPath(string path)
-		//{
-		//	return GetPath(path).AsArray(required: false);
-		//}
+		public JsonArray? GetArray(string key, bool required = false) => InternalGet<JsonArray>(JsonType.Array, key, required);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining), JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
-		public JsonArray? GetArrayPath(string path, bool required = false)
-		{
-			return GetPath(path).AsArray(required);
-		}
+		public JsonArray? GetArrayPath(string path, bool required = false) => GetPath(path).AsArray(required);
 
 		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
 		/// <param name="path">Path vers le fils (peut inclure des '.')</param>
@@ -1708,6 +1716,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="path">Chemin vers la valeur à lire, au format "foo", "foo.bar" ou "foo[2].baz"</param>
 		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvée</returns>
 		[System.Diagnostics.Contracts.Pure]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public JsonValue GetPath(string path)
 		{
 			Contract.NotNullOrEmpty(path);
@@ -1762,11 +1771,11 @@ namespace Doxense.Serialization.Json
 		/// <param name="required">Si true et que le champ n'existe pas dans l'objet, une exception est générée</param>
 		/// <returns>Valeur correspondante, ou <see cref="JsonNull.Missing"/> si au moins une des composantes du path n'est pas trouvée</returns>
 		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("required:true => notnull")]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public T? GetPath<T>(string path, bool required = false)
 		{
 			var val = GetPath(path);
-			if (required) val = val.RequiredPath(path);
-			return val.As<T>();
+			return required ? val.RequiredPath(path).As<T>() : val.As<T>();
 		}
 
 		/// <summary>Retourne ou crée le fils d'un objet, qui doit lui-même être un objet</summary>
@@ -1777,7 +1786,7 @@ namespace Doxense.Serialization.Json
 		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonObject? GetOrCreateChildObject(JsonValue current, string? name, bool createIfMissing)
 		{
-			Contract.Debug.Assert(current != null && current.Type == JsonType.Object);
+			Contract.Debug.Requires(current != null && current.Type == JsonType.Object);
 
 			JsonValue child;
 			if (name != null)
@@ -1816,7 +1825,7 @@ namespace Doxense.Serialization.Json
 		[System.Diagnostics.Contracts.Pure, JetBrains.Annotations.ContractAnnotation("createIfMissing:true => notnull")]
 		private static JsonArray? GetOrCreateChildArray(JsonValue current, string? name, bool createIfMissing)
 		{
-			Contract.Debug.Assert(current != null && current.Type == JsonType.Object);
+			Contract.Debug.Requires(current != null && current.Type == JsonType.Object);
 
 			JsonValue child;
 			if (name != null)
@@ -1876,15 +1885,23 @@ namespace Doxense.Serialization.Json
 			var child = index < array.Count ? array[index] : null;
 			if (child.IsNullOrMissing())
 			{
-				if (!createIfMissing) return null;
-				child = JsonArray.Create(); // we assume the intent is to modify it, so create a mutable array!
-				array.Set(index, child);
+				if (!createIfMissing)
+				{
+					return null;
+				}
+
+				// we assume the intent is to modify it, so create a mutable array!
+				var empty = JsonArray.Create();
+				array.Set(index, empty);
+				return empty;
 			}
-			else if (!child.IsArray)
+
+			if (child is not JsonArray arr)
 			{
 				throw ThrowHelper.InvalidOperationException($"Selected item at position {index} was of type {child.Type} instead of expected Array");
 			}
-			return (JsonArray)child;
+
+			return arr;
 		}
 
 		/// <summary>Crée ou modifie une valeur à partir de son chemin</summary>
@@ -2172,28 +2189,28 @@ namespace Doxense.Serialization.Json
 
 			if (other is not null && other.Count > 0)
 			{
-				// merge récursivement les propriétés
-				// * Copie tout ce qu'il y a dans other, en mergeant les propriétés qui existent déjà
-				// * Le merge de properties
-				// * > Ecrase si "value type" (string, bool, int, ...)
-				// * > Merge si object
-				// * > Union si Array (?)
+				// recursively merge all properties:
+				// - copy the items from 'other', optionally merging them if they already exist in 'parent'
+				// - Mergin properties will:
+				//   - Overwrite for "immutable types" (string, bool, int, ...)
+				//   - Merge for Object
+				//   - Union for Array (?)
 
 				foreach (var kvp in other)
 				{
 					if (!parent.TryGetValue(kvp.Key, out var mine))
 					{
-						// note: on ignore les Missing
+						// note: ignore "Missing", but not explicit "Null"
 						if (!kvp.Value.IsMissing())
 						{
-							parent[kvp.Key] = deepCopy ? kvp.Value.Copy(deep: true) : kvp.Value;
+							parent[kvp.Key] = deepCopy ? kvp.Value.Copy() : kvp.Value;
 						}
 						continue;
 					}
 
-					// Gestion particulière du cas 'missing'
+					// Any "Missing" values will be treated as if the property has been removed
 					if (kvp.Value.IsMissing())
-					{ // Missing = "remove"
+					{
 						parent.Remove(kvp.Key);
 						continue;
 					}
@@ -2204,14 +2221,14 @@ namespace Doxense.Serialization.Json
 						case JsonType.Number:
 						case JsonType.Boolean:
 						case JsonType.DateTime:
-						{
-							parent[kvp.Key] = deepCopy ? kvp.Value.Copy(deep: true) : kvp.Value;
+						{ // overwrite
+							parent[kvp.Key] = deepCopy ? kvp.Value.Copy() : kvp.Value;
 							break;
 						}
 
 
 						case JsonType.Object:
-						{
+						{ // merge
 							if (kvp.Value.IsNull)
 							{
 								parent[kvp.Key] = JsonNull.Null;
@@ -2219,7 +2236,7 @@ namespace Doxense.Serialization.Json
 							}
 
 							if (kvp.Value is not JsonObject obj)
-							{ // on ne peut merger qu'un objet avec un autre object
+							{ // we only support merging between two objects
 								throw ThrowHelper.InvalidOperationException($"Cannot merge a JSON '{kvp.Value.Type}' into an Object for key '{kvp.Key}'");
 							}
 
@@ -2233,17 +2250,17 @@ namespace Doxense.Serialization.Json
 						}
 
 						case JsonType.Array:
-						{
+						{ // union
 							if (kvp.Value.IsNull)
 							{
 								parent[kvp.Key] = JsonNull.Null;
 								break;
 							}
-							if (!kvp.Value.IsArray)
-							{ // on ne peut merger qu'un objet avec une autre array
+							if (kvp.Value is not JsonArray arr)
+							{ // we only support merging between two arrays
 								throw ThrowHelper.InvalidOperationException($"Cannot merge a JSON '{kvp.Value.Type}' into an Array for key '{kvp.Key}'");
 							}
-							((JsonArray) mine).MergeWith((JsonArray) kvp.Value, deepCopy);
+							((JsonArray) mine).MergeWith(arr, deepCopy);
 							break;
 						}
 
@@ -2445,7 +2462,7 @@ namespace Doxense.Serialization.Json
 			{
 				if (!filter(item.Key))
 				{
-					obj[item.Key] = deepCopy ? item.Value.Copy(true) :  item.Value;
+					obj[item.Key] = deepCopy ? item.Value.Copy() :  item.Value;
 				}
 			}
 			return obj;
@@ -2469,7 +2486,7 @@ namespace Doxense.Serialization.Json
 			{
 				if (!filtered.Contains(item.Key))
 				{
-					obj[item.Key] = deepCopy ? item.Value.Copy(true) : item.Value;
+					obj[item.Key] = deepCopy ? item.Value.Copy() : item.Value;
 				}
 			}
 			return obj;
@@ -2485,7 +2502,7 @@ namespace Doxense.Serialization.Json
 			Contract.Debug.Requires(value != null && field != null);
 
 			//TODO: actuellement, on risque de faire une deepCopy du champ qui sera supprimé ensuite!
-			var obj = value.Copy(deepCopy);
+			var obj = JsonObject.Copy(value, deepCopy, readOnly: false);
 			obj.Remove(field);
 			return obj;
 		}

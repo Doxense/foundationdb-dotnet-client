@@ -177,7 +177,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Return an immutable read-only version of this object (and all of its children)</summary>
+		/// <summary>Return an new immutable read-only version of this JSON array (and all of its children)</summary>
 		/// <returns>The same object, if it is already read-only; otherwise, a deep copy marked as read-only.</returns>
 		/// <remarks>A JSON object that is immutable is truly safe against any modification, including of any of its direct or indirect children.</remarks>
 		public override JsonArray ToReadOnly()
@@ -194,6 +194,68 @@ namespace Doxense.Serialization.Json
 				res[i] = items[i].ToReadOnly();
 			}
 			return new(res, items.Length, readOnly: true);
+		}
+
+		/// <summary>Return a new mutable copy of this JSON array (and all of its children)</summary>
+		/// <returns>A deep copy of this array and its children.</returns>
+		/// <remarks>
+		/// <para>This will recursively copy all JSON objects or arrays present in the array, even if they are already mutable.</para>
+		/// </remarks>
+		public override JsonArray Copy()
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return new JsonArray();
+
+			var buf = new JsonValue[items.Length];
+			// copy all children
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = items[i].Copy();
+			}
+			return new JsonArray(buf, items.Length, readOnly: false);
+		}
+
+		/// <summary>Create a copy of this array</summary>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of the array, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
+		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
+		[Pure]
+		protected internal override JsonArray Copy(bool deep, bool readOnly) => Copy(this, deep, readOnly);
+
+		/// <summary>Create a copy of a JSON array</summary>
+		/// <param name="array">JSON Array to clone</param>
+		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
+		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
+		/// <returns>Copy of <paramref name="array"/>, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
+		[CollectionAccess(CollectionAccessType.Read)]
+		public static JsonArray Copy(JsonArray array, bool deep, bool readOnly = false)
+		{
+			Contract.NotNull(array);
+
+			if (readOnly)
+			{
+				return array.ToReadOnly();
+			}
+
+			if (array.Count == 0)
+			{ // empty mutable singleton
+				return new JsonArray();
+			}
+
+			var items = array.AsSpan();
+			if (!deep)
+			{
+				return new JsonArray(items.ToArray(), items.Length, readOnly);
+			}
+
+			// copy all children
+			var buf = new JsonValue[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = items[i].Copy();
+			}
+			return new JsonArray(buf, items.Length, readOnly: false);
 		}
 
 		#region Create [JsonValue] ...
@@ -3188,62 +3250,6 @@ namespace Doxense.Serialization.Json
 			return list.ToImmutable();
 		}
 
-		/// <summary>Create a copy of this array</summary>
-		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
-		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
-		/// <returns>Copy of the array, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
-		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
-		[Pure]
-		public override JsonArray Copy(bool deep = false, bool readOnly = false)
-		{
-			return Copy(this, deep, readOnly);
-		}
-
-		/// <summary>Create a copy of a JSON array</summary>
-		/// <param name="value">JSON Array to clone</param>
-		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
-		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
-		/// <returns>Copy of <paramref name="value"/>, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
-		[CollectionAccess(CollectionAccessType.Read)]
-		public static JsonArray Copy(JsonArray value, bool deep, bool readOnly = false)
-		{
-			Contract.NotNull(value);
-
-			if (readOnly)
-			{
-				if (value.Count == 0)
-				{ // empty readonly singleton
-					return EmptyReadOnly;
-				}
-				if (value.m_readOnly)
-				{ // the array is completely immutable, so it is safe to return the same instance
-					return value;
-				}
-			}
-
-			if (value.Count == 0)
-			{ // empty mutable singleton
-				return new JsonArray();
-			}
-
-			var items = value.AsSpan();
-			var buf = new JsonValue[items.Length];
-			if (deep)
-			{
-				for (int i = 0; i < items.Length; i++)
-				{
-					buf[i] = items[i].Copy(deep: true, readOnly);
-				}
-				// if readOnly and deep copy, then all the sub-tree is guaranteed to be immutable
-				return new JsonArray(buf, items.Length, readOnly);
-			}
-			else
-			{
-				items.CopyTo(buf);
-				return new JsonArray(buf, items.Length, readOnly);
-			}
-		}
-
 		/// <summary>Indique si l'array contient au moins un élément</summary>
 		/// <returns>True si <see cref="Count"/> &gt; 0; Sinon, false</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -3343,12 +3349,12 @@ namespace Doxense.Serialization.Json
 			// - both have same size
 
 			int n = parent.Count;
-			if (n == 0) return other.Copy(deepCopy);
-			if (other.Count == 0) return parent.Copy(deepCopy);
+			if (n == 0) return JsonArray.Copy(other, deepCopy, readOnly: false);
+			if (other.Count == 0) return JsonArray.Copy(parent, deepCopy, readOnly: false);
 
 			if (n == other.Count)
 			{
-				if (deepCopy) parent = parent.Copy(true);
+				if (deepCopy) parent = parent.Copy();
 				for (int i = 0; i < n; i++)
 				{
 					var left = parent[i];
@@ -3367,7 +3373,7 @@ namespace Doxense.Serialization.Json
 						}
 						default:
 						{
-							parent[i] = deepCopy ? right.Copy(true) : right[i];
+							parent[i] = deepCopy ? right.Copy() : right[i];
 							break;
 						}
 					}

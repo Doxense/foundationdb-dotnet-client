@@ -84,7 +84,8 @@ namespace Doxense.Serialization.Json
 
 			var diff = JsonObject.Create();
 
-			var inRight = right.Copy(deep: false);
+			// create a shallow copy
+			var inRight = JsonObject.Copy(right, deep: false, readOnly: false);
 
 			foreach(var kvp in left)
 			{
@@ -219,17 +220,17 @@ namespace Doxense.Serialization.Json
 		{
 			// return la liste des champs de lefts qui ont été modifiés pour arriver jusqu'à right
 
-			var inRight = right.Copy(deep: false);
+			// create a shallow copy (this will be what's left at the end)
+			var inRight = JsonObject.Copy(right, deep: false, readOnly: false);
 
 			foreach(var kvp in left)
 			{
-				if (!inRight.TryGetValue(kvp.Key, out var val))
+				if (!inRight.Remove(kvp.Key, out var val))
 				{ // removed from right
 					res.Add((prefix + kvp.Key, "remove", kvp.Value, null));
 					continue;
 				}
 
-				inRight.Remove(kvp.Key);
 				if (kvp.Value.Type != val.Type)
 				{ // type has changed!
 
