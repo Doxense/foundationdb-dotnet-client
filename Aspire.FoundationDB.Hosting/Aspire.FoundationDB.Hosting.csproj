@@ -21,7 +21,7 @@
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<ItemGroup>
-		<PackageReference Include="Aspire.Hosting" Version="8.0.0-preview.3.24072.10" />
+		<PackageReference Include="Aspire.Hosting" Version="8.0.0-preview.3.24105.21" />
 	</ItemGroup>
 
 	<ItemGroup>
