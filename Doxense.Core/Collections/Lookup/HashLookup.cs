@@ -39,7 +39,6 @@ namespace Doxense.Collections.Lookup
 	/// <typeparam name="TElement">Type des éléments</typeparam>
 	public class HashLookup<TKey, TElement> : IEnumerable<Grouping<TKey, TElement>> where TKey : notnull
 	{
-		//REVIEW: TODO: il n'y a pas de tests unitaires pour cette classe ???
 
 		private readonly Dictionary<TKey, Grouping<TKey, TElement>> m_items;
 

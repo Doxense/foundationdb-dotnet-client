@@ -56,6 +56,9 @@ namespace Doxense.Diagnostics
 			ShowBytesDistribution = 8,
 			/// <summary>The content is most probably text</summary>
 			Text = 16,
+			/// <summary>Do not include the last <c>\r\n</c> for the last line</summary>
+			/// <remarks>Allow to WriteLine(HexaDump.Format(...)) the dump without adding an extra new line in the log</remarks>
+			OmmitLastNewLine = 32,
 		}
 
 		private static void DumpHexaLine(StringBuilder sb, ReadOnlySpan<byte> bytes)
@@ -188,6 +191,31 @@ namespace Doxense.Diagnostics
 				sb.Append(prefix);
 				sb.AppendFormat("---- [{0}]", ComputeBytesDistribution(bytes, 2));
 				sb.AppendLine();
+			}
+
+			if ((options & Options.OmmitLastNewLine) != 0)
+			{
+				switch (Environment.NewLine)
+				{
+					case "\r\n":
+					{
+						if (sb.Length >= 2)
+						{
+							sb.Length -= 2;
+						}
+
+						break;
+					}
+					case "\n":
+					{
+						if (sb.Length >= 1)
+						{
+							sb.Length -= 1;
+						}
+
+						break;
+					}
+				}
 			}
 
 			return sb.ToString();
