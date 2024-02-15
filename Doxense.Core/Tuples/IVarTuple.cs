@@ -54,18 +54,20 @@ namespace Doxense.Collections.Tuples
 		// - If an operation does not change the tuple (like Append(STuple.Empty), or tuple.Substring(0)), then the tuple should return itself
 		// - If the same tuple will be packed frequently, it should be memoized (converted into a MemoizedTuple)
 
-
 		//TODO: BUGBUG: the old name (ITuple) collides with System.Runtime.CompilerServices.ITuple which is made public in .NET 4.7.1+
 		// This interfaces defines an indexer, and the property "Length", but we are using "Count" which comes from IReadOnlyList<object> ...
 
 		/// <summary>Return the element at the specified index</summary>
 		/// <param name="index">Index of the element to return. Supports negative indexing (-1 means last)</param>
+		//TODO: REVIEW: consider dropping the negative indexing? We have Index now for this use-case!
+		//TODO: REVIEW: why do we need this "new" overload? it looks the same as on IReadOnlyList<object?>... ?
 		new object? this[int index] { get; }
 
 		/// <summary>Return a section of the tuple</summary>
 		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
 		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
 		/// <returns>Tuple that include all items in the current tuple whose offset are greater than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
+		//TODO: REVIEW: consider marking this overload as obsolete or even removing it, since we now have Range for this use case?
 		IVarTuple this[int? fromIncluded, int? toExcluded] { [JetBrains.Annotations.Pure] get; }
 
 		/// <summary>Return the element at the specified index</summary>
@@ -82,10 +84,11 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
 		/// <example>
-		/// ("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"
-		/// ("Hello", "World", 123,).Get&lt;int&gt;(-1) => 123
-		/// ("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;int&gt;(-1) => 123</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"</c></para>
 		/// </example>
+		//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
 		[JetBrains.Annotations.Pure]
 		TItem? Get<TItem>(int index);
 
@@ -113,6 +116,10 @@ namespace Doxense.Collections.Tuples
 		/// </example>
 		void CopyTo(object?[] array, int offset);
 
+		/// <summary>Compute a stable hash code for the item at the specific location</summary>
+		/// <param name="index"></param>
+		/// <param name="comparer"></param>
+		/// <returns></returns>
 		int GetItemHashCode(int index, IEqualityComparer comparer);
 
 	}

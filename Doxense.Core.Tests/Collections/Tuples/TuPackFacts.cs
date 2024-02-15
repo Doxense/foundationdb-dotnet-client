@@ -1924,7 +1924,6 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Unpack()
 		{
-
 			var packed = TuPack.EncodeKey("hello world");
 			Log(packed);
 

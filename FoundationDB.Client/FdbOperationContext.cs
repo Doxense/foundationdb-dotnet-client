@@ -1389,7 +1389,7 @@ namespace FoundationDB.Client
 							// if we have pending value-checks, we have to run them !
 							// => the exception thrown by the handler may be caused because of an invalid assumption on the value of a key,
 							// and we HAVE to run the handler again, to give a change to the layer code to realize that it needs to update any cached data
-							//REVIEW: TODO: how can we distinguish between errors that are caused by the bad assumption of a failed value check, and errors that are completely unrelated?
+							//TODO: REVIEW: how can we distinguish between errors that are caused by the bad assumption of a failed value check, and errors that are completely unrelated?
 
 							bool shouldThrow = true;
 							if (!hasRunValueChecks)
@@ -1445,7 +1445,7 @@ namespace FoundationDB.Client
 			}
 			catch (Exception e)
 			{
-				//REVIEW: TODO: in order to call "RecordException(...)" we need a ref to package OpenTelemetry.API !
+				//TODO: REVIEW: in order to call "RecordException(...)" we need a ref to package OpenTelemetry.API !
 				mainActivity?.SetStatus(ActivityStatusCode.Error, e.Message);
 				throw;
 			}

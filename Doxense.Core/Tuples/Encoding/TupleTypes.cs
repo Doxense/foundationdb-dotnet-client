@@ -145,6 +145,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			return TupleSegmentType.Invalid;
 		}
+
 	}
 
 	/// <summary>Logical type of packed element of a tuple</summary>

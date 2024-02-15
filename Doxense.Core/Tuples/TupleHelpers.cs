@@ -176,10 +176,10 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static int MapIndex(int index, int count)
 		{
+			Contract.Debug.Requires(count >= 0);
 			int offset = index;
 			if (offset < 0) offset += count;
-			if (offset < 0 || offset >= count) return FailIndexOutOfRange<int>(index, count);
-			return offset;
+			return (uint) offset < count ? offset : FailIndexOutOfRange<int>(index, count);
 		}
 
 		/// <summary>Maps a relative index into an absolute index</summary>
