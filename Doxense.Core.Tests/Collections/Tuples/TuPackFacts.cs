@@ -35,6 +35,8 @@ namespace Doxense.Collections.Tuples.Tests
 	using System.Linq;
 	using System.Net;
 	using Doxense.Collections.Tuples.Encoding;
+	using Doxense.Diagnostics;
+	using Doxense.Serialization;
 	using Doxense.Testing;
 	using NUnit.Framework;
 
@@ -42,6 +44,55 @@ namespace Doxense.Collections.Tuples.Tests
 	[Category("Core-SDK")]
 	public class TuPackFacts : DoxenseTest
 	{
+
+		private static void Dump(string label, Slice slice)
+		{
+			if (slice.IsNull)
+			{
+				WriteToLog($"{label}: <null>");
+			}
+			else if (slice.IsEmpty)
+			{
+				WriteToLog($"{label}: [ ]");
+			}
+			else
+			{
+				WriteToLog($"{label}: [{slice.Count}] {slice.PrettyPrint(128)}");
+				WriteToLog(HexaDump.Format(slice, HexaDump.Options.NoFooter | HexaDump.Options.NoHeader | HexaDump.Options.OmmitLastNewLine, indent: 1));
+			}
+		}
+
+		private static void Dump(string label, IVarTuple? tuple)
+		{
+			if (tuple is null)
+			{
+				WriteToLog($"{label}: <null>");
+			}
+			else
+			{
+				WriteToLog($"{label}: [{tuple.Count}] {tuple.ToString()}, {tuple.GetType().GetFriendlyName()}");
+				for (int i = 0; i < tuple.Count; i++)
+				{
+					WriteToLog($"- t[{i}] = {tuple[i]}");
+				}
+			}
+		}
+
+		private static void Dump(string label, SlicedTuple? tuple)
+		{
+			if (tuple is null)
+			{
+				WriteToLog($"{label}: <null>");
+			}
+			else
+			{
+				WriteToLog($"{label}: [{tuple.Count}] {tuple.ToString()}, {tuple.GetType().GetFriendlyName()}");
+				for (int i = 0; i < tuple.Count; i++)
+				{
+					WriteToLog($"- t[{i}] = ({tuple.GetElementType(i)}) {STuple.Formatter.Stringify(tuple[i])} : [ {tuple.GetSlice(i):X} ]");
+				}
+			}
+		}
 
 		#region Serialization...
 
@@ -1970,6 +2021,219 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tuple.Get<int>(3), Is.EqualTo(-65536));
 			Assert.That(tuple.Get<int>(4), Is.EqualTo(int.MinValue));
 			Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MinValue));
+		}
+
+		[Test]
+		public void Test_SlicedTuple_Unpack()
+		{
+			// note: this method is equivalent to TuPack.UnPack, but exposes the concrete SlicedTuple types, and gives more inside into the items
+
+			{
+				var packed = TuPack.EncodeKey("hello world");
+				Dump("Packed", packed);
+
+				var tuple = SlicedTuple.Unpack(packed);
+				Assert.That(tuple, Is.Not.Null);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(1));
+				Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
+				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
+				Assert.That(tuple.Last<string>(), Is.EqualTo("hello world"));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
+				Assert.That(tuple.IsUnicodeString(0), Is.True);
+				Assert.That(tuple.IsBytes(0), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.False);
+			}
+
+			{
+				var packed = TuPack.EncodeKey("hello world", 123);
+				Dump("Packed", packed);
+
+				var tuple = SlicedTuple.Unpack(packed);
+				Assert.That(tuple, Is.Not.Null);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(2));
+				Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
+				Assert.That(tuple.Get<int>(1), Is.EqualTo(123));
+				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
+				Assert.That(tuple.Last<int>(), Is.EqualTo(123));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("15 7B")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.IsUnicodeString(0), Is.True);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.False);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsInteger(0), Is.False);
+				Assert.That(tuple.IsInteger(1), Is.True);
+				Assert.That(tuple.IsFloatingPoint(0), Is.False);
+				Assert.That(tuple.IsFloatingPoint(1), Is.False);
+			}
+
+			{
+				var packed = TuPack.EncodeKey(1, 256, 257, 65536, int.MaxValue, long.MaxValue);
+				Dump("Packed", packed);
+
+				var tuple = SlicedTuple.Unpack(packed);
+				Assert.That(tuple, Is.Not.Null);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(6));
+				Assert.That(tuple.Get<int>(0), Is.EqualTo(1));
+				Assert.That(tuple.Get<int>(1), Is.EqualTo(256));
+				Assert.That(tuple.Get<int>(2), Is.EqualTo(257), tuple.GetSlice(2).ToString());
+				Assert.That(tuple.Get<int>(3), Is.EqualTo(65536));
+				Assert.That(tuple.Get<int>(4), Is.EqualTo(int.MaxValue));
+				Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MaxValue));
+				Assert.That(tuple.First<int>(), Is.EqualTo(1));
+				Assert.That(tuple.Last<long>(), Is.EqualTo(long.MaxValue));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("15 01")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("16 01 00")));
+				Assert.That(tuple.GetSlice(2), Is.EqualTo(Slice.FromHexa("16 01 01")));
+				Assert.That(tuple.GetSlice(3), Is.EqualTo(Slice.FromHexa("17 01 00 00")));
+				Assert.That(tuple.GetSlice(4), Is.EqualTo(Slice.FromHexa("18 7F FF FF FF")));
+				Assert.That(tuple.GetSlice(5), Is.EqualTo(Slice.FromHexa("1C 7F FF FF FF FF FF FF FF")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(2), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(3), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(4), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(5), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.IsUnicodeString(0), Is.False);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsUnicodeString(2), Is.False);
+				Assert.That(tuple.IsUnicodeString(3), Is.False);
+				Assert.That(tuple.IsUnicodeString(4), Is.False);
+				Assert.That(tuple.IsUnicodeString(5), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.True);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsNumber(2), Is.True);
+				Assert.That(tuple.IsNumber(3), Is.True);
+				Assert.That(tuple.IsNumber(4), Is.True);
+				Assert.That(tuple.IsNumber(5), Is.True);
+			}
+
+			{
+				var packed = TuPack.EncodeKey(-1, -256, -257, -65536, int.MinValue, long.MinValue);
+				Dump("Packed", packed);
+
+				var tuple = SlicedTuple.Unpack(packed);
+				Assert.That(tuple, Is.Not.Null);
+				Assert.That(tuple, Is.InstanceOf<SlicedTuple>());
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(6));
+				Assert.That(tuple.Get<int>(0), Is.EqualTo(-1));
+				Assert.That(tuple.Get<int>(1), Is.EqualTo(-256));
+				Assert.That(tuple.Get<int>(2), Is.EqualTo(-257), $"Slice is {tuple.GetSlice(2)}");
+				Assert.That(tuple.Get<int>(3), Is.EqualTo(-65536));
+				Assert.That(tuple.Get<int>(4), Is.EqualTo(int.MinValue));
+				Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MinValue));
+				Assert.That(tuple.First<int>(), Is.EqualTo(-1));
+				Assert.That(tuple.Last<long>(), Is.EqualTo(long.MinValue));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("13 FE")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("12 FE FF")));
+				Assert.That(tuple.GetSlice(2), Is.EqualTo(Slice.FromHexa("12 FE FE")));
+				Assert.That(tuple.GetSlice(3), Is.EqualTo(Slice.FromHexa("11 FE FF FF")));
+				Assert.That(tuple.GetSlice(4), Is.EqualTo(Slice.FromHexa("10 7F FF FF FF")));
+				Assert.That(tuple.GetSlice(5), Is.EqualTo(Slice.FromHexa("0C 7F FF FF FF FF FF FF FF")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(2), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(3), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(4), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(5), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.IsUnicodeString(0), Is.False);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsUnicodeString(2), Is.False);
+				Assert.That(tuple.IsUnicodeString(3), Is.False);
+				Assert.That(tuple.IsUnicodeString(4), Is.False);
+				Assert.That(tuple.IsUnicodeString(5), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.True);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsNumber(2), Is.True);
+				Assert.That(tuple.IsNumber(3), Is.True);
+				Assert.That(tuple.IsNumber(4), Is.True);
+				Assert.That(tuple.IsNumber(5), Is.True);
+			}
+
+			{
+				var packed = TuPack.EncodeKey(0.0, 0.0f, 1.0, 1.0f, Math.PI, (float) Math.PI);
+				Dump("Packed", packed);
+
+				var tuple = SlicedTuple.Unpack(packed);
+				Assert.That(tuple, Is.Not.Null);
+				Assert.That(tuple, Is.InstanceOf<SlicedTuple>());
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(6));
+				Assert.That(tuple.Get<double>(0), Is.EqualTo(0));
+				Assert.That(tuple.Get<float>(1), Is.EqualTo(0));
+				Assert.That(tuple.Get<double>(2), Is.EqualTo(1));
+				Assert.That(tuple.Get<float>(3), Is.EqualTo(1));
+				Assert.That(tuple.Get<double>(4), Is.EqualTo(Math.PI));
+				Assert.That(tuple.Get<float>(5), Is.EqualTo((float) Math.PI));
+				Assert.That(tuple.First<double>(), Is.EqualTo(0.0));
+				Assert.That(tuple.Last<float>(), Is.EqualTo((float) Math.PI));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("21 80 00 00 00 00 00 00 00")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("20 80 00 00 00")));
+				Assert.That(tuple.GetSlice(2), Is.EqualTo(Slice.FromHexa("21 BF F0 00 00 00 00 00 00")));
+				Assert.That(tuple.GetSlice(3), Is.EqualTo(Slice.FromHexa("20 BF 80 00 00")));
+				Assert.That(tuple.GetSlice(4), Is.EqualTo(Slice.FromHexa("21 C0 09 21 FB 54 44 2D 18")));
+				Assert.That(tuple.GetSlice(5), Is.EqualTo(Slice.FromHexa("20 C0 49 0F DB")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.Double));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Single));
+				Assert.That(tuple.GetElementType(2), Is.EqualTo(TupleSegmentType.Double));
+				Assert.That(tuple.GetElementType(3), Is.EqualTo(TupleSegmentType.Single));
+				Assert.That(tuple.GetElementType(4), Is.EqualTo(TupleSegmentType.Double));
+				Assert.That(tuple.GetElementType(5), Is.EqualTo(TupleSegmentType.Single));
+				Assert.That(tuple.IsUnicodeString(0), Is.False);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsUnicodeString(2), Is.False);
+				Assert.That(tuple.IsUnicodeString(3), Is.False);
+				Assert.That(tuple.IsUnicodeString(4), Is.False);
+				Assert.That(tuple.IsUnicodeString(5), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.True);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsNumber(2), Is.True);
+				Assert.That(tuple.IsNumber(3), Is.True);
+				Assert.That(tuple.IsNumber(4), Is.True);
+				Assert.That(tuple.IsNumber(5), Is.True);
+				Assert.That(tuple.IsInteger(0), Is.False);
+				Assert.That(tuple.IsInteger(1), Is.False);
+				Assert.That(tuple.IsInteger(2), Is.False);
+				Assert.That(tuple.IsInteger(3), Is.False);
+				Assert.That(tuple.IsInteger(4), Is.False);
+				Assert.That(tuple.IsInteger(5), Is.False);
+				Assert.That(tuple.IsFloatingPoint(0), Is.True);
+				Assert.That(tuple.IsFloatingPoint(1), Is.True);
+				Assert.That(tuple.IsFloatingPoint(2), Is.True);
+				Assert.That(tuple.IsFloatingPoint(3), Is.True);
+				Assert.That(tuple.IsFloatingPoint(4), Is.True);
+				Assert.That(tuple.IsFloatingPoint(5), Is.True);
+				Assert.That(tuple.IsSingle(0), Is.False);
+				Assert.That(tuple.IsSingle(1), Is.True);
+				Assert.That(tuple.IsSingle(2), Is.False);
+				Assert.That(tuple.IsSingle(3), Is.True);
+				Assert.That(tuple.IsSingle(4), Is.False);
+				Assert.That(tuple.IsSingle(5), Is.True);
+				Assert.That(tuple.IsDouble(0), Is.True);
+				Assert.That(tuple.IsDouble(1), Is.False);
+				Assert.That(tuple.IsDouble(2), Is.True);
+				Assert.That(tuple.IsDouble(3), Is.False);
+				Assert.That(tuple.IsDouble(4), Is.True);
+				Assert.That(tuple.IsDouble(5), Is.False);
+			}
+
 		}
 
 		[Test]
