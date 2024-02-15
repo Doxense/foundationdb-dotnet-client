@@ -253,7 +253,7 @@ namespace FoundationDB.Client.Status
 
 		protected string? GetString(string field1, string field2)
 		{
-			return m_data == null ? null : m_data.TryGet<string?>(field1, out var v) ? v : m_data.TryGet<string?>(field2, out v) ? v : null;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<string?>(field2, out var v2) ? v2 : null;;
 		}
 
 		protected long? GetInt64(string field)
@@ -263,7 +263,7 @@ namespace FoundationDB.Client.Status
 
 		protected long? GetInt64(string field1, string field2)
 		{
-			return m_data == null ? null : m_data.TryGet<long?>(field1, out var v) ? v : m_data.TryGet<long?>(field2, out v) ? v : null;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<long?>(field2, out var v2) ? v2 : null;
 		}
 
 		protected double? GetDouble(string field)
@@ -273,7 +273,7 @@ namespace FoundationDB.Client.Status
 
 		protected double? GetDouble(string field1, string field2)
 		{
-			return m_data == null ? null : m_data.TryGet<double?>(field1, out var v) ? v : m_data.TryGet<double?>(field2, out v) ? v : null;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<double?>(field2, out var v2) ? v2 : null;
 		}
 
 		protected bool? GetBoolean(string field)
@@ -283,7 +283,7 @@ namespace FoundationDB.Client.Status
 
 		protected bool? GetBoolean(string field1, string field2)
 		{
-			return m_data == null ? null : m_data.TryGet<bool?>(field1, out var v) ? v : m_data.TryGet<bool?>(field2, out v) ? v : null;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<bool?>(field2, out var v2) ? v2 : null;
 		}
 
 	}
