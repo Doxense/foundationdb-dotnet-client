@@ -266,6 +266,9 @@ namespace FoundationDB.Client
 
 		#region Pseudo-LINQ
 
+		//note: these methods are more optimized than regular AsyncLINQ methods, in that they can customize the query settings to return the least data possible over the network.
+		// ex: FirstOrDefault can set the Limit to 1, LastOrDefault can set Reverse to true, etc...
+
 		public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct)
 		{
 			return GetAsyncEnumerator(ct, AsyncIterationHint.Default);
@@ -276,35 +279,45 @@ namespace FoundationDB.Client
 			return new ResultIterator(this, this.Transaction, this.Transform).GetAsyncEnumerator(ct, hint);
 		}
 
-		/// <summary>Return a list of all the elements of the range results</summary>
+		/// <summary>Returns a list of all the elements of the range results</summary>
 		public Task<List<T>> ToListAsync()
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
 			return AsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
 		}
 
-		/// <summary>Return a list of all the elements of the range results</summary>
+		/// <summary>Returns a list of all the elements of the range results</summary>
+		[Obsolete("The transaction already contains a cancellation token")]
 		public Task<List<T>> ToListAsync(CancellationToken ct)
 		{
+			//TODO: REVIEW: this method creates a lot of false positives on the rule that detect an overload that accepts a cancellation token, even though there is already one embedded in the source transaction.
+			// => ex: "tr.GetRange(....).Select(...).ToListAsync()" will have a hint on ToListAsync() that proposes to pass a cencellation token, which is most probably already used by the transactrion.
+			// Should we simply remove this overload? What are the use cases where the caller must use a _different_ token here than the one from the transaction??
+
 			// ReSharper disable once InvokeAsExtensionMethod
 			return AsyncEnumerable.ToListAsync(this, ct);
 		}
 
-		/// <summary>Return an array with all the elements of the range results</summary>
+		/// <summary>Returns an array with all the elements of the range results</summary>
 		public Task<T[]> ToArrayAsync()
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
 			return AsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
 		}
 
-		/// <summary>Return an array with all the elements of the range results</summary>
+		/// <summary>Returns an array with all the elements of the range results</summary>
+		[Obsolete("The transaction already contains a cancellation token")]
 		public Task<T[]> ToArrayAsync(CancellationToken ct)
 		{
+			//TODO: REVIEW: this method creates a lot of false positives on the rule that detect an overload that accepts a cancellation token, even though there is already one embedded in the source transaction.
+			// => ex: "tr.GetRange(....).Select(...).ToArrayAsync()" will have a hint on ToArrayAsync() that proposes to pass a cencellation token, which is most probably already used by the transactrion.
+			// Should we simply remove this overload? What are the use cases where the caller must use a _different_ token here than the one from the transaction??
+
 			// ReSharper disable once InvokeAsExtensionMethod
 			return AsyncEnumerable.ToArrayAsync(this, ct);
 		}
 
-		/// <summary>Return the number of elements in the range, by reading them</summary>
+		/// <summary>Returns the number of elements in the range, by reading them</summary>
 		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync(FoundationDB.Client.IFdbDatabase,FoundationDB.Client.KeyRange,System.Threading.CancellationToken)"/> when reading potentially large ranges.</remarks>
 		public Task<int> CountAsync()
 		{
@@ -327,36 +340,67 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Projects each element of the range results into a new form.</summary>
+		/// <param name="lambda">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
+		/// <returns>New range query that outputs the sequence of transformed elements</returns>
+		/// <example><c>query.Select((kv) => $"{kv.Key:K} = {kv.Value:V}")</c></example>
 		[Pure]
 		public FdbRangeQuery<TResult> Select<TResult>(Func<T, TResult> lambda)
 		{
 			Contract.Debug.Requires(lambda != null);
-			// note: avoid storing the query in the scope by storing the transform locally so that only 'f' and 'lambda' are kept alive
-			var f = this.Transform;
-			Contract.Debug.Assert(f != null);
-			return Map<TResult>((x) => lambda(f(x)));
+
+			return Map<TResult>(Combine(this.Transform, lambda));
+
+			static Func<KeyValuePair<Slice, Slice>, TResult> Combine(Func<KeyValuePair<Slice, Slice>, T> transform, Func<T, TResult> lambda)
+			{
+				Contract.Debug.Requires(transform != null);
+				return (x) => lambda(transform(x));
+			}
+		}
+
+		/// <summary>Projects each element of the range results into a new form.</summary>
+		/// <param name="lambda">Function that is invoked with both the element value and its index in the sequence (0-based), and will return the corresponding transformed element.</param>
+		/// <returns>New range query that outputs the sequence of transformed elements</returns>
+		/// <example><c>query.Select((kv, i) => $"#{i}: {kv.Key:K} = {kv.Value:V}")</c></example>
+		[Pure]
+		public FdbRangeQuery<TResult> Select<TResult>(Func<T, int, TResult> lambda)
+		{
+			Contract.Debug.Requires(lambda != null);
+
+			return Map<TResult>(Combine(this.Transform, lambda));
+
+			static Func<KeyValuePair<Slice, Slice>, TResult> Combine(Func<KeyValuePair<Slice, Slice>, T> transform, Func<T, int, TResult> lambda)
+			{
+				Contract.Debug.Assert(transform != null);
+				int counter = 0;
+				return (x) => lambda(transform(x), counter++);
+			}
 		}
 
 		/// <summary>Filters the range results based on a predicate.</summary>
 		/// <remarks>Caution: filtering occurs on the client side !</remarks>
+		/// <example><c>query.Where((kv) => kv.Key.StartsWith(prefix))</c> or <c>query.Where((kv) => !kv.Value.IsNull)</c></example>
 		[Pure]
 		public IAsyncEnumerable<T> Where(Func<T, bool> predicate)
 		{
 			return AsyncEnumerable.Where(this, predicate);
 		}
 
+		/// <summary>Returns the first result of the query, or the default for this type if the query yields no results.</summary>
 		public Task<T> FirstOrDefaultAsync()
 		{
 			// we can optimize this by passing Limit=1
 			return HeadAsync(single: false, orDefault: true);
 		}
 
+		/// <summary>Returns the first result of the query, or an exception if the query yields no result.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
 		public Task<T> FirstAsync()
 		{
 			// we can optimize this by passing Limit=1
 			return HeadAsync(single: false, orDefault: false);
 		}
 
+		/// <summary>Returns the last result of the query, or the default for this type if the query yields no results.</summary>
 		public Task<T> LastOrDefaultAsync()
 		{
 			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
@@ -365,6 +409,8 @@ namespace FoundationDB.Client
 			return this.Reverse().HeadAsync(single:false, orDefault:true);
 		}
 
+		/// <summary>Returns the last result of the query, or an exception if the query yields no result.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
 		public Task<T> LastAsync()
 		{
 			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
@@ -373,26 +419,30 @@ namespace FoundationDB.Client
 			return this.Reverse().HeadAsync(single: false, orDefault:false);
 		}
 
+		/// <summary>Returns the only result of the query, the default for this type if the query yields no results, or an exception if it yields two or more results.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
 		public Task<T> SingleOrDefaultAsync()
 		{
 			// we can optimize this by passing Limit=2
 			return HeadAsync(single: true, orDefault: true);
 		}
 
+		/// <summary>Returns the only result of the query, or an exception if it yields either zero, or more than one result.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
 		public Task<T> SingleAsync()
 		{
 			// we can optimize this by passing Limit=2
 			return HeadAsync(single: true, orDefault: false);
 		}
 
-		/// <summary>Return true if the range query returns at least one element, or false if there was no result.</summary>
+		/// <summary>Returns <see langword="true"/> if the range query yields at least one element, or <see langword="false"/> if there was no result.</summary>
 		public Task<bool> AnyAsync()
 		{
 			// we can optimize this by using Limit = 1
 			return AnyOrNoneAsync(any: true);
 		}
 
-		/// <summary>Return true if the range query does not return any valid elements, or false if there was at least one result.</summary>
+		/// <summary>Returns <see langword="true"/> if the range query does not yield any result, or <see langword="false"/> if there was at least one result.</summary>
 		/// <remarks>This is a convenience method that is there to help porting layer code from other languages. This is strictly equivalent to calling "!(await query.AnyAsync())".</remarks>
 		public Task<bool> NoneAsync()
 		{
@@ -400,7 +450,7 @@ namespace FoundationDB.Client
 			return AnyOrNoneAsync(any: false);
 		}
 
-		/// <summary>Execute an action on each key/value pair of the range results</summary>
+		/// <summary>Executes an action on each key/value pair of the range results</summary>
 		public Task ForEachAsync(Action<T> action)
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
@@ -462,7 +512,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <summary>Returns a printable version of the range query</summary>
+		/// <summary>Returns a human readable representation of this query</summary>
 		public override string ToString()
 		{
 			return $"Range({this.Range}, {this.Limit}, {(this.Reversed ? "reverse" : "forward")})";
