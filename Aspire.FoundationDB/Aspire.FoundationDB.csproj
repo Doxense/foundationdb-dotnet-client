@@ -29,7 +29,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\FoundationDb.Client\FoundationDb.Client.csproj" />
+		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
 	</ItemGroup>
 
 </Project>
