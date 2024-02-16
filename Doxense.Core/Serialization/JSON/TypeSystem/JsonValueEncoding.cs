@@ -36,7 +36,7 @@ namespace Doxense.Serialization.Encoders
 	public sealed class JsonValueEncoding : IValueEncoding, IDynamicKeyEncoding
 	{
 
-		public static JsonValueEncoding Instance { get; } = new JsonValueEncoding(null, null);
+		public static JsonValueEncoding Instance { get; } = new(null, null);
 
 		public JsonValueEncoding(CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver)
 		{
@@ -48,7 +48,7 @@ namespace Doxense.Serialization.Encoders
 
 		public CrystalJsonTypeResolver Resolver { get; }
 
-		#region IKeyEncoding./..
+		#region IKeyEncoding...
 
 		IKeyEncoder<TKey> IKeyEncoding.GetKeyEncoder<TKey>() => GetKeyEncoder<TKey>();
 
@@ -62,20 +62,11 @@ namespace Doxense.Serialization.Encoders
 			return new JsonKeyEncoder<T>(this);
 		}
 
-		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>()
-		{
-			throw new NotImplementedException();
-		}
+		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotImplementedException();
 
-		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>()
-		{
-			throw new NotImplementedException();
-		}
+		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotImplementedException();
 
-		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>()
-		{
-			throw new NotImplementedException();
-		}
+		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotImplementedException();
 
 		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => GetDynamicKeyEncoder();
 
@@ -196,22 +187,17 @@ namespace Doxense.Serialization.Encoders
 		[Pure]
 		public IVarTuple ToTuple<T>(T? value)
 		{
-			return JsonValueEncoding.ToTuple(JsonValue.FromValue(value, this.Settings, this.Resolver));
+			return ToTuple(JsonValue.FromValue(value, this.Settings, this.Resolver));
 		}
 
 		[Pure]
-		public JsonValue DecodeToJson(object? o)
-		{
-			switch (o)
+		public JsonValue DecodeToJson(object? o) =>
+			o switch
 			{
-				case null:
-					return JsonNull.Null;
-				case IVarTuple tuple:
-					return tuple.ToJsonArray((item) => DecodeToJson(item));
-				default:
-					return JsonValue.FromValue(o, this.Settings, this.Resolver);
-			}
-		}
+				null => JsonNull.Null,
+				IVarTuple tuple => tuple.ToJsonArray((item) => DecodeToJson(item)),
+				_ => JsonValue.FromValue(o, this.Settings, this.Resolver)
+			};
 
 		/// <summary>Décode le premier élément d'un tuple contenant une valeur JSON</summary>
 		/// <param name="tuple">Tuple dont le début contient un valeur JSON</param>
@@ -227,11 +213,9 @@ namespace Doxense.Serialization.Encoders
 				remaining = null;
 				return JsonNull.Missing;
 			}
-			else
-			{
-				remaining = tuple.Count > 1 ? tuple.Substring(1) : null;
-				return DecodeToJson(tuple[0]);
-			}
+
+			remaining = tuple.Count > 1 ? tuple.Substring(1) : null;
+			return DecodeToJson(tuple[0]);
 		}
 
 	}
@@ -317,7 +301,10 @@ namespace Doxense.Serialization.Encoders
 			var tuple = TuPack.Unpack(reader.ReadToEnd());
 			Contract.Debug.Assert(tuple != null);
 			value = this.Encoding.DecodeNext(tuple, out tuple).As<T>();
-			if (tuple != null) throw new FormatException("Found extra items at the encoded of the encoded JSON value");
+			if (tuple != null)
+			{
+				throw new FormatException("Found extra items at the encoded of the encoded JSON value");
+			}
 		}
 
 		public bool TryReadKeyFrom(ref SliceReader reader, out T? value)
@@ -333,12 +320,13 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		#endregion
+
 	}
 
 	public sealed class JsonDynamicKeyEncoder : IDynamicKeyEncoder
 	{
 
-		public static JsonDynamicKeyEncoder Instance { get; } = new JsonDynamicKeyEncoder(JsonValueEncoding.Instance);
+		public static JsonDynamicKeyEncoder Instance { get; } = new(JsonValueEncoding.Instance);
 
 		public JsonDynamicKeyEncoder(JsonValueEncoding encoding)
 		{

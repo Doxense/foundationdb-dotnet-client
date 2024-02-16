@@ -577,10 +577,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		private static object? ConvertToSTuple(Type type, JsonArray? array, Func<Type, JsonValue?, object?> convert)
+		private static object? ConvertToSTuple(Type _, JsonArray? array, Func<Type, JsonValue?, object?> convert)
 		{
 			if (array == null) return null;
-			var res = array.Count != 0 ? new object?[array.Count] : Array.Empty<object?>();
+			var res = array.Count != 0 ? new object?[array.Count] : [ ];
 			int p = 0;
 			foreach (var item in array)
 			{

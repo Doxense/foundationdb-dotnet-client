@@ -34,7 +34,7 @@ namespace Doxense.Serialization.Encoders
 	public sealed class JsonPackValueEncoding : IValueEncoding
 	{
 
-		public static JsonPackValueEncoding Instance { get; } = new JsonPackValueEncoding(null, null);
+		public static JsonPackValueEncoding Instance { get; } = new(null, null);
 
 		public JsonPackValueEncoding(CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver)
 		{
@@ -72,7 +72,7 @@ namespace Doxense.Serialization.Encoders
 	public sealed class JsonPackValueEncoder<T> : IValueEncoder<T>
 	{
 
-		public static JsonPackValueEncoder<T> Instance { get; } = new JsonPackValueEncoder<T>(null, null);
+		public static JsonPackValueEncoder<T> Instance { get; } = new(null, null);
 
 		public CrystalJsonSettings Settings { get; }
 

@@ -520,7 +520,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Crée un writer vers un fichier sur le disque</summary>
 		/// <param name="path">Chemin du fichier à écrire</param>
 		/// <param name="settings"></param>
-		/// <param name="streamFilter">Filtre utilisé pour décorer le stream (crypto, compression, ...)</param>
 		/// <returns>Writer prêt à écrire dans le fichier</returns>
 		private static StreamWriter OpenJsonStreamWriter(string path, CrystalJsonSettings? settings)
 		{
@@ -869,7 +868,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Parse le contenu d'un fichier JSON sur le disque</summary>
 		/// <param name="path">Nom du fichier à lire sur le disque</param>
 		/// <param name="settings">Paramètres de parsing (optionnels)</param>
-		/// <param name="streamFilter"></param>
 		/// <param name="options"></param>
 		/// <returns>Valeur JSON correspondante (ou JsonNull.Missing si le fichier est vide)</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -921,6 +919,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes.AsSlice(), settings).AsObject(required);
 		}
 
@@ -936,6 +937,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(byte[]? jsonBytes, int offset, int count, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes.AsSlice(offset, count), settings).AsObject(required);
 		}
 
@@ -947,6 +951,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes, settings).AsObject(required);
 		}
 
@@ -958,6 +965,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes, settings).AsObject(required);
 		}
 
@@ -969,6 +979,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes, settings).AsObject(required);
 		}
 
@@ -980,6 +993,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(ref jsonBytes, settings).AsObject(required);
 		}
 
@@ -991,6 +1007,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonText, settings).AsObject(required);
 		}
 
@@ -1002,6 +1021,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonText, settings).AsObject(required);
 		}
 
@@ -1013,6 +1035,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObject(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(ref jsonText, settings).AsObject(required);
 		}
 
@@ -1026,6 +1051,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObjectFrom(TextReader source, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return ParseFromReader(new JsonTextReader(source), settings).AsObject(required);
 		}
 
@@ -1038,6 +1066,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObjectFrom(Stream source, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return ParseFrom(source, settings).AsObject(required);
 		}
 
@@ -1045,7 +1076,6 @@ namespace Doxense.Serialization.Json
 		/// <param name="path">Chemin du fichier à lire</param>
 		/// <param name="settings">Paramètres de parsing (optionnels)</param>
 		/// <param name="required"></param>
-		/// <param name="streamFilter">Filtres utilisé pour décorer le stream (crypto, décompression, ...)</param>
 		/// <param name="options">Options de lecture</param>
 		/// <returns>Objet JSON correspondant</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1053,6 +1083,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonObject? ParseObjectFrom(string path, CrystalJsonSettings? settings = null, bool required = false, LoadOptions options = LoadOptions.None)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return LoadAndParseInternal(path, settings, options).AsObject(required);
 		}
 
@@ -1066,6 +1099,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes.AsSlice(), settings).AsArray(required);
 		}
 
@@ -1081,6 +1117,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(byte[]? jsonBytes, int offset, int count, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes.AsSlice(offset, count), settings).AsArray(required);
 		}
 
@@ -1094,6 +1133,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes, settings).AsArray(required);
 		}
 
@@ -1107,6 +1149,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes, settings).AsArray(required);
 		}
 
@@ -1120,6 +1165,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonBytes, settings).AsArray(required);
 		}
 
@@ -1133,6 +1181,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(ref jsonBytes, settings).AsArray(required);
 		}
 
@@ -1146,6 +1197,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonText, settings).AsArray(required);
 		}
 
@@ -1159,6 +1213,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
 			return Parse(jsonText, settings).AsArray(required);
 		}
 
@@ -1172,6 +1229,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
 			return Parse(ref jsonText, settings).AsArray(required);
 		}
 
@@ -1185,6 +1245,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArray(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
 			return Parse(jsonText, settings).AsArray(required);
 		}
 
@@ -1198,6 +1261,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArrayFrom(TextReader source, CrystalJsonSettings? settings = null, bool required = false)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
 			return ParseFrom(source, settings).AsArray(required);
 		}
 
@@ -1205,7 +1271,6 @@ namespace Doxense.Serialization.Json
 		/// <param name="path">Chemin du fichier à lire</param>
 		/// <param name="settings">Paramètres de parsing (optionnels)</param>
 		/// <param name="required"></param>
-		/// <param name="streamFilter">Filtres utilisé pour décorer le stream (crypto, décompression, ...)</param>
 		/// <param name="options">Options de lecture</param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1213,6 +1278,9 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static JsonArray? ParseArrayFrom(string path, CrystalJsonSettings? settings = null, bool required = false, LoadOptions options = LoadOptions.None)
 		{
+			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
+			// => in 99.99% of cases you are parsing SOMETHING.
+			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
 			return LoadAndParseInternal(path, settings, options).AsArray(required);
 		}
 
@@ -1268,7 +1336,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Crée un reader sur un fichier sur le disque</summary>
 		/// <param name="path">Chemin du fichier à lire</param>
 		/// <param name="settings"></param>
-		/// <param name="streamFilter">Filtre utilisé pour décorer le stream (crypto, décompression, ...)</param>
 		/// <returns>Reader prêt à lire depuis le fichier</returns>
 		[Pure]
 		private static StreamReader OpenJsonStreamReader(string path, CrystalJsonSettings? settings)
@@ -1548,9 +1615,9 @@ namespace Doxense.Serialization.Json
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static InvalidOperationException Serialization_ObjectRecursionIsNotAllowed(IEnumerable<object> visited, object value, int depth)
+			internal static InvalidOperationException Serialization_ObjectRecursionIsNotAllowed(IEnumerable<object?> visited, object? value, int depth)
 			{
-				return new JsonSerializationException($"Object of type '{value.GetType().FullName}' at depth {depth} already serialized before! Recursive object graphs not supported. Visited path: {string.Join(" <- ", visited.Select(v => v?.GetType().FullName ?? "<null>"))}");
+				return new JsonSerializationException($"Object of type '{value?.GetType().FullName}' at depth {depth} already serialized before! Recursive object graphs not supported. Visited path: {string.Join(" <- ", visited.Select(v => v?.GetType().FullName ?? "<null>"))}");
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -1560,7 +1627,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object current)
+			internal static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object? current)
 			{
 				return new JsonSerializationException($"Desynchronization of the visited object stack: Leave() was called with a different value of type '{current?.GetType().GetFriendlyName() ?? "<null>"}' than MarkVisited() at depth {depth}.");
 			}

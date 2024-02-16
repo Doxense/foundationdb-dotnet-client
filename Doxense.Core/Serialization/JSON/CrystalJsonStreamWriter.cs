@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
 	using System.Threading;
@@ -36,6 +37,8 @@ namespace Doxense.Serialization.Json
 	using JetBrains.Annotations;
 
 	/// <summary>Classe capable d'écrire des fragments de JSON, en mode stream</summary>
+	[PublicAPI]
+	[DebuggerNonUserCode]
 	public sealed class CrystalJsonStreamWriter : IDisposable //TODO: IAsyncDisposable !
 	{
 		// On utiliser un CrystalJsonWriter classique, qui va écrire dans un MemoryStream qui sert de tampon, de manière classique.
@@ -314,11 +317,14 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'array</param>
-		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'array a été écrite entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
+		/// <summary>Write a top-level JSON array</summary>
+		/// <param name="state">Value that will be passed as argument to <paramref name="handler"/></param>
+		/// <param name="handler">Handler that will write the content of the array to the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be used for top-level documents. If you want to output a collection of child objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// </remarks>
 		public void WriteArrayFragment<TState>(TState state, [InstantHandle] Action<TState, ArrayStream> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -721,7 +727,7 @@ namespace Doxense.Serialization.Json
 				{
 					m_scratch.Seek(0, SeekOrigin.Begin);
 					//note: MemoryStream.CopyToAsync() est optimisé pour écrire en une seul passe, et ignore la taille du buffer
-					await m_scratch.CopyToAsync(m_stream, 4096, cancellationToken);
+					await m_scratch.CopyToAsync(m_stream, 4096, cancellationToken).ConfigureAwait(false);
 				}
 				//TODO: si erreur, il faudrait nuker ??
 				finally
@@ -787,7 +793,7 @@ namespace Doxense.Serialization.Json
 				{
 					if (m_ownStream)
 					{
-						m_stream?.Dispose();
+						m_stream.Dispose();
 					}
 				}
 			}
@@ -808,7 +814,7 @@ namespace Doxense.Serialization.Json
 				{
 					if (m_ownStream)
 					{
-						m_stream?.Dispose();
+						await m_stream.DisposeAsync().ConfigureAwait(false);
 					}
 				}
 			}

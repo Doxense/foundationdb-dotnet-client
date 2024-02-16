@@ -31,7 +31,15 @@ namespace Doxense.Serialization.Json
 	/// <summary>Source of JSON text that can be parsed</summary>
 	public interface IJsonReader
 	{
+
+		/// <summary>Returns the next character in the source, or <see langword="-1"/> if no more characters are available</summary>
 		int Read();
+
+		/// <summary>Returns <see langword="true"/> if there are more characters to read</summary>
+		bool? HasMore { get; }
+
+		/// <summary>Returns the number of remaining characters that are still available</summary>
+		int? Remaining { get; }
 
 	}
 

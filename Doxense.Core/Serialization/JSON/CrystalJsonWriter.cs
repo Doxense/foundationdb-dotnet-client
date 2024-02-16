@@ -42,6 +42,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Serialize values into JSON</summary>
 	[DebuggerDisplay("Json={!m_javascript}, Formatted={m_formatted}, Depth={m_objectGraphDepth}")]
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public sealed class CrystalJsonWriter
 	{
 		private const int MaximumObjectGraphDepth = 16;
@@ -169,7 +170,10 @@ namespace Doxense.Serialization.Json
 		{
 			// if the first character is already lowercase, we can skip it
 			char first = name[0];
-			if (first == '_' || (first >= 'a' && first <= 'z')) return name;
+			if (first is '_' or (>= 'a' and <= 'z'))
+			{
+				return name;
+			}
 
 			// lower case the first character
 			var chars = name.ToCharArray();
@@ -1309,28 +1313,26 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				var buf = GetTempBuffer();
-				int n = CrystalJsonFormatter.FormatIso8601DateTime(buf, date, date.Kind, default(TimeSpan?), '"');
-				m_buffer.Write(buf, 0, n);
+				Span<char> buf = stackalloc char[CrystalJsonFormatter.ISO8601_MAX_FORMATTED_SIZE];
+				m_buffer.Write(CrystalJsonFormatter.FormatIso8601DateTime(buf, date, date.Kind, null, '"'));
 			}
 		}
 
 		/// <summary>Write a date with offset using the ISO 8601 format: <c>"YYYY-MM-DDTHH:mm:ss.ffff+TZ"</c></summary>
 		public void WriteDateTimeIso8601(DateTimeOffset date)
 		{
-			if (date == DateTimeOffset.MinValue)
-			{ // MinValue est sérialisée comme une chaine vide
+			if (date == default)
+			{ // MinValue (== default) is serialized as an empty string
 				m_buffer.Write(JsonTokens.EmptyString);
 			}
 			else if (date == DateTimeOffset.MaxValue)
-			{ // MaxValue ne doit pas mentioner la TZ
+			{ // MaxValue should not specify any timezone
 				m_buffer.Write(JsonTokens.Iso8601DateTimeMaxValue);
 			}
 			else
 			{
-				var buf = GetTempBuffer();
-				int n = CrystalJsonFormatter.FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, '"');
-				m_buffer.Write(buf, 0, n);
+				Span<char> buf = stackalloc char[CrystalJsonFormatter.ISO8601_MAX_FORMATTED_SIZE];
+				m_buffer.Write(CrystalJsonFormatter.FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, '"'));
 			}
 		}
 

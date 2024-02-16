@@ -28,11 +28,11 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 
-	/// <summary>Delegate appelé pour désérialiser une valeur JSON en objet managé</summary>
-	/// <param name="value">Valeur JSON à binder</param>
-	/// <param name="bindingType">Type managé attendu</param>
-	/// <param name="resolver">Résolveur de type</param>
-	/// <returns>Objet managé désérialisé</returns>
+	/// <summary>Delegate called to bind a JSON value into a managed CLR instance</summary>
+	/// <param name="value">JSON value that must be converted</param>
+	/// <param name="bindingType">Target CLR type</param>
+	/// <param name="resolver">Custom type resolver</param>
+	/// <returns>Converted value, which will be of type <paramref name="bindingType"/> (or a concrete type if this is an interface or abstract class)</returns>
 	public delegate object? CrystalJsonTypeBinder(JsonValue? value, Type bindingType, ICrystalJsonTypeResolver resolver);
 
 }

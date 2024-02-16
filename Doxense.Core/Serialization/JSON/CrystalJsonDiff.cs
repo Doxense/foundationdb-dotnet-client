@@ -26,12 +26,13 @@
 
 namespace Doxense.Serialization.Json
 {
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class CrystalJsonDiff
 	{
 

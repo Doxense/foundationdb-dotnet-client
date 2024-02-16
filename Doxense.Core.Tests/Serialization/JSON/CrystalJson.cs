@@ -2329,8 +2329,8 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData())!;
-				File.WriteAllBytes(path, data.ZstdCompress(20).GetBytes());
+				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				File.WriteAllBytes(path, data.ZstdCompress(20).GetBytes()!);
 				sw.Stop();
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
 				Log($"ZSTD -20: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
@@ -2478,7 +2478,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(value.Equals(JsonNull.Missing), Is.False, "NEQ missing");
 			Assert.That(value.Equals(JsonNull.Error), Is.False, "NEQ error");
 			Assert.That(value.Equals(default(JsonValue)), Is.True);
-			Assert.That(value.Equals(default(object)!), Is.True);
+			Assert.That(value!.Equals(default(object)!), Is.True);
 
 			// on doit tester certain cas particulieres pour le binding de Null:
 			// - pour des Value Type, null doit se binder en le default(T) correspondant (ex: JsonNull.Null.As<int>() => 0)
@@ -2618,7 +2618,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(value.Equals(JsonNull.Null), Is.False, "NEQ null");
 			Assert.That(value.Equals(JsonNull.Error), Is.False, "NEQ error");
 			Assert.That(value.Equals(default(JsonValue)), Is.True);
-			Assert.That(value.Equals(default(object)), Is.True);
+			Assert.That(value!.Equals(default(object)), Is.True);
 
 			//note: normalement JsonNull.Missing se bind de la même manière que pour JsonNull, (=> default(T))
 			// sauf que si T == JsonValue ou JsonNull, alors on doit retourner le même singleton (ie: JsonNull.Missing.As<JsonValue>() => JsonNull.Missing
@@ -2656,7 +2656,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(value.Equals(JsonNull.Null), Is.False, "NEQ null");
 			Assert.That(value.Equals(JsonNull.Missing), Is.False, "NEQ missing");
 			Assert.That(value.Equals(default(JsonValue)), Is.True);
-			Assert.That(value.Equals(default(object)), Is.True);
+			Assert.That(value!.Equals(default(object)), Is.True);
 
 			Assert.That(SerializeToSlice(jerror), Is.EqualTo(Slice.FromString("null")));
 		}
@@ -2760,7 +2760,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(jval.Equals(JsonString.Empty), Is.True);
 				Assert.That(jval.Equals(String.Empty), Is.True);
 				Assert.That(jval.Equals(default(string)), Is.False);
-				JsonString jstr = (JsonString) jval;
+				var jstr = (JsonString) jval;
 				Assert.That(jstr.IsNullOrEmpty, Is.True);
 				Assert.That(jstr.Length, Is.EqualTo(0));
 				Assert.That(SerializeToSlice(jval), Is.EqualTo(Slice.FromString("\"\"")));
@@ -3000,7 +3000,7 @@ namespace Doxense.Serialization.Json.Tests
 				JsonString jstr = (JsonString) jval;
 				Assert.That(jstr.Value, Is.EqualTo("hello"));
 
-				string s = (string) jval; // explicit cast
+				var s = (string?) jval; // explicit cast
 				Assert.That(s, Is.Not.Null);
 				Assert.That(s, Is.EqualTo("hello"));
 			}
@@ -5333,7 +5333,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonObject.EmptyReadOnly.IsReadOnly, Is.True);
 			//note: we don't want to attempt to modify the empty readonly singleton, because if the test fails, it will completely break ALL the reamining tests!
 
-			static void CheckEmptyReadOnly(JsonObject obj, [CallerArgumentExpression("obj")] string expression = null)
+			static void CheckEmptyReadOnly(JsonObject obj, [CallerArgumentExpression("obj")] string? expression = null)
 			{
 				Assert.That(obj, Has.Count.Zero, expression);
 				AssertIsImmutable(obj, expression);
@@ -5369,17 +5369,17 @@ namespace Doxense.Serialization.Json.Tests
 
 			// parsing with JsonImmutable should return an already immutable object
 			const string JSON = """{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""";
-			var obj = JsonValue.ParseObject(JSON, CrystalJsonSettings.JsonReadOnly);
+			var obj = JsonValue.ParseObject(JSON, CrystalJsonSettings.JsonReadOnly)!;
 			AssertIsImmutable(obj);
-			var foo = obj.GetObject("foo", required: true);
+			var foo = obj.GetObject("foo", required: true)!;
 			AssertIsImmutable(foo);
-			var addr = foo.GetObject("address", required: true);
+			var addr = foo.GetObject("address", required: true)!;
 			AssertIsImmutable(addr);
-			var bar = obj.GetArray("bar", required: true);
+			var bar = obj.GetArray("bar", required: true)!;
 			AssertIsImmutable(bar);
-			var baz = obj.GetArray("baz", required: true);
+			var baz = obj.GetArray("baz", required: true)!;
 			AssertIsImmutable(baz);
-			var jazz = baz.GetObject(0, required: true);
+			var jazz = baz.GetObject(0, required: true)!;
 			AssertIsImmutable(jazz);
 		}
 
@@ -5644,36 +5644,36 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonValue.FromValue(false), Is.InstanceOf<JsonBoolean>());
 			Assert.That(JsonValue.FromValue(true), Is.InstanceOf<JsonBoolean>());
 			Assert.That(JsonValue.FromValue("hello"), Is.InstanceOf<JsonString>());
-			Assert.That(JsonValue.FromValue(String.Empty), Is.InstanceOf<JsonString>());
+			Assert.That(JsonValue.FromValue(string.Empty), Is.InstanceOf<JsonString>());
 			Assert.That(JsonValue.FromValue(Guid.NewGuid()), Is.InstanceOf<JsonString>());
-			Assert.That(JsonValue.FromValue(System.Net.IPAddress.Loopback), Is.InstanceOf<JsonString>());
+			Assert.That(JsonValue.FromValue(IPAddress.Loopback), Is.InstanceOf<JsonString>());
 			Assert.That(JsonValue.FromValue(DateTime.Now), Is.InstanceOf<JsonDateTime>());
 			Assert.That(JsonValue.FromValue(TimeSpan.FromMinutes(1)), Is.InstanceOf<JsonNumber>());
 			Assert.That(JsonValue.FromValue(new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ")), Is.InstanceOf<JsonString>());
 
 			// FromValue(object)
-			Assert.That(JsonValue.FromValue((object)null), Is.InstanceOf<JsonNull>());
-			Assert.That(JsonValue.FromValue((object)DBNull.Value), Is.InstanceOf<JsonNull>());
-			Assert.That(JsonValue.FromValue((object)123), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)123456L), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)123.4f), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)123.456d), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)default(uint)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)default(ulong)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)default(sbyte)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)default(byte)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)default(short)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)default(ushort)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)default(decimal)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)false), Is.InstanceOf<JsonBoolean>());
-			Assert.That(JsonValue.FromValue((object)true), Is.InstanceOf<JsonBoolean>());
-			Assert.That(JsonValue.FromValue((object)"hello"), Is.InstanceOf<JsonString>());
-			Assert.That(JsonValue.FromValue((object)String.Empty), Is.InstanceOf<JsonString>());
-			Assert.That(JsonValue.FromValue((object)Guid.NewGuid()), Is.InstanceOf<JsonString>());
-			Assert.That(JsonValue.FromValue((object)System.Net.IPAddress.Loopback), Is.InstanceOf<JsonString>());
-			Assert.That(JsonValue.FromValue((object)DateTime.Now), Is.InstanceOf<JsonDateTime>());
-			Assert.That(JsonValue.FromValue((object)TimeSpan.FromMinutes(1)), Is.InstanceOf<JsonNumber>());
-			Assert.That(JsonValue.FromValue((object)new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ")), Is.InstanceOf<JsonString>());
+			Assert.That(JsonValue.FromValue(default(object)!), Is.InstanceOf<JsonNull>());
+			Assert.That(JsonValue.FromValue((object) DBNull.Value), Is.InstanceOf<JsonNull>());
+			Assert.That(JsonValue.FromValue((object) 123), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) 123456L), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) 123.4f), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) 123.456d), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) default(uint)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) default(ulong)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) default(sbyte)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) default(byte)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) default(short)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) default(ushort)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) default(decimal)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) false), Is.InstanceOf<JsonBoolean>());
+			Assert.That(JsonValue.FromValue((object) true), Is.InstanceOf<JsonBoolean>());
+			Assert.That(JsonValue.FromValue((object) "hello"), Is.InstanceOf<JsonString>());
+			Assert.That(JsonValue.FromValue((object) string.Empty), Is.InstanceOf<JsonString>());
+			Assert.That(JsonValue.FromValue((object) Guid.NewGuid()), Is.InstanceOf<JsonString>());
+			Assert.That(JsonValue.FromValue((object) IPAddress.Loopback), Is.InstanceOf<JsonString>());
+			Assert.That(JsonValue.FromValue((object) DateTime.Now), Is.InstanceOf<JsonDateTime>());
+			Assert.That(JsonValue.FromValue((object) TimeSpan.FromMinutes(1)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ")), Is.InstanceOf<JsonString>());
 		}
 
 		[Test]
@@ -5714,7 +5714,7 @@ namespace Doxense.Serialization.Json.Tests
 			var j = JsonValue.FromValue(new[] { 1, 42, 77 });
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
 			Log(j); // => [ 1, 42, 77 ]
-			var arr = j.AsArray(required: true);
+			var arr = j.AsArray(required: true)!;
 			Assert.That(arr.Count, Is.EqualTo(3));
 			Assert.That(arr[0], Is.Not.Null);
 			Assert.That(arr.Get<int>(0), Is.EqualTo(1));
@@ -5725,7 +5725,7 @@ namespace Doxense.Serialization.Json.Tests
 			j = JsonValue.FromValue(new List<int> { 1, 42, 77 });
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
 			Log(j); // => [ 1, 42, 77 ]
-			arr = j.AsArray(required: true);
+			arr = j.AsArray(required: true)!;
 			Assert.That(arr.Count, Is.EqualTo(3));
 			Assert.That(arr.Get<int>(0), Is.EqualTo(1));
 			Assert.That(arr.Get<int>(1), Is.EqualTo(42));
@@ -5735,7 +5735,7 @@ namespace Doxense.Serialization.Json.Tests
 			j = JsonValue.FromValue(new[] { "foo", "bar", "baz" });
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
 			Log(j); // [ "foo", "bar", "baz" ]
-			arr = j.AsArray(required: true);
+			arr = j.AsArray(required: true)!;
 			Assert.That(arr.Count, Is.EqualTo(3));
 			Assert.That(arr.Get<string>(0), Is.EqualTo("foo"));
 			Assert.That(arr.Get<string>(1), Is.EqualTo("bar"));
@@ -5745,7 +5745,7 @@ namespace Doxense.Serialization.Json.Tests
 			j = JsonValue.FromValue(new ReadOnlyCollection<string>(new List<string> { "foo", "bar", "baz" }));
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
 			Log(j); // [ "foo", "bar", "baz" ]
-			arr = j.AsArray(required: true);
+			arr = j.AsArray(required: true)!;
 			Assert.That(arr.Count, Is.EqualTo(3));
 			Assert.That(arr.Get<string>(0), Is.EqualTo("foo"));
 			Assert.That(arr.Get<string>(1), Is.EqualTo("bar"));
@@ -5755,14 +5755,14 @@ namespace Doxense.Serialization.Json.Tests
 			j = JsonValue.FromValue(Enumerable.Range(1, 10));
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
 			Log(j); // => [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
-			arr = j.AsArray(required: true);
+			arr = j.AsArray(required: true)!;
 			Assert.That(arr.Count, Is.EqualTo(10));
 			Assert.That(arr.ToArray<int>(), Is.EqualTo(Enumerable.Range(1, 10).ToArray()));
 
 			j = JsonValue.FromValue(Enumerable.Range(1, 3).Select(x => new KeyValuePair<int, char>(x, (char)(64 + x))).ToList());
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
 			Log(j);
-			arr = j.AsArray(required: true);
+			arr = j.AsArray(required: true)!;
 			Assert.That(arr.Count, Is.EqualTo(3));
 			//BUGBUG: pour l'instant ca retourne [ { Key: .., Value: .. }, .. ] au lieu de [ [ .., .. ], .. ]
 		}
@@ -5775,7 +5775,7 @@ namespace Doxense.Serialization.Json.Tests
 			var j = JsonValue.FromValue(new Dictionary<string, int> {{"foo", 11}, {"bar", 22}, {"baz", 33}});
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonObject>());
 			Log(j); // { "foo": 11, "bar": 22, "baz": 33 }
-			var obj = j.AsObject(required: true);
+			var obj = j.AsObject(required: true)!;
 			Assert.That(obj.Count, Is.EqualTo(3));
 			Assert.That(obj.Get<int>("foo"), Is.EqualTo(11));
 			Assert.That(obj.Get<int>("bar"), Is.EqualTo(22));
@@ -5786,7 +5786,7 @@ namespace Doxense.Serialization.Json.Tests
 			var g3 = Guid.NewGuid();
 			j = JsonValue.FromValue(new Dictionary<string, Guid> { { "foo", g1 }, { "bar", g2 }, { "baz", g3 } });
 			Log(j); // { "foo": ..., "bar": ..., "baz": ... }
-			obj = j.AsObject(required: true);
+			obj = j.AsObject(required: true)!;
 			Assert.That(obj.Count, Is.EqualTo(3));
 			Assert.That(obj.Get<Guid>("foo"), Is.EqualTo(g1));
 			Assert.That(obj.Get<Guid>("bar"), Is.EqualTo(g2));
@@ -5802,7 +5802,7 @@ namespace Doxense.Serialization.Json.Tests
 			j = JsonValue.FromValue(new Dictionary<int, string> {{11, "foo"}, {22, "bar"}, {33, "baz"}});
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonObject>());
 			Log(j); // { "11": "foo", "22": "bar", "33": "baz" }
-			obj = j.AsObject(required: true);
+			obj = j.AsObject(required: true)!;
 			Assert.That(obj.Count, Is.EqualTo(3));
 			Assert.That(obj.Get<string>("11"), Is.EqualTo("foo"));
 			Assert.That(obj.Get<string>("22"), Is.EqualTo("bar"));
@@ -5952,27 +5952,27 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.Get<string>("_class"), Is.Null, "Not on top level");
 			Assert.That(obj.ContainsKey("Agent"));
 			Assert.That(obj.GetPath("Agent._class").ToString(), Is.EqualTo(typeof(DummyDerivedJsonClass).FullName + ", " + typeof(DummyDerivedJsonClass).Assembly.GetName().Name), "On sub-object");
-			var y = obj.As<DummyOuterDerivedClass>();
+			var y = obj.As<DummyOuterDerivedClass>()!;
 			Assert.That(y.Agent, Is.Not.Null.And.InstanceOf<DummyDerivedJsonClass>());
 			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
 
-			j = JsonValue.FromValue((object)x.Agent);
+			j = JsonValue.FromValue((object) x.Agent);
 			Assert.That(j, Is.Not.Null);
 			Log(j.ToJsonIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromObject((TDerived)obj) should return a JsonObject");
 			obj = (JsonObject)j;
 			Assert.That(obj.Get<string>("_class"), Is.Null, "FromObject(foo) assumes that the runtime type is known, and does not need to be output");
-			var z = obj.As<DummyDerivedJsonClass>();
+			var z = obj.As<DummyDerivedJsonClass>()!;
 			Assert.That(z, Is.Not.Null.And.InstanceOf<DummyDerivedJsonClass>());
 			Assert.That(z.Name, Is.EqualTo("James Bond"));
 
-			j = JsonValue.FromValue<DummyJsonClass>(x.Agent);
+			j = JsonValue.FromValue<DummyJsonClass>(x.Agent)!;
 			Assert.That(j, Is.Not.Null);
 			Log(j.ToJsonIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromValue<TClass>() should return a JsonObject");
 			obj = (JsonObject)j;
 			Assert.That(obj.Get<string>("_class"), Is.EqualTo(typeof(DummyDerivedJsonClass).FullName + ", " + typeof(DummyDerivedJsonClass).Assembly.GetName().Name), "FromValue<TBase>((TDerived)foo) should output the class id");
-			var w = obj.As<DummyJsonClass>();
+			var w = obj.As<DummyJsonClass>()!;
 			Assert.That(w, Is.Not.Null.And.InstanceOf<DummyDerivedJsonClass>());
 			Assert.That(w.Name, Is.EqualTo("James Bond"));
 
@@ -6294,13 +6294,13 @@ namespace Doxense.Serialization.Json.Tests
 			var obj = CrystalJson.Parse(jsonText);
 			Assert.That(obj, Is.Not.Null, jsonText);
 			Assert.That(obj, Is.InstanceOf<JsonArray>(), jsonText);
-			var res = obj as JsonArray;
+			var res = (JsonArray) obj;
 			Assert.That(res.Count, Is.EqualTo(0), jsonText + ".Count");
 
 			jsonText = "[ ]";
 			obj = CrystalJson.Parse(jsonText);
 			Assert.That(obj, Is.InstanceOf<JsonArray>(), jsonText);
-			res = obj as JsonArray;
+			res = (JsonArray) obj;
 			Assert.That(res.Count, Is.EqualTo(0), jsonText + ".Count");
 
 			// single value
@@ -6341,7 +6341,7 @@ namespace Doxense.Serialization.Json.Tests
 			// interning corner cases
 
 			{ // array of small integers (-128..255) should all be refs to cached instances
-				var arr = CrystalJson.ParseArray("[ 0, 1, 42, -1, 255, -128 ]");
+				var arr = CrystalJson.ParseArray("[ 0, 1, 42, -1, 255, -128 ]")!;
 				Assert.That(arr, Is.Not.Null.And.Count.EqualTo(6));
 				Assert.That(arr[0], Is.SameAs(JsonNumber.Zero));
 				Assert.That(arr[1], Is.SameAs(JsonNumber.One));
@@ -6359,11 +6359,11 @@ namespace Doxense.Serialization.Json.Tests
 			var obj = CrystalJson.Parse(jsonText);
 			Assert.That(obj, Is.Not.Null, jsonText);
 			Assert.That(obj, Is.InstanceOf<JsonObject>(), jsonText);
-			var parsed = obj as JsonObject;
+			var parsed = (JsonObject) obj;
 			Assert.That(parsed.Count, Is.EqualTo(0), jsonText + ".Count");
 
 			jsonText = "{ }";
-			parsed = CrystalJson.ParseObject(jsonText);
+			parsed = CrystalJson.ParseObject(jsonText)!;
 			Assert.That(parsed, Is.Not.Null, jsonText);
 			Assert.That(parsed.Count, Is.EqualTo(0), jsonText + ".Count");
 			Assert.That(parsed, Is.EqualTo(JsonObject.Empty), jsonText);
@@ -6371,21 +6371,21 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = @"{ ""Name"":""James Bond"" }";
 			obj = CrystalJson.Parse(jsonText);
 			Assert.That(obj, Is.InstanceOf<JsonObject>(), jsonText);
-			parsed = obj as JsonObject;
+			parsed = (JsonObject) obj;
 			Assert.That(parsed, Is.Not.Null, jsonText);
 			Assert.That(parsed.Count, Is.EqualTo(1), jsonText + ".Count");
 			Assert.That(parsed.ContainsKey("Name"), Is.True, jsonText + ".Name?");
 			Assert.That(parsed["Name"], Is.EqualTo(JsonString.Return("James Bond")), jsonText + ".Name");
 
 			jsonText = @"{ ""Id"":7, ""Name"":""James Bond"", ""IsDeadly"":true }";
-			parsed = CrystalJson.ParseObject(jsonText);
+			parsed = CrystalJson.ParseObject(jsonText)!;
 			Assert.That(parsed.Count, Is.EqualTo(3), jsonText + ".Count");
 			Assert.That(parsed["Name"], Is.EqualTo(JsonString.Return("James Bond")), jsonText + ".Name");
 			Assert.That(parsed["Id"], Is.EqualTo(JsonNumber.Return(7)), jsonText + ".Id");
 			Assert.That(parsed["IsDeadly"], Is.EqualTo(JsonBoolean.True), jsonText + ".IsDeadly");
 
 			jsonText = @"{ ""Id"":7, ""Name"":""James Bond"", ""IsDeadly"":true, ""Created"":""\/Date(-52106400000+0200)\/"", ""Weapons"":[{""Name"":""Walter PPK""}] }";
-			parsed = CrystalJson.ParseObject(jsonText);
+			parsed = CrystalJson.ParseObject(jsonText)!;
 			Assert.That(parsed.Count, Is.EqualTo(5), jsonText + ".Count");
 			Assert.That(parsed["Name"], Is.EqualTo(JsonString.Return("James Bond")), jsonText + ".Name");
 			Assert.That(parsed["Id"], Is.EqualTo(JsonNumber.Return(7)), jsonText + ".Id");
@@ -6419,7 +6419,7 @@ namespace Doxense.Serialization.Json.Tests
 			// interning corner cases
 
 			{ // values that are small integers (-128..255à should all be refs to cached instances
-				obj = CrystalJson.ParseObject(@"{ ""A"": 0, ""B"": 1, ""C"": 42, ""D"": -1, ""E"": 255, ""F"": -128 }");
+				obj = CrystalJson.ParseObject(@"{ ""A"": 0, ""B"": 1, ""C"": 42, ""D"": -1, ""E"": 255, ""F"": -128 }")!;
 				Assert.That(obj, Is.Not.Null.And.Count.EqualTo(6));
 				Assert.That(obj["A"], Is.SameAs(JsonNumber.Zero));
 				Assert.That(obj["B"], Is.SameAs(JsonNumber.One));
@@ -6441,7 +6441,7 @@ namespace Doxense.Serialization.Json.Tests
 			const string TEXT = @"[ { ""Foo"":""Bar"" }, { ""Foo"":""Bar"" } ]";
 
 			// par défaut seul les clés sont internées, mais pas les valeurs
-			var array = CrystalJson.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.Default)).Select(x => ((JsonObject)x).First()).ToArray();
+			var array = CrystalJson.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.Default))!.Select(x => ((JsonObject)x).First()).ToArray();
 			var one = array[0];
 			var two = array[1];
 
@@ -6457,7 +6457,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// si on désactive l'interning, ni les clés ni les valeurs ne doivent être partagées
 
-			array = CrystalJson.ParseArray(TEXT, CrystalJsonSettings.Json.DisableInterning()).Select(x => ((JsonObject)x).First()).ToArray();
+			array = CrystalJson.ParseArray(TEXT, CrystalJsonSettings.Json.DisableInterning())!.Select(x => ((JsonObject)x).First()).ToArray();
 			one = array[0];
 			two = array[1];
 
@@ -6473,7 +6473,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// si on active l'interning complet, les clés et les valeurs doivent être partagées
 
-			array = CrystalJson.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.IncludeValues)).Select(x => ((JsonObject)x).First()).ToArray();
+			array = CrystalJson.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.IncludeValues))!.Select(x => ((JsonObject)x).First()).ToArray();
 			one = array[0];
 			two = array[1];
 
@@ -6962,51 +6962,51 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonDeserialize_SimpleObject()
 		{
 			string jsonText = "{}";
-			object obj = CrystalJson.DeserializeBoxed(jsonText);
+			object obj = CrystalJson.DeserializeBoxed(jsonText)!;
 			Assert.That(obj, Is.Not.Null, jsonText);
 			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			var res = obj as IDictionary<string, object>;
+			var res = (IDictionary<string, object>) obj;
 			Assert.That(res.Count, Is.EqualTo(0), jsonText + ".Count");
 
 			jsonText = "{ }";
-			obj = CrystalJson.DeserializeBoxed(jsonText);
+			obj = CrystalJson.DeserializeBoxed(jsonText)!;
 			Assert.That(obj, Is.Not.Null, jsonText);
 			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = obj as IDictionary<string, object>;
+			res = (IDictionary<string, object>) obj;
 			Assert.That(res.Count, Is.EqualTo(0), jsonText + ".Count");
 
 			jsonText = @"{ ""Name"":""James Bond"" }";
-			obj = CrystalJson.DeserializeBoxed(jsonText);
+			obj = CrystalJson.DeserializeBoxed(jsonText)!;
 			Assert.That(obj, Is.Not.Null, jsonText);
 			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = obj as IDictionary<string, object>;
+			res = (IDictionary<string, object>) obj;
 			Assert.That(res.Count, Is.EqualTo(1), jsonText + ".Count");
 			Assert.That(res.ContainsKey("Name"), Is.True, jsonText + ".Name?");
 			Assert.That(res["Name"], Is.EqualTo("James Bond"), jsonText + ".Name");
 
 			jsonText = @"{ ""Id"":7, ""Name"":""James Bond"", ""IsDeadly"":true }";
-			obj = CrystalJson.DeserializeBoxed(jsonText);
+			obj = CrystalJson.DeserializeBoxed(jsonText)!;
 			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = obj as IDictionary<string, object>;
+			res = (IDictionary<string, object>) obj;
 			Assert.That(res.Count, Is.EqualTo(3), jsonText + ".Count");
 			Assert.That(res["Name"], Is.EqualTo("James Bond"), jsonText + ".Name");
 			Assert.That(res["Id"], Is.EqualTo(7), jsonText + ".Id");
 			Assert.That(res["IsDeadly"], Is.True, jsonText + ".IsDeadly");
 
 			jsonText = @"{ ""Id"":7, ""Name"":""James Bond"", ""IsDeadly"":true, ""Created"":""\/Date(-52106400000+0200)\/"", ""Weapons"":[{""Name"":""Walter PPK""}] }";
-			obj = CrystalJson.DeserializeBoxed(jsonText);
+			obj = CrystalJson.DeserializeBoxed(jsonText)!;
 			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = obj as IDictionary<string, object>;
+			res = (IDictionary<string, object>) obj;
 			Assert.That(res.Count, Is.EqualTo(5), jsonText + ".Count");
 			Assert.That(res["Name"], Is.EqualTo("James Bond"), jsonText + ".Name");
 			Assert.That(res["Id"], Is.EqualTo(7), jsonText + ".Id");
 			Assert.That(res["IsDeadly"], Is.True, jsonText + ".IsDeadly");
 			//Assert.That(res["Created"], Is.EqualTo(new DateTime(1968, 5, 8)), jsonText + ".Created");
 			Assert.That(res["Created"], Is.EqualTo("/Date(-52106400000+0200)/"), jsonText + ".Created"); //BUGBUG: gérer l'auto-detect de date quand on veut une string en object ?
-			var weapons = res["Weapons"] as IList<object>;
+			var weapons = (IList<object>) res["Weapons"];
 			Assert.That(weapons, Is.Not.Null, jsonText + ".Weapons");
 			Assert.That(weapons.Count, Is.EqualTo(1), jsonText + ".Weapons.Count");
-			var weapon = weapons[0] as IDictionary<string, object>;
+			var weapon = (IDictionary<string, object>) weapons[0];
 			Assert.That(weapon, Is.Not.Null, jsonText + ".Weapons[0]");
 			Assert.That(weapon["Name"], Is.EqualTo("Walter PPK"), jsonText + ".Weapons[0].Name");
 		}
@@ -7182,7 +7182,7 @@ namespace Doxense.Serialization.Json.Tests
 				}
 				Assert.That(fs.CanWrite, Is.False, "Stream should have been closed (ownStream: true)");
 			}
-			arr = CrystalJson.LoadFrom<List<int>>(path);
+			arr = CrystalJson.LoadFrom<List<int>>(path)!;
 			Assert.That(arr, Is.Not.Null);
 			Assert.That(arr.Count, Is.EqualTo(0));
 
@@ -7315,7 +7315,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 			// vérification
 			Log("> reloading...");
-			var verify = CrystalJson.ParseObjectFrom(path);
+			var verify = CrystalJson.ParseObjectFrom(path)!;
 			Dump(verify);
 			Log("> verifying...");
 			Assert.That(verify, Is.Not.Null);
@@ -7340,7 +7340,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// vérification
 			Log("> reloading...");
-			verify = CrystalJson.ParseObjectFrom(path);
+			verify = CrystalJson.ParseObjectFrom(path)!;
 			Dump(verify);
 			Log("> verifying...");
 			Assert.That(verify, Is.Not.Null);
@@ -7378,7 +7378,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// vérification
 			Log("> reloading...");
-			verify = CrystalJson.ParseObjectFrom(path);
+			verify = CrystalJson.ParseObjectFrom(path)!;
 			//trop gros pour être dumpé!
 			Log("> verifying...");
 			Assert.That(verify, Is.Not.Null);
@@ -7424,7 +7424,7 @@ namespace Doxense.Serialization.Json.Tests
 			using(var fs = File.OpenRead(path + ".gz"))
 			using (var gs = new GZipStream(fs, CompressionMode.Decompress, false))
 			{
-				verify = CrystalJson.ParseObjectFrom(gs);
+				verify = CrystalJson.ParseObjectFrom(gs)!;
 			}
 
 			Log("> verifying...");
@@ -7498,7 +7498,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				// metrics meta
 				Log("> Readining metadata object...");
-				var frag = reader.ReadNextFragment();
+				var frag = reader.ReadNextFragment()!;
 				DumpCompact(frag);
 				Assert.That(frag, Is.Not.Null);
 				Assert.That(frag.Type, Is.EqualTo(JsonType.Object));
@@ -7509,10 +7509,10 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(m.Get<string[]>("Metrics"), Is.Not.Null.And.Length.EqualTo(3));
 
 				// metrics value
-				foreach (var id in m.GetArray("Metrics", required: true).Cast<string>())
+				foreach (var id in m.GetArray("Metrics", required: true)!.Cast<string>())
 				{
 					Log($"> Readining batch for {id}...");
-					frag = reader.ReadNextFragment();
+					frag = reader.ReadNextFragment()!;
 					DumpCompact(frag);
 					Assert.That(frag, Is.Not.Null);
 					Assert.That(frag.Type, Is.EqualTo(JsonType.Array));
@@ -7536,7 +7536,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	static class AssertJson
 	{
-		public static void ParseAreEqual(JsonValue expected, string jsonText, string message = null)
+		public static void ParseAreEqual(JsonValue expected, string jsonText, string? message = null)
 		{
 			var parsed = CrystalJson.Parse(jsonText);
 			Assert.That(parsed, Is.EqualTo(expected), $"CrystalJson.Parse('{jsonText}') into {expected.Type}{(message == null ? string.Empty : (": " + message))}");
@@ -7611,7 +7611,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	interface IDummyCustomInterface
 	{
-		string Name { get; }
+		string? Name { get; }
 		int Index { get; }
 		long Size { get; }
 		float Height { get; }
@@ -7636,9 +7636,9 @@ namespace Doxense.Serialization.Json.Tests
 	class DummyJsonClass : IDummyCustomInterface
 	{
 		private string m_invisible = "ShoudNotBeVisible";
-		private string m_name;
+		private string? m_name;
 		public bool Valid => m_name != null;
-		public string Name { get => m_name; set => m_name = value; }
+		public string? Name { get => m_name; set => m_name = value; }
 		public int Index { get; set; }
 		public long Size { get; set; }
 		public float Height { get; set; }
@@ -7676,7 +7676,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	class DummyDerivedJsonClass : DummyJsonClass
 	{
-		private string m_doubleAgentName;
+		private string? m_doubleAgentName;
 
 		public DummyDerivedJsonClass() { }
 
@@ -7687,7 +7687,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		public bool IsDoubleAgent => m_doubleAgentName != null;
 
-		public string DoubleAgentName { get => m_doubleAgentName; set => m_doubleAgentName = value; }
+		public string? DoubleAgentName { get => m_doubleAgentName; set => m_doubleAgentName = value; }
 	}
 
 	class DummyJsonCustomClass : IJsonSerializable, IJsonBindable
@@ -7828,10 +7828,10 @@ namespace Doxense.Serialization.Json.Tests
 		/// <summary>Constructeur privé, utilisé lors de la désérialisation JSON</summary>
 		private DummyCtorBasedJsonSerializableClass(JsonObject json, ICrystalJsonTypeResolver _)
 		{
-			this.Id = json.Get<int>("Id", required: true);
-			this.Name = json.Get<string>("Name", required: true);
+			this.Id = json.Get<int>("Id", required: true)!;
+			this.Name = json.Get<string>("Name", required: true)!;
 			this.Color = System.Drawing.Color.FromName(json.Get<string>("Color") ?? "Black");
-			string xy = json.Get<string>("XY", required: true);
+			string xy = json.Get<string>("XY", required: true)!;
 			if (!string.IsNullOrEmpty(xy))
 			{
 				// Don't try this at home!
@@ -7912,10 +7912,10 @@ namespace Doxense.Serialization.Json.Tests
 		/// <summary>Constructeur privé, utilisé lors de la désérialisation JSON</summary>
 		private DummyCtorBasedJsonBindableClass(JsonObject json, ICrystalJsonTypeResolver _)
 		{
-			this.Id = json.Get<int>("Id", required: true);
-			this.Name = json.Get<string>("Name", required: true);
+			this.Id = json.Get<int>("Id", required: true)!;
+			this.Name = json.Get<string>("Name", required: true)!;
 			this.Color = System.Drawing.Color.FromName(json.Get<string>("Color") ?? "Black");
-			string xy = json.Get<string>("XY", required: true);
+			string xy = json.Get<string>("XY", required: true)!;
 			if (!string.IsNullOrEmpty(xy))
 			{
 				// Don't try this at home!
@@ -7980,9 +7980,9 @@ namespace Doxense.Serialization.Json.Tests
 		/// <summary>Constructeur privé, utilisé lors de la désérialisation JSON</summary>
 		private DummyCtorBasedJsonSerializableStruct(JsonObject json, ICrystalJsonTypeResolver _)
 		{
-			this.Id = json.Get<int>("Id", required: true);
-			this.Name = json.Get<string>("Name", required: true);
-			string xy = json.Get<string>("XY", required: true);
+			this.Id = json.Get<int>("Id", required: true)!;
+			this.Name = json.Get<string>("Name", required: true)!;
+			string xy = json.Get<string>("XY", required: true)!;
 			if (!string.IsNullOrEmpty(xy))
 			{
 				// Don't try this at home!

@@ -36,7 +36,9 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("Remaining={Remaining}")]
 	public unsafe struct JsonUnmanagedReader : IJsonReader
 	{
+
 		private byte* Cursor;
+
 		private readonly byte* End;
 
 		/// <summary>Create a new UTF-8 reader from an unmanaged memory buffer</summary>
@@ -49,6 +51,7 @@ namespace Doxense.Serialization.Json
 			this.End = buffer + length;
 		}
 
+		/// <inheritdoc />
 		public int Read()
 		{
 			var cursor = this.Cursor;
@@ -65,7 +68,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private int ReadSlow()
+		int ReadSlow()
 		{
 			var cursor = this.Cursor;
 			if (cursor >= this.End)
@@ -83,8 +86,10 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		public bool HasMore => this.Cursor < this.End;
+		public bool? HasMore => this.Cursor < this.End;
 
-		public int Remaining => this.Cursor < this.End ? (int) (this.End - this.Cursor) : 0;
+		public int? Remaining => this.Cursor < this.End ? checked((int) (this.End - this.Cursor)) : 0;
+
 	}
+
 }

@@ -62,11 +62,8 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(type);
 			Contract.NotNull(members);
 
-			if (classId == null)
-			{
-				// Récupère le nom du type sous la forme "Namespace.ClassName, AssemblyName" pour pouvoir l'utiliser avec Type.GetType(..)
-				classId = type.GetAssemblyName();
-			}
+			// If not provided, generate a type name that looks like "Namespace.ClassName, AssemblyName", which is the format expected by Type.GetType(..)
+			classId ??= type.GetAssemblyName();
 
 			this.Type = type;
 			this.BaseType = baseType;

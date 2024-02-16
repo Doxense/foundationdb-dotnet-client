@@ -26,15 +26,18 @@
 
 namespace Doxense.Serialization.Json
 {
-	using Doxense.IO;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Text;
+	using Doxense.IO;
+	using JetBrains.Annotations;
 
 	/// <summary>Classe capable de générer manuellement un objet JSON simple</summary>
+	[PublicAPI]
 	public sealed class CrystalJsonBuilder
 	{
+
 		#region Private Members...
 		private readonly FastStringWriter m_buffer;
 		private readonly CrystalJsonWriter m_writer;

@@ -27,11 +27,14 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Attribute that controls how a field or property is serialized into JSON</summary>
 	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-	public class JsonPropertyAttribute : Attribute
+	[PublicAPI]
+	public sealed class JsonPropertyAttribute : Attribute
 	{
+
 		public JsonPropertyAttribute()
 		{ }
 
@@ -59,4 +62,5 @@ namespace Doxense.Serialization.Json
 		Number,
 		String
 	}
+
 }

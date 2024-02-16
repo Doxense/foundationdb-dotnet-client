@@ -341,12 +341,12 @@ namespace Doxense.Serialization.Json
 			// une fois convertis en UTC, ils sont décallés (par ex le nb de ticks est négatif si on est à l'est de GMT, ou légèrement positif si on est à l'ouest)
 			// Pour contrecarrer ça, on "arrondi" à Min ou Max si les ticks sont à moins d'un jour des bornes.
 
-			const int MillisecondsPerDay = 86400 * 1000;
-			if (ticks < -62135596800000 + MillisecondsPerDay)
+			const int MILLISECONDS_PER_DAY = 86400 * 1000;
+			if (ticks < -62135596800000 + MILLISECONDS_PER_DAY)
 			{ // MinValue
 				result = DateTime.MinValue;
 			}
-			else if (ticks > 253402300799999 - MillisecondsPerDay)
+			else if (ticks > 253402300799999 - MILLISECONDS_PER_DAY)
 			{ // MaxValue
 				result = DateTime.MaxValue;
 			}

@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable CompareOfFloatsByEqualityOperator
+
 namespace Doxense.Serialization.Json
 {
 	using System;
@@ -39,91 +41,45 @@ namespace Doxense.Serialization.Json
 	public static class CrystalJsonFormatter
 	{
 
-		internal static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-
-		/// <summary>Indique si le buffer contient un BOM UTF-8 à l'offset indiqué</summary>
-		internal static bool IsUtf8Bom(byte[] buffer, int offset, int count)
-		{
-			return count >= 3 && buffer[offset] == 0xEF && buffer[offset + 1] == 0xBB && buffer[offset + 2] == 0xBF;
-		}
-
-		/// <summary>Décode un buffer contenant du JSON encodé en UTF-8</summary>
-		/// <remarks>Skip automatiquement le BOM si présent</remarks>
-		internal static string ReadUtf8String(byte[]? buffer, int offset, int count)
-		{
-			if (buffer == null || count == 0)
-			{
-				return string.Empty;
-			}
-			if (IsUtf8Bom(buffer, offset, count))
-			{ // il faut faire sauter le prefix UTF-8 !
-				return count == 3 ? string.Empty : Encoding.UTF8.GetString(buffer, offset + 3, count - 3);
-			}
-			return Encoding.UTF8.GetString(buffer, offset, count);
-		}
-
+		internal static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
 		#region Formatting
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(byte value)
-		{
-			return JsonNumber.GetCachedSmallNumber(value).Literal;
-		}
+		internal static string NumberToString(byte value) => JsonNumber.GetCachedSmallNumber(value).Literal;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(int value)
-		{
-			return value <= JsonNumber.CACHED_SIGNED_MAX & value >= JsonNumber.CACHED_SIGNED_MIN
+		internal static string NumberToString(int value) =>
+			value <= JsonNumber.CACHED_SIGNED_MAX & value >= JsonNumber.CACHED_SIGNED_MIN
 				? JsonNumber.GetCachedSmallNumber(value).Literal
 				: value.ToString(NumberFormatInfo.InvariantInfo);
-		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(uint value)
-		{
-			return value <= JsonNumber.CACHED_SIGNED_MAX
+		internal static string NumberToString(uint value) =>
+			value <= JsonNumber.CACHED_SIGNED_MAX
 				? JsonNumber.GetCachedSmallNumber(unchecked((int) value)).Literal
 				: value.ToString(NumberFormatInfo.InvariantInfo);
-		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(long value)
-		{
-			return value <= JsonNumber.CACHED_SIGNED_MAX & value >= JsonNumber.CACHED_SIGNED_MIN
+		internal static string NumberToString(long value) => 
+			value <= JsonNumber.CACHED_SIGNED_MAX & value >= JsonNumber.CACHED_SIGNED_MIN
 				? JsonNumber.GetCachedSmallNumber(unchecked((int) value)).Literal
 				: value.ToString(NumberFormatInfo.InvariantInfo);
-		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(ulong value)
-		{
-			return value <= JsonNumber.CACHED_SIGNED_MAX
+		internal static string NumberToString(ulong value) =>
+			value <= JsonNumber.CACHED_SIGNED_MAX
 				? JsonNumber.GetCachedSmallNumber(unchecked((int) value)).Literal
 				: value.ToString(NumberFormatInfo.InvariantInfo);
-		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(float value)
-		{
-			return value.ToString("R", NumberFormatInfo.InvariantInfo);
-		}
+		internal static string NumberToString(float value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(double value)
-		{
-#if ENABLE_GRISU3_STRING_CONVERTER
-			return Doxense.Mathematics.FastDtoa.FormatDouble(value);
-#else
-			return value.ToString("R", NumberFormatInfo.InvariantInfo);
-#endif
-		}
+		internal static string NumberToString(double value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(decimal value)
-		{
-			return value.ToString(null, NumberFormatInfo.InvariantInfo);
-		}
+		internal static string NumberToString(decimal value) => value.ToString(null, NumberFormatInfo.InvariantInfo);
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		public static void WriteJsonString(TextWriter writer, string? text)
@@ -147,7 +103,6 @@ namespace Doxense.Serialization.Json
 				writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
 			}
 		}
-
 
 		public static void WriteJavaScriptString(TextWriter writer, string? text)
 		{
@@ -261,7 +216,7 @@ namespace Doxense.Serialization.Json
 			int p = buf.Length - 1;
 			do
 			{
-				buf[p--] = (char)(48 + (value % 10));
+				buf[p--] = (char) (48 + (value % 10));
 				value /= 10;
 			}
 			while (value > 0);
@@ -399,7 +354,6 @@ namespace Doxense.Serialization.Json
 			output.Write(buf, p, len - p);
 		}
 
-
 		private static readonly NumberFormatInfo NFINV = NumberFormatInfo.InvariantInfo;
 
 		internal static void WriteSingleUnsafe(TextWriter output, float value, char[] buf, CrystalJsonSettings.FloatFormat format)
@@ -422,7 +376,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			long l = (long)value;
+			long l = (long) value;
 			if (l == value)
 			{
 				WriteSignedIntegerUnsafe(output, l, buf);
@@ -435,18 +389,6 @@ namespace Doxense.Serialization.Json
 
 		internal static void WriteDoubleUnsafe(TextWriter output, double value, char[] buf, CrystalJsonSettings.FloatFormat format)
 		{
-#if ENABLE_GRISU3_STRING_CONVERTER
-			long l = (long)value;
-			if (l == value)
-			{
-				WriteSignedIntegerUnsafe(output, l, buf);
-			}
-			else
-			{
-				int n = Doxense.Mathematics.FastDtoa.FormatDouble(value, buf, 0);
-				output.Write(buf, 0, n);
-			}
-#else
 			if (value == default)
 			{ // le plus courant (objets vides)
 				output.Write(JsonTokens.Zero); //.DecimalZero);
@@ -479,69 +421,47 @@ namespace Doxense.Serialization.Json
 			}
 
 			output.Write(value.ToString("R", NFINV));
-#endif
 		}
 
-		internal static string GetNaNToken(CrystalJsonSettings.FloatFormat format)
-		{
-			switch (format)
+		internal static string GetNaNToken(CrystalJsonSettings.FloatFormat format) =>
+			format switch
 			{
-				case CrystalJsonSettings.FloatFormat.Default:
-				case CrystalJsonSettings.FloatFormat.Symbol:
-					return JsonTokens.SymbolNaN;
-				case CrystalJsonSettings.FloatFormat.String:
-					return JsonTokens.StringNaN;
-				case CrystalJsonSettings.FloatFormat.Null:
-					return JsonTokens.Null;
-				case CrystalJsonSettings.FloatFormat.JavaScript:
-					return JsonTokens.JavaScriptNaN;
-				default:
-					throw new ArgumentException(nameof(format));
-			}
-		}
+				CrystalJsonSettings.FloatFormat.Default => JsonTokens.SymbolNaN,
+				CrystalJsonSettings.FloatFormat.Symbol => JsonTokens.SymbolNaN,
+				CrystalJsonSettings.FloatFormat.String => JsonTokens.StringNaN,
+				CrystalJsonSettings.FloatFormat.Null => JsonTokens.Null,
+				CrystalJsonSettings.FloatFormat.JavaScript => JsonTokens.JavaScriptNaN,
+				_ => throw new ArgumentException(nameof(format))
+			};
 
-		internal static string GetPositiveInfinityToken(CrystalJsonSettings.FloatFormat format)
-		{
-			switch (format)
+		internal static string GetPositiveInfinityToken(CrystalJsonSettings.FloatFormat format) =>
+			format switch
 			{
-				case CrystalJsonSettings.FloatFormat.Default:
-				case CrystalJsonSettings.FloatFormat.Symbol:
-					return JsonTokens.SymbolInfinityPos;
-				case CrystalJsonSettings.FloatFormat.String:
-					return JsonTokens.StringInfinityPos;
-				case CrystalJsonSettings.FloatFormat.Null:
-					return JsonTokens.Null;
-				case CrystalJsonSettings.FloatFormat.JavaScript:
-					return JsonTokens.JavaScriptInfinityPos;
-				default:
-					throw new ArgumentException(nameof(format));
-			}
-		}
+				CrystalJsonSettings.FloatFormat.Default => JsonTokens.SymbolInfinityPos,
+				CrystalJsonSettings.FloatFormat.Symbol => JsonTokens.SymbolInfinityPos,
+				CrystalJsonSettings.FloatFormat.String => JsonTokens.StringInfinityPos,
+				CrystalJsonSettings.FloatFormat.Null => JsonTokens.Null,
+				CrystalJsonSettings.FloatFormat.JavaScript => JsonTokens.JavaScriptInfinityPos,
+				_ => throw new ArgumentException(nameof(format))
+			};
 
-		internal static string GetNegativeInfinityToken(CrystalJsonSettings.FloatFormat format)
-		{
-			switch (format)
+		internal static string GetNegativeInfinityToken(CrystalJsonSettings.FloatFormat format) =>
+			format switch
 			{
-				case CrystalJsonSettings.FloatFormat.Default:
-				case CrystalJsonSettings.FloatFormat.Symbol:
-					return JsonTokens.SymbolInfinityNeg;
-				case CrystalJsonSettings.FloatFormat.String:
-					return JsonTokens.StringInfinityNeg;
-				case CrystalJsonSettings.FloatFormat.Null:
-					return JsonTokens.Null;
-				case CrystalJsonSettings.FloatFormat.JavaScript:
-					return JsonTokens.JavaScriptInfinityNeg;
-				default:
-					throw new ArgumentException(nameof(format));
-			}
-		}
+				CrystalJsonSettings.FloatFormat.Default => JsonTokens.SymbolInfinityNeg,
+				CrystalJsonSettings.FloatFormat.Symbol => JsonTokens.SymbolInfinityNeg,
+				CrystalJsonSettings.FloatFormat.String => JsonTokens.StringInfinityNeg,
+				CrystalJsonSettings.FloatFormat.Null => JsonTokens.Null,
+				CrystalJsonSettings.FloatFormat.JavaScript => JsonTokens.JavaScriptInfinityNeg,
+				_ => throw new ArgumentException(nameof(format))
+			};
 
-		private static readonly int[] DaysToMonth365 = new int[] { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };
-		private static readonly int[] DaysToMonth366 = new int[] { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 };
+		private static readonly int[] DaysToMonth365 = [ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ];
+		private static readonly int[] DaysToMonth366 = [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ];
 
-		private const int ISO8601_MAX_FORMATTED_SIZE = 35; // Avec quotes + TimeZone!
+		internal const int ISO8601_MAX_FORMATTED_SIZE = 35; // With quotes and TimeZone
 
-		internal static int FormatIso8601DateTime(char[] output, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')
+		internal static ReadOnlySpan<char> FormatIso8601DateTime(Span<char> output, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')
 		{
 			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer
 			if (output.Length < ISO8601_MAX_FORMATTED_SIZE) ThrowHelper.ThrowArgumentException(nameof(output), "Output buffer size is too small");
@@ -573,34 +493,36 @@ namespace Doxense.Serialization.Json
 						ptr += FormatTimeZoneOffset(ptr, TimeZoneInfo.Local.GetUtcOffset(date), true);
 					}
 
-					if (quotes != '\0') *ptr++ = quotes;
+					if (quotes != '\0')
+					{
+						*ptr++ = quotes;
+					}
 
-					return (int)(ptr - buf);
+					return output[..(int) (ptr - buf)];
 				}
 			}
 		}
 
 		public static string ToIso8601String(DateTime date)
 		{
-			if (date == DateTime.MinValue) return String.Empty;
+			if (date == DateTime.MinValue) return string.Empty;
 
-			var buf = new char[ISO8601_MAX_FORMATTED_SIZE];
-			int n = FormatIso8601DateTime(buf, date, date.Kind, null, '\0');
-			return new string(buf, 0, n);
+			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
+			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, '\0'));
 		}
 
 		public static string ToIso8601String(DateTimeOffset date)
 		{
-			if (date == DateTime.MinValue) return String.Empty;
+			if (date == DateTime.MinValue) return string.Empty;
 
-			var buf = new char[ISO8601_MAX_FORMATTED_SIZE];
-			int n = FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, '\0');
-			return new string(buf, 0, n);
+			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
+			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, '\0'));
 		}
 
 		private static unsafe int FormatDatePart(char* ptr, int year, int month, int day)
 		{
-			Paranoid.Requires(ptr != null && year >= 0 && month >= 1 && month <= 12 && day >= 1 && day <= 31);
+			Contract.Debug.Requires(ptr != null);
+			Paranoid.Requires(year >= 0 && month >= 1 && month <= 12 && day >= 1 && day <= 31);
 
 			// Year
 			ptr[3] = (char)(48 + (year % 10)); year /= 10;
@@ -625,7 +547,8 @@ namespace Doxense.Serialization.Json
 
 		private static unsafe int FormatTimePart(char* ptr, int hour, int min, int sec, int ticks)
 		{
-			Paranoid.Requires(ptr != null && hour >= 0 && hour < 24 && min >= 0 && min < 60 && sec >= 0 && sec < 60 && ticks >= 0 && ticks < TimeSpan.TicksPerSecond);
+			Contract.Debug.Requires(ptr != null);
+			Paranoid.Requires(hour >= 0 && hour < 24 && min >= 0 && min < 60 && sec >= 0 && sec < 60 && ticks >= 0 && ticks < TimeSpan.TicksPerSecond);
 
 			ptr[0] = (char)(48 + (hour / 10));
 			ptr[1] = (char)(48 + (hour % 10));
@@ -662,7 +585,7 @@ namespace Doxense.Serialization.Json
 
 		private static unsafe int FormatTimeZoneOffset(char* ptr, TimeSpan utcOffset, bool forceLocal)
 		{
-			Paranoid.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 
 			int min = (int)(utcOffset.Ticks / TimeSpan.TicksPerMinute);
 

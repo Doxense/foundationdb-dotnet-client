@@ -36,6 +36,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("Remaining={" + nameof(Remaining) + "}")]
 	public struct JsonSliceReader : IJsonReader
 	{
+
 		/// <summary>Current position, in <see cref="Array"/></summary>
 		private int Cursor;
 
@@ -55,6 +56,7 @@ namespace Doxense.Serialization.Json
 			this.Array = buffer.Array;
 		}
 
+		/// <inheritdoc />
 		public int Read()
 		{
 			int cursor = this.Cursor;
@@ -91,10 +93,11 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Returns true if there are more characters to read</summary>
-		public bool HasMore => this.Cursor < this.End;
+		/// <inheritdoc />
+		public bool? HasMore => this.Cursor < this.End;
 
-		public int Remaining => this.Cursor < this.End ? (int) (this.End - this.Cursor) : 0;
+		/// <inheritdoc />
+		public int? Remaining => this.Cursor < this.End ? (int) (this.End - this.Cursor) : 0;
 
 	}
 

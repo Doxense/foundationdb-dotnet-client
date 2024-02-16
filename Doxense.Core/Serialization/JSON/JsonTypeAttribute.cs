@@ -27,9 +27,11 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Attribute that controls how a type is serialized into JSON</summary>
-	public class JsonTypeAttribute : Attribute
+	[PublicAPI]
+	public sealed class JsonTypeAttribute : Attribute
 	{
 
 		/* How To Use:

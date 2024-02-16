@@ -195,8 +195,8 @@ namespace Doxense.Serialization.Json
 			}
 
 			// already a JSON DOM element ?
-			JsonValue? result = value as JsonValue;
-			if (result != null)
+			JsonValue? result;
+			if ((result = value as JsonValue) != null)
 			{
 				return result;
 			}
@@ -230,7 +230,7 @@ namespace Doxense.Serialization.Json
 				return packable.JsonPack(m_settings, m_resolver);
 			}
 
-			if (value is IDictionary<string, object> dict)
+			if (value is IDictionary<string, object?> dict)
 			{ // capture Dictionary<string, object> mais aussi les ExpandoObject
 				if (TryConvertDictionaryObject(ref context, dict, runtimeType, out result))
 				{
@@ -269,33 +269,36 @@ namespace Doxense.Serialization.Json
 
 			if (runtimeType.IsClass)
 			{
-				if (value is System.Text.StringBuilder sb)
+				switch (value)
 				{
-					return JsonString.Return(sb);
-				}
-				if (value is System.Net.IPAddress ip)
-				{
-					return JsonString.Return(ip);
-				}
-				if (value is DBNull)
-				{
-					return JsonNull.Null;
-				}
-				if (value is NodaTime.DateTimeZone dtz)
-				{
-					return JsonString.Return(dtz);
-				}
-				if (value is System.Version v)
-				{
-					return JsonString.Return(v);
-				}
-				if (value is System.Uri uri)
-				{
-					return JsonString.Return(uri);
-				}
-				if (value is System.Type tp)
-				{
-					return JsonString.Return(tp);
+					case System.Text.StringBuilder sb:
+					{
+						return JsonString.Return(sb);
+					}
+					case System.Net.IPAddress ip:
+					{
+						return JsonString.Return(ip);
+					}
+					case DBNull:
+					{
+						return JsonNull.Null;
+					}
+					case NodaTime.DateTimeZone dtz:
+					{
+						return JsonString.Return(dtz);
+					}
+					case System.Version v:
+					{
+						return JsonString.Return(v);
+					}
+					case System.Uri uri:
+					{
+						return JsonString.Return(uri);
+					}
+					case System.Type tp:
+					{
+						return JsonString.Return(tp);
+					}
 				}
 			}
 			else
@@ -616,7 +619,7 @@ namespace Doxense.Serialization.Json
 
 		private delegate JsonValue KeyValuePairVisitor(CrystalJsonDomWriter writer, ref VisitingContext context, object value);
 
-		private static readonly QuasiImmutableCache<Type, KeyValuePairVisitor> s_cachedKeyValuePairVisitors = new QuasiImmutableCache<Type, KeyValuePairVisitor>(TypeEqualityComparer.Default);
+		private static readonly QuasiImmutableCache<Type, KeyValuePairVisitor> s_cachedKeyValuePairVisitors = new(TypeEqualityComparer.Default);
 
 		private static KeyValuePairVisitor CompileKeyValuePairVisitor(Type kvType)
 		{
@@ -628,7 +631,7 @@ namespace Doxense.Serialization.Json
 			var m = typeof(CrystalJsonDomWriter).GetMethod(nameof(VisitKeyValuePairGeneric), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(kvType.GetGenericArguments());
 			var body = Expression.Call(m, prmWriter, prmContext, Expression.Convert(prmObj, kvType));
 
-			return Expression.Lambda<KeyValuePairVisitor>(body, true, new [] { prmWriter, prmContext, prmObj }).Compile();
+			return Expression.Lambda<KeyValuePairVisitor>(body, true, [ prmWriter, prmContext, prmObj ]).Compile();
 		}
 
 		private static JsonValue VisitKeyValuePairGeneric<TKey, TValue>(CrystalJsonDomWriter writer, ref VisitingContext context, KeyValuePair<TKey, TValue> value)
@@ -650,7 +653,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[ContractAnnotation("=>true,result:notnull; =>false,result:null")]
-		internal bool TryConvertDictionaryObject(ref VisitingContext context, IDictionary<string, object> value, Type type, out JsonValue result)
+		internal bool TryConvertDictionaryObject(ref VisitingContext context, IDictionary<string, object?> value, Type type, out JsonValue result)
 		{
 			Contract.Debug.Requires(value != null && type != null);
 
@@ -745,14 +748,7 @@ namespace Doxense.Serialization.Json
 			var array = BeginArray(values.Count);
 			foreach (var item in values)
 			{
-				if (item == null)
-				{
-					array.Add(JsonNull.Null);
-				}
-				else
-				{
-					array.Add(ParseObjectInternal(ref context, item, elemType, null));
-				}
+				array.Add(item != null ? ParseObjectInternal(ref context, item, elemType, null) : JsonNull.Null);
 			}
 			Leave(ref context, values);
 			result = array;
@@ -771,14 +767,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in values)
 			{
-				if (item == null)
-				{
-					array.Add(JsonNull.Null);
-				}
-				else
-				{
-					array.Add(ParseObjectInternal(ref context, item, typeof(object), null));
-				}
+				array.Add(item != null ? ParseObjectInternal(ref context, item, typeof(object), null) : JsonNull.Null);
 			}
 
 			Leave(ref context, values);
@@ -847,8 +836,6 @@ namespace Doxense.Serialization.Json
 		private const int MaximumObjectGraphDepth = 16;
 
 		/// <summary>Marque l'objet comme étant déjà traité</summary>
-		/// <param name="value">Objet en cours de traitement</param>
-		/// <param name="type"></param>
 		/// <exception cref="System.InvalidOperationException">Si cet objet a déjà été marqué</exception>
 		internal void MarkVisited(ref VisitingContext context, object? value, Type? type = null)
 		{

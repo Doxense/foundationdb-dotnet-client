@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq.Expressions;
@@ -47,6 +48,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Internal helper to convert values into JSON strings</summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class CrystalJsonVisitor
 	{
 

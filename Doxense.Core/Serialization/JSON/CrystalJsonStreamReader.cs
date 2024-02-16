@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Text;
@@ -34,6 +35,8 @@ namespace Doxense.Serialization.Json
 	using JetBrains.Annotations;
 
 	/// <summary>Classe capable de dé-sérialiser des fragments de JSON, en mode stream</summary>
+	[PublicAPI]
+	[DebuggerNonUserCode]
 	public sealed class CrystalJsonStreamReader : IDisposable //TODO: IAsyncDisposable !
 	{
 
@@ -83,7 +86,7 @@ namespace Doxense.Serialization.Json
 				this.Disposed = true;
 				if (this.OwnSource)
 				{
-					this.Tokenizer.Source.Reader?.Dispose();
+					this.Tokenizer.Source.Reader.Dispose();
 				}
 				this.Tokenizer.Dispose();
 			}

@@ -32,8 +32,9 @@ namespace Doxense.Serialization.Json
 	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>JSON text reader that wraps an underlying TextReader instance</summary>
-	public struct JsonTextReader : IJsonReader
+	public readonly struct JsonTextReader : IJsonReader
 	{
+
 		internal readonly TextReader Reader;
 
 		public JsonTextReader(TextReader reader)
@@ -42,11 +43,16 @@ namespace Doxense.Serialization.Json
 			this.Reader = reader;
 		}
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Read()
-		{
-			return this.Reader.Read();
-		}
+		public int Read() => this.Reader.Read();
+
+		/// <inheritdoc />
+		bool? IJsonReader.HasMore => null;
+
+		/// <inheritdoc />
+		int? IJsonReader.Remaining => null;
 
 	}
+
 }

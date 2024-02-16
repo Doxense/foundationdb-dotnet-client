@@ -28,20 +28,27 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 
 	/// <summary>JSON Text reader that wraps a string</summary>
 	[DebuggerDisplay("Pos={Pos}, Length={Text.Length}")]
 	public struct JsonStringReader : IJsonReader
 	{
+
+		/// <summary>Source literal</summary>
 		public readonly string Text;
+
+		/// <summary>Position in the source</summary>
 		public int Pos;
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonStringReader(string? text)
 		{
 			this.Text = text ?? string.Empty;
 			this.Pos = 0;
 		}
 
+		/// <inheritdoc />
 		public int Read()
 		{
 			int pos = this.Pos;
@@ -52,7 +59,12 @@ namespace Doxense.Serialization.Json
 			return c;
 		}
 
-		public bool HasMore => this.Pos < this.Text.Length;
+		/// <inheritdoc />
+		public bool? HasMore => this.Pos < this.Text.Length;
+
+		/// <inheritdoc />
+		public int? Remaining => Math.Max(this.Text.Length - this.Pos, 0);
 
 	}
+
 }

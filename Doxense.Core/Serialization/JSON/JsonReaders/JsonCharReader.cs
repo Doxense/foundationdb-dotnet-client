@@ -33,18 +33,21 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("Remaining={Remaining}")]
 	public unsafe struct JsonCharReader : IJsonReader
 	{
+
 		private char* Cursor;
 		private readonly char* End;
 
 		/// <summary>Create a new char reader from an unmanaged memory buffer</summary>
 		/// <param name="buffer">Buffer containing decoded characters</param>
-		/// <param name="autoDetectBom">If true, skip the BOM if found ('\xFEFF')</param>
+		/// <param name="count">Size (in characters) of the buffer</param>
+		/// <param name="autoDetectBom">If <see langword="true"/>, skip the BOM if found ('\xFEFF')</param>
 		public JsonCharReader(char* buffer, int count, bool autoDetectBom = true)
 		{
 			this.Cursor = buffer + (autoDetectBom && count >= 1 && buffer[0] == 0xFEFF ? 1 : 0);
 			this.End = buffer + count;
 		}
 
+		/// <inheritdoc />
 		public int Read()
 		{
 			var cursor = this.Cursor;
@@ -56,9 +59,12 @@ namespace Doxense.Serialization.Json
 			return *cursor;
 		}
 
-		public bool HasMore => this.Cursor < this.End;
+		/// <inheritdoc />
+		public bool? HasMore => this.Cursor < this.End;
 
-		public int Remaining => this.Cursor < this.End ? (int) (this.End - this.Cursor) : 0;
+		/// <inheritdoc />
+		public int? Remaining => this.Cursor < this.End ? (int) (this.End - this.Cursor) : 0;
 
 	}
+
 }

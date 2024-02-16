@@ -370,4 +370,5 @@ namespace Doxense.Serialization.Json
 		}
 
 	}
+
 }

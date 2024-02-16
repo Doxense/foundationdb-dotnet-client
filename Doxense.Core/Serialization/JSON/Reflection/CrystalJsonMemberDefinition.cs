@@ -29,41 +29,39 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Diagnostics;
 
-	/// <summary>Structure contenant les infos sur un field ou une property d'un objet</summary>
+	/// <summary>Structure that holds the cached serialization metadata for a field or property of a class or struct</summary>
 	[DebuggerDisplay("Name={Name}, Type={Type}")]
 	public record CrystalJsonMemberDefinition : ICrystalMemberDefinition
 	{
-		/// <summary>Nom</summary>
+		/// <summary>Name of the member</summary>
 		public required string Name { get; init; }
 
-		/// <summary>Type de retour</summary>
+		/// <summary>Declared type of the member</summary>
 		public required Type Type { get; init; }
 
-		/// <summary>Attribut <see cref="JsonPropertyAttribute"/> appliqué sur le champ (optionnel)</summary>
+		/// <summary>Optional <see cref="JsonPropertyAttribute"/> attribute that was applied to this member</summary>
 		public JsonPropertyAttribute? Attributes { get; init; }
 
-		/// <summary>Valeur considérée "par défaut"</summary>
+		/// <summary>Default value for this member (when it is missing)</summary>
 		public object? DefaultValue { get; init; }
 
-		/// <summary>Champ non modifiable (probablement calculé à partir d'autres champs)</summary>
+		/// <summary>Flag set to <see langword="true"/> when the member is read-only or init-only</summary>
 		public bool ReadOnly { get; init; }
 
-		/// <summary>Function capable de retourner la valeur de ce champ</summary>
+		/// <summary>Func that can return the value of this member in an instance of the containing type</summary>
 		public required Func<object, object?> Getter { get; init; }
 
-		/// <summary>Function capable de fixer la valeur de ce champ</summary>
+		/// <summary>Func that can change the value of this member in an instance of the containing type</summary>
 		public Action<object, object?>? Setter { get; init; }
 
-		/// <summary>Function capable de sérialiser ce champ directement</summary>
+		/// <summary>Delegate that can serialize values of this member into JSON</summary>
 		public required CrystalJsonTypeVisitor Visitor { get; init; }
 
-		/// <summary>Function capable de transformer la valeur de base JSON en le bon type</summary>
+		/// <summary>Delegate that can bind JSON values to a type that is assignable to this member</summary>
 		public required CrystalJsonTypeBinder Binder { get; init; }
 
-		public bool IsDefaultValue(object? value)
-		{
-			return this.DefaultValue?.Equals(value) ?? (value is null);
-		}
+		/// <summary>Returns <see langword="true"/> if a possible value for this member is the default value for this member's type (<c>null</c> for ref types or Nullable&lt;T&gt;, <c>0</c> for numbers, <c>false</c> for booleans, ...)</summary>
+		public bool IsDefaultValue(object? value) => this.DefaultValue?.Equals(value) ?? (value is null);
 
 	}
 
