@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable CompareOfFloatsByEqualityOperator
+
 namespace Doxense.Mathematics.Test
 {
 	using System;
@@ -102,8 +104,8 @@ namespace Doxense.Mathematics.Test
 			Check(double.NaN);
 			Check(double.PositiveInfinity);
 			Check(double.NegativeInfinity);
-			Check((double)int.MaxValue);
-			Check((double)long.MaxValue);
+			Check(int.MaxValue);
+			Check(long.MaxValue);
 			Check(Math.PI);
 			Check(Math.E);
 			Check(1.0 / 3.0);
@@ -117,11 +119,11 @@ namespace Doxense.Mathematics.Test
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				Check((double)rnd.Next());
+				Check(rnd.Next());
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				Check(0.5d + (double)rnd.Next());
+				Check(0.5d + rnd.Next());
 			}
 			for (int i = 0; i < 63; i++)
 			{
@@ -151,7 +153,7 @@ namespace Doxense.Mathematics.Test
 				Assert.That(d.IsInfinite, Is.EqualTo(float.IsInfinity(value)), $"Infinity? {d}");
 				Assert.That(d.Sign, Is.EqualTo(value >= 0 ? +1 : -1), $"Sign? {d}");
 
-				Assert.That(d.IsInteger, Is.EqualTo(!float.IsInfinity(value) && !float.IsNaN(value) && (value - (float) (int) value) == 0), $"Integer? {d}");
+				Assert.That(d.IsInteger, Is.EqualTo(!float.IsInfinity(value) && !float.IsNaN(value) && (value - (int) value) == 0), $"Integer? {d}");
 			}
 
 			Check(0.0f);
@@ -174,11 +176,11 @@ namespace Doxense.Mathematics.Test
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				Check((float)rnd.Next());
+				Check(rnd.Next());
 			}
 			for (int i = 0; i < 10; i++)
 			{
-				Check(0.5f + (float)rnd.Next());
+				Check(0.5f + rnd.Next());
 			}
 			for (int i = 0; i < 31; i++)
 			{
@@ -192,7 +194,7 @@ namespace Doxense.Mathematics.Test
 		{
 			var chars = new char[32];
 
-			string Check(double d, string expected)
+			void Check(double d, string expected)
 			{
 				Array.Clear(chars, 0, chars.Length);
 				string s = FastDtoa.FormatDouble(d);
@@ -205,8 +207,6 @@ namespace Doxense.Mathematics.Test
 				double roundTrip = double.Parse(s, CultureInfo.InvariantCulture);
 				Log($"0x{BitConverter.DoubleToInt64Bits(d):X16} : {d:R} ~> \"{s}\" ~> 0x{BitConverter.DoubleToInt64Bits(roundTrip):X16} : {roundTrip:R} => {d == roundTrip}");
 				Assert.That(roundTrip, Is.EqualTo(d), $"MISTMATCH {BitConverter.DoubleToInt64Bits(d):X16} -> {s} -> {BitConverter.DoubleToInt64Bits(roundTrip):X16}");
-
-				return s;
 			}
 
 			Check(0.0, "0");
@@ -262,9 +262,8 @@ namespace Doxense.Mathematics.Test
 				double d = BitConverter.Int64BitsToDouble(b + i);
 
 				var s = FastDtoa.FormatDouble(d);
-				double dd;
 				++num;
-				if (!double.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out dd))
+				if (!double.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double dd))
 				{
 					++notParsed;
 				}
@@ -317,12 +316,11 @@ namespace Doxense.Mathematics.Test
 				(t, i) =>
 				{
 					var d = (long)t[i];
-					string s;
-					s = d.ToString(null, CultureInfo.InvariantCulture);
-					s = d.ToString(null, CultureInfo.InvariantCulture);
-					s = d.ToString(null, CultureInfo.InvariantCulture);
-					s = d.ToString(null, CultureInfo.InvariantCulture);
-					s = d.ToString(null, CultureInfo.InvariantCulture);
+					_ = d.ToString(null, CultureInfo.InvariantCulture);
+					_ = d.ToString(null, CultureInfo.InvariantCulture);
+					_ = d.ToString(null, CultureInfo.InvariantCulture);
+					_ = d.ToString(null, CultureInfo.InvariantCulture);
+					_ = d.ToString(null, CultureInfo.InvariantCulture);
 				},
 				(t) => t,
 				RUNS,
@@ -336,12 +334,11 @@ namespace Doxense.Mathematics.Test
 				(t, i) =>
 				{
 					var d = t[i];
-					string s;
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);				
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
 				},
 				(t) => t,
 				RUNS,
@@ -355,12 +352,11 @@ namespace Doxense.Mathematics.Test
 				(t, i) =>
 				{
 					var d = Math.Floor(t[i]);
-					string s;
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);
-					s = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					_ = d.ToString("R", CultureInfo.InvariantCulture);
 				},
 				(t) => t,
 				RUNS,
@@ -374,12 +370,11 @@ namespace Doxense.Mathematics.Test
 				(t, i) =>
 				{
 					var d = t[i];
-					string s;
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
 				},
 				(t) => t,
 				RUNS,
@@ -393,12 +388,11 @@ namespace Doxense.Mathematics.Test
 				(t, i) =>
 				{
 					var d = Math.Floor(t[i]);
-					string s;
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
-					s = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
+					_ = FastDtoa.FormatDouble(d);
 				},
 				(t) => t,
 				RUNS,
@@ -414,12 +408,11 @@ namespace Doxense.Mathematics.Test
 				{
 					var d = t[i];
 					var buf = chars;
-					int n;
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
 				},
 				(t) => t,
 				RUNS,
@@ -434,12 +427,11 @@ namespace Doxense.Mathematics.Test
 				{
 					var d = Math.Floor(t[i]);
 					var buf = chars;
-					int n;
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
-					n = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
+					_ = FastDtoa.FormatDouble(d, buf, 0);
 				},
 				(t) => t,
 				RUNS,
