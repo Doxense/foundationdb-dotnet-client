@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
-
 namespace Doxense.Testing
 {
 	using System;
@@ -34,7 +32,6 @@ namespace Doxense.Testing
 	using System.Globalization;
 	using System.IO;
 	using System.Linq;
-	using System.Linq.Expressions;
 	using System.Net;
 	using System.Net.NetworkInformation;
 	using System.Reflection;
@@ -57,8 +54,6 @@ namespace Doxense.Testing
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
 	using NUnit.Framework;
-	using NUnit.Framework.Api;
-	using NUnit.Framework.Interfaces;
 	using NUnit.Framework.Internal;
 
 	/// <summary>Base classe pour les tests unitaires, fournissant toute une série de services (logging, cancellation, async helpers, ...)</summary>
@@ -69,12 +64,12 @@ namespace Doxense.Testing
 		private Instant m_testStart;
 		private CancellationTokenSource? m_cts;
 
-		public NodaTime.IClock Clock { get; set; } = SystemClock.Instance;
+		public IClock Clock { get; set; } = SystemClock.Instance;
 
 		static DoxenseTest()
 		{
 #if !NETFRAMEWORK
-			// nécessaire pour que .NET Core puisse gérer les CodePages windows (1252, ...)
+			//TODO: REVIEW: do we still need to do this hack in .NET 6+? It was required with early .NET Core apps
 			System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 #endif
 
@@ -233,7 +228,7 @@ namespace Doxense.Testing
 		public void SetExecutionTimeout(TimeSpan delay)
 		{
 			var cts = m_cts ?? throw new InvalidOperationException("Cannot set execution delay outside of a test");
-			Task.Delay(delay, cts.Token).ContinueWith((t) =>
+			Task.Delay(delay, cts.Token).ContinueWith((_) =>
 			{
 				Log($"### TEST TIMED OUT AFTER {delay} !!! ###");
 				cts.Cancel();
@@ -303,7 +298,7 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Spin de manière asynchrone jusqu'à ce qu'une condition soit réalisée, l'expiration d'un timeout, ou l'annulation du test</summary>
-		public Task<TimeSpan> WaitUntil([InstantHandle] Func<bool> condition, TimeSpan timeout, string message, TimeSpan? ticks = null, [CallerArgumentExpression("condition")] string? conditionExpression = null)
+		public Task<TimeSpan> WaitUntil([InstantHandle] Func<bool> condition, TimeSpan timeout, string message, TimeSpan? ticks = null, [CallerArgumentExpression(nameof(condition))] string? conditionExpression = null)
 		{
 			return WaitUntil(
 				condition,
@@ -316,7 +311,7 @@ namespace Doxense.Testing
 				conditionExpression);
 		}
 
-		public Task<TimeSpan> WaitUntilEqual<TValue>([InstantHandle] Func<TValue> condition, TValue comparand, TimeSpan timeout, string? message, TimeSpan? ticks = null, IEqualityComparer<TValue> comparer = null, [CallerArgumentExpression("condition")] string? conditionExpression = null)
+		public Task<TimeSpan> WaitUntilEqual<TValue>([InstantHandle] Func<TValue> condition, TValue comparand, TimeSpan timeout, string? message, TimeSpan? ticks = null, IEqualityComparer<TValue>? comparer = null, [CallerArgumentExpression(nameof(condition))] string? conditionExpression = null)
 		{
 			comparer ??= EqualityComparer<TValue>.Default;
 			return WaitUntil(
@@ -332,7 +327,7 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Spin de manière asynchrone jusqu'à ce qu'une condition soit réalisée, l'expiration d'un timeout, ou l'annulation du test</summary>
-		public async Task<TimeSpan> WaitUntil([InstantHandle] Func<bool> condition, TimeSpan timeout, Action<TimeSpan, Exception?>  onFail, TimeSpan? ticks = null, [CallerArgumentExpression("condition")] string? conditionExpression = null)
+		public async Task<TimeSpan> WaitUntil([InstantHandle] Func<bool> condition, TimeSpan timeout, Action<TimeSpan, Exception?>  onFail, TimeSpan? ticks = null, [CallerArgumentExpression(nameof(condition))] string? conditionExpression = null)
 		{
 			var ct = this.Cancellation;
 
@@ -383,12 +378,12 @@ namespace Doxense.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted("WaitUntil", conditionExpression!, success, error, start, end);
+				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end);
 			}
 		}
 
 		/// <summary>Spin de manière asynchrone jusqu'à ce qu'une condition soit réalisée, l'expiration d'un timeout, ou l'annulation du test</summary>
-		public async Task<TimeSpan> WaitUntil([InstantHandle] Func<Task<bool>> condition, TimeSpan timeout, string message, TimeSpan? ticks = null, [CallerArgumentExpression("condition")] string conditionExpression = null)
+		public async Task<TimeSpan> WaitUntil([InstantHandle] Func<Task<bool>> condition, TimeSpan timeout, string message, TimeSpan? ticks = null, [CallerArgumentExpression(nameof(condition))] string? conditionExpression = null)
 		{
 			var ct = this.Cancellation;
 
@@ -438,7 +433,7 @@ namespace Doxense.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted("WaitUntil", conditionExpression, success, error, start, end);
+				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end);
 			}
 		}
 
@@ -452,7 +447,7 @@ namespace Doxense.Testing
 		#region Async Stuff...
 
 		/// <summary>Attend que toutes les tasks soient exécutées, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task WhenAll(IEnumerable<Task> tasks, TimeSpan timeout, [CallerArgumentExpression("tasks")] string? tasksExpression = null)
+		public Task WhenAll(IEnumerable<Task> tasks, TimeSpan timeout, [CallerArgumentExpression(nameof(tasks))] string? tasksExpression = null)
 		{
 			var ts = (tasks as Task[]) ?? tasks.ToArray();
 			if (m_cts?.IsCancellationRequested ?? false) return Task.FromCanceled(m_cts.Token);
@@ -462,7 +457,7 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Attend que toutes les tasks soient exécutées, ou que le timeout d'exécution du test se déclenche</summary>
-		public async Task<TResult[]> WhenAll<TResult>(IEnumerable<Task<TResult>> tasks, TimeSpan timeout, [CallerArgumentExpression("tasks")] string? tasksExpression = null)
+		public async Task<TResult[]> WhenAll<TResult>(IEnumerable<Task<TResult>> tasks, TimeSpan timeout, [CallerArgumentExpression(nameof(tasks))] string? tasksExpression = null)
 		{
 			var ts = (tasks as Task<TResult>[]) ?? tasks.ToArray();
 			this.Cancellation.ThrowIfCancellationRequested();
@@ -477,19 +472,19 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task WaitFor(Task task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
+		public Task WaitFor(Task task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task WaitFor(ValueTask task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
+		public Task WaitFor(ValueTask task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task WaitFor(Task task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
+		public Task WaitFor(Task task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
 			     : task.IsCompleted ? Task.FromResult(true)
@@ -497,7 +492,7 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task WaitFor(ValueTask task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null) //REVIEW: renommer en "Await" ?
+		public Task WaitFor(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) //REVIEW: renommer en "Await" ?
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
 				: task.IsCompleted ? Task.FromResult(true)
@@ -505,19 +500,19 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task<TResult> WaitFor<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null)
+		public Task<TResult> WaitFor<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression("task")] string? taskExpression = null)
+		public Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return WaitFor(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task<TResult> WaitFor<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null)
+		public Task<TResult> WaitFor<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
 				: task.IsCompleted ? task
@@ -525,7 +520,7 @@ namespace Doxense.Testing
 		}
 
 		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression("task")] string? taskExpression = null)
+		public Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
 				: task.IsCompleted ? task.AsTask()
@@ -574,7 +569,7 @@ namespace Doxense.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted("WaitFor", taskExpression, success, error, start, end);
+				await OnWaitOperationCompleted(nameof(WaitFor), taskExpression, success, error, start, end);
 			}
 		}
 
@@ -626,7 +621,7 @@ namespace Doxense.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted("WaitFor", taskExpression, success ?? true, error, start, end);
+				await OnWaitOperationCompleted(nameof(WaitFor), taskExpression, success ?? true, error, start, end);
 			}
 		}
 
@@ -714,6 +709,7 @@ namespace Doxense.Testing
 
 		/// <summary>Retourne un chemin vers un répertoire temporaire, utilisable pour ce test</summary>
 		/// <param name="relative">Si non null, nom de fichier ou chemin ajouté au path généra. Par convention, terminer par un '/' si c'est un folder, afin de pouvoir plus facilement s'y retrouver!</param>
+		/// <param name="clearFiles"></param>
 		/// <returns>Chemin vers un répertoire temporaire, qui est garantit comme existant.</returns>
 		/// <remarks>ATTENTION: si vous voulez effacer le répertoire à chaque fois, pensez à passer une chaine unique dans <paramref name="relative"/> pour éviter de vider aussi le rep d'autres test (rend difficile le diag de pb après coup)</remarks>
 		/// <example>
@@ -727,7 +723,7 @@ namespace Doxense.Testing
 			// on veut construire: "{WORK_DIR}/{TEST_CLASS_NAME}[/sufix]"
 
 			var context = TestContext.CurrentContext;
-			string basePath = context != null ? context.TestDirectory : Environment.CurrentDirectory;
+			string basePath = context != null! ? context.TestDirectory : Environment.CurrentDirectory;
 			if (basePath.IndexOf(@"\bin\Debug", StringComparison.OrdinalIgnoreCase) > 0 || basePath.IndexOf(@"\bin\Release", StringComparison.OrdinalIgnoreCase) > 0)
 			{
 				basePath = Path.Combine(basePath, "TestOutput");
@@ -823,23 +819,33 @@ namespace Doxense.Testing
 		protected static void WriteToLog(string? message, bool lineBreak = true)
 		{
 			if (MustOutputLogsOnConsole || ForceToConsole != null)
-			{ // force sur la console
+			{ // force output to the console
 				if (lineBreak)
+				{
 					(ForceToConsole ?? Console.Out).WriteLine(message);
+				}
 				else
+				{
 					(ForceToConsole ?? Console.Out).Write(message);
+				}
 			}
 			else if (AttachedToDebugger)
-			{ // écrit dans la console 'output' de VS
+			{ // outputs to the Output console (visible while the test is running under a debugger)
 				if (lineBreak)
+				{
 					Trace.WriteLine(message);
+				}
 				else
+				{
 					Trace.Write(message);
+				}
 			}
 			else
-			{ // écrit dans stdout
-				//note: avant NUnit 3.6, il fallait XML encoder les logs, mais c'est fixed en 3.6.0 (cf https://github.com/nunit/nunit/issues/1891)
+			{ // output to stdout
+
+				//note: before NUnit 3.6, the text had to be XML encoded, but this has been fixed since v3.6.0 (cf https://github.com/nunit/nunit/issues/1891)
 				//message = message.Replace("&", "&amp;").Replace("<", "&lt;");
+
 				if (lineBreak)
 				{
 					TestContext.Progress.WriteLine(message);
@@ -855,20 +861,21 @@ namespace Doxense.Testing
 		private static void WriteToErrorLog(string? message)
 		{
 			if (MustOutputLogsOnConsole || ForceToConsoleError != null)
-			{ // force sur la console
+			{ // force output to the console
 				(ForceToConsoleError ?? Console.Error).WriteLine(message);
 			}
 			else if(AttachedToDebugger)
-			{ // écrit dans la console 'output' de VS
+			{ // outputs to the Output console (visible while the test is running under a debugger)
 				Trace.WriteLine("ERROR: " + message);
 				TestContext.Error.WriteLine(message);
 			}
 			else
-			{ // écrit dans stderr de NUnit
+			{ // output to stderr
 				TestContext.Error.WriteLine(message);
 			}
 		}
 
+		[DebuggerNonUserCode]
 		protected void LogElapsed(string? text)
 		{
 			Log(TestElapsed.ToString() + " " + text);
@@ -880,11 +887,13 @@ namespace Doxense.Testing
 			WriteToLog(text);
 		}
 
+		[DebuggerNonUserCode]
 		public static void Log(ref DefaultInterpolatedStringHandler handler)
 		{
 			WriteToLog(handler.ToStringAndClear());
 		}
 
+		[DebuggerNonUserCode]
 		protected static void DumpStackTrace(int skip = 2)
 		{
 			var stack = Environment.StackTrace.Split('\n');
@@ -899,42 +908,66 @@ namespace Doxense.Testing
 			Log("> " + string.Join("\n> ", stack, skip, last - skip + 1));
 		}
 
-		/// <summary>Convertit un object en JSON tenant sur une seule ligne</summary>
-		protected static string Jsonify(object? item)
-		{
-			return CrystalJson.Serialize(item, CrystalJsonSettings.Json);
-		}
+		/// <summary>Format as a one-line compact JSON representation of the value</summary>
+		[DebuggerNonUserCode]
+		protected static string Jsonify(object? item) => CrystalJson.Serialize(item, CrystalJsonSettings.Json);
 
-		/// <summary>Retourne une représentation textuelle basique d'un object, tenant sur une seule ligne</summary>
+		/// <summary>Format as a one-line compact JSON representation of the value</summary>
+		[DebuggerNonUserCode]
+		protected static string Jsonify<T>(T? item) => CrystalJson.Serialize(item, CrystalJsonSettings.Json);
+
+		/// <summary>Format as a one-line, human-reabable, textual representation of the value</summary>
+		[DebuggerNonUserCode]
 		protected static string Stringify(object? item)
 		{
 			switch (item)
 			{
-				case null: // Null
+				case null:
+				{
 					return "<null>";
+				}
 				case string str:
-					// hack pour empecher les CRLF de casser l'affichage
+				{ // hack to prevent CRLF to break the layout
 					return str.Length == 0
 						? "\"\""
 						: "\"" + str.Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""") + "\"";
+				}
 				case int i:
+				{
 					return i.ToString(CultureInfo.InvariantCulture);
+				}
 				case long l:
+				{
 					return l.ToString(CultureInfo.InvariantCulture) + "L";
+				}
 				case uint ui:
+				{
 					return ui.ToString(CultureInfo.InvariantCulture) + "U";
+				}
 				case ulong ul:
+				{
 					return ul.ToString(CultureInfo.InvariantCulture) + "UL";
+				}
 				case double d:
+				{
 					return d.ToString("R", CultureInfo.InvariantCulture);
+				}
 				case float f:
+				{
 					return f.ToString("R", CultureInfo.InvariantCulture) + "F";
+				}
 				case Guid g:
+				{
 					return "{" + g.ToString() + "}";
+				}
 				case JsonValue json:
+				{
 					return json.ToJson();
+				}
 				case StringBuilder sb:
+				{
 					return sb.ToString();
+				}
 			}
 
 			var type = item.GetType();
@@ -951,17 +984,17 @@ namespace Doxense.Testing
 			// Formattable
 			if (item is IFormattable formattable)
 			{
-				// utilise le format le plus adapté en fonction du type
+				// use the most appropriate format, depending on the value type
 				string? fmt = null;
-				if (item is int || item is uint || item is long || item is ulong)
+				if (item is int or uint or long or ulong)
 				{
 					fmt = "N0";
 				}
-				else if (item is double || item is float)
+				else if (item is double or float)
 				{
 					fmt = "R";
 				}
-				else if (item is DateTime || item is DateTimeOffset)
+				else if (item is DateTime or DateTimeOffset)
 				{
 					fmt = "O";
 				}
@@ -1002,7 +1035,7 @@ namespace Doxense.Testing
 		}
 
 		[DebuggerNonUserCode]
-		[StringFormatMethod("format")]
+		[StringFormatMethod(nameof(format))]
 		[Obsolete("Use string interpolation instead")]
 		public static void Log(string format, object? arg0)
 		{
@@ -1010,7 +1043,7 @@ namespace Doxense.Testing
 		}
 
 		[DebuggerNonUserCode]
-		[StringFormatMethod("format")]
+		[StringFormatMethod(nameof(format))]
 		[Obsolete("Use string interpolation instead")]
 		public static void Log(string format, object? arg0, object? arg1)
 		{
@@ -1018,7 +1051,7 @@ namespace Doxense.Testing
 		}
 
 		[DebuggerNonUserCode]
-		[StringFormatMethod("format")]
+		[StringFormatMethod(nameof(format))]
 		[Obsolete("Use string interpolation instead")]
 		public static void Log(string format, params object?[] args)
 		{
@@ -1098,7 +1131,7 @@ namespace Doxense.Testing
 				this.Prefix = "[" + category + "] ";
 			}
 
-			public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+			public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
 			{
 				string msg = this.Prefix + formatter(state, exception);
 				switch (logLevel)
@@ -1125,7 +1158,7 @@ namespace Doxense.Testing
 				return true;
 			}
 
-			public IDisposable BeginScope<TState>(TState state)
+			public IDisposable BeginScope<TState>(TState state) where TState : notnull
 			{
 				return Disposable.Create(() => {});
 			}
@@ -1158,7 +1191,7 @@ namespace Doxense.Testing
 
 			WriteToLog($"[{value.Count}] ", lineBreak: false);
 			if (value.All(JsonType.Number) || value.All(JsonType.Boolean))
-			{ // vector de nombres!
+			{ // vector of numbers
 				WriteToLog(value.ToJson(CrystalJsonSettings.Json));
 				return;
 			}
@@ -1205,7 +1238,7 @@ namespace Doxense.Testing
 
 			string xml = sb.ToString();
 			if (indent > 0)
-			{ // indentation du pauvre
+			{ // poor man's indentation (pattent pending)
 				xml = xml.Replace("\n", "\n" + new string('\t', indent));
 			}
 			Log(xml);
@@ -1221,12 +1254,11 @@ namespace Doxense.Testing
 		{
 			if (node == null) { Log($"{label}: <null>"); return; }
 
-			//TODO: formatter proprement le XML!
 			if (label != null) Log($"{label}:");
 
 			string xml = node.ToString();
 			if (indent > 0)
-			{ // indentation du pauvre
+			{ // poor man's indentation (pattent pending)
 				xml = xml.Replace("\n", "\n" + new string('\t', indent));
 			}
 			Log(xml);
@@ -1246,46 +1278,62 @@ namespace Doxense.Testing
 			Assert.Fail($"Cannot dump the content of a {typeof(T).GetFriendlyName()}! Most likely you work to 'await' the method that produced this value!");
 		}
 
-		/// <summary>Dump une valeur en JSON dans le log du test</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <summary>Output a human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
 		[DebuggerNonUserCode]
 		public static void Dump<T>(T value)
 		{
 			if (IsTaskLike(typeof(T))) Assert.Fail($"Cannot dump the content of a {typeof(T).GetFriendlyName()}! Most likely you work to 'await' the method that produced this value!");
 
-			WriteToLog(CrystalJson.Serialize<T>(value, CrystalJsonSettings.JsonIndented.WithNullMembers().WithEnumAsStrings()));
+			WriteToLog(CrystalJson.Serialize(value, CrystalJsonSettings.JsonIndented.WithNullMembers().WithEnumAsStrings()));
 		}
 
-		/// <summary>Dump une valeur en JSON dans le log du test</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <summary>Output a human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
 		[DebuggerNonUserCode]
 		public static void Dump<T>(string label, T value)
 		{
 			WriteToLog($"{label}: <{(value != null ? value.GetType() : typeof(T)).GetFriendlyName()}>");
-			WriteToLog(CrystalJson.Serialize<T>(value, CrystalJsonSettings.JsonIndented.WithEnumAsStrings()));
+			WriteToLog(CrystalJson.Serialize(value, CrystalJsonSettings.JsonIndented.WithEnumAsStrings()));
 		}
 
-		/// <summary>Dump une valeur en JSON dans le log du test, de manière compacte</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <summary>Output a compact human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
 		[DebuggerNonUserCode]
 		public static void DumpCompact<T>(T value)
 		{
 			WriteToLog(CrystalJson.Serialize(value, CrystalJsonSettings.Json));
 		}
 
-		/// <summary>Dump une valeur en JSON dans le log du test, de manière compacte</summary>
-		/// <remarks>ATTENTION: il faut que le type soit sérialisable en JSON! Ne marchera pas avec n'importe quel objet, surtout s'il y a des références cycliques</remarks>
+		/// <summary>Output a compact human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
 		[DebuggerNonUserCode]
 		public static void DumpCompact<T>(string label, T value)
 		{
 			WriteToLog($"{label,-10}: {CrystalJson.Serialize(value, CrystalJsonSettings.Json)}");
 		}
 
-		/// <summary>Dump les différences observées entre deux instances d'un même type</summary>
-		/// <typeparam name="T">Types des objets</typeparam>
-		/// <param name="actual">Objet observé</param>
-		/// <param name="expected">Objet attendu</param>
-		/// <returns>Return <c>true</c> si au moins une différence a été observée, ou <c>false</c> si les objets sont équivalent</returns>
+		/// <summary>Output the result of performing a JSON Diff between two instances of the same type</summary>
+		/// <typeparam name="T">Type of the values to compare</typeparam>
+		/// <param name="actual">Observed value</param>
+		/// <param name="expected">Expected value</param>
+		/// <returns><see langword="true"/> if there is at least one difference, or <see langword="false"/> if both objects are equivalent (at least their JSON representation)</returns>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
 		[DebuggerNonUserCode]
 		public static bool DumpDifferences<T>(T actual, T expected)
 		{
@@ -1307,24 +1355,28 @@ namespace Doxense.Testing
 
 		#region Dump Hexa...
 
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
 		[DebuggerNonUserCode]
 		public static void DumpHexa(byte[] buffer, HexaDump.Options options = HexaDump.Options.Default)
 		{
 			DumpHexa(buffer.AsSlice(), options);
 		}
 
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
 		[DebuggerNonUserCode]
 		public static void DumpHexa(Slice buffer, HexaDump.Options options = HexaDump.Options.Default)
 		{
 			WriteToLog(HexaDump.Format(buffer, options), lineBreak: false);
 		}
 
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
 		[DebuggerNonUserCode]
 		public static void DumpHexa(ReadOnlySpan<byte> buffer, HexaDump.Options options = HexaDump.Options.Default)
 		{
 			WriteToLog(HexaDump.Format(buffer, options), lineBreak: false);
 		}
 
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
 		[DebuggerNonUserCode]
 		public static void DumpHexa<T>(ReadOnlySpan<T> array, HexaDump.Options options = HexaDump.Options.Default)
 			where T : struct
@@ -1333,18 +1385,21 @@ namespace Doxense.Testing
 			WriteToLog(HexaDump.Format(MemoryMarshal.AsBytes(array), options), lineBreak: false);
 		}
 
+		/// <summary>Output an hexadecimal dump of two buffers, side by side, similar to the view in a binary diff tool.</summary>
 		[DebuggerNonUserCode]
 		public static void DumpVersus(byte[] left, byte[] right)
 		{
 			DumpVersus(left.AsSlice(), right.AsSlice());
 		}
 
+		/// <summary>Output an hexadecimal dump of two buffers, side by side, similar to the view in a binary diff tool.</summary>
 		[DebuggerNonUserCode]
 		public static void DumpVersus(Slice left, Slice right)
 		{
 			WriteToLog(HexaDump.Versus(left, right), lineBreak: false);
 		}
 
+		/// <summary>Output an hexadecimal dump of two buffers, side by side, similar to the view in a binary diff tool.</summary>
 		[DebuggerNonUserCode]
 		public static void DumpVersus(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
 		{
@@ -1353,7 +1408,7 @@ namespace Doxense.Testing
 
 		#endregion
 
-		#region Simple Test Runners...
+		#region Simple Test Runners [DEPRECATED]...
 
 #if DEPRECATED // would need to be rewritten for NUnit 4. Do we still use this??
 
@@ -1557,7 +1612,7 @@ namespace Doxense.Testing
 
 		#region Randomness...
 
-		/// <summary>Return the random generator used by this test run</summary>
+		/// <summary>Returns the random generator used by this test run</summary>
 		protected Randomizer Rnd => TestContext.CurrentContext.Random;
 
 		#region 32-bit...
@@ -1788,7 +1843,27 @@ namespace Doxense.Testing
 
 		#region It!
 
-		protected void It(string what, TestDelegate action)
+		// Fluent API used to write tests broken in steps that give a short description of the sub-operation:
+		// {
+		//     It("should go to the Moon, and do the other things", () =>
+		//     {
+		//         Assert.That(DoIt(123, 456), Is.EqualTo(789));
+		//     });
+		//     It("should not do this bad thing in this weird case that will never ever happen in production, I'm pretty sure...", () =>
+		//     {
+		//         Assert.That(() => DoIt(null, double.NaN), Throws.Exception);
+		//     });
+		//     // ...
+		// }
+
+		/// <summary>Execute a sub-step of the test, inside a transient scope</summary>
+		/// <param name="what">A short description of the operation, usually formatted as "should ..." / "should not ..."</param>
+		/// <param name="action">Action that will be performed</param>
+		/// <remarks>
+		/// <para>The elapsed time will be measured and displayed in the log, along with the action name.</para>
+		/// <para>If the action throws an exception, it will be transformed into <see cref="Assert.Fail(string)">a failed assertion</see></para>
+		/// </remarks>
+		protected static void It(string what, Action action)
 		{
 			Log($"=== `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
 			var sw = Stopwatch.StartNew();
@@ -1808,7 +1883,42 @@ namespace Doxense.Testing
 			}
 		}
 
-		protected async Task It(string what, AsyncTestDelegate action)
+		/// <summary>Execute a sub-step of the test, inside a transient scope</summary>
+		/// <param name="what">A short description of the operation, usually formatted as "should ..." / "should not ..."</param>
+		/// <param name="action">Action that will be performed</param>
+		/// <remarks>
+		/// <para>The elapsed time will be measured and displayed in the log, along with the action name.</para>
+		/// <para>If the action throws an exception, it will be transformed into <see cref="Assert.Fail(string)">a failed assertion</see></para>
+		/// </remarks>
+		protected static TResult It<TResult>(string what, Func<TResult> action)
+		{
+			Log($"=== `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
+			var sw = Stopwatch.StartNew();
+			try
+			{
+				return action();
+			}
+			catch (AssertionException) { throw; }
+			catch (Exception e)
+			{
+				Assert.Fail($"Operation '{what}' failed: {e}");
+				return default!; // never reached
+			}
+			finally
+			{
+				sw.Stop();
+				Log($"> ({sw.Elapsed})");
+			}
+		}
+
+		/// <summary>Execute a sub-step of the test, inside a transient scope</summary>
+		/// <param name="what">A short description of the operation, usually formatted as "should ..." / "should not ..."</param>
+		/// <param name="action">Action that will be performed</param>
+		/// <remarks>
+		/// <para>The elapsed time will be measured and displayed in the log, along with the action name.</para>
+		/// <para>If the action throws an exception, it will be transformed into <see cref="Assert.Fail(string)">a failed assertion</see></para>
+		/// </remarks>
+		protected static async Task It(string what, Func<Task> action)
 		{
 			Log($"--- `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
 			var sw = Stopwatch.StartNew();
@@ -1820,6 +1930,34 @@ namespace Doxense.Testing
 			catch (Exception e)
 			{
 				Assert.Fail($"Operation '{what}' failed: " + e);
+			}
+			finally
+			{
+				sw.Stop();
+				Log($"> ({sw.Elapsed})");
+			}
+		}
+
+		/// <summary>Execute a sub-step of the test, inside a transient scope</summary>
+		/// <param name="what">A short description of the operation, usually formatted as "should ..." / "should not ..."</param>
+		/// <param name="action">Action that will be performed</param>
+		/// <remarks>
+		/// <para>The elapsed time will be measured and displayed in the log, along with the action name.</para>
+		/// <para>If the action throws an exception, it will be transformed into <see cref="Assert.Fail(string)">a failed assertion</see></para>
+		/// </remarks>
+		protected static async Task<TResult> It<TResult>(string what, Func<Task<TResult>> action)
+		{
+			Log($"--- `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
+			var sw = Stopwatch.StartNew();
+			try
+			{
+				return await action();
+			}
+			catch (AssertionException) { throw; }
+			catch (Exception e)
+			{
+				Assert.Fail($"Operation '{what}' failed: " + e);
+				return default!; // never reached
 			}
 			finally
 			{
