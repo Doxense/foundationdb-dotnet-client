@@ -30,10 +30,10 @@ var builder = WebApplication.CreateBuilder(args);
 // You MUST select the appropriate API level that matches the target cluster (here '710' requires at least v7.1)
 builder.Services.AddFoundationDb(710, options =>
 {
-	// auto-start the connection to the cluster on the first request
-	options.AutoStart = true; 
+    // auto-start the connection to the cluster on the first request
+    options.AutoStart = true; 
 
-	//you can configure additional options here, like the path to the .cluster file, default timeouts, ...
+    //you can configure additional options here, like the path to the .cluster file, default timeouts, ...
 });
 
 var app = builder.Build();
@@ -66,70 +66,70 @@ Let say, for example, that we have a `Books` Razor Page, that is reachable via t
 namespace MyWebApp.Pages
 {
 
-	using FoundationDB.Client;
+    using FoundationDB.Client;
 
-	/// <summary>Represent a Book that will be stored (as JSON) into the database</summary>
-	public sealed record Book
-	{
-		public required string Id { get; init; }
+    /// <summary>Represent a Book that will be stored (as JSON) into the database</summary>
+    public sealed record Book
+    {
+        public required string Id { get; init; }
 
-		public required string Title { get; init; }
+        public required string Title { get; init; }
 
-		public required string ISBN { get; init; }
+        public required string ISBN { get; init; }
 
-		public required string AuthorId { get; init; }
+        public required string AuthorId { get; init; }
 
-		// ...
+        // ...
 
-	}
+    }
 
-	/// <summary>This page is used to display the details of a specific book</summary>
-	/// <remarks>Accessible via the route '/Books/{id}'</remarks>
-	public class BooksModel : PageModel
-	{
+    /// <summary>This page is used to display the details of a specific book</summary>
+    /// <remarks>Accessible via the route '/Books/{id}'</remarks>
+    public class BooksModel : PageModel
+    {
 
-		public BooksModel(IFdbDatabaseProvider db)
-		{
-			this.Db = db;
-		}
+        public BooksModel(IFdbDatabaseProvider db)
+        {
+            this.Db = db;
+        }
 
-		private IFdbDatabaseProvider Db { get; }
+        private IFdbDatabaseProvider Db { get; }
 
-		public Book Book { get; private set; }
+        public Book Book { get; private set; }
 
-		public async Task OnGet(string id, CancellationToken ct)
-		{
-			// perform parameter validation, ACL checks, and any pre-processing here
+        public async Task OnGet(string id, CancellationToken ct)
+        {
+            // perform parameter validation, ACL checks, and any pre-processing here
 
-			// start a read-only retry-loop
-			Slice jsonBytes = await this.Db.ReadAsync((IFdbReadOnlyTransaction tr) =>
-			{
-				// Read the value of the ("Books", <ID>) key
-				Slice value = await tr.GetAsync(TuPack.Pack(("Books", id)));
+            // start a read-only retry-loop
+            Slice jsonBytes = await this.Db.ReadAsync((IFdbReadOnlyTransaction tr) =>
+            {
+                // Read the value of the ("Books", <ID>) key
+                Slice value = await tr.GetAsync(TuPack.Pack(("Books", id)));
 
-				// the transaction can be used to read additional keys and ranges,
-				// and has a lifetime of max. 5 secondes.
+                // the transaction can be used to read additional keys and ranges,
+                // and has a lifetime of max. 5 secondes.
 
-				return value;
-			}, ct);
+                return value;
+            }, ct);
 
-			// here you can perform any post-processing of the result, outside of the retry-loop
+            // here you can perform any post-processing of the result, outside of the retry-loop
 
             // if the key does not exist in the database, GetAsync(...) will return Slice.Nil
-			if (jsonBytes.IsNull)
-			{
-				// This book does not exist, return a 404 page to the browser!
-				return NotFound();
-			}
+            if (jsonBytes.IsNull)
+            {
+                // This book does not exist, return a 404 page to the browser!
+                return NotFound();
+            }
 
-			// If the key exists, then GetAsync(...) will return its value as bytes, that can be deserialized
-			Book book = JsonSerializer.Deserialize<Book>(jsonBytes.Span);
+            // If the key exists, then GetAsync(...) will return its value as bytes, that can be deserialized
+            Book book = JsonSerializer.Deserialize<Book>(jsonBytes.Span);
 
-			// perform any checks and validation here, like converting the Model (from the database) into a ViewModel (for the razor template)
+            // perform any checks and validation here, like converting the Model (from the database) into a ViewModel (for the razor template)
 
-			this.Book = book;
-		}
-	}
+            this.Book = book;
+        }
+    }
 }
 ```
 
@@ -158,7 +158,7 @@ private static void Main(string[] args)
     // Project that needs a reference to this cluster
     var backend = builder
         .AddProject<Projects.AwesomeWebApiBackend>("backend")
-		//...
+        //...
         .WithReference(fdb); // register the fdb cluster connection
 
     // ...
@@ -180,7 +180,7 @@ private static void Main(string[] args)
     // Project that needs a reference to this cluster
     var backend = builder
         .AddProject<Projects.AwesomeWebApiBackend>("backend")
-		//...
+        //...
         .WithReference(fdb); // register the fdb cluster connection
 
     // ...
@@ -277,30 +277,30 @@ The `IFdbDatabaseProvider` also has a `GetDatabase(...)` method that can be used
 public class FooBarModel : PageModel
 {
 
-	public FooBarModel(IFdbDatabaseProvider db, IFooBarLayer layer)
-	{
-		this.Db = db;
-		this.Layer = layer;
-	}
+    public FooBarModel(IFdbDatabaseProvider db, IFooBarLayer layer)
+    {
+        this.Db = db;
+        this.Layer = layer;
+    }
 
-	private IFdbDatabaseProvider Db { get; }
+    private IFdbDatabaseProvider Db { get; }
 
-	private IFooBarLayer Layer { get; }
+    private IFooBarLayer Layer { get; }
 
-	public List<Foo> Results { get; }
+    public List<Foo> Results { get; }
 
-	public async Task OnGet(...., CancellationToken ct)
-	{
-		// get an instance of the database singleton
-		var db = await this.Db.GetDatabase(ct);
-		// notes:
-		// - if AutoStart is false, this will throw an exception if the provider has not been started manually during starting.
-		// - if AutoStart is true, the very first call will automatically start the connection.
-		// - Once the connection has been established, calls to GetDatabase will return an already-completed task with a cached singleton (or exception).
+    public async Task OnGet(...., CancellationToken ct)
+    {
+        // get an instance of the database singleton
+        var db = await this.Db.GetDatabase(ct);
+        // notes:
+        // - if AutoStart is false, this will throw an exception if the provider has not been started manually during starting.
+        // - if AutoStart is true, the very first call will automatically start the connection.
+        // - Once the connection has been established, calls to GetDatabase will return an already-completed task with a cached singleton (or exception).
 
-		// call some method on this layer, that will perform a query on the database and return a list of results
-		this.Results = await this.Layer.Query(db, ...., ct);
-	}
+        // call some method on this layer, that will perform a query on the database and return a list of results
+        this.Results = await this.Layer.Query(db, ...., ct);
+    }
 
 }
 ```
@@ -432,5 +432,3 @@ Contributing
 * Yes, we use tabs! Get over it.
 * Style rules are encoded in `.editorconfig` which is supported by most IDEs (or via extensions).
 * You can visit the FoundationDB forums for generic questions (not .NET): https://forums.foundationdb.org/
-
-
