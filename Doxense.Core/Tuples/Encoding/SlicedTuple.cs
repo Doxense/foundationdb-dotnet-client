@@ -29,6 +29,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
@@ -50,6 +51,8 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private int? m_hashCode;
 
+		public static readonly SlicedTuple Empty = new SlicedTuple(default);
+
 		public SlicedTuple(ReadOnlyMemory<Slice> slices)
 		{
 			m_slices = slices;
@@ -69,6 +72,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (packedKey.Count == 0) return new SlicedTuple(default);
 
 			return TuplePackers.Unpack(packedKey, embedded: false);
+		}
+
+		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SlicedTupled"/></summary>
+		/// <remarks>This methods can be useful to examine what the result of packing a tuple would be, after a round-trip to the database.</remarks>
+		public static SlicedTuple Repack<TTuple>(TTuple? tuple) where TTuple : IVarTuple?
+		{
+			return tuple is SlicedTuple st ? Unpack(st.ToSlice()) : Unpack(TuPack.Pack(tuple));
 		}
 
 		/// <summary>Return the original serialized key blob that is equivalent to this tuple</summary>
@@ -117,12 +127,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int Count => m_slices.Length;
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
 
-		/// <inheritdoc />
-		public IVarTuple this[int? fromIncluded, int? toExcluded]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public SlicedTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
@@ -131,43 +143,83 @@ namespace Doxense.Collections.Tuples.Encoding
 				int end = toExcluded.HasValue ? TupleHelpers.MapIndexBounded(toExcluded.Value, count) : count;
 
 				int len = end - begin;
-				if (len <= 0) return STuple.Empty;
+				if (len <= 0) return SlicedTuple.Empty;
 				if (begin == 0 && len == count) return this;
 				return new SlicedTuple(m_slices.Slice(begin, len));
 			}
 		}
 
 		/// <inheritdoc />
-		public object? this[Index index] => TuplePackers.DeserializeBoxed(m_slices.Span[index.GetOffset(m_slices.Length)]);
+		IVarTuple IVarTuple.this[int? fromIncluded, int? toExcluded] => this[fromIncluded, toExcluded];
 
 		/// <inheritdoc />
-		public IVarTuple this[Range range]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public object? this[Index index] => TuplePackers.DeserializeBoxed(m_slices.Span[index.GetOffset(m_slices.Length)]);
+
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public SlicedTuple this[Range range]
 		{
 			get
 			{
 				int len = this.Count;
 				(int offset, int count) = range.GetOffsetAndLength(len);
-				if (count == 0) return STuple.Empty;
+				if (count == 0) return SlicedTuple.Empty;
 				if (offset == 0 && count == len) return this;
 				return new SlicedTuple(m_slices.Slice(offset, count));
 			}
 		}
 
 		/// <inheritdoc />
+		IVarTuple IVarTuple.this[Range range] => this[range];
+
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public T? Get<T>(int index)
 		{
 			//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
 			return TuplePacker<T>.Deserialize(GetSlice(index));
 		}
 
-		/// <summary>Return the typed value of the last item of the tuple</summary>
+		/// <summary>Returns the typed value of an item of the tuple, given its position</summary>
+		/// <typeparam name="T">Expected type of the item</typeparam>
+		/// <param name="index">Position of the item, with <c>0</c> for the first element, and <c>^1</c> for the last element</param>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="T"/>.</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
+		/// <example>
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^3) => "Hello"</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^2) => "World"</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;int&gt;(^1) => 123</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^1) => "123"</c></para>
+		/// </example>
+		public T? Get<T>(Index index)
+		{
+			return TuplePacker<T>.Deserialize(m_slices.Span[index]);
+		}
+
+		/// <summary>Returns the typed value of the first item in this tuple</summary>
+		/// <returns>Value of the item at the first position, adapted into type <typeparamref name="T"/>.</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If the tuple is empty</exception>
+		/// <example>
+		/// <para><c>("Hello", "World").First&lt;string&gt;() => "Hello"</c></para>
+		/// <para><c>(123, 456).First&lt;int&gt;() => 123</c></para>
+		/// <para><c>(123, 456).First&lt;string&gt;() => "123"</c></para>
+		/// </example>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public T? First<T>()
+		{
+			var slices = m_slices.Span;
+			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[0]) : throw new InvalidOperationException("Tuple is empty");
+		}
+
+		/// <summary>Returns the typed value of the last item of the tuple</summary>
 		/// <returns>Value of the item at the last position, adapted into type <typeparamref name="T"/>.</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If the tuple is empty</exception>
 		/// <example>
-		/// <para><c>("Hello").Last&lt;string&gt;(0) => "Hello"</c></para>
-		/// <para><c>("Hello", "World", 123,).Last&lt;int&gt;(-1) => 123</c></para>
-		/// <para><c>("Hello", "World", 123,).Last&lt;string&gt;(-1) => "123"</c></para>
+		/// <para><c>("Hello",).Last&lt;string&gt;() => "Hello"</c></para>
+		/// <para><c>(123, 456).Last&lt;int&gt;() => 456</c></para>
+		/// <para><c>(123, 456).Last&lt;string&gt;() => "456"</c></para>
 		/// </example>
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public T? Last<T>()
 		{
 			var slices = m_slices.Span;

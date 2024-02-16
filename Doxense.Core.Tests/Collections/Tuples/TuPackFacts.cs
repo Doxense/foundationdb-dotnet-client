@@ -39,6 +39,7 @@ namespace Doxense.Collections.Tuples.Tests
 	using Doxense.Serialization;
 	using Doxense.Testing;
 	using NUnit.Framework;
+	using NUnit.Framework.Interfaces;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -2038,6 +2039,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 				Assert.That(tuple.Count, Is.EqualTo(1));
 				Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
+				Assert.That(tuple.Get<string>(^1), Is.EqualTo("hello world"));
 				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
 				Assert.That(tuple.Last<string>(), Is.EqualTo("hello world"));
 				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
@@ -2059,6 +2061,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Count, Is.EqualTo(2));
 				Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
 				Assert.That(tuple.Get<int>(1), Is.EqualTo(123));
+				Assert.That(tuple.Get<string>(^2), Is.EqualTo("hello world"));
+				Assert.That(tuple.Get<int>(^1), Is.EqualTo(123));
 				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
 				Assert.That(tuple.Last<int>(), Is.EqualTo(123));
 				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
@@ -2091,6 +2095,12 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Get<int>(3), Is.EqualTo(65536));
 				Assert.That(tuple.Get<int>(4), Is.EqualTo(int.MaxValue));
 				Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MaxValue));
+				Assert.That(tuple.Get<int>(^6), Is.EqualTo(1));
+				Assert.That(tuple.Get<int>(^5), Is.EqualTo(256));
+				Assert.That(tuple.Get<int>(^4), Is.EqualTo(257), tuple.GetSlice(2).ToString());
+				Assert.That(tuple.Get<int>(^3), Is.EqualTo(65536));
+				Assert.That(tuple.Get<int>(^2), Is.EqualTo(int.MaxValue));
+				Assert.That(tuple.Get<long>(^1), Is.EqualTo(long.MaxValue));
 				Assert.That(tuple.First<int>(), Is.EqualTo(1));
 				Assert.That(tuple.Last<long>(), Is.EqualTo(long.MaxValue));
 				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("15 01")));
@@ -2136,6 +2146,12 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Get<int>(3), Is.EqualTo(-65536));
 				Assert.That(tuple.Get<int>(4), Is.EqualTo(int.MinValue));
 				Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MinValue));
+				Assert.That(tuple.Get<int>(^6), Is.EqualTo(-1));
+				Assert.That(tuple.Get<int>(^5), Is.EqualTo(-256));
+				Assert.That(tuple.Get<int>(^4), Is.EqualTo(-257), $"Slice is {tuple.GetSlice(2)}");
+				Assert.That(tuple.Get<int>(^3), Is.EqualTo(-65536));
+				Assert.That(tuple.Get<int>(^2), Is.EqualTo(int.MinValue));
+				Assert.That(tuple.Get<long>(^1), Is.EqualTo(long.MinValue));
 				Assert.That(tuple.First<int>(), Is.EqualTo(-1));
 				Assert.That(tuple.Last<long>(), Is.EqualTo(long.MinValue));
 				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("13 FE")));
@@ -2181,6 +2197,12 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Get<float>(3), Is.EqualTo(1));
 				Assert.That(tuple.Get<double>(4), Is.EqualTo(Math.PI));
 				Assert.That(tuple.Get<float>(5), Is.EqualTo((float) Math.PI));
+				Assert.That(tuple.Get<double>(^6), Is.EqualTo(0));
+				Assert.That(tuple.Get<float>(^5), Is.EqualTo(0));
+				Assert.That(tuple.Get<double>(^4), Is.EqualTo(1));
+				Assert.That(tuple.Get<float>(^3), Is.EqualTo(1));
+				Assert.That(tuple.Get<double>(^2), Is.EqualTo(Math.PI));
+				Assert.That(tuple.Get<float>(^1), Is.EqualTo((float) Math.PI));
 				Assert.That(tuple.First<double>(), Is.EqualTo(0.0));
 				Assert.That(tuple.Last<float>(), Is.EqualTo((float) Math.PI));
 				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("21 80 00 00 00 00 00 00 00")));

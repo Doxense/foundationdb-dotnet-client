@@ -86,6 +86,18 @@ namespace Doxense.Collections.Tuples
 			return items;
 		}
 
+		/// <summary>Returns the typed value of an item of the tuple, given its position</summary>
+		/// <typeparam name="T">Expected type of the item</typeparam>
+		/// <param name="tuple">Tuple instance</param>
+		/// <param name="index">Position of the item, with <c>0</c> for the first element, and <c>^1</c> for the last element</param>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="T"/>.</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
+		/// <example>
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^3) => "Hello"</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^2) => "World"</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;int&gt;(^1) => 123</c></para>
+		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^1) => "123"</c></para>
+		/// </example>
 		[Pure]
 		public static T? Get<T>(this IVarTuple tuple, Index index)
 		{
@@ -93,18 +105,27 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Returns the typed value of the first item in this tuple</summary>
-		/// <typeparam name="T">Expected type of the first item</typeparam>
-		/// <returns>Value of the first item, adapted into type <typeparamref name="T"/>.</returns>
+		/// <returns>Value of the item at the first position, adapted into type <typeparamref name="T"/>.</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If the tuple is empty</exception>
+		/// <example>
+		/// <para><c>("Hello", "World").First&lt;string&gt;() => "Hello"</c></para>
+		/// <para><c>(123, 456).First&lt;int&gt;() => 123</c></para>
+		/// <para><c>(123, 456).First&lt;string&gt;() => "123"</c></para>
+		/// </example>
 		[Pure]
 		public static T? First<T>(this IVarTuple tuple)
 		{
 			return tuple.Get<T>(0);
 		}
 
-		/// <summary>Return the typed value of the last item in the tuple</summary>
-		/// <typeparam name="T">Expected type of the item</typeparam>
-		/// <returns>Value of the last item of this tuple, adapted into type <typeparamref name="T"/></returns>
-		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
+		/// <summary>Returns the typed value of the last item of the tuple</summary>
+		/// <returns>Value of the item at the last position, adapted into type <typeparamref name="T"/>.</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If the tuple is empty</exception>
+		/// <example>
+		/// <para><c>("Hello",).Last&lt;string&gt;() => "Hello"</c></para>
+		/// <para><c>(123, 456).Last&lt;int&gt;() => 456</c></para>
+		/// <para><c>(123, 456).Last&lt;string&gt;() => "456"</c></para>
+		/// </example>
 		[Pure]
 		public static T? Last<T>(this IVarTuple tuple)
 		{
