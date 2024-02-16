@@ -2228,7 +2228,7 @@ namespace Doxense.Serialization.Json.Tests
 			string path =  GetTemporaryPath("foo.json");
 			File.Delete(path);
 
-			Log("Writing to {0}", path);
+			Log($"Writing to {path}");
 			var sw = Stopwatch.StartNew();
 			CrystalJson.SaveTo(path, list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 			sw.Stop();
@@ -4040,7 +4040,7 @@ namespace Doxense.Serialization.Json.Tests
 				arr.Add(i);
 				if (arr.Capacity != old)
 				{
-					Log("Added {0}th triggered a realloc to {1}", arr.Count, arr.Capacity);
+					Log($"Added {arr.Count}th triggered a realloc to {arr.Capacity}");
 					old = arr.Capacity;
 					++resizes;
 				}
@@ -4049,7 +4049,8 @@ namespace Doxense.Serialization.Json.Tests
 #endif
 
 			}
-			Log("Array needed {0} to insert {1} items", resizes, arr.Count);
+
+			Log($"Array needed {resizes} to insert {arr.Count} items");
 		}
 
 		[Test]

@@ -652,7 +652,7 @@ namespace Doxense.Testing
 			Contract.NotNull(assembly);
 			var res = Path.GetFullPath(Path.Combine(GetCurrentVsProjectPath(assembly), relativePath));
 #if DEBUG
-			Log("# MapPathInSource(\"{0}\", {1}) => {2}", relativePath, assembly.GetName().Name, res);
+			Log($"# MapPathInSource(\"{relativePath}\", {assembly.GetName().Name}) => {res}");
 #endif
 			return res;
 		}

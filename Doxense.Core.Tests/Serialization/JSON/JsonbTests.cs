@@ -60,7 +60,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			var compressed = bytes.ZstdCompress(0);
 			if (compressed.Count < bytes.Count)
 			{
-				Log("Zstd: {0} bytes (1 : {1:N2})", compressed.Count, bytes.Count * 1.0 / compressed.Count);
+				Log($"Zstd: {compressed.Count:N0} bytes (1 : {bytes.Count * 1.0 / compressed.Count:N2})");
 #if FULL_DEBUG
 				DumpHexa(compressed);
 #endif
@@ -168,7 +168,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			DumpHexa(bytes);
 #endif
 			var decoded = Jsonb.Decode(bytes);
-			Log("=> {0}", decoded.ToJson());
+			Log($"=> {decoded.ToJson()}");
 			Assert.That(decoded, Is.EqualTo(expected));
 		}
 
@@ -423,23 +423,23 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			var obj = JsonValue.FromValue(db);
 
 			var json = obj.ToJsonBytes(CrystalJsonSettings.JsonCompact);
-			Log("JSON : {0:N0} bytes", json.Length);
-			Log("JSON : {0:N0} bytes, compressed with Zstd-2", json.AsSlice().ZstdCompress(2).Count);
-			Log("JSON : {0:N0} bytes, compressed with Zstd-9", json.AsSlice().ZstdCompress(9).Count);
-			Log("JSON : {0:N0} bytes, compressed with Zstd-20", json.AsSlice().ZstdCompress(20).Count);
-			Log("JSON : {0:N0} bytes, compressed with Deflate (5)", json.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count);
-			Log("JSON : {0:N0} bytes, compressed with Deflate (9)", json.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count);
+			Log($"JSON : {json.Length:N0} bytes");
+			Log($"JSON : {json.AsSlice().ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
+			Log($"JSON : {json.AsSlice().ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
+			Log($"JSON : {json.AsSlice().ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
+			Log($"JSON : {json.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
+			Log($"JSON : {json.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
 
 			// jsonb raw
 			var jsonb = Jsonb.Encode(obj);
-			Log("JSONB: {0:N0} bytes", jsonb.Length);
+			Log($"JSONB: {jsonb.Length:N0} bytes");
 
 			// jsonb compressed
-			Log("JSONB: {0:N0} bytes, compressed with Zstd-2", jsonb.AsSlice().ZstdCompress(2).Count);
-			Log("JSONB: {0:N0} bytes, compressed with Zstd-9", jsonb.AsSlice().ZstdCompress(9).Count);
-			Log("JSONB: {0:N0} bytes, compressed with Zstd-20", jsonb.AsSlice().ZstdCompress(20).Count);
-			Log("JSONB: {0:N0} bytes, compressed with Deflate (5)", jsonb.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count);
-			Log("JSONB: {0:N0} bytes, compressed with Deflate (9)", jsonb.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count);
+			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
+			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
+			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
+			Log($"JSONB: {jsonb.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
+			Log($"JSONB: {jsonb.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
 		}
 
 		public sealed class FooDb

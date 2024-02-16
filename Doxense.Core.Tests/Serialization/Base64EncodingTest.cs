@@ -124,8 +124,8 @@ namespace Doxense.Serialization.Tests
 
 			Log($"### BCL {durA.TotalMilliseconds / R:N1} ms <- VS -> DOX {durB.TotalMilliseconds / R:N1} ms => x {durA.TotalSeconds / durB.TotalSeconds:N2}");
 
-			Log("EXPECTED: {0}", s1);
-			Log("ACTUAL  : {0}", s2);
+			Log($"EXPECTED: {s1}");
+			Log($"ACTUAL  : {s2}");
 			Assert.That(s2, Is.EqualTo(s1));
 		}
 

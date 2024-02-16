@@ -202,8 +202,8 @@ namespace Doxense.Mathematics.Test
 
 				Assert.That(s, Is.EqualTo(expected), $"ToShortest({d:R}, {d:G17}, (0x{BitConverter.DoubleToInt64Bits(d):X16})");
 
-				double roundTrip = Double.Parse(s, CultureInfo.InvariantCulture);
-				Log("0x{4:X16} : {0:R} ~> \"{1}\" ~> 0x{5:X16} : {2:R} => {3}", d, s, roundTrip, d == roundTrip, BitConverter.DoubleToInt64Bits(d), BitConverter.DoubleToInt64Bits(roundTrip));
+				double roundTrip = double.Parse(s, CultureInfo.InvariantCulture);
+				Log($"0x{BitConverter.DoubleToInt64Bits(d):X16} : {d:R} ~> \"{s}\" ~> 0x{BitConverter.DoubleToInt64Bits(roundTrip):X16} : {roundTrip:R} => {d == roundTrip}");
 				Assert.That(roundTrip, Is.EqualTo(d), $"MISTMATCH {BitConverter.DoubleToInt64Bits(d):X16} -> {s} -> {BitConverter.DoubleToInt64Bits(roundTrip):X16}");
 
 				return s;
