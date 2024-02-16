@@ -29,6 +29,7 @@ namespace FoundationDB.Filters.Logging
 	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using System.Text;
@@ -436,10 +437,10 @@ namespace FoundationDB.Filters.Logging
 
 			var cmds = this.Commands.ToArray();
 
-			sb.Append(FormattableString.Invariant($"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {cmds.Length} operations, started {this.StartedUtc.TimeOfDay}Z"));
+			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {cmds.Length:N0} operations, started {this.StartedUtc.TimeOfDay}Z");
 			if (this.StoppedUtc.HasValue)
 			{
-				sb.Append(FormattableString.Invariant($", ended {this.StoppedUtc.Value.TimeOfDay}Z)"));
+				sb.Append(CultureInfo.InvariantCulture, $", ended {this.StoppedUtc.Value.TimeOfDay}Z)");
 			}
 			else
 			{
@@ -454,11 +455,11 @@ namespace FoundationDB.Filters.Logging
 				var cmd = cmds[i];
 				if (detailed)
 				{
-					sb.Append(FormattableString.Invariant($"{cmd.Step,3} - T+{cmd.StartOffset.TotalMilliseconds,7:##0.000} ({cmd.Duration.Ticks / 10.0,7:##,##0} µs) : {cmd.ToString(keyResolver)}"));
+					sb.Append(CultureInfo.InvariantCulture, $"{cmd.Step,3} - T+{cmd.StartOffset.TotalMilliseconds,7:##0.000} ({cmd.Duration.Ticks / 10.0,7:##,##0} µs) : {cmd.ToString(keyResolver)}");
 				}
 				else
 				{
-					sb.Append(FormattableString.Invariant($"{cmd.Step,3} : {(cmd.Error != null ? "[FAILED] " : "")}{cmd.ToString(keyResolver)}"));
+					sb.Append(CultureInfo.InvariantCulture, $"{cmd.Step,3} : {(cmd.Error != null ? "[FAILED] " : "")}{cmd.ToString(keyResolver)}");
 				}
 				sb.AppendLine();
 				switch (cmd.Mode)
@@ -469,7 +470,7 @@ namespace FoundationDB.Filters.Logging
 			}
 			if (this.Completed)
 			{
-				sb.AppendLine(FormattableString.Invariant($"Stats: {this.Operations:N0} operations, {reads:N0} reads ({this.ReadSize:N0} bytes), {writes:N0} writes ({this.CommitSize:N0} bytes), {this.TotalDuration.TotalMilliseconds:N2} ms"));
+				sb.AppendLine(CultureInfo.InvariantCulture, $"Stats: {this.Operations:N0} operations, {reads:N0} reads ({this.ReadSize:N0} bytes), {writes:N0} writes ({this.CommitSize:N0} bytes), {this.TotalDuration.TotalMilliseconds:N2} ms");
 			}
 			sb.AppendLine();
 			return sb.ToString();
@@ -497,16 +498,21 @@ namespace FoundationDB.Filters.Logging
 			var cmds = this.Commands.ToArray();
 
 			// Header
-			sb.Append(FormattableString.Invariant($"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {cmds.Length} operations, '#' = {(scale * 1000d):N1} ms, started {this.StartedUtc.TimeOfDay}Z [{this.StartedUtc.ToUnixTimeMilliseconds() / 1000.0:F3}]"));
+			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {cmds.Length} operations, '#' = {(scale * 1000d):N1} ms, started {this.StartedUtc.TimeOfDay}Z [{this.StartedUtc.ToUnixTimeMilliseconds() / 1000.0:F3}]");
 			if (this.StoppedUtc.HasValue)
-				sb.Append(FormattableString.Invariant($", ended {this.StoppedUtc.Value.TimeOfDay}Z [{this.StoppedUtc.Value.ToUnixTimeMilliseconds() / 1000.0:F3}])"));
+			{
+				sb.Append(CultureInfo.InvariantCulture, $", ended {this.StoppedUtc.Value.TimeOfDay}Z [{this.StoppedUtc.Value.ToUnixTimeMilliseconds() / 1000.0:F3}])");
+			}
 			else
+			{
 				sb.Append(", did not finish");
+			}
 			sb.AppendLine();
+
 			if (cmds.Length > 0)
 			{
 				var bar = new string('─', width + 2);
-				sb.AppendLine($"┌  oper. ┬{bar}┬──── start ──── end ── duration ──┬─ sent  recv ┐");
+				sb.AppendLine(CultureInfo.InvariantCulture, $"┌  oper. ┬{bar}┬──── start ──── end ── duration ──┬─ sent  recv ┐");
 
 				// look for the timestamps of the first and last commands
 				var first = TimeSpan.Zero;
@@ -533,7 +539,7 @@ namespace FoundationDB.Filters.Logging
 				{
 					if (previousWasOnError)
 					{
-						sb.AppendLine(FormattableString.Invariant($"├────────┼{bar}┼──────────────────────────────────┼─────────────┤ == Attempt #{(++attempts):N0} == {(this.StartedUtc + cmd.StartOffset).TimeOfDay}Z ({(this.StartedUtc + cmd.StartOffset).ToUnixTimeMilliseconds() / 1000.0:F3})"));
+						sb.AppendLine(CultureInfo.InvariantCulture, $"├────────┼{bar}┼──────────────────────────────────┼─────────────┤ == Attempt #{(++attempts):N0} == {(this.StartedUtc + cmd.StartOffset).TimeOfDay}Z ({(this.StartedUtc + cmd.StartOffset).ToUnixTimeMilliseconds() / 1000.0:F3})");
 					}
 
 					long ticks = cmd.Duration.Ticks;
@@ -541,11 +547,11 @@ namespace FoundationDB.Filters.Logging
 
 					if (ticks > 0)
 					{
-						sb.Append(FormattableString.Invariant($"│{(cmd.Step == step ? ":" : " ")}{cmd.Step,-3:##0}{(cmd.Error != null ? "!" : " ")}{cmd.ShortName,2}{(ticks >= TimeSpan.TicksPerMillisecond * 10 ? '*' : ticks >= TimeSpan.TicksPerMillisecond ? '°' : ' ')}│ {w} │ T+{cmd.StartOffset.TotalMilliseconds,7:##0.000} ~ {(cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,7:##0.000} ({ticks / 10.0,7:##,##0} µs) │ {cmd.ArgumentBytes,5} {cmd.ResultBytes,5} │ {(showCommands ? cmd.ToString(keyResolver) : string.Empty)}"));
+						sb.Append(CultureInfo.InvariantCulture, $"│{(cmd.Step == step ? ":" : " ")}{cmd.Step,-3:##0}{(cmd.Error != null ? "!" : " ")}{cmd.ShortName,2}{(ticks >= TimeSpan.TicksPerMillisecond * 10 ? '*' : ticks >= TimeSpan.TicksPerMillisecond ? '°' : ' ')}│ {w} │ T+{cmd.StartOffset.TotalMilliseconds,7:##0.000} ~ {(cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,7:##0.000} ({ticks / 10.0,7:##,##0} µs) │ {cmd.ArgumentBytes,5} {cmd.ResultBytes,5} │ {(showCommands ? cmd.ToString(keyResolver) : string.Empty)}");
 					}
 					else
 					{ // annotation
-						sb.Append(FormattableString.Invariant($"│{(cmd.Step == step ? ":" : " ")}{cmd.Step,-3:##0}{(cmd.Error != null ? "!" : " ")}{cmd.ShortName,2} │ {w} │ T+{cmd.StartOffset.TotalMilliseconds,7:##0.000}                        │     -     - │ {(showCommands ? cmd.ToString(keyResolver) : string.Empty)}"));
+						sb.Append(CultureInfo.InvariantCulture, $"│{(cmd.Step == step ? ":" : " ")}{cmd.Step,-3:##0}{(cmd.Error != null ? "!" : " ")}{cmd.ShortName,2} │ {w} │ T+{cmd.StartOffset.TotalMilliseconds,7:##0.000}                        │     -     - │ {(showCommands ? cmd.ToString(keyResolver) : string.Empty)}");
 					}
 
 					if (showCommands && cmd.CallSite != null)
@@ -557,7 +563,7 @@ namespace FoundationDB.Filters.Logging
 							string name = GetUserFriendlyMethodName(m);
 							sb.Append(" // ").Append(name);
 							var fn = f.GetFileName();
-							if (fn != null) sb.Append(FormattableString.Invariant($" at {fn}:{f.GetFileLineNumber()}"));
+							if (fn != null) sb.Append(CultureInfo.InvariantCulture, $" at {fn}:{f.GetFileLineNumber()}");
 						}
 					}
 
@@ -572,7 +578,7 @@ namespace FoundationDB.Filters.Logging
 					step = cmd.Step;
 				}
 
-				sb.AppendLine($"└────────┴{bar}┴──────────────────────────────────┴─────────────┘");
+				sb.AppendLine(CultureInfo.InvariantCulture, $"└────────┴{bar}┴──────────────────────────────────┴─────────────┘");
 
 				// Footer
 				if (this.Completed)
@@ -581,23 +587,23 @@ namespace FoundationDB.Filters.Logging
 					flag = false;
 					if (this.ReadSize > 0)
 					{
-						sb.Append(FormattableString.Invariant($"Read {this.ReadSize:N0} bytes"));
+						sb.Append(CultureInfo.InvariantCulture, $"Read {this.ReadSize:N0} bytes");
 						flag = true;
 					}
 					if (this.CommitSize > 0)
 					{
 						if (flag) sb.Append(" and ");
-						sb.Append(FormattableString.Invariant($"Committed {this.CommitSize:N0} bytes"));
+						sb.Append(CultureInfo.InvariantCulture, $"Committed {this.CommitSize:N0} bytes");
 						if (this.VersionStamp != null) sb.Append(", used VersionStamp ").Append(this.VersionStamp.Value.ToString());
 						flag = true;
 					}
 					if (!flag) sb.Append("Completed");
-					sb.AppendLine(FormattableString.Invariant($" in {this.TotalDuration.TotalMilliseconds:N3} ms and {attempts:N0} attempt(s)"));
+					sb.AppendLine(CultureInfo.InvariantCulture, $" in {this.TotalDuration.TotalMilliseconds:N3} ms and {attempts:N0} attempt(s)");
 				}
 			}
 			else
 			{ // empty transaction
-				sb.AppendLine(FormattableString.Invariant($"> Completed after {this.TotalDuration.TotalMilliseconds:N3} ms without performing any operation"));
+				sb.AppendLine(CultureInfo.InvariantCulture, $"> Completed after {this.TotalDuration.TotalMilliseconds:N3} ms without performing any operation");
 			}
 			return sb.ToString();
 		}
