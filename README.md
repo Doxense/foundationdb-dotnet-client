@@ -137,11 +137,11 @@ namespace MyWebApp.Pages
 
 ***Note: Aspire is currently in preview, so things may change at any time!***
 
-_At the time of this writing, you need at least version 8.0.0-preview.2.23576.2 of the Aspire SDK !_
+_At the time of this writing, you need at least Preview 3 (8.0.0-preview.3.24105.21) of the Aspire SDK !_
 
 It is possible to add a FoundationDB cluster resource to your Aspire application model, and pass a reference to this cluster to the projects that need it.
 
-For local development, a local FoundationdDB node will be started using the `foundationdb/foundationdb` Docker image, and all projects that use the cluster reference will have a temporary Cluster file pointing to the local instance.
+For local development, a local FoundationDB node will be started using the `foundationdb/foundationdb` Docker image, and all projects that use the cluster reference will have a temporary Cluster file pointing to the local instance.
 
 Note: you will need to install Docker on your development machine, as explained in https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app#prerequisites
 
