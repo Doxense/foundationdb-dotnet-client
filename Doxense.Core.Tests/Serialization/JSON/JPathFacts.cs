@@ -119,7 +119,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 		}
 
-		private static void CheckMultiple(JsonValue? node, string query, params JsonValue[] results)
+		private static void CheckMultiple(JsonValue node, string query, params JsonValue[] results)
 		{
 			Log("? " + query);
 			Log("* " + JPathQuery.ParseExpression(query));
@@ -595,6 +595,74 @@ namespace Doxense.Serialization.Json.Tests
 				JPathExpression.Root.Matching(JPathExpression.Current.Matching(JPathExpression.Current.LessThan(6)))
 			);
 
+		}
+
+		[Test]
+		public void Test_ParseExpression_InvalidSyntax()
+		{
+			CheckFailure(" ");
+			CheckFailure("$$");
+			CheckFailure("[");
+			CheckFailure("[]]");
+			CheckFailure("(");
+			CheckFailure("()");
+			CheckFailure("())");
+			CheckFailure("(]");
+			CheckFailure("[)");
+
+			CheckFailure("foo.");
+			CheckFailure("foo..");
+			CheckFailure("foo..bar");
+			CheckFailure("foo.$");
+			CheckFailure("foo.$.bar");
+
+			CheckFailure("foo[bar");
+			CheckFailure("foo[bar[");
+			CheckFailure("foo[bar[]");
+			CheckFailure("foo[bar][");
+
+			CheckFailure("(foo");
+			CheckFailure("(foo))");
+
+			CheckFailure("1a");
+			CheckFailure("1+");
+			CheckFailure("1-");
+			CheckFailure("a+");
+			CheckFailure("foo.1a");
+			CheckFailure("foo.1+");
+			CheckFailure("foo.1-");
+			CheckFailure("foo.a+");
+			CheckFailure("foo[1a]");
+			CheckFailure("foo[1+]");
+			CheckFailure("foo[1-]");
+			CheckFailure("foo[a+]");
+
+
+
+			static void CheckFailure(string literal)
+			{
+				Log($"Parsing: `{literal}`");
+
+				try
+				{
+					var expr = JPathQuery.Parse(literal);
+					Assert.That(expr, Is.Null, $"Parsing of malformed query `{literal}` should have failed, but it returned expression {expr.GetType().Name} instead.");
+					Assert.Fail($"Parsing of malformed query `{literal}` should have failed, but it returned null instead");
+				}
+				catch (FormatException e)
+				{ // PASS
+					Log($"> {e.Message}");
+				}
+				catch (AssertionException)
+				{ // FAIL
+					throw;
+				}
+				catch (Exception e)
+				{ // FAIL
+					Log($"!! {e.GetType().Name}: {e.Message}");
+					Assert.That(e, Is.InstanceOf<FormatException>(), $"Parsing of malformed query `{literal}` should have failed");
+				}
+			}
 		}
 
 		[Test]

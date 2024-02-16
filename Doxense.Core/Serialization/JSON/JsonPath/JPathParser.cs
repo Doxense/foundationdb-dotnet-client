@@ -31,7 +31,6 @@ namespace Doxense.Serialization.Json.JsonPath
 	using System.Linq.Expressions;
 	using System.Runtime.CompilerServices;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	/// <summary>Parser for JPath expressions</summary>
 	[DebuggerDisplay("Cursor={Cursor}, Start={Start}, SubStart={SubStart}")]
@@ -47,6 +46,10 @@ namespace Doxense.Serialization.Json.JsonPath
 
 		public JPathParser(ReadOnlySpan<char> path)
 		{
+			if (path.IsEmpty || path.IsWhiteSpace())
+			{
+				throw SyntaxError("JPath query cannot be empty.");
+			}
 			this.Path = path;
 		}
 
@@ -112,6 +115,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		}
 
 		/// <summary>Reads the next character from the string</summary>
+		[DebuggerNonUserCode]
 		private char ReadNextChar()
 		{
 			int p = this.Cursor;
@@ -122,8 +126,8 @@ namespace Doxense.Serialization.Json.JsonPath
 		}
 
 		/// <summary>Peek at the next character in the string</summary>
-		/// <returns></returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode]
 		private char PeekNextChar()
 		{
 			int p = this.Cursor;
@@ -133,6 +137,7 @@ namespace Doxense.Serialization.Json.JsonPath
 
 		/// <summary>Peek at the last read character</summary>
 		/// <remarks>Should mostly be used by error handlers to customize message according to the context</remarks>
+		[DebuggerNonUserCode]
 		private char PeekPreviousChar()
 		{
 			int p = this.Cursor - 1;
@@ -293,7 +298,7 @@ namespace Doxense.Serialization.Json.JsonPath
 				return Token.NumberLiteral;
 			}
 
-			if (tok == '_' || char.IsLetter(tok) || tok == '$' || tok == '@')
+			if (IsIdentifierToken(tok))
 			{
 				ReadIdentifier();
 				return Token.Identifier;
@@ -313,11 +318,15 @@ namespace Doxense.Serialization.Json.JsonPath
 			throw SyntaxError($"Unexpected character '{tok}'");
 		}
 
+		/// <summary>Test if the token is an identifier (letter, <c>_</c>, <c>$</c> or <c>@</c>)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsIdentifierToken(char tok) => char.IsLetter(tok) || tok == '_' || tok == '$' || tok == '@';
+
 		/// <summary>Read an identifier from the string</summary>
 		private void ReadIdentifier()
 		{
 			// Identifiers starts with '_' or letter, and is only composed of letter, digits, '-' or '_', and stops on the first invalid character
-			// Valid: "abc", "_abc", "abc123", "_123", "______"
+			// Valid: "abc", "_abc", "abc123", "_123", "a-b", "a-", "______"
 			// Invalid: "1abc", "-abc", "@hello", "*abc", ....
 
 			Advance();
@@ -387,28 +396,31 @@ namespace Doxense.Serialization.Json.JsonPath
 					continue;
 				}
 
-				if (c == '.')
+				if (c is '.')
 				{
 					if (hasDot) break;
 					hasDot = true;
 					Advance();
 					continue;
 				}
-				if (c == 'E')
+				if (c is 'E' && !hasExp)
 				{
-					if (hasExp) break;
 					hasExp = true;
 					hasSign = false;
 					Advance();
 					continue;
 				}
-				if (c == '-' || c == '+')
+				if (c is '-' or '+' && !hasSign)
 				{
-					if (hasSign) break;
 					hasSign = true;
 					if (!hasExp) value = -value;
 					Advance();
 					continue;
+				}
+
+				if (c is not (EOF or ')' or ']') && !char.IsWhiteSpace(c))
+				{
+					throw SyntaxError("Invalid number literal.");
 				}
 
 				if (hasDot || hasExp)
@@ -447,6 +459,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		}
 
 		/// <summary>Parse an expression (or sub-expression)</summary>
+		/// <exception cref="FormatException">If the parsed expression is invalid</exception>
 		public JPathExpression ParseExpression(JPathExpression top, char type = '\0')
 		{
 			//TODO: refactor this monstrosity!
@@ -464,16 +477,42 @@ namespace Doxense.Serialization.Json.JsonPath
 				{
 					case Token.End:
 					{
+						if (state == State.ExpectIdentifier)
+						{
+							throw SyntaxError("Missing expected identifier.");
+						}
+						if (state == State.ExpectCloseBracket)
+						{
+							throw SyntaxError("Missing expected ']' token.");
+						}
+						if (state == State.ExpectCloseParens)
+						{
+							throw SyntaxError("Missing expected ')' token.");
+						}
+						if (type == '[')
+						{
+							throw SyntaxError("Missing expected ']' token.");
+						}
+						if (type == '(')
+						{
+							throw SyntaxError("Missing expected ')' token.");
+						}
 						goto done;
 					}
 					case Token.WhiteSpace:
 					{
-						if (state == State.ExpectIdentifier) throw SyntaxError("Missing expected identifier.");
+						if (state == State.ExpectIdentifier)
+						{
+							throw SyntaxError("Missing expected identifier.");
+						}
 						break;
 					}
 					case Token.Dot:
 					{
-						if (state != State.Expression) throw SyntaxError("Unexpected '.' token.");
+						if (state != State.Expression)
+						{
+							throw SyntaxError("Unexpected '.' token.");
+						}
 						state = State.ExpectIdentifier;
 						break;
 					}
@@ -487,9 +526,19 @@ namespace Doxense.Serialization.Json.JsonPath
 						var name = this.Literal;
 						this.Literal = null;
 
-						if (name.Length == 1 && (name[0] == '$' || name[0] == '@'))
+						if (name.Length == 1 && name[0] is ('$' or '@'))
 						{
-							if (!object.ReferenceEquals(expr, top)) throw SyntaxError($"Special identifier '{name.ToString()}' is only allowed at the start of an expression of sub-expression!");
+							// token cannot be another identifier!
+							if (!ReferenceEquals(expr, top))
+							{
+								throw SyntaxError($"Special identifier '{name[0]}' is only allowed at the start of an expression or sub-expression.");
+							}
+
+							if (IsIdentifierToken(PeekNextChar()))
+							{
+								++this.Cursor;
+								throw SyntaxError($"Special identifier '{name[0]}' cannot be followed by another identifier.");
+							}
 							expr = name[0] == '$' ? JPathExpression.Root : JPathExpression.Current;
 							state = State.Expression;
 							continue;
@@ -505,17 +554,16 @@ namespace Doxense.Serialization.Json.JsonPath
 							if (name is "not")
 							{
 								// not(..) does not have a "source", so it can only be found at the start of an expression
-								if (expr is not JPathSpecialToken) throw SyntaxError("Operator not(..) must be at the start of an expression of sub-expression");
+								if (expr is not JPathSpecialToken)
+								{
+									throw SyntaxError("Operator not(..) must be at the start of an expression of sub-expression");
+								}
 								expr = JPathExpression.Not(subExpr);
 								break;
 							}
-							else 
-							{
-								throw SyntaxError($"Unsupported function '{name.ToString()}'");
-							}
 							this.Start = prevStart;
 							state = State.Expression;
-							break;
+							throw SyntaxError($"Unsupported function '{name.ToString()}'");
 						}
 
 						expr = JPathExpression.Property(expr, name.ToString());
@@ -545,6 +593,11 @@ namespace Doxense.Serialization.Json.JsonPath
 							break;
 						}
 
+						if (c == EOF)
+						{ // unclosed bracket at the end of the query
+							throw SyntaxError("Truncated '[' token.");
+						}
+
 						// it should be a filter expression
 						var prevStart = this.Start;
 						this.Start = this.Cursor;
@@ -561,9 +614,14 @@ namespace Doxense.Serialization.Json.JsonPath
 					{
 						if (state != State.ExpectCloseBracket)
 						{
-							if (type == '[' && state == State.Expression) goto done;
-							if (PeekPreviousChar() == ']') throw SyntaxError("Redundant ']' token.");
-							throw SyntaxError("Unexpected ']' token.");
+							if (type == '[' && state == State.Expression)
+							{
+								goto done;
+							}
+
+							throw PeekPreviousChar() == ']'
+								? SyntaxError("Redundant ']' token.")
+								: SyntaxError("Unexpected ']' token.");
 						}
 						state = State.Expression;
 						break;
@@ -616,8 +674,14 @@ namespace Doxense.Serialization.Json.JsonPath
 
 					case Token.OpenParens:
 					{
-						if (state != State.Expression) throw SyntaxError("Unexpected '(' token.");
-						if (!object.ReferenceEquals(expr, top)) throw SyntaxError("Cannot quote part of a sub-expression.");
+						if (state != State.Expression)
+						{
+							throw SyntaxError("Unexpected '(' token.");
+						}
+						if (!ReferenceEquals(expr, top))
+						{
+							throw SyntaxError("Cannot quote part of a sub-expression.");
+						}
 
 						// here it is probably a quote that will look like "(subexpr)[..]"
 						var prevStart = this.Start;
@@ -631,12 +695,17 @@ namespace Doxense.Serialization.Json.JsonPath
 					{
 						if (state != State.ExpectCloseParens)
 						{
-							if (type == '(' && state == State.Expression)
+							if (type == '(' && state == State.Expression && !ReferenceEquals(top, expr))
 							{ // and we're done!
 								goto done;
 							}
-							if (PeekPreviousChar() == ')') throw SyntaxError("Redundant ')' token.");
-							throw SyntaxError("Unexpected ')' token.");
+
+							switch (PeekPreviousChar())
+							{
+								case '(': throw SyntaxError("Empty '()' clause is invalid.");
+								case ')': throw SyntaxError("Redundant ')' token.");
+								default:  throw SyntaxError("Unexpected ')' token.");
+							}
 						}
 						state = State.Expression;
 						break;
@@ -687,7 +756,11 @@ namespace Doxense.Serialization.Json.JsonPath
 
 					case Token.AndAlso:
 					{
-						if (cmpExpr != null) throw SyntaxError($"Missing right of side of {cmpOp} operator in sub-expression.");
+						if (cmpExpr != null)
+						{
+							throw SyntaxError($"Missing right of side of {cmpOp} operator in sub-expression.");
+						}
+
 						if (andExpr != null)
 						{ // close previous '&&'
 							expr = JPathExpression.AndAlso(andExpr, expr);
@@ -699,7 +772,11 @@ namespace Doxense.Serialization.Json.JsonPath
 					}
 					case Token.OrElse:
 					{
-						if (cmpExpr != null) throw SyntaxError($"Missing right of side of {cmpOp} operator in sub-expression.");
+						if (cmpExpr != null)
+						{
+							throw SyntaxError($"Missing right of side of {cmpOp} operator in sub-expression.");
+						}
+
 						if (andExpr != null)
 						{ // close previous '&&'
 							expr = JPathExpression.AndAlso(andExpr, expr);
@@ -720,10 +797,15 @@ namespace Doxense.Serialization.Json.JsonPath
 					}
 				}
 			}
+
 		done:
 			if (cmpExpr != null) expr = JPathExpression.BinaryOperator(cmpOp, cmpExpr, expr); //REVIEW: or bug?
 			if (andExpr != null) expr = JPathExpression.AndAlso(andExpr, expr);
 			if (orExpr != null) expr = JPathExpression.OrElse(orExpr, expr);
+			if (type != '\0' && ReferenceEquals(expr, top))
+			{
+				throw SyntaxError($"Truncated '{type}' token.");
+			}
 			return expr;
 		}
 
@@ -731,7 +813,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		{
 			var start = this.Start;
 			var subStart = this.SubStart;
-			int pos = Math.Max(this.Cursor - 1, 0);
+			int pos = this.Cursor;
 			var sb = StringBuilderCache.Acquire(64);
 			sb.Append("Syntax error in JPath expression at offset ").Append(pos).Append(": ").Append(message)
 			  .Append("\r\nPath: ").Append(this.Path.ToString());
@@ -745,13 +827,11 @@ namespace Doxense.Serialization.Json.JsonPath
 				sb.Append("\r\n      ").Append(' ', start);
 				int r = subStart - start;
 				if (r > 0) sb.Append('*').Append('-', r - 1);
-				sb.Append('^', Math.Max(pos - subStart + 1, 1));
+				sb.Append('^', Math.Max(pos - subStart, 1));
 			}
 			return new FormatException(StringBuilderCache.GetStringAndRelease(sb));
 		}
 
 	}
+
 }
-
-
-

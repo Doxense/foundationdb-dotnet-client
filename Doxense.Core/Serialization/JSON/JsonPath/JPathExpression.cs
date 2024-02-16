@@ -30,9 +30,11 @@ namespace Doxense.Serialization.Json.JsonPath
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq.Expressions;
+	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
+	/// <summary>Base class of a node in a JPath query AST</summary>
 	public abstract class JPathExpression : IEquatable<JPathExpression>
 	{
 
@@ -57,6 +59,7 @@ namespace Doxense.Serialization.Json.JsonPath
 				case JsonBoolean b: return b.Value;
 				case JsonString s: return s.Length > 0;
 				case JsonNumber n: return !n.IsDefault;
+				case JsonDateTime d: return !d.IsDefault;
 				case JsonArray a: return a.Count > 0;
 			}
 			return true;
@@ -68,7 +71,7 @@ namespace Doxense.Serialization.Json.JsonPath
 			{
 				case "$length": return array.Count;
 				case "$first": return array.Count > 0 ? array[0] : null;
-				case "$last": return array.Count > 0 ? array[array.Count - 1] : null;
+				case "$last": return array.Count > 0 ? array[^1] : null;
 				default: return null; //TODO: or throw "invalid array pseudo-property?"
 			}
 		}
@@ -172,8 +175,14 @@ namespace Doxense.Serialization.Json.JsonPath
 			Contract.NotNull(left);
 			Contract.NotNull(right);
 			//note: to simplify parsing of parenthesis inside logical expressions, we unwrap the Quote(..) that contain them here!
-			if (left is JPathQuoteExpression ql) left = ql.Node;
-			if (right is JPathQuoteExpression qr) right = qr.Node;
+			if (left is JPathQuoteExpression ql)
+			{
+				left = ql.Node;
+			}
+			if (right is JPathQuoteExpression qr)
+			{
+				right = qr.Node;
+			}
 			//REVIEW: this waste some memory, maybe we could simplify this! by only quoting if followed by [] ?
 			return new JPathBinaryOperator(ExpressionType.AndAlso, left, right);
 		}
@@ -184,8 +193,14 @@ namespace Doxense.Serialization.Json.JsonPath
 			Contract.NotNull(left);
 			Contract.NotNull(right);
 			//note: to simplify parsing of parenthesis inside logical expressions, we unwrap the Quote(..) that contain them here!
-			if (left is JPathQuoteExpression ql) left = ql.Node;
-			if (right is JPathQuoteExpression qr) right = qr.Node;
+			if (left is JPathQuoteExpression ql)
+			{
+				left = ql.Node;
+			}
+			if (right is JPathQuoteExpression qr)
+			{
+				right = qr.Node;
+			}
 			//REVIEW: this waste some memory, maybe we could simplify this! by only quoting if followed by [] ?
 			return new JPathBinaryOperator(ExpressionType.OrElse, left, right);
 		}
@@ -268,10 +283,7 @@ namespace Doxense.Serialization.Json.JsonPath
 		[Pure]
 		public JPathExpression LessThanOrEqualTo(JsonValue literal) => LessThanOrEqual(this, literal);
 
-		public override bool Equals(object? obj)
-		{
-			return obj == this || (obj is JPathExpression expr && Equals(expr));
-		}
+		public override bool Equals(object? obj) => obj == this || (obj is JPathExpression expr && Equals(expr));
 
 		public abstract override int GetHashCode();
 
@@ -288,41 +300,21 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Token = token;
 		}
 
-		public override bool Equals(JPathExpression? other)
-		{
-			return other is JPathSpecialToken tok && tok.Token == this.Token;
-		}
+		public override bool Equals(JPathExpression? other) => other is JPathSpecialToken tok && tok.Token == this.Token;
 
-		public override int GetHashCode()
-		{
-			return this.Token;
-		}
+		public override int GetHashCode() => this.Token.GetHashCode();
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{
-			switch (this.Token)
+			yield return this.Token switch
 			{
-				case '$':
-				{
-					yield return root;
-					break;
-				}
-				case '@':
-				{
-					yield return current;
-					break;
-				}
-				default:
-				{
-					throw new InvalidOperationException();
-				}
-			}
+				'$' => root,
+				'@' => current,
+				_ => throw new InvalidOperationException()
+			};
 		}
 
-		public override string ToString()
-		{
-			return this.Token == '$' ? "$" : "@";
-		}
+		public override string ToString() => this.Token == '$' ? "$" : "@";
 	}
 
 	public sealed class JPathObjectIndexer : JPathExpression
@@ -339,20 +331,14 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Name = name;
 		}
 
-		public override bool Equals(JPathExpression? other)
-		{
-			return other is JPathObjectIndexer idx && idx.Name == this.Name && idx.Node.Equals(this.Node);
-		}
+		public override bool Equals(JPathExpression? other) => other is JPathObjectIndexer idx && idx.Name == this.Name && idx.Node.Equals(this.Node);
 
-		public override int GetHashCode()
-		{
-			//TODO: cache!
-			return HashCodes.Combine(this.Node.GetHashCode(), this.Node.GetHashCode());
-		}
+		public override int GetHashCode() => HashCodes.Combine(this.Node.GetHashCode(), this.Node.GetHashCode());
+		//TODO: cache!
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{
-			// optimisation pour les cas les plus fréquents
+			// optimize fdor the most frequent cases
 			if (this.Node is JPathSpecialToken tok)
 			{
 				return IterateSpecialNode(tok, this.Name, root, current);
@@ -366,13 +352,15 @@ namespace Doxense.Serialization.Json.JsonPath
 		private static IEnumerable<JsonValue> IterateNodes(JPathExpression node, string name, JsonValue root, JsonValue current)
 		{ 
 
-			//Console.WriteLine($"Visit object prop '{this.Name}'");
 			foreach (var x in node.Iterate(root, current))
 			{
 				if (x is JsonArray map)
 				{
 					var y = ArrayPseudoProperty(map, name);
-					if (y != null) yield return y;
+					if (y != null)
+					{
+						yield return y;
+					}
 				}
 				else if (x is JsonObject obj)
 				{
@@ -387,27 +375,28 @@ namespace Doxense.Serialization.Json.JsonPath
 		private static JsonValue[] IterateSpecialNode(JPathSpecialToken node, string name, JsonValue root, JsonValue current)
 		{
 			var x = node.Token == '$' ? root : current;
-
-			if (x is JsonArray map)
+			switch (x)
 			{
-				var y = ArrayPseudoProperty(map, name);
-				if (y != null) return new [] { y };
-			}
-			else if (x is JsonObject obj)
-			{
-				if (obj.TryGetValue(name, out var y))
+				case JsonArray map:
 				{
-					return new [] { y };
+					var y = ArrayPseudoProperty(map, name);
+					if (y != null)
+					{
+						return [ y ];
+					}
+
+					break;
+				}
+				case JsonObject obj when obj.TryGetValue(name, out var y):
+				{
+					return [ y ];
 				}
 			}
 
-			return Array.Empty<JsonValue>();
+			return [ ];
 		}
 
-		public override string ToString()
-		{
-			return this.Node.ToString() + "['" + this.Name + "']";
-		}
+		public override string ToString() => $"{this.Node}['{this.Name}']";
 	}
 
 	[DebuggerDisplay("[{StartInclusive}:{EndExclusive}")]
@@ -427,19 +416,16 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.EndExclusive = end;
 		}
 
-		public override bool Equals(JPathExpression? other)
-		{
-			return other is JPathArrayRange range && range.StartInclusive == this.StartInclusive && range.EndExclusive == this.EndExclusive && range.Node.Equals(this.Node);
-		}
+		public override bool Equals(JPathExpression? other) => other is JPathArrayRange range && range.StartInclusive == this.StartInclusive && range.EndExclusive == this.EndExclusive && range.Node.Equals(this.Node);
 
-		public override int GetHashCode()
-		{
-			return HashCodes.Combine(this.StartInclusive ?? 0, this.EndExclusive ?? 0, this.Node.GetHashCode());
-		}
+		public override int GetHashCode() => HashCodes.Combine(this.StartInclusive ?? 0, this.EndExclusive ?? 0, this.Node.GetHashCode());
 
 		public override string ToString()
 		{
-			if (this.StartInclusive == null && this.EndExclusive == null) return this.Node.ToString() + ".All()";
+			if (this.StartInclusive == null && this.EndExclusive == null)
+			{
+				return $"{this.Node}.All()";
+			}
 			return $"{this.Node}.Range({this.StartInclusive}:{this.EndExclusive})";
 		}
 
@@ -479,28 +465,22 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Index = index;
 		}
 
-		public override bool Equals(JPathExpression? other)
-		{
-			return other is JPathArrayIndexer idx && idx.Index == this.Index && idx.Node.Equals(this.Node);
-		}
+		public override bool Equals(JPathExpression? other) => other is JPathArrayIndexer idx && idx.Index == this.Index && idx.Node.Equals(this.Node);
 
-		public override int GetHashCode()
-		{
-			return HashCodes.Combine(this.Index, this.Node.GetHashCode());
-		}
+		public override int GetHashCode() => HashCodes.Combine(this.Index, this.Node.GetHashCode());
+
+		public override string ToString() => $"{this.Node}[{this.Index}]";
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{
 			foreach (var x in this.Node.Iterate(root, current))
 			{
 				var y = GetAtIndex(x, this.Index);
-				if (y != null) yield return y;
+				if (y != null)
+				{
+					yield return y;
+				}
 			}
-		}
-
-		public override string ToString()
-		{
-			return this.Node.ToString() + "[" + this.Index + "]";
 		}
 
 	}
@@ -519,15 +499,11 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Filter = filter;
 		}
 
-		public override bool Equals(JPathExpression? other)
-		{
-			return other is JPathFilterExpression filter && filter.Filter.Equals(this.Filter) && filter.Node.Equals(this.Node);
-		}
+		public override bool Equals(JPathExpression? other) => other is JPathFilterExpression filter && filter.Filter.Equals(this.Filter) && filter.Node.Equals(this.Node);
 
-		public override int GetHashCode()
-		{
-			return HashCodes.Combine(this.Node.GetHashCode(), this.Filter.GetHashCode());
-		}
+		public override int GetHashCode() => HashCodes.Combine(this.Node.GetHashCode(), this.Filter.GetHashCode());
+
+		public override string ToString() => this.Node.ToString() + ".Where(@ => " + this.Filter.ToString() + ")";
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{
@@ -577,11 +553,6 @@ namespace Doxense.Serialization.Json.JsonPath
 			}
 		}
 
-		public override string ToString()
-		{
-			return this.Node.ToString() + ".Where(@ => " + this.Filter.ToString() + ")";
-		}
-
 	}
 
 	public sealed class JPathBinaryOperator : JPathExpression
@@ -596,21 +567,15 @@ namespace Doxense.Serialization.Json.JsonPath
 		internal JPathBinaryOperator(ExpressionType op, JPathExpression left, object right)
 		{
 			Contract.Debug.Requires(left != null && right != null);
-			Contract.Debug.Requires(right is string || right is JsonValue || right is JPathExpression);
+			Contract.Debug.Requires(right is string or JsonValue or JPathExpression);
 			this.Operator = op;
 			this.Left = left;
 			this.Right = right;
 		}
 
-		public override bool Equals(JPathExpression? other)
-		{
-			return other is JPathBinaryOperator op && op.Operator == this.Operator && object.Equals(op.Right, this.Right) && op.Left.Equals(this.Left);
-		}
+		public override bool Equals(JPathExpression? other) => other is JPathBinaryOperator op && op.Operator == this.Operator && object.Equals(op.Right, this.Right) && op.Left.Equals(this.Left);
 
-		public override int GetHashCode()
-		{
-			return HashCodes.Combine((int) this.Operator, this.Left.GetHashCode(), 123 /*TODO: Right?*/);
-		}
+		public override int GetHashCode() => HashCodes.Combine((int) this.Operator, this.Left.GetHashCode(), 123 /*TODO: Right?*/);
 
 		private IEnumerable<JsonValue> IterateStringLiteral(string literal, JsonValue root, JsonValue current)
 		{
@@ -766,11 +731,15 @@ namespace Doxense.Serialization.Json.JsonPath
 			}
 		}
 
-		private static JsonValue[] TrueArray { get; } = new JsonValue[] { JsonBoolean.True };
+		private static readonly JsonValue[] TrueArray = [ JsonBoolean.True];
 
-		private JsonValue[] True() => TrueArray;
+		private static readonly JsonValue[] NoneArray = [];
 
-		private JsonValue[] None() => Array.Empty<JsonValue>();
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static JsonValue[] True() => TrueArray;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static JsonValue[] None() => NoneArray;
 
 		private IEnumerable<JsonValue> IterateExpression(JPathExpression right, JsonValue root, JsonValue current)
 		{
@@ -818,25 +787,22 @@ namespace Doxense.Serialization.Json.JsonPath
 			}
 		}
 
-		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
+		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current) => this.Right switch
 		{
-			switch (this.Right)
-			{
-				case string str: return IterateStringLiteral(str, root, current);
-				case JsonValue j: return IterateJsonLiteral(j, root, current);
-				case JPathExpression expr: return IterateExpression(expr, root, current);
-				default: throw new NotImplementedException();
-			}
-		}
+			string str => IterateStringLiteral(str, root, current),
+			JsonValue j => IterateJsonLiteral(j, root, current),
+			JPathExpression expr => IterateExpression(expr, root, current),
+			_ => throw new NotImplementedException()
+		};
 
-		public override string ToString()
+		public override string ToString() => this.Right switch
 		{
-			if (this.Right is string s) return $"{this.Operator}({this.Left}, '{s}')";
-			if (this.Right is JsonValue j) return $"{this.Operator}({this.Left}, {j:Q})";
-			return $"{this.Operator}({this.Left}, {this.Right})";
-		}
+			string s => $"{this.Operator}({this.Left}, '{s}')",
+			JsonValue j => $"{this.Operator}({this.Left}, {j:Q})",
+			_ => $"{this.Operator}({this.Left}, {this.Right})"
+		};
+
 	}
-
 
 	public sealed class JPathUnaryOperator : JPathExpression
 	{
@@ -853,20 +819,11 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Operator = op;
 		}
 
-		public override bool Equals(JPathExpression? obj)
-		{
-			return obj is JPathUnaryOperator op && op.Operator == this.Operator && op.Node.Equals(this.Node);
-		}
+		public override bool Equals(JPathExpression? obj) => obj is JPathUnaryOperator op && op.Operator == this.Operator && op.Node.Equals(this.Node);
 
-		public override int GetHashCode()
-		{
-			return HashCodes.Combine((int) this.Operator, this.Node.GetHashCode());
-		}
+		public override int GetHashCode() => HashCodes.Combine((int) this.Operator, this.Node.GetHashCode());
 
-		public override string ToString()
-		{
-			return "Not(" + this.Node.ToString() + ")";
-		}
+		public override string ToString() => $"Not({this.Node})";
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{
@@ -880,7 +837,10 @@ namespace Doxense.Serialization.Json.JsonPath
 
 					foreach (var x in this.Node.Iterate(root, current))
 					{
-						if (IsTruthy(x)) yield break; // at least one true, so the whole expression is true, and not(true) => false
+						if (IsTruthy(x))
+						{ // at least one true, so the whole expression is true, and not(true) => false
+							yield break;
+						}
 					}
 					// we did not see any "true" (either nothing, or all false) so the whole expression is false, and not(false) => true
 					yield return JsonBoolean.True;
@@ -892,6 +852,7 @@ namespace Doxense.Serialization.Json.JsonPath
 				}
 			}
 		}
+
 	}
 
 	public sealed class JPathQuoteExpression : JPathExpression
@@ -904,20 +865,11 @@ namespace Doxense.Serialization.Json.JsonPath
 			this.Node = node;
 		}
 
-		public override bool Equals(JPathExpression? other)
-		{
-			return other is JPathQuoteExpression quote && quote.Node.Equals(this.Node);
-		}
+		public override bool Equals(JPathExpression? other) => other is JPathQuoteExpression quote && quote.Node.Equals(this.Node);
 
-		public override int GetHashCode()
-		{
-			return HashCodes.Combine(0xC0FFEEE, this.Node.GetHashCode());
-		}
+		public override int GetHashCode() => HashCodes.Combine(0xC0FFEEE, this.Node.GetHashCode());
 
-		public override string ToString()
-		{
-			return "Quote(" + this.Node.ToString() + ")";
-		}
+		public override string ToString() => "Quote(" + this.Node.ToString() + ")";
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{
@@ -927,10 +879,10 @@ namespace Doxense.Serialization.Json.JsonPath
 			{
 				if (x != null!)
 				{
-					(arr ??= new JsonArray()).Add(x);
+					(arr ??= [ ]).Add(x);
 				}
 			}
-			return arr == null ? Array.Empty<JsonValue>() : new JsonValue[] {arr};
+			return arr == null ? [ ] : [ arr ];
 		}
 
 	}

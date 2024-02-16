@@ -36,21 +36,30 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the first node that matched the given JPath expression</summary>
 		/// <param name="root">Root node of the query</param>
-		/// <param name="query">JPath expression</param>
+		/// <param name="queryText">JPath expression</param>
 		/// <returns>First matching node, or <see cref="JsonNull.Missing"/> if none matches the query</returns>
-		public static JsonValue Find(this JsonValue root, string query)
-		{
-			return JPathQuery.FirstOrDefault(root, query);
-		}
+		public static JsonValue Find(this JsonValue root, string queryText) => JPathQuery.FirstOrDefault(root, queryText);
 
-		/// <summary>Returns the list of all nodes that match the given JPath expression</summary>
+		/// <summary>Returns the first node that matched the given JPath query</summary>
 		/// <param name="root">Root node of the query</param>
-		/// <param name="query">JPath expression</param>
+		/// <param name="query">JPath query</param>
+		/// <returns>First matching node, or <see cref="JsonNull.Missing"/> if none matches the query</returns>
+		public static JsonValue Find(this JsonValue root, JPathQuery query) => query.FirstOrDefault(root);
+
+		/// <summary>Returns the list of all the nodes that match the given JPath expression</summary>
+		/// <param name="root">Root node of the query</param>
+		/// <param name="queryText">JPath expression</param>
 		/// <returns>List of all matching nodes, or empty list if none matches the query</returns>
-		public static List<JsonValue> FindAll(this JsonValue root, string query)
-		{
-			return JPathQuery.Select(root, query).ToList();
-		}
+		/// <exception cref="FormatException">If the query is invalid or malformed</exception>
+		public static List<JsonValue> FindAll(this JsonValue root, string queryText) => JPathQuery.Select(root, queryText).ToList();
+
+		/// <summary>Returns the list of all the nodes that match the given JPath query</summary>
+		/// <param name="root">Root node of the query</param>
+		/// <param name="query">JPath query</param>
+		/// <returns>List of all matching nodes, or empty list if none matches the query</returns>
+		/// <exception cref="FormatException">If the query is invalid or malformed</exception>
+		public static List<JsonValue> FindAll(this JsonValue root, JPathQuery query) => query.Select(root).ToList();
 
 	}
+
 }

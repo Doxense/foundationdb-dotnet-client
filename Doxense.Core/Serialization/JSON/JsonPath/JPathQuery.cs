@@ -37,77 +37,79 @@ namespace Doxense.Serialization.Json.JsonPath
 	public sealed class JPathQuery
 	{
 
+		/// <summary>Parse expression that respresents this query</summary>
 		public JPathExpression Expression { get; }
 
+		/// <summary>Original text of this query</summary>
 		public string Text { get; }
 
 		internal JPathQuery(JPathExpression expression, string text)
 		{
 			Contract.NotNull(expression);
+			Contract.NotNullOrEmpty(text);
+
 			this.Expression = expression;
 			this.Text = text;
 		}
 
-		public override string ToString()
-		{
-			return this.Text;
-		}
+		public override string ToString() => this.Text;
 
-		[Pure]
-		public JsonValue FirstOrDefault(JsonValue root)
-		{
-			if (root.IsNullOrMissing()) return JsonNull.Missing;
-			return FirstOrDefault(root, this.Expression);
-		}
+		public override int GetHashCode() => this.Text.GetHashCode();
 
+		/// <summary>Return the first value that match this query, or <see cref="JsonNull.Missing"/> if no match was found</summary>
 		[Pure]
-		public IEnumerable<JsonValue> Select(JsonValue root)
-		{
-			if (root.IsNullOrMissing()) return Array.Empty<JsonValue>();
-			return Select(root, this.Expression);
-		}
+		public JsonValue FirstOrDefault(JsonValue? root) => !root.IsNullOrMissing() ? FirstOrDefault(root, this.Expression) : JsonNull.Missing;
 
+		/// <summary>Return all the nodes that match this query, or an empty sequence if no match was found</summary>
 		[Pure]
-		public static JsonValue FirstOrDefault(JsonValue root, string queryText)
+		public IEnumerable<JsonValue> Select(JsonValue? root) => !root.IsNullOrMissing() ? Select(root, this.Expression) : [];
+
+		/// <summary>Return the first value that match the given JPath query, or <see cref="JsonNull.Missing"/> if no match was found</summary>
+		/// <exception cref="FormatException">If the query is invalid or malformed</exception>
+		[Pure]
+		public static JsonValue FirstOrDefault(JsonValue? root, string queryText)
 		{
 			Contract.NotNull(queryText);
-			if (root.IsNullOrMissing()) return JsonNull.Missing;
-			return ParseExpression(queryText).Iterate(root, root).FirstOrDefault() ?? JsonNull.Missing;
+			return root.IsNullOrMissing() ? JsonNull.Missing : ParseExpression(queryText).Iterate(root, root).FirstOrDefault() ?? JsonNull.Missing;
 		}
 
+		/// <summary>Return the first value that match the given JPath expression, or <see cref="JsonNull.Missing"/> if no match was found</summary>
 		[Pure]
-		public static JsonValue FirstOrDefault(JsonValue root, JPathExpression expression)
+		public static JsonValue FirstOrDefault(JsonValue? root, JPathExpression expression)
 		{
 			Contract.NotNull(expression);
-			if (root.IsNullOrMissing()) return JsonNull.Missing;
-			return expression.Iterate(root, root).FirstOrDefault() ?? JsonNull.Missing;
+			return (!root.IsNullOrMissing() ? expression.Iterate(root, root).FirstOrDefault() : null) ?? JsonNull.Missing;
 		}
 
+		/// <summary>Returns all the nodes that match the given JPath query, or an empty sequence if no match was found</summary>
+		/// <exception cref="FormatException">If the query is invalid or malformed</exception>
 		[Pure]
-		public static IEnumerable<JsonValue> Select(JsonValue root, string queryText)
+		public static IEnumerable<JsonValue> Select(JsonValue? root, string queryText)
 		{
-			Contract.NotNull(queryText);
-			if (root.IsNullOrMissing()) return Array.Empty<JsonValue>();
-			var expr = ParseExpression(queryText);
-			return expr.Iterate(root, root);
+			Contract.NotNullOrEmpty(queryText);
+			return !root.IsNullOrMissing() ? ParseExpression(queryText).Iterate(root, root) : [];
 		}
 
+		/// <summary>Return all the nodes that match the given JPath expression</summary>
 		[Pure]
-		public static IEnumerable<JsonValue> Select(JsonValue root, JPathExpression expression)
+		public static IEnumerable<JsonValue> Select(JsonValue? root, JPathExpression expression)
 		{
 			Contract.NotNull(expression);
-			if (root.IsNullOrMissing()) return Array.Empty<JsonValue>();
-			return expression.Iterate(root, root);
+			return !root.IsNullOrMissing() ? expression.Iterate(root, root) : [];
 		}
 
 		/// <summary>Parse the given JPath expression</summary>
+		/// <exception cref="FormatException">If the query is invalid or malformed</exception>
 		[Pure]
 		public static JPathExpression ParseExpression(string queryText)
 		{
+			Contract.NotNullOrEmpty(queryText);
 			var context = new JPathParser(queryText.AsSpan());
 			return context.ParseExpression(JPathExpression.Root);
 		}
 
+		/// <summary>Parse the given JPath query</summary>
+		/// <exception cref="FormatException">If the query is invalid or malformed</exception>
 		[Pure]
 		public static JPathQuery Parse(string queryText)
 		{
