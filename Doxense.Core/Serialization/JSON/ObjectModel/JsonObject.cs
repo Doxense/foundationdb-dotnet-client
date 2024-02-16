@@ -1443,48 +1443,6 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public void TrimExcess(int capacity) => m_items.TrimExcess(capacity);
 
-		/// <summary>Create a new JSON object with a copy of the specified items</summary>
-		/// <param name="items">Sequence of key/value pairs to copy</param>
-		/// <param name="deep">If <see langword="true" />, perform a deep copy of all the items (arrays and objects). If <see langword="false" />, they are stored as-is.</param>
-		/// <param name="readOnly"></param>
-		/// <returns>New JSON object with the same content as <see cref="items"/></returns>
-		/// <remarks>If <paramref name="items"/> contains any duplicate keys, the last value will overwrite any previous values.</remarks>
-		[Obsolete("Use JsonObject.Create(...) or JsonObject.CreateImmutable(...) instead.", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static JsonObject Copy(IEnumerable<KeyValuePair<string, JsonValue?>> items, bool deep, bool readOnly = false)
-		{
-			Contract.NotNull(items);
-
-			if (items is JsonObject j)
-			{
-				return j.Copy(deep, readOnly);
-			}
-
-			//TODO: BUGBUG: fix me!
-
-			if (!deep && !readOnly)
-			{ // just create a shallow copy
-				return new(new Dictionary<string, JsonValue>(items, ExtractKeyComparer(items)), readOnly);
-			}
-
-			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, ExtractKeyComparer(items));
-			if (deep)
-			{
-				foreach (var kvp in items)
-				{
-					map[kvp.Key] = kvp.Value?.Copy(deep: true, readOnly) ?? JsonNull.Null;
-				}
-			}
-			else
-			{
-				foreach (var kvp in items)
-				{
-					map[kvp.Key] = kvp.Value ?? JsonNull.Null;
-				}
-			}
-			return new JsonObject(map, readOnly);
-		}
-
 		#region Public Properties...
 
 		/// <summary>Type d'objet JSON</summary>

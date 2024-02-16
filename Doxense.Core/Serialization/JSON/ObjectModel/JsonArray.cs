@@ -370,7 +370,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="values">Elements of the new array</param>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonArray Copy(JsonValue?[] values)
+		public static JsonArray Copy(JsonValue[] values)
 		{
 			Contract.NotNull(values);
 			return new JsonArray().AddRange(values.AsSpan());
