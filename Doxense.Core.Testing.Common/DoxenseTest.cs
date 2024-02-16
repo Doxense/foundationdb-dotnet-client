@@ -1003,6 +1003,7 @@ namespace Doxense.Testing
 
 		[DebuggerNonUserCode]
 		[StringFormatMethod("format")]
+		[Obsolete("Use string interpolation instead")]
 		public static void Log(string format, object? arg0)
 		{
 			WriteToLog(string.Format(CultureInfo.InvariantCulture, format, arg0));
@@ -1010,6 +1011,7 @@ namespace Doxense.Testing
 
 		[DebuggerNonUserCode]
 		[StringFormatMethod("format")]
+		[Obsolete("Use string interpolation instead")]
 		public static void Log(string format, object? arg0, object? arg1)
 		{
 			WriteToLog(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
@@ -1017,12 +1019,14 @@ namespace Doxense.Testing
 
 		[DebuggerNonUserCode]
 		[StringFormatMethod("format")]
+		[Obsolete("Use string interpolation instead")]
 		public static void Log(string format, params object?[] args)
 		{
 			WriteToLog(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		[DebuggerNonUserCode]
+		[Obsolete("This method is not required anymore. You can call Log() with an interporlated directly", error: true)]
 		public static void LogInv(FormattableString msg)
 		{
 			WriteToLog(msg.ToString(CultureInfo.InvariantCulture));
@@ -1035,12 +1039,27 @@ namespace Doxense.Testing
 		}
 
 		[DebuggerNonUserCode]
+		public static void LogError(ref DefaultInterpolatedStringHandler handler)
+		{
+			WriteToErrorLog(handler.ToStringAndClear());
+		}
+
+		[DebuggerNonUserCode]
 		public static void LogError(string? text, Exception e)
 		{
 			WriteToErrorLog(text + Environment.NewLine + e.ToString());
 		}
 
 		[DebuggerNonUserCode]
+		public static void LogError(ref DefaultInterpolatedStringHandler handler, Exception e)
+		{
+			handler.AppendLiteral(Environment.NewLine);
+			handler.AppendLiteral(e.ToString());
+			WriteToErrorLog(handler.ToStringAndClear());
+		}
+
+		[DebuggerNonUserCode]
+		[Obsolete("This method is not required anymore. You can call LogError() with an interporlated directly", error: true)]
 		public static void LogErrorInv(FormattableString msg)
 		{
 			WriteToErrorLog(msg.ToString(CultureInfo.InvariantCulture));
