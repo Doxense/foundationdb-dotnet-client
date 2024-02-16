@@ -5,7 +5,7 @@
 		<TargetFrameworks>net8.0;net6.0</TargetFrameworks>
 		<RootNamespace>FoundationDB.Client</RootNamespace>
 		<AssemblyName>FoundationDB.Client</AssemblyName>
-		<LangVersion>11.0</LangVersion>
+		<LangVersion>12.0</LangVersion>
 		<Nullable>enable</Nullable>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
