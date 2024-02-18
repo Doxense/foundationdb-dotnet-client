@@ -41,7 +41,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerNonUserCode]
 	public sealed class CrystalJsonStreamWriter : IDisposable //TODO: IAsyncDisposable !
 	{
-		// On utiliser un CrystalJsonWriter classique, qui va écrire dans un MemoryStream qui sert de tampon, de manière classique.
+		// On utilise un CrystalJsonWriter classique, qui va écrire dans un MemoryStream qui sert de tampon, de manière classique.
 		// Le writer écrit dans un TextWriter, qui lui même flush périodiquement dans le MemoryStream. Jusque la, tout reste en non-async et ne bloque jamais.
 		// Régulièrement, ou lors que le tampon est assez gros, on le flush sur le stream, et cela de manière async.
 

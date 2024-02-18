@@ -99,7 +99,10 @@ namespace Doxense.Serialization.Json
 			map['f'] = JsonTokenType.False; // false
 			map['N'] = JsonTokenType.Special; // NaN
 			map['I'] = JsonTokenType.Special; // Infinity
-			for (int i = 0; i <= 9; i++) map['0' + i] = JsonTokenType.Number;
+			for (int i = 0; i <= 9; i++)
+			{
+				map['0' + i] = JsonTokenType.Number;
+			}
 			map['+'] = JsonTokenType.Number; // +###
 			map['-'] = JsonTokenType.Number; // -###
 			return map;
@@ -126,7 +129,7 @@ namespace Doxense.Serialization.Json
 			foreach (char c in literal)
 			{
 				++p;
-				if (c <= '9' && c >= '0')
+				if (c is <= '9' and >= '0')
 				{ // digit
 					incomplete = false;
 					num = (num * 10) + (ulong) (c - '0');
@@ -142,7 +145,7 @@ namespace Doxense.Serialization.Json
 					continue;
 				}
 
-				if (c == 'e' || c == 'E')
+				if (c is 'e' or 'E')
 				{
 					if (hasExponent) throw InvalidNumberFormat(literal, "duplicate exponent");
 					incomplete = true;
@@ -151,7 +154,7 @@ namespace Doxense.Serialization.Json
 					continue;
 				}
 
-				if (c == '-' || c == '+')
+				if (c is '-' or '+')
 				{
 					if (p == 1)
 					{
@@ -159,8 +162,14 @@ namespace Doxense.Serialization.Json
 					}
 					else
 					{
-						if (!hasExponent) throw InvalidNumberFormat(literal, "unexpected sign at this location");
-						if (hasExponentSign) throw InvalidNumberFormat(literal, "duplicate sign is exponent");
+						if (!hasExponent)
+						{
+							throw InvalidNumberFormat(literal, "unexpected sign at this location");
+						}
+						if (hasExponentSign)
+						{
+							throw InvalidNumberFormat(literal, "duplicate sign is exponent");
+						}
 						hasExponentSign = true;
 					}
 					incomplete = true;
@@ -169,8 +178,14 @@ namespace Doxense.Serialization.Json
 
 				if (c == 'I')
 				{ // +Infinity / -Infinity ?
-					if (string.Equals(literal, "+Infinity", StringComparison.Ordinal)) return JsonNumber.PositiveInfinity;
-					if (string.Equals(literal, "-Infinity", StringComparison.Ordinal)) return JsonNumber.NegativeInfinity;
+					if (string.Equals(literal, "+Infinity", StringComparison.Ordinal))
+					{
+						return JsonNumber.PositiveInfinity;
+					}
+					if (string.Equals(literal, "-Infinity", StringComparison.Ordinal))
+					{
+						return JsonNumber.NegativeInfinity;
+					}
 				}
 				if (c == 'N')
 				{
@@ -195,11 +210,17 @@ namespace Doxense.Serialization.Json
 					if (!negative)
 					{
 						// le literal est-il en cache?
-						if (num <= JsonNumber.CACHED_SIGNED_MAX) return JsonNumber.GetCachedSmallNumber((int) num);
+						if (num <= JsonNumber.CACHED_SIGNED_MAX)
+						{
+							return JsonNumber.GetCachedSmallNumber((int) num);
+						}
 					}
 					else
 					{
-						if (num <= -JsonNumber.CACHED_SIGNED_MIN) return JsonNumber.GetCachedSmallNumber(-((int) num));
+						if (num <= -JsonNumber.CACHED_SIGNED_MIN)
+						{
+							return JsonNumber.GetCachedSmallNumber(-((int) num));
+						}
 					}
 				}
 
@@ -609,7 +630,7 @@ namespace Doxense.Serialization.Json
 				}
 				default:
 				{ // ??
-					throw reader.FailInvalidSyntax("Unexpected character '{0}'", first);
+					throw reader.FailInvalidSyntax($"Unexpected character '{first}'");
 				}
 			}
 		}
@@ -664,7 +685,10 @@ namespace Doxense.Serialization.Json
 				{ // décode le caractère encodé
 					c = ParseEscapedCharacter(ref reader);
 				}
-				if (c == CrystalJsonParser.EndOfStream) throw reader.FailUnexpectedEndOfStream("String is incomplete");
+				if (c == CrystalJsonParser.EndOfStream)
+				{
+					throw reader.FailUnexpectedEndOfStream("String is incomplete");
+				}
 
 				if (p < SIZE & sb == null)
 				{ // il y a encore de la place dans le buffer
@@ -684,7 +708,10 @@ namespace Doxense.Serialization.Json
 				hashCode = StringTable.Hash.CombineFnvHash(hashCode, c);
 			}
 
-			if (p == 0) return String.Empty;
+			if (p == 0)
+			{
+				return string.Empty;
+			}
 			//TODO: table for single letter names ?
 
 			if (table != null)
@@ -702,26 +729,18 @@ namespace Doxense.Serialization.Json
 		private static char ParseEscapedCharacter(ref CrystalJsonTokenizer<TReader> reader)
 		{
 			char c = reader.ReadOne();
-			switch (c)
+			return c switch
 			{
-				case '\"':
-				case '\\':
-				case '/':
-					return c; // on a deja le bon char
-
-				case 'b': return '\b';
-				case 'f': return '\f';
-				case 'n': return '\n';
-				case 'r': return '\r';
-				case 't': return '\t';
-				case 'u': return ParseEscapedUnicodeCharacter(ref reader);
-
-				case CrystalJsonParser.EndOfStream:
-					throw reader.FailUnexpectedEndOfStream("Invalid string escaping");
-
-				default:
-					throw reader.FailInvalidSyntax(@"Invalid escaped character \{0} found in string", c);
-			}
+				'\"' or '\\' or '/' => c,
+				'b' => '\b',
+				'f' => '\f',
+				'n' => '\n',
+				'r' => '\r',
+				't' => '\t',
+				'u' => ParseEscapedUnicodeCharacter(ref reader),
+				CrystalJsonParser.EndOfStream => throw reader.FailUnexpectedEndOfStream("Invalid string escaping"),
+				_ => throw reader.FailInvalidSyntax($@"Invalid escaped character \{c} found in string")
+			};
 		}
 
 		private static char ParseEscapedUnicodeCharacter(ref CrystalJsonTokenizer<TReader> reader)
@@ -732,15 +751,25 @@ namespace Doxense.Serialization.Json
 			{
 				char c = reader.ReadOne();
 				if (c >= '0' && c <= '9')
+				{
 					x = (x << 4) | (c - 48);
+				}
 				else if (c >= 'A' && c <= 'F')
+				{
 					x = (x << 4) | (c - 55);
+				}
 				else if (c >= 'a' && c <= 'f')
+				{
 					x = (x << 4) | (c - 87);
+				}
 				else if (c == CrystalJsonParser.EndOfStream)
+				{
 					throw reader.FailUnexpectedEndOfStream("Invalid Unicode character escaping");
+				}
 				else
+				{
 					throw reader.FailInvalidSyntax("Invalid Unicode character escaping");
+				}
 			}
 			return (char)x;
 		}
@@ -779,22 +808,31 @@ namespace Doxense.Serialization.Json
 				}
 				else if (c == '.')
 				{
-					if (hasDot) throw reader.FailInvalidSyntax("Invalid number '{0}.' (duplicate decimal point)", new string(buffer, 0, p));
+					if (hasDot) throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}.' (duplicate decimal point)");
 					incomplete = true;
 					hasDot = true;
 					computed = false;
 				}
 				else if (c == 'e' || c == 'E')
 				{ // exposant (forme scientifique)
-					if (hasExponent) throw reader.FailInvalidSyntax("Invalid number '{0}{1}' (duplicate exponent)", new string(buffer, 0, p), c);
+					if (hasExponent)
+					{
+						throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}{c}' (duplicate exponent)");
+					}
 					incomplete = true;  // doit être suivit d'un signe ou d'un digit! ("123E" n'est pas valid)
 					hasExponent = true;
 					computed = false;
 				}
 				else if (c == '-' || c == '+')
 				{ // signe de l'exposant
-					if (!hasExponent) throw reader.FailInvalidSyntax("Invalid number '{0}{1}' (unexpected sign at this location)", new string(buffer, 0, p), c);
-					if (hasExponentSign) throw reader.FailInvalidSyntax("Invalid number '{0}{1}' (duplicate sign is exponent)", new string(buffer, 0, p), c);
+					if (!hasExponent)
+					{
+						throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}{c}' (unexpected sign at this location)");
+					}
+					if (hasExponentSign)
+					{
+						throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}{c}' (duplicate sign is exponent)");
+					}
 					incomplete = true; // doit être suivit d'un digit! ("123E-" n'est pas valid)
 					hasExponentSign = true;
 				}
@@ -810,7 +848,7 @@ namespace Doxense.Serialization.Json
 				}
 				else
 				{ // caractère invalide après un nombre
-					throw reader.FailInvalidSyntax("Invalid number '{0}' (unexpected character '{1}' found)", new string(buffer, 0, p), c);
+					throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}' (unexpected character '{c}' found)");
 				}
 
 				buffer[p++] = c;
@@ -857,8 +895,7 @@ namespace Doxense.Serialization.Json
 			// on a besoin de parser le nombre...
 			string literal = table != null ? table.Add(new ReadOnlySpan<char>(buffer, p)) : new string(buffer, 0, p);
 			var value = CrystalJsonParser.ParseNumberFromLiteral(literal, negative, hasDot, hasExponent);
-			if (value == null) throw reader.FailInvalidSyntax("Invalid JSON number '{0}' (malformed)", literal);
-			return value;
+			return value ?? throw reader.FailInvalidSyntax($"Invalid JSON number '{literal}' (malformed)");
 		}
 
 		private static JsonValue ParseSpecialKeyword(ref CrystalJsonTokenizer<TReader> reader, char first)
@@ -909,7 +946,7 @@ namespace Doxense.Serialization.Json
 				sb.Length--;
 			}
 
-			throw reader.FailInvalidSyntax("Invalid literal '{0}'", StringBuilderCache.GetStringAndRelease(sb));
+			throw reader.FailInvalidSyntax($"Invalid literal '{StringBuilderCache.GetStringAndRelease(sb)}'");
 		}
 
 		private static JsonObject ParseJsonObject(ref CrystalJsonTokenizer<TReader> reader)
@@ -943,8 +980,14 @@ namespace Doxense.Serialization.Json
 						{ // start of property name
 							if (state != EXPECT_PROPERTY)
 							{
-								if (state == EXPECT_VALUE) throw reader.FailInvalidSyntax("Missing colon after field #{0} value", index + 1);
-								throw reader.FailInvalidSyntax("Missing comma after field #{0}", index);
+								if (state == EXPECT_VALUE)
+								{
+									throw reader.FailInvalidSyntax($"Missing colon after field #{index + 1} value");
+								}
+								else
+								{
+									throw reader.FailInvalidSyntax($"Missing comma after field #{index}");
+								}
 							}
 
 							name = ParseJsonName(ref reader);
@@ -960,9 +1003,9 @@ namespace Doxense.Serialization.Json
 								{
 									throw reader.FailInvalidSyntax("Missing field before end of object");
 								}
-								if (state == EXPECT_VALUE)
+								else if (state == EXPECT_VALUE)
 								{
-									throw reader.FailInvalidSyntax("Missing value for field #{0} at the end of object definition", index);
+									throw reader.FailInvalidSyntax($"Missing value for field #{index} at the end of object definition");
 								}
 							}
 #if DEBUG_JSON_PARSER
@@ -980,7 +1023,10 @@ namespace Doxense.Serialization.Json
 							{
 								map[kv.Key] = kv.Value;
 #if DEBUG
-								if (createReadOnly && !kv.Value.IsReadOnly) Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+								if (createReadOnly && !kv.Value.IsReadOnly)
+								{
+									Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+								}
 #endif
 							}
 							var obj = new JsonObject(map, createReadOnly);
@@ -989,7 +1035,10 @@ namespace Doxense.Serialization.Json
 								var x = new HashSet<string>(reader.FieldComparer);
 								for (int i = 0; i < index; i++)
 								{
-									if (!x.Add(props[i].Key)) throw reader.FailInvalidSyntax($"Duplicate field '{props[i].Key}' in JSON Object.");
+									if (!x.Add(props[i].Key))
+									{
+										throw reader.FailInvalidSyntax($"Duplicate field '{props[i].Key}' in JSON Object.");
+									}
 								}
 							}
 							return obj;
@@ -998,10 +1047,18 @@ namespace Doxense.Serialization.Json
 						{ // start of property value
 							if (state != EXPECT_VALUE)
 							{
-								if (state == EXPECT_PROPERTY) throw reader.FailInvalidSyntax("Missing field name after field #{0}", index);
-								if (name != null) throw reader.FailInvalidSyntax("Duplicate colon after field #{0} '{1}'", index, name);
-								throw reader.FailInvalidSyntax("Unexpected semicolon after field #{0}", index);
-
+								if (state == EXPECT_PROPERTY)
+								{
+									throw reader.FailInvalidSyntax($"Missing field name after field #{index}");
+								}
+								else if (name != null)
+								{
+									throw reader.FailInvalidSyntax($"Duplicate colon after field #{index} '{name}'");
+								}
+								else
+								{
+									throw reader.FailInvalidSyntax($"Unexpected semicolon after field #{index}");
+								}
 							}
 							// immédiatement après, on doit trouver une valeur
 
@@ -1021,8 +1078,14 @@ namespace Doxense.Serialization.Json
 						{ // next field
 							if (state != EXPECT_NEXT)
 							{
-								if (name != null) throw reader.FailInvalidSyntax("Unexpected comma after name of field #{0} ", index);
-								throw reader.FailInvalidSyntax("Unexpected comma after field #{0}", index);
+								if (name != null)
+								{
+									throw reader.FailInvalidSyntax($"Unexpected comma after name of field #{index} ");
+								}
+								else
+								{
+									throw reader.FailInvalidSyntax($"Unexpected comma after field #{index}");
+								}
 							}
 
 							// next should be '"' or '}' if trailing commas are allowed
@@ -1036,11 +1099,26 @@ namespace Doxense.Serialization.Json
 						}
 						default:
 						{ // object
-							if (c == CrystalJsonParser.EndOfStream) throw reader.FailUnexpectedEndOfStream("Incomplete object definition");
-							if (state == EXPECT_NEXT) throw reader.FailInvalidSyntax("Missing comma after field #{0}", index);
-							if (state == EXPECT_VALUE) throw reader.FailInvalidSyntax("Missing semicolon after field '{0}' value", name!);
-							if (c == ']') throw reader.FailInvalidSyntax("Unexpected ']' encountered inside an object. Did you forget to close the object?");
-							throw reader.FailInvalidSyntax("Invalid character '{0}' after field #{1}", c, index);
+							if (c == CrystalJsonParser.EndOfStream)
+							{
+								throw reader.FailUnexpectedEndOfStream("Incomplete object definition");
+							}
+							else if (state == EXPECT_NEXT)
+							{
+								throw reader.FailInvalidSyntax($"Missing comma after field #{index}");
+							}
+							else if (state == EXPECT_VALUE)
+							{
+								throw reader.FailInvalidSyntax($"Missing semicolon after field '{name!}' value");
+							}
+							else if (c == ']')
+							{
+								throw reader.FailInvalidSyntax("Unexpected ']' encountered inside an object. Did you forget to close the object?");
+							}
+							else
+							{
+								throw reader.FailInvalidSyntax($"Invalid character '{c}' after field #{index}");
+							}
 						}
 					}
 				}
@@ -1074,8 +1152,14 @@ namespace Doxense.Serialization.Json
 				}
 				default:
 				{
-					if (c == CrystalJsonParser.EndOfStream) throw reader.FailUnexpectedEndOfStream("Incomplete comment");
-					throw reader.FailInvalidSyntax("Invalid character '{0}' after comment start", c);
+					if (c == CrystalJsonParser.EndOfStream)
+					{
+						throw reader.FailUnexpectedEndOfStream("Incomplete comment");
+					}
+					else
+					{
+						throw reader.FailInvalidSyntax($"Invalid character '{c}' after comment start");
+					}
 				}
 			}
 		}

@@ -31,8 +31,6 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Buffers;
 	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Text;
@@ -75,7 +73,7 @@ namespace Doxense.Serialization.Json
 
 		private KeyValuePair<string, JsonValue>[]? ObjectBuffer;
 
-		public CrystalJsonTokenizer(TReader source, CrystalJsonSettings settings)
+		public CrystalJsonTokenizer(TReader source, CrystalJsonSettings? settings)
 			: this()
 		{
 			this.Source = source;
@@ -121,13 +119,13 @@ namespace Doxense.Serialization.Json
 
 #if ENABLE_SOURCE_POSITION
 		/// <summary>Nombre de charactères lus dans la source</summary>
-		public long Offset { get { return m_offset; } }
+		public long Offset => m_offset;
 
 		/// <summary>Nombre de charactères lus dans la ligne actuelle (commence à 0!)</summary>
-		public long Position { get { return m_position; } }
+		public long Position => m_position;
 
 		/// <summary>Nombre de lignes lues dans la source (commence à 0!)</summary>
-		public long Line { get { return m_line; } }
+		public long Line => m_line;
 #endif
 
 		internal JsonValue[] AcquireArrayBuffer()
@@ -250,14 +248,16 @@ namespace Doxense.Serialization.Json
 		internal char ReadOne()
 		{
 			char c = (char) this.Source.Read();
+#if ENABLE_SOURCE_POSITION
 			UpdateSourcePosition(c);
+#endif
 			return c;
 		}
 
-		[Conditional("ENABLE_SOURCE_POSITION")]
+#if ENABLE_SOURCE_POSITION
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void UpdateSourcePosition(char c)
 		{
-#if ENABLE_SOURCE_POSITION
 			if (c == '\n')
 			{
 				++m_line;
@@ -269,8 +269,8 @@ namespace Doxense.Serialization.Json
 				++m_position;
 				++m_offset;
 			}
-#endif
 		}
+#endif
 
 		/// <summary>Vérifie que le stream contient bien les charactères spécifiés</summary>
 		/// <param name="values">Charactères d'un token a lire</param>
@@ -285,57 +285,51 @@ namespace Doxense.Serialization.Json
 				c = ReadOne();
 				if (c != value)
 				{
-					if (c == CrystalJsonParser.EndOfStream) throw FailUnexpectedEndOfStream(null);
-					throw FailInvalidSyntax("Invalid character '{0}' found while expecting '{1}'", c, value);
+					if (c == CrystalJsonParser.EndOfStream)
+					{
+						throw FailUnexpectedEndOfStream(null);
+					}
+					else
+					{
+						throw FailInvalidSyntax($"Invalid character '{c}' found while expecting '{value}'");
+					}
 				}
 			}
 			// normalement juste derrière on doit etre en fin de stream, ou on doit trouver un séparateur ou terminateur
 			c = ReadOne();
-			if (c == CrystalJsonParser.EndOfStream) return;
-			Push(c); // on le remet dans le stream pour la suite
-			if (char.IsLetterOrDigit(c)) throw FailInvalidSyntax("Invalid character '{0}' found after expected keyword", c);
+			if (c == CrystalJsonParser.EndOfStream)
+			{
+				return;
+			}
+
+			// on le remet dans le stream pour la suite
+			Push(c);
+
+			if (char.IsLetterOrDigit(c))
+			{
+				throw FailInvalidSyntax($"Invalid character '{c}' found after expected keyword");
+			}
 		}
+
+#if ENABLE_SOURCE_POSITION
+		[Pure]
+		internal JsonSyntaxException FailInvalidSyntax(string reason) => new("Invalid JSON syntax", reason, m_offset - 1, m_line + 1, m_position);
 
 		[Pure]
-		internal JsonSyntaxException FailInvalidSyntax(string reason)
-		{
-#if ENABLE_SOURCE_POSITION
-			return new JsonSyntaxException("Invalid JSON syntax", reason, m_offset - 1, m_line + 1, m_position);
-#else
-			return new JsonSyntaxException("Invalid JSON syntax", reason);
-#endif
-		}
+		internal JsonSyntaxException FailInvalidSyntax(ref DefaultInterpolatedStringHandler reason) => new("Invalid JSON syntax", reason.ToStringAndClear(), m_offset - 1, m_line + 1, m_position);
 
-		[Pure, StringFormatMethod("reason")]
-		internal JsonSyntaxException FailInvalidSyntax(string reason, object arg0)
-		{
-#if ENABLE_SOURCE_POSITION
-			return new JsonSyntaxException("Invalid JSON syntax", String.Format(CultureInfo.InvariantCulture, reason, arg0), m_offset - 1, m_line + 1, m_position);
-#else
-			return new JsonSyntaxException("Invalid JSON syntax", String.Format(CultureInfo.InvariantCulture, reason, arg0));
-#endif
-		}
-
-		[Pure, StringFormatMethod("reason")]
-		internal JsonSyntaxException FailInvalidSyntax(string reason, object arg0, object arg1)
-		{
-#if ENABLE_SOURCE_POSITION
-			return new JsonSyntaxException("Invalid JSON syntax", String.Format(CultureInfo.InvariantCulture, reason, arg0, arg1), m_offset - 1, m_line + 1, m_position);
-#else
-			return new JsonSyntaxException("Invalid JSON syntax", String.Format(CultureInfo.InvariantCulture, reason, arg0, arg1));
-#endif
-		}
-
-		/// <summary>Génère une exception correspondant à une fin de stream prématurée</summary>
 		[Pure]
-		internal JsonSyntaxException FailUnexpectedEndOfStream(string? reason)
-		{
-#if ENABLE_SOURCE_POSITION
-			return new JsonSyntaxException("Unexpected end of stream", reason, m_offset - 1, m_line + 1, m_position);
+		internal JsonSyntaxException FailUnexpectedEndOfStream(string? reason) => new("Unexpected end of stream", reason, m_offset - 1, m_line + 1, m_position);
 #else
-			return new JsonSyntaxException("Unexpected end of stream", reason);
+		[Pure]
+		internal JsonSyntaxException FailInvalidSyntax(string reason) => new("Invalid JSON syntax", reason);
+
+		[Pure]
+		internal JsonSyntaxException FailInvalidSyntax(ref DefaultInterpolatedStringHandler reason) => new("Invalid JSON syntax", reason.ToStringAndClear());
+
+		[Pure]
+		internal JsonSyntaxException FailUnexpectedEndOfStream(string? reason) => new("Unexpected end of stream", reason);
 #endif
-		}
 
 		/// <summary>Retourne la StringTable pour la génération de literals, ou null si interning désactivé</summary>
 		/// <param name="kind">Type de literal parsé (nom de champ, string, number, ...)</param>

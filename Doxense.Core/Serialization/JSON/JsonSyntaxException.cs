@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.ComponentModel;
+	using System.Runtime.CompilerServices;
 	using System.Runtime.Serialization;
 
 	/// <summary>Syntax error that occurred while parsing a JSON document</summary>
@@ -43,22 +44,21 @@ namespace Doxense.Serialization.Json
 		public JsonSyntaxException()
 		{ }
 
-		public JsonSyntaxException(string message)
-			: base(message)
-		{ }
+		public JsonSyntaxException(string message) : base(message) { }
 
-		public JsonSyntaxException(string message, Exception innerException)
-			: base(message, innerException)
-		{ }
+		public JsonSyntaxException(ref DefaultInterpolatedStringHandler message) : base(message.ToStringAndClear()) { }
 
-		public JsonSyntaxException(string message, string? reason)
-			: base(reason == null ? message : $"{message}: {reason}")
+		public JsonSyntaxException(string message, Exception innerException) : base(message, innerException) { }
+
+		public JsonSyntaxException(ref DefaultInterpolatedStringHandler message, Exception innerException) : base(message.ToStringAndClear(), innerException) { }
+
+		public JsonSyntaxException(string message, string? reason) : base(reason == null ? message : $"{message}: {reason}")
 		{
 			m_reason = reason;
 		}
 
 		public JsonSyntaxException(string message, string? reason, long offset, int line, int position)
-			: base(string.Format(reason == null ? "{0} at ln {1} col {2}" : "{0} at ln {1} col {2}: {3}", message, line, position, reason))
+			: base(reason == null ? $"{message} at ln {line} col {position}" : $"{message} at ln {line} col {position}: {reason}")
 		{
 			m_reason = reason;
 			m_offset = offset;

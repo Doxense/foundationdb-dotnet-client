@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
@@ -79,25 +80,64 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool IsMap { [Pure] get => this.Type == JsonType.Object; }
 
+		/// <summary>Returns <see langword="true"/> if this value is read-only, and cannot be modified, or <see langword="false"/> if it allows mutations.</summary>
+		/// <remarks>
+		/// <para>Only JSON Objects and Arrays can return <see langword="false"/>. All other "value types" (string, boolean, numbers, ...) are always immutable, and will always be read-only.</para>
+		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
+		/// </remarks>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract bool IsReadOnly { [Pure] get; }
 
+		/// <summary>Prevents any future mutations of this JSON value (of type Object or Array), by recursively freezing it and all of its children.</summary>
+		/// <returns>The same instance, which is now converted to a read-only instance.</returns>
+		/// <remarks>
+		/// <para>Any future attempt to modify this object, or any of its children that was previously mutable, will fail.</para>
+		/// <para>If this instance is already read-only, this will be a no-op.</para>
+		/// <para>This should only be used with care, and only on objects that are entirely owned by the called, or that have not been published yet. Freezing a shared mutable object may cause issues for other threads that still were expecting a mutable isntance.</para>
+		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
+		/// </remarks>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual JsonValue Freeze() => this;
 
+		/// <summary>Returns a read-only copy of this value, unless it is already read-only.</summary>
+		/// <returns>The same instance if it is already read-only, or a new read-only deep copy, if it was mutable.</returns>
+		/// <remarks>
+		/// <para>The value returned is guaranteed to be immutable, and is safe to cache, share, or use as a singleton.</para>
+		/// <para>Only JSON Objects and Arrays are impacted. All other "value types" (strings, booleans, numbers, ...) are always immutable, and will not be copied.</para>
+		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
+		/// </remarks>
+		[Pure]
 		public virtual JsonValue ToReadOnly() => this;
 
-		/// <summary>Heuristique qui détermine si cette valeur est considérée comme "petite" et peut être dumpée dans un log sans flooder</summary>
+		/// <summary>Converft this JSON value so that it, or any of its children that were previously read-only, can be mutated.</summary>
+		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
+		/// <remarks>
+		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
+		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (strings, booleans, numbers, ...) that are always immutable.</para>
+		/// </remarks>
+		[Pure]
+		public virtual JsonValue ToMutable() => this;
+
+		/// <summary>Returns <see langword="true"/> if this value is considered as "small" and can be safely written to a debug log (without flooding).</summary>
+		/// <remarks>
+		/// <para>For example, any JSON Object or Array must have 5 children or less, all small values, to be considered "small". Likewise, a JSON String literal must have a length or 36 characters or less, to be considered "small".</para>
+		/// <para>When generating a compact representation of a JSON value, for troubleshooting purpose, an Object or Array that is not "small", may be written as <c>[ 1, 2, 3, 4, 5, ...]</c> with the rest of the value ommitted.</para>
+		/// </remarks>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal abstract bool IsSmallValue();
 
-		/// <summary>Indique si ce type de valeur est assez petite pour être affichée en une seule ligne quand présente dans un petit tableau</summary>
-		/// <returns></returns>
+		/// <summary>Returns <see langword="true"/> if this value is considered as "small" enough to be inlined with its parent when generating compact or one-line JSON, like a small array or JSON object.</summary>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal abstract bool IsInlinable();
 
-		/// <summary>Sérialise une valeur JSON en string</summary>
-		/// <param name="settings">Settings JSON à utiliser (optionnel)</param>
-		/// <returns>Chaîne de texte correspondant à la valeur JSON</returns>
+		/// <summary>Serializes this JSON value into a JSON string literal</summary>
+		/// <param name="settings">Settings used to change the serialized JSON output (optional)</param>
+		/// <returns>JSON text literal that can be written to disk, returned as the body of an HTTP request, or </returns>
+		/// <example><c>var jsonText = new JsonObject() { ["hello"] = "world" }.ToJson(); // == "{ \"hello\": \"world\" }"</c></example>
 		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public virtual string ToJson(CrystalJsonSettings? settings = null)
 		{
 			// implémentation générique
@@ -108,39 +148,37 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
-		/// <summary>Retourne une chaîne "compact" représentant tout (ou partie) de cette valeur pour les logs</summary>
+		/// <summary>Returns a "compact" string representation of this value, that can fit into a troubleshooting log.</summary>
+		/// <remarks>
+		/// <para>If the value is too large, parts of it will be shortened by adding <c>', ...'</c> tokens, so that it is still readable by a human.</para>
+		/// <para>Note: the string that is return is not valid JSON and may not be parsable! This is only intended for quick introspection of a JSON document, by a human, using a log file or console output.</para>
+		/// </remarks>
 		[Pure]
-		internal virtual string GetCompactRepresentation(int depth)
-		{
-			return this.ToJson();
-		}
+		internal virtual string GetCompactRepresentation(int depth) => this.ToJson();
 
-		/// <summary>Formate la valeur JSON en une string</summary>
-		/// <remarks>Voir <see cref="ToString(string,IFormatProvider)"/> pour la liste des formats supportés</remarks>
-		public override string ToString()
-		{
-			return ToString(null, null);
-		}
+		/// <summary>Converts this JSON value into a printable string</summary>
+		/// <remarks>See <see cref="ToString(string,IFormatProvider)"/> if you need to specify a different format than the default</remarks>
+		public override string ToString() => ToString(null, null);
 
-		/// <summary>Formate la valeur JSON en une string</summary>
-		/// <param name="format">Format désiré (voir remarques), ou "D" par défaut</param>
-		/// <remarks>Voir <see cref="ToString(string,IFormatProvider)"/> pour la liste des formats supportés</remarks>
+		/// <summary>Converts this JSON value into a printable string, using the specified format</summary>
+		/// <param name="format">Desired format, or "D" (default) if omitted</param>
+		/// <remarks>See <see cref="ToString(string,IFormatProvider)"/> for the list of supported formats</remarks>
 		public string ToString(string? format)
 		{
 			return ToString(format, null);
 		}
 
-		/// <summary>Formate la valeur JSON en une string</summary>
-		/// <param name="format">Format désiré (voir remarques), ou "D" par défaut</param>
-		/// <param name="provider">Ignoré</param>
-		/// <remarks>Les formats supportés sont:
+		/// <summary>Converts this JSON value into a printable string, using the specified format and provider</summary>
+		/// <param name="format">Desired format, or "D" (default) if omitted</param>
+		/// <param name="provider">This parameter is ignored. JSON values are always formatted using <see cref="CultureInfo.InvariantCulture"/>.</param>
+		/// <remarks>Supported values for <paramref name="format"/> are:
 		/// <list type="bullet">
 		///   <listheader><term>format</term><description>foo</description></listheader>
-		///   <item><term>D</term><description>Default, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.Json"/></description></item>
-		///   <item><term>C</term><description>Compact, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JsonCompact"/></description></item>
-		///   <item><term>P</term><description>Pretty, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JsonIndented"/></description></item>
-		///   <item><term>J</term><description>JavaScript, équivalent de <see cref="ToJson"/> en mode <see cref="CrystalJsonSettings.JavaScript"/>.</description></item>
-		///   <item><term>Q</term><description>Quick, équivalent de <see cref="GetCompactRepresentation"/>, qui retourne une version simplifiée ou partielle du JSON, adaptée pour des logs/traces.</description></item>
+		///   <item><term>D</term><description>Default, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.Json"/></description></item>
+		///   <item><term>C</term><description>Compact, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.JsonCompact"/></description></item>
+		///   <item><term>P</term><description>Pretty, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.JsonIndented"/></description></item>
+		///   <item><term>J</term><description>JavaScript, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.JavaScript"/>.</description></item>
+		///   <item><term>Q</term><description>Quick, equivalent to calling <see cref="GetCompactRepresentation"/>, that will return a simplified/partial version, suitable for logs/traces.</description></item>
 		/// </list>
 		/// </remarks>
 		public virtual string ToString(string? format, IFormatProvider? provider)
@@ -167,11 +205,15 @@ namespace Doxense.Serialization.Json
 				{ // "Q" is for Quick!
 					return GetCompactRepresentation(0);
 				}
-
 				case "J":
 				case "j":
 				{ // "J" is for Javascript!
-					return CrystalJson.Serialize(this, CrystalJsonSettings.JavaScript);
+					return this.ToJson(CrystalJsonSettings.JavaScript);
+				}
+				case "B":
+				case "b":
+				{ // "B" is for Build!
+					return JsonEncoding.Encode(this.ToJsonCompact());
 				}
 				default:
 				{
@@ -193,7 +235,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Create a deep copy of this value (and all of its children)</summary>
+		/// <summary>Creates a deep copy of this value (and all of its children)</summary>
 		/// <returns>A new instance, isolated from the original.</returns>
 		/// <remarks>
 		/// <para>Any changes to this copy will not have any effect of the original, and vice-versa</para>
@@ -202,40 +244,45 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public virtual JsonValue Copy() => Copy(deep: true, readOnly: false);
 
-		/// <summary>Create a copy of this object</summary>
+		/// <summary>Creates a copy of this object</summary>
 		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
 		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
 		/// <returns>Copy of the object, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
 		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
 		/// <remarks>Immutable JSON values (like strings, numbers, ...) will return themselves without any change.</remarks>
 		[Pure]
-		protected internal virtual JsonValue Copy(bool deep, bool readOnly)
-		{
-			// la plupart des implémentation sont immutable
-			return this;
-		}
+		protected internal virtual JsonValue Copy(bool deep, bool readOnly) => this;
 
-		public override bool Equals(object? obj)
-		{
-			return obj is JsonValue value && Equals(value);
-		}
+		public override bool Equals(object? obj) => obj is JsonValue value && Equals(value);
 
 		public abstract bool Equals(JsonValue? other);
 
+		/// <summary>Tests if two JSON values are equivalent</summary>
 		public static bool Equals(JsonValue? left, JsonValue? right) => (left ?? JsonNull.Missing).Equals(right ?? JsonNull.Missing);
 
+		/// <summary>Compares two JSON values, and returns an integer that indicates whether the first value precedes, follows, or occurs in the same position in the sort order as the second value.</summary>
 		public static int Compare(JsonValue? left, JsonValue? right) => (left ?? JsonNull.Missing).CompareTo(right ?? JsonNull.Missing); 
 
-		// force les classes filles a override GetHashCode!
+		/// <summary>Returns a hashcode that can be used to quickly identify a JSON value.</summary>
+		/// <remarks>
+		/// <para>The hashcode is guaranteed to remain unchanged during the lifetime of the object.</para>
+		/// <para>
+		/// <b>Caution:</b> there is *NO* guarantee that two equivalent Objects or Arrays will have the same hash code! 
+		/// This means that it is *NOT* safe to use a JSON object or array has the key of a Dictionary or other collection that uses hashcodes to quickly compare two instances.
+		/// </para>
+		/// </remarks>
 		public abstract override int GetHashCode();
 
 		public virtual int CompareTo(JsonValue? other)
 		{
 			if (other == null) return this.IsNull ? 0 : +1;
-			if (object.ReferenceEquals(this, other)) return 0;
+			if (ReferenceEquals(this, other)) return 0;
 
-			// protection contre les JsonObject
-			if (other is JsonObject) throw ThrowHelper.InvalidOperationException("Cannot compare a JSON value with a JsonObject");
+			// cannot compare a value type directly with an object or array
+			if (other is JsonObject or JsonArray)
+			{
+				throw ThrowHelper.InvalidOperationException($"Cannot compare a JSON value with another value of type {other.Type}");
+			}
 
 			// pas vraiment de solution magique, on va comparer les type et les hashcode (pas pire que mieux)
 			int c = ((int)this.Type).CompareTo((int)other.Type);
