@@ -28,6 +28,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
@@ -249,6 +250,16 @@ namespace FoundationDB.Client
 			if (this.Begin.Count != 0 && key.CompareTo(this.Begin) < 0) return -1;
 			if (this.End.Count != 0 && key.CompareTo(this.End) >= (endIncluded ? 1 : 0)) return +1;
 			return 0;
+		}
+
+		/// <summary>Deconstructs this key range</summary>
+		/// <param name="begin">Receives the <see cref="Begin"/> key</param>
+		/// <param name="end">Receives the <see cref="End"/> key</param>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void Deconstruct(out Slice begin, out Slice end)
+		{
+			begin = this.Begin;
+			end = this.End;
 		}
 
 		/// <summary>Returns a printable version of the range</summary>

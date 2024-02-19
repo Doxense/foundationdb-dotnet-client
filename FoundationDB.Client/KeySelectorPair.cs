@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.ComponentModel;
 	using System.Diagnostics;
 
 	/// <summary>Represents of pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
@@ -90,6 +91,16 @@ namespace FoundationDB.Client
 		public override string ToString()
 		{
 			return $"[ {this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin)}, {this.End.PrettyPrint(FdbKey.PrettyPrintMode.End)} )";
+		}
+
+		/// <summary>Deconstructs this key selector pair</summary>
+		/// <param name="begin">Receives the <see cref="Begin"/> selector</param>
+		/// <param name="end">Receives the <see cref="End"/> selector</param>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void Deconstruct(out KeySelector begin, out KeySelector end)
+		{
+			begin = this.Begin;
+			end = this.End;
 		}
 
 	}
