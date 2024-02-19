@@ -32,6 +32,7 @@ namespace Doxense.Core.Tests
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.Linq;
 	using Doxense.Testing;
 	using NUnit.Framework;
@@ -104,72 +105,84 @@ namespace Doxense.Core.Tests
 		[Test]
 		public void Test_Uuid64_Parse_Hexa16()
 		{
-			// string
-
-			Assert.That(Uuid64.Parse("badc0ffe-e0ddf00d").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("BADC0FFE-E0DDF00D").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL), "Should be case-insensitive");
-
-			Assert.That(Uuid64.Parse("badc0ffee0ddf00d").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("BADC0FFEE0DDF00D").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL), "Should be case-insensitive");
-
-			Assert.That(Uuid64.Parse("{badc0ffe-e0ddf00d}").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("{BADC0FFE-E0DDF00D}").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL), "Should be case-insensitive");
-
-			Assert.That(Uuid64.Parse("{badc0ffee0ddf00d}").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("{BADC0FFEE0DDF00D}").ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL), "should be case-insensitive");
-
-			Assert.That(Uuid64.Parse("00000000-deadbeef").ToUInt64(), Is.EqualTo(0xDEADBEEFUL));
-			Assert.That(Uuid64.Parse("{00000000-deadbeef}").ToUInt64(), Is.EqualTo(0xDEADBEEFUL));
-
-			// errors
-			Assert.That(() => Uuid64.Parse(default(string)!), Throws.ArgumentNullException);
-			Assert.That(() => Uuid64.Parse("hello"), Throws.InstanceOf<FormatException>());
-			Assert.That(() => Uuid64.Parse("12345678-9ABCDEFG"), Throws.InstanceOf<FormatException>(), "Invalid hexa character 'G'");
-			Assert.That(() => Uuid64.Parse("00000000-0000000 "), Throws.InstanceOf<FormatException>(), "Two short + extra space");
-			Assert.That(() => Uuid64.Parse("zzzzzzzz-zzzzzzzz"), Throws.InstanceOf<FormatException>(), "Invalid char");
-			Assert.That(() => Uuid64.Parse("badc0ffe-e0ddf00"), Throws.InstanceOf<FormatException>(), "Missing last char");
-			Assert.That(() => Uuid64.Parse("baadc0ffe-e0ddf00"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
-			Assert.That(() => Uuid64.Parse("badc0fe-ee0ddf00d"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
-			Assert.That(() => Uuid64.Parse("badc0ffe-e0ddf00d "), Throws.InstanceOf<FormatException>(), "Extra space at the end");
-			Assert.That(() => Uuid64.Parse(" badc0ffe-e0ddf00d"), Throws.InstanceOf<FormatException>(), "Extra space at the start");
-
-			// span from string
-
-			Assert.That(Uuid64.Parse("badc0ffe-e0ddf00d".AsSpan()).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("badc0ffee0ddf00d".AsSpan()).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("hello badc0ffe-e0ddf00d world!".AsSpan().Slice(6, 17)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("hello badc0ffee0ddf00d world!".AsSpan().Slice(6, 16)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-
-			// span from char[]
-
-			Assert.That(Uuid64.Parse("badc0ffe-e0ddf00d".ToCharArray().AsSpan()).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("badc0ffee0ddf00d".ToCharArray().AsSpan()).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("hello badc0ffe-e0ddf00d world!".ToCharArray().AsSpan().Slice(6, 17)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(Uuid64.Parse("hello badc0ffee0ddf00d world!".ToCharArray().AsSpan().Slice(6, 16)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-
-			// span from stackalloc
-
-			unsafe
+			static void CheckSuccess(string literal, ulong expected)
 			{
-				char* buf = stackalloc char[64];
-				var span = new Span<char>(buf, 64);
-
-				span.Clear();
-				"badc0ffe-e0ddf00d".AsSpan().CopyTo(span);
-				Assert.That(Uuid64.Parse(span.Slice(0, 17)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-
-				span.Clear();
-				"badc0ffee0ddf00d".AsSpan().CopyTo(span);
-				Assert.That(Uuid64.Parse(span.Slice(0, 16)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-
-				span.Clear();
-				"{badc0ffe-e0ddf00d}".AsSpan().CopyTo(span);
-				Assert.That(Uuid64.Parse(span.Slice(0, 19)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-
-				span.Clear();
-				"{badc0ffee0ddf00d}".AsSpan().CopyTo(span);
-				Assert.That(Uuid64.Parse(span.Slice(0, 18)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
+				// string
+				Assert.That(Uuid64.Parse(literal).ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid64.Parse(literal, CultureInfo.InvariantCulture).ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid64.Parse(literal.ToUpperInvariant()).ToUInt64(), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid64.Parse(literal.ToUpperInvariant()).ToUInt64(), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid64.TryParse(literal, out var res), Is.True, $"Should parse: {literal}");
+				Assert.That(res.ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid64.TryParse(literal, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res.ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
+				// span
+				Assert.That(Uuid64.Parse(literal.AsSpan()).ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid64.Parse(literal.AsSpan(), CultureInfo.InvariantCulture).ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid64.Parse(literal.ToUpperInvariant().AsSpan()).ToUInt64(), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid64.Parse(literal.ToUpperInvariant().AsSpan(), CultureInfo.InvariantCulture).ToUInt64(), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid64.TryParse(literal.AsSpan(), out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res.ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid64.TryParse(literal.AsSpan(), CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res.ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
 			}
+
+			CheckSuccess("", 0);
+			CheckSuccess("0000000000000000", 0);
+			CheckSuccess("0123456789abcdef", 0x01234567_89ABCDEFUL);
+			CheckSuccess("badc0ffee0ddf00d", 0xBADC0FFEE_0DDF00DUL);
+			CheckSuccess("{00000000-00000000}", 0);
+			CheckSuccess("{01234567-89abcdef}", 0x01234567_89ABCDEFUL);
+			CheckSuccess("{badc0ffe-e0ddf00d}", 0xBADC0FFEE_0DDF00DUL);
+			CheckSuccess("{0000000000000000}", 0);
+			CheckSuccess("{0123456789abcdef}", 0x01234567_89ABCDEFUL);
+			CheckSuccess("{badc0ffee0ddf00d}", 0xBADC0FFEE_0DDF00DUL);
+			CheckSuccess("00000000-00000000", 0);
+			CheckSuccess("01234567-89abcdef", 0x01234567_89ABCDEFUL);
+			CheckSuccess("badc0ffe-e0ddf00d", 0xBADC0FFEE_0DDF00DUL);
+			CheckSuccess("00000000-deadbeef", 0x00000000_DEADBEEFUL);
+			CheckSuccess("deadbeef-00000000", 0xDEADBEEF_00000000UL);
+
+			static void CheckFailure(string? literal, string message)
+			{
+				if (literal == null)
+				{
+					Assert.That(() => Uuid64.Parse(null!), Throws.ArgumentNullException, message);
+					Assert.That(() => Uuid64.Parse(null!, CultureInfo.InvariantCulture), Throws.ArgumentNullException, message);
+				}
+				else
+				{
+					Assert.That(() => Uuid64.Parse(literal), Throws.InstanceOf<FormatException>(), message);
+					Assert.That(() => Uuid64.Parse(literal, CultureInfo.InvariantCulture), Throws.InstanceOf<FormatException>(), message);
+					Assert.That(() => Uuid64.Parse(literal.AsSpan()), Throws.InstanceOf<FormatException>(), message);
+					Assert.That(() => Uuid64.Parse(literal.AsSpan(), CultureInfo.InvariantCulture), Throws.InstanceOf<FormatException>(), message);
+
+					Assert.That(Uuid64.TryParse(literal, out var res), Is.False, message);
+					Assert.That(res, Is.EqualTo(default(Uuid64)), message);
+					Assert.That(Uuid64.TryParse(literal, CultureInfo.InvariantCulture, out res), Is.False, message);
+					Assert.That(res, Is.EqualTo(default(Uuid64)), message);
+
+					Assert.That(Uuid64.TryParse(literal.AsSpan(), out res), Is.False, message);
+					Assert.That(res, Is.EqualTo(default(Uuid64)), message);
+					Assert.That(Uuid64.TryParse(literal.AsSpan(), CultureInfo.InvariantCulture, out res), Is.False, message);
+					Assert.That(res, Is.EqualTo(default(Uuid64)), message);
+				}
+			}
+
+			CheckFailure(default, "Null string is invalid");
+			CheckFailure("  ", "Only whitespaces");
+			CheckFailure("hello", "random text string");
+			CheckFailure("hello badc0ffe-e0ddf00d", "random text prefix");
+			CheckFailure("badc0ffe-e0ddf00d world", "random text suffix");
+			CheckFailure("12345678-9ABCDEFG", "Invalid hexa character 'G'");
+			CheckFailure("00000000-0000000", "Too short");
+			CheckFailure("00000000-0000000 ", "Too short + extra space");
+			CheckFailure("zzzzzzzz-zzzzzzzz", "Invalid char");
+			CheckFailure("badc0ffe-e0ddf00", "Missing last char");
+			CheckFailure("baadc0ffe-e0ddf00", "'-' at invalid position");
+			CheckFailure("badc0fe-ee0ddf00d", "'-' at invalid position");
+			CheckFailure("badc0ffe-e0ddf00d ", "Extra space at the end");
+			CheckFailure(" badc0ffe-e0ddf00d", "Extra space at the start");
 		}
 
 		[Test]
@@ -325,8 +338,50 @@ namespace Doxense.Core.Tests
 		}
 
 		[Test]
+		public void Test_Uuid64_Random()
+		{
+			// note: this uses a generic random number generator that does not guarantee uniqueness
+			var rng = this.Rnd;
+
+			Uuid64 uuid;
+			for (int i = 0; i < 1_000; i++)
+			{
+				uuid = Uuid64.Random(rng);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(ulong.MaxValue));
+
+				uuid = Uuid64.Random(rng, 0x1234);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(0x1234));
+
+				uuid = Uuid64.Random(rng, 0x123456789);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(0x123456789));
+
+				uuid = Uuid64.Random(rng, ulong.MaxValue);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(0xFFFF_0000_00000000));
+
+				uuid = Uuid64.Random(rng, ulong.MaxValue - 1);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(ulong.MaxValue - 1));
+
+				uuid = Uuid64.Random(rng, 0x1234, 0x5678);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0x1234).And.LessThan(0x5678));
+
+				uuid = Uuid64.Random(rng, 0x1_0000_00000000, 0x2_0000_00000000);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0x1_0000_00000000).And.LessThan(0x2_0000_00000000));
+
+				uuid = Uuid64.Random(rng, 0x1_0000_00000000, 0xFFFF_0000_00000000);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0x1234).And.LessThan(0xFFFF_0000_00000000));
+
+				uuid = Uuid64.Random(rng, 0xFFFE_0000_00000000, 0xFFFF_0000_00000000);
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0xFFFE_0000_00000000).And.LessThan(0xFFFF_0000_00000000));
+
+			}
+		}
+
+		[Test]
 		public void Test_Uuid64RandomGenerator_NewUid()
 		{
+			// this is expected to generate _distinct_ values, with a very low probability of duplicates
+			// => if this test fail with duplicate, maybe you are very (un)lucky. Try to run this test multiple times!
+
 			var gen = Uuid64.RandomGenerator.Default;
 			Assert.That(gen, Is.Not.Null);
 

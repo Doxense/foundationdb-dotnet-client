@@ -48,7 +48,18 @@ namespace Doxense.Core.Tests
 		public void Test_Uuid_Parse()
 		{
 			{
+				var uuid = Uuid128.Parse("00000000-0000-0000-0000-000000000000");
+				Assert.That(uuid, Is.EqualTo(Uuid128.Empty));
+				Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
+			}
+			{
 				var uuid = Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f");
+				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
+			}
+			{
+				Assert.That(Uuid128.TryParse("00010203-0405-0607-0809-0a0b0c0d0e0f", out var uuid), Is.True);
 				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
 				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
 			}
@@ -56,6 +67,17 @@ namespace Doxense.Core.Tests
 				var uuid = Uuid128.Parse("{00010203-0405-0607-0809-0a0b0c0d0e0f}");
 				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
 				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
+			}
+			{
+				Assert.That(Uuid128.TryParse("{00010203-0405-0607-0809-0a0b0c0d0e0f}", out var uuid), Is.True);
+				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
+			}
+			{
+				var guid = Guid.NewGuid();
+				Assert.That(Uuid128.TryParse(guid.ToString(), out var uuid), Is.True);
+				Assert.That(uuid, Is.EqualTo(guid));
+
 			}
 		}
 

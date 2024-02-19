@@ -86,7 +86,7 @@ namespace Doxense.Core.Tests
 			Assert.That(() => Uuid80.Parse(default(string)!), Throws.ArgumentNullException);
 			Assert.That(() => Uuid80.Parse("hello"), Throws.InstanceOf<FormatException>());
 			Assert.That(() => Uuid80.Parse("abcd-12345678-9ABCDEFG"), Throws.InstanceOf<FormatException>(), "Invalid hexa character 'G'");
-			Assert.That(() => Uuid80.Parse("0000-00000000-0000000 "), Throws.InstanceOf<FormatException>(), "Two short + extra space");
+			Assert.That(() => Uuid80.Parse("0000-00000000-0000000 "), Throws.InstanceOf<FormatException>(), "Too short + extra space");
 			Assert.That(() => Uuid80.Parse("zzzz-zzzzzzzz-zzzzzzzz"), Throws.InstanceOf<FormatException>(), "Invalid char");
 			Assert.That(() => Uuid80.Parse("abcd-badc0ffe-e0ddf00"), Throws.InstanceOf<FormatException>(), "Missing last char");
 			Assert.That(() => Uuid80.Parse("abcdbaadc0ffe-e0ddf00"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");

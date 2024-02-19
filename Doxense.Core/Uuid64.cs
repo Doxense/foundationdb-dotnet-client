@@ -40,14 +40,17 @@ namespace System
 	/// <summary>Represents a 64-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct Uuid64 : IFormattable, IEquatable<Uuid64>, IComparable<Uuid64>
+	public readonly struct Uuid64 : IEquatable<Uuid64>, IComparable<Uuid64>, ISpanFormattable
+#if NET8_0_OR_GREATER
+		, ISpanParsable<Uuid64>
+#endif
 	{
 
-		/// <summary>Uuid with all bits set to 0</summary>
+		/// <summary>Uuid64 with all bits set to zero: <c>00000000-00000000</c></summary>
 		public static readonly Uuid64 Empty;
 
-		/// <summary>Uuid with all bits set to 1</summary>
-		public static readonly Uuid64 MaxValue = new Uuid64(ulong.MaxValue);
+		/// <summary>Uuid164 with all bits set to one: <c>FFFFFFFF-FFFFFFFF</c></summary>
+		public static readonly Uuid64 MaxValue = new(ulong.MaxValue);
 
 		/// <summary>Size is 8 bytes</summary>
 		public const int SizeOf = 8;
@@ -57,60 +60,129 @@ namespace System
 
 		#region Constructors...
 
+		/// <summary>Creates a new <see cref="Uuid64"/> from a 64-bit unsigned integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid64(ulong value)
-		{
-			m_value = value;
-		}
+		public Uuid64(ulong value) => m_value = value;
 
+		/// <summary>Creates a new <see cref="Uuid64"/> from a 64-bit signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid64(long value)
-		{
-			m_value = (ulong)value;
-		}
+		public Uuid64(long value) => m_value = unchecked((ulong) value);
 
-		/// <summary>Pack two 32-bits components into a 64-bit UUID</summary>
-		/// <param name="a">Upper 32 bits (XXXXXXXX-........)</param>
-		/// <param name="b">Lower 32 bits (........-XXXXXXXX)</param>
+		/// <summary>Creates a new <see cref="Uuid64"/> from two 32-bits components</summary>
+		/// <param name="a">Upper 32 bits (<c>XXXXXXXX-........</c>)</param>
+		/// <param name="b">Lower 32 bits (<c>........-XXXXXXXX</c>)</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid64(uint a, uint b)
 		{
 			m_value = ((ulong) a << 32) | b;
 		}
 
-		/// <summary>Pack two components into a 64-bit UUID</summary>
+		/// <summary>Creates a new <see cref="Uuid64"/> from fourt 16-bits components</summary>
+		/// <param name="a">Upper 16 bits of the first part  (<c>XXXX....-........</c>)</param>
+		/// <param name="b">Upper 16 bits of the first part  (<c>....XXXX-........</c>)</param>
+		/// <param name="c">Upper 16 bits of the second part (<c>........-XXXX....</c>)</param>
+		/// <param name="d">Lower 16 bits of the second part (<c>........-....XXXX</c>)</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid64(ushort a, ushort b, ushort c, ushort d)
+		{
+			m_value = ((ulong) a << 48) | ((ulong) b << 32) | ((ulong) c << 16) | d;
+		}
+
+		/// <summary>Creates a new <see cref="Uuid64"/> from a 16-bit and 48-bits components</summary>
 		/// <param name="a">Upper 16 bits (XXXX....-........)</param>
 		/// <param name="b">Lower 48 bits (....XXXX-XXXXXXXX)</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid64(ushort a, long b)
 		{
-			//Contract.Debug.Requires((ulong) b < (1UL << 48));
 			m_value = ((ulong) a << 48) | ((ulong) b & ((1UL << 48) - 1));
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg)
-		{
-			return ThrowHelper.ArgumentException(arg, "Value must be 8 bytes long");
-		}
+		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg) => ThrowHelper.ArgumentException(arg, "Value must be 8 bytes long");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception FailInvalidFormat()
-		{
-			return ThrowHelper.FormatException("Invalid " + nameof(Uuid64) + " format");
-		}
+		private static Exception FailInvalidFormat() => ThrowHelper.FormatException($"Invalid {nameof(Uuid64)} format");
 
 		/// <summary>Generate a new random 64-bit UUID.</summary>
 		/// <remarks>If you need sequential or cryptographic uuids, you should use a different generator.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 NewUuid()
 		{
-			unsafe
+			// we use Guid.NewGuid() as a source of ~128 bits of entropy
+			var x = Guid.NewGuid();
+			// and we fold both 64-bits parts into a single value
+			ref ulong p = ref Unsafe.As<Guid, ulong>(ref x);
+			ref ulong q = ref Unsafe.Add(ref p, 1);
+			return new Uuid64(p ^ q);
+		}
+
+		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
+		/// <param name="rng">Random number generator</param>
+		/// <returns>A random <see cref="Uuid64"/> that is less than <see cref="Uuid64.MaxValue"/></returns>
+		public static Uuid64 Random(Random rng) => new (rng.NextInt64(long.MinValue, long.MaxValue));
+
+		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
+		/// <param name="rng">Random number generator</param>
+		/// <param name="minValue">The inclusive lower bound of the random UUID to be generated.</param>
+		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <returns>A random <see cref="Uuid64"/> that is greater than or equal to <paramref name="minValue"/> and less than <paramref name="maxValue"/></returns>
+		public static Uuid64 Random(Random rng, Uuid64 minValue, Uuid64 maxValue) => Random(rng, minValue.m_value, maxValue.m_value);
+
+		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
+		/// <param name="rng">Random number generator</param>
+		/// <param name="minValue">The inclusive lower bound of the random UUID to be generated.</param>
+		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <returns>A random <see cref="Uuid64"/> that is greater than or equal to <paramref name="minValue"/> and less than <paramref name="maxValue"/></returns>
+		public static Uuid64 Random(Random rng, ulong minValue, ulong maxValue)
+		{
+			const ulong MAX_RANGE = 0x8000000000000000uL;
+			var range = checked(maxValue - minValue);
+			if (range < MAX_RANGE)
 			{
-				// we use Guid.NewGuid() as a source of ~128 bits of entropy, and we fold both 64-bits parts into a single value
-				var x = Guid.NewGuid();
-				ulong* p = (ulong*) &x;
-				return new Uuid64(p[0] ^ p[1]);
+				ulong x = (ulong) rng.NextInt64(0, (long) range);
+				x += minValue;
+				return new Uuid64(x);
+			}
+			else
+			{
+				ulong x = (ulong) rng.NextInt64((long) (range - MAX_RANGE));
+				x += minValue;
+				x += MAX_RANGE;
+				return new(x);
+			}
+		}
+
+		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
+		/// <param name="rng">Random number generator</param>
+		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <returns>A random <see cref="Uuid64"/> that is less than <paramref name="maxValue"/></returns>
+		public static Uuid64 Random(Random rng, Uuid64 maxValue) => Random(rng, maxValue.m_value);
+
+		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
+		/// <param name="rng">Random number generator</param>
+		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <returns>A random <see cref="Uuid64"/> that is less than <paramref name="maxValue"/></returns>
+		public static Uuid64 Random(Random rng, ulong maxValue)
+		{
+			return maxValue switch
+			{
+				<= long.MaxValue => new Uuid64(rng.NextInt64(0, (long) maxValue)),
+				ulong.MaxValue => new Uuid64(rng.NextInt64(long.MinValue, long.MaxValue)),
+				_ => RandomLargeRange(rng, maxValue)
+			};
+
+			static Uuid64 RandomLargeRange(Random rng, ulong maxValue)
+			{
+				// move the range with 0 starting at long.MinValue
+				long upper = checked((long) (maxValue - 9223372036854775808));
+				long x = rng.NextInt64(long.MinValue, upper);
+				if (x <= 0)
+				{
+					return new Uuid64(-x);
+				}
+
+				ulong shifted = 9223372036854775807UL + (ulong) x;
+				return new Uuid64(shifted);
 			}
 		}
 
@@ -178,106 +250,144 @@ namespace System
 
 		#region Parsing...
 
-		/// <summary>Parse a string representation of an UUid64</summary>
-		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
-		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid64.Empty</see>.</remarks>
+		/// <summary>Parses a string into a <see cref="Uuid64"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="input" /> is <see langword="null" />.</exception>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Parse(string buffer)
+		public static Uuid64 Parse(string input, IFormatProvider? provider = null)
 		{
-			Contract.NotNull(buffer);
-			if (!TryParse(buffer.AsSpan(), out var value))
-			{
-				throw FailInvalidFormat();
-			}
-			return value;
+			Contract.NotNull(input);
+			return TryParse(input.AsSpan(), out var value) ? value : throw FailInvalidFormat();
 		}
 
-		/// <summary>Parse a string representation of an UUid64</summary>
+		/// <summary>Parses a string into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Parse(ReadOnlySpan<char> buffer)
-		{
-			if (!TryParse(buffer, out var value))
-			{
-				throw FailInvalidFormat();
-			}
-			return value;
-		}
+		public static Uuid64 Parse(ReadOnlySpan<char> input, IFormatProvider? provider = null) => TryParse(input, out var value) ? value : throw FailInvalidFormat();
 
 		/// <summary>Parse a Base62 encoded string representation of an UUid64</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 FromBase62(string buffer)
 		{
 			Contract.NotNull(buffer);
-			if (!TryParseBase62(buffer.AsSpan(), out var value))
+			return TryParseBase62(buffer.AsSpan(), out var value) ? value : throw FailInvalidFormat();
+		}
+
+		/// <summary>Tries to parse a string into a <see cref="Uuid64"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		public static bool TryParse(string? input, out Uuid64 result)
+		{
+			if (input == null)
 			{
-				throw FailInvalidFormat();
+				result = default;
+				return false;
 			}
-			return value;
+			return TryParse(input.AsSpan(), out result);
 		}
 
-		/// <summary>Try parsing a string representation of an UUid64</summary>
-		public static bool TryParse(string buffer, out Uuid64 result)
-		{
-			Contract.NotNull(buffer);
-			return TryParse(buffer.AsSpan(), out result);
-		}
+		/// <summary>Tries to parse a string into a <see cref="Uuid64"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid64 result)
+			=> TryParse(input, out result);
 
-		/// <summary>Try parsing a string representation of an UUid64</summary>
-		public static bool TryParse(ReadOnlySpan<char> s, out Uuid64 result)
-		{
-			Contract.Debug.Requires(s != null);
+		/// <summary>Tries to parse a span of characters into a <see cref="Uuid64"/></summary>
+		/// <param name="input">The span of characters to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Uuid64 result)
+			=> TryParse(input, out result);
 
+		/// <summary>Tries to parse a span of characters into a <see cref="Uuid64"/></summary>
+		/// <param name="input">The span of characters to parse.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		public static bool TryParse(ReadOnlySpan<char> input, out Uuid64 result)
+		{
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
 
-			result = default(Uuid64);
-			switch (s.Length)
+			switch (input.Length)
 			{
 				case 0:
 				{ // empty
+					result = default;
 					return true;
 				}
 				case 16:
 				{ // xxxxxxxxxxxxxxxx
-					return TryDecode16Unsafe(s, separator: false, out result);
+					return TryDecode16Unsafe(input, separator: false, out result);
 				}
 				case 17:
 				{ // xxxxxxxx-xxxxxxxx
-					if (s[8] != '-') return false;
-					return TryDecode16Unsafe(s, separator: true, out result);
+					if (input[8] != '-')
+					{
+						result = default;
+						return false;
+					}
+
+					return TryDecode16Unsafe(input, separator: true, out result);
 				}
 				case 18:
 				{ // {xxxxxxxxxxxxxxxx}
-					if (s[0] != '{' || s[17] != '}')
+					if (input[0] != '{' || input[17] != '}')
 					{
+						result = default;
 						return false;
 					}
-					return TryDecode16Unsafe(s.Slice(1, s.Length - 2), separator: false, out result);
+					return TryDecode16Unsafe(input[1..^1], separator: false, out result);
 				}
 				case 19:
 				{ // {xxxxxxxx-xxxxxxxx}
-					if (s[0] != '{' || s[18] != '}')
+					if (input[0] != '{' || input[18] != '}')
 					{
+						result = default;
 						return false;
 					}
-					return TryDecode16Unsafe(s.Slice(1, s.Length - 2), separator: true, out result);
+					return TryDecode16Unsafe(input[1..^1], separator: true, out result);
 				}
 				default:
 				{
+					result = default;
 					return false;
 				}
 			}
 		}
 
-		public static bool TryParseBase62(ReadOnlySpan<char> s, out Uuid64 result)
+		public static bool TryParseBase62(string? input, out Uuid64 result)
 		{
-			if (s.Length == 0)
+			if (input == null)
+			{
+				result = default;
+				return false;
+			}
+			return TryParseBase62(input.AsSpan(), out result);
+		}
+
+		public static bool TryParseBase62(ReadOnlySpan<char> input, out Uuid64 result)
+		{
+			if (input.Length == 0)
 			{
 				result = default;
 				return true;
 			}
 
-			if (s.Length <= 11 && Base62.TryDecode(s, out ulong x))
+			if (input.Length <= 11 && Base62.TryDecode(input, out ulong x))
 			{
 				result = new Uuid64(x);
 				return true;
@@ -321,24 +431,19 @@ namespace System
 
 		#region IFormattable...
 
+		/// <summary>Returns the equivalent 64-bit signed integer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public long ToInt64()
-		{
-			return (long) m_value;
-		}
+		public long ToInt64() => unchecked((long) m_value);
 
+		/// <summary>Returns the equivalent 64-bit unsigned integer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ulong ToUInt64()
-		{
-			return m_value;
-		}
+		public ulong ToUInt64() => m_value;
 
+		/// <summary>Converts this instance into a <see cref="Slice"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToSlice()
-		{
-			return Slice.FromFixedU64BE(m_value);
-		}
+		public Slice ToSlice() => Slice.FromFixedU64BE(m_value);
 
+		/// <summary>Converts this instance into a byte array</summary>
 		[Pure]
 		public byte[] ToByteArray()
 		{
@@ -379,12 +484,10 @@ namespace System
 		/// </example>
 		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
-			if (string.IsNullOrEmpty(format)) format = "D";
-
 			switch(format)
 			{
-				case "D":
-				{ // Default format is "xxxxxxxx-xxxxxxxx"
+				case null or "" or "D":
+				{ // Default format is "XXXXXXXX-XXXXXXXX"
 					return EncodeTwoParts(m_value, separator: '-', quotes: false, upper: true);
 				}
 				case "d":
@@ -452,6 +555,119 @@ namespace System
 					throw new FormatException("Invalid " + nameof(Uuid64) + " format specification.");
 				}
 			}
+		}
+
+		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
+		/// <param name="destination">The span in which to write this instance's value formatted as a span of characters.</param>
+		/// <param name="charsWritten">When this method returns, contains the number of characters that were written in <paramref name="destination" />.</param>
+		/// <param name="format">A span containing the characters that represent a standard or custom format string that defines the acceptable format for <paramref name="destination" />.</param>
+		/// <param name="provider">An optional object that supplies culture-specific formatting information for <paramref name="destination" />.</param>
+		/// <returns>
+		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryFormat(
+			Span<char> destination,
+			out int charsWritten,
+			ReadOnlySpan<char> format,
+			IFormatProvider? provider = null
+		)
+		{
+			//TODO: BUGBUG: OPTIMIZE: this should be changed to not allocate memory!
+
+			string s;
+			switch(format)
+			{
+				case "" or "D":
+				{ // Default format is "XXXXXXXX-XXXXXXXX"
+					s = EncodeTwoParts(m_value, separator: '-', quotes: false, upper: true);
+					break;
+				}
+				case "d":
+				{ // Default format is "xxxxxxxx-xxxxxxxx"
+					s = EncodeTwoParts(m_value, separator: '-', quotes: false, upper: false);
+					break;
+				}
+
+				case "C":
+				case "c":
+				{ // base 62, compact, no padding
+					s = Base62.Encode(m_value, padded: false);
+					break;
+				}
+				case "Z":
+				case "z":
+				{ // base 62, padded with '0' up to 11 chars
+					s = Base62.Encode(m_value, padded: true);
+					break;
+				}
+
+				case "R":
+				case "r":
+				{ // Integer: "1234567890"
+					s = m_value.ToString(null, provider ?? CultureInfo.InvariantCulture);
+					break;
+				}
+
+				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "N":
+				{ // "XXXXXXXXXXXXXXXX"
+					s = EncodeOnePart(m_value, quotes: false, upper: true);
+					break;
+				}
+				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "n":
+				{ // "xxxxxxxxxxxxxxxx"
+					s = EncodeOnePart(m_value, quotes: false, upper: false);
+					break;
+				}
+
+				case "B":
+				{ // "{XXXXXXXX-XXXXXXXX}"
+					s = EncodeTwoParts(m_value, separator: '-', quotes: true, upper: true);
+					break;
+				}
+				case "b":
+				{ // "{xxxxxxxx-xxxxxxxx}"
+					s = EncodeTwoParts(m_value, separator: '-', quotes: true, upper: false);
+					break;
+				}
+
+				case "V":
+				{ // "XX-XX-XX-XX-XX-XX-XX-XX"
+					s = EncodeEightParts(m_value, separator: '-', quotes: false, upper: true);
+					break;
+				}
+				case "v":
+				{ // "xx-xx-xx-xx-xx-xx-xx-xx"
+					s = EncodeEightParts(m_value, separator: '-', quotes: false, upper: false);
+					break;
+				}
+
+				case "M":
+				{ // "XX:XX:XX:XX:XX:XX:XX:XX"
+					s = EncodeEightParts(m_value, separator: ':', quotes: false, upper: true);
+					break;
+				}
+				case "m":
+				{ // "xx:xx:xx:xx:xx:xx:xx:xx"
+					s = EncodeEightParts(m_value, separator: ':', quotes: false, upper: false);
+					break;
+				}
+				default:
+				{
+					throw new FormatException("Invalid " + nameof(Uuid64) + " format specification.");
+				}
+			}
+
+			if (s.Length > destination.Length)
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			s.CopyTo(destination);
+			charsWritten = s.Length;
+			return true;
 		}
 
 		#endregion

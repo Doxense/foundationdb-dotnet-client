@@ -31,17 +31,22 @@ namespace System
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization;
 	using JetBrains.Annotations;
 
 	/// <summary>Represents an RFC 4122 compliant 128-bit UUID</summary>
 	/// <remarks>You should use this type if you are primarily exchanging UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), PublicAPI, Serializable]
-	public readonly struct Uuid128 : IFormattable, IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>
+	public readonly struct Uuid128 : IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>, ISliceSerializable, ISpanFormattable
+#if NET8_0_OR_GREATER
+		, ISpanParsable<Uuid128>
+#endif
 	{
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)
 		// For performance reasons, we will store the UUID as a System.GUID (Microsoft in-memory format), and swap the bytes when needed.
@@ -134,6 +139,9 @@ namespace System
 		public Uuid128(Uuid64 a, uint b, uint c) : this() => m_packed = Convert(a, b, c);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid128(ulong a, ulong b) : this() => m_packed = Convert(a, b);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Guid(Uuid128 uuid) => uuid.m_packed;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -155,8 +163,11 @@ namespace System
 
 #endif
 
-		/// <summary>Uuid with all bits set to 0</summary>
+		/// <summary>Uuid128 with all bits set to zero: <c>00000000-0000-0000-0000-000000000000</c></summary>
 		public static readonly Uuid128 Empty;
+
+		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
+		public static readonly Uuid128 MaxValue = new (new Guid(int.MaxValue, short.MaxValue, short.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;
@@ -187,8 +198,19 @@ namespace System
 			unsafe
 			{
 				Span<byte> buf = stackalloc byte[SizeOf];
-				a.WriteToUnsafe(buf);
-				b.WriteToUnsafe(buf.Slice(8));
+				BinaryPrimitives.WriteUInt64BigEndian(buf, a.ToUInt64());
+				BinaryPrimitives.WriteUInt64BigEndian(buf[8..], b.ToUInt64());
+				return Read(buf);
+			}
+		}
+
+		public static Guid Convert(ulong a, ulong b)
+		{
+			unsafe
+			{
+				Span<byte> buf = stackalloc byte[SizeOf];
+				BinaryPrimitives.WriteUInt64BigEndian(buf, a);
+				BinaryPrimitives.WriteUInt64BigEndian(buf[8..], b);
 				return Read(buf);
 			}
 		}
@@ -225,22 +247,38 @@ namespace System
 
 #endif
 
-		public static Uuid128 Parse(string input)
-		{
-			return new Uuid128(Guid.Parse(input));
-		}
+		#endregion
 
-		public static Uuid128 Parse(ReadOnlySpan<char> input)
-		{
-			return new Uuid128(Guid.Parse(input));
-		}
+		#region Parsing...
 
-		public static Uuid128 ParseExact(string input, string format)
-		{
-			return new Uuid128(Guid.ParseExact(input, format));
-		}
+		/// <summary>Parses a string into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="input" /> is <see langword="null" />.</exception>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
+		public static Uuid128 Parse(string input, IFormatProvider? provider = null) => new(Guid.Parse(input));
 
-		public static bool TryParse(string input, out Uuid128 result)
+		/// <summary>Parses a span of characters into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The span of characters to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
+		public static Uuid128 Parse(ReadOnlySpan<char> input, IFormatProvider? provider = null) => new(Guid.Parse(input));
+
+		/// <summary>Parses a string representation of an UUid128</summary>
+		public static Uuid128 ParseExact(string input, string format) => new(Guid.ParseExact(input, format));
+
+		/// <summary>Parses a string representation of an UUid128</summary>
+		public static Uuid128 ParseExact(ReadOnlySpan<char> input, ReadOnlySpan<char> format) => new(Guid.ParseExact(input, format));
+
+		/// <summary>Tries to parse a string into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		public static bool TryParse(string? input, out Uuid128 result)
 		{
 			if (!Guid.TryParse(input, out Guid guid))
 			{
@@ -251,7 +289,56 @@ namespace System
 			return true;
 		}
 
+		/// <summary>Tries to parse a string into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid128 result)
+			=> TryParse(input, out result);
+
+		/// <summary>Tries to parse a span of characters into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The span of characters to parse.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		public static bool TryParse(ReadOnlySpan<char> input, out Uuid128 result)
+		{
+			if (!Guid.TryParse(input, out var g))
+			{
+				result = default;
+				return false;
+			}
+
+			result = new(g);
+			return true;
+		}
+
+		/// <summary>Tries to parse a span of characters into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The span of characters to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Uuid128 result)
+			=> TryParse(input, out result);
+
+		/// <summary>Parse a string representation of an UUid128</summary>
 		public static bool TryParseExact(string input, string format, out Uuid128 result)
+		{
+			if (!Guid.TryParseExact(input, format, out var guid))
+			{
+				result = default;
+				return false;
+			}
+			result = new(guid);
+			return true;
+		}
+
+		/// <summary>Parse a string representation of an UUid128</summary>
+		public static bool TryParseExact(ReadOnlySpan<char> input, ReadOnlySpan<char> format, out Uuid128 result)
 		{
 			if (!Guid.TryParseExact(input, format, out Guid guid))
 			{
@@ -547,25 +634,50 @@ namespace System
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice ToSlice()
+			=> new(ToByteArray()); //TODO: OPTIMIZE: optimize this ?
+
+		public void WriteTo(ref SliceWriter writer)
 		{
-			//TODO: optimize this ?
-			return new Slice(ToByteArray());
+			WriteTo(writer.AllocateSpan(SizeOf));
 		}
 
-		public override string ToString()
-		{
-			return m_packed.ToString("D", null);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => m_packed.ToString();
 
-		public string ToString(string? format)
-		{
-			return m_packed.ToString(format);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public string ToString(
+#if NET8_0_OR_GREATER
+			[StringSyntax("GuidFormat")]
+#endif
+			string? format
+		) => m_packed.ToString(format);
 
-		public string ToString(string? format, IFormatProvider? provider)
-		{
-			return m_packed.ToString(format, provider);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public string ToString(
+#if NET8_0_OR_GREATER
+			[StringSyntax("GuidFormat")]
+#endif
+			string? format,
+			IFormatProvider? provider
+		) => m_packed.ToString(format, provider);
+
+		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
+		/// <param name="destination">The span in which to write this instance's value formatted as a span of characters.</param>
+		/// <param name="charsWritten">When this method returns, contains the number of characters that were written in <paramref name="destination" />.</param>
+		/// <param name="format">A span containing the characters that represent a standard or custom format string that defines the acceptable format for <paramref name="destination" />.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns>
+		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryFormat(
+			Span<char> destination,
+			out int charsWritten,
+#if NET8_0_OR_GREATER
+			[StringSyntax("GuidFormat")]
+#endif
+			ReadOnlySpan<char> format = default,
+			IFormatProvider? provider = null
+		) => m_packed.TryFormat(destination, out charsWritten, format);
 
 		/// <summary>Increment the value of this UUID</summary>
 		/// <param name="value">Positive value</param>
@@ -574,7 +686,7 @@ namespace System
 		public Uuid128 Increment([Positive] int value)
 		{
 			Contract.Debug.Requires(value >= 0);
-			return Increment(checked((ulong)value));
+			return Increment(checked((ulong) value));
 		}
 
 		/// <summary>Increment the value of this UUID</summary>
@@ -584,7 +696,7 @@ namespace System
 		public Uuid128 Increment([Positive] long value)
 		{
 			Contract.Debug.Requires(value >= 0);
-			return Increment(checked((ulong)value));
+			return Increment(checked((ulong) value));
 		}
 
 		/// <summary>Increment the value of this UUID</summary>
