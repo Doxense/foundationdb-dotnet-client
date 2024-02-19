@@ -2276,6 +2276,8 @@ namespace Doxense.Memory
 				this.Capacity = writer.Capacity;
 			}
 
+			public string Hexa => this.Data.ToHexaString(' ');
+
 			public Slice Data { get; }
 
 			public int Position { get; }

@@ -53,7 +53,7 @@ namespace System
 	/// </remarks>
 	[PublicAPI, ImmutableObject(true), DebuggerDisplay("{PrettyPrint(),nq}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
-	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable, ISliceSerializable
+	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable, ISliceSerializable, ISpanFormattable
 	{
 		#region Static Members...
 
@@ -2084,6 +2084,47 @@ namespace System
 
 		#endregion
 
+		#region ISpanFormattable
+
+		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
+		/// <param name="destination">The span in which to write this instance's value formatted as a span of characters.</param>
+		/// <param name="charsWritten">When this method returns, contains the number of characters that were written in <paramref name="destination" />.</param>
+		/// <param name="format">A span containing the characters that represent a standard or custom format string that defines the acceptable format for <paramref name="destination" />.</param>
+		/// <param name="provider">An optional object that supplies culture-specific formatting information for <paramref name="destination" />.</param>
+		/// <returns>
+		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			//TODO: BUGBUG: OPTIMIZE: make this method really optimized and without any allocations!
+			charsWritten = 0;
+			string s = format switch
+			{
+				"" or "D" or "d" => Dump(this),
+				"N" => ToHexaString(lower: false),
+				"n" => ToHexaString(lower: true),
+				"X" => ToHexaString(' ', lower: false),
+				"x" => ToHexaString(' ', lower: true),
+				"P" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: null, lower: false),
+				"p" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: null, lower: true),
+				"K" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: true, lower: false),
+				"k" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: true, lower: true),
+				"V" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: false, lower: false),
+				"v" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: false, lower: true),
+				_ => throw new FormatException("Format is invalid or not supported")
+			};
+
+			if (s.Length > destination.Length)
+			{
+				return false;
+			}
+
+			s.CopyTo(destination);
+			charsWritten = s.Length;
+			return true;
+		}
+
+		#endregion
+
 		/// <summary>Returns a printable representation of the key</summary>
 		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="Unescape(string?)"/>(string) and get back the original slice.</remarks>
 		public override string ToString()
@@ -2125,19 +2166,19 @@ namespace System
 					return ToHexaString(' ', lower: true);
 
 				case "P":
-					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: null, lower: false);
+					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: null, lower: false);
 				case "p":
-					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: null, lower: true);
+					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: null, lower: true);
 
 				case "K":
-					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: true, lower: false);
+					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: true, lower: false);
 				case "k":
-					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: true, lower: true);
+					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: true, lower: true);
 
 				case "V":
-					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: false, lower: false);
+					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: false, lower: false);
 				case "v":
-					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: false, lower: true);
+					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: false, lower: true);
 
 				default:
 					throw new FormatException("Format is invalid or not supported");
@@ -2772,7 +2813,7 @@ namespace System
 				get
 				{
 					if (m_slice.Count == 0) return m_slice.Array == null! ? null : string.Empty;
-					return EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Array, m_slice.Offset, m_slice.Count, Utf8NoBomEncodingNoThrow).ToString();
+					return EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Span, Utf8NoBomEncodingNoThrow).ToString();
 				}
 			}
 

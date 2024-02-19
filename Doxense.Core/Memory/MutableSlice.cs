@@ -732,8 +732,8 @@ namespace System
 			{
 				get
 				{
-					if (m_slice.Count == 0) return m_slice.Array == null ? null : String.Empty;
-					return Slice.EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Array!, m_slice.Offset, m_slice.Count, Utf8NoBomEncodingNoThrow).ToString();
+					if (m_slice.Count == 0) return m_slice.Array == null ? null : string.Empty;
+					return Slice.EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Span, Utf8NoBomEncodingNoThrow).ToString();
 				}
 			}
 

@@ -27,6 +27,7 @@
 namespace System
 {
 	using System;
+	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.ComponentModel;
 	using System.Globalization;
@@ -1382,38 +1383,70 @@ namespace System
 			return this.Span.ToHexaString(sep, lower);
 		}
 
-		internal static StringBuilder EscapeString(StringBuilder? sb, byte[] buffer, int offset, int count, Encoding encoding)
+		public string ToPrintableString()
 		{
-			sb ??= new StringBuilder(count + 16);
-			foreach (var c in encoding.GetChars(buffer, offset, count))
+			throw new NotImplementedException();
+		}
+
+		internal static StringBuilder EscapeString(StringBuilder? sb, ReadOnlySpan<byte> buffer, Encoding encoding)
+		{
+			int n = encoding.GetCharCount(buffer);
+			if (n <= 4096)
 			{
-				if ((c >= ' ' && c <= '~') || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
+				Span<char> tmp = stackalloc char[n];
+				n = encoding.GetChars(buffer, tmp);
+				return EscapeString(sb, tmp[..n]);
+			}
+			else
+			{
+				var buf = ArrayPool<char>.Shared.Rent(n);
+				n = encoding.GetChars(buffer, buf);
+				return EscapeString(sb, buf.AsSpan(0, n));
+			}
+		}
+
+		internal static StringBuilder EscapeString(StringBuilder? sb, ReadOnlySpan<char> chars)
+		{
+			sb ??= new StringBuilder(chars.Length + 16);
+			foreach (var c in chars)
+			{
+				switch (c)
 				{
-					sb.Append(c);
-				}
-				else if (c == 0)
-				{
-					sb.Append(@"\0");
-				}
-				else if (c == '\n')
-				{
-					sb.Append(@"\n");
-				}
-				else if (c == '\r')
-				{
-					sb.Append(@"\r");
-				}
-				else if (c == '\t')
-				{
-					sb.Append(@"\t");
-				}
-				else if (c > 127)
-				{
-					sb.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-				}
-				else // pas clean!
-				{
-					sb.Append(@"\x").Append(((int)c).ToString("x2", CultureInfo.InvariantCulture));
+					case (>= ' ' and <= '~') or (>= '\u0370' and <= '\u07ff') or (>= '\u3040' and <= '\u312f'):
+					{ // printable character
+						sb.Append(c);
+						break;
+					}
+					case '\0':
+					{ // NUL
+						sb.Append(@"\0");
+						break;
+					}
+					case '\n':
+					{ // LF
+						sb.Append(@"\n");
+						break;
+					}
+					case '\r':
+					{ // CR
+						sb.Append(@"\r");
+						break;
+					}
+					case '\t':
+					{ // TAB
+						sb.Append(@"\t");
+						break;
+					}
+					case > '\x7F':
+					{ // UNICODE
+						sb.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+						break;
+					}
+					default:
+					{ // ASCII
+						sb.Append(@"\x").Append(((int)c).ToString("x2", CultureInfo.InvariantCulture));
+						break;
+					}
 				}
 			}
 			return sb;
@@ -1425,7 +1458,7 @@ namespace System
 		public string PrettyPrint()
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
-			return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: false, lower: false); //REVIEW: constant for max size!
+			return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: false, lower: false); //REVIEW: constant for max size!
 		}
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
@@ -1435,14 +1468,14 @@ namespace System
 		public string PrettyPrint(int maxLen)
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
-			return PrettyPrint(this.Array, this.Offset, this.Count, maxLen, biasKey: false, lower: false);
+			return PrettyPrint(this.Span, maxLen, biasKey: false, lower: false);
 		}
 
 		internal const int DefaultPrettyPrintSize = 1024;
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		[Pure]
-		internal static string PrettyPrint(byte[] buffer, int offset, int count, int maxLen, bool? biasKey, bool lower)
+		internal static string PrettyPrint(ReadOnlySpan<byte> buffer, int maxLen, bool? biasKey, bool lower)
 		{
 			// this method tries to guess what the hxll is in the slice in order to render an intelligible text (to logs, for the debugger, ...)
 			// We can have any of the following (all with the same size)
@@ -1458,37 +1491,29 @@ namespace System
 			//   - compressed or random values that have absolutely no discernable features
 			// - Any mixture of the two (ex: a GUID followed by an utf-8 string
 
+			var count = buffer.Length;
 			if (count == 0) return "''";
 
 			if (biasKey != true)
 			{
 				// look for UTF-8 BOM
-				if (count >= 3 && buffer[offset] == 0xEF && buffer[offset + 1] == 0xBB && buffer[offset + 2] == 0xBF)
+				if (count >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
 				{ // this is supposed to be an UTF-8 string
-					return EscapeString(new StringBuilder(count).Append('\''), buffer, offset + 3, Math.Min(count - 3, maxLen), Slice.Utf8NoBomEncoding).Append('\'').ToString();
+					return EscapeString(new StringBuilder(count).Append('\''), count > maxLen ? buffer[..maxLen] : buffer, Slice.Utf8NoBomEncoding).Append('\'').ToString();
 				}
 
 				if (count >= 2)
 				{
 					// look for JSON objets or arrays
-					if ((buffer[offset] == '{' && buffer[offset + count - 1] == '}') || (buffer[offset] == '[' && buffer[offset + count - 1] == ']'))
+					if ((buffer[0] == '{' && buffer[^1] == '}') || (buffer[0] == '[' && buffer[^1] == ']'))
 					{
 						try
 						{
-							if (count <= maxLen)
-							{
-								return EscapeString(new StringBuilder(count + 16), buffer, offset, count, Slice.Utf8NoBomEncoding).ToString();
-							}
-							else
-							{
-								return
-									EscapeString(new StringBuilder(count + 16), buffer, offset, maxLen, Slice.Utf8NoBomEncoding)
-										.Append("[\u2026]")
-										.Append(buffer[offset + count - 1])
-										.ToString();
-							}
+							return count <= maxLen
+								? EscapeString(new StringBuilder(count + 16), buffer, Slice.Utf8NoBomEncoding).ToString()
+								: EscapeString(new StringBuilder(count + 16), buffer[..maxLen], Slice.Utf8NoBomEncoding).Append("[\u2026]").Append(buffer[^1]).ToString();
 						}
-						catch (System.Text.DecoderFallbackException)
+						catch (DecoderFallbackException)
 						{
 							// sometimes, binary data "looks" like valid JSON but is not, so we just ignore it (even if we may have done a bunch of work for nothing)
 						}
@@ -1496,18 +1521,21 @@ namespace System
 				}
 			}
 
-			// do a first pass on the slice to look for binary of possible text
+			// do a first pass on the slice to look for non-printable characters
 			bool mustEscape = false;
 			int n = count;
-			int p = offset;
+			int p = 0;
 			while (n-- > 0)
 			{
 				byte b = buffer[p++];
-				if (b >= 32 && b < 127) continue;
+				if (b is >= 32 and < 127)
+				{ // printable character
+					continue;
+				}
 
 				// we accept via escaping the following special chars: CR, LF, TAB
-				if (b == 0 || b == 10 || b == 13 || b == 9 || b == 127)
-				{
+				if (b is 0 or 10 or 13 or 9 or 127)
+				{ // non-printable, but has a printable version, like \r, \n, \0, etc...
 					mustEscape = true;
 					continue;
 				}
@@ -1515,30 +1543,21 @@ namespace System
 				// this looks like binary
 				//TODO: if biasKey == false && count == 2|4|8, maybe try decode as an integer?
 				return lower
-					? Slice.DumpLower(buffer.AsSpan(offset, count), maxLen)
-					: Slice.Dump(buffer.AsSpan(offset, count), maxLen);
+					? Slice.DumpLower(buffer, maxLen)
+					: Slice.Dump(buffer, maxLen);
 			}
 
 			if (!mustEscape)
 			{ // only printable chars found
-				if (count <= maxLen)
-				{
-					return "'" + Encoding.ASCII.GetString(buffer, offset, count) + "'";
-				}
-				else
-				{
-					return "'" + Encoding.ASCII.GetString(buffer, offset, maxLen) + "[\u2026]'"; // Unicode for '...'
-				}
+				return count <= maxLen
+					? "'" + Encoding.ASCII.GetString(buffer) + "'"
+					: "'" + Encoding.ASCII.GetString(buffer[..maxLen]) + "[\u2026]'"; // Unicode for '...'
 			}
+
 			// some escaping required
-			if (count <= maxLen)
-			{
-				return EscapeString(new StringBuilder(count + 2).Append('\''), buffer, offset, count, Slice.Utf8NoBomEncoding).Append('\'').ToString();
-			}
-			else
-			{
-				return EscapeString(new StringBuilder(count + 2).Append('\''), buffer, offset, maxLen, Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
-			}
+			return count <= maxLen
+				? EscapeString(new StringBuilder(count + 2).Append('\''), buffer, Slice.Utf8NoBomEncoding).Append('\'').ToString()
+				: EscapeString(new StringBuilder(count + 2).Append('\''), buffer[..maxLen], Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
 		}
 
 		/// <summary>Converts a slice into a byte</summary>
@@ -2183,17 +2202,10 @@ namespace System
 		[Pure]
 		public float ToSingle()
 		{
-			if (this.Count == 0) return 0f;
-			if (this.Count != 4) goto fail;
-			EnsureSliceIsValid();
-
-			unsafe
-			{
-				fixed (byte* ptr = &DangerousGetPinnableReference())
-				{
-					return *((float*)ptr);
-				}
-			}
+			var span = this.Span;
+			if (span.Length == 0) return 0f;
+			if (span.Length != 4) goto fail;
+			return BinaryPrimitives.ReadSingleLittleEndian(span);
 		fail:
 			throw new FormatException("Cannot convert slice into a Single because it is not exactly 4 bytes long.");
 		}
@@ -2204,18 +2216,10 @@ namespace System
 		[Pure]
 		public float ToSingleBE()
 		{
-			if (this.Count == 0) return 0f;
-			if (this.Count != 4) goto fail;
-			EnsureSliceIsValid();
-
-			unsafe
-			{
-				fixed (byte* ptr = &DangerousGetPinnableReference())
-				{
-					uint tmp = UnsafeHelpers.ByteSwap32(*(uint*)ptr);
-					return *((float*) &tmp);
-				}
-			}
+			var span = this.Span;
+			if (span.Length == 0) return 0f;
+			if (span.Length != 4) goto fail;
+			return BinaryPrimitives.ReadSingleBigEndian(span);
 		fail:
 			throw new FormatException("Cannot convert slice into a Single because it is not exactly 4 bytes long.");
 		}
@@ -2226,17 +2230,10 @@ namespace System
 		[Pure]
 		public double ToDouble()
 		{
-			if (this.Count == 0) return 0d;
-			if (this.Count != 8) goto fail;
-			EnsureSliceIsValid();
-
-			unsafe
-			{
-				fixed (byte* ptr = &DangerousGetPinnableReference())
-				{
-					return *((double*) ptr);
-				}
-			}
+			var span = this.Span;
+			if (span.Length == 0) return 0f;
+			if (span.Length != 8) goto fail;
+			return BinaryPrimitives.ReadDoubleLittleEndian(span);
 		fail:
 			throw new FormatException("Cannot convert slice into a Double because it is not exactly 8 bytes long.");
 		}
@@ -2247,18 +2244,10 @@ namespace System
 		[Pure]
 		public double ToDoubleBE()
 		{
-			if (this.Count == 0) return 0d;
-			if (this.Count != 8) goto fail;
-			EnsureSliceIsValid();
-
-			unsafe
-			{
-				fixed (byte* ptr = &DangerousGetPinnableReference())
-				{
-					ulong tmp = UnsafeHelpers.ByteSwap64(*(ulong*)ptr);
-					return *((double*) &tmp);
-				}
-			}
+			var span = this.Span;
+			if (span.Length == 0) return 0f;
+			if (span.Length != 8) goto fail;
+			return BinaryPrimitives.ReadDoubleBigEndian(span);
 		fail:
 			throw new FormatException("Cannot convert slice into a Double because it is not exactly 8 bytes long.");
 		}
