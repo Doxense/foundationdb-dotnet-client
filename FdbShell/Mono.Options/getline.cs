@@ -23,6 +23,10 @@
 //    behind its back (P/Invoke puts for example).
 //    System.Console needs to get the DELETE character, and report accordingly.
 //
+
+#nullable disable
+// ReSharper disable All
+
 #if NET_2_0 || NET_1_1
 #define IN_MCS_BUILD
 #endif
@@ -33,8 +37,7 @@ using System;
 using System.Text;
 using System.IO;
 using System.Threading;
-using System.Reflection;
-using System.Linq;
+
 
 namespace Mono.Terminal
 {

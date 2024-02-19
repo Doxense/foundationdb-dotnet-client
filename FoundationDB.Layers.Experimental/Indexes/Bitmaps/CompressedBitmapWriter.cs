@@ -36,7 +36,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	public sealed class CompressedBitmapWriter
 	{
 		private const uint NO_VALUE = uint.MaxValue;
-		private const int NO_BITS = int.MaxValue;
 
 		#region Private Fields...
 

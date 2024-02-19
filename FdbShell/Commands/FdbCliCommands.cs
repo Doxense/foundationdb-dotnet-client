@@ -36,16 +36,16 @@ namespace FdbShell
 	public static class FdbCliCommands
 	{
 
-		public class FdbCliResult
+		public sealed record FdbCliResult
 		{
-			public int ExitCode { get; set; }
+			public required int ExitCode { get; init; }
 
-			public string StdOut { get; set; }
+			public required string StdOut { get; init; }
 
-			public string StdErr { get; set; }
+			public required string StdErr { get; init; }
 		}
 
-		public static Task<FdbCliResult> RunFdbCliCommand(string command, string? options, string? clusterFile, TextWriter? log, CancellationToken ct)
+		public static Task<FdbCliResult> RunFdbCliCommand(string? command, string? options, string? clusterFile, TextWriter? log, CancellationToken ct)
 		{
 			log ??= Console.Out;
 
@@ -78,7 +78,7 @@ namespace FdbShell
 			var stdErr = new StringBuilder();
 
 			// récupère le StdOutput
-			proc.OutputDataReceived += (sender, e) =>
+			proc.OutputDataReceived += (_, e) =>
 			{
 				if (e.Data != null)
 				{
@@ -87,7 +87,7 @@ namespace FdbShell
 			};
 			// récupère le StdError
 			startInfo.StandardOutputEncoding = Encoding.Default;
-			proc.ErrorDataReceived += (sender, e) =>
+			proc.ErrorDataReceived += (_, e) =>
 			{
 				if (e.Data != null)
 				{
@@ -99,7 +99,7 @@ namespace FdbShell
 
 			// Termine la Task lorsque le process se termine
 			proc.EnableRaisingEvents = true;
-			proc.Exited += (sender, e) =>
+			proc.Exited += (_, e) =>
 			{
 				var p = (cts.Task.AsyncState as Process)!;
 				// on doit appeler WaitForExit() pour etre certain que les stdout et stderr soient bien lus en entier

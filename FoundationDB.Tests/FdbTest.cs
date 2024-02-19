@@ -31,20 +31,19 @@ namespace FoundationDB.Client.Tests
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Reflection;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using JetBrains.Annotations;
 	using NUnit.Framework;
 
 	/// <summary>Base class for all FoundationDB tests</summary>
 	public abstract class FdbTest
 	{
 
-		private CancellationTokenSource m_cts;
+		private CancellationTokenSource? m_cts;
 		private CancellationToken m_ct;
-		private Stopwatch m_timer;
-		private string m_currentTestName;
+		private Stopwatch? m_timer;
 
 		protected int OverrideApiVersion = 0;
 
@@ -95,7 +94,6 @@ namespace FoundationDB.Client.Tests
 				fullName = this.GetType().Name + ".???";
 			}
 
-			m_currentTestName = fullName;
 			Trace.WriteLine("=== " + fullName + "() === " + DateTime.Now.TimeOfDay);
 
 			// call the hook if defined on the derived test class
@@ -118,8 +116,6 @@ namespace FoundationDB.Client.Tests
 
 			// call the hook if defined on the derived test class
 			OnAfterEachTest().GetAwaiter().GetResult();
-
-			m_currentTestName = null;
 		}
 
 		protected virtual Task OnAfterEachTest() => Task.CompletedTask;
@@ -246,9 +242,9 @@ namespace FoundationDB.Client.Tests
 			// TeamCity
 			if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TEAMCITY_VERSION"))) return true;
 
-			string host = Assembly.GetEntryAssembly()?.GetName().Name;
+			string? host = Assembly.GetEntryAssembly()?.GetName().Name;
 			return host == "TestDriven.NetCore.AdHoc" // TestDriven.NET
-			     | host == "testhost";                // ReSharper Test Runner
+			    || host == "testhost";                // ReSharper Test Runner
 		}
 
 		[DebuggerNonUserCode]
@@ -257,16 +253,24 @@ namespace FoundationDB.Client.Tests
 			if (MustOutputLogsOnConsole)
 			{ // write to stdout
 				if (lineBreak)
+				{
 					Console.Out.WriteLine(message);
+				}
 				else
+				{
 					Console.Out.Write(message);
+				}
 			}
 			else if (AttachedToDebugger)
 			{ // write to the VS 'output' tab
 				if (lineBreak)
+				{
 					Trace.WriteLine(message);
+				}
 				else
+				{
 					Trace.Write(message);
+				}
 			}
 			else
 			{ // write to NUnit's realtime log
@@ -300,27 +304,47 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		public static void Log(string text)
+		public static void Log(string? text)
 		{
 			WriteToLog(text ?? string.Empty);
 		}
 
+		[DebuggerStepThrough]
+		public static void Log(ref DefaultInterpolatedStringHandler text)
+		{
+			WriteToLog(text.ToStringAndClear());
+		}
+
 		public static void Log<T>(T value)
 		{
+			if (default(T) == null && value == null)
+			{
+				Log("<null>");
+				return;
+			}
+
 			switch (value)
 			{
 				case string s:
-					Log(s ?? "<null>");
+				{
+					Log(s);
 					break;
+				}
 				case null:
+				{
 					Log($"({typeof(T).Name}) <null>");
 					break;
+				}
 				case IFormattable fmt:
+				{
 					Log(fmt.ToString());
 					break;
+				}
 				default:
+				{
 					Log($"({value.GetType().Name}) {value}");
 					break;
+				}
 			}
 		}
 
@@ -330,35 +354,8 @@ namespace FoundationDB.Client.Tests
 			WriteToLog(string.Empty);
 		}
 
-		[DebuggerNonUserCode]
-		[StringFormatMethod("format")]
-		public static void Log(string format, object arg0)
-		{
-			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, arg0));
-		}
-
-		[DebuggerNonUserCode]
-		[StringFormatMethod("format")]
-		public static void Log(string format, object arg0, object arg1)
-		{
-			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
-		}
-
-		[DebuggerNonUserCode]
-		[StringFormatMethod("format")]
-		public static void Log(string format, params object[] args)
-		{
-			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, args));
-		}
-
-		[DebuggerNonUserCode]
-		public static void LogError(string text)
-		{
-			WriteToErrorLog(text);
-		}
-
 		[DebuggerStepThrough]
-		public static void Dump(object item)
+		public static void Dump(object? item)
 		{
 			if (item == null)
 			{
@@ -366,7 +363,7 @@ namespace FoundationDB.Client.Tests
 			}
 			else
 			{
-				WriteToLog(string.Format(CultureInfo.InvariantCulture, "[{0}] {1}", item.GetType().Name, item));
+				WriteToLog($"[{item.GetType().Name}] {item}");
 			}
 		}
 

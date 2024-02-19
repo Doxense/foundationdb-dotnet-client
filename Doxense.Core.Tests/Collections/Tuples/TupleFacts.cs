@@ -497,7 +497,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item6, Is.EqualTo("six"));
 			}
 			{ // Deconstruct
-				(string item1, int item2, bool item3, long item4, long item5, string item6) = t6;
+				(string item1, int item2, bool item3, long item4, int item5, string item6) = t6;
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);

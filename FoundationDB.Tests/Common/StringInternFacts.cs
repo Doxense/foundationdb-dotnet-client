@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Interning.Tests
 					var vd = await table.InternAsync(tr, "cat");
 					var ve = await table.InternAsync(tr, "cat");
 
-					var subspace = await dataSpace.Resolve(tr);
+					var subspace = (await dataSpace.Resolve(tr))!;
 					Assert.That(subspace, Is.Not.Null);
 					tr.Set(subspace["a"], va);
 					tr.Set(subspace["b"], vb);
@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Interning.Tests
 				// check the contents of the data
 				await stringTable.ReadAsync(db, async (tr, table) =>
 				{
-					var subspace = await dataSpace.Resolve(tr);
+					var subspace = (await dataSpace.Resolve(tr))!;
 					Assert.That(subspace, Is.Not.Null);
 					var uid_a = await tr.GetAsync(subspace["a"]);
 					var uid_b = await tr.GetAsync(subspace["b"]);

@@ -44,7 +44,7 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Index used by this query</summary>
-		public FdbIndex<TId, TValue> Index { get; private set; }
+		public FdbIndex<TId, TValue> Index { get; }
 
 		/// <summary>Execute the query and return the result in the expected type</summary>
 		protected override Task<object?> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)

@@ -35,9 +35,9 @@ namespace FoundationDB.Linq.Expressions
 	using FoundationDB.Layers.Indexing;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
-	/// <typeparam name="K">Type of the Id of the entities being indexed</typeparam>
-	/// <typeparam name="V">Type of the value that will be looked up</typeparam>
-	public abstract class FdbQueryLookupExpression<K, V> : FdbQuerySequenceExpression<K>
+	/// <typeparam name="TKey">Type of the Id of the entities being indexed</typeparam>
+	/// <typeparam name="TValue">Type of the value that will be looked up</typeparam>
+	public abstract class FdbQueryLookupExpression<TKey, TValue> : FdbQuerySequenceExpression<TKey>
 	{
 
 		/// <summary>Create a new expression that looks up a value in a source index</summary>
@@ -76,19 +76,19 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Returns a textual representation of expression</summary>
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "{0}.Lookup({1}, {2})", this.Source.ToString(), this.Operator, this.Value);
+			return string.Format(CultureInfo.InvariantCulture, "{0}.Lookup({1}, {2})", this.Source.ToString(), this.Operator, this.Value);
 		}
 
 	}
 
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
-	/// <typeparam name="K">Type of the Id of the entities being indexed</typeparam>
-	/// <typeparam name="V">Type of the value that will be looked up</typeparam>
-	public class FdbQueryIndexLookupExpression<K, V> : FdbQueryLookupExpression<K, V>
+	/// <typeparam name="TKey">Type of the Id of the entities being indexed</typeparam>
+	/// <typeparam name="TValue">Type of the value that will be looked up</typeparam>
+	public class FdbQueryIndexLookupExpression<TKey, TValue> : FdbQueryLookupExpression<TKey, TValue>
 	{
 
-		internal FdbQueryIndexLookupExpression(FdbIndex<K, V> index, ExpressionType op, Expression value)
+		internal FdbQueryIndexLookupExpression(FdbIndex<TKey, TValue> index, ExpressionType op, Expression value)
 			: base(Expression.Constant(index), op, value)
 		{
 			Contract.Debug.Requires(index != null);
@@ -96,10 +96,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Index queried by this expression</summary>
-		public FdbIndex<K, V> Index { get; }
+		public FdbIndex<TKey, TValue> Index { get; }
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<K>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TKey>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 			Expression body;
@@ -108,9 +108,9 @@ namespace FoundationDB.Linq.Expressions
 			{
 				case ExpressionType.Equal:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncEnumerable<TKey>>>(
 						(index, trans, value, reverse) => index.Lookup(trans, value, reverse),
-						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
+						Expression.Constant(this.Index, typeof(FdbIndex<TKey, TValue>)),
 						prmTrans,
 						this.Value,
 						Expression.Constant(false, typeof(bool)) // reverse
@@ -121,9 +121,9 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.GreaterThan:
 				case ExpressionType.GreaterThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncEnumerable<TKey>>>(
 						(index, trans, value, reverse) => index.LookupGreaterThan(trans, value, this.Operator == ExpressionType.GreaterThanOrEqual, reverse),
-						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
+						Expression.Constant(this.Index, typeof(FdbIndex<TKey, TValue>)),
 						prmTrans,
 						this.Value,
 						Expression.Constant(false, typeof(bool)) // reverse
@@ -134,9 +134,9 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.LessThan:
 				case ExpressionType.LessThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncEnumerable<TKey>>>(
 						(index, trans, value, reverse) => index.LookupLessThan(trans, value, this.Operator == ExpressionType.LessThanOrEqual, reverse),
-						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
+						Expression.Constant(this.Index, typeof(FdbIndex<TKey, TValue>)),
 						prmTrans,
 						this.Value,
 						Expression.Constant(false, typeof(bool)) // reverse
@@ -150,7 +150,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 			}
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<K>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TKey>>>(body, prmTrans);
 		}
 
 		/// <summary>Returns a textual representation of expression</summary>
@@ -160,7 +160,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Create a lookup expression on an index</summary>
-		public static FdbQueryIndexLookupExpression<K, V> Lookup(FdbIndex<K, V> index, ExpressionType op, Expression value)
+		public static FdbQueryIndexLookupExpression<TKey, TValue> Lookup(FdbIndex<TKey, TValue> index, ExpressionType op, Expression value)
 		{
 			if (index == null) throw new ArgumentNullException(nameof(index));
 			if (value == null) throw new ArgumentNullException(nameof(value));
@@ -178,24 +178,27 @@ namespace FoundationDB.Linq.Expressions
 			}
 
 			//TODO: IsAssignableFrom?
-			if (value.Type != typeof(V)) throw new ArgumentException("Value must have a type compatible with the index", nameof(value));
+			if (value.Type != typeof(TValue)) throw new ArgumentException("Value must have a type compatible with the index", nameof(value));
 
-			return new FdbQueryIndexLookupExpression<K, V>(index, op, value);
+			return new FdbQueryIndexLookupExpression<TKey, TValue>(index, op, value);
 		}
 
 		/// <summary>Create a lookup expression on an index</summary>
 		/// <param name="index"></param>
 		/// <param name="expression"></param>
 		/// <returns></returns>
-		public static FdbQueryIndexLookupExpression<K, V> Lookup(FdbIndex<K, V> index, Expression<Func<V, bool>> expression)
+		public static FdbQueryIndexLookupExpression<TKey, TValue> Lookup(FdbIndex<TKey, TValue> index, Expression<Func<TValue, bool>> expression)
 		{
-			if (index == null) throw new ArgumentNullException(nameof(index));
+			Contract.NotNull(index);
 
-			var binary = expression.Body as BinaryExpression;
-			if (binary == null) throw new ArgumentException("Only binary expressions are allowed", nameof(expression));
-
-			var constant = binary.Right as ConstantExpression;
-			if (constant == null) throw new ArgumentException($"Left side of expression '{binary.Right.ToString()}' must be a constant of type {typeof(V).Name}");
+			if (expression.Body is not BinaryExpression binary)
+			{
+				throw ThrowHelper.ArgumentException(nameof(expression), "Only binary expressions are allowed");
+			}
+			if (binary.Right is not ConstantExpression constant)
+			{
+				throw ThrowHelper.ArgumentException($"Left side of expression '{binary.Right}' must be a constant of type {typeof(TValue).Name}");
+			}
 
 			return Lookup(index, binary.NodeType, constant);
 		}

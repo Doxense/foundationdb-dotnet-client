@@ -37,12 +37,12 @@ namespace FoundationDB.Linq.Expressions
 	using FoundationDB.Client;
 
 	/// <summary>Base class of all queries that return a single element</summary>
-	/// <typeparam name="T">Type of the elements of the source sequence</typeparam>
-	/// <typeparam name="R">Type of the result of the query</typeparam>
-	public class FdbQuerySingleExpression<T, R> : FdbQueryExpression<R>
+	/// <typeparam name="TSource">Type of the elements of the source sequence</typeparam>
+	/// <typeparam name="TResult">Type of the result of the query</typeparam>
+	public class FdbQuerySingleExpression<TSource, TResult> : FdbQueryExpression<TResult>
 	{
 		/// <summary>Create a new expression that returns a single result from a source sequence</summary>
-		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, string name, Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
+		public FdbQuerySingleExpression(FdbQuerySequenceExpression<TSource> sequence, string name, Expression<Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>>> lambda)
 		{
 			Contract.Debug.Requires(sequence != null && lambda != null);
 			this.Sequence = sequence;
@@ -54,12 +54,12 @@ namespace FoundationDB.Linq.Expressions
 		public override FdbQueryShape Shape => FdbQueryShape.Single;
 
 		/// <summary>Source sequence</summary>
-		public FdbQuerySequenceExpression<T> Sequence { get; }
+		public FdbQuerySequenceExpression<TSource> Sequence { get; }
 
 		/// <summary>Name of this query</summary>
 		public string Name { get; }
 
-		public Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> Handler { get; }
+		public Expression<Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>>> Handler { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -76,7 +76,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<TResult>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);
 
@@ -85,7 +85,7 @@ namespace FoundationDB.Linq.Expressions
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
 
-			var method = typeof(FdbExpressionHelpers).GetMethod("ExecuteEnumerable", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(typeof(T), typeof(R));
+			var method = typeof(FdbExpressionHelpers).GetMethod("ExecuteEnumerable", BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(typeof(TSource), typeof(TResult));
 			Contract.Debug.Assert(method != null, "ExecuteEnumerable helper method is missing!");
 
 			var body = Expression.Call(
@@ -95,7 +95,7 @@ namespace FoundationDB.Linq.Expressions
 				prmTrans,
 				prmCancel);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, CancellationToken, Task<TResult>>>(
 				body,
 				prmTrans,
 				prmCancel

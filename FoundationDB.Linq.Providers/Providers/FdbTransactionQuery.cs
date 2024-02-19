@@ -33,14 +33,16 @@ namespace FoundationDB.Linq.Providers
 	using System.Threading.Tasks;
 
 	/// <summary>Database query</summary>
-	/// <remarks>Reads data directly from a database</remarks>
+	/// <remarks>Read data directly from a database</remarks>
 	public sealed class FdbTransactionQuery : FdbAsyncQuery<IFdbReadOnlyTransaction>, IFdbTransactionQueryable
 	{
 		internal FdbTransactionQuery(IFdbReadOnlyTransaction tr)
 			: base(tr)
 		{ }
 
-		/// <summary>Execute the query and return the result in the expected type</summary>
+		IFdbReadOnlyTransaction IFdbTransactionQueryable.Transaction => this.Transaction!;
+
+		/// <summary>Executes the query and return the result in the expected type</summary>
 		protected override Task<object?> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			throw new InvalidOperationException("You cannot execute this operation on the whole database. Try calling Range() or RangeStartsWith() on this query to read from the database.");

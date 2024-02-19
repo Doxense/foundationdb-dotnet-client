@@ -34,12 +34,12 @@ namespace FoundationDB.Linq.Expressions
 	using FoundationDB.Client;
 
 	/// <summary>Expression that represent a projection from one type into another</summary>
-	/// <typeparam name="T">Type of elements in the inner sequence</typeparam>
-	/// <typeparam name="R">Type of elements in the outer sequence</typeparam>
-	public class FdbQueryTransformExpression<T, R> : FdbQuerySequenceExpression<R>
+	/// <typeparam name="TSource">Type of elements in the inner sequence</typeparam>
+	/// <typeparam name="TResult">Type of elements in the outer sequence</typeparam>
+	public class FdbQueryTransformExpression<TSource, TResult> : FdbQuerySequenceExpression<TResult>
 	{
 
-		internal FdbQueryTransformExpression(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
+		internal FdbQueryTransformExpression(FdbQuerySequenceExpression<TSource> source, Expression<Func<TSource, TResult>> transform)
 		{
 			Contract.Debug.Requires(source != null && transform != null);
 			this.Source = source;
@@ -47,10 +47,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Source sequence that is being transformed</summary>
-		public FdbQuerySequenceExpression<T> Source { get; }
+		public FdbQuerySequenceExpression<TSource> Source { get; }
 
 		/// <summary>Transformation applied to each element of <see cref="Source"/></summary>
-		public Expression<Func<T, R>> Transform { get; }
+		public Expression<Func<TSource, TResult>> Transform { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -69,7 +69,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<R>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TResult>>> CompileSequence()
 		{
 			var lambda = this.Transform.Compile();
 
@@ -79,13 +79,13 @@ namespace FoundationDB.Linq.Expressions
 
 			// (tr) => sourceEnumerable(tr).Select(lambda);
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IAsyncEnumerable<T>, Func<T, R>, IAsyncEnumerable<R>>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IAsyncEnumerable<TSource>, Func<TSource, TResult>, IAsyncEnumerable<TResult>>>(
 				(sequence, selector) => sequence.Select(selector),
 				FdbExpressionHelpers.RewriteCall(enumerable, prmTrans),
 				Expression.Constant(lambda)
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<R>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TResult>>>(body, prmTrans);
 		}
 
 	}

@@ -32,28 +32,28 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
 	public static class FdbQueryExpressions
 	{
 
 		/// <summary>Return a single result from the query</summary>
-		public static FdbQuerySingleExpression<T, R> Single<T, R>(FdbQuerySequenceExpression<T> source, string name, Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
+		public static FdbQuerySingleExpression<TSource, TResult> Single<TSource, TResult>(FdbQuerySequenceExpression<TSource> source, string? name, Expression<Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>>> lambda)
 		{
-			if (source == null) throw new ArgumentNullException(nameof(source));
-			if (lambda == null) throw new ArgumentNullException(nameof(lambda));
+			Contract.NotNull(source);
+			Contract.NotNull(lambda);
 
-			if (name == null) name = lambda.Name ?? "Lambda";
+			name ??= lambda.Name ?? "Lambda";
 
-			return new FdbQuerySingleExpression<T, R>(source, name, lambda);
+			return new FdbQuerySingleExpression<TSource, TResult>(source, name, lambda);
 		}
 
 		/// <summary>Return a sequence of results from the query</summary>
 		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>(IAsyncEnumerable<T> source)
 		{
-			if (source == null) throw new ArgumentNullException(nameof(source));
+			Contract.NotNull(source);
 
 			return new FdbQueryAsyncEnumerableExpression<T>(source);
 		}
@@ -87,7 +87,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Return the intersection between one of more sequences of results</summary>
 		public static FdbQueryIntersectExpression<T> Intersect<T>(params FdbQuerySequenceExpression<T>[] expressions)
 		{
-			if (expressions == null) throw new ArgumentNullException(nameof(expressions));
+			Contract.NotNull(expressions);
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
 
 			var type = expressions[0].Type;
@@ -99,7 +99,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Return the union between one of more sequences of results</summary>
 		public static FdbQueryUnionExpression<T> Union<T>(params FdbQuerySequenceExpression<T>[] expressions)
 		{
-			if (expressions == null) throw new ArgumentNullException(nameof(expressions));
+			Contract.NotNull(expressions);
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
 
 			var type = expressions[0].Type;
@@ -109,22 +109,20 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Transform each elements of a sequence into a new sequence</summary>
-		public static FdbQueryTransformExpression<T, R> Transform<T, R>(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
+		public static FdbQueryTransformExpression<TSource, TResult> Transform<TSource, TResult>(FdbQuerySequenceExpression<TSource> source, Expression<Func<TSource, TResult>> transform)
 		{
-			if (source == null) throw new ArgumentNullException(nameof(source));
-			if (transform == null) throw new ArgumentNullException(nameof(transform));
+			Contract.NotNull(source);
+			Contract.NotNull(transform);
+			if (source.ElementType != typeof(TSource)) throw new ArgumentException($"Source sequence has type {source.ElementType.Name} that is not compatible with transform input type {typeof(TSource).Name}", nameof(source));
 
-			if (source.ElementType != typeof(T)) throw new ArgumentException($"Source sequence has type {source.ElementType.Name} that is not compatible with transform input type {typeof(T).Name}", nameof(source));
-
-			return new FdbQueryTransformExpression<T, R>(source, transform);
+			return new FdbQueryTransformExpression<TSource, TResult>(source, transform);
 		}
 
 		/// <summary>Filter out the elements of e sequence that do not match a predicate</summary>
 		public static FdbQueryFilterExpression<T> Filter<T>(FdbQuerySequenceExpression<T> source, Expression<Func<T, bool>> filter)
 		{
-			if (source == null) throw new ArgumentNullException(nameof(source));
-			if (filter == null) throw new ArgumentNullException(nameof(filter));
-
+			Contract.NotNull(source);
+			Contract.NotNull(filter);
 			if (source.ElementType != typeof(T)) throw new ArgumentException($"Source sequence has type {source.ElementType.Name} that is not compatible with filter input type {typeof(T).Name}", nameof(source));
 
 			return new FdbQueryFilterExpression<T>(source, filter);
@@ -133,7 +131,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Returns a human-readable explanation of a query that returns a single element</summary>
 		public static string ExplainSingle<T>(FdbQueryExpression<T> expression, CancellationToken ct)
 		{
-			if (expression == null) throw new ArgumentNullException(nameof(expression));
+			Contract.NotNull(expression);
 			if (expression.Shape != FdbQueryShape.Single) throw new InvalidOperationException("Invalid shape (single expected)");
 
 			var expr = expression.CompileSingle();
@@ -144,7 +142,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Returns a human-readable explanation of a query that returns a sequence of elements</summary>
 		public static string ExplainSequence<T>(FdbQuerySequenceExpression<T> expression)
 		{
-			if (expression == null) throw new ArgumentNullException(nameof(expression));
+			Contract.NotNull(expression);
 			if (expression.Shape != FdbQueryShape.Sequence) throw new InvalidOperationException("Invalid shape (sequence expected)");
 
 			var expr = expression.CompileSequence();

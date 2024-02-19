@@ -110,7 +110,7 @@ namespace Doxense
 		{
 			capture = new CatchExceptionConstraint<Exception>.Pokeball();
 			var x = new CatchExceptionConstraint<Exception>(capture);
-			constraint.Builder.Append(x);
+			constraint.Builder?.Append(x);
 			return x;
 		}
 
@@ -122,7 +122,7 @@ namespace Doxense
 		{
 			capture = new CatchExceptionConstraint<TException>.Pokeball();
 			var x = new CatchExceptionConstraint<TException>(capture);
-			constraint.Builder.Append(x);
+			constraint.Builder?.Append(x);
 			return x;
 		}
 

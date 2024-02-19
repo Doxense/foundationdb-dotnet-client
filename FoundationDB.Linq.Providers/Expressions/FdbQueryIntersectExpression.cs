@@ -81,9 +81,13 @@ namespace FoundationDB.Linq.Expressions
 			{
 				builder.Visit(this.Expressions[i]);
 				if (i + 1 < this.Expressions.Length)
+				{
 					builder.Writer.WriteLine(",");
+				}
 				else
+				{
 					builder.Writer.WriteLine();
+				}
 			}
 			builder.Writer.Leave().Write(")");
 		}

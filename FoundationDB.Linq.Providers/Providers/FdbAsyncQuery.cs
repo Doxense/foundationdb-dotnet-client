@@ -80,31 +80,31 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Create a new typed query from a query expression</summary>
-		public virtual IFdbAsyncQueryable<R> CreateQuery<R>(FdbQueryExpression<R> expression)
+		public virtual IFdbAsyncQueryable<TResult> CreateQuery<TResult>(FdbQueryExpression<TResult> expression)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
 
 			if (this.Transaction != null)
-				return new FdbAsyncSingleQuery<R>(this.Transaction, expression);
+				return new FdbAsyncSingleQuery<TResult>(this.Transaction, expression);
 			else
-				return new FdbAsyncSingleQuery<R>(this.Database!, expression);
+				return new FdbAsyncSingleQuery<TResult>(this.Database!, expression);
 		}
 
 		/// <summary>Create a new sequence query from a sequence expression</summary>
-		public virtual IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression)
+		public virtual IFdbAsyncSequenceQueryable<TResult> CreateSequenceQuery<TResult>(FdbQuerySequenceExpression<TResult> expression)
 		{
-			return expression == null ? throw new ArgumentNullException(nameof(expression)) : this.Transaction != null ? new FdbAsyncSequenceQuery<R>(this.Transaction, expression) : new FdbAsyncSequenceQuery<R>(this.Database!, expression);
+			return expression == null ? throw new ArgumentNullException(nameof(expression)) : this.Transaction != null ? new FdbAsyncSequenceQuery<TResult>(this.Transaction, expression) : new FdbAsyncSequenceQuery<TResult>(this.Database!, expression);
 		}
 
 		/// <summary>Execute the query and return the result asynchronously</summary>
-		/// <typeparam name="R">Type of the expected result. Can be a <typeparamref name="T"/> for singleton queries or a <see cref="List{T}"/> for sequence queries</typeparam>
-		public async Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct)
+		/// <typeparam name="TResult">Type of the expected result. Can be a <typeparamref name="T"/> for singleton queries or a <see cref="List{T}"/> for sequence queries</typeparam>
+		public async Task<TResult> ExecuteAsync<TResult>(FdbQueryExpression expression, CancellationToken ct)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
 			ct.ThrowIfCancellationRequested();
 
-			var result = await ExecuteInternal(expression, typeof(R), ct).ConfigureAwait(false);
-			return (R) result!;
+			var result = await ExecuteInternal(expression, typeof(TResult), ct).ConfigureAwait(false);
+			return (TResult) result!;
 		}
 
 		/// <summary>Execute the query and return the result in the expected type</summary>
@@ -188,6 +188,7 @@ namespace FoundationDB.Linq.Providers
 			return expr.Compile();
 		}
 
+		[MustDisposeResource]
 		internal static IAsyncEnumerator<T> GetEnumerator(FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
 		{
 			if (sequence.Expression == null) throw new InvalidOperationException();

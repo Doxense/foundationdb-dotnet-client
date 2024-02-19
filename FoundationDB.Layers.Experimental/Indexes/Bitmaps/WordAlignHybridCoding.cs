@@ -170,12 +170,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					{ // not enough remaining
 						return NotEnough;
 					}
-					Contract.Debug.Assert(bits > 0 && bits <= 64);
+					Contract.Debug.Assert(bits is > 0 and <= 64);
 
 					// save it for the next read
 					m_register = register;
 					m_bits = bits;
-					Contract.Debug.Ensures(m_bits > 0 && m_bits <= 64 && m_remaining >= 0, "Corrupted state after peeking");
+					Contract.Debug.Ensures(m_bits is > 0 and <= 64 && m_remaining >= 0, "Corrupted state after peeking");
 				}
 
 				// peek 31 bits from the register
@@ -203,14 +203,14 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{ // not enough bits remaining
 					return NotEnough;
 				}
-				Contract.Debug.Assert(bits >= 31 && bits <= 64, "bad bits " + bits);
+				Contract.Debug.Assert(bits is >= 31 and <= 64, "bad bits " + bits);
 
 				// consume 31 bits from the register
 				m_bits = bits - 31;
 				m_register = register << 31;
 
-				Contract.Debug.Ensures(m_bits >= 0 && m_bits <= 64 - 31 && m_remaining >= 0, "Corrupted state after reading " + m_bits + " " + m_remaining);
-				return (uint)(register >> (64 - 31));
+				Contract.Debug.Ensures(m_bits is >= 0 and <= 64 - 31 && m_remaining >= 0, $"Corrupted state after reading {m_bits} {m_remaining}");
+				return (uint) (register >> (64 - 31));
 			}
 		
 			/// <summary>Only read the next word if it is equal to the expected value</summary>
@@ -315,7 +315,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Outputs a debug version of a compressed segment</summary>
 		public static StringBuilder DumpCompressed(Slice compressed, StringBuilder? output = null)
 		{
-			if (output == null) output = new StringBuilder();
+			output ??= new StringBuilder();
 
 			if (compressed.Count == 0)
 			{
@@ -375,7 +375,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <remarks>If <paramref name="bitmap"/> is larger than <paramref name="size"/>, then the resulting bitmap will be larger.</remarks>
 		public static CompressedBitmap Not(this CompressedBitmap bitmap, int size)
 		{
-			if (bitmap == null) throw new ArgumentNullException(nameof(bitmap));
+			Contract.NotNull(bitmap);
 
 			// there is a high change that the final bitmap will have the same size, with an optional extra filler word at the end
 			var writer = new CompressedBitmapWriter(bitmap.Count + 1);
@@ -412,8 +412,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
 		public static CompressedBitmap And(this CompressedBitmap left, CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException(nameof(left));
-			if (right == null) throw new ArgumentNullException(nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			if (left.Count == 0 || right.Count == 0) return CompressedBitmap.Empty;
 			return CompressedBinaryExpression(left, right, LogicalOperation.And);
@@ -425,8 +425,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
 		public static CompressedBitmap Or(this CompressedBitmap left, CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException(nameof(left));
-			if (right == null) throw new ArgumentNullException(nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
 			if (right.Count == 0) return left;
@@ -546,12 +546,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 					if (ln == DONE)
 					{ // copy right
-						writer.Write((uint) rw, rn);
+						writer.Write(rw, rn);
 						rn = 0;
 					}
 					else if (rn == DONE)
 					{ // copy left
-						writer.Write((uint) lw, ln);
+						writer.Write(lw, ln);
 						ln = 0;
 					}
 					else
@@ -559,12 +559,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 						int n = Math.Min(ln, rn);
 						switch (op)
 						{
-							case LogicalOperation.And:		writer.Write((uint)(lw & rw), n); break;
-							case LogicalOperation.AndNot:	writer.Write((uint)(lw & (~rw & LITERAL_MASK)), n); break;
-							case LogicalOperation.Or:		writer.Write((uint)(lw | rw), n); break;
-							case LogicalOperation.OrNot:	writer.Write((uint)(lw | (~rw & LITERAL_MASK)), n); break;
-							case LogicalOperation.Xor:		writer.Write((uint)(lw ^ rw), n); break;
-							case LogicalOperation.XorNot:	writer.Write((uint)(lw ^ (~rw & LITERAL_MASK)), n); break;
+							case LogicalOperation.And:    writer.Write(lw & rw, n); break;
+							case LogicalOperation.AndNot: writer.Write(lw & (~rw & LITERAL_MASK), n); break;
+							case LogicalOperation.Or:     writer.Write(lw | rw, n); break;
+							case LogicalOperation.OrNot:  writer.Write(lw | (~rw & LITERAL_MASK), n); break;
+							case LogicalOperation.Xor:    writer.Write(lw ^ rw, n); break;
+							case LogicalOperation.XorNot: writer.Write(lw ^ (~rw & LITERAL_MASK), n); break;
 							default: throw new InvalidOperationException();
 						}
 						ln -= n;

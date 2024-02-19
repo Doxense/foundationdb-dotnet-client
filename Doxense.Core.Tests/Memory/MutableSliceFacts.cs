@@ -445,8 +445,6 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 		#endregion
 
-		private static readonly string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
-
 		[Test]
 		public void Test_MutableSlice_Substring()
 		{

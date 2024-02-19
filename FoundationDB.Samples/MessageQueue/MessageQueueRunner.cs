@@ -35,10 +35,10 @@ namespace FoundationDB.Samples.Tutorials
 				TimeSpan.FromSeconds(5),
 				onCompleted: (histo, idx) =>
 				{
-					Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.0})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MAD()));
+					Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.0})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MAD()));
 					if (idx % 30 == 29)
 					{
-						Console.WriteLine(this.TimeLine.MergeResults().GetReport(true));
+						Console.WriteLine(this.TimeLine?.MergeResults().GetReport(true));
 						return true;
 					}
 					return false;
@@ -110,7 +110,7 @@ namespace FoundationDB.Samples.Tutorials
 			int received = 0;
 
 			this.TimeLine.Start();
-			await this.WorkerPool.RunWorkerAsync(db, async (msg, _ct) =>
+			await this.WorkerPool.RunWorkerAsync(db, async (msg, _) =>
 			{
 				var latency = msg.Received - msg.Scheduled;
 				Interlocked.Increment(ref received);

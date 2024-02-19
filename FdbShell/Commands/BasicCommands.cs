@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable MethodHasAsyncOverload
+// ReSharper disable MethodSupportsCancellation
+
 namespace FdbShell
 {
 	using System;
@@ -94,11 +97,11 @@ namespace FdbShell
 					{
 						var name = kvp.Key;
 						var subfolder = kvp.Value;
-						if (subfolder != null)
+						if (subfolder != null!)
 						{
 							if ((options & DirectoryBrowseOptions.ShowCount) != 0)
 							{
-								if (!(subfolder is FdbDirectoryPartition))
+								if (subfolder is not FdbDirectoryPartition)
 								{
 									long count = await Fdb.System.EstimateCountAsync(db, subfolder.ToRange(), ct);
 									Program.StdOut(log, $"  {name.PadRight(maxLen)} {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("[" + subfolder.Layer + "]")),-12} {count,9:N0}", ConsoleColor.White);
@@ -136,12 +139,12 @@ namespace FdbShell
 		{
 			log ??= Console.Out;
 
-			string layer = extras.Count > 0 ? extras.Get<string>(0).Trim() : string.Empty;
+			string layer = (extras.Count > 0 ? extras.Get<string>(0)?.Trim() : null) ??string.Empty;
 
 			if (path.LayerId != layer) path.WithLayer(layer);
 			log.WriteLine($"# Creating directory {path}");
 
-			(var prefix, var created) = await db.ReadWriteAsync(async tr =>
+			var (prefix, created) = await db.ReadWriteAsync(async tr =>
 			{
 				var folder = await db.DirectoryLayer.TryOpenAsync(tr, path);
 				if (folder != null)
@@ -150,7 +153,7 @@ namespace FdbShell
 				}
 
 				folder = await db.DirectoryLayer.TryCreateAsync(tr, path);
-				return (folder.Copy().GetPrefix(), true);
+				return (folder!.Copy().GetPrefix(), true);
 			}, ct);
 
 			if (!created)
@@ -164,7 +167,7 @@ namespace FdbShell
 			var stuff = await db.ReadAsync(async tr =>
 			{
 				var folder = await db.DirectoryLayer.TryOpenAsync(tr, path);
-				return await tr.GetRange(folder.ToRange()).FirstOrDefaultAsync();
+				return await tr.GetRange(folder!.ToRange()).FirstOrDefaultAsync();
 			}, ct);
 
 			if (stuff.Key.IsPresent)
@@ -309,7 +312,7 @@ namespace FdbShell
 					return (default, false);
 				}
 
-				object key = extras[0];
+				object? key = extras[0];
 				var k = MakeKey(folder, key);
 
 				Program.Comment(log, "# Reading key: " + k.ToString("K"));
@@ -331,14 +334,14 @@ namespace FdbShell
 			}
 
 			Program.StdOut(log, $"# Size: {v.Count:N0}", ConsoleColor.Gray);
-			string format = extras.Count > 1 ? extras.Get<string>(1) : null;
+			string? format = extras.Count > 1 ? extras.Get<string>(1) : null;
 			switch (format)
 			{
 				case "--text":
 				case "--json":
 				case "--utf8":
 				{
-					Program.StdOut(log, v.ToStringUtf8(), ConsoleColor.Gray);
+					Program.StdOut(log, v.ToStringUtf8() ?? string.Empty, ConsoleColor.Gray);
 					break;
 				}
 				case "--hex":
@@ -394,7 +397,7 @@ namespace FdbShell
 					try
 					{
 						var t = TuPack.Unpack(v);
-						Program.StdOut(log, t.ToString(), ConsoleColor.Gray);
+						Program.StdOut(log, t.ToString() ?? string.Empty, ConsoleColor.Gray);
 					}
 					catch (Exception e)
 					{
@@ -424,7 +427,7 @@ namespace FdbShell
 				Program.Error(log, "You must specify a key of range of keys!");
 				return;
 			}
-			object key = extras[0];
+			object? key = extras[0];
 
 			var empty = await db.ReadWriteAsync(async tr =>
 			{
@@ -444,12 +447,19 @@ namespace FdbShell
 				var k = MakeKey(folder, key);
 
 				var v = await tr.GetAsync(k);
-				if (v.IsNullOrEmpty) return true;
+				if (v.IsNullOrEmpty)
+				{
+					return true;
+				}
+
 				tr.Clear(k);
 				return false;
 			}, ct);
 
-			if (empty == null) return;
+			if (empty == null)
+			{
+				return;
+			}
 
 			if (empty.Value)
 			{
@@ -461,21 +471,13 @@ namespace FdbShell
 			}
 		}
 
-		private static Slice MakeKey(IKeySubspace folder, object key)
-		{
-			if (key is IVarTuple t)
+		private static Slice MakeKey(IKeySubspace folder, object? key) =>
+			key switch
 			{
-				return folder.Append(TuPack.Pack(t));
-			}
-			else if (key is string s)
-			{
-				return folder.Append(Slice.FromStringUtf8(s));
-			}
-			else
-			{
-				throw new FormatException("Unsupported key type: " + key);
-			}
-		}
+				IVarTuple t => folder.Append(TuPack.Pack(t)),
+				string s => folder.Append(Slice.FromStringUtf8(s)),
+				_ => throw new FormatException("Unsupported key type: " + key)
+			};
 
 		public static async Task ClearRange(FdbPath path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
@@ -506,14 +508,14 @@ namespace FdbShell
 				}
 
 				KeyRange range;
-				if (extras[0] is string s && s == "*")
+				if (extras[0] is "*")
 				{ // clear all!
 					range = folder.ToRange();
 				}
 				else
 				{
-					object from = extras[0];
-					object to = extras.Count > 1 ? extras[1] : null;
+					object? from = extras[0];
+					object? to = extras.Count > 1 ? extras[1] : null;
 
 					if (to == null)
 					{
@@ -663,7 +665,7 @@ namespace FdbShell
 				var count = await Fdb.Bulk.ExportAsync(
 					db,
 					folder.ToRange(),
-					(batch, offset, _ct) =>
+					(batch, _, _) =>
 					{
 						if (log == Console.Out) log.Write($"\r{kr[(p++) % kr.Length]} {bytes:N0} bytes");
 						foreach (var kv in batch)
@@ -672,7 +674,7 @@ namespace FdbShell
 							sw.WriteLine("{0} = {1:V}", FdbKey.Dump(folder.ExtractKey(kv.Key)), kv.Value);
 						}
 						ct.ThrowIfCancellationRequested();
-						return sw.FlushAsync();
+						return sw.FlushAsync(ct);
 					},
 					ct
 				);
@@ -689,13 +691,13 @@ namespace FdbShell
 		}
 
 		/// <summary>Display a tree of a directory's children</summary>
-		public static async Task Tree(FdbPath path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		public static async Task Tree(FdbPath path, IVarTuple extras, IFdbDatabase db, TextWriter? log, CancellationToken ct)
 		{
-			log = log ?? Console.Out;
+			log ??= Console.Out;
 
 			Program.Comment(log, $"# Tree of {path}:");
 
-			FdbDirectorySubspace root = null;
+			FdbDirectorySubspace? root = null;
 			if (path.Count != 0)
 			{
 				root = await db.ReadAsync(tr => db.DirectoryLayer.TryOpenAsync(tr, path), ct);
@@ -706,7 +708,7 @@ namespace FdbShell
 				}
 			}
 
-			await TreeDirectoryWalk(root != null ? root.Path : FdbPath.Root, new List<bool>(), db, log, ct);
+			await TreeDirectoryWalk(root?.Path ?? FdbPath.Root, new List<bool>(), db, log, ct);
 
 			Program.Comment(log, "# done");
 		}
@@ -719,17 +721,18 @@ namespace FdbShell
 			if (last.Count > 0)
 			{
 				for (int i = 0; i < last.Count - 1; i++) sb.Append(last[i] ? "    " : "|   ");
-				sb.Append(last[last.Count - 1] ? "`-- " : "|-- ");
+				sb.Append(last[^1] ? "`-- " : "|-- ");
 			}
 
 			if (folder == FdbPath.Root)
 			{
-				stream.WriteLine(sb.ToString() + "<root>");
+				sb.Append("<root>");
 			}
 			else
 			{
-				stream.WriteLine($"{sb}{(folder.LayerId.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name)}{(string.IsNullOrEmpty(folder.LayerId) ? string.Empty : (" [" + folder.LayerId + "]"))}");
+				sb.Append($"{(folder.LayerId.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name)}{(string.IsNullOrEmpty(folder.LayerId) ? string.Empty : (" [" + folder.LayerId + "]"))}");
 			}
+			stream.WriteLine(sb.ToString());
 
 			var children = await db.ReadAsync(tr => db.DirectoryLayer.ListAsync(tr, folder), ct);
 			int n = children.Count;
@@ -814,7 +817,7 @@ namespace FdbShell
 			int foundShards = 0;
 			n = 0;
 			int max = 0;
-			IFdbDirectory bigBad = null;
+			IFdbDirectory? bigBad = null;
 			foreach (var dir in dirs)
 			{
 				if (progress) log.Write($"\r> {dir.Name}{(dir.Name.Length > n ? String.Empty : new string(' ', n - dir.Name.Length))}");
@@ -866,9 +869,9 @@ namespace FdbShell
 			}
 		}
 
-		private static string FormatSize(long size, CultureInfo ci = null)
+		private static string FormatSize(long size, IFormatProvider? ci = null)
 		{
-			ci = ci ?? CultureInfo.InvariantCulture;
+			ci ??= CultureInfo.InvariantCulture;
 			if (size < 2048) return size.ToString("N0", ci);
 			double x = size / 1024.0;
 			if (x < 800) return x.ToString("N1", ci) + " k";
@@ -879,7 +882,7 @@ namespace FdbShell
 		}
 
 		/// <summary>Find the DCs, machines and processes in the cluster</summary>
-		public static async Task Topology(FdbDirectorySubspaceLocation location, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		public static async Task Topology(FdbDirectorySubspaceLocation? location, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var coords = await Fdb.System.GetCoordinatorsAsync(db, ct);
 			log.WriteLine($"[Cluster] {coords.Id}");
@@ -915,7 +918,7 @@ namespace FdbShell
 						int p = 60 + 24 * i;
 						return new
 						{
-							Address = new IPAddress(kvp.Value.Substring(p, 4).GetBytes().Reverse().ToArray()),
+							Address = new IPAddress(kvp.Value.Substring(p, 4).GetBytesOrEmpty().Reverse().ToArray()),
 							Port = kvp.Value.Substring(p + 4, 4).ToInt32(),
 							Unknown1 = kvp.Value.Substring(p + 8, 4).ToInt32(),
 							Unknown2 = kvp.Value.Substring(p + 12, 4).ToInt32(),
@@ -1012,9 +1015,9 @@ namespace FdbShell
 
 			var folder = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
 			KeyRange span;
-			if (folder is FdbDirectorySubspace)
+			if (folder is FdbDirectorySubspace subspace)
 			{
-				span = KeyRange.StartsWith((folder as FdbDirectorySubspace).Copy().GetPrefix());
+				span = KeyRange.StartsWith(subspace.Copy().GetPrefix());
 				log.WriteLine($"Reading list of shards for {path} under {FdbKey.Dump(span.Begin)} ...");
 			}
 			else
@@ -1096,8 +1099,8 @@ namespace FdbShell
 							var endSelector = KeySelector.FirstGreaterOrEqual(range.End);
 							while (true)
 							{
-								FdbRangeChunk data = default(FdbRangeChunk);
-								FdbException error = null;
+								FdbRangeChunk? data = null;
+								FdbException? error = null;
 								try
 								{
 									data = await tr.Snapshot.GetRangeAsync(
@@ -1118,7 +1121,7 @@ namespace FdbShell
 									continue;
 								}
 
-								if (data.Count == 0) break;
+								if (data == null || data.Count == 0) break;
 
 								count += data.Count;
 								foreach (var kvp in data)

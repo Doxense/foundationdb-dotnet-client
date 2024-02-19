@@ -50,8 +50,6 @@ namespace FdbTop
 		private const int DEFAULT_WIDTH = 160;
 		private const int DEFAULT_HEIGHT = 60;
 
-		private static bool CanConsoleTitle;
-
 		public static void Main(string[] args)
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
@@ -59,7 +57,7 @@ namespace FdbTop
 			//note: .NET Core may or may not be able to change the size of the console depending on the platform!
 			try
 			{
-				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
+				if (OperatingSystem.IsWindows() && Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
 				{
 					Console.WindowWidth = DEFAULT_WIDTH;
 					Console.WindowHeight = DEFAULT_HEIGHT;
@@ -84,16 +82,6 @@ namespace FdbTop
 					Environment.ExitCode = -1;
 					return;
 				}
-			}
-
-			try
-			{
-				_ = Console.Title;
-				CanConsoleTitle = true;
-			}
-			catch (Exception)
-			{
-				CanConsoleTitle = false;
 			}
 
 			ScreenHeight = Console.WindowHeight;
@@ -146,7 +134,7 @@ namespace FdbTop
 			Console.TreatControlCAsInput = true;
 			try
 			{
-				DateTime now = DateTime.MinValue;
+				DateTime now;
 				DateTime lap = DateTime.MinValue;
 				DateTime next = DateTime.MinValue;
 				bool repaint = true;
@@ -521,7 +509,7 @@ namespace FdbTop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public void Set(char text, ConsoleColor foreground, ConsoleColor background)
 			{
-				this.Value = (int) text | (((int) foreground) << 16) | (((int) background) << 24);
+				this.Value = text | (((int) foreground) << 16) | (((int) background) << 24);
 			}
 
 			public override string ToString()
@@ -532,7 +520,7 @@ namespace FdbTop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static int GetRawValue(char text, ConsoleColor foreground, ConsoleColor background)
 			{
-				return (int) text | (((int) foreground) << 16) | (((int) background) << 24);
+				return text | (((int) foreground) << 16) | (((int) background) << 24);
 			}
 		}
 
@@ -727,7 +715,7 @@ namespace FdbTop
 
 		private static void SetTitle(string title)
 		{
-			if (CanConsoleTitle)
+			if (OperatingSystem.IsWindows())
 			{
 				Console.Title = title;
 			}
@@ -735,7 +723,11 @@ namespace FdbTop
 
 		private static string GetTitle()
 		{
-			return CanConsoleTitle ? Console.Title : string.Empty;
+			if (OperatingSystem.IsWindows())
+			{
+				return Console.Title;
+			}
+			return string.Empty;
 		}
 
 		private static void WriteAt(int x, int y, string msg)
@@ -1222,7 +1214,7 @@ namespace FdbTop
 			}
 		}
 
-		private static int LastProcessYMax = 0;
+		private static int LastProcessYMax;
 
 		private static ConsoleColor MapDiskOpsToColor(double ops)
 		{
@@ -1358,7 +1350,7 @@ namespace FdbTop
 					.OrderBy(p => p.Address, StringComparer.Ordinal)
 					.ToList();
 
-				long storageBytes = 0, queueDiskBytes = 0, totalCnx = 0, totalQueueSize = 0;
+				long totalCnx = 0, totalQueueSize = 0;
 				double totalDiskBusy = 0, totalMutationBytes = 0, totalQueriedBytes = 0;
 
 				map.Reset();
@@ -1376,12 +1368,10 @@ namespace FdbTop
 								totalMutationBytes += storage.MutationBytes.Hz;
 								totalQueriedBytes += storage.BytesQueried.Hz;
 								totalQueueSize += storage.InputBytes.Counter - storage.DurableBytes.Counter;
-								storageBytes += storage.StoredBytes;
 								break;
 							}
-							case LogRoleMetrics log:
+							case LogRoleMetrics:
 							{
-								queueDiskBytes += log.QueueDiskUsedBytes;
 								break;
 							}
 						}
@@ -1704,7 +1694,7 @@ namespace FdbTop
 
 				//TODO: use a set to map procs ot machines? Where(..) will be slow if there are a lot of machines x processes
 				string prevHost = null;
-				foreach ((var proc, var role, var machineId) in kv.OrderBy(x => x.Process.Address))
+				foreach (var (proc, role, machineId) in kv.OrderBy(x => x.Process.Address))
 				{
 					if (y < ScreenHeight)
 					{

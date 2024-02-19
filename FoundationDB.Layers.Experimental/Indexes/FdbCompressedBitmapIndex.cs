@@ -34,10 +34,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of numerical ids</summary>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}, IndexNullValues={IndexNullValues})")]
+	[PublicAPI]
 	public class FdbCompressedBitmapIndex<TValue>
 	{
 

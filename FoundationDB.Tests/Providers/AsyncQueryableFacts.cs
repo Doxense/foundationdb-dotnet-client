@@ -50,34 +50,34 @@ namespace FoundationDB.Linq.Tests
 
 				await db.WriteAsync(async (tr) =>
 				{
-					var subspace = await location.Resolve(tr);
+					var subspace = (await location.Resolve(tr))!;
 					tr.Set(subspace.Encode("Hello"), Value("World!"));
 					tr.Set(subspace.Encode("Narf"), Value("Zort"));
 				}, this.Cancellation);
 
 				await db.ReadAsync(async tr =>
 				{
-					var subspace = await location.Resolve(tr);
+					var subspace = (await location.Resolve(tr))!;
 
 					var range = tr.Query().RangeStartsWith(subspace.GetPrefix());
 					Assert.That(range, Is.InstanceOf<FdbAsyncSequenceQuery<KeyValuePair<Slice, Slice>>>());
 					Assert.That(range.Expression, Is.InstanceOf<FdbQueryRangeExpression>());
-					Log(range.Expression.GetDebugView());
+					Log(range.Expression!.GetDebugView());
 
 					var projection = range.Select(kvp => kvp.Value.ToString());
 					Assert.That(projection, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
 					Assert.That(projection.Expression, Is.InstanceOf<FdbQueryTransformExpression<KeyValuePair<Slice, Slice>, string>>());
-					Log(projection.Expression.GetDebugView());
+					Log(projection.Expression!.GetDebugView());
 
 					var results = await projection.ToListAsync();
-					Log("ToListAsync() => [ " + String.Join(", ", results) + " ]");
+					Log($"ToListAsync() => [ {string.Join(", ", results)} ]");
 
 					var count = await projection.CountAsync();
-					Log("CountAsync() => " + count);
+					Log($"CountAsync() => {count}");
 					Assert.That(count, Is.EqualTo(2));
 
 					var first = await projection.FirstAsync();
-					Log("FirstAsync() => " + first);
+					Log($"FirstAsync() => {first}");
 					Assert.That(first, Is.EqualTo("World!"));
 				}, this.Cancellation);
 			}
@@ -104,18 +104,18 @@ namespace FoundationDB.Linq.Tests
 				}, this.Cancellation);
 
 				// find all elements that are read
-				var ids = await db.ReadAsync(async tr =>
+				var ids = await db.ReadAsync(async _ =>
 				{
 					var lookup = indexFoos.Query(db).Lookup(x => x == "red");
 
 					Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<long>>());
 					Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<long, string>>());
-					Log(lookup.Expression.GetDebugView());
+					Log(lookup.Expression!.GetDebugView());
 
 					return await lookup.ToListAsync();
 				}, this.Cancellation);
 
-				Log("=> [ " + String.Join(", ", ids) + " ]");
+				Log($"=> [ {string.Join(", ", ids)} ]");
 
 			}
 
@@ -150,20 +150,19 @@ namespace FoundationDB.Linq.Tests
 				var lookup = index.Query(db).Lookup(x => x <= 100);
 				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
 				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-				Log(lookup.Expression.GetDebugView());
+				Log(lookup.Expression!.GetDebugView());
 
 				var ids = await lookup.ToListAsync();
-				Log("=> [ " + String.Join(", ", ids) + " ]");
+				Log($"=> [ {string.Join(", ", ids)} ]");
 				
 				// find all that are over nine thousand
 				lookup = index.Query(db).Lookup(x => x >= 9000);
 				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
 				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-				Log(lookup.Expression.GetDebugView());
+				Log(lookup.Expression!.GetDebugView());
 
 				ids = await lookup.ToListAsync();
-				Log("=> [ " + String.Join(", ", ids) + " ]");
-
+				Log($"=> [ {string.Join(", ", ids)} ]");
 			}
 
 		}

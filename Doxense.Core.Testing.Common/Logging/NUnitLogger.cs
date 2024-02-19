@@ -241,7 +241,7 @@ namespace Doxense
 			return logLevel >= this.Options.LogLevel && logLevel < LogLevel.None;
 		}
 
-		public IDisposable BeginScope<TState>(TState state) => ScopeProvider?.Push(state) ?? NullScope.Instance;
+		public IDisposable BeginScope<TState>(TState state) where TState : notnull => ScopeProvider?.Push(state) ?? NullScope.Instance;
 
 	}
 

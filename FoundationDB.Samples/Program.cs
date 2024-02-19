@@ -10,7 +10,6 @@ namespace FoundationDB.Samples
 	using System.Threading.Tasks;
 	using Doxense.Async;
 	using FoundationDB.Client;
-	using FoundationDB.Filters.Logging;
 	using FoundationDB.Samples.Benchmarks;
 	using FoundationDB.Samples.Tutorials;
 
@@ -63,8 +62,8 @@ namespace FoundationDB.Samples
 		public static void RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command)
 		{
 			TextWriter? log = null;
-			var db = Db;
-			if (log == null) log = Console.Out;
+			var db = Db ?? throw new InvalidOperationException();
+			log ??= Console.Out;
 
 			var cts = new CancellationTokenSource();
 			try
@@ -88,7 +87,7 @@ namespace FoundationDB.Samples
 
 			using (var log = LogEnabled ? GetLogFile(test.Name) : null)
 			{
-				var db = GetLoggedDatabase(Db, log);
+				var db = GetLoggedDatabase(Db ?? throw new InvalidOperationException(), log);
 
 				var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 				try
@@ -213,6 +212,7 @@ namespace FoundationDB.Samples
 					{
 						Console.Write("> ");
 						var s = startCommand ?? Console.ReadLine();
+						if (s == null) break;
 						startCommand = null;
 
 						var tokens = s.Trim().Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);

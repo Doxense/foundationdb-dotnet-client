@@ -19,13 +19,14 @@ namespace FdbBurner
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
 
-			if (Console.LargestWindowHeight > 0 && Console.LargestWindowWidth > 0)
+			if (OperatingSystem.IsWindows() && Console.LargestWindowHeight > 0 && Console.LargestWindowWidth > 0)
 			{
 				Console.WindowWidth = 80;
 				Console.WindowHeight = 40;
 			}
 
-			string title = Console.Title;
+			string title = OperatingSystem.IsWindows() ? Console.Title : string.Empty;
+
 			try
 			{
 
@@ -48,7 +49,10 @@ namespace FdbBurner
 			}
 			finally
 			{
-				Console.Title = title;
+				if (OperatingSystem.IsWindows())
+				{
+					Console.Title = title;
+				}
 				Console.CursorVisible = true;
 				Fdb.Stop();
 			}
@@ -169,11 +173,10 @@ namespace FdbBurner
 					bool repaint = true;
 
 					var processName = Process.GetCurrentProcess().ProcessName;
-					var perCpu = new PerformanceCounter("Process", "% Processor Time", processName);
-					var perfDiskReads = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", "0 C:");
-					var perfDiskWrites = new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", "0 C:");
-					var perfDiskWriteIops = new PerformanceCounter("PhysicalDisk", "Disk Writes/sec", "0 C:");
-					var perfDiskReadIops = new PerformanceCounter("PhysicalDisk", "Disk Reads/sec", "0 C:");
+					var perfDiskReads = OperatingSystem.IsWindows() ? new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", "0 C:") : null;
+					var perfDiskWrites = OperatingSystem.IsWindows() ? new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", "0 C:") : null;
+					var perfDiskWriteIops = OperatingSystem.IsWindows() ? new PerformanceCounter("PhysicalDisk", "Disk Writes/sec", "0 C:") : null;
+					var perfDiskReadIops = OperatingSystem.IsWindows() ? new PerformanceCounter("PhysicalDisk", "Disk Reads/sec", "0 C:") : null;
 
 					const int COL0 = 1;
 					const int COL1 = COL0 + 15;
@@ -242,16 +245,23 @@ namespace FdbBurner
 
 						if (!repaint)
 						{
-							await Task.Delay(250);
+							await Task.Delay(250, cts.Token);
 						}
 
 						long curKeys =  Volatile.Read(ref Keys);
 						long curTrans = Volatile.Read(ref Transactions);
 						long curBytes = Volatile.Read(ref Bytes);
-						double curDiskWrites = perfDiskWrites.NextValue();
-						double curDiskReads = perfDiskReads.NextValue();
-						double curDiskWriteIo = perfDiskWriteIops.NextValue();
-						double curDiskReadIo = perfDiskReadIops.NextValue();
+						double? curDiskWrites = null;
+						double? curDiskReads = null;
+						double? curDiskWriteIo = null;
+						double? curDiskReadIo = null;
+						if (OperatingSystem.IsWindows())
+						{
+							curDiskWrites = perfDiskWrites?.NextValue();
+							curDiskReads = perfDiskReads?.NextValue();
+							curDiskWriteIo = perfDiskWriteIops?.NextValue();
+							curDiskReadIo = perfDiskReadIops?.NextValue();
+						}
 
 						while (history.Count >= CAPACITY) history.Dequeue();
 
@@ -262,10 +272,10 @@ namespace FdbBurner
 							Keys = curKeys,
 							Commits = curTrans,
 							Bytes = curBytes,
-							DiskWriteBps = curDiskWrites,
-							DiskReadBps = curDiskReads,
-							DiskWriteIops = curDiskWriteIo,
-							DiskReadIops = curDiskReadIo,
+							DiskWriteBps = curDiskWrites ?? double.NaN,
+							DiskReadBps = curDiskReads ?? double.NaN,
+							DiskWriteIops = curDiskWriteIo ?? double.NaN,
+							DiskReadIops = curDiskReadIo ?? double.NaN,
 						});
 
 						if (repaint)

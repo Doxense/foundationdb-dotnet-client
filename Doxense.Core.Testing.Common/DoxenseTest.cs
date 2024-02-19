@@ -798,10 +798,6 @@ namespace Doxense.Testing
 		// Quand on est exécuté depuis VS en mode debug on préfère écrire dans Trace. Sinon, on écrit dans la Console...
 		protected static readonly bool AttachedToDebugger = Debugger.IsAttached;
 
-		/// <summary>Force les logs vers Console.Out/Error, plutot que TestContext.Progress</summary>
-		private static TextWriter? ForceToConsole;
-		private static TextWriter? ForceToConsoleError;
-
 		/// <summary>Indique si on fonctionne sous un runner qui préfère utiliser la console pour l'output des logs</summary>
 		public static readonly bool MustOutputLogsOnConsole = DetectConsoleTestRunner();
 
@@ -818,15 +814,15 @@ namespace Doxense.Testing
 		[DebuggerNonUserCode]
 		protected static void WriteToLog(string? message, bool lineBreak = true)
 		{
-			if (MustOutputLogsOnConsole || ForceToConsole != null)
+			if (MustOutputLogsOnConsole)
 			{ // force output to the console
 				if (lineBreak)
 				{
-					(ForceToConsole ?? Console.Out).WriteLine(message);
+					Console.Out.WriteLine(message);
 				}
 				else
 				{
-					(ForceToConsole ?? Console.Out).Write(message);
+					Console.Out.Write(message);
 				}
 			}
 			else if (AttachedToDebugger)
@@ -860,9 +856,9 @@ namespace Doxense.Testing
 		[DebuggerNonUserCode]
 		private static void WriteToErrorLog(string? message)
 		{
-			if (MustOutputLogsOnConsole || ForceToConsoleError != null)
+			if (MustOutputLogsOnConsole)
 			{ // force output to the console
-				(ForceToConsoleError ?? Console.Error).WriteLine(message);
+				Console.Error.WriteLine(message);
 			}
 			else if(AttachedToDebugger)
 			{ // outputs to the Output console (visible while the test is running under a debugger)

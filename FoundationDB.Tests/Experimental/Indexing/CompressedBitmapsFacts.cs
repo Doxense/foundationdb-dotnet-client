@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable AccessToModifiedClosure
+// ReSharper disable ConvertToLocalFunction
 namespace FoundationDB.Layers.Experimental.Indexing.Tests
 {
 	using System;
@@ -347,53 +349,53 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 		}
 
-		private class Character
+		private sealed record Character
 		{
-			public int Id { get; set; }
-			public string Name { get; set; } // will mostly be used for sorting
-			public string Gender { get; set; } // poor man's enum with 49%/49%/1% distribution
-			public string Job { get; set; } // regular enum with random distribution
-			public DateTime? Born { get; set; } // accurate to the day, usually used in range queries
-			public bool Dead { get; set; } // zomg, spoilers ahead! probably used as an exclusion flag (like IsDeleted)
+			public required int Id { get; init; }
+			public required string Name { get; init; } // will mostly be used for sorting
+			public required string Gender { get; init; } // poor man's enum with 49%/49%/1% distribution
+			public required string Job { get; init; } // regular enum with random distribution
+			public DateTime? Born { get; init; } // accurate to the day, usually used in range queries
+			public bool Dead { get; init; } // zomg, spoilers ahead! probably used as an exclusion flag (like IsDeleted)
 
 		}
 
-		public class MemoryIndex<TKey>
+		public class MemoryIndex<TKey> where TKey : notnull
 		{
 			public readonly Dictionary<TKey, CompressedBitmap> Values;
 			public readonly Dictionary<TKey, int> Statistics;
 
-			public MemoryIndex(IEqualityComparer<TKey> comparer = null)
+			public MemoryIndex(IEqualityComparer<TKey>? comparer = null)
 			{
 				comparer = comparer ?? EqualityComparer<TKey>.Default;
 				this.Values = new Dictionary<TKey, CompressedBitmap>(comparer);
 				this.Statistics = new Dictionary<TKey, int>(comparer);
 			}
 
-			public CompressedBitmap Lookup(TKey value)
+			public CompressedBitmap? Lookup(TKey value)
 			{
-				return this.Values.TryGetValue(value, out CompressedBitmap bmp) ? bmp : null;
+				return this.Values.GetValueOrDefault(value);
 			}
 
 			public int Count(TKey value)
 			{
-				return this.Statistics.TryGetValue(value, out int cnt) ? cnt : 0;
+				return this.Statistics.GetValueOrDefault(value, 0);
 			}
 
 			public double Frequency(TKey value)
 			{
-				return (double)Count(value) / this.Statistics.Values.Sum();
+				return (double) Count(value) / this.Statistics.Values.Sum();
 			}
 		}
 
-		private static Action<TDoc> MakeInserter<TDoc, TKey>(MemoryIndex<TKey> index, Func<TDoc, int> idFunc, Func<TDoc, TKey> keyFunc)
+		private static Action<TDoc> MakeInserter<TDoc, TKey>(MemoryIndex<TKey> index, Func<TDoc, int> idFunc, Func<TDoc, TKey> keyFunc) where TKey : notnull
 		{
 			return (doc) =>
 			{
 				int docId = idFunc(doc);
 				TKey indexedValue = keyFunc(doc);
 				int count;
-				if (!index.Values.TryGetValue(indexedValue, out CompressedBitmap bmp))
+				if (!index.Values.TryGetValue(indexedValue, out var bmp))
 				{
 					bmp = CompressedBitmap.Empty;
 					count = 0;
@@ -426,7 +428,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			return new string(chars);
 		}
 
-		private static void DumpIndex<TKey, TVal>(string label, MemoryIndex<TKey> index, Func<TKey, int, TVal> orderBy, IComparer<TVal> comparer = null, bool heatMaps = false)
+		private static void DumpIndex<TKey, TVal>(string label, MemoryIndex<TKey> index, Func<TKey, int, TVal> orderBy, IComparer<TVal>? comparer = null, bool heatMaps = false) where TKey : notnull
 		{
 			comparer = comparer ?? Comparer<TVal>.Default;
 
@@ -487,7 +489,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		{
 			foreach (var docId in bitmap.GetView())
 			{
-				Assert.That(characters.TryGetValue(docId, out Character character), Is.True);
+				Assert.That(characters.TryGetValue(docId, out var character), Is.True);
 
 				Log($"- {docId}: {character!.Name} {(character.Gender == "Male" ? "\u2642" : character.Gender == "Female" ? "\u2640" : character.Gender)}{(character.Dead ? " (\u271D)" : "")}");
 			}
@@ -547,7 +549,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			// Où sont les femmes ?
 			Log();
 			Log("indexByGender.Lookup('Female')");
-			CompressedBitmap females = indexByGender.Lookup("Female");
+			var females = indexByGender.Lookup("Female")!;
 			Assert.That(females, Is.Not.Null);
 			Log($"=> {females.Dump()}");
 			DumpIndexQueryResult(database, females);
@@ -555,7 +557,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			// R.I.P
 			Log();
 			Log("indexOfTheDead.Lookup(dead: true)");
-			CompressedBitmap deadPeople = indexOfTheDead.Lookup(true);
+			var deadPeople = indexOfTheDead.Lookup(true)!;
 			Assert.That(deadPeople, Is.Not.Null);
 			Log($"=> {deadPeople.Dump()}");
 			DumpIndexQueryResult(database, deadPeople);
@@ -570,14 +572,11 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			// the crew
 			Log();
 			Log("indexByJob.Lookup('Bounty_Hunter' OR 'Hacker' OR 'Dog')");
-			var bmps = new[] { "Bounty_Hunter", "Hacker", "Dog" }.Select(job => indexByJob.Lookup(job)).ToList();
-			CompressedBitmap crew = null;
+			var bmps = new[] { "Bounty_Hunter", "Hacker", "Dog" }.Select(job => indexByJob.Lookup(job)!).ToList();
+			CompressedBitmap? crew = null;
 			foreach (var bmp in bmps)
 			{
-				if (crew == null)
-					crew = bmp;
-				else
-					crew = WordAlignHybridEncoder.Or(crew, bmp);
+				crew = crew == null ? bmp : WordAlignHybridEncoder.Or(crew, bmp);
 			}
 			crew = crew ?? CompressedBitmap.Empty;
 			Log($"=> {crew.Dump()}");
@@ -628,18 +627,24 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 			/// <summary>Toss unique id (random guid)</summary>
 			public Guid Id { get; set; }
+
 			/// <summary>False if the toss was discarded as invalid</summary>
 			public bool Valid { get; set; } // 99.9% true, 0.1% false
+
 			/// <summary>True for head, False for tails, null for edge</summary>
 			public int Result { get; set; }
+
 			/// <summary>Number of completed 360° flips</summary>
 			public int Flips { get; set; }
+
 			/// <summary>Coin elevation (in cm)</summary>
 			public double Elevation { get; set; }
+
 			/// <summary>true for daytime, false for nighttime</summary>
 			public bool Daytime { get; set; }
+
 			/// <summary>Name of location where the toss was performed</summary>
-			public string Location { get; set; }
+			public string? Location { get; set; }
 		}
 
 		[Test]
@@ -658,7 +663,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			};
 
 			var dfElev = new Cauchy(10, 1, rnd);
-			Func<double> makeElevation = () =>
+			var makeElevation = () =>
 			{
 				double x = 0;
 				while (x <= 0.0 || x >= 30) { x = dfElev.Sample(); }
@@ -666,9 +671,12 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			};
 
 			bool flipFlop = false;
-			Func<bool> makeFlipFlop = () =>
+			var makeFlipFlop = () =>
 			{
-				if (rnd.NextDouble() < 0.01) flipFlop = !flipFlop;
+				if (rnd.NextDouble() < 0.01)
+				{
+					flipFlop = !flipFlop;
+				}
 				return flipFlop;
 			};
 
@@ -681,14 +689,14 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				"Nîmes", "Le Mans", "Clermont-Ferrand", "Aix-en-Provence", "Brest"
 			};
 			var dfLoc = new Cauchy(0, 1.25, rnd);
-			Func<string> makeLocation = () =>
+			var makeLocation = () =>
 			{
 				int x = cities.Length;
 				while (x >= cities.Length) { x = (int)Math.Floor(Math.Abs(dfLoc.Sample())); }
 				return cities[x];
 			};
-			Func<int> makeHeadsOrTails = () => rnd.NextDouble() < 0.01 ? CoinToss.EDGE : rnd.NextDouble() <= 0.5 ? CoinToss.HEAD : CoinToss.TAIL; // biased!
-			Func<bool> makeValid = () => rnd.Next(1000) != 666;
+			var makeHeadsOrTails = () => rnd.NextDouble() < 0.01 ? CoinToss.EDGE : rnd.NextDouble() <= 0.5 ? CoinToss.HEAD : CoinToss.TAIL; // biased!
+			var makeValid = () => rnd.Next(1000) != 666;
 
 			#endregion
 
@@ -729,7 +737,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 					MakeInserter<KeyValuePair<int, CoinToss>, bool>(indexFlipFlop, (kv) => kv.Key, (kv) => kv.Value.Daytime),
 					MakeInserter<KeyValuePair<int, CoinToss>, int>(indexFlips, (kv) => kv.Key, (kv) => kv.Value.Flips),
 					MakeInserter<KeyValuePair<int, CoinToss>, double>(indexElevation, (kv) => kv.Key, (kv) => Math.Round(kv.Value.Elevation, 1, MidpointRounding.AwayFromZero)),
-					MakeInserter<KeyValuePair<int, CoinToss>, string>(indexLoc, (kv) => kv.Key, (kv) => kv.Value.Location),
+					MakeInserter<KeyValuePair<int, CoinToss>, string>(indexLoc, (kv) => kv.Key, (kv) => kv.Value.Location ?? string.Empty),
 				};
 
 				//var database = new Dictionary<int, CoinToss>();
@@ -888,8 +896,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			for (int id = 0; id < dataSet.Length; id++)
 			{
 				int value = dataSet[id];
-				CompressedBitmapBuilder builder;
-				if (!index.TryGetValue(value, out builder))
+				if (!index.TryGetValue(value, out var builder))
 				{
 					builder = new CompressedBitmapBuilder(CompressedBitmap.Empty);
 					index[value] = builder;
@@ -906,9 +913,9 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			j = 0;
 			foreach (var kv in controlStats)
 			{
-				Assert.That(index.TryGetValue(kv.Value, out CompressedBitmapBuilder builder), Is.True, $"{kv.Value} is missing from index");
+				Assert.That(index.TryGetValue(kv.Value, out var builder), Is.True, $"{kv.Value} is missing from index");
 				Assert.That(builder, Is.Not.Null);
-				var bmp = builder.ToBitmap();
+				var bmp = builder!.ToBitmap();
 				bmp.GetStatistics(out int bits, out int words, out int a, out int b, out _);
 				Assert.That(bits, Is.EqualTo(kv.Count), $"{kv.Value} has invalid count");
 				int sz = bmp.ByteCount;

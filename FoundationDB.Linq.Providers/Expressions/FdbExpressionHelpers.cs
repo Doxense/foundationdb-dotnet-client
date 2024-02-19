@@ -66,10 +66,9 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Return the internal DebugView property of an expression</summary>
 		/// <param name="expression">Expression</param>
 		/// <returns>Debug string</returns>
-		public static string GetDebugView(this Expression expression)
+		public static string GetDebugView(this Expression? expression)
 		{
-			if (expression == null) return "<null>";
-			return DebugViewGetter(expression);
+			return expression != null ? DebugViewGetter(expression) : "<null>";
 		}
 
 		#endregion
@@ -79,11 +78,16 @@ namespace FoundationDB.Linq.Expressions
 		{
 			var expr = expression.CanReduce ? expression.Reduce() : expression;
 
-			if (expr.Type != typeof(T)) throw new InvalidOperationException("Expression type mismatch");
+			if (expr.Type != typeof(T))
+			{
+				throw new InvalidOperationException("Expression type mismatch");
+			}
+			if (expr is ConstantExpression constant)
+			{
+				return (T) constant.Value!;
+			}
 
-			if (expr is ConstantExpression constant) return (T) constant.Value;
-
-			throw new NotSupportedException($"Unsupported expression {expr.ToString()}: '{expression.GetType().Name}' should return a constant value");
+			throw new NotSupportedException($"Unsupported expression {expr}: '{expression.GetType().Name}' should return a constant value");
 		}
 
 		private static Task<T> Inline<T>(Func<IFdbReadOnlyTransaction, T> func, IFdbReadOnlyTransaction trans, CancellationToken ct)
@@ -121,19 +125,22 @@ namespace FoundationDB.Linq.Expressions
 			);
 		}
 
-		internal static Task<R> ExecuteEnumerable<T, R>(Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> generator, Func<IAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, IFdbReadOnlyTransaction trans, CancellationToken ct)
+		internal static Task<TResult> ExecuteEnumerable<TSource, TResult>(Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TSource>> generator, Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>> lambda, IFdbReadOnlyTransaction trans, CancellationToken ct)
 		{
 			Contract.Debug.Requires(generator != null && lambda != null && trans != null);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 			try
 			{
-				if (ct.IsCancellationRequested) return Task.FromCanceled<R>(ct);
 				var enumerable = generator(trans);
-				if (enumerable == null) return Task.FromException<R>(new InvalidOperationException("Source query returned null"));
+				if (enumerable == null!)
+				{
+					return Task.FromException<TResult>(new InvalidOperationException("Source query returned null"));
+				}
 				return lambda(enumerable, ct);
 			}
 			catch (Exception e)
 			{
-				return Task.FromException<R>(e);
+				return Task.FromException<TResult>(e);
 			}
 		}
 
@@ -178,14 +185,20 @@ namespace FoundationDB.Linq.Expressions
 		/// <remarks>Typical use case is when we have a dummy Expression&lt;Func&lt;...&gt;&gt; used to get a method call signature, and we want to remplace the parameters of the lambda with the actual values that will be used at runtime</remarks>
 		public static Expression RewriteCall<TDelegate>(Expression<TDelegate> lambda, params Expression[] arguments)
 		{
-			if (lambda == null) throw new ArgumentNullException("lambda");
-			if (arguments.Length != lambda.Parameters.Count) throw new InvalidOperationException("Argument count mismatch");
+			Contract.NotNull(lambda);
+			if (arguments.Length != lambda.Parameters.Count)
+			{
+				throw new InvalidOperationException("Argument count mismatch");
+			}
 
 			var rewritten = new Dictionary<ParameterExpression, Expression>(arguments.Length);
 			for (int i = 0; i < arguments.Length;i++)
 			{
 				var arg = lambda.Parameters[i];
-				if (!arg.Type.IsAssignableFrom(arguments[i].Type)) throw new InvalidOperationException(String.Format("Argument {0} of type {1} does not match type {2}", arg.Name, arg.Type.Name, arguments[i].Type.Name));
+				if (!arg.Type.IsAssignableFrom(arguments[i].Type))
+				{
+					throw ThrowHelper.InvalidOperationException($"Argument {arg.Name} of type {arg.Type.Name} does not match type {arguments[i].Type.Name}");
+				}
 				rewritten[arg] = arguments[i];
 			}
 
@@ -206,11 +219,7 @@ namespace FoundationDB.Linq.Expressions
 
 			protected override Expression VisitParameter(ParameterExpression node)
 			{
-				if (this.Parameters.TryGetValue(node, out Expression expr))
-				{
-					return expr;
-				}
-				return node;
+				return this.Parameters.GetValueOrDefault(node, node);
 			}
 
 		}

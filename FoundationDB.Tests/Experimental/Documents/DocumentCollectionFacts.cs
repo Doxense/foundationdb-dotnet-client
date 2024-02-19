@@ -37,13 +37,13 @@ namespace FoundationDB.Layers.Documents.Tests
 	public class DocumentCollectionFacts : FdbTest
 	{
 
-		private class Book
+		private sealed record Book
 		{
-			public int Id { get; set; }
-			public string Title { get; set; }
-			public string Author { get; set; }
-			public DateTime Published { get; set; }
-			public int Pages { get; set; }
+			public required int Id { get; init; }
+			public required string Title { get; init; }
+			public required string Author { get; init; }
+			public DateTime Published { get; init; }
+			public int Pages { get; init; }
 		}
 
 		private static Book[] GetBooks()

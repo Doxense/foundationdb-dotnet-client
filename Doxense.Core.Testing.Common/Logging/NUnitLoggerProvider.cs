@@ -106,7 +106,7 @@ namespace Doxense
 		}
 
 		/// <inheritdoc />
-		IDisposable IExternalScopeProvider.Push(object state)
+		IDisposable IExternalScopeProvider.Push(object? state)
 		{
 			return NullScope.Instance;
 		}

@@ -76,8 +76,8 @@ namespace FoundationDB.Samples.Tutorials
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
 			return tr.GetRange(this.Subspace.PackRange(STuple.Create("class")))
-				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToStringAscii(), out _); }) // (step 3)
-				.Select(kvp => this.Subspace.Decode<string>(kvp.Key))
+				.Where(kvp => int.TryParse(kvp.Value.ToStringAscii(), out _)) // (step 3)
+				.Select(kvp => this.Subspace.Decode<string>(kvp.Key)!)
 				.ToListAsync();
 		}
 
@@ -92,7 +92,7 @@ namespace FoundationDB.Samples.Tutorials
 			{ // already signed up
 				return;
 			}
-			int seatsLeft = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
+			int seatsLeft = int.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii()!);
 			if (seatsLeft <= 0)
 			{
 				throw new InvalidOperationException("No remaining seats");
@@ -116,7 +116,7 @@ namespace FoundationDB.Samples.Tutorials
 				return;
 			}
 
-			var students = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
+			var students = int.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii()!);
 			tr.Set(ClassKey(c), Slice.FromStringAscii((students + 1).ToString()));
 			tr.Clear(rec);
 		}

@@ -30,6 +30,7 @@ namespace FoundationDB.Linq.Expressions
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using System.Collections.ObjectModel;
 	using System.Linq.Expressions;
 
 	/// <summary>Helper class for building a string representation of a FoundationDB LINQ Expression Tree</summary>
@@ -60,13 +61,13 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Visit a node and appends it to the string builder</summary>
 		/// <param name="node"></param>
 		/// <returns></returns>
-		public override Expression? Visit(FdbQueryExpression? node)
+		public override Expression Visit(FdbQueryExpression node)
 		{
-			node?.WriteTo(this);
+			node.WriteTo(this);
 			return node;
 		}
 
-		private void VisitExpressions<TExpr>(IList<TExpr> expressions, string open, string close, string sep)
+		private void VisitExpressions<TExpr>(ReadOnlyCollection<TExpr>? expressions, string open, string close, string sep)
 			where TExpr : Expression
 		{
 			if (expressions == null || expressions.Count == 0)
@@ -85,7 +86,7 @@ namespace FoundationDB.Linq.Expressions
 			m_writer.Write(close);
 		}
 
-		private void VisitValues<T>(IList<T> values, Action<T> handler, string open, string close, string sep)
+		private void VisitValues<T>(ICollection<T>? values, Action<T> handler, string open, string close, string sep)
 		{
 			if (values == null || values.Count == 0)
 			{
@@ -97,7 +98,15 @@ namespace FoundationDB.Linq.Expressions
 			bool first = true;
 			foreach (var expr in values)
 			{
-				if (first) first = false; else m_writer.Write(sep);
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					m_writer.Write(sep);
+				}
+
 				handler(expr);
 			}
 			m_writer.Write(close);
@@ -116,7 +125,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Visit a Parameter expression</summary>
 		protected override Expression VisitParameter(ParameterExpression node)
 		{
-			m_writer.Write(node.Name);
+			m_writer.Write(node.Name ?? "");
 
 			return node;
 		}
@@ -145,7 +154,7 @@ namespace FoundationDB.Linq.Expressions
 		{
 			if (node.Object == null)
 			{
-				m_writer.Write(node.Method.DeclaringType.Name);
+				m_writer.Write(node.Method.DeclaringType!.Name);
 			}
 			else
 			{
@@ -159,7 +168,7 @@ namespace FoundationDB.Linq.Expressions
 				VisitValues(node.Method.GetGenericArguments(), (type) => m_writer.Write(type.Name), "<", ">", ", ");
 			}
 
-			if (node.Arguments != null)
+			if (node.Arguments != null!)
 			{
 				VisitExpressions(node.Arguments, "(", ")", ", ");
 			}
@@ -178,7 +187,7 @@ namespace FoundationDB.Linq.Expressions
 		public static void Test()
 		{
 
-			Expression<Func<int, int, string>> func = (x, y) => String.Format("{0} x {1} == {2}", x, y, (x * y));
+			Expression<Func<int, int, string>> func = (x, y) => string.Format("{0} x {1} == {2}", x, y, (x * y));
 
 			var w = new FdbQueryExpressionStringBuilder();
 			w.Visit(func);

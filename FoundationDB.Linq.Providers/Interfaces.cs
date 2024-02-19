@@ -32,6 +32,7 @@ namespace FoundationDB.Linq
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Expressions;
+	using JetBrains.Annotations;
 
 	/// <summary>Base interface of all queryable objects</summary>
 	public interface IFdbAsyncQueryable
@@ -54,6 +55,7 @@ namespace FoundationDB.Linq
 
 	/// <summary>Queryable that returns a sequence of elements of type T</summary>
 	/// <typeparam name="T"></typeparam>
+	[PublicAPI]
 	public interface IFdbAsyncSequenceQueryable<out T> : IFdbAsyncQueryable
 	{
 		/// <summary>Type of elements of the sequence</summary>
@@ -61,6 +63,7 @@ namespace FoundationDB.Linq
 	}
 
 	/// <summary>Query provider</summary>
+	[PublicAPI]
 	public interface IFdbAsyncQueryProvider 
 	{
 		/// <summary>Wraps a query expression into a new queryable</summary>
@@ -77,6 +80,7 @@ namespace FoundationDB.Linq
 	}
 
 	/// <summary>Queryable transaction</summary>
+	[PublicAPI]
 	public interface IFdbTransactionQueryable : IFdbAsyncQueryable
 	{
 		// Note: this interface is only used to hook extension methods specific to transaction queries
@@ -87,6 +91,7 @@ namespace FoundationDB.Linq
 	}
 
 	/// <summary>Queryable index</summary>
+	[PublicAPI]
 	public interface IFdbIndexQueryable<TId, TValue> : IFdbAsyncQueryable
 	{
 		// Note: this interface is only used to hook extension methods specific to index queries

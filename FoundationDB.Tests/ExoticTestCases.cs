@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#nullable disable
+// ReSharper disable AssignNullToNotNullAttribute
+
  namespace FoundationDB.Client.Tests
 {
 	using System;
@@ -31,7 +34,6 @@
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading.Tasks;
-	using FoundationDB.Filters.Logging;
 	using NUnit.Framework;
 
 	[TestFixture][Ignore("These tests are not meant to be run as part of a CI build")]
@@ -531,7 +533,7 @@
 
 					tr.Set(subspace.Encode("KZZZ"), Value("V999"));
 
-					var r = await tr.GetRangeAsync(
+					_ = await tr.GetRangeAsync(
 						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0B")),
 						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0G"))
 					);

@@ -127,12 +127,15 @@
 //      p.Parse (new string[]{"-a-"});  // sets v == null
 //
 
+#nullable disable
+// ReSharper disable All
+
 using System;
+using System.CodeDom.Compiler;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Globalization;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
@@ -153,6 +156,8 @@ namespace NDesk.Options
 namespace Mono.Options
 #endif
 {
+
+	[GeneratedCode("Mono", "1.0")]
 	static class StringCoda {
 
 		public static IEnumerable<string> WrappedLines (string self, params int[] widths)
@@ -668,7 +673,7 @@ namespace Mono.Options
 			this.option = optionName;
 		}
 
-#if !CORE_CLR
+#if !CORE_CLR && !NET8_0_OR_GREATER
 		protected OptionException (SerializationInfo info, StreamingContext context)
 			: base (info, context)
 		{
