@@ -1584,6 +1584,45 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Tries to get the value associated with the specified <paramref name="key" /> in the JSON Object.</summary>
+		/// <param name="key">Name of the propertyThe key of the value to get.</param>
+		/// <returns>A <typeparamref name="TValue" /> instance. When the method is successful, the returned object is the converted value associated with the specified <paramref name="key" />. When the method fails, it returns the <see langword="default" /> value for <typeparamref name="TValue" />.</returns>
+		/// <example>
+		/// ({ "Hello": "World"}).GetOrDefault&lt;string&gt;("Hello") // => <c>"World"</c>
+		/// ({ "Hello": "123"}).GetOrDefault&lt;int&gt;("Hello") // => <c>123</c>
+		/// ({ }).GetOrDefault&lt;string&gt;("Hello") // => <c>null</c>
+		/// ({ }).GetOrDefault&lt;int&gt;("Hello") // => <c>0</c>
+		/// ({ }).GetOrDefault&lt;int?&gt;("Hello") // => <c>null</c>
+		/// ({ "Hello": null }).GetOrDefault&lt;string&gt;("Hello") // => <c>null</c>
+		/// ({ "Hello": null }).GetOrDefault&lt;int&gt;("Hello") // => <c>0</c>
+		/// ({ "Hello": null }).GetOrDefault&lt;int?&gt;("Hello") // => <c>null</c>
+		/// </example>
+		public TValue? GetOrDefault<TValue>(string key)
+		{
+			return m_items.TryGetValue(key, out var item) && !item.IsNullOrMissing() ? item.As<TValue>() : default;
+		}
+
+		/// <summary>Tries to get the value associated with the specified <paramref name="key" /> in the JSON Object.</summary>
+		/// <param name="key">Name of the propertyThe key of the value to get.</param>
+		/// <param name="defaultValue">The default value to return when the JSON object cannot find a value associated with the specified <paramref name="key" />, or it is null or missing.</param>
+		/// <returns>A <typeparamref name="TValue" /> instance. When the method is successful, the returned object is the converted value associated with the specified <paramref name="key" />. When the method fails, it returns <paramref name="defaultValue" />.</returns>
+		/// <remarks>Note that this will return <paramref name="defaultValue"/> event if the key exists but is explicitly null.</remarks>
+		/// <example>
+		/// ({ "Hello": "World"}).GetOrDefault&lt;string&gt;("Hello", "Bonjour") // => <c>"World"</c>
+		/// ({ "Hello": "123"}).GetOrDefault&lt;int&gt;("Hello", 456) // => <c>123</c>
+		/// ({ }).GetOrDefault&lt;string&gt;("Hello", "Bonjour") // => <c>"Bonjour"</c>
+		/// ({ }).GetOrDefault&lt;int&gt;("Hello", 456) // => <c>456</c>
+		/// ({ }).GetOrDefault&lt;int?&gt;("Hello", 456) // => <c>456</c>
+		/// ({ "Hello": null }).GetOrDefault&lt;string&gt;("Hello", "Bonjour") // => <c>"Bonjour"</c>
+		/// ({ "Hello": null }).GetOrDefault&lt;int&gt;("Hello", 456) // => <c>456</c>
+		/// ({ "Hello": null }).GetOrDefault&lt;int?&gt;("Hello", 456) // => <c>456</c>
+		/// </example>
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? GetOrDefault<TValue>(string key, TValue? defaultValue)
+		{
+			return m_items.TryGetValue(key, out var item) ? (item.As<TValue>() ?? defaultValue) : defaultValue;
+		}
+
 		/// <summary>Retourne la valeur d'une propriété de cet objet, avec une contrainte de présence optionnelle</summary>
 		/// <param name="key">Nom de la propriété recherchée</param>
 		/// <param name="required">Si true, une exception est lancée si la propriété n'existe pas où vaut null. Si false, retourne default(<typeparamref name="TValue"/>) si la propriété est manquante ou vaut explicitement null</param>
