@@ -2994,6 +2994,40 @@ namespace Doxense.Serialization.Json
 			return list;
 		}
 
+		/// <summary>Convert this JSON Array so that it, or any of its children that were previously read-only, can be mutated.</summary>
+		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
+		/// <remarks>
+		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
+		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (strings, booleans, numbers, ...) that are always immutable.</para>
+		/// </remarks>
+		public override JsonArray ToMutable()
+		{
+			if (m_readOnly)
+			{ // create a mutable copy
+				return Copy();
+			}
+
+			// the top-level is mutable, but maybe it has read-only children?
+			var items = this.GetSpan();
+			JsonValue[]? copy = null;
+			for(int i = 0; i < items.Length; i++)
+			{
+				var child = items[i];
+				if (child is (JsonObject or JsonArray) && child.IsReadOnly)
+				{
+					copy ??= items.ToArray();
+					copy[i] = child.Copy();
+				}
+			}
+
+			if (copy == null)
+			{ // already mutable
+				return this;
+			}
+
+			return new(copy, items.Length, readOnly: false);
+		}
+
 		/// <summary>Deserialize a JSON Array into a list of objects of the specified type</summary>
 		/// <typeparam name="T">Type des éléments de la liste</typeparam>
 		/// <param name="value">JSON array that contains the elements to bind</param>

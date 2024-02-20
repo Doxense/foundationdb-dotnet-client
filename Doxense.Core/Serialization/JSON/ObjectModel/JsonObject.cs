@@ -224,6 +224,38 @@ namespace Doxense.Serialization.Json
 			return new(map, readOnly: true);
 		}
 
+		/// <summary>Convert this JSON Object so that it, or any of its children that were previously read-only, can be mutated.</summary>
+		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
+		/// <remarks>
+		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
+		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (strings, booleans, numbers, ...) that are always immutable.</para>
+		/// </remarks>
+		public override JsonObject ToMutable()
+		{
+			if (m_readOnly)
+			{ // create a mutable copy
+				return Copy();
+			}
+
+			// the top-level is mutable, but maybe it has read-only children?
+			Dictionary<string, JsonValue>? copy = null;
+			foreach (var (k, v) in m_items)
+			{
+				if (v is (JsonObject or JsonArray) && v.IsReadOnly)
+				{
+					copy ??= new (m_items.Count, m_items.Comparer);
+					copy[k] = v.Copy();
+				}
+			}
+
+			if (copy == null)
+			{ // already mutable
+				return this;
+			}
+
+			return new(copy, readOnly: false);
+		}
+
 		/// <summary>Return a new mutable copy of this JSON array (and all of its children)</summary>
 		/// <returns>A deep copy of this array and its children.</returns>
 		/// <remarks>

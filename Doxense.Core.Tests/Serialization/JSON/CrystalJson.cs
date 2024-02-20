@@ -3739,7 +3739,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr.Get<int>(1), Is.EqualTo(123));
 			Assert.That(arr.ToArray(), Is.EqualTo(new[] { JsonString.Return("hello"), JsonNumber.Return(123) }));
 			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello",123]"""));
-
 		}
 
 		[Test]
@@ -4612,6 +4611,355 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
+		[Test]
+		public void Test_JsonArray_ReadOnly_Empty()
+		{
+			Assert.That(JsonArray.EmptyReadOnly.IsReadOnly, Is.True);
+			//note: we don't want to attempt to modify the empty readonly singleton, because if the test fails, it will completely break ALL the reamining tests!
+
+			static void CheckEmptyReadOnly(JsonArray arr, [CallerArgumentExpression(nameof(arr))] string? expression = null)
+			{
+				Assert.That(arr, Has.Count.Zero, expression);
+				AssertIsImmutable(arr, expression);
+				Assert.That(arr, Has.Count.Zero, expression);
+			}
+
+			CheckEmptyReadOnly(JsonArray.CreateReadOnly());
+			CheckEmptyReadOnly(JsonArray.CreateReadOnly([]));
+			CheckEmptyReadOnly(JsonArray.Create().ToReadOnly());
+			CheckEmptyReadOnly(JsonArray.Copy(JsonArray.Create(), deep: false, readOnly: true));
+			CheckEmptyReadOnly(JsonArray.Copy(JsonArray.Create(), deep: true, readOnly: true));
+
+			var arr = JsonArray.Create("hello", "world");
+			arr.Remove("hello");
+			CheckEmptyReadOnly(arr.ToReadOnly());
+			CheckEmptyReadOnly(JsonArray.Copy(arr, deep: false, readOnly: true));
+			CheckEmptyReadOnly(JsonArray.Copy(arr, deep: true, readOnly: true));
+		}
+
+		[Test]
+		public void Test_JsonArray_ReadOnly()
+		{
+			// creating a readonly object with only immutable values should produce an immutable object
+			AssertIsImmutable(JsonArray.CreateReadOnly("one", 1));
+			AssertIsImmutable(JsonArray.CreateReadOnly("one", 1, "two", 2));
+			AssertIsImmutable(JsonArray.CreateReadOnly("one", 1, "two", 2, "three", 3));
+			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
+
+			// creating an immutable version of a writable object with only immutable should return an immutable object
+			AssertIsImmutable(JsonArray.Create("one", 1).ToReadOnly());
+			AssertIsImmutable(JsonArray.Create("one", 1, "two", 2, "three", 3).ToReadOnly());
+
+			// parsing with JsonImmutable should return an already immutable object
+			const string JSON = """{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""";
+			var obj = JsonValue.ParseObject(JSON, CrystalJsonSettings.JsonReadOnly)!;
+			AssertIsImmutable(obj);
+			var foo = obj.GetObject("foo", required: true)!;
+			AssertIsImmutable(foo);
+			var addr = foo.GetObject("address", required: true)!;
+			AssertIsImmutable(addr);
+			var bar = obj.GetArray("bar", required: true)!;
+			AssertIsImmutable(bar);
+			var baz = obj.GetArray("baz", required: true)!;
+			AssertIsImmutable(baz);
+			var jazz = baz.GetObject(0, required: true)!;
+			AssertIsImmutable(jazz);
+		}
+
+		[Test]
+		public void Test_JsonArray_Freeze()
+		{
+			// ensure that, given a mutable JSON object, we can create an immutable version that is protected against any changes
+
+			// the original object should be mutable
+			var arr = new JsonArray
+			{
+				"hello",
+				"world",
+				new JsonObject { ["bar"] = "baz" },
+				new JsonArray { 1, 2, 3 }
+			};
+			Assert.That(arr.IsReadOnly, Is.False);
+			// the inner object and array should be mutable as well
+			var innerObj = arr.GetObject(2, required: true)!;
+			Assert.That(arr.IsReadOnly, Is.False);
+			var innerArray = arr.GetArray(3, required: true)!;
+			Assert.That(arr.IsReadOnly, Is.False);
+
+			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
+
+			var arr2 = arr.Freeze();
+			Assert.That(arr2, Is.SameAs(arr), "Freeze() should return the same instance");
+			AssertIsImmutable(arr2, "obj.Freeze()");
+
+			// the inner object should also have been frozen!
+			var innerObj2 = arr2.GetObject(2, required: true)!;
+			Assert.That(innerObj2, Is.SameAs(innerObj));
+			Assert.That(innerObj2.IsReadOnly, Is.True);
+			AssertIsImmutable(innerObj2, "(obj.Freeze())[\"foo\"]");
+
+			// the inner array should also have been frozen!
+			var innerArray2 = arr2.GetArray(3, required: true)!;
+			Assert.That(innerArray2, Is.SameAs(innerArray));
+			Assert.That(innerArray2.IsReadOnly, Is.True);
+			AssertIsImmutable(innerArray2, "(obj.Freeze())[\"bar\"]");
+
+			Assert.That(arr2.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
+
+			// if we want to mutate, we have to create a copy
+			var arr3 = arr2.Copy();
+
+			// the copy should still be equal to the original
+			Assert.That(arr3, Is.Not.SameAs(arr2), "it should return a new instance");
+			Assert.That(arr3, Is.EqualTo(arr2), "It should still be equal");
+			var innerObj3 = arr3.GetObject(2, required: true)!;
+			Assert.That(innerObj3, Is.Not.SameAs(innerObj2), "inner object should be cloned");
+			Assert.That(innerObj3, Is.EqualTo(innerObj2), "It should still be equal");
+			var innerArray3 = arr3.GetArray(3, required: true)!;
+			Assert.That(innerArray3, Is.Not.SameAs(innerArray2), "inner array should be cloned");
+			Assert.That(innerArray3, Is.EqualTo(innerArray2), "It should still be equal");
+
+			// should be aable to change the copy
+			Assert.That(arr3, Has.Count.EqualTo(4));
+			Assert.That(() => arr3.Add("bonjour"), Throws.Nothing);
+			Assert.That(arr3, Has.Count.EqualTo(5));
+			Assert.That(arr3, Is.Not.EqualTo(arr2), "It should still not be equal after the change");
+			Assert.That(innerObj3, Is.EqualTo(innerObj2), "It should still be equal");
+			Assert.That(innerArray3, Is.EqualTo(innerArray2), "It should still be equal");
+
+			// should be able to mutate the inner object
+			Assert.That(innerObj3, Has.Count.EqualTo(1));
+			Assert.That(() => innerObj3["baz"] = "jazz", Throws.Nothing);
+			Assert.That(innerObj3, Has.Count.EqualTo(2));
+			Assert.That(innerObj3, Is.Not.EqualTo(innerObj2), "It should still not be equal after the change");
+
+			// should be able to mutate the inner array
+			Assert.That(innerArray3, Has.Count.EqualTo(3));
+			Assert.That(() => innerArray3.Add(4), Throws.Nothing);
+			Assert.That(innerArray3, Has.Count.EqualTo(4));
+			Assert.That(innerArray3, Is.Not.EqualTo(innerArray2), "It should still not be equal after the change");
+
+			// verify the final mutated version
+			Assert.That(arr3.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz","baz":"jazz"},[1,2,3,4],"bonjour"]"""));
+			// ensure the original is unmodified
+			Assert.That(arr2.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
+		}
+
+		[Test]
+		public void Test_JsonArray_Can_Mutate_Frozen()
+		{
+			// given an immutable object, check that we can create mutable version that will not modifiy the original
+			var original = new JsonArray
+			{
+				"hello",
+				"world",
+				new JsonObject { ["bar"] = "baz" },
+				new JsonArray { 1, 2, 3 }
+			}.Freeze();
+			Dump("Original", original);
+			EnsureDeepImmutabilityInvariant(original);
+
+			// create a "mutable" version of the entire tree
+			var obj = original.ToMutable();
+			Dump("Copy", obj);
+			Assert.That(obj.IsReadOnly, Is.False, "Copy should be not be read-only!");
+			Assert.That(obj, Is.Not.SameAs(original));
+			Assert.That(obj, Is.EqualTo(original));
+			Assert.That(obj[0], Is.SameAs(original[0]));
+			Assert.That(obj[1], Is.SameAs(original[1]));
+			Assert.That(obj.GetObject(2), Is.Not.SameAs(original.GetObject(2)));
+			Assert.That(obj.GetArray(3), Is.Not.SameAs(original.GetArray(3)));
+			EnsureDeepMutabilityInvariant(obj);
+
+			obj[0] = "le monde";
+			obj.GetObject(2)!.Remove("bar");
+			obj.GetObject(2)!.Add("baz", "bar");
+			obj.GetArray(3)!.Add(4);
+			obj.Add(42);
+			Dump("Mutated", obj);
+			// ensure the copy have been mutated
+			Assert.That(obj.Get<string>(0), Is.EqualTo("le monde"));
+			Assert.That(obj.GetObject(2)!.Get<string>("bar"), Is.Null);
+			Assert.That(obj.GetObject(2)!.Get<string>("baz"), Is.EqualTo("bar"));
+			Assert.That(obj.GetArray(3), Has.Count.EqualTo(4));
+			Assert.That(obj.Get<int?>(4), Is.EqualTo(42));
+			Assert.That(obj, Is.Not.EqualTo(original));
+
+			// ensure the original is not mutated
+			Dump("Original", original);
+			Assert.That(original.Get<string>(0), Is.EqualTo("hello"));
+			Assert.That(original.GetObject(2)!.Get<string>("bar"), Is.EqualTo("baz"));
+			Assert.That(original.GetObject(2)!.Get<string>("baz"), Is.Null);
+			Assert.That(original.GetArray(3), Has.Count.EqualTo(3));
+			Assert.That(original, Has.Count.EqualTo(4));
+		}
+
+		#endregion
+
+		#region Checks...
+
+		private static void AssertIsImmutable(JsonObject? obj, [CallerArgumentExpression(nameof(obj))] string? expression = "")
+		{
+			Assert.That(obj, Is.Not.Null);
+			Assert.That(obj!.IsReadOnly, Is.True, "Object should be immutable: " + expression);
+			Assert.That(() => obj.Clear(), Throws.InvalidOperationException, expression);
+			Assert.That(() => obj.Add("hello", "world"), Throws.InvalidOperationException);
+			Assert.That(() => obj["hello"] = "world", Throws.InvalidOperationException, expression);
+			Assert.That(() => obj.Add(KeyValuePair.Create("hello", JsonString.Return("world"))), Throws.InvalidOperationException, expression);
+			Assert.That(() => obj.AddRange(new [] { KeyValuePair.Create("hello", JsonString.Return("world")) }), Throws.InvalidOperationException, expression);
+			Assert.That(() => obj.TryAdd("hello", "world"), Throws.InvalidOperationException, expression);
+			Assert.That(() => obj.Remove("hello"), Throws.InvalidOperationException, expression);
+			Assert.That(() => obj.Remove("hello", out _), Throws.InvalidOperationException, expression);
+			Assert.That(() => obj.Remove(KeyValuePair.Create("hello", JsonString.Return("world"))), Throws.InvalidOperationException, expression);
+		}
+
+		private static void AssertIsImmutable(JsonArray? arr, [CallerArgumentExpression(nameof(arr))] string? expression = "")
+		{
+			Assert.That(arr, Is.Not.Null);
+			Assert.That(arr!.IsReadOnly, Is.True, expression);
+			Assert.That(() => arr.Clear(), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr[0] = "world", Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.Set(0, "hello"), Throws.InvalidOperationException);
+			Assert.That(() => arr.Add("hello"), Throws.InvalidOperationException);
+			Assert.That(() => arr.AddValue("hello"), Throws.InvalidOperationException);
+			Assert.That(() => arr.AddNull(), Throws.InvalidOperationException);
+			Assert.That(() => arr.AddRange(Array.Empty<JsonValue>().AsSpan()), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.AddRange(Array.Empty<JsonValue>()), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.AddRange(Enumerable.Empty<JsonValue>()), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.AddValues<int>(Array.Empty<int>().AsSpan()), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.AddValues<int>(Array.Empty<int>()), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.AddValues(Enumerable.Empty<int>()), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.AddValues(Enumerable.Empty<int>(), x => x.ToString()), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.Insert(0, 123), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.RemoveAt(0), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.Remove("helo"), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.RemoveDuplicates(), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.RemoveAll(_ => true), Throws.InvalidOperationException, expression);
+			Assert.That(() => arr.KeepOnly(_ => true), Throws.InvalidOperationException, expression);
+		}
+
+		private static void EnsureDeepImmutabilityInvariant(JsonValue value, string? path = null)
+		{
+			switch (value)
+			{
+				case JsonObject obj:
+				{
+					EnsureDeepImmutabilityInvariant(obj, path);
+					break;
+				}
+				case JsonArray arr:
+				{
+					EnsureDeepImmutabilityInvariant(arr, path);
+					break;
+				}
+			}
+		}
+
+		private static void EnsureDeepImmutabilityInvariant(JsonObject obj, string? path = null)
+		{
+			Assert.That(obj.IsReadOnly, Is.True, $"Object at {path} should be immutable");
+
+			foreach (var (k, v) in obj)
+			{
+				switch (v)
+				{
+					case JsonObject o:
+					{
+						EnsureDeepImmutabilityInvariant(o, path != null ? (path + "." + k) : k);
+						break;
+					}
+					case JsonArray a:
+					{
+						EnsureDeepImmutabilityInvariant(a, path != null ? (path + "." + k) : k);
+						break;
+					}
+				}
+			}
+		}
+
+		private static void EnsureDeepImmutabilityInvariant(JsonArray arr, string? path = null)
+		{
+			Assert.That(arr.IsReadOnly, Is.True, $"Object at {path} should be immutable");
+
+			for(int i = 0; i < arr.Count; i++)
+			{
+				switch (arr[i])
+				{
+					case JsonObject o:
+					{
+						EnsureDeepImmutabilityInvariant(o, path + "[" + i + "]");
+						break;
+					}
+					case JsonArray a:
+					{
+						EnsureDeepImmutabilityInvariant(a, path + "[" + i + "]");
+						break;
+					}
+				}
+			}
+		}
+
+		private static void EnsureDeepMutabilityInvariant(JsonValue value, string? path = null)
+		{
+			switch (value)
+			{
+				case JsonObject obj:
+				{
+					EnsureDeepMutabilityInvariant(obj, path);
+					break;
+				}
+				case JsonArray arr:
+				{
+					EnsureDeepMutabilityInvariant(arr, path);
+					break;
+				}
+			}
+		}
+
+		private static void EnsureDeepMutabilityInvariant(JsonObject obj, string? path = null)
+		{
+			Assert.That(obj.IsReadOnly, Is.False, $"Object at {path} should be mutable");
+
+			foreach (var (k, v) in obj)
+			{
+				switch (v)
+				{
+					case JsonObject o:
+					{
+						EnsureDeepMutabilityInvariant(o, path != null ? (path + "." + k) : k);
+						break;
+					}
+					case JsonArray a:
+					{
+						EnsureDeepMutabilityInvariant(a, path != null ? (path + "." + k) : k);
+						break;
+					}
+				}
+			}
+		}
+
+		private static void EnsureDeepMutabilityInvariant(JsonArray arr, string? path = null)
+		{
+			Assert.That(arr.IsReadOnly, Is.False, $"Array at {path} should be mutable");
+
+			for(int i = 0; i < arr.Count; i++)
+			{
+				switch (arr[i])
+				{
+					case JsonObject o:
+					{
+						EnsureDeepMutabilityInvariant(o, path + "[" + i + "]");
+						break;
+					}
+					case JsonArray a:
+					{
+						EnsureDeepMutabilityInvariant(a, path + "[" + i + "]");
+						break;
+					}
+				}
+			}
+		}
+
 		#endregion
 
 		#region JsonObject...
@@ -5288,46 +5636,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(p.Count, Is.EqualTo(1));
 		}
 
-		private static void AssertIsImmutable(JsonObject? obj, [CallerArgumentExpression(nameof(obj))] string? expression = "")
-		{
-			Assert.That(obj, Is.Not.Null);
-			Assert.That(obj!.IsReadOnly, Is.True, "Object should be immutable: " + expression);
-			Assert.That(() => obj.Clear(), Throws.InvalidOperationException, expression);
-			Assert.That(() => obj.Add("hello", "world"), Throws.InvalidOperationException);
-			Assert.That(() => obj["hello"] = "world", Throws.InvalidOperationException, expression);
-			Assert.That(() => obj.Add(KeyValuePair.Create("hello", JsonString.Return("world"))), Throws.InvalidOperationException, expression);
-			Assert.That(() => obj.AddRange(new [] { KeyValuePair.Create("hello", JsonString.Return("world")) }), Throws.InvalidOperationException, expression);
-			Assert.That(() => obj.TryAdd("hello", "world"), Throws.InvalidOperationException, expression);
-			Assert.That(() => obj.Remove("hello"), Throws.InvalidOperationException, expression);
-			Assert.That(() => obj.Remove("hello", out _), Throws.InvalidOperationException, expression);
-			Assert.That(() => obj.Remove(KeyValuePair.Create("hello", JsonString.Return("world"))), Throws.InvalidOperationException, expression);
-		}
-
-		private static void AssertIsImmutable(JsonArray? arr, [CallerArgumentExpression(nameof(arr))] string expression = "")
-		{
-			Assert.That(arr, Is.Not.Null);
-			Assert.That(arr!.IsReadOnly, Is.True, expression);
-			Assert.That(() => arr.Clear(), Throws.InvalidOperationException, expression, expression);
-			Assert.That(() => arr[0] = "world", Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.Set(0, "hello"), Throws.InvalidOperationException);
-			Assert.That(() => arr.Add("hello"), Throws.InvalidOperationException);
-			Assert.That(() => arr.AddValue("hello"), Throws.InvalidOperationException);
-			Assert.That(() => arr.AddNull(), Throws.InvalidOperationException);
-			Assert.That(() => arr.AddRange(Array.Empty<JsonValue>().AsSpan()), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.AddRange(Array.Empty<JsonValue>()), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.AddRange(Enumerable.Empty<JsonValue>()), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.AddValues<int>(Array.Empty<int>().AsSpan()), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.AddValues<int>(Array.Empty<int>()), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.AddValues(Enumerable.Empty<int>()), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.AddValues(Enumerable.Empty<int>(), x => x.ToString()), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.Insert(0, 123), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.RemoveAt(0), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.Remove("helo"), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.RemoveDuplicates(), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.RemoveAll(_ => true), Throws.InvalidOperationException, expression);
-			Assert.That(() => arr.KeepOnly(_ => true), Throws.InvalidOperationException, expression);
-		}
-
 		[Test]
 		public void Test_JsonObject_ReadOnly_Empty()
 		{
@@ -5462,132 +5770,10 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj2.ToJsonCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
 		}
 
-		private static void EnsureDeepImmutabilityInvariant(JsonValue value, string? path = null)
-		{
-			switch (value)
-			{
-				case JsonObject obj:
-				{
-					EnsureDeepImmutabilityInvariant(obj, path);
-					break;
-				}
-				case JsonArray arr:
-				{
-					EnsureDeepImmutabilityInvariant(arr, path);
-					break;
-				}
-			}
-		}
-
-		private static void EnsureDeepImmutabilityInvariant(JsonObject obj, string? path = null)
-		{
-			Assert.That(obj.IsReadOnly, Is.True, $"Object at {path} should be immutable");
-
-			foreach (var (k, v) in obj)
-			{
-				switch (v)
-				{
-					case JsonObject o:
-					{
-						EnsureDeepImmutabilityInvariant(o, path != null ? (path + "." + k) : k);
-						break;
-					}
-					case JsonArray a:
-					{
-						EnsureDeepImmutabilityInvariant(a, path != null ? (path + "." + k) : k);
-						break;
-					}
-				}
-			}
-		}
-
-		private static void EnsureDeepImmutabilityInvariant(JsonArray arr, string? path = null)
-		{
-			Assert.That(arr.IsReadOnly, Is.True, $"Object at {path} should be immutable");
-
-			for(int i = 0; i < arr.Count; i++)
-			{
-				switch (arr[i])
-				{
-					case JsonObject o:
-					{
-						EnsureDeepImmutabilityInvariant(o, path + "[" + i + "]");
-						break;
-					}
-					case JsonArray a:
-					{
-						EnsureDeepImmutabilityInvariant(a, path + "[" + i + "]");
-						break;
-					}
-				}
-			}
-		}
-
-		private static void EnsureDeepMutabilityInvariant(JsonValue value, string? path = null)
-		{
-			switch (value)
-			{
-				case JsonObject obj:
-				{
-					EnsureDeepMutabilityInvariant(obj, path);
-					break;
-				}
-				case JsonArray arr:
-				{
-					EnsureDeepMutabilityInvariant(arr, path);
-					break;
-				}
-			}
-		}
-
-		private static void EnsureDeepMutabilityInvariant(JsonObject obj, string? path = null)
-		{
-			Assert.That(obj.IsReadOnly, Is.False, $"Object at {path} should be mutable");
-
-			foreach (var (k, v) in obj)
-			{
-				switch (v)
-				{
-					case JsonObject o:
-					{
-						EnsureDeepMutabilityInvariant(o, path != null ? (path + "." + k) : k);
-						break;
-					}
-					case JsonArray a:
-					{
-						EnsureDeepMutabilityInvariant(a, path != null ? (path + "." + k) : k);
-						break;
-					}
-				}
-			}
-		}
-
-		private static void EnsureDeepMutabilityInvariant(JsonArray arr, string? path = null)
-		{
-			Assert.That(arr.IsReadOnly, Is.False, $"Array at {path} should be mutable");
-
-			for(int i = 0; i < arr.Count; i++)
-			{
-				switch (arr[i])
-				{
-					case JsonObject o:
-					{
-						EnsureDeepMutabilityInvariant(o, path + "[" + i + "]");
-						break;
-					}
-					case JsonArray a:
-					{
-						EnsureDeepMutabilityInvariant(a, path + "[" + i + "]");
-						break;
-					}
-				}
-			}
-		}
-
 		[Test]
-		public void Test_JsonObject_Mutate_Frozen()
+		public void Test_JsonObject_Can_Mutate_Frozen()
 		{
-			// given an immutable object, check that we can createa mutable version that will not modifiy the original
+			// given an immutable object, check that we can create mutable version that will not modifiy the original
 			var original = new JsonObject
 			{
 				["hello"] = "world",
@@ -5598,7 +5784,7 @@ namespace Doxense.Serialization.Json.Tests
 			EnsureDeepImmutabilityInvariant(original);
 
 			// create a "mutable" version of the entire tree
-			var obj = original.Copy();
+			var obj = original.ToMutable();
 			Dump("Copy", obj);
 			Assert.That(obj.IsReadOnly, Is.False, "Copy should be not be read-only!");
 			Assert.That(obj, Is.Not.SameAs(original));

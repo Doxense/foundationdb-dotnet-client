@@ -109,7 +109,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public virtual JsonValue ToReadOnly() => this;
 
-		/// <summary>Converft this JSON value so that it, or any of its children that were previously read-only, can be mutated.</summary>
+		/// <summary>Convert this JSON value so that it, or any of its children that were previously read-only, can be mutated.</summary>
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
 		/// <remarks>
 		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
@@ -141,7 +141,11 @@ namespace Doxense.Serialization.Json
 		public virtual string ToJson(CrystalJsonSettings? settings = null)
 		{
 			// implémentation générique
-			if (this.IsNull) return JsonTokens.Null;
+			if (this.IsNull)
+			{
+				return JsonTokens.Null;
+			}
+
 			var sb = new StringBuilder(this is JsonArray or JsonObject ? 256 : 64);
 			var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, null);
 			JsonSerialize(writer);
