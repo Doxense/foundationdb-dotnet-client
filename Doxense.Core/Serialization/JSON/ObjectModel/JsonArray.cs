@@ -766,43 +766,30 @@ namespace Doxense.Serialization.Json
 		private static void FailArrayIsReadOnly() => throw new InvalidOperationException("Cannot mutate a read-only JSON array.");
 
 		/// <inheritdoc cref="JsonValue.this[int]"/>
+		[AllowNull] // only for the setter
 		public override JsonValue this[int index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				// Following trick can reduce the range check by one
-				if ((uint) index >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
-				return m_items[index];
-			}
+			get => m_items.AsSpan(0, m_size)[index];
 			set
 			{
 				if (m_readOnly) FailArrayIsReadOnly();
 				Contract.Debug.Requires(!ReferenceEquals(this, value));
-				if ((uint) index >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(index);
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				m_items[index] = value ?? JsonNull.Null;
+				m_items.AsSpan(0, m_size)[index] = value ?? JsonNull.Null;
 			}
 		}
 
-		public JsonValue this[Index index]
+		/// <inheritdoc cref="JsonValue.this[Index]"/>
+		[AllowNull] // only for the setter
+		public override JsonValue this[Index index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				var offset = index.GetOffset(m_size);
-				// Following trick can reduce the range check by one
-				if ((uint) offset >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(offset);
-				return m_items[offset];
-			}
+			get => m_items.AsSpan(0, m_size)[index];
 			set
 			{
 				if (m_readOnly) FailArrayIsReadOnly();
 				Contract.Debug.Requires(!ReferenceEquals(this, value));
-				var offset = index.GetOffset(m_size);
-				if ((uint) offset >= (uint) m_size) ThrowHelper.ThrowArgumentOutOfRangeIndex(offset);
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				m_items[offset] = value ?? JsonNull.Null;
+				m_items.AsSpan(0, m_size)[index] = value ?? JsonNull.Null;
 			}
 		}
 
@@ -813,7 +800,10 @@ namespace Doxense.Serialization.Json
 			Contract.Debug.Requires(!ReferenceEquals(this, value));
 			// invariant: adding 'null' will add JsonNull.Null
 			int size = m_size;
-			if (size == m_items.Length) EnsureCapacity(size + 1);
+			if (size == m_items.Length)
+			{
+				EnsureCapacity(size + 1);
+			}
 			m_items[size] = value ?? JsonNull.Null;
 			m_size = size + 1;
 		}
@@ -1914,7 +1904,23 @@ namespace Doxense.Serialization.Json
 		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use GetValue(int) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public JsonValue Get(int index) => this[index];
+
+		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
+		/// <param name="index">Index de l'élément à retourner</param>
+		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue GetValue(int index) => m_items.AsSpan(0, m_size)[index];
+
+		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
+		/// <param name="index">Index de l'élément à retourner</param>
+		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue GetValue(Index index) => m_items.AsSpan(0, m_size)[index];
 
 		/// <summary>Returns the converted value at the specified index in this array</summary>
 		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
@@ -1924,29 +1930,121 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TValue? Get<TValue>(int index) => m_items.AsSpan(0, m_size)[index].As<TValue>();
 
+		/// <summary>Returns the converted value at the specified index in this array</summary>
+		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
+		/// <param name="index">Index of the value in the array</param>
+		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="TValue"/></returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TValue? Get<TValue>(Index index) => m_items.AsSpan(0, m_size)[index].As<TValue>();
+
 		[CollectionAccess(CollectionAccessType.Read)]
+		[Obsolete("Use TryGetValue(int, out JsonValue) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryGet(int index, [MaybeNullWhen(false)] out JsonValue value)
+			=> TryGetValue(index, out value);
+
+		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="value">When this method returns, the value located at the specified index, if the index is inside the bounds of the array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public bool TryGetValue(int index, [MaybeNullWhen(false)] out JsonValue value)
 		{
-			if (index >= 0 & index < this.Count)
+			if ((uint) index < m_size)
 			{
-				value = this[index];
+				value = m_items[index];
 				return true;
 			}
 			value = default;
 			return false;
 		}
 
-		[CollectionAccess(CollectionAccessType.Read)]
-		public bool TryGet<T>(int index, out T? value)
+		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="value">When this method returns, the value located at the specified index, if the index is inside the bounds of the array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public bool TryGetValue(Index index, [MaybeNullWhen(false)] out JsonValue value)
 		{
-			if (index >= 0 & index < this.Count)
+			var offset = index.GetOffset(m_size);
+			if ((uint) offset < m_size)
 			{
-				value = this[index].As<T>();
+				value = m_items[offset];
 				return true;
 			}
-			value = default(T);
+			value = default;
 			return false;
 		}
+
+		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="value">When this method returns, the value located at the specified index converted into type <typeparamref name="TValue"/>, if the index is inside the bounds of the array; otherwise, the default value for the type of the <paramref name="value" /> parameter. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public bool TryGet<TValue>(int index, out TValue? value)
+		{
+			if ((uint) index < m_size)
+			{
+				value = m_items[index].As<TValue>();
+				return true;
+			}
+			value = default;
+			return false;
+		}
+
+		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="value">When this method returns, the value located at the specified index converted into type <typeparamref name="TValue"/>, if the index is inside the bounds of the array; otherwise, the default value for the type of the <paramref name="value" /> parameter. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public bool TryGet<TValue>(Index index, out TValue? value)
+		{
+			var offset = index.GetOffset(m_size);
+			if ((uint) offset < m_size)
+			{
+				value = m_items[offset].As<TValue>();
+				return true;
+			}
+			value = default;
+			return false;
+		}
+
+		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
+		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array.</returns>
+		public JsonValue GetValueOrDefault(int index, JsonValue? defaultValue) => TryGetValue(index, out var res) ? res : (defaultValue ?? JsonNull.Missing);
+
+		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
+		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array.</returns>
+		public JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue) => TryGetValue(index, out var res) ? res : (defaultValue ?? JsonNull.Missing);
+
+		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <returns>The value located at the specified indexconverted into type <typeparamref name="TValue"/>, or the <see langword="default"/> of type <typeparamref name="TValue"/> if the index is outside the bounds of the array.</returns>
+		public TValue? GetOrDefault<TValue>(int index) => TryGetValue(index, out var res) ? res.As<TValue>() : default;
+
+		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <returns>The value located at the specified indexconverted into type <typeparamref name="TValue"/>, or the <see langword="default"/> of type <typeparamref name="TValue"/> if the index is outside the bounds of the array.</returns>
+		public TValue? GetOrDefault<TValue>(Index index) => TryGetValue(index, out var res) ? res.As<TValue>() : default;
+
+		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
+		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? GetOrDefault<TValue>(int index, TValue? defaultValue) => TryGetValue(index, out var res) ? (res.As<TValue>() ?? defaultValue) : defaultValue;
+
+		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
+		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? GetOrDefault<TValue>(Index index, TValue? defaultValue) => TryGetValue(index, out var res) ? (res.As<TValue>() ?? defaultValue) : defaultValue;
 
 		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
 		/// <param name="index">Index de l'objet à retourner</param>
@@ -1958,6 +2056,22 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read)]
 		public JsonObject? GetObject(int index, bool required = false) => this[index].AsObject(required);
 
+		/// <summary>Returns the JSON Object at the specified index</summary>
+		/// <param name="index">Index of the Object to retrieve</param>
+		/// <returns>Value of the object at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Object</returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
+		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Object.</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonObject? GetObjectOrDefault(int index) => GetValue(index).AsObject(required: false);
+
+		/// <summary>Returns the JSON Object at the specified index</summary>
+		/// <param name="index">Index of the Object to retrieve</param>
+		/// <returns>Value of the object at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Object</returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
+		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Object.</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonObject? GetObjectOrDefault(Index index) => GetValue(index).AsObject(required: false);
+
 		/// <summary>Retourne la valeur à l'index spécifié sous forme d'array JSON</summary>
 		/// <param name="index">Index de l'array à retourner</param>
 		/// <param name="required">Si true et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
@@ -1967,6 +2081,22 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray? GetArray(int index, bool required = false) => this[index].AsArray(required);
+
+		/// <summary>Returns the JSON Array at the specified index</summary>
+		/// <param name="index">Index of the Array to retrieve</param>
+		/// <returns>Value of the array at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Array</returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
+		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Array.</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonArray? GetArrayOrDefault(int index) => this[index].AsArray(required: false);
+
+		/// <summary>Returns the JSON Array at the specified index</summary>
+		/// <param name="index">Index of the Array to retrieve</param>
+		/// <returns>Value of the array at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Array</returns>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
+		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Array.</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonArray? GetArrayOrDefault(Index index) => this[index].AsArray(required: false);
 
 		/// <summary>Determines the index of a specific value in the JSON array.</summary>
 		/// <param name="item">The value to locate in the array.</param>
@@ -2016,6 +2146,12 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public void Set(Index index, JsonValue? item)
+		{
+			Set(index.GetOffset(m_size), item);
+		}
+
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void SetAfterResize(int index, JsonValue? item)
 		{
@@ -2053,6 +2189,12 @@ namespace Doxense.Serialization.Json
 			//TODO: versionning?
 		}
 
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public void Insert(Index index, JsonValue? item)
+		{
+			Insert(index.GetOffset(m_size), item);
+		}
+
 		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public bool Remove(JsonValue item)
@@ -2085,6 +2227,12 @@ namespace Doxense.Serialization.Json
 		
 			items[size] = default!; // clear the reference to prevent any GC leak!
 			m_size = size;
+		}
+
+		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+		public void RemoveAt(Index index)
+		{
+			RemoveAt(index.GetOffset(m_size));
 		}
 
 		/// <summary>Copies the contents of this JSON array into a destination <see cref="T:System.Span`1" />.</summary>
@@ -2249,6 +2397,13 @@ namespace Doxense.Serialization.Json
 
 			// return a new array wrapping these items
 			return new JsonArray(tmp.ToArray(), tmp.Length, m_readOnly);
+		}
+
+		/// <summary>Returns a new JSON array with a shallow copy of all the items starting from the specified index</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public JsonArray GetRange(Index index)
+		{
+			return GetRange(index.GetOffset(m_size));
 		}
 
 		[CollectionAccess(CollectionAccessType.Read)]
@@ -4064,6 +4219,8 @@ namespace Doxense.Serialization.Json
 				return (m_items[index] as TJson) ?? GetNextNullOrInvalid(index)!;
 			}
 		}
+
+		public TJson this[Index index] => this[index.GetOffset(m_size)];
 
 		private TJson? GetNextNullOrInvalid(int index)
 		{

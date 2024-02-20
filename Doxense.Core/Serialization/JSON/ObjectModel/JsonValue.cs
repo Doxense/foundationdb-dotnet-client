@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
@@ -309,23 +310,39 @@ namespace Doxense.Serialization.Json
 		public virtual JsonValue this[string key]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
-			get => throw ThrowHelper.InvalidOperationException($"Cannot access child '{key}' on {this.GetType().Name}");
+			get => throw ThrowHelper.InvalidOperationException($"Cannot access child '{key}' on a JSON {this.Type}");
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
-			set => throw ThrowHelper.InvalidOperationException($"Cannot set child '{key}' on {this.GetType().Name}");
+			set => throw (this.IsReadOnly ? ThrowHelper.InvalidOperationException($"Cannot mutate a read-only JSON {this.Type}") : ThrowHelper.InvalidOperationException($"Cannot set child '{key}' on a JSON {this.Type}"));
 		}
 
-		/// <summary>Retourne la valeur d'un élément d'après son index, si cette valeur est une array JSON</summary>
-		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié. Une exception si cette valeur n'est pas une array JSON, ou si l'index est en dehors des bornes</returns>
-		/// <exception cref="System.InvalidOperationException">Cet valeur JSON ne supporte pas la notion d'indexation</exception>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
+		/// <summary>Returns the element at the specified index, if the current value is a JSON Array</summary>
+		/// <param name="index">Index of the element to return</param>
+		/// <returns>Value of the element at the specified <paramref name="index"/>. An exception is thrown if the current value is not a JSON Array, or if the element is outside the bounds of the array</returns>
+		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing</exception>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array</exception>
+		[AllowNull]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public virtual JsonValue this[int index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
-			get => throw ThrowHelper.InvalidOperationException($"Cannot access value at index {index} on a {this.GetType().Name}");
+			get => throw ThrowHelper.InvalidOperationException($"Cannot access value at index {index} on a JSON {this.Type}");
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
-			set => throw ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a {this.GetType().Name}");
+			set => throw (this.IsReadOnly ? ThrowHelper.InvalidOperationException($"Cannot mutate a read-only JSON {this.Type}") : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
+		}
+
+		/// <summary>Returns the element at the specified index, if the current value is a JSON Array</summary>
+		/// <param name="index">Index of the element to return</param>
+		/// <returns>Value of the element at the specified <paramref name="index"/>. An exception is thrown if the current value is not a JSON Array, or if the element is outside the bounds of the array</returns>
+		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing</exception>
+		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array</exception>
+		[AllowNull]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public virtual JsonValue this[Index index]
+		{
+			[Pure, CollectionAccess(CollectionAccessType.Read)]
+			get => throw ThrowHelper.InvalidOperationException($"Cannot access value at index {index} on a JSON {this.Type}");
+			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+			set => throw (this.IsReadOnly ? ThrowHelper.InvalidOperationException($"Cannot mutate a read-only JSON {this.Type}") : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
 		}
 
 		//BLACK MAGIC!

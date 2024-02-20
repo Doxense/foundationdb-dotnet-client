@@ -4630,8 +4630,8 @@ namespace Doxense.Serialization.Json.Tests
 			CheckEmptyReadOnly(JsonArray.Copy(JsonArray.Create(), deep: false, readOnly: true));
 			CheckEmptyReadOnly(JsonArray.Copy(JsonArray.Create(), deep: true, readOnly: true));
 
-			var arr = JsonArray.Create("hello", "world");
-			arr.Remove("hello");
+			var arr = JsonArray.Create("hello");
+			arr.RemoveAt(0);
 			CheckEmptyReadOnly(arr.ToReadOnly());
 			CheckEmptyReadOnly(JsonArray.Copy(arr, deep: false, readOnly: true));
 			CheckEmptyReadOnly(JsonArray.Copy(arr, deep: true, readOnly: true));
