@@ -28,6 +28,7 @@ namespace System
 {
 	using System;
 	using System.Buffers.Binary;
+	using System.Buffers.Text;
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
@@ -46,6 +47,8 @@ namespace System
 	public readonly struct Uuid128 : IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>, ISliceSerializable, ISpanFormattable
 #if NET8_0_OR_GREATER
 		, ISpanParsable<Uuid128>
+		, IUtf8SpanFormattable
+		, IUtf8SpanParsable<Uuid128>
 #endif
 	{
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)
@@ -167,7 +170,7 @@ namespace System
 		public static readonly Uuid128 Empty;
 
 		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
-		public static readonly Uuid128 MaxValue = new (new Guid(int.MaxValue, short.MaxValue, short.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
+		public static readonly Uuid128 MaxValue = new (new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;
@@ -253,12 +256,28 @@ namespace System
 
 		/// <summary>Parses a string into a <see cref="Uuid128"/></summary>
 		/// <param name="input">The string to parse.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="input" /> is <see langword="null" />.</exception>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
+		public static Uuid128 Parse(string input) => new(Guid.Parse(input));
+
+		/// <summary>Parses a string into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The string to parse.</param>
 		/// <param name="provider">This argument is ignored.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="input" /> is <see langword="null" />.</exception>
 		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
 		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
 		/// <returns>The result of parsing <paramref name="input" />.</returns>
-		public static Uuid128 Parse(string input, IFormatProvider? provider = null) => new(Guid.Parse(input));
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Uuid128 Parse(string input, IFormatProvider? provider) => new(Guid.Parse(input));
+
+		/// <summary>Parses a span of characters into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The span of characters to parse.</param>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
+		public static Uuid128 Parse(ReadOnlySpan<char> input) => new(Guid.Parse(input));
 
 		/// <summary>Parses a span of characters into a <see cref="Uuid128"/></summary>
 		/// <param name="input">The span of characters to parse.</param>
@@ -266,7 +285,75 @@ namespace System
 		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
 		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
 		/// <returns>The result of parsing <paramref name="input" />.</returns>
-		public static Uuid128 Parse(ReadOnlySpan<char> input, IFormatProvider? provider = null) => new(Guid.Parse(input));
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Uuid128 Parse(ReadOnlySpan<char> input, IFormatProvider? provider) => new(Guid.Parse(input));
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Parses a span of UTF-8 characters into a <see cref="Uuid128"/></summary>
+		/// <param name="utf8Text">The span of UTF-8 characters to parse.</param>
+		/// <param name="provider">This argument is ignored.</param>
+		/// <exception cref="T:System.FormatException"><paramref name="utf8Text" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="utf8Text" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="utf8Text" />.</returns>
+		public static Uuid128 Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider = null)
+		{
+			//TODO: REVIEW: there is currently (as of .NET 8) no overload for Guid.TryParse(RoS<byte>,...), so we have to use Utf8Parser.TryParse
+			// => the issue is that is only returns false, without any hint on the actual error.
+
+			// Guid.Parse/TryParse accept extra whitespaces (on both sides), so we have to trim...
+			utf8Text = utf8Text.Trim(" \t\r\n"u8);
+
+			if (utf8Text.Length == 38 && utf8Text[0] == '{' && utf8Text[37] == '}')
+			{
+				utf8Text = utf8Text[1..^1];
+			}
+			if (utf8Text.Length == 36)
+			{
+				if (!Utf8Parser.TryParse(utf8Text, out Guid g, out int consumed) || consumed != utf8Text.Length)
+				{
+					throw new FormatException("Input is not a valid Uuid128 literal.");
+				}
+				return new(g);
+			}
+			throw new FormatException("Unrecognized Uuid128 format");
+		}
+
+		/// <summary>Tries to parse a span of UTF-8 characters into a <see cref="Uuid128"/>.</summary>
+		/// <param name="utf8Text">The span of UTF-8 characters to parse.</param>
+		/// <param name="provider">An object that provides culture-specific formatting information about <paramref name="utf8Text" />.</param>
+		/// <param name="result">On return, contains the result of successfully parsing <paramref name="utf8Text" /> or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="utf8Text" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider, out Uuid128 result)
+			=> TryParse(utf8Text, out result);
+
+		/// <summary>Tries to parse a span of UTF-8 characters into a <see cref="Uuid128"/>.</summary>
+		/// <param name="utf8Text">The span of UTF-8 characters to parse.</param>
+		/// <param name="result">On return, contains the result of successfully parsing <paramref name="utf8Text" /> or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="utf8Text" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		public static bool TryParse(ReadOnlySpan<byte> utf8Text, out Uuid128 result)
+		{
+			//TODO: REVIEW: there is currently (as of .NET 8) no overload for Guid.TryParse(RoS<byte>,...), so we have to use Utf8Parser.TryParse
+			// => the issue is that is only returns false, without any hint on the actual error.
+
+			// Guid.Parse/TryParse accept extra whitespaces (on both sides), so we have to trim...
+			utf8Text = utf8Text.Trim(" \t\r\n"u8);
+
+			if (utf8Text.Length == 38 && utf8Text[0] == '{' && utf8Text[37] == '}')
+			{
+				utf8Text = utf8Text[1..^1];
+			}
+			if (utf8Text.Length == 36 && Utf8Parser.TryParse(utf8Text, out Guid g, out int consumed) && consumed == utf8Text.Length)
+			{
+				result = new(g);
+				return true;
+			}
+			result = default;
+			return false;
+		}
+
+#endif
 
 		/// <summary>Parses a string representation of an UUid128</summary>
 		public static Uuid128 ParseExact(string input, string format) => new(Guid.ParseExact(input, format));
@@ -678,6 +765,28 @@ namespace System
 			ReadOnlySpan<char> format = default,
 			IFormatProvider? provider = null
 		) => m_packed.TryFormat(destination, out charsWritten, format);
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Tries to format the value of the current instance UTF-8 into the provided span of bytes.</summary>
+		/// <param name="utf8Destination">The span in which to write this instance's value formatted as a span of bytes.</param>
+		/// <param name="bytesWritten">When this method returns, contains the number of bytes that were written in <paramref name="utf8Destination" />.</param>
+		/// <param name="format">A span containing the characters that represent a standard or custom format string that defines the acceptable format for <paramref name="utf8Destination" />.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns>
+		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryFormat(
+			Span<byte> utf8Destination,
+			out int bytesWritten,
+#if NET8_0_OR_GREATER
+			[StringSyntax("GuidFormat")]
+#endif
+			ReadOnlySpan<char> format = default,
+			IFormatProvider? provider = null
+		) => m_packed.TryFormat(utf8Destination, out bytesWritten, format);
+
+#endif
 
 		/// <summary>Increment the value of this UUID</summary>
 		/// <param name="value">Positive value</param>

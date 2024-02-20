@@ -252,17 +252,39 @@ namespace System
 
 		/// <summary>Parses a string into a <see cref="Uuid64"/></summary>
 		/// <param name="input">The string to parse.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="input" /> is <see langword="null" />.</exception>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 Parse(string input)
+		{
+			Contract.NotNull(input);
+			return TryParse(input.AsSpan(), out var value) ? value : throw FailInvalidFormat();
+		}
+
+		/// <summary>Parses a string into a <see cref="Uuid64"/></summary>
+		/// <param name="input">The string to parse.</param>
 		/// <param name="provider">This argument is ignored.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="input" /> is <see langword="null" />.</exception>
 		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
 		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
 		/// <returns>The result of parsing <paramref name="input" />.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Parse(string input, IFormatProvider? provider = null)
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Uuid64 Parse(string input, IFormatProvider? provider)
 		{
 			Contract.NotNull(input);
 			return TryParse(input.AsSpan(), out var value) ? value : throw FailInvalidFormat();
 		}
+
+		/// <summary>Parses a string into a <see cref="Uuid128"/></summary>
+		/// <param name="input">The string to parse.</param>
+		/// <exception cref="T:System.FormatException"><paramref name="input" /> is not in the correct format.</exception>
+		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
+		/// <returns>The result of parsing <paramref name="input" />.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 Parse(ReadOnlySpan<char> input) => TryParse(input, out var value) ? value : throw FailInvalidFormat();
 
 		/// <summary>Parses a string into a <see cref="Uuid128"/></summary>
 		/// <param name="input">The string to parse.</param>
@@ -271,7 +293,8 @@ namespace System
 		/// <exception cref="T:System.OverflowException"><paramref name="input" /> is not representable by a <see cref="Uuid128" />.</exception>
 		/// <returns>The result of parsing <paramref name="input" />.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Parse(ReadOnlySpan<char> input, IFormatProvider? provider = null) => TryParse(input, out var value) ? value : throw FailInvalidFormat();
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Uuid64 Parse(ReadOnlySpan<char> input, IFormatProvider? provider) => TryParse(input, out var value) ? value : throw FailInvalidFormat();
 
 		/// <summary>Parse a Base62 encoded string representation of an UUid64</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -285,6 +308,7 @@ namespace System
 		/// <param name="input">The string to parse.</param>
 		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[Pure]
 		public static bool TryParse(string? input, out Uuid64 result)
 		{
 			if (input == null)
@@ -300,7 +324,7 @@ namespace System
 		/// <param name="provider">This argument is ignored.</param>
 		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid64 result)
 			=> TryParse(input, out result);
@@ -310,6 +334,8 @@ namespace System
 		/// <param name="provider">This argument is ignored.</param>
 		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Uuid64 result)
 			=> TryParse(input, out result);
 
@@ -317,17 +343,21 @@ namespace System
 		/// <param name="input">The span of characters to parse.</param>
 		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[Pure]
 		public static bool TryParse(ReadOnlySpan<char> input, out Uuid64 result)
 		{
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
 
+			// note: Guid.Parse accepts leading and trailing whitespaces, so we have to replicate the behavior here
+			input = input.Trim();
+
 			switch (input.Length)
 			{
 				case 0:
-				{ // empty
+				{ // empty is NOT allowed
 					result = default;
-					return true;
+					return false;
 				}
 				case 16:
 				{ // xxxxxxxxxxxxxxxx

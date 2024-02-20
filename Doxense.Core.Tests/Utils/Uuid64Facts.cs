@@ -47,8 +47,21 @@ namespace Doxense.Core.Tests
 			Assert.That(Uuid64.Empty.ToString(), Is.EqualTo("00000000-00000000"));
 			Assert.That(Uuid64.Empty, Is.EqualTo(default(Uuid64)));
 			Assert.That(Uuid64.Empty, Is.EqualTo(new Uuid64(0L)));
-			Assert.That(Uuid64.Empty, Is.EqualTo(new Uuid64(0UL)));
-			Assert.That(Uuid64.Empty, Is.EqualTo(Uuid64.Read(new byte[8])));
+			Assert.That(Uuid64.Empty.ToUInt64(), Is.EqualTo(0));
+			Assert.That(Uuid64.Empty.ToInt64(), Is.EqualTo(0));
+			Assert.That(Uuid64.Empty.ToByteArray(), Is.EqualTo(new byte[8]));
+			Assert.That(Uuid64.Empty.ToSlice(), Is.EqualTo(Slice.Zero(8)));
+		}
+
+		[Test]
+		public void Test_Uuid64_MaxValue()
+		{
+			Assert.That(Uuid64.MaxValue.ToString(), Is.EqualTo("FFFFFFFF-FFFFFFFF"));
+			Assert.That(Uuid64.MaxValue, Is.EqualTo(new Uuid64(ulong.MaxValue)));
+			Assert.That(Uuid64.MaxValue.ToUInt64(), Is.EqualTo(ulong.MaxValue));
+			Assert.That(Uuid64.MaxValue.ToInt64(), Is.EqualTo(-1));
+			Assert.That(Uuid64.MaxValue.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
+			Assert.That(Uuid64.MaxValue.ToSlice(), Is.EqualTo(Slice.Repeat(0xFF, 8)));
 		}
 
 		[Test]
@@ -116,7 +129,7 @@ namespace Doxense.Core.Tests
 				Assert.That(res.ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
 				Assert.That(Uuid64.TryParse(literal, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
 				Assert.That(res.ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
-				// span
+				// ReadOnlySpan<char>
 				Assert.That(Uuid64.Parse(literal.AsSpan()).ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
 				Assert.That(Uuid64.Parse(literal.AsSpan(), CultureInfo.InvariantCulture).ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
 				Assert.That(Uuid64.Parse(literal.ToUpperInvariant().AsSpan()).ToUInt64(), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
@@ -127,12 +140,14 @@ namespace Doxense.Core.Tests
 				Assert.That(res.ToUInt64(), Is.EqualTo(expected), $"Should parse: {literal}");
 			}
 
-			CheckSuccess("", 0);
 			CheckSuccess("0000000000000000", 0);
 			CheckSuccess("0123456789abcdef", 0x01234567_89ABCDEFUL);
+			CheckSuccess("  0123456789abcdef", 0x01234567_89ABCDEFUL); // leading white spaces are ignored
+			CheckSuccess("0123456789abcdef\r\n", 0x01234567_89ABCDEFUL); // trailing white spaces are ignored
 			CheckSuccess("badc0ffee0ddf00d", 0xBADC0FFEE_0DDF00DUL);
 			CheckSuccess("{00000000-00000000}", 0);
 			CheckSuccess("{01234567-89abcdef}", 0x01234567_89ABCDEFUL);
+			CheckSuccess("\t{01234567-89abcdef}\r\n", 0x01234567_89ABCDEFUL); // white spaces are ignored
 			CheckSuccess("{badc0ffe-e0ddf00d}", 0xBADC0FFEE_0DDF00DUL);
 			CheckSuccess("{0000000000000000}", 0);
 			CheckSuccess("{0123456789abcdef}", 0x01234567_89ABCDEFUL);
@@ -170,6 +185,7 @@ namespace Doxense.Core.Tests
 			}
 
 			CheckFailure(default, "Null string is invalid");
+			CheckFailure("", "Only whitespaces");
 			CheckFailure("  ", "Only whitespaces");
 			CheckFailure("hello", "random text string");
 			CheckFailure("hello badc0ffe-e0ddf00d", "random text prefix");
@@ -181,8 +197,6 @@ namespace Doxense.Core.Tests
 			CheckFailure("badc0ffe-e0ddf00", "Missing last char");
 			CheckFailure("baadc0ffe-e0ddf00", "'-' at invalid position");
 			CheckFailure("badc0fe-ee0ddf00d", "'-' at invalid position");
-			CheckFailure("badc0ffe-e0ddf00d ", "Extra space at the end");
-			CheckFailure(" badc0ffe-e0ddf00d", "Extra space at the start");
 		}
 
 		[Test]

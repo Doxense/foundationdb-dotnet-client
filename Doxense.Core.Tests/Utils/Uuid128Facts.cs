@@ -28,7 +28,9 @@ namespace Doxense.Core.Tests
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.Linq;
+	using System.Text;
 	using Doxense.Testing;
 	using NUnit.Framework;
 
@@ -39,59 +41,140 @@ namespace Doxense.Core.Tests
 		[Test]
 		public void Test_Uuid_Empty()
 		{
+			Log(Uuid128.Empty);
 			Assert.That(Uuid128.Empty.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
 			Assert.That(Uuid128.Empty, Is.EqualTo(default(Uuid128)));
 			Assert.That(Uuid128.Empty, Is.EqualTo(new Uuid128(new byte[16])));
+			Assert.That(Uuid128.Empty, Is.EqualTo(Guid.Empty));
+
+			Uuid128.Empty.Deconstruct(out Uuid64 hi, out Uuid64 lo);
+			Assert.That(hi, Is.EqualTo(Uuid64.Empty));
+			Assert.That(lo, Is.EqualTo(Uuid64.Empty));
+
+			var tmp = new byte[16];
+			tmp.AsSpan().Fill(0xAA);
+			Assert.That(Uuid128.Empty.TryWriteTo(tmp), Is.True);
+			Assert.That(tmp, Is.EqualTo(new byte[16]));
+
+		}
+
+		[Test]
+		public void Test_Uuid_MaxValue()
+		{
+			Log(Uuid128.MaxValue);
+			Assert.That(Uuid128.MaxValue.ToString(), Is.EqualTo("ffffffff-ffff-ffff-ffff-ffffffffffff"));
+			Assert.That(Uuid128.MaxValue.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
+			Assert.That(Uuid128.MaxValue, Is.EqualTo((Uuid128) Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+			Assert.That(Uuid128.MaxValue, Is.EqualTo(Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+
+			Uuid128.MaxValue.Deconstruct(out Uuid64 hi, out Uuid64 lo);
+			Assert.That(hi, Is.EqualTo(Uuid64.MaxValue));
+			Assert.That(lo, Is.EqualTo(Uuid64.MaxValue));
+
+			var tmp = new byte[16];
+			tmp.AsSpan().Fill(0xAA);
+			Assert.That(Uuid128.MaxValue.TryWriteTo(tmp), Is.True);
+			Assert.That(tmp, Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
 		}
 
 		[Test]
 		public void Test_Uuid_Parse()
 		{
-			{
-				var uuid = Uuid128.Parse("00000000-0000-0000-0000-000000000000");
-				Assert.That(uuid, Is.EqualTo(Uuid128.Empty));
-				Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
-				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
-			}
-			{
-				var uuid = Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f");
-				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
-			}
-			{
-				Assert.That(Uuid128.TryParse("00010203-0405-0607-0809-0a0b0c0d0e0f", out var uuid), Is.True);
-				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
-			}
-			{
-				var uuid = Uuid128.Parse("{00010203-0405-0607-0809-0a0b0c0d0e0f}");
-				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
-			}
-			{
-				Assert.That(Uuid128.TryParse("{00010203-0405-0607-0809-0a0b0c0d0e0f}", out var uuid), Is.True);
-				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
-			}
-			{
-				var guid = Guid.NewGuid();
-				Assert.That(Uuid128.TryParse(guid.ToString(), out var uuid), Is.True);
-				Assert.That(uuid, Is.EqualTo(guid));
 
+			static void CheckSuccess(string literal, Uuid128 expected)
+			{
+				// string
+				Assert.That(Uuid128.Parse(literal), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.Parse(literal).ToByteArray(), Is.EqualTo(expected.ToByteArray()));
+				Assert.That(Uuid128.Parse(literal, CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.Parse(literal.ToUpperInvariant()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid128.Parse(literal.ToUpperInvariant()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid128.TryParse(literal, out var res), Is.True, $"Should parse: {literal}");
+				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.TryParse(literal, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+
+				// ReadOnlySpan<char>
+				Assert.That(Uuid128.Parse(literal.AsSpan()), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.Parse(literal.AsSpan(), CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.Parse(literal.ToUpperInvariant().AsSpan()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid128.Parse(literal.ToUpperInvariant().AsSpan(), CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+				Assert.That(Uuid128.TryParse(literal.AsSpan(), out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.TryParse(literal.AsSpan(), CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+
+				// ReadOnlySpan<byte>
+				var bytes = Encoding.UTF8.GetBytes(literal).AsSpan();
+				Assert.That(Uuid128.Parse(bytes).ToByteArray(), Is.EqualTo(expected.ToByteArray()));
+				Assert.That(Uuid128.Parse(bytes, CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.TryParse(bytes, out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.That(Uuid128.TryParse(bytes, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
 			}
+
+			CheckSuccess("00000000-0000-0000-0000-000000000000", Uuid128.Empty);
+			CheckSuccess("ffffffff-ffff-ffff-ffff-ffffffffffff", Uuid128.MaxValue);
+			CheckSuccess("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF", Uuid128.MaxValue);
+			CheckSuccess("00010203-0405-0607-0809-0a0b0c0d0e0f", (Uuid128) Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+			CheckSuccess("00010203-0405-0607-0809-0A0B0C0D0E0F", (Uuid128) Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+			CheckSuccess("{00010203-0405-0607-0809-0a0b0c0d0e0f}", (Uuid128) Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+			CheckSuccess(" \t80203aeb-14a9-4ee2-8ef9-117b3e130e17", (Uuid128) Guid.Parse("80203aeb-14a9-4ee2-8ef9-117b3e130e17")); // leading spaces are allowed
+			CheckSuccess("80203aeb-14a9-4ee2-8ef9-117b3e130e17\r\n", (Uuid128) Guid.Parse("80203aeb-14a9-4ee2-8ef9-117b3e130e17")); // trailing spaces are allowed
+			var guid = Guid.NewGuid();
+			CheckSuccess(guid.ToString(), new Uuid128(guid));
+
+			static void CheckFailure(string? literal, string message)
+			{
+				if (literal == null)
+				{
+					Assert.That(() => Uuid128.Parse(literal!), Throws.ArgumentNullException, message);
+					Assert.That(() => Uuid128.Parse(literal!, CultureInfo.InvariantCulture), Throws.ArgumentNullException, message);
+					Assert.That(Uuid128.TryParse(literal!, CultureInfo.InvariantCulture, out _), Is.False, message);
+				}
+				else
+				{
+					Assert.That(() => Uuid128.Parse(literal), Throws.InstanceOf<FormatException>(), message);
+					Assert.That(() => Uuid128.Parse(literal, CultureInfo.InvariantCulture), Throws.InstanceOf<FormatException>(), message);
+					Assert.That(() => Uuid128.Parse(literal.AsSpan()), Throws.InstanceOf<FormatException>(), message);
+					Assert.That(() => Uuid128.Parse(literal.AsSpan(), CultureInfo.InvariantCulture), Throws.InstanceOf<FormatException>(), message);
+
+					Assert.That(Uuid128.TryParse(literal, out _), Is.False, message);
+					Assert.That(Uuid128.TryParse(literal, CultureInfo.InvariantCulture, out _), Is.False, message);
+					Assert.That(Uuid128.TryParse(literal.AsSpan(), out _), Is.False, message);
+					Assert.That(Uuid128.TryParse(literal.AsSpan(), CultureInfo.InvariantCulture, out _), Is.False, message);
+				}
+			}
+
+			CheckFailure(null, "Null is not allowed");
+			CheckFailure("", "Empty string");
+			CheckFailure(" \r\n", "Only white spaces");
+			CheckFailure("hello there!", "Not a guid");
+			CheckFailure("123456", "Not a guid");
+			CheckFailure("123456", "Not a guid");
+			CheckFailure("80203aeb-14a9-4ee2-8ef9-117b3e130e17 with extra", "Extra");
+			CheckFailure("80203ae-b14a9-4ee2-8ef9-117b3e130e17", "Misplaced '-'");
+			CheckFailure("80203aeb-14a9-4ee2-8ef9-117b3e130e1_", "Invalid character");
 		}
 
 		[Test]
 		public void Test_Uuid_From_Bytes()
 		{
 			{
-				var uuid = new Uuid128(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
+				var uuid = new Uuid128(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
 				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
 				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
 			}
 			{
 				var uuid = new Uuid128(new byte[16]);
+				Assert.That(uuid, Is.EqualTo(Uuid128.Empty));
 				Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+			}
+			{
+				var uuid = new Uuid128(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff });
+				Assert.That(uuid, Is.EqualTo(Uuid128.MaxValue));
+				Assert.That(uuid.ToString(), Is.EqualTo("ffffffff-ffff-ffff-ffff-ffffffffffff"));
 			}
 		}
 

@@ -73,6 +73,9 @@ namespace Doxense.Core.Tests
 			Assert.That(Uuid80.Parse("abcdbadc0ffee0ddf00d"), Is.EqualTo(new Uuid80(0xABCD, 0xBADC0FFEE0DDF00DUL)));
 			Assert.That(Uuid80.Parse("ABCDBADC0FFEE0DDF00D"), Is.EqualTo(new Uuid80(0xABCD, 0xBADC0FFEE0DDF00DUL)), "Should be case-insensitive");
 
+			Assert.That(Uuid80.Parse("  abcd-badc0ffe-e0ddf00d"), Is.EqualTo(new Uuid80(0xABCD, 0xBADC0FFEE0DDF00DUL)), "Leading white spaces are allowed");
+			Assert.That(Uuid80.Parse("abcd-badc0ffe-e0ddf00d\r\n"), Is.EqualTo(new Uuid80(0xABCD, 0xBADC0FFEE0DDF00DUL)), "Trailing white spaces are allowed");
+
 			Assert.That(Uuid80.Parse("{abcd-badc0ffe-e0ddf00d}"), Is.EqualTo(new Uuid80(0xABCD, 0xBADC0FFEE0DDF00DUL)));
 			Assert.That(Uuid80.Parse("{ABCD-BADC0FFE-E0DDF00D}"), Is.EqualTo(new Uuid80(0xABCD, 0xBADC0FFEE0DDF00DUL)), "Should be case-insensitive");
 
@@ -84,6 +87,8 @@ namespace Doxense.Core.Tests
 
 			// errors
 			Assert.That(() => Uuid80.Parse(default(string)!), Throws.ArgumentNullException);
+			Assert.That(() => Uuid80.Parse(""), Throws.InstanceOf<FormatException>(), "Empty string not allowed");
+			Assert.That(() => Uuid80.Parse("   "), Throws.InstanceOf<FormatException>(), "Only white spaces not allowed");
 			Assert.That(() => Uuid80.Parse("hello"), Throws.InstanceOf<FormatException>());
 			Assert.That(() => Uuid80.Parse("abcd-12345678-9ABCDEFG"), Throws.InstanceOf<FormatException>(), "Invalid hexa character 'G'");
 			Assert.That(() => Uuid80.Parse("0000-00000000-0000000 "), Throws.InstanceOf<FormatException>(), "Too short + extra space");
@@ -92,8 +97,6 @@ namespace Doxense.Core.Tests
 			Assert.That(() => Uuid80.Parse("abcdbaadc0ffe-e0ddf00"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
 			Assert.That(() => Uuid80.Parse("abcd-badc0fe-ee0ddf00d"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
 			Assert.That(() => Uuid80.Parse("abcdb-adc0ffe-e0ddf00d"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
-			Assert.That(() => Uuid80.Parse("abcd-badc0ffe-e0ddf00d "), Throws.InstanceOf<FormatException>(), "Extra space at the end");
-			Assert.That(() => Uuid80.Parse(" abcd-badc0ffe-e0ddf00d"), Throws.InstanceOf<FormatException>(), "Extra space at the start");
 
 			// span from string
 

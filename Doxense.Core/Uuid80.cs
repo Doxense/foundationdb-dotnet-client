@@ -41,6 +41,9 @@ namespace System
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>
+#if NET8_0_OR_GREATER
+		, ISpanParsable<Uuid80>
+#endif
 	{
 
 		/// <summary>Uuid with all bits set to 0</summary>
@@ -212,13 +215,33 @@ namespace System
 		#region Parsing...
 
 		/// <summary>Parse a string representation of an Uuid80</summary>
-		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
+		/// <param name="input">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</param>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid80.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid80 Parse(string buffer)
+		public static Uuid80 Parse(string input)
 		{
-			Contract.NotNull(buffer);
-			if (!TryParse(buffer, out var value))
+			Contract.NotNull(input);
+			if (!TryParse(input.AsSpan(), out var value))
+			{
+				throw FailInvalidFormat();
+			}
+			return value;
+		}
+
+		/// <summary>Parse a string representation of an Uuid80</summary>
+		/// <param name="input">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</param>
+		/// <param name="provider">This parameter is ignored</param>
+		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid80.Empty</see>.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Uuid80 Parse(string input, IFormatProvider? provider)
+			=> Parse(input);
+
+		/// <summary>Parse a string representation of an Uuid80</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid80 Parse(ReadOnlySpan<char> input)
+		{
+			if (!TryParse(input, out var value))
 			{
 				throw FailInvalidFormat();
 			}
@@ -227,71 +250,75 @@ namespace System
 
 		/// <summary>Parse a string representation of an Uuid80</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid80 Parse(ReadOnlySpan<char> buffer)
-		{
-			if (!TryParse(buffer, out var value))
-			{
-				throw FailInvalidFormat();
-			}
-			return value;
-		}
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Uuid80 Parse(ReadOnlySpan<char> input, IFormatProvider? provider)
+			=> Parse(input);
 
-		/// <summary>Parse a string representation of an Uuid80</summary>
+		/// <summary>Try parsing a string representation of an Uuid80</summary>
 		[Pure]
-		[Obsolete("Use Uuid80.Parse(ReadOnlySpan<char>) instead", error: true)] //TODO: remove me!
-		public static unsafe Uuid80 Parse(char* buffer, int count)
+		public static bool TryParse(string input, out Uuid80 result)
 		{
-			if (count == 0) return default(Uuid80);
-			if (!TryParse(new ReadOnlySpan<char>(buffer, count), out var value))
-			{
-				throw FailInvalidFormat();
-			}
-			return value;
+			Contract.NotNull(input);
+			return TryParse(input.AsSpan(), out result);
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
-		public static bool TryParse(string buffer, out Uuid80 result)
-		{
-			Contract.NotNull(buffer);
-			return TryParse(buffer.AsSpan(), out result);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static bool TryParse(string input, IFormatProvider? provider, out Uuid80 result)
+			=> TryParse(input, out result);
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
-		public static bool TryParse(ReadOnlySpan<char> s, out Uuid80 result)
+		[Pure]
+		public static bool TryParse(ReadOnlySpan<char> input, out Uuid80 result)
 		{
-			Contract.Debug.Requires(s != null);
+			Contract.Debug.Requires(input != null);
 
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
 
+			// note: Guid.Parse accepts leading and trailing whitespaces, so we have to replicate the behavior here
+			input = input.Trim();
+
 			// remove "{...}" if there is any
-			if (s.Length > 2 && s[0] == '{' && s[^1] == '}')
+			if (input.Length > 2 && input[0] == '{' && input[^1] == '}')
 			{
-				s = s.Slice(1, s.Length - 2);
+				input = input[1..^1];
 			}
 
-			result = default(Uuid80);
-			switch (s.Length)
+			switch (input.Length)
 			{
 				case 0:
-				{ // empty
-					return true;
+				{ // empty is NOT allowed
+					result = default;
+					return false;
 				}
 				case 20:
 				{ // xxxxxxxxxxxxxxxxxxxx
-					return TryDecode16Unsafe(s, separator: false, out result);
+					return TryDecode16Unsafe(input, separator: false, out result);
 				}
 				case 22:
 				{ // xxxx-xxxxxxxx-xxxxxxxx
-					if (s[4] != '-' || s[13] != '-') return false;
-					return TryDecode16Unsafe(s, separator: true, out result);
+					if (input[4] != '-' || input[13] != '-')
+					{
+						result = default;
+						return false;
+					}
+					return TryDecode16Unsafe(input, separator: true, out result);
 				}
 				default:
 				{
+					result = default;
 					return false;
 				}
 			}
 		}
+
+		/// <summary>Try parsing a string representation of an Uuid80</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Uuid80 result)
+			=> TryParse(input, out result);
 
 		#endregion
 
