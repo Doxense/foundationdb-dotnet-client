@@ -297,7 +297,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
@@ -310,7 +310,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
@@ -323,7 +323,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="buffer">Buffer pré-alloué pour la sérialisation. Si null, ou trop petit, il sera remplacé par un nouveau buffer</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -338,7 +338,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
 		/// <param name="type">Type attendu</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="buffer">Buffer pré-alloué pour la sérialisation. Si null, ou trop petit, il sera remplacé par un nouveau buffer</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -352,7 +352,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="buffer">Buffer pré-alloué pour la sérialisation. Si null, ou trop petit, il sera remplacé par un nouveau buffer</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -367,7 +367,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser</param>
 		/// <param name="declaredType">Type déclaré de la valeur (ou typeof(object))</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="buffer">Buffer utilisé en interne pour la sérialisation, qui sera redimensionné au besoin.</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -401,7 +401,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -416,7 +416,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
 		/// <param name="type">Type attendu</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
@@ -430,7 +430,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
 		/// <param name="type">Type attendu</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -444,7 +444,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -459,7 +459,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser</param>
 		/// <param name="declaredType">Type déclarer de la valeur (ou typeof(object))</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
@@ -491,7 +491,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="output">Stream de destination</param>
 		/// <param name="value">Classe, structure, Enumerable, Nullable&lt;T&gt;, ...</param>
 		/// <param name="declaredType">Type déclaré de l'objet (ou typeof(object) si seulement connu au runtime)</param>
-		/// <param name="settings">Paramètres de sérialisation (JSON par défaut si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <returns>Buffer contenant l'objet sérialisé</returns>
 		private static TextWriter SerializeToInternal(TextWriter output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver)
@@ -519,7 +519,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Crée un writer vers un fichier sur le disque</summary>
 		/// <param name="path">Chemin du fichier à écrire</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Writer prêt à écrire dans le fichier</returns>
 		private static StreamWriter OpenJsonStreamWriter(string path, CrystalJsonSettings? settings)
 		{
@@ -671,7 +671,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une chaîne de texte JSON</summary>
 		/// <param name="jsonText">Chaîne de texte JSON à parser</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -685,7 +685,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante, ou null si <paramref name="jsonBytes"/> est vide</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -698,7 +698,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
 		/// <param name="index">Offset dans <paramref name="jsonBytes"/> du premier octet</param>
 		/// <param name="count">Nombre d'octets dans <paramref name="jsonBytes"/></param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -709,7 +709,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -720,7 +720,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		[Pure]
 		public static JsonValue Parse(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
@@ -736,7 +736,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null)
@@ -746,7 +746,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null)
@@ -776,7 +776,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonText">Bloc de données contenant du texte JSON</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		[Pure]
 		public static JsonValue Parse(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null)
@@ -792,7 +792,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonText">Bloc de données contenant du texte JSON</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null)
@@ -802,7 +802,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant du JSON</summary>
 		/// <param name="jsonText">Bloc de données contenant du texte JSON</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null)
@@ -832,7 +832,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une source de texte JSON</summary>
 		/// <param name="reader">Source de texte JSON à parser</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		[Pure]
@@ -844,7 +844,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une source de texte JSON</summary>
 		/// <param name="source">Source de texte JSON à parser</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
 		[Pure]
@@ -867,7 +867,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse le contenu d'un fichier JSON sur le disque</summary>
 		/// <param name="path">Nom du fichier à lire sur le disque</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="options"></param>
 		/// <returns>Valeur JSON correspondante (ou JsonNull.Missing si le fichier est vide)</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -879,7 +879,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse le contenu d'un stream contenant du JSON </summary>
 		/// <param name="source">Stream à décoder</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante (ou JsonNull.Missing si le fichier est vide)</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
 		[Pure]
@@ -898,7 +898,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une chaîne de texte JSON représentant un objet</summary>
 		/// <param name="jsonText">Chaîne de texte JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Objet JSON correspondant</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -911,7 +911,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Objet JSON correspondant</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -929,7 +929,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "{...}")</param>
 		/// <param name="count"></param>
 		/// <param name="offset"></param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Objet JSON correspondant</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -945,7 +945,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
@@ -959,7 +959,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
@@ -973,7 +973,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
@@ -987,7 +987,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
@@ -1001,7 +1001,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
@@ -1015,7 +1015,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
@@ -1029,7 +1029,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant un object JSON</summary>
 		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
@@ -1043,7 +1043,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une source de texte JSON représentant un objet</summary>
 		/// <param name="source">Source de texte JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Objet JSON correspondant</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1059,7 +1059,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse le contenu d'un stream contenant du JSON </summary>
 		/// <param name="source">Stream à décoder</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Valeur JSON correspondante (ou JsonNull.Missing si le fichier est vide)</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1074,7 +1074,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un fichier JSON sur le disque représentant un objet</summary>
 		/// <param name="path">Chemin du fichier à lire</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <param name="options">Options de lecture</param>
 		/// <returns>Objet JSON correspondant</returns>
@@ -1091,7 +1091,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1109,7 +1109,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "[...]")</param>
 		/// <param name="count"></param>
 		/// <param name="offset"></param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1125,7 +1125,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1141,7 +1141,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1157,7 +1157,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1173,7 +1173,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1189,7 +1189,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1205,7 +1205,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1221,7 +1221,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON</summary>
 		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Array JSON correspondante</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1237,7 +1237,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une chaîne de texte JSON représentant un tableau</summary>
 		/// <param name="jsonText">Chaîne de texte JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Tableau JSON correspondant</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1253,7 +1253,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une source de texte JSON représentant un tableau</summary>
 		/// <param name="source">Source de texte JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <returns>Tableau JSON correspondant</returns>
 		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -1269,7 +1269,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un fichier JSON sur le disque représentant une array</summary>
 		/// <param name="path">Chemin du fichier à lire</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required"></param>
 		/// <param name="options">Options de lecture</param>
 		/// <returns>Array JSON correspondante</returns>
@@ -1335,7 +1335,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Crée un reader sur un fichier sur le disque</summary>
 		/// <param name="path">Chemin du fichier à lire</param>
-		/// <param name="settings"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Reader prêt à lire depuis le fichier</returns>
 		[Pure]
 		private static StreamReader OpenJsonStreamReader(string path, CrystalJsonSettings? settings)
@@ -1392,7 +1392,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Désérialise une chaîne de texte JSON en l'objet CLR le plus approprié</summary>
 		/// <param name="jsonText">Texte JSON à désérialiser</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant (dont le type dépend du contexte)</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
@@ -1422,7 +1422,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
 		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
 		/// <returns>Objet correspondant</returns>
@@ -1437,7 +1437,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
 		/// <returns>Objet correspondant</returns>
@@ -1453,7 +1453,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
 		/// <param name="index">Offset de départ dans <paramref name="jsonBytes"/></param>
 		/// <param name="count">Nombre d'octets à parser</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
 		/// <returns>Objet correspondant</returns>
@@ -1467,7 +1467,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
 		/// <returns>Objet correspondant</returns>
@@ -1480,7 +1480,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
 		/// <returns>Objet correspondant</returns>
@@ -1493,7 +1493,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
 		/// <returns>Objet correspondant</returns>
@@ -1506,7 +1506,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="source">Source contenant le texte JSON à dé-sérialiser</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, l'objet retourne ne peut pas être null (si c'est le cas, un exception est générée à la place</param>
 		/// <returns>Objet correspondant</returns>
@@ -1520,7 +1520,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Dé-sérialise une source de données JSON vers un type défini</summary>
 		/// <param name="source">Source contenant le JSON à dé-sérialiser (encodé en UTF-8)</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="required">Si true, l'objet retourne ne peut pas être null (si c'est le cas, un exception est générée à la place</param>
 		/// <returns>Objet correspondant</returns>
@@ -1541,7 +1541,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Dé-sérialise le contenu d'un fichier JSON sur le disque vers un type défini</summary>
 		/// <param name="path">Nom du fichier à lire</param>
-		/// <param name="settings">Paramètres utilisés pour le parsing JSON</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <param name="options">Options de lecture</param>
 		/// <param name="required">Si true et que l'objet est null, une exception est générée à la place</param>

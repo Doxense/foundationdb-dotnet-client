@@ -38,7 +38,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Désérialise un objet JSON en remplissant l'instance</summary>
 		/// <param name="value">Valeur</param>
 		/// <param name="declaredType"></param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[Obsolete("Use IJsonBindable.JsonUnpack instead")]
 		void JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver);
 	}

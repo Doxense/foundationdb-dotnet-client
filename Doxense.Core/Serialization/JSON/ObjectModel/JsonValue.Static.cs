@@ -194,7 +194,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une chaîne de texte JSON</summary>
 		/// <param name="jsonText">Chaîne de texte JSON à parser</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
 		/// <returns>Valeur JSON correspondante. Si <paramref name="jsonText"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray(String, CrystalJsonSettings, bool)"/> ou <see cref="ParseObject(String, CrystalJsonSettings, bool)"/></remarks>
@@ -216,7 +216,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse une chaîne de texte contenant une array JSON</summary>
 		/// <param name="jsonText">Chaîne de texte JSON à parser</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
 		/// <returns>Array JSON correspondante. Si <paramref name="jsonText"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -236,7 +236,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse a string literal containing a JSON Object</summary>
 		/// <param name="jsonText">Input text to parse</param>
-		/// <param name="settings">Settings used during parsing (optional)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required">If <paramref name="jsonText"/> is empty or equal to the token <c>"null"</c>, the method will either throw an exception if <see langword="true"/>, or return <see langword="null"/> if <see langword="false"/></param>
 		/// <returns>Parsed JSON , or <see langword="null"/> if <paramref name="required"/> is <see langword="false"/> and <paramref name="jsonText"/> is empty or equal to <c>"null"</c></returns>
 		/// <remarks>The JSON object that is returned is mutable and ca be modified. If you require an immutable/readonly version, please call <see cref="ParseObjectImmutable"/> or enable immutability in the <paramref name="settings"/></remarks>
@@ -277,7 +277,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Parse un buffer contenant du JSON (encodé en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray(byte[], CrystalJsonSettings, bool)"/> ou <see cref="ParseObject(byte[], CrystalJsonSettings, bool)"/></remarks>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -292,7 +292,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Parse un buffer contenant une array JSON (encodé en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Array JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
@@ -305,7 +305,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Parse un buffer contenant un object JSON (encodé en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Object JSON correspondant. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
@@ -318,7 +318,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Parse un buffer contenant du JSON (encodé en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray(Slice, CrystalJsonSettings, bool)"/> ou <see cref="ParseObject(Slice, CrystalJsonSettings, bool)"/></remarks>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
@@ -333,7 +333,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Parse un buffer contenant une array JSON (encodée en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Array JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
@@ -346,7 +346,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Parse un buffer contenant un object JSON (encodé en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Paramètres de parsing (optionnels)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Objet JSON correspondant. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
@@ -390,8 +390,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
-		/// <param name="settings">Paramètre de conversion à utiliser</param>
-		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Valeur JSON correspondante (JsonNumber, JsonObject, JsonArray, ...), ou JsonNull.Null si <paramref name="value"/> est null</returns>
 		/// <remarks>Perf Hint: Utilisez <see cref="FromValue{T}(T,CrystalJsonSettings,ICrystalJsonTypeResolver)"/> pour des struct ou classes quand c'est possible, et les implicit cast pour des strings, numbers ou booleans</remarks>
 		public static JsonValue FromValue(object? value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
@@ -404,8 +404,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
-		/// <param name="settings">Paramètre de conversion à utiliser</param>
-		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Valeur JSON correspondante (JsonNumber, JsonObject, JsonArray, ...), ou JsonNull.Null si <paramref name="value"/> est null</returns>
 		/// <remarks>Perf Hint: Utilisez <see cref="FromValue{T}(T,CrystalJsonSettings,ICrystalJsonTypeResolver)"/> pour des struct ou classes quand c'est possible, et les implicit cast pour des strings, numbers ou booleans</remarks>
 		public static JsonValue FromValueReadOnly(object? value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
@@ -419,8 +419,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
 		/// <param name="declaredType">Type du champ parent qui contenait la valeur de l'objet, qui peut être une interface ou une classe abstraite</param>
-		/// <param name="settings">Paramètre de conversion à utiliser</param>
-		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <remarks>Perf Hint: Utilisez <see cref="FromValue{T}(T,CrystalJsonSettings,ICrystalJsonTypeResolver)"/> pour des struct ou classes quand c'est possible, et les implicit cast pour des strings, numbers ou booleans</remarks>
 		[Pure]
 		public static JsonValue FromValue(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -433,8 +433,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Convertit un objet CLR de type inconnu, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <param name="value">Instance à convertir (primitive, classe, struct, array, ...)</param>
 		/// <param name="declaredType">Type du champ parent qui contenait la valeur de l'objet, qui peut être une interface ou une classe abstraite</param>
-		/// <param name="settings">Paramètre de conversion à utiliser</param>
-		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <remarks>Perf Hint: Utilisez <see cref="FromValue{T}(T,CrystalJsonSettings,ICrystalJsonTypeResolver)"/> pour des struct ou classes quand c'est possible, et les implicit cast pour des strings, numbers ou booleans</remarks>
 		[Pure]
 		public static JsonValue FromValueReadOnly(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -675,8 +675,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Convertit un objet CLR de type bien déterminé, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <typeparam name="T">Type déclaré de la valeur à convertir</typeparam>
 		/// <param name="value">Valeur à convertir (primitive, classe, struct, array, ...)</param>
-		/// <param name="settings">Paramètre de conversion à utiliser</param>
-		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Valeur JSON correspondante (string, number, object, array, ...), ou JsonNull.Null si <paramref name="value"/> est null</returns>
 		/// <remarks>Perf Hint: pour des strings, numbers ou bools, utilisez plutôt le cast implicit!</remarks>
 		[Pure]
@@ -688,8 +688,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Convertit un objet CLR de type bien déterminé, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
 		/// <typeparam name="T">Type déclaré de la valeur à convertir</typeparam>
 		/// <param name="value">Valeur à convertir (primitive, classe, struct, array, ...)</param>
-		/// <param name="settings">Paramètre de conversion à utiliser</param>
-		/// <param name="resolver">Resolver à utiliser (optionnel, utilise CrystalJson.DefaultResolver si null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Valeur JSON correspondante (string, number, object, array, ...), ou JsonNull.Null si <paramref name="value"/> est null</returns>
 		/// <remarks>Perf Hint: pour des strings, numbers ou bools, utilisez plutôt le cast implicit!</remarks>
 		[Pure]

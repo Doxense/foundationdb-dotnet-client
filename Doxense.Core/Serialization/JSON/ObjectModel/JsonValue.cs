@@ -51,16 +51,16 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Bind vers un type CLR spécifique</summary>
 		/// <param name="type">Type CLR désiré</param>
-		/// <param name="resolver">Resolver (optionnel)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		[Pure]
 		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Bind vers un type CLR spécifique</summary>
-		/// <typeparam name="T">Type CLR désiré</typeparam>
-		/// <param name="resolver">Resolver (optionnel)</param>
+		/// <typeparam name="TValue">Type CLR désiré</typeparam>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		public virtual T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) => (T?) Bind(typeof(T), resolver);
+		public virtual TValue? Bind<TValue>(ICrystalJsonTypeResolver? resolver = null) => (TValue?) Bind(typeof(TValue), resolver);
 
 		/// <summary>Indique si cette valeur est null</summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]

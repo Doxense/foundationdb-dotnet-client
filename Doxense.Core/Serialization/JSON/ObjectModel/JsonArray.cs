@@ -424,34 +424,40 @@ namespace Doxense.Serialization.Json
 		#region Mutable...
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<T>(ReadOnlySpan<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray FromValues<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return new JsonArray().AddValues<T>(values, settings, resolver);
+			return new JsonArray().AddValues<TValue>(values, settings, resolver);
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<T>(T[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray FromValues<TValue>(TValue[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
-			return new JsonArray().AddValues<T>(values.AsSpan(), settings, resolver);
+			return new JsonArray().AddValues<TValue>(values.AsSpan(), settings, resolver);
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Séquences d'éléments à convertir</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<T>(IEnumerable<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray FromValues<TValue>(IEnumerable<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return new JsonArray().AddValues<T>(values, settings, resolver);
+			return new JsonArray().AddValues<TValue>(values, settings, resolver);
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
@@ -459,6 +465,8 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -472,6 +480,8 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -485,6 +495,8 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
 		/// <param name="values">Séquences d'éléments à convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les valeurs de la séquence, convertis en JsonValue</returns>
 		[Pure]
 		public static JsonArray FromValues<TItem, TValue>(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -497,37 +509,41 @@ namespace Doxense.Serialization.Json
 		#region Immutable...
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
 		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValuesReadOnly<T>(ReadOnlySpan<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray FromValuesReadOnly<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly<T>(values, settings, resolver).FreezeUnsafe();
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly<TValue>(values, settings, resolver).FreezeUnsafe();
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValuesReadOnly<T>(T[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray FromValuesReadOnly<TValue>(TValue[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
-			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly<T>(values.AsSpan(), settings, resolver).FreezeUnsafe();
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly<TValue>(values.AsSpan(), settings, resolver).FreezeUnsafe();
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
-		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
+		/// <typeparam name="TValue">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Séquences d'éléments à convertir</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValuesReadOnly<T>(IEnumerable<T> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray FromValuesReadOnly<TValue>(IEnumerable<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
 			return values.TryGetNonEnumeratedCount(out var count) && count == 0
 				? EmptyReadOnly
-				: new JsonArray().AddRangeReadOnly<T>(values, settings, resolver).FreezeUnsafe();
+				: new JsonArray().AddRangeReadOnly<TValue>(values, settings, resolver).FreezeUnsafe();
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type est connu.</summary>
@@ -647,7 +663,7 @@ namespace Doxense.Serialization.Json
 		public override bool IsReadOnly => m_readOnly;
 
 		/// <summary>Indique si le tableau est vide</summary>
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("Use 'arr.Count == 0' instead.")]
 		public bool IsEmpty //REVIEW: remove this? (Count == 0)
 		{
@@ -810,10 +826,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public void AddValue<T>(T value)
+		public void AddValue<TValue>(TValue value)
 		{
 			if (m_readOnly) FailArrayIsReadOnly();
-			Add(FromValue<T>(value));
+			Add(FromValue<TValue>(value));
 		}
 
 		#region AddRange...
@@ -1046,7 +1062,7 @@ namespace Doxense.Serialization.Json
 		#region Mutable...
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddValues<T>(ReadOnlySpan<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddValues<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) FailArrayIsReadOnly();
 			if (items.Length == 0) return this;
@@ -1059,51 +1075,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(NodaTime.Instant)
+			 || typeof(TValue) == typeof(NodaTime.Duration)
 			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(NodaTime.Instant?)
+			 || typeof(TValue) == typeof(NodaTime.Duration?)
 			)
 			{
 				// use the JIT optimized version of FromValue<T>
 				for(int i = 0; i < items.Length; i++)
 				{
-					tail[i] = FromValue<T>(items[i]); // this should be inlined
+					tail[i] = FromValue<TValue>(items[i]); // this should be inlined
 				}
 				m_size = newSize;
 				return this;
@@ -1111,15 +1127,15 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-			if (typeof(T) == typeof(JsonValue))
+			if (typeof(TValue) == typeof(JsonValue))
 			{
-				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<T, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
+				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<TValue, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
 				return AddRange(json);
 			}
 
 			var dom = CrystalJsonDomWriter.Create(settings, resolver);
 			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(T);
+			var type = typeof(TValue);
 			for(int i = 0; i < items.Length; i++)
 			{
 				tail[i] = dom.ParseObjectInternal(ref context, items[i], type, null);
@@ -1129,26 +1145,26 @@ namespace Doxense.Serialization.Json
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddValues<T>(T[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddValues<TValue>(TValue[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
-			return AddValues<T>(items.AsSpan(), settings, resolver);
+			return AddValues<TValue>(items.AsSpan(), settings, resolver);
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddValues<T>(IEnumerable<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddValues<TValue>(IEnumerable<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(items);
 
-			if (items is T[] arr)
+			if (items is TValue[] arr)
 			{ // fast path for arrays
-				return AddValues<T>(arr.AsSpan(), settings, resolver);
+				return AddValues<TValue>(arr.AsSpan(), settings, resolver);
 			}
 
-			if (items is List<T> list)
+			if (items is List<TValue> list)
 			{ // fast path for lists
-				return AddValues<T>(CollectionsMarshal.AsSpan(list), settings, resolver);
+				return AddValues<TValue>(CollectionsMarshal.AsSpan(list), settings, resolver);
 			}
 
 			if (items is IEnumerable<JsonValue?> json)
@@ -1164,51 +1180,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(NodaTime.Instant)
+			 || typeof(TValue) == typeof(NodaTime.Duration)
 			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(NodaTime.Instant?)
+			 || typeof(TValue) == typeof(NodaTime.Duration?)
 			)
 			{
 				// we should have a JIT optimized version of As<T> for these as well!
 				foreach (var item in items)
 				{
-					Add(FromValue<T>(item));
+					Add(FromValue<TValue>(item));
 				}
 				return this;
 			}
@@ -1218,7 +1234,7 @@ namespace Doxense.Serialization.Json
 
 			var dom = CrystalJsonDomWriter.Create(settings, resolver);
 			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(T);
+			var type = typeof(TValue);
 			foreach (var value in items)
 			{
 				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
@@ -1423,7 +1439,7 @@ namespace Doxense.Serialization.Json
 		#region Immutable...
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly<T>(ReadOnlySpan<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddRangeReadOnly<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) FailArrayIsReadOnly();
 			if (items.Length == 0) return this;
@@ -1436,51 +1452,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(NodaTime.Instant)
+			 || typeof(TValue) == typeof(NodaTime.Duration)
 			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(NodaTime.Instant?)
+			 || typeof(TValue) == typeof(NodaTime.Duration?)
 			)
 			{
 				// use the JIT optimized version of FromValue<T> for these as well
 				for(int i = 0; i < items.Length; i++)
 				{
-					tail[i] = FromValue<T>(items[i]); // this should be inlined
+					tail[i] = FromValue<TValue>(items[i]); // this should be inlined
 				}
 				m_size = newSize;
 				return this;
@@ -1488,17 +1504,17 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-			if (typeof(T) == typeof(JsonValue))
+			if (typeof(TValue) == typeof(JsonValue))
 			{
 				// force cast to a ReadOnlySpan<JsonValue>
-				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<T, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
+				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<TValue, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
 				// then add these values directly
 				return AddRangeReadOnly(json);
 			}
 
 			var dom = CrystalJsonDomWriter.Create(settings, resolver);
 			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(T);
+			var type = typeof(TValue);
 			for (int i = 0; i < items.Length; i++)
 			{
 				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
@@ -1509,26 +1525,26 @@ namespace Doxense.Serialization.Json
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly<T>(T[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddRangeReadOnly<TValue>(TValue[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
-			return AddRangeReadOnly<T>(items.AsSpan(), settings, resolver);
+			return AddRangeReadOnly<TValue>(items.AsSpan(), settings, resolver);
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly<T>(IEnumerable<T> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddRangeReadOnly<TValue>(IEnumerable<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) FailArrayIsReadOnly();
 			Contract.NotNull(items);
 
-			if (items is T[] arr)
+			if (items is TValue[] arr)
 			{ // fast path for arrays
-				return AddRangeReadOnly<T>(arr.AsSpan(), settings, resolver);
+				return AddRangeReadOnly<TValue>(arr.AsSpan(), settings, resolver);
 			}
 
-			if (items is List<T> list)
+			if (items is List<TValue> list)
 			{ // fast path for lists
-				return AddRangeReadOnly<T>(CollectionsMarshal.AsSpan(list), settings, resolver);
+				return AddRangeReadOnly<TValue>(CollectionsMarshal.AsSpan(list), settings, resolver);
 			}
 
 			if (items is IEnumerable<JsonValue?> json)
@@ -1544,51 +1560,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(NodaTime.Instant)
+			 || typeof(TValue) == typeof(NodaTime.Duration)
 			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(NodaTime.Instant?)
+			 || typeof(TValue) == typeof(NodaTime.Duration?)
 			)
 			{
 				// we should have a JIT optimized version of As<T> for these as well!
 				foreach (var item in items)
 				{
-					Add(FromValue<T>(item));
+					Add(FromValue<TValue>(item));
 				}
 				return this;
 			}
@@ -1597,7 +1613,7 @@ namespace Doxense.Serialization.Json
 
 			var dom = CrystalJsonDomWriter.CreateReadOnly(settings, resolver);
 			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(T);
+			var type = typeof(TValue);
 			foreach (var value in items)
 			{
 				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
@@ -1901,12 +1917,12 @@ namespace Doxense.Serialization.Json
 		public JsonValue Get(int index) => this[index];
 
 		/// <summary>Returns the converted value at the specified index in this array</summary>
-		/// <typeparam name="T">Target CLR type used to bind the JSON value</typeparam>
+		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
 		/// <param name="index">Index of the value in the array</param>
-		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="T"/></returns>
+		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="TValue"/></returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T? Get<T>(int index) => this[index].As<T>();
+		public TValue? Get<TValue>(int index) => m_items.AsSpan(0, m_size)[index].As<TValue>();
 
 		[CollectionAccess(CollectionAccessType.Read)]
 		public bool TryGet(int index, [MaybeNullWhen(false)] out JsonValue value)
@@ -2383,7 +2399,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Cette version est optimisée pour réduire le nombre d'allocations mémoires</remarks>
 		public TypedEnumerable<TValue> Cast<TValue>(bool required = false)
 		{
-			//note: on ne peut pas appeler cette méthode "As<T>" a cause d'un conflit avec l'extension method As<T> sur les JsonValue!
+			//note: on ne peut pas appeler cette méthode "As<TValue>" a cause d'un conflit avec l'extension method As<TValue> sur les JsonValue!
 			//=> arr.As<int[]> retourne un int[], alors que arr.Cast<int[]> serait l'équivalent d'un IEnumerable<int[]> (~= int[][]) !
 
 			return new TypedEnumerable<TValue>(this, required);
@@ -2596,62 +2612,62 @@ namespace Doxense.Serialization.Json
 		public JsonValue[] ToArray() => this.AsSpan().ToArray();
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public T?[] ToArray<T>(ICrystalJsonTypeResolver? resolver = null)
+		public TValue?[] ToArray<TValue>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(NodaTime.Instant)
+			 || typeof(TValue) == typeof(NodaTime.Duration)
 			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(NodaTime.Instant?)
+			 || typeof(TValue) == typeof(NodaTime.Duration?)
 			)
 			{
 				// we should have a JIT optimized version for these as well
-				return ToPrimitiveArray<T>();
+				return ToPrimitiveArray<TValue>();
 			}
 #endif
 			#endregion </JIT_HACK>
 
 			//testé au runtime, mais il est probable que la majorité des array soient des string[] ??
-			if (typeof(T) == typeof(string))
+			if (typeof(TValue) == typeof(string))
 			{
-				return (T[]) (object) ToStringArray();
+				return (TValue[]) (object) ToStringArray();
 			}
 
 			var items = this.AsSpan();
@@ -2660,19 +2676,19 @@ namespace Doxense.Serialization.Json
 				return [];
 			}
 
-			var result = new T?[items.Length];
+			var result = new TValue?[items.Length];
 			if (resolver == null || resolver == CrystalJson.DefaultResolver)
 			{
 				for (int i = 0; i < result.Length; i++)
 				{
-					result[i] = items[i].As<T>();
+					result[i] = items[i].As<TValue>();
 				}
 			}
 			else
 			{
 				for (int i = 0; i < result.Length; i++)
 				{
-					result[i] = items[i].As<T>(resolver);
+					result[i] = items[i].As<TValue>(resolver);
 				}
 			}
 			return result;
@@ -2698,12 +2714,12 @@ namespace Doxense.Serialization.Json
 #endif
 
 		[Pure]
-		public T[] ToArray<T>([InstantHandle] Func<JsonValue, T> transform)
+		public TValue[] ToArray<TValue>([InstantHandle] Func<JsonValue, TValue> transform)
 		{
 			Contract.NotNull(transform);
 
 			var items = this.AsSpan();
-			var buf = new T[items.Length];
+			var buf = new TValue[items.Length];
 
 			for (int i = 0; i < items.Length; i++)
 			{
@@ -2714,22 +2730,22 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Désérialise une JSON Array en array d'objets dont le type est défini</summary>
-		/// <typeparam name="T">Type des éléments de la liste</typeparam>
+		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
 		/// <param name="value">Tableau JSON contenant des objets a priori de type T</param>
 		/// <param name="required"></param>
 		/// <param name="customResolver">Resolver optionnel</param>
 		/// <returns>Retourne une IList&lt;T&gt; contenant les éléments désérialisés</returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
-		public static T?[]? BindArray<T>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		public static TValue?[]? BindArray<TValue>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
 		{
 			if (value is not JsonArray array)
 			{
 				return value == null || value.IsNull
-					? (required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<T[]>() : null)
-					: throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
+					? (required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<TValue[]>() : null)
+					: throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
 			}
 
-			return array.ToArray<T>(customResolver);
+			return array.ToArray<TValue>(customResolver);
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -2907,72 +2923,72 @@ namespace Doxense.Serialization.Json
 		/// <summary>Return a <see cref="List{JsonValue}">List&lt;JsonValue&gt;</see> with the same elements as this array</summary>
 		/// <returns>A shallow copy of the original items</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<T?> ToList<T>(ICrystalJsonTypeResolver? resolver = null)
+		public List<TValue?> ToList<TValue>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			#region <JIT_HACK>
 
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(T) == typeof(bool)
-			 || typeof(T) == typeof(char)
-			 || typeof(T) == typeof(byte)
-			 || typeof(T) == typeof(sbyte)
-			 || typeof(T) == typeof(short)
-			 || typeof(T) == typeof(ushort)
-			 || typeof(T) == typeof(int)
-			 || typeof(T) == typeof(uint)
-			 || typeof(T) == typeof(long)
-			 || typeof(T) == typeof(ulong)
-			 || typeof(T) == typeof(float)
-			 || typeof(T) == typeof(double)
-			 || typeof(T) == typeof(decimal)
-			 || typeof(T) == typeof(Guid)
-			 || typeof(T) == typeof(DateTime)
-			 || typeof(T) == typeof(DateTimeOffset)
-			 || typeof(T) == typeof(TimeSpan)
-			 || typeof(T) == typeof(NodaTime.Instant)
-			 || typeof(T) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(NodaTime.Instant)
+			 || typeof(TValue) == typeof(NodaTime.Duration)
 			 // nullables!
-			 || typeof(T) == typeof(bool?)
-			 || typeof(T) == typeof(char?)
-			 || typeof(T) == typeof(byte?)
-			 || typeof(T) == typeof(sbyte?)
-			 || typeof(T) == typeof(short?)
-			 || typeof(T) == typeof(ushort?)
-			 || typeof(T) == typeof(int?)
-			 || typeof(T) == typeof(uint?)
-			 || typeof(T) == typeof(long?)
-			 || typeof(T) == typeof(ulong?)
-			 || typeof(T) == typeof(float?)
-			 || typeof(T) == typeof(double?)
-			 || typeof(T) == typeof(decimal?)
-			 || typeof(T) == typeof(Guid?)
-			 || typeof(T) == typeof(DateTime?)
-			 || typeof(T) == typeof(DateTimeOffset?)
-			 || typeof(T) == typeof(TimeSpan?)
-			 || typeof(T) == typeof(NodaTime.Instant?)
-			 || typeof(T) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(NodaTime.Instant?)
+			 || typeof(TValue) == typeof(NodaTime.Duration?)
 			)
 			{
-				return ToPrimitiveList<T>();
+				return ToPrimitiveList<TValue>();
 			}
 #endif
 			#endregion </JIT_HACK>
 
 			var items = this.AsSpan();
-			var list = new List<T?>(items.Length);
+			var list = new List<TValue?>(items.Length);
 			if (resolver == null || resolver == CrystalJson.DefaultResolver)
 			{
 				foreach(var item in items)
 				{
-					list.Add(item.As<T>());
+					list.Add(item.As<TValue>());
 				}
 			}
 			else
 			{
 				foreach(var item in items)
 				{
-					list.Add(item.As<T>(resolver));
+					list.Add(item.As<TValue>(resolver));
 				}
 			}
 			return list;
@@ -2982,11 +2998,11 @@ namespace Doxense.Serialization.Json
 		/// <param name="transform">Transforamtion that is applied on each element of the array</param>
 		/// <returns>A list of all elements that have been converted <paramref name="transform"/></returns>
 		[Pure]
-		public List<T> ToList<T>([InstantHandle] Func<JsonValue, T> transform)
+		public List<TValue> ToList<TValue>([InstantHandle] Func<JsonValue, TValue> transform)
 		{
 			Contract.NotNull(transform);
 			var items = this.AsSpan();
-			var list = new List<T>(items.Length);
+			var list = new List<TValue>(items.Length);
 			foreach(var item in items)
 			{
 				list.Add(transform(item));
@@ -3029,17 +3045,17 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Deserialize a JSON Array into a list of objects of the specified type</summary>
-		/// <typeparam name="T">Type des éléments de la liste</typeparam>
+		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
 		/// <param name="value">JSON array that contains the elements to bind</param>
 		/// <param name="customResolver">Optional type resolver</param>
 		/// <param name="required">If <see langword="true"/> the array cannot be null</param>
-		/// <returns>A list of all elements that have been deserialized into instance of type <typeparamref name="T"/></returns>
+		/// <returns>A list of all elements that have been deserialized into instance of type <typeparamref name="TValue"/></returns>
 		[Pure, ContractAnnotation("value:null => null")]
-		public static List<T?>? BindList<T>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		public static List<TValue?>? BindList<TValue>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
 		{
-			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<T?>>() : null;
-			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(T));
-			return array.ToList<T>(customResolver);
+			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<TValue?>>() : null;
+			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
+			return array.ToList<TValue>(customResolver);
 		}
 
 #if !DEBUG // <JIT_HACK>
@@ -3273,13 +3289,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public ImmutableList<T?> ToImmutableList<T>(ICrystalJsonTypeResolver? resolver = null)
+		public ImmutableList<TValue?> ToImmutableList<TValue>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			resolver ??= CrystalJson.DefaultResolver;
-			var list = ImmutableList.CreateBuilder<T?>();
+			var list = ImmutableList.CreateBuilder<TValue?>();
 			foreach (var item in this.AsSpan())
 			{
-				list.Add(item.Bind<T>(resolver));
+				list.Add(item.Bind<TValue>(resolver));
 			}
 			return list.ToImmutable();
 		}
@@ -3919,32 +3935,6 @@ namespace Doxense.Serialization.Json
 			return target;
 		}
 
-
-		internal static void BufferAdd<T>(ref T[] buffer, ref int index, T value)
-		{
-			if ((uint) index < (uint) buffer.Length)
-			{
-				buffer[index] = value;
-				++index;
-			}
-			else
-			{
-				BufferAddWithResize(ref buffer, ref index, value);
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static void BufferAddWithResize<T>(ref T[] buffer, ref int index, T value)
-		{
-			int capacity = index + 1;
-			int newSize = buffer.Length == 0 ? 4 : 2 * buffer.Length;
-			if ((uint) newSize > 2147483591U) newSize = 2147483591;
-			if (newSize < capacity) newSize = capacity;
-			Array.Resize(ref buffer, newSize);
-			buffer[index] = value;
-			index = capacity;
-		}
-
 	}
 
 	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into a <typeparamref name="TJson"/>.</summary>
@@ -4104,12 +4094,12 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public T[] ToArray<T>([InstantHandle] Func<TJson, T> transform)
+		public TValue[] ToArray<TValue>([InstantHandle] Func<TJson, TValue> transform)
 		{
 			Contract.NotNull(transform);
 
 			if (m_size == 0) return [];
-			var res = new T[m_size];
+			var res = new TValue[m_size];
 			int p = 0;
 			foreach (var item in this)
 			{
@@ -4132,9 +4122,9 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public List<T> ToList<T>([InstantHandle] Func<TJson, T> transform)
+		public List<TValue> ToList<TValue>([InstantHandle] Func<TJson, TValue> transform)
 		{
-			var res = new List<T>(m_size);
+			var res = new List<TValue>(m_size);
 			foreach (var item in this)
 			{
 				res.Add(transform(item));

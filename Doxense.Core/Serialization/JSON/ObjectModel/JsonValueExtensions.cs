@@ -567,7 +567,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns the converted value, or a fallback value created from a factory if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="factory">Factory method that is invoked to produce a fallback value</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a CLR type.</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>The converted value, or the value returned by <paramref name="factory"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
 		public static T OrDefault<T>(this JsonValue? value, Func<T> factory, ICrystalJsonTypeResolver? resolver = null)
@@ -587,7 +587,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="factory">Factory method that is invoked to produce a fallback value</param>
 		/// <param name="arg">Argument passed to <paramref name="factory"/> when it is invoked.</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a CLR type.</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>The converted value, or the value returned by <paramref name="factory"/> if it is <see langword="null"/> or missing</returns>
 		public static T OrDefault<T, TArg>(this JsonValue? value, Func<TArg, T> factory, TArg arg, ICrystalJsonTypeResolver? resolver = null)
 		{

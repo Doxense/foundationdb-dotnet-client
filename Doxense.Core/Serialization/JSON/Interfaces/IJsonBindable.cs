@@ -28,21 +28,24 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 
+	/// <summary>Types that implement this interface support serialization directly into a <see cref="JsonValue"/>, usually as a JSON Object or Array</summary>
 	public interface IJsonPackable
 	{
-		/// <summary>Transforme l'objet en une JsonValue</summary>
-		/// <param name="settings">Settings utilisés pour la sérialisation</param>
-		/// <param name="resolver">Resolver optionnel</param>
+
+		/// <summary>Convert an instance of this type into the equivalent JSON value, usually a JSON Object or Array</summary>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
 		JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver);
+
 	}
 
 
 	/// <summary>Interface indiquant qu'un objet peut gérer lui même la sérialisation vers/depuis un DOM JSON</summary>
 	public interface IJsonBindable : IJsonPackable
 	{
-		/// <summary>Désérialise un objet JSON en remplissant l'instance</summary>
-		/// <param name="value">Valeur JSON parsée à binder</param>
-		/// <param name="resolver">Resolver optionnel</param>
+		/// <summary>Initialize this value by loading the contents of a previously serialize JSON value</summary>
+		/// <param name="value">JSON value that will be bound to this instance</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
 		void JsonUnpack(JsonValue value, ICrystalJsonTypeResolver resolver);
 	}
 
