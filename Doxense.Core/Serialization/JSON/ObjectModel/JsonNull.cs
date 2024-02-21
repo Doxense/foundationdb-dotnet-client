@@ -165,16 +165,25 @@ namespace Doxense.Serialization.Json
 			get => m_kind == NullKind.Error;
 		}
 
+		[AllowNull] // setter only
 		public override JsonValue this[int index]
 		{
 			get => JsonNull.Missing;
-			set => throw ThrowHelper.InvalidOperationException("Cannot change the content of a null JSON value");
+			set => throw FailCannotMutateImmutableValue(this);
 		}
 
+		[AllowNull] // setter only
+		public override JsonValue this[Index key]
+		{
+			get => JsonNull.Missing;
+			set => throw FailCannotMutateImmutableValue(this);
+		}
+
+		[AllowNull] // setter only
 		public override JsonValue this[string key]
 		{
 			get => JsonNull.Missing;
-			set => throw ThrowHelper.InvalidOperationException("Cannot change the content of a null JSON value");
+			set => throw FailCannotMutateImmutableValue(this);
 		}
 
 		internal override bool IsSmallValue() => true;
@@ -340,11 +349,16 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region ISliceSerializable...
+
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			// 'null' => 6E 75 6C 6C
 			writer.WriteFixed32(0x6C6C756E);
 		}
+
+		#endregion
+
 	}
 
 }

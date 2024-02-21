@@ -50,7 +50,10 @@
 // ReSharper disable RedundantNameQualifier
 // ReSharper disable ConvertClosureToMethodGroup
 // ReSharper disable RedundantExplicitParamsArrayCreation
-
+// ReSharper disable ConvertToAutoPropertyWhenPossible
+// ReSharper disable FieldCanBeMadeReadOnly.Local
+// ReSharper disable ConvertToConstant.Local
+#pragma warning disable IDE0044
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 #pragma warning disable CA1861 // Avoid constant arrays as arguments
@@ -1959,9 +1962,9 @@ namespace Doxense.Serialization.Json.Tests
 				// note: les binaires sont Base64 encodés!
 
 				Assert.That(CrystalJson.Serialize(default(ArraySegment<byte>)), Is.EqualTo("null"));
-				Assert.That(CrystalJson.Serialize(new ArraySegment<byte>(Array.Empty<byte>())), Is.EqualTo(@""""""));
+				Assert.That(CrystalJson.Serialize(new ArraySegment<byte>([ ])), Is.EqualTo(@""""""));
 
-				var arraySegment = new ArraySegment<byte>(new byte[] {123, 123, 123, 65, 0, 42, 255, 32, 123 }, 3, 5);
+				var arraySegment = new ArraySegment<byte>([ 123, 123, 123, 65, 0, 42, 255, 32, 123 ], 3, 5);
 				Assert.That(CrystalJson.Serialize(arraySegment), Is.EqualTo(@"""QQAq/yA="""));
 
 				// random
@@ -2008,9 +2011,9 @@ namespace Doxense.Serialization.Json.Tests
 			  // note: les binaires sont Base64 encodés!
 
 				Assert.That(CrystalJson.Deserialize<ArraySegment<byte>>("null"), Is.EqualTo(default(ArraySegment<byte>)));
-				Assert.That(CrystalJson.Deserialize<ArraySegment<byte>>(@""""""), Is.EqualTo(new ArraySegment<byte>(Array.Empty<byte>())));
+				Assert.That(CrystalJson.Deserialize<ArraySegment<byte>>(@""""""), Is.EqualTo(new ArraySegment<byte>([ ])));
 
-				Assert.That(CrystalJson.Deserialize<ArraySegment<byte>>(@"""QQAq/yA="""), Is.EqualTo(new ArraySegment<byte>(new byte[] { 65, 0, 42, 255, 32 })));
+				Assert.That(CrystalJson.Deserialize<ArraySegment<byte>>(@"""QQAq/yA="""), Is.EqualTo(new ArraySegment<byte>([ 65, 0, 42, 255, 32 ])));
 
 				// random
 				var bytes = new byte[32];
@@ -2664,6 +2667,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
+		#region JsonBoolean...
+
 		[Test]
 		public void Test_JsonBoolean()
 		{
@@ -2744,6 +2749,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(SerializeToSlice(JsonBoolean.True), Is.EqualTo(Slice.FromString("true")), "True ~= \"True\"");
 		}
 
+		#endregion
+
 		#region JsonString...
 
 		[Test]
@@ -2764,7 +2771,7 @@ namespace Doxense.Serialization.Json.Tests
 				var jstr = (JsonString) jval!;
 				Assert.That(jstr.IsNullOrEmpty, Is.True);
 				Assert.That(jstr.Length, Is.EqualTo(0));
-				Assert.That(SerializeToSlice(jval), Is.EqualTo(Slice.FromString("\"\"")));
+				Assert.That(SerializeToSlice(jstr), Is.EqualTo(Slice.FromString("\"\"")));
 			}
 
 			{ // from string
@@ -2781,7 +2788,7 @@ namespace Doxense.Serialization.Json.Tests
 				var jstr = (JsonString) jval;
 				Assert.That(jstr.IsNullOrEmpty, Is.False);
 				Assert.That(jstr.Length, Is.EqualTo(13));
-				Assert.That(SerializeToSlice(jval), Is.EqualTo(Slice.FromString("\"Hello, World!\"")));
+				Assert.That(SerializeToSlice(jstr), Is.EqualTo(Slice.FromString("\"Hello, World!\"")));
 			}
 
 			{ // from StringBuilder
@@ -3041,23 +3048,23 @@ namespace Doxense.Serialization.Json.Tests
 
 			SortStrings(
 				"sorting should use ordinal, case sensitive",
-				new[] { "a", "b", "c", "aa", "ab", "aC", "aaa", "abc" },
-				new[] { "a", "aC", "aa", "aaa", "ab", "abc", "b", "c" }
+				["a", "b", "c", "aa", "ab", "aC", "aaa", "abc"],
+				["a", "aC", "aa", "aaa", "ab", "abc", "b", "c"]
 			);
 			SortStrings(
 				"sorting should use lexicographical order",
-				new[] { "cat", "bat", "catamaran", "catZ", "batman" },
-				new[] { "bat", "batman", "cat", "catZ", "catamaran" }
+				["cat", "bat", "catamaran", "catZ", "batman"],
+				["bat", "batman", "cat", "catZ", "catamaran"]
 			);
 			SortStrings(
 				"numbers < UPPERs << lowers",
-				new[] { "a", "1", "A" },
-				new[] { "1", "A", "a" }
+				["a", "1", "A"],
+				["1", "A", "a"]
 			);
 			SortStrings(
 				"numbers should be sorted lexicographically if comparing strings (1 < 10 < 2)",
-				new[] { "0", "1", "2", "7", "10", "42", "100", "1000" },
-				new[] { "0", "1", "10", "100", "1000", "2", "42", "7" }
+				["0", "1", "2", "7", "10", "42", "100", "1000"],
+				["0", "1", "10", "100", "1000", "2", "42", "7"]
 			);
 
 			// cmp with numbers
@@ -3809,6 +3816,77 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("""["one",2,"three",4]""")));
 
 			}
+		}
+
+		[Test]
+		public void Test_JsonArray_Indexing()
+		{
+			var arr = JsonArray.Create("one", "two", "three");
+			Log(arr);
+
+			// this[int]
+			Assert.That(arr[0], Is.EqualTo("one"));
+			Assert.That(arr[1], Is.EqualTo("two"));
+			Assert.That(arr[2], Is.EqualTo("three"));
+			Assert.That(() => arr[4], Throws.InstanceOf<IndexOutOfRangeException>());
+			Assert.That(() => arr[-1], Throws.InstanceOf<IndexOutOfRangeException>());
+			// this[Index]
+			Assert.That(arr[^3], Is.EqualTo("one"));
+			Assert.That(arr[^2], Is.EqualTo("two"));
+			Assert.That(arr[^1], Is.EqualTo("three"));
+			// ReSharper disable once ZeroIndexFromEnd
+			Assert.That(() => arr[^0], Throws.InstanceOf<IndexOutOfRangeException>());
+			Assert.That(() => arr[^4], Throws.InstanceOf<IndexOutOfRangeException>());
+
+			// GetValue(int)
+			Assert.That(arr.GetValue(0), Is.EqualTo("one"));
+			Assert.That(arr.GetValue(1), Is.EqualTo("two"));
+			Assert.That(arr.GetValue(2), Is.EqualTo("three"));
+			Assert.That(() => arr.GetValue(3), Throws.InstanceOf<IndexOutOfRangeException>());
+			Assert.That(() => arr.GetValue(-1), Throws.InstanceOf<IndexOutOfRangeException>());
+			// GetValue(Index)
+			Assert.That(arr.GetValue(^3), Is.EqualTo("one"));
+			Assert.That(arr.GetValue(^2), Is.EqualTo("two"));
+			Assert.That(arr.GetValue(^1), Is.EqualTo("three"));
+			// ReSharper disable once ZeroIndexFromEnd
+			Assert.That(() => arr.GetValue(^0), Throws.InstanceOf<IndexOutOfRangeException>());
+			Assert.That(() => arr.GetValue(^4), Throws.InstanceOf<IndexOutOfRangeException>());
+
+			// TryGetValue(int)
+			Assert.That(arr.TryGetValue(0, out var res), Is.True.WithOutput(res).EqualTo("one"));
+			Assert.That(arr.TryGetValue(1, out res), Is.True.WithOutput(res).EqualTo("two"));
+			Assert.That(arr.TryGetValue(2, out res), Is.True.WithOutput(res).EqualTo("three"));
+			Assert.That(arr.TryGetValue(-1, out res), Is.False.WithOutput(res).Default);
+			Assert.That(arr.TryGetValue(4, out res), Is.False.WithOutput(res).Default);
+			// TryGetValue(Index)
+			Assert.That(arr.TryGetValue(^3, out res), Is.True.WithOutput(res).EqualTo("one"));
+			Assert.That(arr.TryGetValue(^2, out res), Is.True.WithOutput(res).EqualTo("two"));
+			Assert.That(arr.TryGetValue(^1, out res), Is.True.WithOutput(res).EqualTo("three"));
+			Assert.That(arr.TryGetValue(^0, out res), Is.False.WithOutput(res).Default);
+			Assert.That(arr.TryGetValue(^4, out res), Is.False.WithOutput(res).Default);
+
+			// GetPath("[int]")
+			Assert.That(arr.GetPath("[0]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPath("[1]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPath("[2]"), Is.EqualTo("three"));
+			Assert.That(arr.GetPath("[3]"), Is.EqualTo(JsonNull.Missing));
+			// GetPath("[Index]")
+			Assert.That(arr.GetPath("[^3]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPath("[^2]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPath("[^1]"), Is.EqualTo("three"));
+			Assert.That(arr.GetPath("[^0]"), Is.EqualTo(JsonNull.Missing));
+			Assert.That(arr.GetPath("[^4]"), Is.EqualTo(JsonNull.Missing));
+
+			Assert.That(arr.GetPathOrDefault<string>("[0]", "not_found"), Is.EqualTo("one"));
+			Assert.That(arr.GetPathOrDefault<string>("[1]", "not_found"), Is.EqualTo("two"));
+			Assert.That(arr.GetPathOrDefault<string>("[2]", "not_found"), Is.EqualTo("three"));
+			Assert.That(arr.GetPathOrDefault<string>("[3]", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(arr.GetPathOrDefault<string>("[^3]", "not_found"), Is.EqualTo("one"));
+			Assert.That(arr.GetPathOrDefault<string>("[^2]", "not_found"), Is.EqualTo("two"));
+			Assert.That(arr.GetPathOrDefault<string>("[^1]", "not_found"), Is.EqualTo("three"));
+			Assert.That(arr.GetPathOrDefault<string>("[^4]", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(arr.GetPathOrDefault<string>("[0].foo", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(arr.GetPathOrDefault<string>("foo", "not_found"), Is.EqualTo("not_found"));
 		}
 
 		[Test]
@@ -5174,14 +5252,15 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.GetPath<string>("Values[0]"), Is.EqualTo("a"));
 			Assert.That(obj.GetPath<string>("Values[1]"), Is.EqualTo("b"));
 			Assert.That(obj.GetPath<string>("Values[2]"), Is.EqualTo("c"));
-			Assert.That(() => obj.GetPath<string>("Values[3]"), Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => obj.GetPath<string>("Values[2].NotFound"), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => obj.GetPath<string>("Values[3]"), Is.Null);
+			Assert.That(() => obj.GetPath<string>("Values[2].NotFound"), Is.Null);
 
 			Assert.That(obj.GetPath<string>("Items[0].Value"), Is.EqualTo("one"));
 			Assert.That(obj.GetPath<string>("Items[1].Value"), Is.EqualTo("two"));
 			Assert.That(obj.GetPath<string>("Items[2].Value"), Is.EqualTo("three"));
 			Assert.That(obj.GetPath<string>("Items[0].NotFound"), Is.Null);
-			Assert.That(() => obj.GetPath("Items[3]"), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(obj.GetPath<string>("Items[3]"), Is.Null);
+			Assert.That(obj.GetPath<string>("Items[3].Value"), Is.Null);
 
 			// Required
 			Assert.That(() => obj.GetPath<int?>("NotFound.Bar.Baz", required: true), Throws.InvalidOperationException);
@@ -6027,9 +6106,9 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
 
 			// custom tuple types
-			Assert.That(JsonValue.FromValue(new ListTuple<int>(new [] { 1, 2, 3 })).ToJson(), Is.EqualTo("[ 1, 2, 3 ]"));
-			Assert.That(JsonValue.FromValue(new ListTuple<string>(new [] { "foo", "bar", "baz" })).ToJson(), Is.EqualTo("[ \"foo\", \"bar\", \"baz\" ]"));
-			Assert.That(JsonValue.FromValue(new ListTuple<object>(new object[] { "hello world", 123, false })).ToJson(), Is.EqualTo("[ \"hello world\", 123, false ]"));
+			Assert.That(JsonValue.FromValue(new ListTuple<int>([1, 2, 3])).ToJson(), Is.EqualTo("[ 1, 2, 3 ]"));
+			Assert.That(JsonValue.FromValue(new ListTuple<string>(["foo", "bar", "baz"])).ToJson(), Is.EqualTo("[ \"foo\", \"bar\", \"baz\" ]"));
+			Assert.That(JsonValue.FromValue(new ListTuple<object>(["hello world", 123, false])).ToJson(), Is.EqualTo("[ \"hello world\", 123, false ]"));
 			Assert.That(JsonValue.FromValue(new LinkedTuple<int>(STuple.Create(1, 2), 3)).ToJson(), Is.EqualTo("[ 1, 2, 3 ]"));
 			Assert.That(JsonValue.FromValue(new JoinedTuple(STuple.Create(1, 2), STuple.Create(3))).ToJson(), Is.EqualTo("[ 1, 2, 3 ]"));
 		}
@@ -7083,7 +7162,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<string[]>(@"[""foo"",""bar"",""baz""]"), Is.EqualTo(new [] { "foo", "bar", "baz" }));
 
 			// nested
-			Assert.That(CrystalJson.Deserialize<int[][]>("[[1,2],[3,4]]"), Is.EqualTo(new [] { new [] { 1, 2 }, new [] { 3, 4 } }));
+			Assert.That(CrystalJson.Deserialize<int[][]>("[[1,2],[3,4]]"), Is.EqualTo(new int[][] { [ 1, 2 ], [ 3, 4 ] }));
 
 		}
 
@@ -8286,28 +8365,28 @@ namespace Doxense.Serialization.Json.Tests
 			return new CrystalJsonTypeDefinition(type, null, "Dummy",
 				null,
 				() => new DummyJsonClass(),
-				new[] {
-						new CrystalJsonMemberDefinition()
-						{
-							Name = "Foo",
-							Type = typeof(string),
-							DefaultValue = null,
-							Getter = (instance) => "<" + (((DummyJsonClass)instance).Name ?? "nobody") + ">",
-							Setter = (instance, value) => { ((DummyJsonClass)instance).Name = ((value as string) ?? String.Empty).Replace("<","").Replace(">",""); },
-							Binder = binder,
-							Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(string))
-						},
-						new CrystalJsonMemberDefinition()
-						{
-							Name = "Narf",
-							Type = typeof(int),
-							DefaultValue = 42, // non-standard default value !
-							Getter = (instance) => 42 + ((DummyJsonClass)instance).Index,
-							Setter = (instance, value) => { ((DummyJsonClass)instance).Index = ((int) value!) - 42; },
-							Binder = binder,
-							Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(int))
-						}
+				[
+					new()
+					{
+						Name = "Foo",
+						Type = typeof(string),
+						DefaultValue = null,
+						Getter = (instance) => "<" + (((DummyJsonClass)instance).Name ?? "nobody") + ">",
+						Setter = (instance, value) => { ((DummyJsonClass)instance).Name = ((value as string) ?? string.Empty).Replace("<","").Replace(">",""); },
+						Binder = binder,
+						Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(string))
+					},
+					new()
+					{
+						Name = "Narf",
+						Type = typeof(int),
+						DefaultValue = 42, // non-standard default value !
+						Getter = (instance) => 42 + ((DummyJsonClass)instance).Index,
+						Setter = (instance, value) => { ((DummyJsonClass)instance).Index = ((int) value!) - 42; },
+						Binder = binder,
+						Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(int))
 					}
+				]
 			);
 		}
 

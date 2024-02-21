@@ -64,6 +64,7 @@ namespace Doxense.Serialization.Json
 		public int Cursor;
 		/// <summary>Contient la valeur du dernier array index parsé, le nombre de caractère du dernier nom parsé, ou -1 si on est a la fin du path</summary>
 		public int IndexOrSize;
+		public bool IndexFromEnd;
 
 		public JPathTokenizer(string path)
 		{
@@ -72,6 +73,7 @@ namespace Doxense.Serialization.Json
 			this.Offset = 0;
 			this.Cursor = 0;
 			this.IndexOrSize = 0;
+			this.IndexFromEnd = false;
 		}
 
 		/// <summary>Retourne la valeur du token actuel, s'il est de type nom de champ</summary>
@@ -83,6 +85,7 @@ namespace Doxense.Serialization.Json
 			if (offset >= path.Length) throw FailReachedEndOfString();
 			Contract.Debug.Assert(path[offset] != '[', "The current token is not an identifier name");
 			int count = this.IndexOrSize;
+			Contract.Debug.Assert(!this.IndexFromEnd);
 
 			// optimisation pour les cas où le path est le nom direct d'un champ
 			if (offset == 0 && count == path.Length) return path;
@@ -93,11 +96,11 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Retourne la valeur du token actuel, s'il est de type index dans une array</summary>
 		/// <returns></returns>
-		public int GetArrayIndex()
+		public Index GetArrayIndex()
 		{
 			if (this.Offset >= this.Path.Length) throw FailReachedEndOfString();
-			Contract.Debug.Assert(Path[this.Offset] == '[', "The current token is not an array index");
-			return this.IndexOrSize;
+			Contract.Debug.Assert(this.Path[this.Offset] == '[', "The current token is not an array index");
+			return new Index(this.IndexOrSize, this.IndexFromEnd);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -127,9 +130,14 @@ namespace Doxense.Serialization.Json
 			var end = path.Length;
 			if (pos >= end)
 			{
-				if (this.IndexOrSize < 0) throw ThrowHelper.InvalidOperationException("Called JPathTokenizer.MoveNext() too many times.");
+				if (this.IndexOrSize < 0)
+				{
+					throw ThrowHelper.InvalidOperationException("Called JPathTokenizer.MoveNext() too many times.");
+				}
+
 				this.Offset = end;
 				this.IndexOrSize = -1;
+				this.IndexFromEnd = false;
 				return JPathToken.End;
 			}
 
@@ -142,32 +150,48 @@ namespace Doxense.Serialization.Json
 				++pos;
 				this.Cursor = pos;
 				this.IndexOrSize = 0;
+				this.IndexFromEnd = false;
 				return JPathToken.ObjectAccess;
 			}
 
 			if (c == '[')
 			{ // array_index ::= '[' [0-9]+ ']'
 				++pos;
-				int index = 0;
+				int? index = null;
+				bool fromEnd = false;
+
 				while (pos < end)
 				{
 					c = path[pos++];
 					if (c == ']')
 					{
-						this.IndexOrSize = index;
+						if (index == null) break; // => fail
+						this.IndexOrSize = index.Value;
+						this.IndexFromEnd = fromEnd;
 						this.Cursor = pos;
 						return JPathToken.ArrayIndex;
 					}
-					if (c < '0' || c > '9') break;
-					index = checked(index * 10 + (c - 48));
+
+					if (c == '^')
+					{
+						if (index != null) break; // => fail
+						fromEnd = true;
+						continue;
+					}
+					if (c is < '0' or > '9')
+					{
+						break; // => fail
+					}
+					index = checked((index ?? 0) * 10 + (c - 48));
 				}
+
 				throw ThrowHelper.FormatException($"Invalid JPath array index at offset {start}: '{path}'");
 			}
 
 			while (pos < end)
 			{
 				c = path[pos];
-				if (c == '.' || c == '[')
+				if (c is '.' or '[')
 				{
 					break;
 				}
