@@ -39,8 +39,8 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 	using NodaTime;
+	using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 
 	/// <summary>JSON number</summary>
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
@@ -48,6 +48,32 @@ namespace Doxense.Serialization.Json
 	[JetBrains.Annotations.PublicAPI]
 	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>, IEquatable<JsonString>, IEquatable<JsonBoolean>, IEquatable<JsonDateTime>, IEquatable<int>, IEquatable<long>, IEquatable<uint>, IEquatable<ulong>, IEquatable<float>, IEquatable<double>, IEquatable<decimal>, IEquatable<TimeSpan>, IEquatable<Half>
 #if NET8_0_OR_GREATER
+		, System.Numerics.INumberBase<JsonNumber>
+		, System.Numerics.IComparisonOperators<JsonNumber, long, bool>
+		, System.Numerics.IComparisonOperators<JsonNumber, ulong, bool>
+		, System.Numerics.IComparisonOperators<JsonNumber, float, bool>
+		, System.Numerics.IComparisonOperators<JsonNumber, double, bool>
+		, System.Numerics.IComparisonOperators<JsonNumber, decimal, bool>
+		, System.Numerics.IAdditionOperators<JsonNumber, long, JsonNumber>
+		, System.Numerics.IAdditionOperators<JsonNumber, ulong, JsonNumber>
+		, System.Numerics.IAdditionOperators<JsonNumber, float, JsonNumber>
+		, System.Numerics.IAdditionOperators<JsonNumber, double, JsonNumber>
+		, System.Numerics.IAdditionOperators<JsonNumber, decimal, JsonNumber>
+		, System.Numerics.ISubtractionOperators<JsonNumber, long, JsonNumber>
+		, System.Numerics.ISubtractionOperators<JsonNumber, ulong, JsonNumber>
+		, System.Numerics.ISubtractionOperators<JsonNumber, float, JsonNumber>
+		, System.Numerics.ISubtractionOperators<JsonNumber, double, JsonNumber>
+		, System.Numerics.ISubtractionOperators<JsonNumber, decimal, JsonNumber>
+		, System.Numerics.IMultiplyOperators<JsonNumber, long, JsonNumber>
+		, System.Numerics.IMultiplyOperators<JsonNumber, ulong, JsonNumber>
+		, System.Numerics.IMultiplyOperators<JsonNumber, float, JsonNumber>
+		, System.Numerics.IMultiplyOperators<JsonNumber, double, JsonNumber>
+		, System.Numerics.IMultiplyOperators<JsonNumber, decimal, JsonNumber>
+		, System.Numerics.IDivisionOperators<JsonNumber, long, JsonNumber>
+		, System.Numerics.IDivisionOperators<JsonNumber, ulong, JsonNumber>
+		, System.Numerics.IDivisionOperators<JsonNumber, float, JsonNumber>
+		, System.Numerics.IDivisionOperators<JsonNumber, double, JsonNumber>
+		, System.Numerics.IDivisionOperators<JsonNumber, decimal, JsonNumber>
 #endif
 	{
 		/// <summary>Cache of all small numbers, from <see cref="CACHED_SIGNED_MIN"/> to <see cref="CACHED_SIGNED_MAX"/> (included)</summary>
@@ -68,22 +94,34 @@ namespace Doxense.Serialization.Json
 			return cache;
 		}
 
-		/// <summary>0 (signed int)</summary>
-		public static readonly JsonNumber Zero = SmallNumbers[0 + CACHED_OFFSET_ZERO];
-		/// <summary>1 (signed int)</summary>
-		public static readonly JsonNumber One = SmallNumbers[1 + CACHED_OFFSET_ZERO];
-		/// <summary>-1 (signed int)</summary>
-		public static readonly JsonNumber MinusOne = SmallNumbers[-1 + CACHED_OFFSET_ZERO];
-		/// <summary>0.0 (double)</summary>
+		/// <summary><see langword="0"/> (signed int)</summary>
+
+		public static JsonNumber Zero { get; } = SmallNumbers[0 + CACHED_OFFSET_ZERO];
+
+		/// <summary><see langword="1"/> (signed int)</summary>
+		public static JsonNumber One { get; } = SmallNumbers[1 + CACHED_OFFSET_ZERO];
+
+		/// <summary><see langword="-1"/> (signed int)</summary>
+		public static JsonNumber MinusOne { get; } = SmallNumbers[-1 + CACHED_OFFSET_ZERO];
+
+		/// <summary><see langword="0.0"/> (double)</summary>
 		public static readonly JsonNumber DecimalZero = new(new Number(0d), Kind.Double, "0"); //REVIEW: "0.0" ?
-		/// <summary>1.0 (double)</summary>
+
+		/// <summary><see langword="1.0"/> (double)</summary>
 		public static readonly JsonNumber DecimalOne = new(new Number(1d), Kind.Double, "1"); //REVIEW: "1.0" ?
 
+		/// <summary><see langword="NaN"/> (double)</summary>
 		public static readonly JsonNumber NaN = new(new Number(double.NaN), Kind.Double, "NaN");
 
+		/// <summary><see langword="+∞"/> (double)</summary>
 		public static readonly JsonNumber PositiveInfinity = new(new Number(double.PositiveInfinity), Kind.Double, "Infinity");
 
+		/// <summary><see langword="-∞"/> (double)</summary>
 		public static readonly JsonNumber NegativeInfinity = new(new Number(double.NegativeInfinity), Kind.Double, "-Infinity");
+
+		/// <summary><see langword="π"/> ~= <see langword="3.1415926535897931"/> (double)</summary>
+		// ReSharper disable once InconsistentNaming
+		public static readonly JsonNumber PI = new(new Number(Math.PI), Kind.Double, "3.1415926535897931");
 
 		//REVIEW: Signed vs Unsigned ?
 		// 1) est-ce qu'on marque signed si ca vient d'un Int32, et unsigned si UInt32?
@@ -162,20 +200,32 @@ namespace Doxense.Serialization.Json
 			#endregion
 
 			[Pure]
-			public bool IsDefault(Kind kind) => kind switch
+			public bool IsZero(Kind kind) => kind switch
 			{
+				Kind.Signed => this.Signed == 0L,
+				Kind.Unsigned => this.Unsigned == 0UL,
 				Kind.Decimal => this.Decimal == 0m,
 				Kind.Double => this.Double == 0d,
-				Kind.Signed => this.Signed == 0L,
-				_ => this.Unsigned == 0UL
+				_ => false,
+			};
+
+			[Pure]
+			public bool IsOne(Kind kind) => kind switch
+			{
+				Kind.Signed => this.Signed == 1L,
+				Kind.Unsigned => this.Unsigned == 1UL,
+				Kind.Decimal => this.Decimal == 1m,
+				Kind.Double => this.Double == 1d,
+				_ => false,
 			};
 
 			[Pure]
 			public bool IsNegative(Kind kind) => kind switch
 			{
+				Kind.Signed => this.Signed < 0L,
+				Kind.Unsigned => false,
 				Kind.Decimal => this.Decimal < 0m,
 				Kind.Double => this.Double < 0d,
-				Kind.Signed => this.Signed < 0L,
 				_ => false
 			};
 
@@ -396,8 +446,6 @@ namespace Doxense.Serialization.Json
 
 			#region Arithmetic...
 
-			#region Addition...
-
 			/// <summary>Add a number to another number</summary>
 			public static void Add(ref Number xValue, ref Kind xKind, in Number yValue, Kind yKind)
 			{
@@ -450,101 +498,307 @@ namespace Doxense.Serialization.Json
 						break;
 					}
 				}
+
+				// unsupported type of combination?
+				Contract.Debug.Fail("Unsupported number types");
 				throw new NotSupportedException();
-			}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddSignedSigned(long x, long y, out Kind kind, out Number result)
-			{
-				kind = Kind.Signed;
-				result = new Number(checked(x + y));
-			}
-
-			private static void AddSignedUnsigned(long x, ulong y, out Kind kind, out Number result)
-			{
-				ulong val;
-				if (x < 0)
-				{ // inverse the order of the arguments, to simplify dealing with negative numbers
-					if (x == long.MinValue)
-						val = checked(y - 0x8000000000000000UL); // cannot do -(long.MinValue), so special case this one
-					else
-						val = checked(y - (ulong)(-x)); // (-X) + Y == Y - X
-				}
-				else
+				static void AddSignedSigned(long x, long y, out Kind kind, out Number result)
 				{
-					val = checked((ulong)x + y);
-				}
+					//note: adding large numbers could overflow signed but still be valid for unsigned
+					if (x >= 0 && y >= 0)
+					{ // result will be positive
+						if (x > 4611686018427387903 || y > 4611686018427387903)
+						{ // result may overflow signed
+							ulong r = checked((ulong) x + (ulong) y);
+							kind = r <= long.MaxValue ? Kind.Signed : Kind.Unsigned;
+							result = new Number(r);
+							return;
+						}
+					}
 
-				if (val <= long.MaxValue)
-				{ // fits in a signed
 					kind = Kind.Signed;
-					result = new Number((long)val);
+					result = new Number(checked(x + y));
 				}
-				else
-				{ // upgrade to unsigned
-					kind = Kind.Unsigned;
-					result = new Number(val);
+
+				static void AddSignedUnsigned(long x, ulong y, out Kind kind, out Number result)
+				{
+					ulong val;
+					if (x < 0)
+					{ // inverse the order of the arguments, to simplify dealing with negative numbers
+						if (x == long.MinValue)
+							val = checked(y - 0x8000000000000000UL); // cannot do -(long.MinValue), so special case this one
+						else
+							val = checked(y - (ulong)(-x)); // (-X) + Y == Y - X
+					}
+					else
+					{
+						val = checked((ulong) x + y);
+					}
+
+					if (val <= long.MaxValue)
+					{ // fits in a signed
+						kind = Kind.Signed;
+						result = new Number((long)val);
+					}
+					else
+					{ // upgrade to unsigned
+						kind = Kind.Unsigned;
+						result = new Number(val);
+					}
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void AddSignedDouble(long x, double y, out Kind kind, out Number result)
+				{
+					kind = Kind.Double;
+					result = new Number(x + y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void AddSignedDecimal(long x, decimal y, out Kind kind, out Number result)
+				{
+					kind = Kind.Decimal;
+					result = new Number(x + y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void AddUnsignedUnsigned(ulong x, ulong y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Unsigned;
+					result = new Number(checked(x + y));
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void AddUnsignedDouble(ulong x, double y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x + y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void AddUnsignedDecimal(ulong x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x + y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void AddDoubleDouble(double x, double y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x + y);
+				}
+
+				static void AddDoubleDecimal(double x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Decimal;
+					result = new Number((Decimal) x + y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void AddDecimalDecimal(decimal x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Decimal;
+					result = new Number(x + y);
+				}
+
+			}
+
+			/// <summary>Subtract a number from another number</summary>
+			public static void Subtract(ref Number xValue, ref Kind xKind, in Number yValue, Kind yKind)
+			{
+				// We have to handle all combinations of kind for both x and y :(
+				// to keep our sanity, we will reuse some methods by swaping the arguments, for ex: long + ulong <=> ulong + long
+				switch (xKind)
+				{
+					case Kind.Signed:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   SubtractSignedSigned  (xValue.Signed, yValue.Signed,   out xKind, out xValue); return;
+							case Kind.Unsigned: SubtractSignedUnsigned(xValue.Signed, yValue.Unsigned, out xKind, out xValue); return;
+							case Kind.Double:   SubtractDoubleDouble  (xValue.Signed, yValue.Double,   out xKind, out xValue); return;
+							case Kind.Decimal:  SubtractDecimalDecimal(xValue.Signed, yValue.Decimal,  out xKind, out xValue); return;
+						}
+						break;
+					}
+					case Kind.Unsigned:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   SubtractUnsignedSigned  (xValue.Unsigned, yValue.Signed, out xKind, out xValue); return;
+							case Kind.Unsigned: SubtractUnsignedUnsigned(xValue.Unsigned, yValue.Unsigned, out xKind, out xValue); return;
+							case Kind.Double:   SubtractDoubleDouble    (xValue.Unsigned, yValue.Double,   out xKind, out xValue); return;
+							case Kind.Decimal:  SubtractDecimalDecimal  (xValue.Unsigned, yValue.Decimal,  out xKind, out xValue); return;
+						}
+						break;
+					}
+					case Kind.Double:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   SubtractDoubleDouble (xValue.Double, yValue.Signed,   out xKind, out xValue); return;
+							case Kind.Unsigned: SubtractDoubleDouble (xValue.Double, yValue.Unsigned, out xKind, out xValue); return;
+							case Kind.Double:   SubtractDoubleDouble (xValue.Double, yValue.Double,   out xKind, out xValue); return;
+							case Kind.Decimal:  SubtractDecimalDecimal((decimal) xValue.Double, yValue.Decimal,  out xKind, out xValue); return;
+						}
+						break;
+					}
+					case Kind.Decimal:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   SubtractDecimalDecimal(xValue.Decimal, yValue.Signed,   out xKind, out xValue); return;
+							case Kind.Unsigned: SubtractDecimalDecimal(xValue.Decimal, yValue.Unsigned, out xKind, out xValue); return;
+							case Kind.Double:   SubtractDecimalDecimal(xValue.Decimal, (decimal) yValue.Double, out xKind, out xValue); return;
+							case Kind.Decimal:  SubtractDecimalDecimal(xValue.Decimal, yValue.Decimal,  out xKind, out xValue); return;
+						}
+						break;
+					}
+				}
+
+				// unsupported type of combination?
+				Contract.Debug.Fail("Unsupported number types");
+				throw new NotSupportedException();
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void SubtractSignedSigned(long x, long y, out Kind kind, out Number result)
+				{
+					if (x >= 0 && y < 0)
+					{
+						ulong r = (ulong) x + (y == long.MinValue ? 9223372036854775808UL : (ulong) (-y));
+						if (r > long.MaxValue)
+						{
+							kind = Kind.Unsigned;
+							result = new Number(r);
+						}
+						else
+						{
+							kind = Kind.Signed;
+							result = new Number((long) r);
+						}
+					}
+					else
+					{
+						kind = Kind.Signed;
+						result = new Number(checked(x - y));
+					}
+				}
+
+				static void SubtractSignedUnsigned(long x, ulong y, out Kind kind, out Number result)
+				{
+					if (x > 0)
+					{
+						if ((ulong) x == y)
+						{ // X - X = 0
+							kind = Kind.Signed;
+							result = default;
+						}
+						else if (y < (ulong) x)
+						{ // the result will still be positive
+							kind = Kind.Signed;
+							result = new Number(x - (long) y);
+						}
+						else
+						{ // the result will become negative, ex: for x = 123 and y = 456 then x - y = -333
+
+							// it's easier to do the reverse subtraction (which is positive), and then flip the sign: x - y = -(y - x)
+							ulong z = y - (ulong) x; // z == y - x == 456 - 123 == 333
+							long r = checked(-((long) z)); // r == -333
+							kind = Kind.Signed;
+							result = new Number(r);
+						}
+					}
+					else
+					{ // the result will be negative
+						// note that if X < 0 then X - Y = -|X| - Y = -(|X| + Y)
+						// ex: x == -123 and y == 456 then x - y == -579
+						ulong nx = x == long.MinValue ? 9223372036854775808UL : (ulong) -x; // nx == 123
+						ulong z = checked(y + nx); // z == 456 + 123 == 579
+						long r = checked(-(long) z); // r == -579
+						kind = Kind.Signed;
+						result = new Number(r);
+					}
+				}
+
+				static void SubtractUnsignedSigned(ulong x, long y, out Kind kind, out Number result)
+				{
+					if (y >= 0)
+					{ // If y >= 0 then X - Y == X - |Y|
+						SubtractUnsignedUnsigned(x, (ulong) y, out kind, out result);
+					}
+					else
+					{ // If y < 0 then X - Y == X - (-|Y|) == X + |Y|
+
+						ulong ny = y == long.MinValue ? 9223372036854775808UL : (ulong) -y;
+						ulong r = checked(x + ny);
+						if (r > long.MaxValue)
+						{
+							kind = Kind.Unsigned;
+							result = new Number(r);
+						}
+						else
+						{
+							kind = Kind.Signed;
+							result = new Number((long) r);
+						}
+					}
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void SubtractUnsignedUnsigned(ulong x, ulong y, out Kind rKind, out Number result)
+				{
+					if (y > x)
+					{ // result will be negative
+						// X - Y == -(Y - X)
+						ulong r = y - x;
+						rKind = Kind.Signed;
+						result = new Number(checked(-(long) r));
+					}
+					else
+					{ // result will be positive
+						rKind = Kind.Unsigned;
+						result = new Number(checked(x - y));
+					}
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void SubtractDoubleDouble(double x, double y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x - y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void SubtractDecimalDecimal(decimal x, decimal y, out Kind rKind, out Number result)
+				{
+					decimal r = x - y;
+
+#if NET8_0_OR_GREATER
+					if (decimal.IsInteger(r) && r >= long.MinValue)
+					{ // attempt to convert it to a signed/unsigned integer
+
+						if (r <= long.MinValue)
+						{ // signed
+							rKind = Kind.Signed;
+							result = new Number((long) r);
+							return;
+						}
+						if (r <= ulong.MaxValue)
+						{ // unsigned
+							rKind = Kind.Unsigned;
+							result = new Number((ulong) r);
+							return;
+						}
+						// too large to represent
+					}
+#endif
+
+					rKind = Kind.Decimal;
+					result = new Number(r);
 				}
 			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddSignedDouble(long x, double y, out Kind kind, out Number result)
-			{
-				kind = Kind.Double;
-				result = new Number(x + y);
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddSignedDecimal(long x, decimal y, out Kind kind, out Number result)
-			{
-				kind = Kind.Decimal;
-				result = new Number(x + y);
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddUnsignedUnsigned(ulong x, ulong y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Unsigned;
-				result = new Number(checked(x + y));
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddUnsignedDouble(ulong x, double y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Double;
-				result = new Number(x + y);
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddUnsignedDecimal(ulong x, decimal y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Double;
-				result = new Number(x + y);
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddDoubleDouble(double x, double y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Double;
-				result = new Number(x + y);
-			}
-
-			private static void AddDoubleDecimal(double x, decimal y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Decimal;
-				result = new Number((Decimal) x + y);
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void AddDecimalDecimal(decimal x, decimal y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Decimal;
-				result = new Number(x + y);
-			}
-
-			#endregion
-
-			#region Multiplication...
 
 			/// <summary>Multiply a number with another number</summary>
 			public static void Multiply(ref Number xValue, ref Kind xKind, in Number yValue, Kind yKind)
@@ -598,94 +852,267 @@ namespace Doxense.Serialization.Json
 						break;
 					}
 				}
+
+				// unsupported type of combination?
+				Contract.Debug.Fail("Unsupported number types");
 				throw new NotSupportedException();
-			}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplySignedSigned(long x, long y, out Kind kind, out Number result)
-			{
-				kind = Kind.Signed;
-				result = new Number(checked(x * y));
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplySignedSigned(long x, long y, out Kind kind, out Number result)
+				{
+					if (y == -1 && x != long.MinValue)
+					{ // frequently used to compute the absolute value of a negative number
+						kind = Kind.Signed;
+						result = new Number(-x);
+						return;
+					}
 
-			private static void MultiplySignedUnsigned(long x, ulong y, out Kind kind, out Number result)
-			{
-				if (x < 0)
-				{ // the result must be signed!
+					if (x >= 0)
+					{
+						if (y >= 0)
+						{ // return will be positive
+							ulong r = checked((ulong) x * (ulong) y);
+							kind = r <= long.MaxValue ? Kind.Signed : Kind.Unsigned;
+							result = new Number(r);
+							return;
+						}
+					}
+					else
+					{
+						if (y is < 0 and > long.MinValue)
+						{ // return will be positive: x * y = |x| * |y| when x < 0 and y < 0
+							ulong r = checked((ulong) -x * (ulong) -y);
+							kind = r <= long.MaxValue ? Kind.Signed : Kind.Unsigned;
+							result = new Number(r);
+							return;
+						}
+					}
+
 					kind = Kind.Signed;
-					result = new Number(checked(x * (long) y));
-					return;
+					result = new Number(checked(x * y));
 				}
-				ulong val = checked((ulong) x * y);
 
-				if (val <= long.MaxValue)
-				{ // fits in a signed
+				static void MultiplySignedUnsigned(long x, ulong y, out Kind kind, out Number result)
+				{
+					if (x < 0)
+					{ // the result must be signed!
+						kind = Kind.Signed;
+						result = new Number(checked(x * (long) y));
+						return;
+					}
+					ulong val = checked((ulong) x * y);
+
+					if (val <= long.MaxValue)
+					{ // fits in a signed
+						kind = Kind.Signed;
+						result = new Number((long) val);
+					}
+					else
+					{ // upgrade to unsigned
+						kind = Kind.Unsigned;
+						result = new Number(val);
+					}
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplySignedDouble(long x, double y, out Kind kind, out Number result)
+				{
+					kind = Kind.Double;
+					result = new Number(x * y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplySignedDecimal(long x, decimal y, out Kind kind, out Number result)
+				{
+					kind = Kind.Decimal;
+					result = new Number(x * y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplyUnsignedUnsigned(ulong x, ulong y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Unsigned;
+					result = new Number(checked(x * y));
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplyUnsignedDouble(ulong x, double y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x * y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplyUnsignedDecimal(ulong x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x * y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplyDoubleDouble(double x, double y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x * y);
+				}
+
+				static void MultiplyDoubleDecimal(double x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Decimal;
+					result = new Number((decimal) x * y);
+				}
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void MultiplyDecimalDecimal(decimal x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Decimal;
+					result = new Number(x * y);
+				}
+
+			}
+
+			/// <summary>Divide a number with another number</summary>
+			public static void Divide(ref Number xValue, ref Kind xKind, in Number yValue, Kind yKind)
+			{
+				// We have to handle all combinations of kind for both x and y :(
+				// to keep our sanity, we will reuse some methods by swaping the arguments, for ex: long + ulong <=> ulong + long
+				switch (xKind)
+				{
+					case Kind.Signed:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   DivideSignedSigned  (xValue.Signed, yValue.Signed,   out xKind, out xValue); return;
+							case Kind.Unsigned: DivideSignedUnsigned(xValue.Signed, yValue.Unsigned, out xKind, out xValue); return;
+							case Kind.Double:   DivideSignedDouble  (xValue.Signed, yValue.Double,   out xKind, out xValue); return;
+							case Kind.Decimal:  DivideSignedDecimal (xValue.Signed, yValue.Decimal,  out xKind, out xValue); return;
+						}
+						break;
+					}
+					case Kind.Unsigned:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   DivideSignedUnsigned  (yValue.Signed,   xValue.Unsigned, out xKind, out xValue); return;
+							case Kind.Unsigned: DivideUnsignedUnsigned(xValue.Unsigned, yValue.Unsigned, out xKind, out xValue); return;
+							case Kind.Double:   DivideUnsignedDouble  (xValue.Unsigned, yValue.Double,   out xKind, out xValue); return;
+							case Kind.Decimal:  DivideUnsignedDecimal (xValue.Unsigned, yValue.Decimal,  out xKind, out xValue); return;
+						}
+						break;
+					}
+					case Kind.Double:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   DivideSignedDouble  (yValue.Signed,   xValue.Double,  out xKind, out xValue); return;
+							case Kind.Unsigned: DivideUnsignedDouble(yValue.Unsigned, xValue.Double,  out xKind, out xValue); return;
+							case Kind.Double:   DivideDoubleDouble  (xValue.Double,   yValue.Double,  out xKind, out xValue); return;
+							case Kind.Decimal:  DivideDoubleDecimal (xValue.Double,   yValue.Decimal, out xKind, out xValue); return;
+						}
+						break;
+					}
+					case Kind.Decimal:
+					{
+						switch (yKind)
+						{
+							case Kind.Signed:   DivideSignedDecimal  (yValue.Signed,   xValue.Decimal, out xKind, out xValue); return;
+							case Kind.Unsigned: DivideUnsignedDecimal(yValue.Unsigned, xValue.Decimal, out xKind, out xValue); return;
+							case Kind.Double:   DivideDoubleDecimal  (yValue.Double,   xValue.Decimal, out xKind, out xValue); return;
+							case Kind.Decimal:  DivideDecimalDecimal (xValue.Decimal,  yValue.Decimal, out xKind, out xValue); return;
+						}
+						break;
+					}
+				}
+
+				// unsupported type of combination?
+				Contract.Debug.Fail("Unsupported number types");
+				throw new NotSupportedException();
+
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideSignedSigned(long x, long y, out Kind kind, out Number result)
+				{
 					kind = Kind.Signed;
-					result = new Number((long) val);
+					result = new Number(checked(x / y));
 				}
-				else
-				{ // upgrade to unsigned
-					kind = Kind.Unsigned;
-					result = new Number(val);
+
+				static void DivideSignedUnsigned(long x, ulong y, out Kind kind, out Number result)
+				{
+					if (x < 0)
+					{ // the result must be signed!
+						kind = Kind.Signed;
+						result = new Number(checked(x / (long) y));
+						return;
+					}
+					ulong val = checked((ulong) x / y);
+
+					if (val <= long.MaxValue)
+					{ // fits in a signed
+						kind = Kind.Signed;
+						result = new Number((long) val);
+					}
+					else
+					{ // upgrade to unsigned
+						kind = Kind.Unsigned;
+						result = new Number(val);
+					}
 				}
-			}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplySignedDouble(long x, double y, out Kind kind, out Number result)
-			{
-				kind = Kind.Double;
-				result = new Number(x * y);
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideSignedDouble(long x, double y, out Kind kind, out Number result)
+				{
+					kind = Kind.Double;
+					result = new Number(x / y);
+				}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplySignedDecimal(long x, decimal y, out Kind kind, out Number result)
-			{
-				kind = Kind.Decimal;
-				result = new Number(x * y);
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideSignedDecimal(long x, decimal y, out Kind kind, out Number result)
+				{
+					kind = Kind.Decimal;
+					result = new Number(x / y);
+				}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplyUnsignedUnsigned(ulong x, ulong y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Unsigned;
-				result = new Number(checked(x * y));
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideUnsignedUnsigned(ulong x, ulong y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Unsigned;
+					result = new Number(checked(x / y));
+				}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplyUnsignedDouble(ulong x, double y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Double;
-				result = new Number(x * y);
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideUnsignedDouble(ulong x, double y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x / y);
+				}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplyUnsignedDecimal(ulong x, decimal y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Double;
-				result = new Number(x * y);
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideUnsignedDecimal(ulong x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x / y);
+				}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplyDoubleDouble(double x, double y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Double;
-				result = new Number(x * y);
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideDoubleDouble(double x, double y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Double;
+					result = new Number(x / y);
+				}
 
-			private static void MultiplyDoubleDecimal(double x, decimal y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Decimal;
-				result = new Number((decimal) x * y);
-			}
+				static void DivideDoubleDecimal(double x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Decimal;
+					result = new Number((decimal) x / y);
+				}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void MultiplyDecimalDecimal(decimal x, decimal y, out Kind rKind, out Number result)
-			{
-				rKind = Kind.Decimal;
-				result = new Number(x * y);
-			}
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				static void DivideDecimalDecimal(decimal x, decimal y, out Kind rKind, out Number result)
+				{
+					rKind = Kind.Decimal;
+					result = new Number(x / y);
+				}
 
-			#endregion
+			}
 
 			#endregion
 
@@ -745,7 +1172,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(string value) => CrystalJsonParser.ParseJsonNumber(value) ?? JsonNumber.Zero;
+		public static JsonNumber Return(string value) => CrystalJsonParser.ParseJsonNumber(value) ?? Zero;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(byte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
@@ -1062,7 +1489,7 @@ namespace Doxense.Serialization.Json
 
 		public override JsonType Type => JsonType.Number;
 
-		public override bool IsDefault => m_value.IsDefault(m_kind);
+		public override bool IsDefault => m_value.IsZero(m_kind);
 
 		public override bool IsReadOnly => true; //note: numbers are immutable
 
@@ -1250,6 +1677,8 @@ namespace Doxense.Serialization.Json
 
 		#region ToXXX() ...
 
+		public override string ToString() => this.Literal;
+
 		public override bool ToBoolean() => m_value.ToBoolean(m_kind);
 
 		public override byte ToByte() => m_value.ToByte(m_kind);
@@ -1423,10 +1852,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
-		public bool Equals(JsonNumber? value)
-		{
-			return value != null && Number.Equals(in m_value, m_kind, in value.m_value, value.m_kind);
-		}
+		public bool Equals(JsonNumber? value) => value is not null && Number.Equals(in m_value, m_kind, in value.m_value, value.m_kind);
 
 		public bool Equals(JsonString? value)
 		{
@@ -1505,7 +1931,7 @@ namespace Doxense.Serialization.Json
 		public bool Equals(float value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
-			Kind.Double => m_value.Double == value,
+			Kind.Double => m_value.Double.Equals(value),
 			Kind.Signed => m_value.Signed == value,
 			Kind.Unsigned => value >= 0 && m_value.Unsigned == value,
 			_ => false
@@ -1514,7 +1940,7 @@ namespace Doxense.Serialization.Json
 		public bool Equals(double value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
-			Kind.Double => m_value.Double == value,
+			Kind.Double => m_value.Double.Equals(value),
 			Kind.Signed => m_value.Signed == value,
 			Kind.Unsigned => value >= 0 && m_value.Unsigned == value,
 			_ => false
@@ -1664,81 +2090,345 @@ namespace Doxense.Serialization.Json
 
 		#region Arithmetic operators
 
-		// uniquement disponible si la valeur est castée en JsonNumber
-		// (pas exposés sur JsonValue)
+		public static bool operator ==(JsonNumber? left, JsonNumber? right) => left?.Equals(right) ?? right is null;
 
-		public static bool operator ==(JsonNumber? number, long value) => number != null && number.Equals(value);
+		public static bool operator !=(JsonNumber? left, JsonNumber? right) => !left?.Equals(right) ?? right is not null;
 
-		public static bool operator !=(JsonNumber? number, long value) => number == null || !number.Equals(value);
+		public static JsonNumber operator +(JsonNumber value) => value;
 
-		public static bool operator <(JsonNumber? number, long value) => number != null && number.CompareTo(value) < 0;
+		public static JsonNumber operator -(JsonNumber value) => MinusOne.Multiply(value);
 
-		public static bool operator <=(JsonNumber? number, long value) => number != null && number.CompareTo(value) <= 0;
+		public static bool operator ==(JsonNumber? number, long value) => number is not null && number.Equals(value);
 
-		public static bool operator >(JsonNumber? number, long value) => number != null && number.CompareTo(value) > 0;
+		public static bool operator !=(JsonNumber? number, long value) => number is null || !number.Equals(value);
 
-		public static bool operator >=(JsonNumber? number, long value) => number != null && number.CompareTo(value) >= 0;
+		public static bool operator <(JsonNumber? number, long value) => number is not null && number.CompareTo(value) < 0;
 
-		public static bool operator ==(JsonNumber? number, ulong value) => number != null && number.Equals(value);
+		public static bool operator <=(JsonNumber? number, long value) => number is not null && number.CompareTo(value) <= 0;
 
-		public static bool operator !=(JsonNumber? number, ulong value) => number == null || !number.Equals(value);
+		public static bool operator >(JsonNumber? number, long value) => number is not null && number.CompareTo(value) > 0;
 
-		public static bool operator <(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) < 0;
+		public static bool operator >=(JsonNumber? number, long value) => number is not null && number.CompareTo(value) >= 0;
 
-		public static bool operator <=(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) <= 0;
+		public static bool operator ==(JsonNumber? number, ulong value) => number is not null && number.Equals(value);
 
-		public static bool operator >(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) > 0;
+		public static bool operator !=(JsonNumber? number, ulong value) => number is null || !number.Equals(value);
 
-		public static bool operator >=(JsonNumber? number, ulong value) => number != null && number.CompareTo(value) >= 0;
+		public static bool operator <(JsonNumber? number, ulong value) => number is not null && number.CompareTo(value) < 0;
 
-		public static bool operator ==(JsonNumber? number, float value) => number != null && number.Equals(value);
+		public static bool operator <=(JsonNumber? number, ulong value) => number is not null && number.CompareTo(value) <= 0;
 
-		public static bool operator !=(JsonNumber? number, float value) => number == null || !number.Equals(value);
+		public static bool operator >(JsonNumber? number, ulong value) => number is not null && number.CompareTo(value) > 0;
 
-		public static bool operator <(JsonNumber? number, float value) => number != null && number.CompareTo(value) < 0;
+		public static bool operator >=(JsonNumber? number, ulong value) => number is not null && number.CompareTo(value) >= 0;
 
-		public static bool operator <=(JsonNumber? number, float value) => number != null && number.CompareTo(value) <= 0;
+		public static bool operator ==(JsonNumber? number, float value) => number is not null && number.Equals(value);
 
-		public static bool operator >(JsonNumber? number, float value) => number != null && number.CompareTo(value) > 0;
+		public static bool operator !=(JsonNumber? number, float value) => number is null || !number.Equals(value);
 
-		public static bool operator >=(JsonNumber? number, float value) => number != null && number.CompareTo(value) >= 0;
+		public static bool operator <(JsonNumber? number, float value) => number is not null && number.CompareTo(value) < 0;
 
-		public static bool operator ==(JsonNumber? number, double value) => number != null && number.Equals(value);
+		public static bool operator <=(JsonNumber? number, float value) => number is not null && number.CompareTo(value) <= 0;
 
-		public static bool operator !=(JsonNumber? number, double value) => number == null || !number.Equals(value);
+		public static bool operator >(JsonNumber? number, float value) => number is not null && number.CompareTo(value) > 0;
 
-		public static bool operator <(JsonNumber? number, double value) => number != null && number.CompareTo(value) < 0;
+		public static bool operator >=(JsonNumber? number, float value) => number is not null && number.CompareTo(value) >= 0;
 
-		public static bool operator <=(JsonNumber? number, double value) => number != null && number.CompareTo(value) <= 0;
+		public static bool operator ==(JsonNumber? number, double value) => number is not null && number.Equals(value);
 
-		public static bool operator >(JsonNumber? number, double value) => number != null && number.CompareTo(value) > 0;
+		public static bool operator !=(JsonNumber? number, double value) => number is null || !number.Equals(value);
 
-		public static bool operator >=(JsonNumber? number, double value) => number != null && number.CompareTo(value) >= 0;
+		public static bool operator <(JsonNumber? number, double value) => number is not null && number.CompareTo(value) < 0;
+
+		public static bool operator <=(JsonNumber? number, double value) => number is not null && number.CompareTo(value) <= 0;
+
+		public static bool operator >(JsonNumber? number, double value) => number is not null && number.CompareTo(value) > 0;
+
+		public static bool operator >=(JsonNumber? number, double value) => number is not null && number.CompareTo(value) >= 0;
+
+		public static bool operator ==(JsonNumber? number, decimal value) => number is not null && number.Equals(value);
+
+		public static bool operator !=(JsonNumber? number, decimal value) => number is null || !number.Equals(value);
+
+		public static bool operator <(JsonNumber? number, decimal value) => number is not null && number.CompareTo(value) < 0;
+
+		public static bool operator <=(JsonNumber? number, decimal value) => number is not null && number.CompareTo(value) <= 0;
+
+		public static bool operator >(JsonNumber? number, decimal value) => number is not null && number.CompareTo(value) > 0;
+
+		public static bool operator >=(JsonNumber? number, decimal value) => number is not null && number.CompareTo(value) >= 0;
 
 		[Pure]
 		public JsonNumber Plus(JsonNumber number)
 		{
-			// x + 0 == x; 0 + y == y
-			if (number.m_value.IsDefault(m_kind)) return this;
-			if (m_value.IsDefault(m_kind)) return number;
+			// x + 0 == x
+			if (number.m_value.IsZero(m_kind)) return this;
 
 			var kind = m_kind;
 			var value = m_value;
+			//  0 + y == y
+			if (m_value.IsZero(m_kind)) return number;
+
 			Number.Add(ref value, ref kind, in number.m_value, number.m_kind);
 			return Return(value, kind);
 		}
 
 		[Pure]
-		public JsonNumber Multiply(JsonNumber number)
+		public JsonNumber Minus(JsonNumber number)
 		{
+			// x - 0 == x
+			if (number.m_value.IsZero(m_kind)) return this;
+
 			var kind = m_kind;
 			var value = m_value;
+
+			Number.Subtract(ref value, ref kind, number.m_value, number.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator +(JsonNumber left, JsonNumber right) => left.Plus(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator +(JsonNumber left, long right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Signed;
+			var value = new Number(right);
+			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator +(JsonNumber left, ulong right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Unsigned;
+			var value = new Number(right);
+			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator +(JsonNumber left, double right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator +(JsonNumber left, float right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator +(JsonNumber left, decimal right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Decimal;
+			var value = new Number(right);
+			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator ++(JsonNumber left) => left.Plus(One);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator -(JsonNumber left, JsonNumber right) => left.Minus(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator -(JsonNumber left, long right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Signed;
+			var value = new Number(right);
+			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator -(JsonNumber left, ulong right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Unsigned;
+			var value = new Number(right);
+			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator -(JsonNumber left, double right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator -(JsonNumber left, float right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator -(JsonNumber left, decimal right)
+		{
+			if (right == 0) return left;
+			var kind = Kind.Decimal;
+			var value = new Number(right);
+			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator --(JsonNumber left) => left.Plus(MinusOne);
+
+		[Pure]
+		public JsonNumber Multiply(JsonNumber number)
+		{
+			// x * 1 == x
+			if (m_value.IsOne(m_kind)) return number;
+
+			var kind = m_kind;
+			var value = m_value;
+
 			Number.Multiply(ref value, ref kind, in number.m_value, number.m_kind);
 			return Return(value, kind);
 		}
 
+		public static JsonNumber operator *(JsonNumber left, JsonNumber right) => left.Multiply(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator *(JsonNumber left, long right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Signed;
+			var value = new Number(right);
+			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator *(JsonNumber left, ulong right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Unsigned;
+			var value = new Number(right);
+			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator *(JsonNumber left, double right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator *(JsonNumber left, float right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator *(JsonNumber left, decimal right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Decimal;
+			var value = new Number(right);
+			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure]
+		public JsonNumber Divide(JsonNumber number)
+		{
+			// x / 1 == x
+			if (m_value.IsOne(m_kind)) return number;
+
+			var kind = m_kind;
+			var value = m_value;
+
+			Number.Divide(ref value, ref kind, in number.m_value, number.m_kind);
+			return Return(value, kind);
+		}
+
+		public static JsonNumber operator /(JsonNumber left, JsonNumber right) => left.Divide(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator /(JsonNumber left, long right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Signed;
+			var value = new Number(right);
+			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator /(JsonNumber left, ulong right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Unsigned;
+			var value = new Number(right);
+			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator /(JsonNumber left, double right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator /(JsonNumber left, float right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Double;
+			var value = new Number(right);
+			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber operator /(JsonNumber left, decimal right)
+		{
+			if (right == 1) return left;
+			var kind = Kind.Decimal;
+			var value = new Number(right);
+			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
+			return Return(value, kind);
+		}
 		/// <summary>Special helper to create a number from its constituents</summary>
-		private static JsonNumber Return(Number value, Kind kind)
+		private static JsonNumber Return(in Number value, Kind kind)
 		{
 			switch (kind)
 			{
@@ -1750,9 +2440,11 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		#endregion
+		public static JsonNumber AdditiveIdentity => Zero;
 
-		public override string ToString() => this.Literal;
+		public static JsonNumber MultiplicativeIdentity => One;
+
+		#endregion
 
 		public override string ToJson(CrystalJsonSettings? settings = null) => this.Literal;
 
@@ -1764,6 +2456,277 @@ namespace Doxense.Serialization.Json
 		}
 
 		#endregion
+
+#if NET8_0_OR_GREATER
+
+		bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			charsWritten = 0;
+			return false;
+		}
+
+		static JsonNumber IParsable<JsonNumber>.Parse(string s, IFormatProvider? provider) => Return(s);
+
+		static bool IParsable<JsonNumber>.TryParse(string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
+		{
+			try
+			{
+				result = CrystalJsonParser.ParseJsonNumber(s);
+				return result is not null;
+			}
+			catch (Exception)
+			{ // not a valid number
+				result = default;
+				return false;
+			}
+		}
+
+		static JsonNumber ISpanParsable<JsonNumber>.Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => Return(s.ToString());
+
+		static bool ISpanParsable<JsonNumber>.TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
+		{
+			try
+			{
+				result = CrystalJsonParser.ParseJsonNumber(s.ToString());
+				return result is not null;
+			}
+			catch (Exception)
+			{ // not a valid number
+				result = default;
+				return false;
+			}
+		}
+
+		static JsonNumber System.Numerics.INumberBase<JsonNumber>.Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider) => throw new NotSupportedException();
+
+		static JsonNumber System.Numerics.INumberBase<JsonNumber>.Parse(string s, NumberStyles style, IFormatProvider? provider) => throw new NotSupportedException();
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, out JsonNumber result) => throw new NotSupportedException();
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryParse(string? s, NumberStyles style, IFormatProvider? provider, out JsonNumber result) => throw new NotSupportedException();
+
+
+		static int System.Numerics.INumberBase<JsonNumber>.Radix => 2;
+		// note: this is wrong if we store a decimal, which has Radix == 10, but we can't really do anything here
+
+		static bool System.Numerics.INumberBase<JsonNumber>.IsNegative(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Signed => long.IsNegative(value.m_value.Signed),
+			Kind.Double => double.IsNegative(value.m_value.Double),
+			Kind.Decimal => decimal.IsNegative(value.m_value.Decimal),
+			_ => false,
+		};
+
+#endif
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber Abs(JsonNumber value) => value.IsNegative ? value.Multiply(MinusOne) : value;
+
+		public static bool IsZero(JsonNumber value) => value.m_value.IsZero(value.m_kind);
+
+		public static bool IsPositive(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Signed => value.m_value.Signed >= 0,
+			Kind.Unsigned => true,
+#if NET8_0_OR_GREATER
+			Kind.Double => double.IsPositive(value.m_value.Double),
+			Kind.Decimal => decimal.IsPositive(value.m_value.Decimal),
+#else
+			Kind.Double => value.m_value.Double >= 0,
+			Kind.Decimal => value.m_value.Decimal >= 0,
+#endif
+			_ => false,
+		};
+
+
+		public static bool IsInteger(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Signed or Kind.Unsigned => true,
+#if NET8_0_OR_GREATER
+			Kind.Double => double.IsInteger(value.m_value.Double),
+			Kind.Decimal => decimal.IsInteger(value.m_value.Decimal),
+#else
+			Kind.Double => double.IsFinite(value.m_value.Double) && Math.Truncate(value.m_value.Double) == value.m_value.Double,
+			Kind.Decimal => decimal.Truncate(value.m_value.Decimal) == value.m_value.Decimal,
+#endif
+			_ => false,
+		};
+
+#if NET8_0_OR_GREATER
+
+		public static bool IsEvenInteger(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Signed => long.IsEvenInteger(value.m_value.Signed),
+			Kind.Unsigned => ulong.IsEvenInteger(value.m_value.Unsigned),
+			Kind.Double => double.IsEvenInteger(value.m_value.Double),
+			Kind.Decimal => decimal.IsEvenInteger(value.m_value.Decimal),
+			_ => false,
+		};
+
+		public static bool IsOddInteger(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Signed => long.IsOddInteger(value.m_value.Signed),
+			Kind.Unsigned => ulong.IsOddInteger(value.m_value.Unsigned),
+			Kind.Double => double.IsOddInteger(value.m_value.Double),
+			Kind.Decimal => decimal.IsOddInteger(value.m_value.Decimal),
+			_ => false,
+		};
+
+		public static bool IsRealNumber(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Double => double.IsRealNumber(value.m_value.Double), // returns false for NaN
+			Kind.Decimal => true, // decimal.IsRealNumber always returns true
+			_ => false,
+		};
+		
+		public static bool IsFinite(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Double => double.IsFinite(value.m_value.Double),
+			Kind.Signed or Kind.Unsigned or Kind.Decimal => true,
+			_ => false,
+		};
+
+		static bool System.Numerics.INumberBase<JsonNumber>.IsImaginaryNumber(JsonNumber value) => false;
+
+		static bool System.Numerics.INumberBase<JsonNumber>.IsCanonical(JsonNumber value) => true;
+
+		static bool System.Numerics.INumberBase<JsonNumber>.IsComplexNumber(JsonNumber value) => false;
+
+#endif
+
+		public static bool IsNaN(JsonNumber value) => value.m_kind == Kind.Double && double.IsNaN(value.m_value.Double);
+
+		public static bool IsInfinity(JsonNumber value) => value.m_kind == Kind.Double && double.IsInfinity(value.m_value.Double);
+
+		public static bool IsPositiveInfinity(JsonNumber value) => value.m_kind == Kind.Double && double.IsPositiveInfinity(value.m_value.Double);
+
+		public static bool IsNegativeInfinity(JsonNumber value) => value.m_kind == Kind.Double && double.IsNegativeInfinity(value.m_value.Double);
+
+		public static bool IsNormal(JsonNumber value) => value.m_kind switch
+		{
+			Kind.Double => double.IsNormal(value.m_value.Double),
+			_ => !IsZero(value),
+		};
+
+		public static bool IsSubnormal(JsonNumber value) => value.m_kind == Kind.Double && double.IsSubnormal(value.m_value.Double);
+
+		public static JsonNumber MaxMagnitude(JsonNumber x, JsonNumber y) => Abs(x) < Abs(y) ? y : x;
+
+		public static JsonNumber MaxMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x) < Abs(y) ? y : x;
+
+		public static JsonNumber MinMagnitude(JsonNumber x, JsonNumber y) => Abs(x) > Abs(y) ? y : x;
+
+		public static JsonNumber MinMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x) > Abs(y) ? y : x;
+
+#if NET8_0_OR_GREATER
+
+		private static bool TryConvertFrom<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) where TOther : System.Numerics.INumberBase<TOther>
+		{
+			//note: this will be optimized by the JIT in Release builds, but will be VERY slow in DEBUG builds
+			if (typeof(TOther) == typeof(int))
+			{
+				result = Return((int) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(long))
+			{
+				result = Return((long) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(double))
+			{
+				result = Return((double) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(float))
+			{
+				result = Return((float) (object) value);
+				return true;
+			}
+#if NET8_0_OR_GREATER
+			if (typeof(TOther) == typeof(Half))
+			{
+				result = Return((Half) (object) value);
+				return true;
+			}
+#endif
+			if (typeof(TOther) == typeof(decimal))
+			{
+				result = Return((decimal) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(short))
+			{
+				result = Return((short) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(sbyte))
+			{
+				result = Return((sbyte) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(byte))
+			{
+				result = Return((byte) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(ulong))
+			{
+				result = Return((ulong) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(uint))
+			{
+				result = Return((uint) (object) value);
+				return true;
+			}
+			if (typeof(TOther) == typeof(ushort))
+			{
+				result = Return((ushort) (object) value);
+				return true;
+			}
+
+			result = default;
+			return false;
+		}
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertFromChecked<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) => TryConvertFrom<TOther>(value, out result);
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertFromSaturating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) => TryConvertFrom<TOther>(value, out result);
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertFromTruncating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) => TryConvertFrom<TOther>(value, out result);
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertToChecked<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result) =>
+			value.m_kind switch
+			{
+				Kind.Signed => TOther.TryConvertFromChecked(value.m_value.Signed, out result),
+				Kind.Unsigned => TOther.TryConvertFromChecked(value.m_value.Unsigned, out result),
+				Kind.Decimal => TOther.TryConvertFromChecked(value.m_value.Decimal, out result),
+				Kind.Double => TOther.TryConvertFromChecked(value.m_value.Double, out result),
+				_ => throw new InvalidOperationException()
+			};
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertToSaturating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result) =>
+			value.m_kind switch
+			{
+				Kind.Signed => TOther.TryConvertFromSaturating(value.m_value.Signed, out result),
+				Kind.Unsigned => TOther.TryConvertFromSaturating(value.m_value.Unsigned, out result),
+				Kind.Decimal => TOther.TryConvertFromSaturating(value.m_value.Decimal, out result),
+				Kind.Double => TOther.TryConvertFromSaturating(value.m_value.Double, out result),
+				_ => throw new InvalidOperationException()
+			};
+
+		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertToTruncating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result) =>
+			value.m_kind switch
+			{
+				Kind.Signed => TOther.TryConvertFromTruncating(value.m_value.Signed, out result),
+				Kind.Unsigned => TOther.TryConvertFromTruncating(value.m_value.Unsigned, out result),
+				Kind.Decimal => TOther.TryConvertFromTruncating(value.m_value.Decimal, out result),
+				Kind.Double => TOther.TryConvertFromTruncating(value.m_value.Double, out result),
+				_ => throw new InvalidOperationException()
+			};
+
+#endif
 
 	}
 

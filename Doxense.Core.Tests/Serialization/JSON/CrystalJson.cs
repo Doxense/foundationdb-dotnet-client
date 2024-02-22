@@ -72,6 +72,7 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Net;
+	using System.Numerics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.Serialization;
 	using System.Text;
@@ -3676,6 +3677,128 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr1[i].ToInt32(), Is.EqualTo(t1[i]), $"arr1[{i}] == t1[{i}]");
 			}
 
+		}
+
+		[Test]
+		public void Test_JsonNumber_INumber_Additions()
+		{
+			Assert.That(JsonNumber.Zero + JsonNumber.Zero, Is.EqualTo(0));
+			Assert.That(JsonNumber.Zero + JsonNumber.One, Is.EqualTo(1));
+			Assert.That(JsonNumber.One + JsonNumber.Zero, Is.EqualTo(1));
+			Assert.That(JsonNumber.One + JsonNumber.One, Is.EqualTo(2));
+
+			Assert.That(JsonNumber.Return(123) + JsonNumber.Return(456), Is.EqualTo(579));
+			Assert.That(JsonNumber.Return(-123) + JsonNumber.Return(123), Is.EqualTo(0));
+			Assert.That(JsonNumber.Return(+123) + JsonNumber.Return(-123), Is.EqualTo(0));
+			Assert.That(JsonNumber.Return(0) + JsonNumber.Return(long.MaxValue), Is.EqualTo(long.MaxValue));
+			Assert.That(JsonNumber.Return(0) + JsonNumber.Return(ulong.MaxValue), Is.EqualTo(ulong.MaxValue));
+			Assert.That(JsonNumber.Return(1) + JsonNumber.Return(long.MaxValue), Is.EqualTo(9223372036854775808UL));
+			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(0), Is.EqualTo(long.MaxValue));
+			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(1), Is.EqualTo(9223372036854775808UL));
+			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(long.MaxValue), Is.EqualTo(2UL * long.MaxValue));
+			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(-long.MaxValue), Is.EqualTo(0));
+			Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(0), Is.EqualTo(ulong.MaxValue));
+			Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), Is.EqualTo(ulong.MaxValue - 1));
+			Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), Is.EqualTo(ulong.MaxValue - 1));
+
+			Assert.That(JsonNumber.Zero + JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.One + JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.Return(2) + JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN + JsonNumber.Zero, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN + JsonNumber.One, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN + JsonNumber.Return(2), Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN + JsonNumber.NaN, Is.EqualTo(double.NaN));
+		}
+
+		[Test]
+		public void Test_JsonNumber_INumber_Subtractions()
+		{
+			Assert.That(JsonNumber.Zero - JsonNumber.Zero, Is.EqualTo(0));
+			Assert.That(JsonNumber.Zero - JsonNumber.One, Is.EqualTo(-1));
+			Assert.That(JsonNumber.One - JsonNumber.Zero, Is.EqualTo(1));
+			Assert.That(JsonNumber.One - JsonNumber.One, Is.EqualTo(0));
+
+			Assert.That(JsonNumber.Return(456) - JsonNumber.Return(123), Is.EqualTo(333));
+			Assert.That(JsonNumber.Return(123) - JsonNumber.Return(456), Is.EqualTo(-333));
+			Assert.That(JsonNumber.Return(+123) - JsonNumber.Return(+123), Is.EqualTo(0));
+			Assert.That(JsonNumber.Return(+123) - JsonNumber.Return(-123), Is.EqualTo(246));
+			Assert.That(JsonNumber.Return(-123) - JsonNumber.Return(+123), Is.EqualTo(-246));
+			Assert.That(JsonNumber.Return(-123) - JsonNumber.Return(-123), Is.EqualTo(0));
+			Assert.That(JsonNumber.Return(0) - JsonNumber.Return(long.MaxValue), Is.EqualTo(-9223372036854775807));
+			Assert.That(JsonNumber.Return(-1) - JsonNumber.Return(long.MaxValue), Is.EqualTo(long.MinValue));
+			Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(0), Is.EqualTo(9223372036854775807));
+			Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(1), Is.EqualTo(9223372036854775806));
+			Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(long.MaxValue), Is.EqualTo(0));
+			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(0), Is.EqualTo(ulong.MaxValue));
+			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(1), Is.EqualTo(ulong.MaxValue - 1));
+			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(ulong.MaxValue), Is.EqualTo(0));
+			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(ulong.MaxValue - 1), Is.EqualTo(1));
+			Assert.That(JsonNumber.Return(ulong.MaxValue - 1) - JsonNumber.Return(ulong.MaxValue), Is.EqualTo(-1));
+
+			Assert.That(JsonNumber.Zero - JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.One - JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.Return(2) - JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN - JsonNumber.Zero, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN - JsonNumber.One, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN - JsonNumber.Return(2), Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN - JsonNumber.NaN, Is.EqualTo(double.NaN));
+		}
+
+		[Test]
+		public void Test_JsonNumber_INumber_Multiplications()
+		{
+			Assert.That(JsonNumber.Zero * JsonNumber.Zero, Is.EqualTo(0));
+			Assert.That(JsonNumber.Zero * JsonNumber.One, Is.EqualTo(0));
+			Assert.That(JsonNumber.One * JsonNumber.Zero, Is.EqualTo(0));
+			Assert.That(JsonNumber.One * JsonNumber.One, Is.EqualTo(1));
+
+			Assert.That(JsonNumber.Return(123) * JsonNumber.Return(456), Is.EqualTo(56088));
+			Assert.That(JsonNumber.Return(456) * JsonNumber.Return(123), Is.EqualTo(56088));
+			Assert.That(JsonNumber.One * JsonNumber.Return(long.MaxValue), Is.EqualTo(long.MaxValue));
+			Assert.That(JsonNumber.Return(2) * JsonNumber.Return(long.MaxValue), Is.EqualTo(2UL * long.MaxValue));
+
+			Assert.That(JsonNumber.Zero * JsonNumber.PI, Is.EqualTo(0.0));
+			Assert.That(JsonNumber.One * JsonNumber.PI, Is.EqualTo(Math.PI));
+			Assert.That(JsonNumber.Return(2) * JsonNumber.PI, Is.EqualTo(2.0 * Math.PI));
+			Assert.That(JsonNumber.PI * JsonNumber.Zero, Is.EqualTo(0.0));
+			Assert.That(JsonNumber.PI * JsonNumber.One, Is.EqualTo(Math.PI));
+			Assert.That(JsonNumber.PI * JsonNumber.Return(2), Is.EqualTo(Math.PI * 2.0));
+
+			Assert.That(JsonNumber.DecimalZero * JsonNumber.PI, Is.EqualTo(0.0));
+			Assert.That(JsonNumber.DecimalOne * JsonNumber.PI, Is.EqualTo(Math.PI));
+			Assert.That(JsonNumber.Return(2.0) * JsonNumber.PI, Is.EqualTo(2.0 * Math.PI));
+			Assert.That(JsonNumber.PI * JsonNumber.DecimalZero, Is.EqualTo(0.0));
+			Assert.That(JsonNumber.PI * JsonNumber.DecimalOne, Is.EqualTo(Math.PI));
+			Assert.That(JsonNumber.PI * JsonNumber.Return(2.0), Is.EqualTo(Math.PI * 2.0));
+			Assert.That(JsonNumber.PI * JsonNumber.PI, Is.EqualTo(Math.PI * Math.PI));
+
+			Assert.That(JsonNumber.Zero * JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.One * JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.Return(2) * JsonNumber.NaN, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN * JsonNumber.Zero, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN * JsonNumber.One, Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN * JsonNumber.Return(2), Is.EqualTo(double.NaN));
+			Assert.That(JsonNumber.NaN * JsonNumber.NaN, Is.EqualTo(double.NaN));
+		}
+
+		[Test]
+		public void Test_JsonNumber_Can_By_Used_With_Generic_Arithmethic()
+		{
+			GenericINumber(JsonNumber.One, JsonNumber.PI);
+		}
+
+		private static void GenericINumber<T>(T x, T y) where T : INumberBase<T>
+		{
+			_ = x + T.Zero;
+			_ = x + y;
+			_ = x - y;
+			_ = x * T.One;
+			_ = x * y;
+			_ = x / y;
+			_ = x++;
+			_ = ++x;
+			_ = y--;
+			_ = --y;
 		}
 
 		#endregion

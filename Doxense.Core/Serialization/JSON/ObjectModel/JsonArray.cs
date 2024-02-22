@@ -3282,6 +3282,27 @@ namespace Doxense.Serialization.Json
 
 #endif
 
+#if NET8_0_OR_GREATER
+
+		/// <summary>Return the sum of all the items in JSON array interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
+		public TNumber Sum<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
+		{
+			var total = TNumber.Zero;
+			foreach (var item in this.AsSpan())
+			{
+				total += item.As<TNumber>()!;
+			}
+			return total;
+		}
+
+		/// <summary>Return the average of all the items in JSON array interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Average()</c></remarks>
+		public TNumber Average<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
+		{
+			return Sum<TNumber>() / TNumber.CreateChecked(this.Count);
+		}
+
 #endif
 
 		/// <summary>Deserialize this JSON array into a list of <see cref="bool"/></summary>
