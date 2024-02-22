@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Linq;
 	using System.Reflection;
@@ -1597,6 +1598,15 @@ namespace Doxense.Serialization.Json
 		public static StringBuilder StringAppend(StringBuilder sb, string? text)
 		{
 			return JsonEncoding.Append(sb, text);
+		}
+
+		/// <summary>Test if the resolver is the default resolver (<see langword="true"/>) or a customized resolver (<see langword="false"/>)</summary>
+		/// <param name="resolver"></param>
+		/// <returns></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static bool IsDefaultResolver([NotNullWhen(false)] ICrystalJsonTypeResolver? resolver)
+		{
+			return resolver == null || ReferenceEquals(resolver, DefaultResolver);
 		}
 
 		#endregion

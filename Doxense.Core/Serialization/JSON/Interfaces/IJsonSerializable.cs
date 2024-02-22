@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.ComponentModel;
 
 	/// <summary>Interface indiquant qu'un objet peut gérer lui même la sérialisation en JSON</summary>
 	public interface IJsonSerializable
@@ -40,7 +41,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="declaredType"></param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[Obsolete("Use IJsonBindable.JsonUnpack instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		void JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver);
+
 	}
 
 }

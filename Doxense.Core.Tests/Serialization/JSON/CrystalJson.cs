@@ -3746,6 +3746,17 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr.Get<int>(1), Is.EqualTo(123));
 			Assert.That(arr.ToArray(), Is.EqualTo(new[] { JsonString.Return("hello"), JsonNumber.Return(123) }));
 			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello",123]"""));
+
+			Assert.That(JsonArray.FromValues([ "A", "B", "C", "D" ]).ToArray<string>(), Is.EqualTo((string[]) [ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.FromValues([ "A", "B", "C", "D" ]).ToList<string>(),Is.EqualTo((string[]) [ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToArray<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToArray<double>(), Is.EqualTo((double[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<double>(), Is.EqualTo((double[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToArray<string>(), Is.EqualTo((string[]) [ "1", "2", "3", "4" ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<string>(), Is.EqualTo((string[]) [ "1", "2", "3", "4" ]));
+			Assert.That(JsonArray.FromValues([ "1", "2", "3", "4" ]).ToArray<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ "1", "2", "3", "4" ]).ToList<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
 		}
 
 		[Test]

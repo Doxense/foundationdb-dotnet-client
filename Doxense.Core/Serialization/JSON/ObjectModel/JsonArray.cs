@@ -3376,15 +3376,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public float SumSingle()
-		{
-			float total = 0;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.ToSingle();
-			}
-			return total;
-		}
+		public float SumSingle() => (float) SumDouble(); // use higher precision
 
 		/// <summary>Deserialize this JSON array into a list of <see cref="double"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]

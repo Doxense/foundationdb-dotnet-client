@@ -107,6 +107,7 @@ namespace Doxense.Serialization.Json
 			Double,
 		}
 
+		[DebuggerDisplay("Signed={Signed}, Unsigned={Unsigned}, Double={Double}, Decimal={Decimal}")]
 		[StructLayout(LayoutKind.Explicit)]
 		private readonly struct Number
 		{
@@ -1755,10 +1756,14 @@ namespace Doxense.Serialization.Json
 
 		public override string ToJson(CrystalJsonSettings? settings = null) => this.Literal;
 
+		#region ISliceSerializable...
+
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			writer.WriteStringAscii(m_literal);
 		}
+
+		#endregion
 
 	}
 
