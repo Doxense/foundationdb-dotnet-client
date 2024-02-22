@@ -1084,8 +1084,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime)
 			 || typeof(TValue) == typeof(DateTimeOffset)
 			 || typeof(TValue) == typeof(TimeSpan)
-			 || typeof(TValue) == typeof(NodaTime.Instant)
-			 || typeof(TValue) == typeof(NodaTime.Duration)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
 			 || typeof(TValue) == typeof(bool?)
 			 || typeof(TValue) == typeof(char?)
@@ -1104,8 +1104,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime?)
 			 || typeof(TValue) == typeof(DateTimeOffset?)
 			 || typeof(TValue) == typeof(TimeSpan?)
-			 || typeof(TValue) == typeof(NodaTime.Instant?)
-			 || typeof(TValue) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				// use the JIT optimized version of FromValue<T>
@@ -1189,8 +1189,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime)
 			 || typeof(TValue) == typeof(DateTimeOffset)
 			 || typeof(TValue) == typeof(TimeSpan)
-			 || typeof(TValue) == typeof(NodaTime.Instant)
-			 || typeof(TValue) == typeof(NodaTime.Duration)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
 			 || typeof(TValue) == typeof(bool?)
 			 || typeof(TValue) == typeof(char?)
@@ -1209,8 +1209,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime?)
 			 || typeof(TValue) == typeof(DateTimeOffset?)
 			 || typeof(TValue) == typeof(TimeSpan?)
-			 || typeof(TValue) == typeof(NodaTime.Instant?)
-			 || typeof(TValue) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				// we should have a JIT optimized version of As<T> for these as well!
@@ -1237,13 +1237,13 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
 		/// <typeparam name="TSource">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TResult">Type du résultat transformé</typeparam>
+		/// <typeparam name="TValue">Type du résultat transformé</typeparam>
 		/// <param name="items">Séquence d'éléments d'origine</param>
 		/// <param name="transform">Transformation appliquée à chaque élément</param>
 		/// <param name="settings"></param>
 		/// <param name="resolver"></param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddValues<TSource, TResult>(ReadOnlySpan<TSource> items, Func<TSource, TResult> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonArray AddValues<TSource, TValue>(ReadOnlySpan<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.NotNull(transform);
@@ -1258,51 +1258,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(TOutput) == typeof(bool)
-			 || typeof(TOutput) == typeof(char)
-			 || typeof(TOutput) == typeof(byte)
-			 || typeof(TOutput) == typeof(sbyte)
-			 || typeof(TOutput) == typeof(short)
-			 || typeof(TOutput) == typeof(ushort)
-			 || typeof(TOutput) == typeof(int)
-			 || typeof(TOutput) == typeof(uint)
-			 || typeof(TOutput) == typeof(long)
-			 || typeof(TOutput) == typeof(ulong)
-			 || typeof(TOutput) == typeof(float)
-			 || typeof(TOutput) == typeof(double)
-			 || typeof(TOutput) == typeof(decimal)
-			 || typeof(TOutput) == typeof(Guid)
-			 || typeof(TOutput) == typeof(DateTime)
-			 || typeof(TOutput) == typeof(DateTimeOffset)
-			 || typeof(TOutput) == typeof(TimeSpan)
-			 || typeof(TOutput) == typeof(NodaTime.Instant)
-			 || typeof(TOutput) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
-			 || typeof(TOutput) == typeof(bool?)
-			 || typeof(TOutput) == typeof(char?)
-			 || typeof(TOutput) == typeof(byte?)
-			 || typeof(TOutput) == typeof(sbyte?)
-			 || typeof(TOutput) == typeof(short?)
-			 || typeof(TOutput) == typeof(ushort?)
-			 || typeof(TOutput) == typeof(int?)
-			 || typeof(TOutput) == typeof(uint?)
-			 || typeof(TOutput) == typeof(long?)
-			 || typeof(TOutput) == typeof(ulong?)
-			 || typeof(TOutput) == typeof(float?)
-			 || typeof(TOutput) == typeof(double?)
-			 || typeof(TOutput) == typeof(decimal?)
-			 || typeof(TOutput) == typeof(Guid?)
-			 || typeof(TOutput) == typeof(DateTime?)
-			 || typeof(TOutput) == typeof(DateTimeOffset?)
-			 || typeof(TOutput) == typeof(TimeSpan?)
-			 || typeof(TOutput) == typeof(NodaTime.Instant?)
-			 || typeof(TOutput) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				// use the JIT optimized version of FromValue<T>
 				for(int i = 0; i < tail.Length; i++)
 				{
-					tail[i] = FromValue<TOutput>(transform(items[i])); // this should be inlined
+					tail[i] = FromValue(transform(items[i])); // this should be inlined
 				}
 				m_size = newSize;
 				return this;
@@ -1312,7 +1312,7 @@ namespace Doxense.Serialization.Json
 
 			var dom = CrystalJsonDomWriter.Create(settings, resolver);
 			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(TResult);
+			var type = typeof(TValue);
 			for(int i = 0; i < tail.Length; i++)
 			{
 				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
@@ -1370,51 +1370,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(TOutput) == typeof(bool)
-			    || typeof(TOutput) == typeof(char)
-			    || typeof(TOutput) == typeof(byte)
-			    || typeof(TOutput) == typeof(sbyte)
-			    || typeof(TOutput) == typeof(short)
-			    || typeof(TOutput) == typeof(ushort)
-			    || typeof(TOutput) == typeof(int)
-			    || typeof(TOutput) == typeof(uint)
-			    || typeof(TOutput) == typeof(long)
-			    || typeof(TOutput) == typeof(ulong)
-			    || typeof(TOutput) == typeof(float)
-			    || typeof(TOutput) == typeof(double)
-			    || typeof(TOutput) == typeof(decimal)
-			    || typeof(TOutput) == typeof(Guid)
-			    || typeof(TOutput) == typeof(DateTime)
-			    || typeof(TOutput) == typeof(DateTimeOffset)
-			    || typeof(TOutput) == typeof(TimeSpan)
-			    || typeof(TOutput) == typeof(NodaTime.Instant)
-			    || typeof(TOutput) == typeof(NodaTime.Duration)
-			    // nullables!
-			    || typeof(TOutput) == typeof(bool?)
-			    || typeof(TOutput) == typeof(char?)
-			    || typeof(TOutput) == typeof(byte?)
-			    || typeof(TOutput) == typeof(sbyte?)
-			    || typeof(TOutput) == typeof(short?)
-			    || typeof(TOutput) == typeof(ushort?)
-			    || typeof(TOutput) == typeof(int?)
-			    || typeof(TOutput) == typeof(uint?)
-			    || typeof(TOutput) == typeof(long?)
-			    || typeof(TOutput) == typeof(ulong?)
-			    || typeof(TOutput) == typeof(float?)
-			    || typeof(TOutput) == typeof(double?)
-			    || typeof(TOutput) == typeof(decimal?)
-			    || typeof(TOutput) == typeof(Guid?)
-			    || typeof(TOutput) == typeof(DateTime?)
-			    || typeof(TOutput) == typeof(DateTimeOffset?)
-			    || typeof(TOutput) == typeof(TimeSpan?)
-			    || typeof(TOutput) == typeof(NodaTime.Instant?)
-			    || typeof(TOutput) == typeof(NodaTime.Duration?)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
+			 // nullables!
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			   )
 			{
 				// we shoud have a JIT optimized version of FromValue<T> for these as well
 				foreach (var item in items)
 				{
-					Add(FromValue<TOutput>(transform(item)));
+					Add(FromValue(transform(item)));
 				}
 				return this;
 			}
@@ -1467,8 +1467,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime)
 			 || typeof(TValue) == typeof(DateTimeOffset)
 			 || typeof(TValue) == typeof(TimeSpan)
-			 || typeof(TValue) == typeof(NodaTime.Instant)
-			 || typeof(TValue) == typeof(NodaTime.Duration)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
 			 || typeof(TValue) == typeof(bool?)
 			 || typeof(TValue) == typeof(char?)
@@ -1487,8 +1487,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime?)
 			 || typeof(TValue) == typeof(DateTimeOffset?)
 			 || typeof(TValue) == typeof(TimeSpan?)
-			 || typeof(TValue) == typeof(NodaTime.Instant?)
-			 || typeof(TValue) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				// use the JIT optimized version of FromValue<T> for these as well
@@ -1575,8 +1575,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime)
 			 || typeof(TValue) == typeof(DateTimeOffset)
 			 || typeof(TValue) == typeof(TimeSpan)
-			 || typeof(TValue) == typeof(NodaTime.Instant)
-			 || typeof(TValue) == typeof(NodaTime.Duration)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
 			 || typeof(TValue) == typeof(bool?)
 			 || typeof(TValue) == typeof(char?)
@@ -1595,8 +1595,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime?)
 			 || typeof(TValue) == typeof(DateTimeOffset?)
 			 || typeof(TValue) == typeof(TimeSpan?)
-			 || typeof(TValue) == typeof(NodaTime.Instant?)
-			 || typeof(TValue) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				// we should have a JIT optimized version of As<T> for these as well!
@@ -1643,51 +1643,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(TOutput) == typeof(bool)
-			 || typeof(TOutput) == typeof(char)
-			 || typeof(TOutput) == typeof(byte)
-			 || typeof(TOutput) == typeof(sbyte)
-			 || typeof(TOutput) == typeof(short)
-			 || typeof(TOutput) == typeof(ushort)
-			 || typeof(TOutput) == typeof(int)
-			 || typeof(TOutput) == typeof(uint)
-			 || typeof(TOutput) == typeof(long)
-			 || typeof(TOutput) == typeof(ulong)
-			 || typeof(TOutput) == typeof(float)
-			 || typeof(TOutput) == typeof(double)
-			 || typeof(TOutput) == typeof(decimal)
-			 || typeof(TOutput) == typeof(Guid)
-			 || typeof(TOutput) == typeof(DateTime)
-			 || typeof(TOutput) == typeof(DateTimeOffset)
-			 || typeof(TOutput) == typeof(TimeSpan)
-			 || typeof(TOutput) == typeof(NodaTime.Instant)
-			 || typeof(TOutput) == typeof(NodaTime.Duration)
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
-			 || typeof(TOutput) == typeof(bool?)
-			 || typeof(TOutput) == typeof(char?)
-			 || typeof(TOutput) == typeof(byte?)
-			 || typeof(TOutput) == typeof(sbyte?)
-			 || typeof(TOutput) == typeof(short?)
-			 || typeof(TOutput) == typeof(ushort?)
-			 || typeof(TOutput) == typeof(int?)
-			 || typeof(TOutput) == typeof(uint?)
-			 || typeof(TOutput) == typeof(long?)
-			 || typeof(TOutput) == typeof(ulong?)
-			 || typeof(TOutput) == typeof(float?)
-			 || typeof(TOutput) == typeof(double?)
-			 || typeof(TOutput) == typeof(decimal?)
-			 || typeof(TOutput) == typeof(Guid?)
-			 || typeof(TOutput) == typeof(DateTime?)
-			 || typeof(TOutput) == typeof(DateTimeOffset?)
-			 || typeof(TOutput) == typeof(TimeSpan?)
-			 || typeof(TOutput) == typeof(NodaTime.Instant?)
-			 || typeof(TOutput) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				// use the JIT optimized version of FromValue<T>
 				for(int i = 0; i < tail.Length; i++)
 				{
-					tail[i] = FromValue<TOutput>(transform(items[i])); // this should be inlined
+					tail[i] = FromValue(transform(items[i])); // this should be inlined
 				}
 				m_size = newSize;
 				return this;
@@ -1755,51 +1755,51 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(TOutput) == typeof(bool)
-			    || typeof(TOutput) == typeof(char)
-			    || typeof(TOutput) == typeof(byte)
-			    || typeof(TOutput) == typeof(sbyte)
-			    || typeof(TOutput) == typeof(short)
-			    || typeof(TOutput) == typeof(ushort)
-			    || typeof(TOutput) == typeof(int)
-			    || typeof(TOutput) == typeof(uint)
-			    || typeof(TOutput) == typeof(long)
-			    || typeof(TOutput) == typeof(ulong)
-			    || typeof(TOutput) == typeof(float)
-			    || typeof(TOutput) == typeof(double)
-			    || typeof(TOutput) == typeof(decimal)
-			    || typeof(TOutput) == typeof(Guid)
-			    || typeof(TOutput) == typeof(DateTime)
-			    || typeof(TOutput) == typeof(DateTimeOffset)
-			    || typeof(TOutput) == typeof(TimeSpan)
-			    || typeof(TOutput) == typeof(NodaTime.Instant)
-			    || typeof(TOutput) == typeof(NodaTime.Duration)
-			    // nullables!
-			    || typeof(TOutput) == typeof(bool?)
-			    || typeof(TOutput) == typeof(char?)
-			    || typeof(TOutput) == typeof(byte?)
-			    || typeof(TOutput) == typeof(sbyte?)
-			    || typeof(TOutput) == typeof(short?)
-			    || typeof(TOutput) == typeof(ushort?)
-			    || typeof(TOutput) == typeof(int?)
-			    || typeof(TOutput) == typeof(uint?)
-			    || typeof(TOutput) == typeof(long?)
-			    || typeof(TOutput) == typeof(ulong?)
-			    || typeof(TOutput) == typeof(float?)
-			    || typeof(TOutput) == typeof(double?)
-			    || typeof(TOutput) == typeof(decimal?)
-			    || typeof(TOutput) == typeof(Guid?)
-			    || typeof(TOutput) == typeof(DateTime?)
-			    || typeof(TOutput) == typeof(DateTimeOffset?)
-			    || typeof(TOutput) == typeof(TimeSpan?)
-			    || typeof(TOutput) == typeof(NodaTime.Instant?)
-			    || typeof(TOutput) == typeof(NodaTime.Duration?)
-			   )
+			if (typeof(TValue) == typeof(bool)
+			 || typeof(TValue) == typeof(char)
+			 || typeof(TValue) == typeof(byte)
+			 || typeof(TValue) == typeof(sbyte)
+			 || typeof(TValue) == typeof(short)
+			 || typeof(TValue) == typeof(ushort)
+			 || typeof(TValue) == typeof(int)
+			 || typeof(TValue) == typeof(uint)
+			 || typeof(TValue) == typeof(long)
+			 || typeof(TValue) == typeof(ulong)
+			 || typeof(TValue) == typeof(float)
+			 || typeof(TValue) == typeof(double)
+			 || typeof(TValue) == typeof(decimal)
+			 || typeof(TValue) == typeof(Guid)
+			 || typeof(TValue) == typeof(DateTime)
+			 || typeof(TValue) == typeof(DateTimeOffset)
+			 || typeof(TValue) == typeof(TimeSpan)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
+			 // nullables!
+			 || typeof(TValue) == typeof(bool?)
+			 || typeof(TValue) == typeof(char?)
+			 || typeof(TValue) == typeof(byte?)
+			 || typeof(TValue) == typeof(sbyte?)
+			 || typeof(TValue) == typeof(short?)
+			 || typeof(TValue) == typeof(ushort?)
+			 || typeof(TValue) == typeof(int?)
+			 || typeof(TValue) == typeof(uint?)
+			 || typeof(TValue) == typeof(long?)
+			 || typeof(TValue) == typeof(ulong?)
+			 || typeof(TValue) == typeof(float?)
+			 || typeof(TValue) == typeof(double?)
+			 || typeof(TValue) == typeof(decimal?)
+			 || typeof(TValue) == typeof(Guid?)
+			 || typeof(TValue) == typeof(DateTime?)
+			 || typeof(TValue) == typeof(DateTimeOffset?)
+			 || typeof(TValue) == typeof(TimeSpan?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
+			)
 			{
 				// we shoud have a JIT optimized version of FromValue<T> for these as well
 				foreach (var item in items)
 				{
-					Add(FromValue<TOutput>(transform(item)));
+					Add(FromValue<TValue>(transform(item)));
 				}
 				return this;
 			}
@@ -2800,8 +2800,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime)
 			 || typeof(TValue) == typeof(DateTimeOffset)
 			 || typeof(TValue) == typeof(TimeSpan)
-			 || typeof(TValue) == typeof(NodaTime.Instant)
-			 || typeof(TValue) == typeof(NodaTime.Duration)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
 			 || typeof(TValue) == typeof(bool?)
 			 || typeof(TValue) == typeof(char?)
@@ -2820,8 +2820,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime?)
 			 || typeof(TValue) == typeof(DateTimeOffset?)
 			 || typeof(TValue) == typeof(TimeSpan?)
-			 || typeof(TValue) == typeof(NodaTime.Instant?)
-			 || typeof(TValue) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				// we should have a JIT optimized version for these as well
@@ -3126,8 +3126,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime)
 			 || typeof(TValue) == typeof(DateTimeOffset)
 			 || typeof(TValue) == typeof(TimeSpan)
-			 || typeof(TValue) == typeof(NodaTime.Instant)
-			 || typeof(TValue) == typeof(NodaTime.Duration)
+			 || typeof(TValue) == typeof(Instant)
+			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
 			 || typeof(TValue) == typeof(bool?)
 			 || typeof(TValue) == typeof(char?)
@@ -3146,8 +3146,8 @@ namespace Doxense.Serialization.Json
 			 || typeof(TValue) == typeof(DateTime?)
 			 || typeof(TValue) == typeof(DateTimeOffset?)
 			 || typeof(TValue) == typeof(TimeSpan?)
-			 || typeof(TValue) == typeof(NodaTime.Instant?)
-			 || typeof(TValue) == typeof(NodaTime.Duration?)
+			 || typeof(TValue) == typeof(Instant?)
+			 || typeof(TValue) == typeof(Duration?)
 			)
 			{
 				return ToPrimitiveList<TValue>();
