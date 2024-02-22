@@ -124,6 +124,20 @@ namespace Doxense.Diagnostics.Contracts
 #endif
 			}
 
+			/// <summary>[DEBUG ONLY] Unconditionally trigger an assertion fault</summary>
+			/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+			/// <param name="exception">Optional exception linked to the issue</param>
+			/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
+			[Conditional("DEBUG")]
+			[AssertionMethod]
+			[System.Diagnostics.CodeAnalysis.DoesNotReturn]
+			public static void Fail(string? userMessage, Exception? exception = null)
+			{
+#if DEBUG
+				throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Invariant, userMessage, null, exception);
+#endif
+			}
+
 			#endregion
 
 		}

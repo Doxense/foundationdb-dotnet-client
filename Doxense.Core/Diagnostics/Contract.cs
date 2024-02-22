@@ -173,7 +173,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>Unconditionally trigger an assertion fault</summary>
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="exception">Optional exception linked to the issue</param>
-		/// <remarks>Throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
+		/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.NoInlining)]
 		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
 		public static void Fail(string? userMessage, Exception? exception = null)
