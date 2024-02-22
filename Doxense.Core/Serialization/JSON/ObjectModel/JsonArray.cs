@@ -3183,10 +3183,20 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(transform);
 			var items = this.AsSpan();
 			var list = new List<TValue>(items.Length);
+#if NET8_0_OR_GREATER
+			// update the list in-place
+			CollectionsMarshal.SetCount(list, m_size);
+			var tmp = CollectionsMarshal.AsSpan(list);
+			for (int i = 0; i < items.Length; i++)
+			{
+				tmp[i] = transform(items[i]);
+			}
+#else
 			foreach(var item in items)
 			{
 				list.Add(transform(item));
 			}
+#endif
 			return list;
 		}
 
@@ -3243,15 +3253,34 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
 		private List<T?> ToPrimitiveList<T>()
 		{
-			//IMPORTANT! T doit être un type primitif reconnu par As<T> via compile time scanning!!!
+			//IMPORTANT! T must a primitive type that is recognized by As<T> and inline by the JIT!!!
 			var items = this.AsSpan();
 			var result = new List<T?>(items.Length);
+#if NET8_0_OR_GREATER
+			if (items.Length > 0)
+			{
+				// update the list in-place
+				CollectionsMarshal.SetCount(result, m_size);
+				var tmp = CollectionsMarshal.AsSpan(result);
+				Contract.Debug.Assert(tmp.Length == m_size);
+				ref var ptr = ref tmp[0];
+				foreach (var item in items)
+				{
+					ptr = item.As<T>();
+					ptr = ref Unsafe.Add(ref ptr, 1);
+				}
+			}
+#else
 			foreach(var item in items)
 			{
 				result.Add(item.As<T>());
 			}
+#endif
+
 			return result;
 		}
+
+#endif
 
 #endif
 
