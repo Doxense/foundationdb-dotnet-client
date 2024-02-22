@@ -98,11 +98,11 @@ namespace Doxense.Serialization.Json
 		{
 			/// <summary>Use the global default for floating points, which is <see cref="Symbol"/> by default</summary>
 			Default = 0,
-			/// <summary>Use symbols like <c>NaN</c>, <c>Infinity</c> or <c>-Infinity</c>. Note: The generated JSON will not strictly conform to RFC7159, which does not specify these symbols</summary>
+			/// <summary>Use symbols like <c>`NaN`</c>, <c>`Infinity`</c> or <c>`-Infinity`</c> (without quotes). Note: The generated JSON will not strictly conform to RFC7159, which does not specify these symbols</summary>
 			Symbol = 1,
-			/// <summary>Use strings like <c>"NaN"</c>, <c>"Infinity"</c> or <c>"-Infinity"</c>, similarily to what JSON.NET is doing. The generated JSON will conform to RFC7159, but the caller may not expect a JSON string literal instead of a JSON number, and may either fail or replace all values by NaN !</summary>
+			/// <summary>Use string literals like <c>"NaN"</c>, <c>"Infinity"</c> or <c>"-Infinity"</c> (with double quotes), similarily to what JSON.NET is doing. The generated JSON will conform to RFC7159, but the caller may not expect a JSON string literal instead of a JSON number, and may either fail or replace all values by NaN !</summary>
 			String = 2,
-			/// <summary>Use the <c>null</c> token when serializing <see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/> or <see cref="double.NegativeInfinity"/>. The generated JSON will be conform to RFC7159, but some information may be lost (all NaN and Inifinities will be replaced by null which may be deserialized as 0)</summary>
+			/// <summary>Use the <c>`null`</c> token when serializing <see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/> or <see cref="double.NegativeInfinity"/>. The generated JSON will be conform to RFC7159, but some information may be lost (all NaN and Inifinities will be replaced by null which may be deserialized as 0)</summary>
 			Null = 3,
 			/// <summary>Use the JavaScript notation (<c>Number.NaN</c>, <c>Number.POSITIVE_INFINITY</c>, ...). This will produce invalid JSON and is only valid when targetting JavaScript</summary>
 			JavaScript = 4,

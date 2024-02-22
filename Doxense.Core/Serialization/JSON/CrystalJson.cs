@@ -91,7 +91,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns><c>123</c>, <c>true</c>, <c>"ABC"</c>, <c>{ "foo":..., "bar": ... }</c>, <c>[ ... ]</c>, ...</returns>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
@@ -104,7 +104,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="declaredType">Type of the field or property, as declared in the parent type.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns><c>123</c>, <c>true</c>, <c>"ABC"</c>, <c>{ "foo":..., "bar": ... }</c>, <c>[ ... ]</c>, ...</returns>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
@@ -116,7 +116,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns><c>123</c>, <c>true</c>, <c>"ABC"</c>, <c>{ "foo":..., "bar": ... }</c>, <c>[ ... ]</c>, ...</returns>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string Serialize<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)

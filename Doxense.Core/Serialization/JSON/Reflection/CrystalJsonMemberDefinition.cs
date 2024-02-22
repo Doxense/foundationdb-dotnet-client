@@ -60,7 +60,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Delegate that can bind JSON values to a type that is assignable to this member</summary>
 		public required CrystalJsonTypeBinder Binder { get; init; }
 
-		/// <summary>Returns <see langword="true"/> if a possible value for this member is the default value for this member's type (<c>null</c> for ref types or Nullable&lt;T&gt;, <c>0</c> for numbers, <c>false</c> for booleans, ...)</summary>
+		/// <summary>Returns <see langword="true"/> if a possible value for this member is the default value for this member's type (<see langword="null"/> for ref types or Nullable&lt;T&gt;, <see langword="0"/> for numbers, <see langword="false"/> for booleans, ...)</summary>
 		public bool IsDefaultValue(object? value) => this.DefaultValue?.Equals(value) ?? (value is null);
 
 	}

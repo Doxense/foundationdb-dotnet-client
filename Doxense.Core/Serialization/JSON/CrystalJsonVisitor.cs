@@ -80,7 +80,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return a visitor that is able to serialize instances of the specified type</summary>
 		/// <param name="type">Type as declared in the parent (compile time) or actual instance type (at runtime)</param>
-		/// <param name="atRuntime"><c>false</c> when performing the initial mapping (compile time), <c>true</c> when calling at runtime with the actual instance type</param>
+		/// <param name="atRuntime"><see langword="false"/> when performing the initial mapping (compile time), <see langword="true"/> when calling at runtime with the actual instance type</param>
 		public static CrystalJsonTypeVisitor GetVisitorForType(Type type, bool atRuntime = false)
 		{
 			bool cacheable = !atRuntime || type.IsConcrete();
@@ -98,7 +98,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new visitor for the specified type</summary>
 		/// <param name="type">Type as declared in the parent (compile time) or actual instance type (at runtime)</param>
-		/// <param name="atRuntime"><c>false</c> when performing the initial mapping (compile time), <c>true</c> when calling at runtime with the actual instance type</param>
+		/// <param name="atRuntime"><see langword="false"/> when performing the initial mapping (compile time), <see langword="true"/> when calling at runtime with the actual instance type</param>
 		/// <returns>Delegate that can convert instances of this type into JSON</returns>
 		private static CrystalJsonTypeVisitor CreateVisitorForType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type type, bool atRuntime)
 		{
@@ -1956,7 +1956,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Convert an <see cref="System.Xml.XmlNode"/> into a JSON object or value</summary>
 		/// <param name="node">XML node to convert</param>
-		/// <param name="flatten">If <c>false</c>, all XML attributes will be prefixed by <c>'@'</c>. If <c>true</c>, they will be mixed with the children of this node and could create conflicts</param>
+		/// <param name="flatten">If <see langword="false"/>, all XML attributes will be prefixed by <c>'@'</c>. If <see langword="true"/>, they will be mixed with the children of this node and could create conflicts</param>
 		/// <remarks>Child with the same name will be merged into an array.</remarks>
 		/// <example><code>ConvertXmlNodeToJson(&lt;foo id="123">&lt;bar>hello&lt;/bar>&lt;baz>world&lt;/baz>&lt;/foo>) => { "foo": { "@id": "123", "bar": "hello", "baz": "world" } }</code></example>
 		[Pure]

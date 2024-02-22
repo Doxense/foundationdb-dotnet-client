@@ -65,7 +65,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
 		/// <param name="s">Text to inspect</param>
-		/// <returns><c>false</c> if all characters are valid, or <c>true</c> if at least one character must be escaped</returns>
+		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool NeedsEscaping(string s)
 		{

@@ -122,7 +122,7 @@ namespace Doxense.Serialization.Json
 		public ICrystalJsonTypeResolver Resolver => m_resolver;
 
 		/// <summary>Specifies if we are targeting JavaScript, instead of JSON</summary>
-		/// <remarks>If <c>true</c>, all strings will be escaped using single quotes (<c>'</c>), and property names will only be quoted if necessary</remarks>
+		/// <remarks>If <see langword="true"/>, all strings will be escaped using single quotes (<c>'</c>), and property names will only be quoted if necessary</remarks>
 		public bool JavaScript => m_javascript;
 
 		/// <summary>Specifies if we will discard value type members that have a default value (0, false, null for Nullable&lt;T&;gt;, ...)</summary>
@@ -373,7 +373,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Mark the start of a new item in an array, or field in an object</summary>
-		/// <returns><c>false</c> if this is the first element of the current state, or <c>true</c> if there was at least one element written before.</returns>
+		/// <returns><see langword="false"/> if this is the first element of the current state, or <see langword="true"/> if there was at least one element written before.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal bool MarkNext()
 		{

@@ -2069,7 +2069,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the JSON Object at the specified index</summary>
 		/// <param name="index">Index of the Object to retrieve</param>
-		/// <returns>Value of the object at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Object</returns>
+		/// <returns>Value of the object at the specified location, or <see langword="null"/> if the location contains a null or missing value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Object</returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
 		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Object.</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -2077,18 +2077,18 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the JSON Object at the specified index</summary>
 		/// <param name="index">Index of the Object to retrieve</param>
-		/// <returns>Value of the object at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Object</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
-		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Object.</exception>
+		/// <returns>Value of the object at the specified index, <see langword="null"/> if the location contains a null or missing value. Throws an exception if the index is oustide the bounds of the array, OR if the value is not a JSON Object</returns>
+		/// <exception cref="IndexOutOfRangeException"> <paramref name="index"/> is outside the bounds of the array.</exception>
+		/// <exception cref="ArgumentException"> the value at the specified index is not a JSON Object.</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonObject? GetObjectOrDefault(Index index) => GetValue(index).AsObject(required: false);
 
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'array JSON</summary>
-		/// <param name="index">Index de l'array à retourner</param>
-		/// <param name="required">Si true et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
-		/// <returns>Valeur à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas une array, ou si la valeur est null (et que <paramref name="required"/> est true)</returns>
+		/// <summary>Returns the JSON Array at the specified index</summary>
+		/// <param name="index">Index of the Array to retrieve</param>
+		/// <param name="required">Si <see langword="true"/> et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
+		/// <returns>Valeur à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas une array, ou si la valeur est <see langword="null"/> (et que <paramref name="required"/> est <see langword="true"/>)</returns>
 		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
+		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut <see langword="true"/>.</exception>
 		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray? GetArray(int index, bool required = false) => this[index].AsArray(required);
@@ -2281,7 +2281,7 @@ namespace Doxense.Serialization.Json
 		#region Operators...
 
 		/// <summary>Keep only the elements that match a predicate</summary>
-		/// <param name="predicate">Predicate that returns true for elements to keep</param>
+		/// <param name="predicate">Predicate that should returns <see langword="true"/> for elements to keep, and <see langword="false"/> for elements to discard</param>
 		/// <returns>Number of elements that where kept</returns>
 		/// <remarks>The original array is modified</remarks>
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
@@ -2312,7 +2312,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Remove all the elements that match a predicate</summary>
-		/// <param name="predicate">Predicate that returns true for elements to remove</param>
+		/// <param name="predicate">Predicate that returns <see langword="true"/> for elements to remove, and <see langword="false"/> for elements to keep</param>
 		/// <returns>Number of elements that where removed</returns>
 		/// <remarks>The original array is modified</remarks>
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
@@ -2539,7 +2539,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne une vue typée de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonObject"/>s</summary>
-		/// <param name="required">Si true, vérifie que chaque élément de l'array n'est pas null</param>
+		/// <param name="required">Si <see langword="true"/>, vérifie que chaque élément de l'array n'est pas null</param>
 		/// <remarks>
 		/// Toute entrée contenant un <see cref="JsonNull"/> retournera <b>null</b>!
 		/// Si l'array contient autre chose que des <see cref="JsonObject"/>, une <see cref="InvalidCastException"/> sera générée au runtime lors de l'énumération!
@@ -2550,7 +2550,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Retourne une vue typée de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonArray"/>s</summary>
-		/// <param name="required">Si true, vérifie que chaque élément de l'array n'est pas null</param>
+		/// <param name="required">Si <see langword="true"/>, vérifie que chaque élément de l'array n'est pas null</param>
 		/// <remarks>
 		/// Toute entrée contenant un <see cref="JsonNull"/> retournera <b>null</b>!
 		/// Si l'array contient autre chose que des <see cref="JsonArray"/>, une <see cref="InvalidCastException"/> sera générée au runtime lors de l'énumération!
@@ -3466,14 +3466,14 @@ namespace Doxense.Serialization.Json
 			return list.ToImmutable();
 		}
 
-		/// <summary>Indique si l'array contient au moins un élément</summary>
-		/// <returns>True si <see cref="Count"/> &gt; 0; Sinon, false</returns>
+		/// <summary>Test if there is at least one element in the array</summary>
+		/// <returns><see langword="false"/> if the array is empty; otherwise, <see langword="true"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool Any() => m_size > 0;
 
-		/// <summary>Indique si au moins un élément de l'array est du type indiqué</summary>
-		/// <param name="type">Type d'élément JSON recherché</param>
-		/// <remarks>Retourne toujours false pour une array vide.</remarks>
+		/// <summary>Test if there is at least one element in the array with the specified type</summary>
+		/// <param name="type">Type of element (<see cref="JsonType.Object"/>, <see cref="JsonType.String"/>, <see cref="JsonType.Number"/>, ...)</param>
+		/// <returns><see langword="true"/> if there is at least one element of this type in the array, or <see langword="false"/> if the array is empty or contains only elements that are of a different type.</returns>
 		public bool Any(JsonType type)
 		{
 			foreach (var item in this.AsSpan())
@@ -3486,8 +3486,9 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Indique si au moins un élément de l'array satisfait le prédicat</summary>
-		/// <remarks>Retourne toujours false pour une array vide.</remarks>
+		/// <summary>Test if there is at least one element in the array that matches the specified <paramref name="predicate"/></summary>
+		/// <param name="predicate">Callback that should return <see langword="true"/> for matching elements.</param>
+		/// <returns><see langword="true"/> if there is at least one element that matches, or <see langword="true"/> if the array is empty or without any matching element.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool Any([InstantHandle] Func<JsonValue, bool> predicate)
 		{
@@ -3495,25 +3496,33 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in this.AsSpan())
 			{
-				if (predicate(item)) return true;
+				if (predicate(item))
+				{
+					return true;
+				}
 			}
 			return false;
 		}
 
-		/// <summary>Indique si tous les éléments de l'array sont du type indiqué</summary>
-		/// <param name="type">Type d'élément JSON recherché</param>
+		/// <summary>Test if all the elements in the array have the specified type</summary>
+		/// <param name="type">Type of element (<see cref="JsonType.Object"/>, <see cref="JsonType.String"/>, <see cref="JsonType.Number"/>, ...)</param>
+		/// <remarks><see langword="false"/> if at least one element is of a different type, or <see langword="true"/> if the array is empty or with only elements of this type.</remarks>
 		/// <remarks>Retourne toujours true pour une array vide.</remarks>
 		public bool All(JsonType type)
 		{
 			foreach (var item in this.AsSpan())
 			{
-				if (item.Type != type) return false;
+				if (item.Type != type)
+				{
+					return false;
+				}
 			}
 			return true;
 		}
 
-		/// <summary>Indique si tous les éléments de l'array satisfont le prédicat</summary>
-		/// <remarks>Retourne toujours true pour une array vide.</remarks>
+		/// <summary>Test if all elements in the array match the specified <paramref name="predicate"/>.</summary>
+		/// <param name="predicate">Callback that should return <see langword="true"/> for matching elements.</param>
+		/// <returns><see langword="false"/> if there is at least one element that does not match, or <see langword="true"/> if the array is empty or without only matching elements.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool All([InstantHandle] Func<JsonValue, bool> predicate)
 		{
@@ -3521,16 +3530,19 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in this.AsSpan())
 			{
-				if (!predicate(item)) return false;
+				if (!predicate(item))
+				{
+					return false;
+				}
 			}
 			return true;
 		}
 
-		/// <summary>Détermine si tous les éléments de l'array ont le même type JSON, où s'ils sont de type différent</summary>
-		/// <returns>Un <see cref="JsonType"/> si tous les éléments sont du même type, ou null s'il y a au moins deux éléments de type différent</returns>
+		/// <summary>Test if all elements in the array have a similar type, or if they are dissimilar</summary>
+		/// <returns>The <see cref="JsonType"/> that have elements all have in common, or <see langword="null"/> if there is at least two incompatible types present.</returns>
 		/// <remarks>
-		/// Ignore les éléments de 'null' de l'array (ie: [ 123, null, 789 ] retournera le type <see cref="JsonType.Number"/>).
-		/// Ne peut pas retourner <see cref="JsonType.Null"/>: si l'array ne contient que des 'null', le résultat sera default(<see cref="JsonType"/>).
+		/// <para>Ignore any null or missing elements in the array, sor for exemple <c>[ 123, null, 789 ]</c> will return <see cref="JsonType.Number"/>.</para>
+		/// <para>Will return <see langword="null"/> if the array is only filled with null or missing values, instead of <see cref="JsonType.Null"/>.</para>
 		/// </remarks>
 		public JsonType? GetElementsTypeOrDefault()
 		{
@@ -3538,26 +3550,32 @@ namespace Doxense.Serialization.Json
 			foreach (var item in this.AsSpan())
 			{
 				var t = item.Type;
+				if (t == JsonType.Null) continue;
+
 				if (type == null)
-				{ // on n'a pas encore eu d'éléments non null
+				{ // first non-null
 					type = t;
 				}
-				else if (t != type && t != JsonType.Null)
-				{ // compare
+				else if (t != type)
+				{ // different type
 					return null;
 				}
 			}
 			return type;
 		}
 
-		/// <summary>Copie les champs d'un autre objet dans l'objet courrant</summary>
-		/// <param name="other">Autre objet JSON dont les champs vont être copié dans l'objet courant. Tout champ déjà existant sera écrasé.</param>
-		/// <param name="deepCopy">Si true, clone tous les champs de <paramref name="other"/> avant de le copier. Sinon, ils sont copiés par référence.</param>
+		/// <summary>Merge the content of an array into the current array</summary>
+		/// <param name="other">Source array that should be copied into the current array.</param>
+		/// <param name="deepCopy">If <see langword="true"/>, clone all the elements of <paramref name="other"/> before adding them. If <see langword="false"/>, the same instance will be present in both arrays.</param>
 		public void MergeWith(JsonArray other, bool deepCopy = false)
 		{
 			Merge(this, other, deepCopy);
 		}
 
+		/// <summary>Merge the content of an array into the current array</summary>
+		/// <param name="parent">Parent array that will be modified</param>
+		/// <param name="other">Source array that should be copied into the <paramref name="parent"/>.</param>
+		/// <param name="deepCopy">If <see langword="true"/>, clone all the elements of <paramref name="other"/> before adding them. If <see langword="false"/>, the same instance will be present in both arrays.</param>
 		public static JsonArray Merge(JsonArray parent, JsonArray other, bool deepCopy = false)
 		{
 			// we know how to handle:

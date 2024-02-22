@@ -917,8 +917,8 @@ namespace Doxense.Serialization
 		/// <summary>Conversion rapide d'une l'heure courante (<c>hh:mm:ss.fff</c>)</summary>
 		/// <param name="time">Heure à convertir</param>
 		/// <param name="buffer">Buffer a utiliser pour le formattage</param>
-		/// <param name="result">Si la fonction retourne <c>true</c>, contient le literal <c>hh:mm:ss.fff</c> formatté</param>
-		/// <returns>Retourne <c>true</c> si le buffer était assez grand, <c>false</c> s'il fait moins de 12 chars</returns>
+		/// <param name="result">Si la fonction retourne <see langword="true"/>, contient le literal <c>hh:mm:ss.fff</c> formatté</param>
+		/// <returns>Retourne <see langword="true"/> si le buffer était assez grand, <see langword="false"/> s'il fait moins de 12 chars</returns>
 		public static bool TryFastFormatTime(DateTime time, Span<char> buffer, out ReadOnlySpan<char> result)
 		{
 			if (buffer.Length < 12)
@@ -1009,8 +1009,8 @@ namespace Doxense.Serialization
 		/// <summary>Conversion rapide d'une l'heure courante (<c>hh:mm:ss</c>)</summary>
 		/// <param name="time">Heure à convertir</param>
 		/// <param name="buffer">Buffer a utiliser pour le formattage</param>
-		/// <param name="result">Si la fonction retourne <c>true</c>, contient le literal <c>hh:mm:ss</c> formatté</param>
-		/// <returns>Retourne <c>true</c> si le buffer était assez grand, <c>false</c> s'il fait moins de 8 chars</returns>
+		/// <param name="result">Si la fonction retourne <see langword="true"/>, contient le literal <c>hh:mm:ss</c> formatté</param>
+		/// <returns>Retourne <see langword="true"/> si le buffer était assez grand, <see langword="false"/> s'il fait moins de 8 chars</returns>
 		public static bool TryFastFormatShortTime(DateTime time, Span<char> buffer, out ReadOnlySpan<char> result)
 		{
 			if (buffer.Length < 8)
@@ -1088,8 +1088,8 @@ namespace Doxense.Serialization
 		/// <summary>Conversion rapide de la date courante au format international (YYYY-MM-DD)</summary>
 		/// <param name="date">Date à convertir</param>
 		/// <param name="buffer">Buffer a utiliser pour le formattage</param>
-		/// <param name="result">Si la fonction retourne <c>true</c>, contient le literal <c>YYYY-MM-DD</c> formatté</param>
-		/// <returns>Retourne <c>true</c> si le buffer était assez grand, <c>false</c> s'il fait moins de 12 chars</returns>
+		/// <param name="result">Si la fonction retourne <see langword="true"/>, contient le literal <c>YYYY-MM-DD</c> formatté</param>
+		/// <returns>Retourne <see langword="true"/> si le buffer était assez grand, <see langword="false"/> s'il fait moins de 12 chars</returns>
 		public static bool TryFastFormatDate(DateTime date, Span<char> buffer, out ReadOnlySpan<char> result)
 		{
 			if (buffer.Length < 12)
@@ -1175,8 +1175,8 @@ namespace Doxense.Serialization
 		/// <summary>Conversion rapide de la date courante au format court (MM-DD)</summary>
 		/// <param name="date">Date à convertir</param>
 		/// <param name="buffer">Buffer a utiliser pour le formattage</param>
-		/// <param name="result">Si la fonction retourne <c>true</c>, contient le literal <c>MM-DD</c> formatté</param>
-		/// <returns>Retourne <c>true</c> si le buffer était assez grand, <c>false</c> s'il fait moins de 5 chars</returns>
+		/// <param name="result">Si la fonction retourne <see langword="true"/>, contient le literal <c>MM-DD</c> formatté</param>
+		/// <returns>Retourne <see langword="true"/> si le buffer était assez grand, <see langword="false"/> s'il fait moins de 5 chars</returns>
 		public static bool TryFastFormatShortDate(DateTime date, Span<char> buffer, out ReadOnlySpan<char> result)
 		{
 			if (buffer.Length < 5)
