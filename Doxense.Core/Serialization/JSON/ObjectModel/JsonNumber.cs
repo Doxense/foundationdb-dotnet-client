@@ -46,7 +46,9 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
 	[DebuggerNonUserCode]
 	[JetBrains.Annotations.PublicAPI]
-	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>, IEquatable<JsonString>, IEquatable<JsonBoolean>, IEquatable<JsonDateTime>, IEquatable<int>, IEquatable<long>, IEquatable<uint>, IEquatable<ulong>, IEquatable<float>, IEquatable<double>, IEquatable<decimal>, IEquatable<TimeSpan>
+	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>, IEquatable<JsonString>, IEquatable<JsonBoolean>, IEquatable<JsonDateTime>, IEquatable<int>, IEquatable<long>, IEquatable<uint>, IEquatable<ulong>, IEquatable<float>, IEquatable<double>, IEquatable<decimal>, IEquatable<TimeSpan>, IEquatable<Half>
+#if NET8_0_OR_GREATER
+#endif
 	{
 		/// <summary>Cache of all small numbers, from <see cref="CACHED_SIGNED_MIN"/> to <see cref="CACHED_SIGNED_MAX"/> (included)</summary>
 		private static readonly JsonNumber[] SmallNumbers = PreGenSmallNumbers();
@@ -367,6 +369,16 @@ namespace Doxense.Serialization.Json
 				Kind.Signed => this.Signed,
 				Kind.Unsigned => this.Unsigned,
 				_ => 0
+			};
+
+			[Pure]
+			public Half ToHalf(Kind kind) => kind switch
+			{
+				Kind.Decimal => (Half) decimal.ToDouble(this.Decimal),
+				Kind.Double => (Half) this.Double,
+				Kind.Signed => (Half) this.Signed,
+				Kind.Unsigned => (Half) this.Unsigned,
+				_ => default
 			};
 
 			[Pure]
@@ -851,6 +863,28 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Half? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+
+#if NET8_0_OR_GREATER
+		[Pure]
+		public static JsonNumber Return(Half value) =>
+			value == Half.Zero ? DecimalZero
+			: value == Half.One ? DecimalOne
+			: Half.IsNaN(value) ? NaN
+			: new JsonNumber(new Number((double) value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
+#else
+		private static readonly Half HalfZero = (Half) 0;
+		private static readonly Half HalfOne = (Half) 1;
+		[Pure]
+		public static JsonNumber Return(Half value) =>
+			value == HalfZero ? DecimalZero
+			: value == HalfOne ? DecimalOne
+			: Half.IsNaN(value) ? NaN
+			: new JsonNumber(new Number((double) value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
+#endif
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(float? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
@@ -1237,6 +1271,8 @@ namespace Doxense.Serialization.Json
 
 		public override double ToDouble() => m_value.ToDouble(m_kind);
 
+		public override Half ToHalf() => m_value.ToHalf(m_kind);
+
 		public override decimal ToDecimal() => m_value.ToDecimal(m_kind);
 
 		/// <summary>Convertit un JSON Number, correspondant au nombre de secondes écoulés depuis Unix Epoch, en DateTime UTC</summary>
@@ -1482,6 +1518,26 @@ namespace Doxense.Serialization.Json
 			Kind.Unsigned => value >= 0 && m_value.Unsigned == value,
 			_ => false
 		};
+
+#if NET8_0_OR_GREATER
+		public bool Equals(Half value) => m_kind switch
+		{
+			Kind.Decimal => m_value.Decimal == (decimal) value,
+			Kind.Double => m_value.Double == (double) value,
+			Kind.Signed => m_value.Signed == (double) value,
+			Kind.Unsigned => Half.IsPositive(value) && m_value.Unsigned == (double) value,
+			_ => false
+		};
+#else
+		public bool Equals(Half value) => m_kind switch
+		{
+			Kind.Decimal => m_value.Decimal == (decimal) (double) value,
+			Kind.Double => m_value.Double == (double) value,
+			Kind.Signed => m_value.Signed == (double) value,
+			Kind.Unsigned => (double) value >= 0 && m_value.Unsigned == (double) value,
+			_ => false
+		};
+#endif
 
 		public bool Equals(decimal value) => m_kind switch
 		{

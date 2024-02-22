@@ -751,6 +751,10 @@ namespace Doxense.Serialization.Json
 
 		public virtual double? ToDoubleOrDefault() => ToDouble();
 
+		public virtual Half ToHalf() => throw Errors.JsonConversionNotSupported(this, typeof(Half));
+
+		public virtual Half? ToHalfOrDefault() => ToHalf();
+
 		public virtual decimal ToDecimal() => throw Errors.JsonConversionNotSupported(this, typeof(decimal));
 
 		public virtual decimal? ToDecimalOrDefault() => ToDecimal();

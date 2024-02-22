@@ -473,6 +473,34 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region Half
+
+		[Pure]
+		public static implicit operator JsonValue(Half value)
+		{
+			return JsonNumber.Return(value);
+		}
+
+		[Pure]
+		public static explicit operator Half(JsonValue? value)
+		{
+			return (value ?? JsonNull.Null).ToHalf();
+		}
+
+		[Pure]
+		public static implicit operator JsonValue(Half? value)
+		{
+			return JsonNumber.Return(value);
+		}
+
+		[Pure]
+		public static explicit operator Half?(JsonValue? value)
+		{
+			return (value ?? JsonNull.Null).ToHalfOrDefault();
+		}
+
+		#endregion
+
 		#region Decimal
 
 		[Pure]

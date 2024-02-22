@@ -211,6 +211,15 @@ namespace Doxense.Serialization.Json
 
 		public override double ToDouble() => m_value ? 1d : 0d;
 
+
+#if NET8_0_OR_GREATER
+		public override Half ToHalf() => m_value ? Half.One : Half.Zero;
+#else
+		private static readonly Half HalfZero = (Half) 0;
+		private static readonly Half HalfOne = (Half) 1;
+		public override Half ToHalf() => m_value ? HalfOne : HalfZero;
+#endif
+
 		public override decimal ToDecimal() => m_value ? 1m : 0m;
 
 		private static readonly Guid AllF = new Guid(new byte[16] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });

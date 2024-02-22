@@ -97,6 +97,7 @@ namespace Doxense.Serialization.Json
 			if (type == typeof(TimeSpan)) return jsonValue.ToTimeSpan();
 			if (type == typeof(Guid)) return jsonValue.ToGuid();
 			if (type == typeof(decimal)) return jsonValue.ToDecimal();
+			if (type == typeof(Half)) return jsonValue.ToHalf();
 			if (type == typeof(JsonValue)) return jsonValue;
 
 			if (type.IsEnum)

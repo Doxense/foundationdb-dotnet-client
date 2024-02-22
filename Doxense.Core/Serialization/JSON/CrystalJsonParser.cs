@@ -231,7 +231,7 @@ namespace Doxense.Serialization.Json
 
 			// on a besoin de parser le nombre...
 			var value = ParseNumberFromLiteral(literal, negative, hasDot, hasExponent);
-			if (value == null) throw InvalidNumberFormat(literal, "malformed");
+			if (value is null) throw InvalidNumberFormat(literal, "malformed");
 			return value;
 		}
 

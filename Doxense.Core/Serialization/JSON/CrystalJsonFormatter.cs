@@ -76,6 +76,9 @@ namespace Doxense.Serialization.Json
 		internal static string NumberToString(float value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static string NumberToString(Half value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static string NumberToString(double value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

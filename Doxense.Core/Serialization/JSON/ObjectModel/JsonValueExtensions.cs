@@ -513,6 +513,13 @@ namespace Doxense.Serialization.Json
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
+		public static Half OrDefault(this JsonValue? value, Half missingValue) => value?.ToHalfOrDefault() ?? missingValue;
+
+		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
+		/// <param name="value">JSON value to convert</param>
+		/// <param name="missingValue">Fallback value</param>
+		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
+		[Pure]
 		public static Guid OrDefault(this JsonValue? value, Guid missingValue) => value is not (null or JsonNull) ? value.ToGuid() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>

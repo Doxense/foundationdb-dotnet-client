@@ -1050,6 +1050,31 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region Half
+
+		public override Half ToHalf()
+		{
+			return string.IsNullOrEmpty(m_value) ? default : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
+		}
+
+		public override Half? ToHalfOrDefault()
+		{
+			return string.IsNullOrEmpty(m_value) ? default(Half?) : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryConvertHalf(out Half value)
+		{
+			return TryConvertHalf(m_value, out value);
+		}
+
+		internal static bool TryConvertHalf(string literal, out Half value)
+		{
+			return Half.TryParse(literal, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out value);
+		}
+
+		#endregion
+
 		#region Decimal
 
 		public override decimal ToDecimal()

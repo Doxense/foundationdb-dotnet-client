@@ -3013,6 +3013,20 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public Half[] ToHalfArray()
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new Half[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = items[i].ToHalf();
+			}
+			return buf;
+		}
+
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public decimal[] ToDecimalArray()
 		{
 			var items = this.AsSpan();
@@ -3394,6 +3408,21 @@ namespace Doxense.Serialization.Json
 			}
 			return total;
 		}
+
+		/// <summary>Deserialize this JSON array into a list of <see cref="double"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public List<double> ToHalfList()
+		{
+			var result = new List<double>(this.Count);
+			foreach (var item in this.AsSpan())
+			{
+				result.Add(item.ToDouble());
+			}
+			return result;
+		}
+
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public Half SumHalf() => (Half) SumDouble(); // use the best precision
 
 		/// <summary>Deserialize this JSON array into a list of <see cref="decimal"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]

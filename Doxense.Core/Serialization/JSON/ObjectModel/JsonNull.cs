@@ -299,6 +299,10 @@ namespace Doxense.Serialization.Json
 
 		public override double? ToDoubleOrDefault() => null;
 
+		public override Half ToHalf() => default;
+
+		public override Half? ToHalfOrDefault() => null;
+
 		public override decimal ToDecimal() => 0m;
 
 		public override decimal? ToDecimalOrDefault() => null;
