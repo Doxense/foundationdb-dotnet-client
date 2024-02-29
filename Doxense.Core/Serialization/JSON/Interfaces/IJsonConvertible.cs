@@ -27,7 +27,9 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 
+	[Obsolete] // this interface does not provide any benefit and will be removed soon
 	public interface IJsonConvertible
 	{
 
@@ -36,79 +38,104 @@ namespace Doxense.Serialization.Json
 		/// <summary>Retourne la représentation textuelle correspondante de cette valeur</summary>
 		/// <returns>Valeur texte pour des chaînes, nombres, booléens, dates. Retourne null pour toute instance de JsonNull. Génère une exception pour les Array ou Object</returns>
 		/// <remarks>Cette méthode permet de faire la différence entre des valeurs null/manquante et chaîne vide, deux cas où <see cref="JsonValue.ToString()"/> retourne <see cref="String.Empty"/>.</remarks>
-		string? ToStringOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		string? ToStringOrDefault(string? defaultValue = default);
 
 		bool ToBoolean();
-		bool? ToBooleanOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		bool? ToBooleanOrDefault(bool? defaultValue = default);
 
 		byte ToByte();
-		byte? ToByteOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		byte? ToByteOrDefault(byte? defaultValue = default);
 
 		sbyte ToSByte();
-		sbyte? ToSByteOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		sbyte? ToSByteOrDefault(sbyte? defaultValue = default);
 
 		char ToChar();
-		char? ToCharOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		char? ToCharOrDefault(char? defaultValue = default);
 
 		short ToInt16();
-		short? ToInt16OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		short? ToInt16OrDefault(short? defaultValue = default);
 
 		ushort ToUInt16();
-		ushort? ToUInt16OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		ushort? ToUInt16OrDefault(ushort? defaultValue = default);
 
 		int ToInt32();
-		int? ToInt32OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		int? ToInt32OrDefault(int? defaultValue = default);
 
 		uint ToUInt32();
-		uint? ToUInt32OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		uint? ToUInt32OrDefault(uint? defaultValue = default);
 
 		long ToInt64();
-		long? ToInt64OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		long? ToInt64OrDefault(long? defaultValue = default);
 
 		ulong ToUInt64();
-		ulong? ToUInt64OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		ulong? ToUInt64OrDefault(ulong? defaultValue = default);
 
 		float ToSingle();
-		float? ToSingleOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		float? ToSingleOrDefault(float? defaultValue = default);
 
 		double ToDouble();
-		double? ToDoubleOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		double? ToDoubleOrDefault(double? defaultValue = default);
 
 		decimal ToDecimal();
-		decimal? ToDecimalOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		decimal? ToDecimalOrDefault(decimal? defaultValue = default);
 
 		Guid ToGuid();
-		Guid? ToGuidOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		Guid? ToGuidOrDefault(Guid? defaultValue = default);
 
 		Uuid128 ToUuid128();
-		Uuid128? ToUuid128OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = default);
 
 		Uuid96 ToUuid96();
-		Uuid96? ToUuid96OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = default);
 
 		Uuid80 ToUuid80();
-		Uuid80? ToUuid80OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = default);
 
 		Uuid64 ToUuid64();
-		Uuid64? ToUuid64OrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = default);
 
 		DateTime ToDateTime();
-		DateTime? ToDateTimeOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		DateTime? ToDateTimeOrDefault(DateTime? defaultValue = default);
 
 		DateTimeOffset ToDateTimeOffset();
-		DateTimeOffset? ToDateTimeOffsetOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = default);
 
 		TimeSpan ToTimeSpan();
-		TimeSpan? ToTimeSpanOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = default);
 
 		TEnum ToEnum<TEnum>() where TEnum : struct, Enum;
-		TEnum? ToEnumOrDefault<TEnum>() where TEnum : struct, Enum;
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = default) where TEnum : struct, Enum;
 
 		NodaTime.Instant ToInstant();
-		NodaTime.Instant? ToInstantOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = default);
 
 		NodaTime.Duration ToDuration();
-		NodaTime.Duration? ToDurationOrDefault();
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = default);
 		//REVIEW: soit on fait tous les types de NodaTime, soit on en fait aucun...
 
 	}

@@ -222,7 +222,7 @@ namespace Doxense.Serialization.Json
 
 		public override decimal ToDecimal() => m_value ? 1m : 0m;
 
-		private static readonly Guid AllF = new Guid(new byte[16] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
+		private static readonly Guid AllF = new(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
 
 		public override Guid ToGuid() => m_value ? AllF : Guid.Empty;
 

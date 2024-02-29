@@ -28,7 +28,6 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
@@ -204,7 +203,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue Parse(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
 #endif
 			string? jsonText,
 			CrystalJsonSettings? settings = null,
@@ -223,9 +222,10 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
+		[Obsolete("OLD_API", error: true)]
 		public static JsonArray? ParseArray(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
 #endif
 			string? jsonText,
 			CrystalJsonSettings? settings = null,
@@ -235,18 +235,55 @@ namespace Doxense.Serialization.Json
 			return CrystalJson.Parse(jsonText, settings).AsArray(required);
 		}
 
+		/// <summary>Parse une chaîne de texte contenant une array JSON</summary>
+		/// <param name="jsonText">Chaîne de texte JSON à parser</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Array JSON correspondante.</returns>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonArray _ParseArray(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string? jsonText,
+			CrystalJsonSettings? settings = null
+		)
+		{
+			return CrystalJson.Parse(jsonText, settings)._AsArray();
+		}
+
+		/// <summary>Parse une chaîne de texte contenant une array JSON</summary>
+		/// <param name="jsonText">Chaîne de texte JSON à parser</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Array JSON correspondante.</returns>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonArray _ParseArrayReadOnly(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string? jsonText,
+			CrystalJsonSettings? settings = null
+		)
+		{
+			return CrystalJson.Parse(jsonText, settings?.AsReadOnly() ?? CrystalJsonSettings.JsonReadOnly)._AsArray();
+		}
+
 		/// <summary>Parse a string literal containing a JSON Object</summary>
 		/// <param name="jsonText">Input text to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="required">If <paramref name="jsonText"/> is empty or equal to the token <c>"null"</c>, the method will either throw an exception if <see langword="true"/>, or return <see langword="null"/> if <see langword="false"/></param>
 		/// <returns>Parsed JSON , or <see langword="null"/> if <paramref name="required"/> is <see langword="false"/> and <paramref name="jsonText"/> is empty or equal to <c>"null"</c></returns>
-		/// <remarks>The JSON object that is returned is mutable and ca be modified. If you require an immutable/readonly version, please call <see cref="ParseObjectImmutable"/> or enable immutability in the <paramref name="settings"/></remarks>
+		/// <remarks>The JSON object that is returned is mutable and ca be modified. If you require an immutable/readonly version, please call <see cref="ParseObjectReadOnly"/> or enable immutability in the <paramref name="settings"/></remarks>
 		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
 		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>, and <paramref name="required"/> is <see langword="true"/>.</exception>
 		[Pure, ContractAnnotation("required:true => notnull")]
+		[Obsolete("OLD_API", error: true)]
 		public static JsonObject? ParseObject(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
 #endif
 			string? jsonText,
 			CrystalJsonSettings? settings = null,
@@ -258,21 +295,76 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse a string literal containing a JSON Object</summary>
 		/// <param name="jsonText">Input text to parse</param>
-		/// <param name="required">If <paramref name="jsonText"/> is empty or equal to the token <c>"null"</c>, the method will either throw an exception if <see langword="true"/>, or return <see langword="null"/> if <see langword="false"/></param>
-		/// <returns>Parsed JSON , or <see langword="null"/> if <paramref name="required"/> is <see langword="false"/> and <paramref name="jsonText"/> is empty or equal to <c>"null"</c></returns>
-		/// <remarks>The JSON object that is returned is immutable, and is safe for use as a singleton, a cached document, or for multithreaded operations. If you require an mutable version, please call <see cref="ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?,bool)"/></remarks>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Parsed JSON value.</returns>
+		/// <remarks>The JSON object that is returned is mutable and ca be modified. If you require an immutable/readonly version, please call <see cref="ParseObjectReadOnly"/> or enable immutability in the <paramref name="settings"/></remarks>
 		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
-		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>, and <paramref name="required"/> is <see langword="true"/>.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObjectImmutable(
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonObject _ParseObject(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
 #endif
 			string? jsonText,
-			bool required = false
+			CrystalJsonSettings? settings = null
 		)
 		{
-			return CrystalJson.Parse(jsonText, CrystalJsonSettings.JsonReadOnly).AsObject(required);
+			return CrystalJson.Parse(jsonText, settings)._AsObject();
+		}
+
+		/// <summary>Parse a string literal containing a JSON Object</summary>
+		/// <param name="jsonText">Input text to parse</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Parsed JSON value.</returns>
+		/// <remarks>The JSON object that is returned is immutable, and is safe for use as a singleton, a cached document, or for multithreaded operations. If you require an mutable version, please call <see cref="ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?,bool)"/></remarks>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonObject ParseObjectReadOnly(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string? jsonText,
+			CrystalJsonSettings? settings = null
+		)
+		{
+			return CrystalJson.Parse(jsonText, settings?.AsReadOnly() ?? CrystalJsonSettings.JsonReadOnly)._AsObject();
+		}
+
+		/// <summary>Parse un buffer contenant du JSON (encodé en UTF8)</summary>
+		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Parsed JSON value.</returns>
+		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray"/> ou <see cref="ParseObject"/></remarks>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		[Pure]
+		public static JsonValue Parse(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
+		{
+			return CrystalJson.Parse(jsonBytes, settings);
+		}
+
+		/// <summary>Parse un buffer contenant une array JSON (encodé en UTF8)</summary>
+		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Parsed JSON Array.</returns>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonArray _ParseArray(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
+		{
+			return CrystalJson.Parse(jsonBytes, settings)._AsArray();
+		}
+
+		/// <summary>Parse un buffer contenant un object JSON (encodé en UTF8)</summary>
+		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Parsed JSON Object JSON.</returns>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonObject _ParseObject(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
+		{
+			return CrystalJson.Parse(jsonBytes, settings)._AsObject();
 		}
 
 		/// <summary>Parse un buffer contenant du JSON (encodé en UTF8)</summary>
@@ -280,8 +372,8 @@ namespace Doxense.Serialization.Json
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
-		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray(byte[], CrystalJsonSettings, bool)"/> ou <see cref="ParseObject(byte[], CrystalJsonSettings, bool)"/></remarks>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray"/> ou <see cref="ParseObject"/></remarks>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
 		[Pure]
 		public static JsonValue Parse(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
@@ -290,39 +382,13 @@ namespace Doxense.Serialization.Json
 			return required ? res.Required() : res;
 		}
 
-		/// <summary>Parse un buffer contenant une array JSON (encodé en UTF8)</summary>
-		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Array JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(byte[] jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return CrystalJson.Parse(jsonBytes.AsSlice(), settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON (encodé en UTF8)</summary>
-		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Object JSON correspondant. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(byte[] jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return CrystalJson.Parse(jsonBytes.AsSlice(), settings).AsObject(required);
-		}
-
 		/// <summary>Parse un buffer contenant du JSON (encodé en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
 		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Valeur JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
-		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray(Slice, CrystalJsonSettings, bool)"/> ou <see cref="ParseObject(Slice, CrystalJsonSettings, bool)"/></remarks>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <remarks>Si le résultat attendu est toujours un objet ou une array, préférez utiliser <see cref="ParseArray"/> ou <see cref="ParseObject"/></remarks>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
 		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
 		[Pure]
 		public static JsonValue Parse(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
@@ -333,28 +399,26 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Parse un buffer contenant une array JSON (encodée en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Array JSON correspondante. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
+		/// <returns>Array JSON correspondante.</returns>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonArray _ParseArray(Slice jsonBytes, CrystalJsonSettings? settings = null)
 		{
-			return CrystalJson.Parse(jsonBytes, settings).AsArray(required);
+			return CrystalJson.Parse(jsonBytes, settings)._AsArray();
 		}
 
 		/// <summary>Parse un buffer contenant un object JSON (encodé en UTF8)</summary>
 		/// <param name="jsonBytes">Buffer contenant le JSON à parser</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Objet JSON correspondant. Si <paramref name="jsonBytes"/> est "vide", retourne soit <see cref="JsonNull.Missing"/> (si <paramref name="required"/> == false), ou une exception (si == true)</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="InvalidOperationException">Si le document JSON parsé est "null", et que <paramref name="required"/> vaut true.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
+		/// <returns>Objet JSON correspondant.</returns>
+		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
+		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
+		[Pure]
+		public static JsonObject _ParseObject(Slice jsonBytes, CrystalJsonSettings? settings = null)
 		{
-			return CrystalJson.Parse(jsonBytes, settings).AsObject(required);
+			return CrystalJson.Parse(jsonBytes, settings)._AsObject();
 		}
 
 		#endregion
@@ -730,8 +794,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>True si value est null, JsonNull.* ou DynamicJsonNull.*</returns>
 		public static bool IsJsonNull(object? value)
 		{
-			//TODO: utiliser value.IsNull !
-			return object.ReferenceEquals(value, null) || value is JsonNull;
+			return value is null or JsonNull;
 		}
 
 		/// <summary>Indique si un objet (éventuellement dynamic) représente une élément manquant</summary>

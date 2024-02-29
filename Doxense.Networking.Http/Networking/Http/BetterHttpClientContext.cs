@@ -199,7 +199,7 @@ namespace Doxense.Networking.Http
 				{
 					await CopyToAsync(ms);
 					activity?.SetTag("json.length", ms.Length);
-					return CrystalJson.ParseObject(ms.ToSlice(), settings);
+					return CrystalJson.Parse(ms.ToSlice(), settings)._AsObjectOrDefault();
 				}
 			}
 			catch (Exception ex)
@@ -221,7 +221,7 @@ namespace Doxense.Networking.Http
 				using (var ms = DefaultPool.GetStream())
 				{
 					await CopyToAsync(ms);
-					return CrystalJson.ParseArray(ms.ToSlice(), settings);
+					return CrystalJson.Parse(ms.ToSlice(), settings)._AsArrayOrDefault();
 				}
 			}
 			catch (Exception ex)
@@ -243,7 +243,7 @@ namespace Doxense.Networking.Http
 				using (var ms = DefaultPool.GetStream())
 				{
 					await CopyToAsync(ms);
-					return CrystalJson.Deserialize<TResult>(ms.ToSlice(), settings, resolver);
+					return CrystalJson.Deserialize<TResult?>(ms.ToSlice(), default, settings, resolver);
 				}
 			}
 			catch (Exception ex)

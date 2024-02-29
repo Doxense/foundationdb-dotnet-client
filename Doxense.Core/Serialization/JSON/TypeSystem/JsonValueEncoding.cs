@@ -244,7 +244,7 @@ namespace Doxense.Serialization.Encoders
 		T? IValueEncoder<T, string>.DecodeValue(string packed)
 		{
 			Contract.NotNull(packed);
-			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver, required: true);
+			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver);
 		}
 
 		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
@@ -255,7 +255,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, Slice>.DecodeValue(Slice packed)
 		{
-			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver, required: true);
+			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver);
 		}
 
 		JsonObject IValueEncoder<T, JsonObject>.EncodeValue(T? value)

@@ -1427,7 +1427,7 @@ namespace Doxense.Serialization.Json
 			string literal = new string((sbyte*)ptr, 0, size); //ASCII is ok
 
 			var num = CrystalJsonParser.ParseJsonNumber(literal);
-			if (num == null) throw ThrowHelper.FormatException($"Invalid number literal '{literal}'.");
+			if (num is null) throw ThrowHelper.FormatException($"Invalid number literal '{literal}'.");
 			return num;
 		}
 
@@ -1624,12 +1624,14 @@ namespace Doxense.Serialization.Json
 
 			resolver ??= CrystalJson.DefaultResolver;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
 			{ // on tente notre chance...
 				var obj = (IJsonBindable) Activator.CreateInstance(type)!;
 				obj.JsonUnpack(this, resolver);
 				return obj;
 			}
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			// passe par un custom binder?
 			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques

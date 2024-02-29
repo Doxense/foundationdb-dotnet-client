@@ -105,8 +105,7 @@ namespace FoundationDB.Client
 
 				if (data.IsNullOrEmpty) return null;
 
-				var doc = CrystalJson.ParseObject(data);
-				if (doc == null) return null;
+				var doc = CrystalJson._ParseObject(data);
 
 				long rv = 0;
 				if (doc.ContainsKey("cluster"))
