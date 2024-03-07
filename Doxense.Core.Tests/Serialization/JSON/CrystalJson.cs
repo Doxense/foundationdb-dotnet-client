@@ -53,10 +53,11 @@
 // ReSharper disable ConvertToAutoPropertyWhenPossible
 // ReSharper disable FieldCanBeMadeReadOnly.Local
 // ReSharper disable ConvertToConstant.Local
+// ReSharper disable ConvertToAutoProperty
 #pragma warning disable JSON001
 #pragma warning disable IDE0044
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+#pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
 #pragma warning disable CA1861 // Avoid constant arrays as arguments
 #pragma warning disable 618
 
@@ -66,7 +67,6 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Collections.Generic;
 	using System.Collections.ObjectModel;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.IO;
 	using System.IO.Compression;
@@ -97,7 +97,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSettings_DefaultValues()
 		{
-			// Par défaut, on doit avoir toutes les valeurs par défaut (0 / false)
+			// By default, should have mostly default values for the properties (0 / false)
 
 			var settings = CrystalJsonSettings.Json;
 			Assert.That(settings.TargetLanguage, Is.EqualTo(CrystalJsonSettings.Target.Json));
@@ -126,7 +126,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.Mutability_ReadOnly));
 			Assert.That(CrystalJsonSettings.JsonReadOnly, Is.SameAs(settings));
 
-			// JsonIndented: Seul le TextLayout doit être différent
+			// JsonIndented: Only the TextLayout must be different
 
 			settings = CrystalJsonSettings.JsonIndented;
 			Assert.That(settings.TargetLanguage, Is.EqualTo(CrystalJsonSettings.Target.Json));
@@ -140,7 +140,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.Layout_Indented));
 			Assert.That(CrystalJsonSettings.JsonIndented, Is.SameAs(settings));
 
-			// JsonCompact: Seul le TextLayout doit être différent
+			// JsonCompact: Only the TextLayout must be different
 
 			settings = CrystalJsonSettings.JsonCompact;
 			Assert.That(settings.TargetLanguage, Is.EqualTo(CrystalJsonSettings.Target.Json));
@@ -154,7 +154,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.Layout_Compact));
 			Assert.That(CrystalJsonSettings.JsonCompact, Is.SameAs(settings));
 
-			// JavaScript: Target le JavaScript (single quotes, les dates au format "new Date(...)")
+			// JavaScript: should target the JavaScript language (single quotes, dates with the form "new Date(...)")
 
 			settings = CrystalJsonSettings.JavaScript;
 			Assert.That(settings.TargetLanguage, Is.EqualTo(CrystalJsonSettings.Target.JavaScript));
@@ -168,7 +168,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.Target_JavaScript));
 			Assert.That(CrystalJsonSettings.JavaScript, Is.SameAs(settings));
 
-			// JavaScriptIndented: Target le JavaScript (single quotes, les dates au format "new Date(...)") et indenté
+			// JavaScriptIndented: same as JavaScript, but with a different TextLayout
 
 			settings = CrystalJsonSettings.JavaScriptIndented;
 			Assert.That(settings.TargetLanguage, Is.EqualTo(CrystalJsonSettings.Target.JavaScript));
@@ -228,7 +228,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.None));
 			Assert.That(settings.ShowNullMembers, Is.False);
 
-			// retour à la case départ!
+			// should be now back to the default settings
 			Assert.That(settings, Is.SameAs(CrystalJsonSettings.Json));
 		}
 
@@ -254,7 +254,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.None));
 			Assert.That(settings.TextLayout, Is.EqualTo(CrystalJsonSettings.Layout.Formatted));
 
-			// Ne doit pas écraser les autres settings
+			// Should not override the other settings
 			settings = settings.CamelCased();
 			settings = settings.WithDateFormat(CrystalJsonSettings.DateFormat.TimeStampIso8601);
 			settings = settings.Indented();
@@ -288,7 +288,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.None));
 			Assert.That(settings.DateFormatting, Is.EqualTo(CrystalJsonSettings.DateFormat.Default));
 
-			// Ne doit pas écraser les autres settings
+			// Should not override the other settings
 			settings = settings.CamelCased();
 			settings = settings.WithInterning(CrystalJsonSettings.StringInterning.IncludeValues);
 			settings = settings.WithIso8601Dates();
@@ -322,7 +322,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.Flags, Is.EqualTo(CrystalJsonSettings.OptionFlags.None));
 			Assert.That(settings.InterningMode, Is.EqualTo(CrystalJsonSettings.StringInterning.Default));
 
-			// Ne doit pas écraser les autres settings
+			// Should not override the other settings
 			settings = settings.CamelCased();
 			settings = settings.WithDateFormat(CrystalJsonSettings.DateFormat.TimeStampIso8601);
 			settings = settings.DisableInterning();
@@ -351,9 +351,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region Serialization...
 
-		/// <summary>Helper pour wrapper les appels a SerializeTo(..) dans un StringWriter, et retourne la chaine générée</summary>
-		/// <param name="action"></param>
-		/// <returns></returns>
+		/// <summary>Helper to wrap calls to SerializeTo(..), using a StringWriter, and returning the generated string</summary>
 		private static string SerializeToString(Func<TextWriter, TextWriter> action)
 		{
 			using (var sw = new StringWriter())
@@ -462,12 +460,12 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_String_Types()
 		{
-			// on établi les bases...
+			// trust, but verify...
 			Assume.That(typeof(string).IsPrimitive, Is.False);
 
 			// string
 
-			Assert.That(CrystalJson.Serialize(String.Empty), Is.EqualTo("\"\""));
+			Assert.That(CrystalJson.Serialize(string.Empty), Is.EqualTo("\"\""));
 			Assert.That(CrystalJson.Serialize("foo"), Is.EqualTo("\"foo\""));
 			Assert.That(CrystalJson.Serialize("foo\"bar"), Is.EqualTo("\"foo\\\"bar\""));
 			Assert.That(CrystalJson.Serialize("foo'bar"), Is.EqualTo("\"foo'bar\""));
@@ -493,7 +491,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JavaScriptSerialize_String_Types()
 		{
-			// on établi les bases...
+			// trust, but verify
 			Assume.That(typeof(string).IsPrimitive, Is.False);
 
 			// string
@@ -527,6 +525,7 @@ namespace Doxense.Serialization.Json.Tests
 			// boolean
 			Assert.That(CrystalJson.Serialize(true), Is.EqualTo("true"));
 			Assert.That(CrystalJson.Serialize(false), Is.EqualTo("false"));
+
 			// int32
 			Assert.That(CrystalJson.Serialize((int)0), Is.EqualTo("0"));
 			Assert.That(CrystalJson.Serialize((int)1), Is.EqualTo("1"));
@@ -535,6 +534,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Serialize((int)-999), Is.EqualTo("-999"));
 			Assert.That(CrystalJson.Serialize(int.MaxValue), Is.EqualTo("2147483647"));
 			Assert.That(CrystalJson.Serialize(int.MinValue), Is.EqualTo("-2147483648"));
+
 			// int64
 			Assert.That(CrystalJson.Serialize((long)0), Is.EqualTo("0"));
 			Assert.That(CrystalJson.Serialize((long)1), Is.EqualTo("1"));
@@ -543,6 +543,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Serialize((long)-999), Is.EqualTo("-999"));
 			Assert.That(CrystalJson.Serialize(long.MaxValue), Is.EqualTo("9223372036854775807"));
 			Assert.That(CrystalJson.Serialize(long.MinValue), Is.EqualTo("-9223372036854775808"));
+
 			// single
 			Assert.That(CrystalJson.Serialize(0f), Is.EqualTo("0"));
 			Assert.That(CrystalJson.Serialize(1f), Is.EqualTo("1"));
@@ -553,7 +554,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Serialize(float.MaxValue), Is.EqualTo(float.MaxValue.ToString("R")));
 			Assert.That(CrystalJson.Serialize(float.MinValue), Is.EqualTo(float.MinValue.ToString("R")));
 			Assert.That(CrystalJson.Serialize(float.Epsilon), Is.EqualTo(float.Epsilon.ToString("R")));
-			//BUGBUG: pour l'instant "default" utilise FloatFormat.Symbol mais on risque de changer en String par défaut!
 			Assert.That(CrystalJson.Serialize(float.NaN), Is.EqualTo("NaN"), "Pas standard, mais la plupart des serializers se comportent comme cela");
 			Assert.That(CrystalJson.Serialize(float.PositiveInfinity), Is.EqualTo("Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
 			Assert.That(CrystalJson.Serialize(float.NegativeInfinity), Is.EqualTo("-Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
@@ -575,7 +575,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(CrystalJson.Serialize(float.PositiveInfinity, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
 				Assert.That(CrystalJson.Serialize(float.NegativeInfinity, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
 			}
-			// doublep
+
+			// double
 			Assert.That(CrystalJson.Serialize(0d), Is.EqualTo("0"));
 			Assert.That(CrystalJson.Serialize(1d), Is.EqualTo("1"));
 			Assert.That(CrystalJson.Serialize(-1d), Is.EqualTo("-1"));
@@ -603,19 +604,20 @@ namespace Doxense.Serialization.Json.Tests
 			}
 			{ // NaN => 'null'
 				var settings = CrystalJsonSettings.Json.WithFloatFormat(CrystalJsonSettings.FloatFormat.Null);
-				Assert.That(CrystalJson.Serialize(double.NaN, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
-				Assert.That(CrystalJson.Serialize(double.PositiveInfinity, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
-				Assert.That(CrystalJson.Serialize(double.NegativeInfinity, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
+				Assert.That(CrystalJson.Serialize(double.NaN, settings), Is.EqualTo("null")); // by convention
+				Assert.That(CrystalJson.Serialize(double.PositiveInfinity, settings), Is.EqualTo("null")); // by convention
+				Assert.That(CrystalJson.Serialize(double.NegativeInfinity, settings), Is.EqualTo("null")); // by convention
 			}
+
 			// char
 			Assert.That(CrystalJson.Serialize('A'), Is.EqualTo("\"A\""));
 			Assert.That(CrystalJson.Serialize('\0'), Is.EqualTo("null"));
 			Assert.That(CrystalJson.Serialize('\"'), Is.EqualTo("\"\\\"\""));
 
 			// JavaScript exceptions:
-			Assert.That(CrystalJson.Serialize(double.NaN, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.NaN"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-			Assert.That(CrystalJson.Serialize(double.PositiveInfinity, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.POSITIVE_INFINITY"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-			Assert.That(CrystalJson.Serialize(double.NegativeInfinity, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.NEGATIVE_INFINITY"), "Pas standard, mais la plupart des serializers se comportent comme cela");
+			Assert.That(CrystalJson.Serialize(double.NaN, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.NaN")); // Not standard, but most serializers behave like this
+			Assert.That(CrystalJson.Serialize(double.PositiveInfinity, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.POSITIVE_INFINITY")); // Not standard, but most serializers behave like this
+			Assert.That(CrystalJson.Serialize(double.NegativeInfinity, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.NEGATIVE_INFINITY")); // Not standard, but most serializers behave like this
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
@@ -795,7 +797,7 @@ namespace Doxense.Serialization.Json.Tests
 			//Value Type
 			Assert.That(JsonNumber.Return(123).OrDefault<int>(), Is.InstanceOf<int>().And.EqualTo(123));
 			Assert.That(JsonString.Return("123").OrDefault<int>(), Is.InstanceOf<int>().And.EqualTo(123));
-			// note: where should be a compiler warning on "<int?>" because the method can never return null so expecting a nullable int is probably a mistake ?
+			// note: there should be a compiler warning on "<int?>" because the method can never return null so expecting a nullable int is probably a mistake ?
 			Assert.That(JsonNumber.Return(123).OrDefault<int?>(), Is.InstanceOf<int>().And.EqualTo(123));
 			Assert.That(JsonString.Return("123").OrDefault<int?>(), Is.InstanceOf<int>().And.EqualTo(123));
 			Assert.That(JsonNull.Null.OrDefault<int>(), Is.EqualTo(0));
@@ -866,7 +868,7 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			var settings = CrystalJsonSettings.Json.WithMicrosoftDates();
 
-			// on établi les bases...
+			// trust, but verify...
 			Assume.That(typeof(DateTime).IsPrimitive, Is.False);
 			Assume.That(typeof(DateTime).IsValueType, Is.True);
 			long unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
@@ -874,15 +876,10 @@ namespace Doxense.Serialization.Json.Tests
 
 			TimeSpan utcOffset = DateTimeOffset.Now.Offset;
 
-			// JSON ne spécifie pas le format de date. On va utiliser le même que Microsoft (cad "\/Date(xxxx)\/").
-			// ATTENTION! Les dates sont toujours serializées en UTC ! Le problème c'est que 99.999% des DateTime qu'on va trouver dans un objet sont en LocalTime, qui varie avec les heures d'hiver/été
-
 			// corner cases
 			Assert.That(CrystalJson.Serialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(0)\\/\""));
-			// note: DateTime.MinValue est en local time (wtf??), mais on le force en UTC pour éviter les même problèmes que le DataContractJsonSerializer (qui plante si on habite a l'est de GMT !)
 			Assert.That(CrystalJson.Serialize(new DateTime(0, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(-62135596800000)\\/\""));
 			Assert.That(CrystalJson.Serialize(DateTime.MinValue, settings), Is.EqualTo("\"\\/Date(-62135596800000)\\/\""));
-			// idem pour MaxValue
 			Assert.That(CrystalJson.Serialize(new DateTime(3155378975999999999, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(253402300799999)\\/\""));
 			Assert.That(CrystalJson.Serialize(DateTime.MaxValue, settings), Is.EqualTo("\"\\/Date(253402300799999)\\/\""));
 
@@ -913,7 +910,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		private string ToUtcOffset(TimeSpan offset)
 		{
-			// note: peut être négatif! Hours et Minutes seront tt les deux négatifs
+			// note: can be negative! Hours and Minutes will be both negative in this case
 			return (offset < TimeSpan.Zero ? "-" : "+") + Math.Abs(offset.Hours).ToString("D2") + ":" + Math.Abs(offset.Minutes).ToString("D2");
 		}
 
@@ -923,13 +920,13 @@ namespace Doxense.Serialization.Json.Tests
 			var settings = CrystalJsonSettings.Json.WithIso8601Dates();
 			Assert.That(settings.DateFormatting, Is.EqualTo(CrystalJsonSettings.DateFormat.TimeStampIso8601));
 
-			// MinValue: doit etre sérialisé comme une chaine vide
-			// permet de gérer le cas ou on a sérialisé un DateTime.MinValue, mais qu'on désérialiser dans un Nullable<DateTime>
+			// MinValue: must be serialized as an empty string
+			// will handle the case where we have serialized DateTime.MinValue, but we are deserializing as Nullable<DateTime>
 			Assert.That(CrystalJson.Serialize(DateTime.MinValue, settings), Is.EqualTo("\"\""));
 			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc), settings), Is.EqualTo("\"\""));
 			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Local), settings), Is.EqualTo("\"\""));
 
-			// MaxValue: ne doit pas mentiner de timezone
+			// MaxValue: must NOT specify a timezone
 			Assert.That(CrystalJson.Serialize(DateTime.MaxValue, settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""));
 			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc), settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""), "DateTime.MaxValue should not specify UTC 'Z'");
 			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Local), settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""), "DateTime.MaxValue should not specify local TimeZone");
@@ -938,25 +935,25 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Serialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"1970-01-01T00:00:00Z\""));
 
 			// Unspecified
-			Assert.That(CrystalJson.Serialize(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Unspecified), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000\""), "Les dates Unspecified ne doivent avoir ni 'Z' ni timezone");
+			Assert.That(CrystalJson.Serialize(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Unspecified), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000\""), "Dates with Unspecified timezone must NOT end with 'Z', NOR include a timezone");
 
 			// UTC
-			Assert.That(CrystalJson.Serialize(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000Z\""), "Les dates UTC doivent finir par 'Z'");
+			Assert.That(CrystalJson.Serialize(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000Z\""), "UTC dates must end with 'Z'");
 
 			// Local
 			var dt = new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local);
-			Assert.That(CrystalJson.Serialize(dt, settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000" + ToUtcOffset(new DateTimeOffset(dt).Offset) + "\""), "Les dates Local doivent avoir la timezone");
+			Assert.That(CrystalJson.Serialize(dt, settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000" + ToUtcOffset(new DateTimeOffset(dt).Offset) + "\""), "Local dates must specify a timezone");
 
 			// Now (UTC)
 			DateTime utcNow = DateTime.UtcNow;
-			Assert.That(CrystalJson.Serialize(utcNow, settings), Is.EqualTo("\"" + utcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + "Z\""), "DateTime.UtcNow doit finir par Z");
+			Assert.That(CrystalJson.Serialize(utcNow, settings), Is.EqualTo("\"" + utcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + "Z\""), "DateTime.UtcNow must end with 'Z'");
 
 			// Now (local)
 			DateTime localNow = DateTime.Now;
 			Assert.That(CrystalJson.Serialize(localNow, settings), Is.EqualTo("\"" + localNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + ToUtcOffset(DateTimeOffset.Now.Offset) + "\""), "DateTime.Now doit inclure la TimeZone");
 
 			// Local vs Unspecified vs UTC
-			// IMPORTANT: ce test ne marche que si on est dans la timezone "Romance Standard Time" (Paris, Bruxelles, ...)
+			// IMPORTANT: this test only works if you are in the "Romance Standard Time" (Paris, Bruxelles, ...), sorry! (or use the pretext to visit Paris, all expenses paid by the QA dept. !)
 			// Paris: GMT+1 l'hivers, GMT+2 l'état
 
 			// * 1er Janvier 2000 = GMT + 1 car heure d'hiver
@@ -976,11 +973,10 @@ namespace Doxense.Serialization.Json.Tests
 			var settings = CrystalJsonSettings.Json.WithIso8601Dates();
 			Assert.That(settings.DateFormatting, Is.EqualTo(CrystalJsonSettings.DateFormat.TimeStampIso8601));
 
-			// MinValue: doit etre sérialisé comme une chaine vide
-			// permet de gérer le cas ou on a sérialisé un DateTimeOffset.MinValue, mais qu'on désérialiser dans un Nullable<DateTimeOffset>
+			// MinValue: must be serialized as the empty string
 			Assert.That(CrystalJson.Serialize(DateTimeOffset.MinValue, settings), Is.EqualTo("\"\""));
 
-			// MaxValue: ne doit pas mentiner de timezone
+			// MaxValue: should NOT specify a timezone
 			Assert.That(CrystalJson.Serialize(DateTimeOffset.MaxValue, settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""));
 
 			// Unix Epoch
@@ -1004,7 +1000,7 @@ namespace Doxense.Serialization.Json.Tests
 			// Now (local)
 			var localNow = DateTimeOffset.Now;
 			Assert.That(CrystalJson.Serialize(localNow, settings), Is.EqualTo("\"" + localNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + ToUtcOffset(localNow.Offset) + "\""), "DateTime.Now doit inclure la TimeZone");
-			//note: ce test ne fonctionne pas si le serveur tourne en TZ = GMT+0 !
+			//note: this test will not work if the server is running int the UTC/GMT+0 timezone !
 
 			// Local vs Unspecified vs UTC
 			// Paris: GMT+1 l'hivers, GMT+2 l'état
@@ -1021,21 +1017,16 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_DateTime_Types_ToJavaScriptFormat()
 		{
-			// on établi les bases...
+			// trust, but verify...
 			Assume.That(typeof(DateTime).IsPrimitive, Is.False);
 			Assume.That(typeof(DateTime).IsValueType, Is.True);
 			long unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
 			Assume.That(unixEpoch, Is.EqualTo(621355968000000000));
 
-			// JSON ne spécifie pas le format de date. On va utiliser le même que Microsoft (cad "\/Date(xxxx)\/").
-			// ATTENTION! Les dates sont toujours serializées en UTC ! Le problème c'est que 99.999% des DateTime qu'on va trouver dans un objet sont en LocalTime, qui varie avec les heures d'hiver/été
-
 			// corner cases
 			Assert.That(CrystalJson.Serialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(0)"));
-			// note: DateTime.MinValue est en local time (wtf??), mais on le force en UTC pour éviter les même problèmes que le DataContractJsonSerializer (qui plante si on habite a l'est de GMT !)
 			Assert.That(CrystalJson.Serialize(new DateTime(0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(-62135596800000)"));
 			Assert.That(CrystalJson.Serialize(DateTime.MinValue, CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(-62135596800000)"));
-			// idem pour MaxValue
 			Assert.That(CrystalJson.Serialize(new DateTime(3155378975999999999, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(253402300799999)"));
 			Assert.That(CrystalJson.Serialize(DateTime.MaxValue, CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(253402300799999)"));
 
@@ -1080,21 +1071,21 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerializes_EnumTypes()
 		{
-			// on établi les bases...
+			// trust, but verify...
 			Assume.That(typeof(DummyJsonEnum).IsPrimitive, Is.False);
 			Assume.That(typeof(DummyJsonEnum).IsEnum, Is.True);
 
 			// As Integers
 
-			// enum systemes
+			// enum
 			Assert.That(CrystalJson.Serialize(MidpointRounding.AwayFromZero), Is.EqualTo("1"));
 			Assert.That(CrystalJson.Serialize(DayOfWeek.Friday), Is.EqualTo("5"));
-			// enum custom
+			// custom enum
 			Assert.That(CrystalJson.Serialize(DummyJsonEnum.None), Is.EqualTo("0"));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Foo), Is.EqualTo("1"));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Bar), Is.EqualTo("42"));
 			Assert.That(CrystalJson.Serialize((DummyJsonEnum)123), Is.EqualTo("123"));
-			// enum flags
+			// custom [Flags] enum
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.None), Is.EqualTo("0"));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Foo), Is.EqualTo("1"));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Bar), Is.EqualTo("2"));
@@ -1107,20 +1098,19 @@ namespace Doxense.Serialization.Json.Tests
 
 			var settings = CrystalJsonSettings.Json.WithEnumAsStrings();
 
-			// enum systemes
+			// enum
 			Assert.That(CrystalJson.Serialize(MidpointRounding.AwayFromZero, settings), Is.EqualTo("\"AwayFromZero\""));
 			Assert.That(CrystalJson.Serialize(DayOfWeek.Friday, settings), Is.EqualTo("\"Friday\""));
-			// enum custom
+			// custom enum
 			Assert.That(CrystalJson.Serialize(DummyJsonEnum.None, settings), Is.EqualTo("\"None\""));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Foo, settings), Is.EqualTo("\"Foo\""));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Bar, settings), Is.EqualTo("\"Bar\""));
 			Assert.That(CrystalJson.Serialize((DummyJsonEnum)123, settings), Is.EqualTo("\"123\""));
-			// enum flags
+			// custom [Flags] enum
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.None, settings), Is.EqualTo("\"None\""));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Foo, settings), Is.EqualTo("\"Foo\""));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Bar, settings), Is.EqualTo("\"Bar\""));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Narf, settings), Is.EqualTo("\"Narf\""));
-			//TODO: comment gérer correctement les flags multiples ?
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Foo | DummyJsonEnumFlags.Bar, settings), Is.EqualTo("\"Foo, Bar\""));
 			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Bar | DummyJsonEnumFlags.Narf, settings), Is.EqualTo("\"Bar, Narf\""));
 			Assert.That(CrystalJson.Serialize((DummyJsonEnumFlags)255, settings), Is.EqualTo("\"255\""));
@@ -1136,7 +1126,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_Structs()
 		{
-			// check les bases
+			// trust, but verify...
 			Assume.That(typeof(DummyJsonStruct).IsValueType, Is.True);
 			Assume.That(typeof(DummyJsonStruct).IsClass, Is.False);
 
@@ -1149,7 +1139,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JS)");
 
-			// avec les null visibles
+			// with explicit nulls
 			expected = "{ \"Valid\": false, \"Name\": null, \"Index\": 0, \"Size\": 0, \"Height\": 0, \"Amount\": 0, \"Created\": \"\", \"Modified\": null, \"State\": 0, \"RatioOfStuff\": 0 }";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+ShowNull)");
@@ -1157,7 +1147,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JS+ShowNull)");
 
-			// en masquant les valeure vides
+			// hide default values
 			expected = "{ }";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+HideDefaults)");
@@ -1173,7 +1163,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JS+Compact)");
 
-			// en mode indenté
+			// indented
 			expected =
 				"{\r\n" +
 				"\t\"Valid\": false,\r\n" +
@@ -1218,7 +1208,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(BOND, JS)");
 
-			// en mode compact
+			// compact mode
 			expected = "{\"Valid\":true,\"Name\":\"James Bond\",\"Index\":7,\"Size\":123456789,\"Height\":1.8,\"Amount\":0.07,\"Created\":\"1968-05-08T00:00:00\",\"State\":1,\"RatioOfStuff\":8641975.23}";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.Compacted());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(BOND, JSON+Compact)");
@@ -1231,7 +1221,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonSerialize_NullableTypes()
 		{
 			var x = new DummyNullableStruct();
-			// comme tout est null, il ne doit rien y avoir dans l'objet...
+			// since all members are null, the object should be empty
 			string expected = "{ }";
 			string jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JSON)");
@@ -1242,7 +1232,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithoutDefaultValues());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JS+HideDefaults)");
 
-			// par défaut tout doit etre à null
+			// by default, all should be null
 			expected = """{ "Bool": null, "Int32": null, "Int64": null, "Single": null, "Double": null, "DateTime": null, "TimeSpan": null, "Guid": null, "Enum": null, "Struct": null }""";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JSON+ShowNull)");
@@ -1250,7 +1240,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JS+ShowNull)");
 
-			// on remplit les champs...
+			// fill the object with non-null values
 			x.Bool = true;
 			x.Int32 = 123;
 			x.Int64 = 123;
@@ -1272,7 +1262,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_Class()
 		{
-			// check les bases
+			// trust, but verify...
 			Assume.That(typeof(DummyJsonClass).IsValueType, Is.False);
 			Assume.That(typeof(DummyJsonClass).IsClass, Is.True);
 
@@ -1284,14 +1274,14 @@ namespace Doxense.Serialization.Json.Tests
 			string jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
 			Assert.That(jsText, Is.EqualTo(expected), "Serialize(EMPTY, JS)");
 
-			// masque les defaults
+			// hide default values
 			expected = "{ }";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues());
 			Assert.That(jsonText, Is.EqualTo(expected), "SerializeObject(EMPTY, JSON+HideDefaults)");
 			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithoutDefaultValues());
 			Assert.That(jsText, Is.EqualTo(expected), "SerializeObject(EMPTY, JS+HideDefaults)");
 
-			// affichage des members null
+			// with explicit nulls
 			expected = "{ \"Valid\": false, \"Name\": null, \"Index\": 0, \"Size\": 0, \"Height\": 0, \"Amount\": 0, \"Created\": \"\", \"Modified\": null, \"State\": 0, \"RatioOfStuff\": 0 }";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+ShowNullMembers)");
@@ -1323,7 +1313,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted());
 			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS+Compact)");
 
-			// en mode indenté
+			// indented
 			expected =
 				"{\r\n" +
 				"\t\"Valid\": true,\r\n" +
@@ -1367,8 +1357,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_InterfaceMember()
 		{
-			// Problème: une classe qui contient un member de type interface
-			// => il faut ne faut pas sérialiser les membres de l'interface, mais ceux de la classe concrète, qui varie au runtime !
+			// Test: a class that contains a member with an interface type
+			// => we should not serilize only the members defined on that interface, but instead serialize the runtime type of the instance, which will not be known in advance
 
 			var x = new DummyOuterClass();
 
@@ -1389,40 +1379,40 @@ namespace Doxense.Serialization.Json.Tests
 			agent.State = DummyJsonEnum.Bar;
 			x.Agent = agent;
 
-			// sérialise l'agent lui-même (class)
-			// comme il est top-level, on considère que l'appelant CONNAIT le bon type
+			// Serialize the instance directly (known type)
+			// since the instance is top-level, and the type is known, it should not include the _class property.
 			string expectedAgent = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
 			jsonText = CrystalJson.Serialize(agent);
 			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
 
-			// sérialise le conteneur, qui référence l'agent via une interface
-			// vu que l'agent n'est plus top-level, il doit contenir une indication sur son type !
+			// Serialize the container type that references this instance via the interface
+			// since the instance is not top-level, and the type is not known, it should include the _class property!
 			expectedAgent = "{ \"_class\": \"Doxense.Serialization.Json.Tests.DummyJsonClass, Doxense.Core.Tests\", \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
 			expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
 			jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
 
-			// désérialisation
+			// deserialize the container instnace
 			var y = CrystalJson.Deserialize<DummyOuterClass>(expected);
 			Assert.That(y, Is.Not.Null);
-			Assert.That(y.Id, Is.EqualTo(7), ".Id");
-			Assert.That(y.Agent, Is.Not.Null, ".Agent");
-			Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>(), ".Agent");
-			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"), ".Agent.Name");
-			Assert.That(y.Agent.Index, Is.EqualTo(7), ".Agent.Index");
-			Assert.That(y.Agent.Size, Is.EqualTo(123456789), ".Agent.Size");
-			Assert.That(y.Agent.Height, Is.EqualTo(1.8f), ".Agent.Height");
-			Assert.That(y.Agent.Amount, Is.EqualTo(0.07d), ".Agent.Amount");
-			Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)), ".Agent.Created");
-			Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)), ".Agent.Modified");
-			Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar), ".Agent.State");
+			Assert.That(y.Id, Is.EqualTo(7));
+			Assert.That(y.Agent, Is.Not.Null);
+			Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>(), "Should have used the _class property to find the original type!");
+			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
+			Assert.That(y.Agent.Index, Is.EqualTo(7));
+			Assert.That(y.Agent.Size, Is.EqualTo(123456789));
+			Assert.That(y.Agent.Height, Is.EqualTo(1.8f));
+			Assert.That(y.Agent.Amount, Is.EqualTo(0.07d));
+			Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)));
+			Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)));
+			Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar));
 		}
 
 		[Test]
 		public void Test_JsonSerialize_UnsealedClassMember()
 		{
-			// On a un conteneur qui pointe vers une classe non-sealed, mais dont le type correspond au runtime (ie: pas un objet dérivié)
-			// => Dans ce cas, il ne doit pas y avoir de "__class" dans le JSON car il n'y a pas d'ambiguité !
+			// We have a container type that points to a non-sealed class, but with an instance of the expected type (i.e.: not of a derived type)
+			// => Dans In this case, there should not be any "_class" property because there is no ambiguity
 			var x = new DummyOuterDerivedClass();
 			x.Id = 7;
 			x.Agent = new DummyJsonClass();
@@ -1443,7 +1433,7 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
 
-			// indenté
+			// indented
 			expected =
 				"{\r\n" +
 				"\t\"Id\": 7,\r\n" +
@@ -1461,10 +1451,9 @@ namespace Doxense.Serialization.Json.Tests
 				"\t}\r\n" +
 				"}";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.Indented());
-			//Log(jsonText);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
 
-			// désérialisation
+			// Deserialize
 			var y = CrystalJson.Deserialize<DummyOuterDerivedClass>(expected);
 			Assert.That(y, Is.Not.Null);
 			Assert.That(y.Id, Is.EqualTo(7), ".Id");
@@ -1483,9 +1472,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_DerivedClassMember()
 		{
-			// Problème: On a un conteneur contient un member de type "FooBase", mais l'objet au runtime est un "FooDerived" (qui dérive de "FooBase")
-			// => il faut sérialiser les membres de FooDerived (qui en a probablement plus que FooBase), mais aussi que l'attribut "__class" soit présent
-			// pour que la désérialisation soit capable de construire le bon objet !
+			// We have a container type with a member of type "FooBase", but at runtime it contains a "FooDerived" instance (class that derives from "FooBase")
+			// => in this case, all members of FooDerived must be serialized, and the _class attribute must be included with the FooDerived class id, so that deserializing will know which type to instantiate
 
 			var x = new DummyOuterDerivedClass();
 
@@ -1506,54 +1494,53 @@ namespace Doxense.Serialization.Json.Tests
 			x.Agent.Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc);
 			x.Agent.State = DummyJsonEnum.Bar;
 
-			// sérialise l'agent lui-même (class)
-			// comme il est top-level, on considère que l'appelant CONNAIT le bon type
+			// serialize the derived type explicitly (known type)
+			// as it is top-level, the _class property should not be included
 			string expectedAgent = "{ \"IsDoubleAgent\": true, \"DoubleAgentName\": \"Janov Bondovicz\", \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
-			// ATENTION: CrystalJson.Serialize(x.Agent) est est mappé sur Serialize<DummyJsonClass>(...), qui est différent de CrystalJson.Serialize(agent) qui est mappé sur Serialize<DummyDerivedJsonClass>(...) !
 			jsonText = CrystalJson.Serialize(agent);
 			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
 
-			// sérialise le conteneur, qui référence l'agent via une interface
-			// vu que l'agent n'est plus top-level, il doit contenir une indication sur son type !
+			// serilalize the container, which references this instance via the base type
+			// as it is no top-level, the _class property should be included!
 			expectedAgent = "{ \"_class\": \"Doxense.Serialization.Json.Tests.DummyDerivedJsonClass, Doxense.Core.Tests\", \"IsDoubleAgent\": true, \"DoubleAgentName\": \"Janov Bondovicz\", \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
 			expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
 			jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
 
-			// désérialisation avec une classe dérivée
+			// deserialize the container
 			var y = CrystalJson.Deserialize<DummyOuterDerivedClass>(expected);
 			Assert.That(y, Is.Not.Null);
-			Assert.That(y.Id, Is.EqualTo(7), ".Id");
-			Assert.That(y.Agent, Is.Not.Null, ".Agent");
-			Assert.That(y.Agent, Is.InstanceOf<DummyDerivedJsonClass>(), ".Agent");
-			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"), ".Agent.Name");
-			Assert.That(y.Agent.Index, Is.EqualTo(7), ".Agent.Index");
-			Assert.That(y.Agent.Size, Is.EqualTo(123456789), ".Agent.Size");
-			Assert.That(y.Agent.Height, Is.EqualTo(1.8f), ".Agent.Height");
-			Assert.That(y.Agent.Amount, Is.EqualTo(0.07d), ".Agent.Amount");
-			Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)), ".Agent.Created");
-			Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)), ".Agent.Modified");
-			Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar), ".Agent.State");
+			Assert.That(y.Id, Is.EqualTo(7));
+			Assert.That(y.Agent, Is.Not.Null);
+			Assert.That(y.Agent, Is.InstanceOf<DummyDerivedJsonClass>(), "Should have instantianted the derived inner class, not the base class!");
+			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
+			Assert.That(y.Agent.Index, Is.EqualTo(7));
+			Assert.That(y.Agent.Size, Is.EqualTo(123456789));
+			Assert.That(y.Agent.Height, Is.EqualTo(1.8f));
+			Assert.That(y.Agent.Amount, Is.EqualTo(0.07d));
+			Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)));
+			Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)));
+			Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar));
+
 			var z = (DummyDerivedJsonClass) y.Agent;
-			Assert.That(z.DoubleAgentName, Is.EqualTo("Janov Bondovicz"), "z.DoubleAgentName");
-			Assert.That(z.IsDoubleAgent, Is.True, "z.IsDoubleAgent");
+			Assert.That(z.DoubleAgentName, Is.EqualTo("Janov Bondovicz"), "Should have deserialized the members specific to the derived class");
+			Assert.That(z.IsDoubleAgent, Is.True, "Should have deserialized the members specific to the derived class");
 		}
 
 		[Test]
 		public void Test_Json_Custom_Serializable_Interface()
 		{
-
-			// sérialisation
+			// serialize
 			var x = new DummyJsonCustomClass("foo");
 			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "custom":"foo" }"""));
 
-			// désérialisation
+			// deserialize
 			var y = CrystalJson.Deserialize<DummyJsonCustomClass>("""{ "custom":"bar" }""");
 			Assert.That(y, Is.Not.Null);
 			Assert.That(y, Is.InstanceOf<DummyJsonCustomClass>());
 			Assert.That(y.GetSecret(), Is.EqualTo("bar"));
 
-			// packing
+			// pack
 			var value = JsonValue.FromValue(x);
 			Assert.That(value, Is.Not.Null);
 			Assert.That(value.Type, Is.EqualTo(JsonType.Object));
@@ -1561,7 +1548,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj._Get<string>("custom"), Is.EqualTo("foo"));
 			Assert.That(obj.Count, Is.EqualTo(1));
 
-			// unpacking
+			// unpack
 			var z = value.Bind(typeof(DummyJsonCustomClass))!;
 			Assert.That(z, Is.Not.Null);
 			Assert.That(z, Is.InstanceOf<DummyJsonCustomClass>());
@@ -1572,11 +1559,11 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_Json_Custom_Serializable_Static()
 		{
 
-			// sérialisation
+			// serialize
 			var x = new DummyStaticCustomJson("foo");
 			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "custom":"foo" }"""));
 
-			// désérialisation
+			// deserialize
 			var y = CrystalJson.Deserialize<DummyStaticCustomJson>("""{ "custom":"bar" }""");
 			Assert.That(y, Is.Not.Null);
 			Assert.That(y, Is.InstanceOf<DummyStaticCustomJson>());
@@ -1734,15 +1721,15 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues(), resolver);
 			Assert.That(jsonText, Is.EqualTo(expected), "SerializeObject(EMPTY,JSON+CustomResolver+WithoutDefaults)");
 
-			// avec des valeures
+			// with non-zero values
 			x.Index = 7; // => 42+7 = 49
 			x.Name = "James Bond"; // => "<James Bond>"
-			x.Height = 1.23f; // => ne devrait pas être visible
+			x.Height = 1.23f; // => should not be visible
 			expected = """{ "Foo": "<James Bond>", "Narf": 49 }""";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json, resolver);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(x,JSON+CustomResolver)");
 
-			// avec le default resolver
+			// with the default resolver
 			expected = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 0, "Height": 1.23, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }""";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(x,JSON+DefaultResolver)");
@@ -1814,12 +1801,12 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// list of objects
 			var queryableOfAnonymous = new int[] { 1, 2, 3 }.Select((x) => new { Value = x, Square = x * x, Ascii = (char)(64 + x) });
-			// directement le queryable
+			// queryable
 			Assert.That(
 				CrystalJson.Serialize(queryableOfAnonymous),
 				Is.EqualTo("""[ { "Value": 1, "Square": 1, "Ascii": "A" }, { "Value": 2, "Square": 4, "Ascii": "B" }, { "Value": 3, "Square": 9, "Ascii": "C" } ]""")
 			);
-			// convertit en liste
+			// convert to list
 			Assert.That(
 				CrystalJson.Serialize(queryableOfAnonymous.ToList()),
 				Is.EqualTo("""[ { "Value": 1, "Square": 1, "Ascii": "A" }, { "Value": 2, "Square": 4, "Ascii": "B" }, { "Value": 3, "Square": 9, "Ascii": "C" } ]""")
@@ -1888,15 +1875,15 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			#region Duration
 
-			//secondes completes
+			// seconds (integer)
 			var duration = NodaTime.Duration.FromSeconds(3600);
 			Assert.That(CrystalJson.Serialize(duration), Is.EqualTo("3600"));
 
-			//secondes + milisecondes
+			// seconds + miliseconds
 			duration = NodaTime.Duration.FromMilliseconds(3600272);
 			Assert.That(CrystalJson.Serialize(duration), Is.EqualTo("3600.272"));
 
-			//epsilon
+			// epsilon
 			duration = NodaTime.Duration.Epsilon;
 			Assert.That(CrystalJson.Serialize(duration), Is.EqualTo("1E-09"));
 
@@ -1950,10 +1937,10 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.That(
 				CrystalJson.Serialize(new NodaTime.ZonedDateTime(NodaTime.Instant.FromUtc(-250, 02, 27, 18, 42), NodaTime.DateTimeZoneProviders.Tzdb["Africa/Cairo"])),
-				Is.EqualTo("\"-0250-02-27T20:47:09+02:05:09 Africa/Cairo\"") // note: avant les calendriers grégoriens, donc il y a des compensations de timezones spécifiques
+				Is.EqualTo("\"-0250-02-27T20:47:09+02:05:09 Africa/Cairo\"") // note: gregorian calendars
 			);
 
-			// Deliberately give it an ambiguous local time, in both ways.
+			// Intentionaly give it an ambiguous local time, in both ways.
 			var zone = NodaTime.DateTimeZoneProviders.Tzdb["Europe/London"];
 			Assert.That(
 				CrystalJson.Serialize(new NodaTime.ZonedDateTime(new NodaTime.LocalDateTime(2012, 10, 28, 1, 30), zone, NodaTime.Offset.FromHours(1))),
@@ -1969,7 +1956,7 @@ namespace Doxense.Serialization.Json.Tests
 			#region DateTimeZone
 
 			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZone.Utc), Is.EqualTo("\"UTC\""));
-			// avec tzdb, c'est au format "Region/City"
+			// with tzdb, the format is "Region/City"
 			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZoneProviders.Tzdb["Europe/Paris"]), Is.EqualTo("\"Europe/Paris\""));
 			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZoneProviders.Tzdb["America/New_York"]), Is.EqualTo("\"America/New_York\"")); // espace convertis en '_'
 			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZoneProviders.Tzdb["Asia/Tokyo"]), Is.EqualTo("\"Asia/Tokyo\""));
@@ -2037,7 +2024,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(CrystalJson.Serialize(default(byte[])), Is.EqualTo("null"));
 				Assert.That(CrystalJson.Serialize(Array.Empty<byte>()), Is.EqualTo(@""""""));
 
-				// note: les binaires sont Base64 encodés!
+				// note: binaries are encoded as Base64 text
 				var arrayOfBytes = new byte[] {65, 0, 42, 255, 32};
 				Assert.That(CrystalJson.Serialize(arrayOfBytes), Is.EqualTo(@"""QQAq/yA="""));
 
@@ -2071,7 +2058,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(CrystalJson.Deserialize<byte[]?>("null", null), Is.Null);
 				Assert.That(CrystalJson.Deserialize<byte[]>("\"\""), Is.EqualTo(Array.Empty<byte>()));
 
-				// note: les binaires sont Base64 encodés!
+				// note: binaries are encoded as Base64 text
 				Assert.That(CrystalJson.Deserialize<byte[]>("\"QQAq/yA=\""), Is.EqualTo(new byte[] { 65, 0, 42, 255, 32 }));
 
 				// random
@@ -2097,9 +2084,9 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_Dictionary()
 		{
-			// Les clés sont transformées en string
-			// En JSON les clés doivent toujours être avec des "..."
-			// En JavaScript, les clés qui sont des identifiants valides n'ont pas de '...', sinon elle sont escaped
+			// The keys are converted to string
+			// - JSON target: keys must always be escaped with double quotes (")
+			// - JavaScript target: keys are identifiers and usually do no require escaping, unless required, and in this case will use single quotes (')
 
 			var dicOfStrings = new Dictionary<string, string>
 			{
@@ -2108,41 +2095,35 @@ namespace Doxense.Serialization.Json.Tests
 				["123"] = "456",
 				["all your bases"] = "are belong to us"
 			};
-			// en JSON
-			string expected = """{ "foo": "bar", "narf": "zort", "123": "456", "all your bases": "are belong to us" }""";
-			Assert.That(CrystalJson.Serialize(dicOfStrings), Is.EqualTo(expected), "JSON");
-			// en JS
-			expected = "{ foo: 'bar', narf: 'zort', '123': '456', 'all your bases': 'are belong to us' }";
-			Assert.That(CrystalJson.Serialize(dicOfStrings, CrystalJsonSettings.JavaScript), Is.EqualTo(expected), "JavaScript");
+			// JSON
+			Assert.That(CrystalJson.Serialize(dicOfStrings), Is.EqualTo("""{ "foo": "bar", "narf": "zort", "123": "456", "all your bases": "are belong to us" }"""), "JSON");
+			// JS
+			Assert.That(CrystalJson.Serialize(dicOfStrings, CrystalJsonSettings.JavaScript), Is.EqualTo("{ foo: 'bar', narf: 'zort', '123': '456', 'all your bases': 'are belong to us' }"), "JavaScript");
 
 			var dicOfInts = new Dictionary<string, int>
 			{
 				["foo"] = 123,
 				["bar"] = 456
 			};
-			// en JSON
-			expected = """{ "foo": 123, "bar": 456 }""";
-			Assert.That(CrystalJson.Serialize(dicOfInts), Is.EqualTo(expected));
+			// JSON
+			Assert.That(CrystalJson.Serialize(dicOfInts), Is.EqualTo("""{ "foo": 123, "bar": 456 }"""));
 
 			var dicOfObjects = new Dictionary<string, Tuple<int, string>>
 			{
 				["foo"] = new Tuple<int, string>(123, "bar"),
 				["narf"] = new Tuple<int, string>(456, "zort")
 			};
-			// en JSON
-			expected = """{ "foo": { "Item1": 123, "Item2": "bar" }, "narf": { "Item1": 456, "Item2": "zort" } }""";
-			Assert.That(CrystalJson.Serialize(dicOfObjects), Is.EqualTo(expected));
-			// en JS (note: les clés restent en string, par précaution !)
-			expected = "{ 'foo': { Item1: 123, Item2: 'bar' }, 'narf': { Item1: 456, Item2: 'zort' } }";
-			Assert.That(CrystalJson.Serialize(dicOfObjects, CrystalJsonSettings.JavaScript), Is.EqualTo(expected));
+			// JSON
+			Assert.That(CrystalJson.Serialize(dicOfObjects), Is.EqualTo("""{ "foo": { "Item1": 123, "Item2": "bar" }, "narf": { "Item1": 456, "Item2": "zort" } }"""));
+			// JS
+			Assert.That(CrystalJson.Serialize(dicOfObjects, CrystalJsonSettings.JavaScript), Is.EqualTo("{ 'foo': { Item1: 123, Item2: 'bar' }, 'narf': { Item1: 456, Item2: 'zort' } }"));
 		}
 
 		[Test]
 		public void Test_JsonDeserialize_Dictionary()
 		{
 			// key => string
-			var text = @"{ ""hello"": ""World"", ""foo"": 123, ""bar"": true }";
-			var obj = CrystalJson._ParseObject(text);
+			var obj = CrystalJson._ParseObject("""{ "hello": "World", "foo": 123, "bar": true }""");
 			Assert.That(obj, Is.Not.Null.And.InstanceOf<JsonObject>());
 
 			var dic = obj.Required<Dictionary<string, string>>();
@@ -2159,8 +2140,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(dic.Count, Is.EqualTo(3));
 
 			// key => int
-			text = @"{ ""1"": ""Hello World"", ""42"": ""Narf!"", ""007"": ""James Bond"" }";
-			obj = CrystalJson._ParseObject(text);
+			obj = CrystalJson._ParseObject("""{ "1": "Hello World", "42": "Narf!", "007": "James Bond" }""");
 			Assert.That(obj, Is.Not.Null.And.InstanceOf<JsonObject>());
 
 			var dicInt = obj.Required<Dictionary<int, string>>();
@@ -2184,7 +2164,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				Id = 1,
 				Title = "The Big Bang Theory",
-				Cancelled = false, // (j'espère que c'est toujours le cas ^^; )
+				Cancelled = false,
 				Cast = new[] {
 					new { Character="Sheldon Cooper", Actor="Jim Parsons", Female=false },
 					new { Character="Leonard Hofstadter", Actor="Johny Galecki", Female=false },
@@ -2195,7 +2175,7 @@ namespace Doxense.Serialization.Json.Tests
 				Seasons = 4,
 				ScoreIMDB = 8.4, // (26/10/2010)
 				Producer = "Chuck Lorre Productions",
-				PilotAirDate = new DateTime(2007, 9, 24, 0, 0, 0, DateTimeKind.Utc), // plus simple si UTC
+				PilotAirDate = new DateTime(2007, 9, 24, 0, 0, 0, DateTimeKind.Utc), // easier with UTC dates
 			};
 
 			// JSON
@@ -2227,7 +2207,7 @@ namespace Doxense.Serialization.Json.Tests
 			var x = new DummyDataContractClass();
 			string expected = @"{ ""Id"": 0, ""Age"": 0, ""IsFemale"": false, ""VisibleProperty"": ""CanBeSeen"" }";
 			Assert.That(CrystalJson.Serialize(x), Is.EqualTo(expected));
-			// affiche les null
+			// with explicit nulls
 			expected = @"{ ""Id"": 0, ""Name"": null, ""Age"": 0, ""IsFemale"": false, ""CurrentLoveInterest"": null, ""VisibleProperty"": ""CanBeSeen"" }";
 			Assert.That(CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()), Is.EqualTo(expected));
 
@@ -2271,7 +2251,7 @@ namespace Doxense.Serialization.Json.Tests
 			for (int i = 0; i < N; i++)
 			{
 				var rounds = rnd.Next(8) + 1;
-				var str = String.Empty;
+				var str = string.Empty;
 				for (int k = 0; k < rounds; k++)
 				{
 					str += new string((char)(rnd.Next(64) + 33), 4);
@@ -2312,7 +2292,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(reloaded[i], Is.EqualTo(list[i]), $"Mismatch at index {i}");
 			}
 
-			{ // Compresse Deflate
+			{ // Compress, Deflate
 				path = GetTemporaryPath("foo.json.deflate");
 				File.Delete(path);
 
@@ -2327,7 +2307,7 @@ namespace Doxense.Serialization.Json.Tests
 				Log($"Deflate: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			}
 
-			{ // Compresse GZip
+			{ // Compress, GZip
 				path = GetTemporaryPath("foo.json.gz");
 				File.Delete(path);
 
@@ -2343,7 +2323,7 @@ namespace Doxense.Serialization.Json.Tests
 				Log($"GZip -5: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			}
 
-			{ // Compresse ZSTD -1
+			{ // Compress, ZSTD -1
 				path = GetTemporaryPath("foo.json.1.zstd");
 				File.Delete(path);
 
@@ -2354,7 +2334,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
 				Log($"ZSTD -1: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			}
-			{ // Compresse ZSTD -3
+			{ // Compress, ZSTD -3
 				path = GetTemporaryPath("foo.json.3.zstd");
 				File.Delete(path);
 
@@ -2365,7 +2345,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
 				Log($"ZSTD -3: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			}
-			{ // Compresse ZSTD -5
+			{ // Compress, ZSTD -5
 				path = GetTemporaryPath("foo.json.5.zstd");
 				File.Delete(path);
 
@@ -2376,7 +2356,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
 				Log($"ZSTD -5: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			}
-			{ // Compresse ZSTD -9
+			{ // Compress, ZSTD -9
 				path = GetTemporaryPath("foo.json.9.zstd");
 				File.Delete(path);
 
@@ -2387,7 +2367,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
 				Log($"ZSTD -9: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			}
-			{ // Compresse ZSTD -20
+			{ // Compress, ZSTD -20
 				path = GetTemporaryPath("foo.json.20.zstd");
 				File.Delete(path);
 
@@ -2398,25 +2378,6 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
 				Log($"ZSTD -20: Saved {new FileInfo(path).Length,9:N0} bytes (1 : {(1.0 * rawSize / new FileInfo(path).Length):F2}) in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			}
-
-#if false
-			// relit le fichier
-			byte[] data = File.ReadAllBytes(path);
-			Assert.That(data, Is.Not.Null, "File should contain stuff");
-			Assert.AreNotEqual(0, data.Length, "File should contain stuff");
-			text = new StreamReader(new System.IO.Compression.GZipStream(new MemoryStream(data), System.IO.Compression.CompressionMode.Decompress)).ReadToEnd();
-			// désérialise
-			reloaded = CrystalJson.DeserializeArray<string>(text);
-
-			Assert.That(reloaded.Count, Is.EqualTo(list.Count));
-			for (int i = 0; i < list.Count; i++)
-			{
-				Assert.That(reloaded[i], Is.EqualTo(list[i]), "Mismatch at index {0} (COMPRESSED)", i);
-			}
-
-			// Cryptoed
-#endif
-
 		}
 
 		[Test]
@@ -2437,10 +2398,10 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_KeyValuePair()
 		{
-			// les KeyValuePair<K, V> qui ne font pas partie d'un dictionnaire, sont sérialisés sous la forme '[KEY, VALUE]', plutot que '{ "Key": KEY, "Value": VALUE }', pour être plus compacte
-			// La seule exception est pour une collection de KVP de même type, qui sera traitée comme un dictionnaire
+			// KeyValuePair<K, V> instances, outside of a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
+			// The only exception is for a collection of KV pairs (all of the same type), which are serialized as an object
 
-			Assert.That(CrystalJson.Serialize(new KeyValuePair<string, int>("hello", 42), CrystalJsonSettings.Json), Is.EqualTo(@"[ ""hello"", 42 ]"));
+			Assert.That(CrystalJson.Serialize(new KeyValuePair<string, int>("hello", 42), CrystalJsonSettings.Json), Is.EqualTo("""[ "hello", 42 ]"""));
 			Assert.That(CrystalJson.Serialize(new KeyValuePair<int, bool>(123, true), CrystalJsonSettings.Json), Is.EqualTo("[ 123, true ]"));
 
 			Assert.That(CrystalJson.Serialize(default(KeyValuePair<string, int>), CrystalJsonSettings.Json), Is.EqualTo("[ null, 0 ]"));
@@ -2449,31 +2410,31 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Serialize(default(KeyValuePair<string, int>), CrystalJsonSettings.Json.WithoutDefaultValues()), Is.EqualTo("[ null, 0 ]"));
 			Assert.That(CrystalJson.Serialize(default(KeyValuePair<int, bool>), CrystalJsonSettings.Json.WithoutDefaultValues()), Is.EqualTo("[ 0, false ]"));
 
-			var blarf = KeyValuePair.Create(KeyValuePair.Create("hello", KeyValuePair.Create("narf", 42)), KeyValuePair.Create(123, KeyValuePair.Create("zort", TimeSpan.Zero)));
-			Assert.That(CrystalJson.Serialize(blarf, CrystalJsonSettings.Json), Is.EqualTo(@"[ [ ""hello"", [ ""narf"", 42 ] ], [ 123, [ ""zort"", 0 ] ] ]"));
+			var nested = KeyValuePair.Create(KeyValuePair.Create("hello", KeyValuePair.Create("narf", 42)), KeyValuePair.Create(123, KeyValuePair.Create("zort", TimeSpan.Zero)));
+			Assert.That(CrystalJson.Serialize(nested, CrystalJsonSettings.Json), Is.EqualTo("""[ [ "hello", [ "narf", 42 ] ], [ 123, [ "zort", 0 ] ] ]"""));
 		}
 
 		[Test]
 		public void Test_JsonValue_FromValue_KeyValuePair()
 		{
-			// les KeyValuePair<K, V> qui ne font pas partie d'un dictionnaire, sont sérialisés sous la forme '[KEY, VALUE]', plutot que '{ "Key": KEY, "Value": VALUE }', pour être plus compacte
-			// La seule exception est pour une collection de KVP de même type, qui sera traitée comme un dictionnaire
+			// KeyValuePair<K, V> instances, outside of a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
+			// The only exception is for a collection of KV pairs (all of the same type), which are serialized as an object
 
-			Assert.That(JsonValue.FromValue(new KeyValuePair<string, int>("hello", 42)).ToJson(), Is.EqualTo(@"[ ""hello"", 42 ]"));
+			Assert.That(JsonValue.FromValue(new KeyValuePair<string, int>("hello", 42)).ToJson(), Is.EqualTo("""[ "hello", 42 ]"""));
 			Assert.That(JsonValue.FromValue(new KeyValuePair<int, bool>(123, true)).ToJson(), Is.EqualTo("[ 123, true ]"));
 
 			Assert.That(JsonValue.FromValue(default(KeyValuePair<string, int>)).ToJson(), Is.EqualTo("[ null, 0 ]"));
 			Assert.That(JsonValue.FromValue(default(KeyValuePair<int, bool>)).ToJson(), Is.EqualTo("[ 0, false ]"));
 
-			var blarf = KeyValuePair.Create(KeyValuePair.Create("hello", KeyValuePair.Create("narf", 42)), KeyValuePair.Create(123, KeyValuePair.Create("zort", TimeSpan.Zero)));
-			Assert.That(JsonValue.FromValue(blarf).ToJson(), Is.EqualTo(@"[ [ ""hello"", [ ""narf"", 42 ] ], [ 123, [ ""zort"", 0 ] ] ]"));
+			var nested = KeyValuePair.Create(KeyValuePair.Create("hello", KeyValuePair.Create("narf", 42)), KeyValuePair.Create(123, KeyValuePair.Create("zort", TimeSpan.Zero)));
+			Assert.That(JsonValue.FromValue(nested).ToJson(), Is.EqualTo("""[ [ "hello", [ "narf", 42 ] ], [ 123, [ "zort", 0 ] ] ]"""));
 		}
 
 		[Test]
 		public void Test_JsonDeserialize_KeyValuePair()
 		{
 			// array variant: [Key, Value]
-			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("[\"hello\",42]"), Is.EqualTo(KeyValuePair.Create("hello", 42)));
+			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("""["hello",42]"""), Is.EqualTo(KeyValuePair.Create("hello", 42)));
 			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("[123,true]"), Is.EqualTo(KeyValuePair.Create(123, true)));
 
 			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("[null,0]"), Is.EqualTo(default(KeyValuePair<string, int>)));
@@ -2481,16 +2442,16 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("[0,false]"), Is.EqualTo(default(KeyValuePair<int, bool>)));
 			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("[]"), Is.EqualTo(default(KeyValuePair<int, bool>)));
 
-			Assert.That(() => CrystalJson.Deserialize<KeyValuePair<string, int>>("[\"hello\",123,true]"), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => CrystalJson.Deserialize<KeyValuePair<string, int>>("[\"hello\"]"), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => CrystalJson.Deserialize<KeyValuePair<string, int>>("""["hello",123,true]"""), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => CrystalJson.Deserialize<KeyValuePair<string, int>>("""["hello"]"""), Throws.InstanceOf<InvalidOperationException>());
 
 			// object-variant: {Key:.., Value:..}
-			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("{ \"Key\": \"hello\", \"Value\": 42 }"), Is.EqualTo(KeyValuePair.Create("hello", 42)));
-			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("{ \"Key\": 123, \"Value\": true }]"), Is.EqualTo(KeyValuePair.Create(123, true)));
+			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("""{ "Key": "hello", "Value": 42 }"""), Is.EqualTo(KeyValuePair.Create("hello", 42)));
+			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("""{ "Key": 123, "Value": true }]"""), Is.EqualTo(KeyValuePair.Create(123, true)));
 
-			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("{ \"Key\": null, \"Value\": 0 }"), Is.EqualTo(default(KeyValuePair<string, int>)));
+			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("""{ "Key": null, "Value": 0 }"""), Is.EqualTo(default(KeyValuePair<string, int>)));
 			Assert.That(CrystalJson.Deserialize<KeyValuePair<string, int>>("{}"), Is.EqualTo(default(KeyValuePair<string, int>)));
-			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("{ \"Key\": 0, \"Value\": false }"), Is.EqualTo(default(KeyValuePair<int, bool>)));
+			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("""{ "Key": 0, "Value": false }"""), Is.EqualTo(default(KeyValuePair<int, bool>)));
 			Assert.That(CrystalJson.Deserialize<KeyValuePair<int, bool>>("{}"), Is.EqualTo(default(KeyValuePair<int, bool>)));
 		}
 
@@ -2544,10 +2505,10 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(value.Equals(default(JsonValue)), Is.True);
 			Assert.That(value!.Equals(default(object)!), Is.True);
 
-			// on doit tester certain cas particulieres pour le binding de Null:
-			// - pour des Value Type, null doit se binder en le default(T) correspondant (ex: JsonNull.Null.As<int>() => 0)
-			// - pour les types JsonValue (et JsonNull), il doit se binder en le singleton JsonNull.Null
-			// - pour les autre ref types, il doit se binder en 'null'
+			// we must check a few corner cases when binding Null:
+			// - for Value Types, null must bind into default(T) (ex: JsonNull.Null.As<int>() => 0)
+			// - for JsonValue or JsonNull types, it must bind into the JsonNull.Null singleton (and not return a null reference!)
+			// - for all other types, it should bind into a null reference
 
 			{ // Bind(typeof(T), ...)
 				Assert.That(jnull.Bind<string>(), Is.Null);
@@ -2605,7 +2566,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			{ // Embedded Fields with explicit null
 
-				//note: class anonyme qui sert de template pour créer un classe inline
+				//note: anonymous class that is used as a template to create an inline class
 				var template = new
 				{
 					/*int*/ Int32 = 666,
@@ -2621,7 +2582,7 @@ namespace Doxense.Serialization.Json.Tests
 					/*JsonNull*/ JsonObject = JsonObject.Create("FAILED", "EPIC"),
 				};
 
-				// si on désérialiser un objet dont tous les champs valent explicitement null, on option le "default" du type
+				// when deserializing an object with all members explicitly set to null, we should return the default of this type
 				var j = JsonValue
 					._ParseObject(@"{ ""Int32"": null, ""Bool"": null, ""String"": null, ""Guid"": null, ""NullInt32"": null, ""NullBool"": null, ""NullGuid"": null, ""JsonValue"": null, ""JsonNull"": null, ""JsonArray"": null, ""JsonObject"": null }")
 					.OrDefault(template);
@@ -2664,8 +2625,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(value.Equals(default(JsonValue)), Is.True);
 			Assert.That(value!.Equals(default(object)), Is.True);
 
-			//note: normalement JsonNull.Missing se bind de la même manière que pour JsonNull, (=> default(T))
-			// sauf que si T == JsonValue ou JsonNull, alors on doit retourner le même singleton (ie: JsonNull.Missing.As<JsonValue>() => JsonNull.Missing
+			//note: JsonNull.Missing sould bind the same way as JsonNull.Null (=> default(T))
+			// except for T == JsonValue or JsonNull, in which case it should return itself as the JsonNull.Missing singleton
 
 			Assert.That(jmissing.Bind(typeof(JsonValue)), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.Bind<JsonValue>(), Is.SameAs(JsonNull.Missing));
@@ -3025,7 +2986,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(() => JsonString.Return("127.0.0.").Required<IPAddress>(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => JsonString.Return("127.0.0.1.2").Required<IPAddress>(), Throws.InstanceOf<FormatException>());
 
-			// empty => T : doit retourner default(T) donc 0/false/...
+			// empty => T : must return default(T) so 0/false/...
 			Assert.That(JsonString.Empty.Required<bool>(), Is.False, "'' -> bool");
 			Assert.That(JsonString.Empty.Required<int>(), Is.Zero, "'' -> int");
 			Assert.That(JsonString.Empty.Required<long>(), Is.Zero, "'' -> long");
@@ -3034,7 +2995,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Empty.Required<DateTime>(), Is.EqualTo(DateTime.MinValue), "'' -> DateTime");
 			Assert.That(JsonString.Empty.Required<DateTimeOffset>(), Is.EqualTo(DateTimeOffset.MinValue), "'' -> DateTimeOffset");
 
-			// empty => T?: doit retourner default(T?) donc null
+			// empty => T?: must return default(T?) so null
 			Assert.That(JsonString.Empty.OrDefault<bool?>(), Is.Null, "'' -> bool?");
 			Assert.That(JsonString.Empty.OrDefault<int?>(), Is.Null, "'' -> int?");
 			Assert.That(JsonString.Empty.OrDefault<long?>(), Is.Null, "'' -> long?");
@@ -3197,28 +3158,37 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonGuid()
 		{
-			var guid = Guid.NewGuid();
+			{
+				var guid = Guid.NewGuid();
+				var value = JsonString.Return(guid);
+				Assert.That(value, Is.Not.Null);
+				Assert.That(value.Type, Is.EqualTo(JsonType.String)); //note: for now, GUIDs are represented as strings with format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.ToString(), Is.EqualTo(guid.ToString("D"))); // we expected something like "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+				Assert.That(value.ToStringOrDefault(), Is.EqualTo(guid.ToString("D"))); // we expected something like "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+				Assert.That(value.ToGuid(), Is.EqualTo(guid));
+				Assert.That(value.ToGuidOrDefault(), Is.EqualTo(guid));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("\"" + guid.ToString("D") + "\"")));
+			}
 
-			var value = JsonString.Return(guid);
-			Assert.That(value, Is.Not.Null);
-			Assert.That(value.Type, Is.EqualTo(JsonType.String)); //note: pour le moment les Guid sont stockés comme des strings
-			Assert.That(value.IsDefault, Is.False);
-			Assert.That(value.IsNull, Is.False);
-			Assert.That(value.ToString(), Is.EqualTo(guid.ToString("D"))); // "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-			Assert.That(value.ToGuid(), Is.EqualTo(guid));
-			Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("\"" + guid.ToString("D") + "\"")));
-
-			value = JsonString.Return(Guid.Empty);
-			Assert.That(value, Is.Not.Null);
-			Assert.That(value.Type, Is.EqualTo(JsonType.Null)); //TODO: pour le moment Guid.Empty => JsonNull.Null. Remplacer par JsonString.Empty?
-			Assert.That(value.ToString(), Is.EqualTo(string.Empty));
-			Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("null")), "SerializeToSlice");
+			{
+				var value = JsonString.Return(Guid.Empty);
+				Assert.That(value, Is.Not.Null);
+				Assert.That(value, Is.SameAs(JsonNull.Null)); //REVIEW: for now, Guid.Empty => JsonNull.Null. Maybe change this to return JsonString.Empty?
+				Assert.That(value.ToString(), Is.EqualTo(string.Empty));
+				Assert.That(value.ToStringOrDefault(), Is.Null);
+				Assert.That(value.ToGuid(), Is.EqualTo(Guid.Empty));
+				Assert.That(value.ToGuidOrDefault(), Is.Null);
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("null")), "SerializeToSlice");
+			}
 
 			// Nullables
-
-			Assert.That(JsonString.Return((Guid?)null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonString.Return((Guid?)Guid.Empty).Type, Is.EqualTo(JsonType.Null)); //TODO: pour le moment Guid.Empty => JsonNull.Null. Remplacer par JsonString.Empty?
-			Assert.That(JsonString.Return((Guid?)Guid.NewGuid()).Type, Is.EqualTo(JsonType.String));
+			{
+				Assert.That(JsonString.Return((Guid?) null), Is.SameAs(JsonNull.Null));
+				Assert.That(JsonString.Return((Guid?) Guid.Empty), Is.SameAs(JsonNull.Null)); //REVIEW: for now, Guid.Empty => JsonNull.Null. Maybe change this to return JsonString.Empty?
+				Assert.That(JsonString.Return((Guid?) Guid.NewGuid()).Type, Is.EqualTo(JsonType.String));
+			}
 		}
 
 		#endregion
@@ -3268,7 +3238,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{
-				var value = JsonNumber.Return(123); // c'est dans la zone possible pour les ints, donc doit retourner un int !
+				var value = JsonNumber.Return(123);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -3281,7 +3251,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{
-				var value = JsonNumber.Return(1L + int.MaxValue); // juste en dehors de la portée d'un int, donc doit retourner un long !
+				var value = JsonNumber.Return(1L + int.MaxValue); // outside the range of Int32, so should be stored as an unsigned long
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -3385,46 +3355,46 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Nullables
 
-			Assert.That(JsonNumber.Return((int?) null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonNumber.Return((uint?) null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonNumber.Return((long?) null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonNumber.Return((ulong?) null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonNumber.Return((float?) null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonNumber.Return((double?) null).Type, Is.EqualTo(JsonType.Null));
+			Assert.That(JsonNumber.Return((int?) null), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNumber.Return((uint?) null), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNumber.Return((long?) null), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNumber.Return((ulong?) null), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNumber.Return((float?) null), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNumber.Return((double?) null), Is.SameAs(JsonNull.Null));
 
-			Assert.That(JsonNumber.Return((int?) 42).Type, Is.EqualTo(JsonType.Number));
-			Assert.That(JsonNumber.Return((uint?) 42).Type, Is.EqualTo(JsonType.Number));
-			Assert.That(JsonNumber.Return((long?) 42).Type, Is.EqualTo(JsonType.Number));
-			Assert.That(JsonNumber.Return((ulong?) 42).Type, Is.EqualTo(JsonType.Number));
-			Assert.That(JsonNumber.Return((float?) 3.14f).Type, Is.EqualTo(JsonType.Number));
-			Assert.That(JsonNumber.Return((double?) 3.14d).Type, Is.EqualTo(JsonType.Number));
+			Assert.That(JsonNumber.Return((int?) 42), Is.InstanceOf<JsonNumber>().And.EqualTo(42));
+			Assert.That(JsonNumber.Return((uint?) 42), Is.InstanceOf<JsonNumber>().And.EqualTo(42U));
+			Assert.That(JsonNumber.Return((long?) 42), Is.InstanceOf<JsonNumber>().And.EqualTo(42L));
+			Assert.That(JsonNumber.Return((ulong?) 42), Is.InstanceOf<JsonNumber>().And.EqualTo(42UL));
+			Assert.That(JsonNumber.Return((float?) 3.14f), Is.InstanceOf<JsonNumber>().And.EqualTo(3.14f));
+			Assert.That(JsonNumber.Return((double?) 3.14d), Is.InstanceOf<JsonNumber>().And.EqualTo(3.14d));
 
 			// Conversions
 
 			// Primitive
-			Assert.That(JsonNumber.Return(123).ToInt32(), Is.EqualTo(123), "{123}.ToInt32()");
-			Assert.That(JsonNumber.Return(-123).ToInt32(), Is.EqualTo(-123), "{-123}.ToInt32()");
-			Assert.That(JsonNumber.Return(123L).ToInt64(), Is.EqualTo(123L), "{123L}.ToInt64()");
-			Assert.That(JsonNumber.Return(-123L).ToInt64(), Is.EqualTo(-123L), "{-123L}.ToInt64()");
-			Assert.That(JsonNumber.Return(123f).ToSingle(), Is.EqualTo(123f), "{123f}.ToSingle()");
-			Assert.That(JsonNumber.Return(123d).ToDouble(), Is.EqualTo(123d), "{123d}.ToDouble()");
-			Assert.That(JsonNumber.Return(Math.PI).ToDouble(), Is.EqualTo(Math.PI), "{Math.PI}.ToDouble()");
+			Assert.That(JsonNumber.Return(123).ToInt32(), Is.EqualTo(123));
+			Assert.That(JsonNumber.Return(-123).ToInt32(), Is.EqualTo(-123));
+			Assert.That(JsonNumber.Return(123L).ToInt64(), Is.EqualTo(123L));
+			Assert.That(JsonNumber.Return(-123L).ToInt64(), Is.EqualTo(-123L));
+			Assert.That(JsonNumber.Return(123f).ToSingle(), Is.EqualTo(123f));
+			Assert.That(JsonNumber.Return(123d).ToDouble(), Is.EqualTo(123d));
+			Assert.That(JsonNumber.Return(Math.PI).ToDouble(), Is.EqualTo(Math.PI));
 
-			Assert.That(JsonNumber.Return(123).Required<int>(), Is.EqualTo(123), "{123}.ToInt32()");
-			Assert.That(JsonNumber.Return(-123).Required<int>(), Is.EqualTo(-123), "{-123}.ToInt32()");
-			Assert.That(JsonNumber.Return(123L).Required<long>(), Is.EqualTo(123L), "{123L}.ToInt64()");
-			Assert.That(JsonNumber.Return(-123L).Required<long>(), Is.EqualTo(-123L), "{-123L}.ToInt64()");
-			Assert.That(JsonNumber.Return(123f).Required<float>(), Is.EqualTo(123f), "{123f}.ToSingle()");
-			Assert.That(JsonNumber.Return(123d).Required<double>(), Is.EqualTo(123d), "{123d}.ToDouble()");
-			Assert.That(JsonNumber.Return(Math.PI).Required<double>(), Is.EqualTo(Math.PI), "{Math.PI}.ToDouble()");
+			Assert.That(JsonNumber.Return(123).Required<int>(), Is.EqualTo(123));
+			Assert.That(JsonNumber.Return(-123).Required<int>(), Is.EqualTo(-123));
+			Assert.That(JsonNumber.Return(123L).Required<long>(), Is.EqualTo(123L));
+			Assert.That(JsonNumber.Return(-123L).Required<long>(), Is.EqualTo(-123L));
+			Assert.That(JsonNumber.Return(123f).Required<float>(), Is.EqualTo(123f));
+			Assert.That(JsonNumber.Return(123d).Required<double>(), Is.EqualTo(123d));
+			Assert.That(JsonNumber.Return(Math.PI).Required<double>(), Is.EqualTo(Math.PI));
 
 			// Enum
-			// ... qui dérive de Int32
+			// ... that derives from Int32
 			Assert.That(JsonNumber.Zero.Bind(typeof (DummyJsonEnum), null), Is.EqualTo(DummyJsonEnum.None), "{0}.Bind(DummyJsonEnum)");
 			Assert.That(JsonNumber.One.Bind(typeof (DummyJsonEnum), null), Is.EqualTo(DummyJsonEnum.Foo), "{1}.Bind(DummyJsonEnum)");
 			Assert.That(JsonNumber.Return(42).Bind(typeof (DummyJsonEnum), null), Is.EqualTo(DummyJsonEnum.Bar), "{42}.Bind(DummyJsonEnum)");
 			Assert.That(JsonNumber.Return(66).Bind(typeof (DummyJsonEnum), null), Is.EqualTo((DummyJsonEnum) 66), "{66}.Bind(DummyJsonEnum)");
-			// ... qui ne dérive pas de Int32
+			// ... that does not derive from Int32
 			Assert.That(JsonNumber.Zero.Bind(typeof (DummyJsonEnumShort), null), Is.EqualTo(DummyJsonEnumShort.None), "{0}.Bind(DummyJsonEnumShort)");
 			Assert.That(JsonNumber.One.Bind(typeof (DummyJsonEnumShort), null), Is.EqualTo(DummyJsonEnumShort.One), "{1}.Bind(DummyJsonEnumShort)");
 			Assert.That(JsonNumber.Return(65535).Bind(typeof (DummyJsonEnumShort), null), Is.EqualTo(DummyJsonEnumShort.MaxValue), "{65535}.Bind(DummyJsonEnumShort)");
@@ -3442,19 +3412,19 @@ namespace Doxense.Serialization.Json.Tests
 				"{TimeSpan.MinValue.TotalSeconds - 1}.ToTimeSpan()");
 
 			// DateTime
-			//note: les dates sont transformées en un nombre de jours (décimal) depuis Unix Epoch, en UTC
+			//note: dates are converted into the number of days (floating point) since Unix Epoch, using UTC as the reference timezone
 			Assert.That(JsonNumber.Return(0).ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)), "0.ToDateTime()");
 			Assert.That(JsonNumber.Return(1).ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 1, 0, 0, 1, DateTimeKind.Utc)), "1.ToDateTime()");
 			Assert.That(JsonNumber.Return(86400).ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 2, 0, 0, 0, DateTimeKind.Utc)), "86400.ToDateTime()");
 			Assert.That(JsonNumber.Return(1484830412.854).ToDateTime(), Is.EqualTo(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc)).Within(TimeSpan.FromMilliseconds(1)), "(DAYS).ToDateTime()");
 			Assert.That(JsonNumber.Return(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc)).ToDouble(), Is.EqualTo(1484830412.854), "(UTC).Value");
 			Assert.That(JsonNumber.Return(new DateTime(2017, 1, 19, 13, 53, 32, 854, DateTimeKind.Local)).ToDouble(), Is.EqualTo(1484830412.854), "(LOCAL).Value");
-			Assert.That(JsonNumber.Return(DateTime.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // par convention, MinValue == 0 == epoch (a débatre!)
-			Assert.That(JsonNumber.Return(DateTime.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); //par convention, MaxValue == NaN
-			Assert.That(JsonNumber.NaN.ToDateTime(), Is.EqualTo(DateTime.MaxValue), "MaxValue"); //par convention, NaN == MaxValue
+			Assert.That(JsonNumber.Return(DateTime.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
+			Assert.That(JsonNumber.Return(DateTime.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
+			Assert.That(JsonNumber.NaN.ToDateTime(), Is.EqualTo(DateTime.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
 
 			// Instant
-			//note: les instants sont transformées en un nombre de jours (décimal) depuis Unix Epoch
+			//note: instants are converted into the number of days (floating point) since Unix Epoch
 			Assert.That(JsonNumber.Return(0).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 1, 0, 0, 0)), "0.ToInstant()");
 			Assert.That(JsonNumber.Return(1).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 1, 0, 0, 1)), "1.ToInstant()");
 			Assert.That(JsonNumber.Return(86400).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 2, 0, 0, 0)), "86400.ToInstant()");
@@ -3465,14 +3435,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.NaN.ToInstant(), Is.EqualTo(NodaTime.Instant.MaxValue), "MaxValue"); //par convention, NaN == MaxValue
 
 			// String
-			Assert.That(JsonNumber.Zero.Bind(typeof (string), null), Is.EqualTo("0"), "{0}.Bind(string)");
-			Assert.That(JsonNumber.One.Bind(typeof (string), null), Is.EqualTo("1"), "{1}.Bind(string)");
-			Assert.That(JsonNumber.Return(123).Bind(typeof (string), null), Is.EqualTo("123"), "{123}.Bind(string)");
-			Assert.That(JsonNumber.Return(-123).Bind(typeof (string), null), Is.EqualTo("-123"), "{-123}.Bind(string)");
-			Assert.That(JsonNumber.Return(Math.PI).Bind(typeof (string), null), Is.EqualTo(Math.PI.ToString("R")), "{Math.PI}.Bind(string)");
+			Assert.That(JsonNumber.Zero.Bind<string>(), Is.EqualTo("0"));
+			Assert.That(JsonNumber.One.Bind<string>(), Is.EqualTo("1"));
+			Assert.That(JsonNumber.Return(123).Bind<string>(), Is.EqualTo("123"));
+			Assert.That(JsonNumber.Return(-123).Bind<string>(), Is.EqualTo("-123"));
+			Assert.That(JsonNumber.Return(Math.PI).Bind<string>(), Is.EqualTo(Math.PI.ToString("R")));
 
 			// auto cast
-
 			JsonValue v;
 			JsonNumber j;
 
@@ -3550,7 +3519,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		[Test, SuppressMessage("ReSharper", "EqualExpressionComparison")]
+		[Test]
 		public void Test_JsonNumber_CompareTo()
 		{
 			JsonValue x0 = 0;
@@ -3558,6 +3527,8 @@ namespace Doxense.Serialization.Json.Tests
 			JsonValue x2 = 2;
 
 			#pragma warning disable CS1718
+			// ReSharper disable EqualExpressionComparison
+
 			// JsonValue vs JsonValue
 			Assert.That(x0 < x0, Is.False);
 			Assert.That(x0 < x1, Is.True);
@@ -3574,10 +3545,12 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(x0 >= x0, Is.True);
 			Assert.That(x0 >= x1, Is.False);
 			Assert.That(x0 >= x2, Is.False);
+
+			// ReSharper restore EqualExpressionComparison
 			#pragma warning restore CS1718
 
 			// JsonValue vs valuetype (allocation)
-			// => l'entier est convertit automatiquement en JsonValue, ce qui provoque une allocation
+			// => the integer is automatically converted into a JsonValue, which triggers a memory allocation during the operation
 
 			Expression<Func<JsonValue, int, bool>> expr2 = (jval, x) => jval < x;
 			Assert.That(expr2.Body.NodeType, Is.EqualTo(ExpressionType.LessThan));
@@ -3596,7 +3569,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(x1 >= 2, Is.False);
 
 			// JsonNumber vs valuetype (no allocations)
-			// => ces comparaisons ne doivent pas allouer de JsonValue pour le test !
+			// => this comparisons should not allocated any JsonValue during the operation
 
 			Expression<Func<JsonNumber, int, bool>> expr1 = (jnum, x) => jnum < x;
 			Assert.That(expr1.Body.NodeType, Is.EqualTo(ExpressionType.LessThan));
@@ -3642,7 +3615,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonNumber_RoundingBug()
 		{
-			// Si on sérialise/désérisalise un double du style "7.5318246509562359", il y a un pb lors de la conversion de decimal vers double (la dernière décimale change)
+			// When serializing/deserializing a double with the form "7.5318246509562359", there is an issue when convertion from decimal to double (the ULPS will change due to the difference in precision)
 			// => on vérifie que le JsonNumber est capable de gérer correctement ce problème
 
 			double x = 7.5318246509562359d;
@@ -3665,8 +3638,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonNumber_Interning()
 		{
-			//NOTE: l'interning pour le moment ne marche que sur des petits nombres: -128..+127 et 0U..255U
-			// => si jamais ce test fail, vérifier juste que le cache n'as pas changé de comportement!
+			//NOTE: currently, interning should only be used for small numbers: -128..+127 et 0U..255U
+			// => if this test fails, please check that this range hasn't changed !
 
 			Assert.That(JsonNumber.Return(0), Is.SameAs(JsonNumber.Zero), "Zero");
 			Assert.That(JsonNumber.Return(1), Is.SameAs(JsonNumber.One), "One");
@@ -3676,7 +3649,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.Return(255), Is.SameAs(JsonNumber.Return(255)), "255 should be in the small signed cache");
 			Assert.That(JsonNumber.Return(-128), Is.SameAs(JsonNumber.Return(-128)), "-255 should be in the small signed cache");
 
-			// doit aussi intern les valeur d'un tableau ou liste
+			// must also intern values in an array or list
 			var arr = new int[10].ToJsonArray();
 			Assert.That(arr, Is.Not.Null.And.Count.EqualTo(10), "array of zeroes");
 			Assert.That(arr[0], Is.SameAs(JsonNumber.Zero));
@@ -3686,7 +3659,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr[i], Is.SameAs(JsonNumber.Zero), $"arr[{i}]");
 			}
 
-			// liste
+			// list
 			arr = new long[10].ToList().ToJsonArray();
 			Assert.That(arr, Is.Not.Null.And.Count.EqualTo(10), "list of zeroes");
 			Assert.That(arr[0], Is.SameAs(JsonNumber.Zero));
@@ -3705,7 +3678,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr[i], Is.SameAs(arr[0]), $"arr[{i}]");
 			}
 
-			// la même série de données convertie deux fois
+			// convert the same sequence twice should yield the same number singletons
 			var t1 = new int[] { 0, 1, 42, -6, 3 };
 			var t2 = new int[] { 0, 1, 42, -6, 3 };
 			Assume.That(t1, Is.EqualTo(t2));
@@ -3718,12 +3691,13 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr1[i], Is.SameAs(arr2[i]), $"arr1[{i}] same as arr2[{i}]");
 				Assert.That(arr1[i].ToInt32(), Is.EqualTo(t1[i]), $"arr1[{i}] == t1[{i}]");
 			}
-
 		}
 
 		[Test]
 		public void Test_JsonNumber_INumber_Additions()
 		{
+			// Validate the INumber<T> arithmetic for addition
+
 			Assert.That(JsonNumber.Zero + JsonNumber.Zero, Is.EqualTo(0));
 			Assert.That(JsonNumber.Zero + JsonNumber.One, Is.EqualTo(1));
 			Assert.That(JsonNumber.One + JsonNumber.Zero, Is.EqualTo(1));
@@ -3755,6 +3729,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonNumber_INumber_Subtractions()
 		{
+			// Validate the INumber<T> arithmetic for subtraction
+
 			Assert.That(JsonNumber.Zero - JsonNumber.Zero, Is.EqualTo(0));
 			Assert.That(JsonNumber.Zero - JsonNumber.One, Is.EqualTo(-1));
 			Assert.That(JsonNumber.One - JsonNumber.Zero, Is.EqualTo(1));
@@ -3789,6 +3765,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonNumber_INumber_Multiplications()
 		{
+			// Validate the INumber<T> arithmetic for multiplication
+
 			Assert.That(JsonNumber.Zero * JsonNumber.Zero, Is.EqualTo(0));
 			Assert.That(JsonNumber.Zero * JsonNumber.One, Is.EqualTo(0));
 			Assert.That(JsonNumber.One * JsonNumber.Zero, Is.EqualTo(0));
@@ -3822,6 +3800,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.NaN * JsonNumber.Return(2), Is.EqualTo(double.NaN));
 			Assert.That(JsonNumber.NaN * JsonNumber.NaN, Is.EqualTo(double.NaN));
 		}
+
+		//TODO: INumber<T> divisions
 
 		[Test]
 		public void Test_JsonNumber_Can_By_Used_With_Generic_Arithmethic()
@@ -4339,7 +4319,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonArray_Enumerable_Of_T()
 		{
 			{ // As<double>()
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+				var arr = new JsonArray(4) // with a larger capacity than the Count, to check that the iterator does not overflow past 3 elements!
 				{
 					123, 456, 789
 				};
@@ -4370,7 +4350,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(cast.ToList(), Is.EqualTo(new List<double> { 123.0, 456.0, 789.0 }));
 			}
 			{ // As<string>()
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+				var arr = new JsonArray(4) // with a larger capacity than the Count, to check that the iterator does not overflow past 3 elements!
 				{
 					"Hello", "World", "!!!"
 				};
@@ -4410,8 +4390,8 @@ namespace Doxense.Serialization.Json.Tests
 			var b = new JsonObject { ["X"] = 1, ["Y"] = 1, ["Z"] = 0 };
 			var c = new JsonObject { ["X"] = 0, ["Y"] = 0, ["Z"] = 1 };
 
-			{ // tous les éléments sont des objets
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // all elements are objects
+				var arr = new JsonArray(4) // with a larger capacity than the Count, to check that the iterator does not overflow past 3 elements!
 				{
 					a, b, c
 				};
@@ -4433,8 +4413,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject> {a, b, c}));
 			}
 
-			{ // le deuxième est null
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // the second element is null
+				var arr = new JsonArray()
 				{
 					a, JsonNull.Null, c
 				};
@@ -4456,8 +4436,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject?> { a, null, c }));
 			}
 
-			{ // le deuxième est null mais chaque élément est required
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // the second elements is null, but they are all required
+				var arr = new JsonArray()
 				{
 					a, null, c
 				};
@@ -4474,8 +4454,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(() => cast.ToList(), Throws.InstanceOf<InvalidOperationException>(), "ToList() should throw because null is not allowed");
 			}
 
-			{ // le deuxième n'est pas un objet
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // the second element is not an object (and not null)
+				var arr = new JsonArray()
 				{
 					a, 123, c
 				};
@@ -4501,8 +4481,8 @@ namespace Doxense.Serialization.Json.Tests
 			var b = JsonArray.Create(0, 1, 0);
 			var c = JsonArray.Create(0, 0, 1);
 
-			{ // tous les éléments sont des objets
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // all elements are arrays
+				var arr = new JsonArray(4) // with a larger capacity than the Count, to check that the iterator does not overflow past 3 elements!
 				{
 					a, b, c
 				};
@@ -4524,8 +4504,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonArray> { a, b, c }));
 			}
 
-			{ // le deuxième est null
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // second element is null
+				var arr = new JsonArray()
 				{
 					a, JsonNull.Null, c
 				};
@@ -4547,8 +4527,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonArray?> { a, null, c }));
 			}
 
-			{ // le deuxième est null mais chaque élément est required
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // second element is null, and all are required
+				var arr = new JsonArray()
 				{
 					a, null, c
 				};
@@ -4565,8 +4545,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(() => cast.ToList(), Throws.InstanceOf<InvalidOperationException>(), "ToList() should throw because null is not allowed");
 			}
 
-			{ // le deuxième n'est pas un objet
-				var arr = new JsonArray(4) // capacité plus grande que count pour tester si l'iterator s'arrête correctement a 3 éléments!
+			{ // second element is not an array, and not null
+				var arr = new JsonArray()
 				{
 					a, 123, c
 				};
@@ -4603,7 +4583,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Pick (drop missing)...
 
-			// si la clé n'existe pas dans la source, elle n'est pas non plus dans le résultat
+			// if the key does not exist in the source, it will not be present in the result either
 
 			var proj = arr.Pick([ "Id", "Name", "Pseudo", "Job", "Version" ]);
 
@@ -4666,7 +4646,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Pick (keep missing)...
 
-			// si la clé n'existe pas dans la source, elle vaut JsonNull.Missing dans le résultat
+			// if the key does not exist in the source, it will be replaced by JsonNull.Missing
 
 			proj = arr.Pick(
 				[ "Id", "Name", "Pseudo", "Job" ],
@@ -4730,7 +4710,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Pick (with JSON defaults)
 
-			// si la clé n'existe pas dans la source, elle est remplacée par la valeur par défaut
+			// if the key does not exist in the source, it will be replaced by the default value
 
 			proj = arr.Pick(
 				new JsonObject()
@@ -4803,12 +4783,12 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Pick (with object defaults)
 
-			// si la clé n'existe pas dans la source, elle est remplacée par la valeur par défaut en se basant sur le contenu d'un objet anonyme
+			// if the key does not exist in the source, it is replaced by the default value present in the anonymous template
 
 			proj = arr.Pick(
 				new
 				{
-					Id = JsonNull.Error, // <= équivalent de null, mais qui peut être détecté spécifiquement
+					Id = JsonNull.Error, // <= equivalent to null, but can be tested by the caller (it would not be produced by deserializing)
 					Name = "John Doe",
 					Pseudo = JsonNull.Null,
 					Job = "NEET",
@@ -6223,8 +6203,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonValue_FromObject_Nullable()
 		{
-			//note: un nullable<int> semble etre boxé en tant que int s'il a une valeur, donc on perd l'information de type si on appele FromObject(object)
-			// => du coup je force en appelant FromObject(..., typeof(int?)) pour être certain que cela fonctionne bien dans tous les cas
+			//note: nullable<int> is be boxed into Int32 if it had a value, so we lose the knowledge that it was a Nullable<int> when calling FromObject(object)
+			// => we will force the type by calling FromObject(..., typeof(int?)) in order to ensure that it works as intended
 
 			Assert.That(JsonValue.FromValue(null, typeof(int?)), Is.InstanceOf<JsonNull>());
 			int? x = 123;
@@ -6300,7 +6280,7 @@ namespace Doxense.Serialization.Json.Tests
 			Log(j);
 			arr = j._AsArray();
 			Assert.That(arr.Count, Is.EqualTo(3));
-			//BUGBUG: pour l'instant ca retourne [ { Key: .., Value: .. }, .. ] au lieu de [ [ .., .. ], .. ]
+			//TODO: BUGBUG: for now, will return [ { Key: .., Value: .. }, .. ] instead of [ [ .., .. ], .. ]
 		}
 
 		[Test]
@@ -6335,7 +6315,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// non-string keys...
 
-			j = JsonValue.FromValue(new Dictionary<int, string> {{11, "foo"}, {22, "bar"}, {33, "baz"}});
+			j = JsonValue.FromValue(new Dictionary<int, string> { [11] = "foo", [22] = "bar", [33] = "baz" });
 			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonObject>());
 			Log(j); // { "11": "foo", "22": "bar", "33": "baz" }
 			obj = j._AsObject();
@@ -6344,8 +6324,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj._Get<string>("22"), Is.EqualTo("bar"));
 			Assert.That(obj._Get<string>("33"), Is.EqualTo("baz"));
 
-			// on peut aussi obtenir un JsonObject directement
-			obj = JsonObject.FromObject(new Dictionary<string, int> {{"foo", 11}, {"bar", 22}, {"baz", 33}});
+			// we can also convert directly to JsonObject
+			obj = JsonObject.FromObject(new Dictionary<string, int> { ["foo"] = 11, ["bar"] = 22, ["baz"] = 33 });
 			Assert.That(obj, Is.Not.Null);
 			Log(obj);
 			Assert.That(obj.Count, Is.EqualTo(3));
@@ -6517,7 +6497,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonValue_FromObject_JsonValue()
 		{
-			// Si on FromValue(..) quelquechose qui est déja un JsonValue, on doit récupérer la même instance!
+			// When calling FromValue<T>(..) on an instance which is already a JsonValue, we should return the same instance
 
 			JsonValue value;
 
@@ -6969,14 +6949,12 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_String_Interning()
 		{
-			// Par défaut, l'interning de string n'est activé que sur les noms de propriétés des objets, cad que plusieurs occurences du même texte partageront la même string en mémoire
-			// Ce mode doit pouvoir être configuré dans les settings
-
-			// note: il est aussi important que les clés ne soit pas internée via String.Intern() sous peine de plomber complètement la heap !
+			// By default, string interning is only enabled on the names of object properties, meaning that multiple objects with the same fields will share the same string key in memory
+			// It can be overriden in the deserialization settings
 
 			const string TEXT = @"[ { ""Foo"":""Bar"" }, { ""Foo"":""Bar"" } ]";
 
-			// par défaut seul les clés sont internées, mais pas les valeurs
+			// by default, only the keys are interned, not the values
 			var array = JsonValue._ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.Default)).Select(x => ((JsonObject)x).First()).ToArray();
 			var one = array[0];
 			var two = array[1];
@@ -6991,7 +6969,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(two.Value.ToString(), Is.EqualTo("Bar"));
 			Assert.That(((JsonString)two.Value).Value, Is.Not.SameAs(((JsonString)one.Value).Value), "Values should NOT be the SAME reference");
 
-			// si on désactive l'interning, ni les clés ni les valeurs ne doivent être partagées
+			// when disabling interning, neither keys nor values should be interned
 
 			array = JsonValue._ParseArray(TEXT, CrystalJsonSettings.Json.DisableInterning()).Select(x => ((JsonObject)x).First()).ToArray();
 			one = array[0];
@@ -7007,7 +6985,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(two.Value.ToString(), Is.EqualTo("Bar"));
 			Assert.That(((JsonString)two.Value).Value, Is.Not.SameAs(((JsonString)one.Value).Value), "Values should NOT be the SAME reference");
 
-			// si on active l'interning complet, les clés et les valeurs doivent être partagées
+			// when enabling full interning, both keys and values should be interned
 
 			array = JsonValue._ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.IncludeValues)).Select(x => ((JsonObject)x).First()).ToArray();
 			one = array[0];
@@ -7048,14 +7026,14 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_Duplicate_Object_Fields()
 		{
-			// par défaut, si un object contient plusieurs fois le même champs, on throw
+			// by default, an object with a duplicate field should throw
 
 			Assert.That(
 				() => JsonValue._ParseObject(@"{ ""Foo"": ""1"", ""Bar"": ""Baz"", ""Foo"": ""2"" }"),
 				Throws.InstanceOf<JsonSyntaxException>(),
 				"JSON Object with duplicate fields should throw by default");
 
-			// mais on peut l'autoriser via les settings, pour ne garder que le dernier
+			// but it can be overriden via the settings, and in this case the last value wins
 			Assert.That(
 				() => JsonValue._ParseObject(@"{ ""Foo"": ""1"", ""Bar"": ""Baz"", ""Foo"": ""2"" }", CrystalJsonSettings.Json.FlattenDuplicateFields()),
 				Throws.Nothing,
@@ -7109,7 +7087,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<bool>("\"true\""), Is.True, "Deseralize<bool>('\"true\"')");
 			Assert.That(CrystalJson.Deserialize<bool>("\"false\""), Is.False, "Deseralize<bool>('\"false\"')");
 
-			// doit rejeter les autres types
+			// must reject other types
 			Assert.That(() => CrystalJson.Deserialize<bool>("null"), Throws.InvalidOperationException, "Deserialize<bool>('null')");
 			Assert.That(() => CrystalJson.Deserialize<bool>("\"foo\""), Throws.InstanceOf<FormatException>(), "Deserialize<bool>('\"foo\"')");
 			Assert.That(() => CrystalJson.Deserialize<bool>("{ }"), Throws.InstanceOf<JsonBindingException>(), "Deserialize<bool>('{ }')");
@@ -7144,11 +7122,11 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<string>("1.23"), Is.EqualTo("1.23"), "Deseralize<string>('1.23') (number!)");
 			Assert.That(CrystalJson.Deserialize<string>("true"), Is.EqualTo("true"), "Deseralize<string>('true') (boolean!)");
 
-			// doit rejeter les autres types
+			// must reject other type
 			Assert.That(() => CrystalJson.Deserialize<string>("{ }"), Throws.InstanceOf<JsonBindingException>(), "Deserialize<string>('{ }')");
 			Assert.That(() => CrystalJson.Deserialize<string>("[ ]"), Throws.InstanceOf<JsonBindingException>(), "Deserialize<string>('[ ]')");
 
-			// un tableau de string n'est PAS une string !
+			// an array of strings is NOT a string!
 			Assert.That(() => CrystalJson.Deserialize<string>("[ \"foo\" ]"), Throws.InstanceOf<JsonBindingException>(), "Deserialize<string>('[ \"foo\" ]')");
 		}
 
@@ -7175,7 +7153,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.DeserializeBoxed("-1"), Is.EqualTo(-1), "Deserialize('-1.0')");
 			Assert.That(CrystalJson.DeserializeBoxed("-123"), Is.EqualTo(-123), "Deserialize('-123.0')");
 
-			// avec exponent
+			// with exponent
 			Assert.That(CrystalJson.DeserializeBoxed("1E1"), Is.EqualTo(10), "Deserialize('1E1')");
 			Assert.That(CrystalJson.DeserializeBoxed("1E2"), Is.EqualTo(100), "Deserialize('1E2')");
 			Assert.That(CrystalJson.DeserializeBoxed("1.23E2"), Is.EqualTo(123), "Deserialize('1.23E2')");
@@ -7189,7 +7167,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.DeserializeBoxed("-Infinity"), Is.EqualTo(double.NegativeInfinity), "Deserialize('-Infinity')");
 			Assert.That(CrystalJson.DeserializeBoxed("\"NaN\""), Is.EqualTo("NaN"), "Deserialize('\"NaN\"') ne doit pas être reconnu automatiquement comme un nombre car on n'a pas précisé de type!");
 
-			// directed deserialization
+			// direct deserialization
 			Assert.That(CrystalJson.Deserialize<decimal>("123"), Is.EqualTo(123), "Deserialize<decimal>('123')");
 			Assert.That(CrystalJson.Deserialize<int>("123"), Is.EqualTo(123), "Deserialize<int>('123')");
 			Assert.That(CrystalJson.Deserialize<long>("123"), Is.EqualTo(123L), "Deserialize<long>('123')");
@@ -7215,7 +7193,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<float>("\"-Infinity\""), Is.EqualTo(float.NegativeInfinity), "Deserialize<float>('\"-Infinity\"')");
 			Assert.That(CrystalJson.Deserialize<double>("\"-Infinity\""), Is.EqualTo(double.NegativeInfinity), "Deserialize<double>('\"-Infinity\"')");
 
-			// doit rejeter les autres types
+			// must reject other types
 			Assert.Throws<JsonBindingException>(() => { CrystalJson.Deserialize<int>("{ }"); }, "Deserialize<int>('{ }')");
 			Assert.Throws<JsonBindingException>(() => { CrystalJson.Deserialize<int>("[ ]"); }, "Deserialize<int>('[ ]')");
 
@@ -7259,7 +7237,7 @@ namespace Doxense.Serialization.Json.Tests
 			// RoundTrip !
 			DateTime utcNow = DateTime.UtcNow;
 			Assert.That(utcNow.Kind, Is.EqualTo(DateTimeKind.Utc));
-			// /!\ JSON a une résolution a la milliseconde mais UtcNow a une précision au 'tick', donc il faut tronquer la date car elle a une précision supérieure
+			// /!\ JsonDateTime has a resolution to the millisecond, but UtcNow has a resolution up to the 'tick', which mean we have to truncate the value to milliseconds or else it will not roundtrip properly
 			var utcRoundTrip = CrystalJson.Deserialize<DateTime>(CrystalJson.Serialize(utcNow));
 			Assert.That(utcRoundTrip, Is.EqualTo(utcNow), "RoundTrip DateTime.UtcNow");
 
@@ -7268,7 +7246,7 @@ namespace Doxense.Serialization.Json.Tests
 			var localRoundTrip = CrystalJson.Deserialize<DateTime>(CrystalJson.Serialize(localNow));
 			Assert.That(localRoundTrip, Is.EqualTo(localNow), "RoundTrip DateTime.Now");
 
-			// directed deserialization
+			// direct deserialization
 			Assert.That(CrystalJson.Deserialize<DateTime>("\"\\/Date(-62135596800000)\\/\""), Is.EqualTo(DateTime.MinValue), "DateTime.MinValue");
 			Assert.That(CrystalJson.Deserialize<DateTime>("\"\\/Date(946681200000+0100)\\/\""), Is.EqualTo(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Local)), "2000-01-01 GMT+1 (Paris)");
 			// YYYYMMDD
@@ -7288,14 +7266,14 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<NodaTime.Instant>("\"1854-06-25T21:33:54.352Z\""), Is.EqualTo(NodaTime.Instant.FromUtc(1854, 06, 25, 21, 33, 54) + NodaTime.Duration.FromMilliseconds(352)));
 			Assert.That(CrystalJson.Deserialize<NodaTime.Instant>("\"-1254-06-25T21:33:54.352Z\""), Is.EqualTo(NodaTime.Instant.FromUtc(-1254, 06, 25, 21, 33, 54) + NodaTime.Duration.FromMilliseconds(352)));
 
-			// vérifie que ca round-trip
+			// ensure that it roundtrips
 			var now = NodaTime.SystemClock.Instance.GetCurrentInstant();
 			Assert.That(CrystalJson.Deserialize<NodaTime.Instant>(CrystalJson.Serialize(now)), Is.EqualTo(now), "Instant roundtrip");
 
-			// vérifie qu'on puisse aussi lire des dates avec des offets
+			// ensure that we can also read dates with offsets
 			Assert.That(CrystalJson.Deserialize<NodaTime.Instant>("\"2015-07-17T00:00:00+02:00\""), Is.EqualTo(NodaTime.Instant.FromUtc(2015, 7, 16, 22, 0, 0)));
 			Assert.That(CrystalJson.Deserialize<NodaTime.Instant>("\"2015-07-17T00:00:00-02:00\""), Is.EqualTo(NodaTime.Instant.FromUtc(2015, 7, 17, 2, 0, 0)));
-			// et les dates locales
+			// and local dates
 			Assert.That(CrystalJson.Deserialize<NodaTime.Instant>("\"2015-07-17T00:00:00\""), Is.EqualTo(NodaTime.Instant.FromDateTimeUtc(new DateTime(2015,7,17, 0, 0, 0, DateTimeKind.Local).ToUniversalTime())));
 
 			#endregion
@@ -7314,18 +7292,18 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region ZonedDateTime
 
-			// note: un ZonedDateTime est un Instance + DateTimeZone + Offset, mais peut être aussi représenté par un Instant (ticks) + un time zone ID
+			// note: a ZonedDateTime is an Instant + DateTimeZone + Offset, but it can also be represented by an Instant (ticks) + a time zone ID
 			// (http://stackoverflow.com/questions/14802672/serialize-nodatime-json#comment20786350_14830400)
 
 			var dtz = NodaTime.DateTimeZoneProviders.Tzdb["Europe/Paris"];
 			Assert.That(CrystalJson.Deserialize<NodaTime.ZonedDateTime>("\"0001-01-01T00:00:00Z UTC\""), Is.EqualTo(default(NodaTime.ZonedDateTime)));
 			Assert.That(CrystalJson.Deserialize<NodaTime.ZonedDateTime>("\"1954-06-25T21:33:54.352+01:00 Europe/Paris\""), Is.EqualTo(new NodaTime.ZonedDateTime(NodaTime.Instant.FromUtc(1954, 06, 25, 20, 33, 54) + NodaTime.Duration.FromMilliseconds(352), dtz)));
-			//note: si la TZID est manquante, il est impossible de désérialiser en ZonedDatetime!
+			//note: if TZID is missing, it is impossible to deserialize a ZonedDatetime!
 			Assert.That(() => CrystalJson.Deserialize<NodaTime.ZonedDateTime>("\"1954-06-25T21:33:54.352+01:00\""), Throws.InstanceOf<FormatException>(), "Missing TimeZone ID should fail");
-			//note: si l'offset n'est pas valide pour la date en question, il est impossible de désérialiser en ZonedDatetime!
+			//note: if the offset is not valid for this date, it is not possible to deserialize a ZonedDatetime!
 			Assert.That(() => CrystalJson.Deserialize<NodaTime.ZonedDateTime>("\"1854-06-25T21:33:54.352+01:00 Europe/Paris\""), Throws.InstanceOf<FormatException>(), "Paris was on a different offset in 1854 !");
 
-			// vérifie que ca roundtrip
+			// ensure that it roundtrips
 			var dtzNow = new NodaTime.ZonedDateTime(now, dtz);
 			Assert.That(CrystalJson.Deserialize<NodaTime.ZonedDateTime>(CrystalJson.Serialize(dtzNow)), Is.EqualTo(dtzNow), "ZonedDateTime roundtripping");
 
@@ -7337,11 +7315,11 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<NodaTime.LocalDateTime>("\"1854-06-25T21:33:54.352\""), Is.EqualTo(new NodaTime.LocalDateTime(1854, 06, 25, 21, 33, 54, 352)));
 			Assert.That(CrystalJson.Deserialize<NodaTime.LocalDateTime>("\"-1254-06-25T21:33:54.352\""), Is.EqualTo(new NodaTime.LocalDateTime(-1254, 06, 25, 21, 33, 54, 352)));
 
-			// vérifie que ca roundtrip
+			// ensure that it roundtrips
 			var ldtNow = dtzNow.LocalDateTime;
 			Assert.That(CrystalJson.Deserialize<NodaTime.LocalDateTime>(CrystalJson.Serialize(ldtNow)), Is.EqualTo(ldtNow), "LocalDatetime roundtripping");
 
-			// vérifie qu'on puisse désérialiser un Instant en heure locale
+			// ensure that we can deserialize an Instant into a local date time
 			Assert.That(CrystalJson.Deserialize<NodaTime.LocalDateTime>("\"2017-06-21T12:34:56Z\""), Is.EqualTo(NodaTime.Instant.FromUtc(2017, 6, 21, 12, 34, 56).InZone(NodaTime.DateTimeZoneProviders.Tzdb.GetSystemDefault()).LocalDateTime));
 
 			#endregion
@@ -7350,7 +7328,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			var rnd = new Random();
 
-			//from tzdb
+			// from tzdb
 			string id = NodaTime.DateTimeZoneProviders.Tzdb.Ids[rnd.Next(NodaTime.DateTimeZoneProviders.Tzdb.Ids.Count)];
 			Assert.That(CrystalJson.Deserialize<NodaTime.DateTimeZone>(CrystalJson.StringEncode(id)), Is.EqualTo(NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(id)));
 
@@ -7452,8 +7430,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<IVarTuple>("[ 123, \"Hello\" ]"), Is.EqualTo(STuple.Create(123, "Hello")));
 			Assert.That(CrystalJson.Deserialize<IVarTuple>("[ 123, \"Hello\", true ]"), Is.EqualTo(STuple.Create(123, "Hello", true)));
 			Assert.That(CrystalJson.Deserialize<IVarTuple>("[ 123, \"Hello\", true, -1.5 ]"), Is.EqualTo(STuple.Create(123, "Hello", true, -1.5)));
-			//note: depuis 3.13, NUnit gère appel directement IStructuralEquatable.Equals(...) avec son propre comparer (qui ne merge pas char et string)
-			// => on doit passer notre comparer explicitement!
+			//note: since 3.13, NUnit handles calls to IStructuralEquatable.Equals(...) with its own comparer (that does not merge char and string)
+			// => we must pass our own custom comparer for this to work!
 			Assert.That(CrystalJson.Deserialize<IVarTuple>("[ 123, \"Hello\", true, -1.5, \"Z\" ]"), Is.EqualTo(STuple.Create(123, "Hello", true, -1.5, 'Z')).Using(SimilarValueComparer.Default));
 			Assert.That(CrystalJson.Deserialize<IVarTuple>("[ 123, \"Hello\", true, -1.5, \"Z\", \"World\" ]"), Is.EqualTo(STuple.Create(123, "Hello", true, -1.5, 'Z', "World")).Using(SimilarValueComparer.Default));
 			Assert.That(CrystalJson.Deserialize<IVarTuple>("[ 123, \"Hello\", true, -1.5, \"Z\", \"World\", 456 ]"), Is.EqualTo(STuple.Create(123, "Hello", true, -1.5, 'Z', "World", 456)).Using(SimilarValueComparer.Default));
@@ -7471,8 +7449,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<ValueTuple<int, string, bool, double, char>>("[ 123, \"Hello\", true, -1.5, \"Z\" ]"), Is.EqualTo(ValueTuple.Create(123, "Hello", true, -1.5, 'Z')));
 			Assert.That(CrystalJson.Deserialize<ValueTuple<int, string, bool, double, char, string>>("[ 123, \"Hello\", true, -1.5, \"Z\", \"World\" ]"), Is.EqualTo(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', "World")));
 			Assert.That(CrystalJson.Deserialize<ValueTuple<int, string, bool, double, char, string, int>>("[ 123, \"Hello\", true, -1.5, \"Z\", \"World\", 456 ]"), Is.EqualTo(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', "World", 456)));
-
-			//TODO: faut-il supporter Deserialize<ITuple> ? (en fct du .Count, on peut choisir le ValueTuple<...> correspondant, mais ca force un boxing!)
 		}
 
 		[Test]
@@ -7487,7 +7463,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<IPAddress>("\"172.16.10.194\""), Is.EqualTo(IPAddress.Parse("172.16.10.194")));
 			Assert.That(CrystalJson.Deserialize<IPAddress>("\"fe80::fd0b:d3d6:5a2:4549%13\""), Is.EqualTo(IPAddress.Parse("fe80::fd0b:d3d6:5a2:4549%13")));
 
-			// on doit aussi accepter la syntaxe avec des [..] pour IPv6
+			// we also must accept the syntax with brackets (ex: '[::1]') for IPv6 because it is found in some URLs
 			Assert.That(CrystalJson.Deserialize<IPAddress>("\"[::1]\""), Is.EqualTo(IPAddress.IPv6Loopback));
 			Assert.That(CrystalJson.Deserialize<IPAddress>("\"[::]\""), Is.EqualTo(IPAddress.IPv6Any));
 			Assert.That(CrystalJson.Deserialize<IPAddress>("\"[fe80::fd0b:d3d6:5a2:4549%13]\""), Is.EqualTo(IPAddress.Parse("fe80::fd0b:d3d6:5a2:4549%13")));
@@ -7545,7 +7521,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(res["Id"], Is.EqualTo(7), jsonText + ".Id");
 			Assert.That(res["IsDeadly"], Is.True, jsonText + ".IsDeadly");
 			//Assert.That(res["Created"], Is.EqualTo(new DateTime(1968, 5, 8)), jsonText + ".Created");
-			Assert.That(res["Created"], Is.EqualTo("/Date(-52106400000+0200)/"), jsonText + ".Created"); //BUGBUG: gérer l'auto-detect de date quand on veut une string en object ?
+			Assert.That(res["Created"], Is.EqualTo("/Date(-52106400000+0200)/"), jsonText + ".Created"); //BUGBUG: handle the auto-detection of dates when converting from string to object ?
 			var weapons = (IList<object>) res["Weapons"];
 			Assert.That(weapons, Is.Not.Null, jsonText + ".Weapons");
 			Assert.That(weapons.Count, Is.EqualTo(1), jsonText + ".Weapons.Count");
@@ -7576,8 +7552,8 @@ namespace Doxense.Serialization.Json.Tests
 			// round trip !
 			string roundtripText = CrystalJson.Serialize(x);
 			Assert.That(roundtripText, Is.EqualTo(jsonText), "LOOP 2!");
-			var x2 = CrystalJson.Deserialize<DummyJsonClass>(roundtripText);
-			Assert.That(x2, Is.EqualTo(x), "TRUE LAST BOSS !!!");
+			var hibachi = CrystalJson.Deserialize<DummyJsonClass>(roundtripText);
+			Assert.That(hibachi, Is.EqualTo(x), "TRUE LAST BOSS !!!");
 		}
 
 		[Test]
@@ -7602,8 +7578,8 @@ namespace Doxense.Serialization.Json.Tests
 			// round trip !
 			string roundtripText = CrystalJson.Serialize(x);
 			Assert.That(roundtripText, Is.EqualTo(jsonText), "LOOP 2!");
-			var x2 = CrystalJson.Deserialize<DummyJsonStruct>(roundtripText);
-			Assert.That(x2, Is.EqualTo(x), "TRUE LAST BOSS !!!");
+			var hibachi = CrystalJson.Deserialize<DummyJsonStruct>(roundtripText);
+			Assert.That(hibachi, Is.EqualTo(x), "TRUE LAST BOSS !!!");
 		}
 
 		[Test]
@@ -7639,18 +7615,17 @@ namespace Doxense.Serialization.Json.Tests
 				var gadget = parsed.Bind(typeof(object))!;
 
 				// ATTENTION: ATTENTION: CRITICAL FAILURE!
-				// => si la désérialisation n'échoue pas a cet endroit, c'est qu'on a été capable d'executer du code juste en désérialisant du JSON!!!
+				// => if the deserialization does not fail here, it means we are able to execute arbitrary injected code when deserializing JSON!!!
 
 				Log("FATAL: Created a " + gadget.GetType());
 
-				//note: l'execution de la commande se fait en asynchrone :(
-				// => on attend un peu en esperant que ca soit suffisant
+				// note: the command is executed asynchronously, so we need to wait a bit...
 				Thread.Sleep(2000);
 
 				if (File.Exists(path))
 				{
 					// ATTENTION: ATTENTION: CRITICAL FAILURE!
-					// => si ce test échoue a cet endroit, c'est qu'on a été capable d'executer du code juste en désérialisant du JSON!!!
+					// => if the test fails here, it means we are able to execute arbitrary injected code when deserializing JSON!!!
 					Assert.Fail("FATAL: deserialization of bad JSON was able to execute the payload!!!!");
 				}
 				else
@@ -7661,8 +7636,9 @@ namespace Doxense.Serialization.Json.Tests
 			catch (Exception e)
 			{
 				Log($"Binding attempt failed as expected : [{e.GetType().Name}] {e.Message}");
+				// ATTENTION: ATTENTION: CRITICAL FAILURE!
+				// if this is not the expected error type, it could be because the exploit failed to run properly, which is still a HUGE issue!
 				Assert.That(e, Is.InstanceOf<JsonBindingException>(), "Deserialization should have failed with an expected JSON error");
-				// si c'est pas le bon type d'erreur, c'est peut être que la payload allait presque s'executer mais que ca a échoué pour un détail....
 			}
 		}
 
@@ -7670,21 +7646,22 @@ namespace Doxense.Serialization.Json.Tests
 
 		public class DummyFooClass : DummyBaseClass;
 
-		public class DummyBarClass; // ne dérive PAS de "base"
+		public class DummyBarClass; // does NOT derive from DummyBaseClass
 
 		[Test]
 		public void Test_JsonDeserialize_Incompatible_Type_In_Property()
 		{
-			// pour essayer de contrer les vulnérabilité de désérialisation de type (cf Test_JsonDeserialize_EvilGadgetObject),
-			// on doit aussi vérifier que le binding d'un type qui ne match pas le parent échoue "correctement"
+			// to attempt to block deserialization vulnerabilities (see Test_JsonDeserialize_EvilGadgetObject),
+			// me must also verify that the binding of a type that does not match the expected base class will fail "as expected"
 
 			var json = CrystalJson.Serialize<DummyBaseClass>(new DummyFooClass());
 			Log(json);
 
-			// si on demande de désérialiser en type incompatible, on doit avoir une JsonBindingException
+			// if we ask to deserialize an incompatible type, it should throw a JsonBindingException
 			Assert.That(() => CrystalJson.Deserialize<DummyBarClass>(json), Throws.InstanceOf<JsonBindingException>());
-			// par contre, si on demande de désérialiser en "object" alors on ne peut pas vraiment savoir
+			// but not if we expected an "object", in which case we have no real way to know...
 			Assert.That(CrystalJson.Deserialize<object>(json), Is.Not.Null);
+			//note: another hint that "ToObject" serialization should be banned?
 		}
 
 		#endregion
@@ -7697,7 +7674,7 @@ namespace Doxense.Serialization.Json.Tests
 			var cancel = CancellationToken.None;
 			var rnd = new Random();
 
-			// vide
+			// empty
 			var path = GetTemporaryPath("null.json");
 			using (var fs = File.Create(path))
 			{
@@ -7710,7 +7687,7 @@ namespace Doxense.Serialization.Json.Tests
 			var arr = CrystalJson.LoadFrom<List<int>>(path);
 			Assert.That(arr, Is.Null);
 
-			// batch vide
+			// empty batch
 			path = GetTemporaryPath("empty.json");
 			using (var fs = File.Create(path))
 			{
@@ -7729,7 +7706,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr, Is.Not.Null);
 			Assert.That(arr.Count, Is.EqualTo(0));
 
-			// un seul élément
+			// single element
 			path = GetTemporaryPath("forty_two.json");
 			using (var stream = CrystalJsonStreamWriter.Create(path))
 			{
@@ -7743,7 +7720,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr, Is.Not.Null);
 			Assert.That(arr, Is.EqualTo(new[] { 42 }));
 
-			// un seul batch
+			// single batch
 			path = GetTemporaryPath("one_batch.json");
 			using (var stream = CrystalJsonStreamWriter.Create(path))
 			{
@@ -7753,7 +7730,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr, Is.Not.Null);
 			Assert.That(arr, Is.EqualTo(Enumerable.Range(0, 1000)));
 
-			// plusieurs batchs
+			// multiple batches
 			path = GetTemporaryPath("multiple_batchs.json");
 			using (var stream = CrystalJsonStreamWriter.Create(path))
 			{
@@ -7769,7 +7746,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr, Is.Not.Null);
 			Assert.That(arr, Is.EqualTo(Enumerable.Range(0, 1000)));
 
-			// switch de types
+			// changes types during the sequence (first 500 are ints, next 500 are longs)
 			path = GetTemporaryPath("int_long.json");
 			using (var stream = CrystalJsonStreamWriter.Create(path))
 			{
@@ -7839,7 +7816,7 @@ namespace Doxense.Serialization.Json.Tests
 			var rnd = new Random();
 			var clock = new Stopwatch();
 
-			// object vide
+			// empty object
 			Log("Saving simple flat object...");
 			var path = GetTemporaryPath("empty.json");
 			File.Delete(path);
@@ -7856,7 +7833,7 @@ namespace Doxense.Serialization.Json.Tests
 				}
 				Assert.That(fs.CanWrite, Is.False, "Stream should have been closed");
 			}
-			// vérification
+			// verify
 			Log("> reloading...");
 			var verify = CrystalJson._ParseObjectFrom(path);
 			Dump(verify);
@@ -7864,7 +7841,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(verify, Is.Not.Null);
 			Assert.That(verify.Count, Is.EqualTo(0), "Object should be empty!");
 
-			// objet classique (flat)
+			// simple object (flat)
 			Log("Saving simple flat object...");
 			path = GetTemporaryPath("hello_world.json");
 			File.Delete(path);
@@ -7881,7 +7858,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 			Log($"> {new FileInfo(path).Length:N0} bytes");
 
-			// vérification
+			// verify
 			Log("> reloading...");
 			verify = CrystalJson._ParseObjectFrom(path);
 			Dump(verify);
@@ -7891,8 +7868,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(verify._Get<int>("PowerLevel"), Is.GreaterThan(8000).And.EqualTo(8001), ".PowerLevel");
 			Assert.That(verify._Get<DateTimeOffset>("Date"), Is.EqualTo(now), ".Date");
 
-			// objet contenant une array streamée de grande taille
-
+			// object that contains a very large streamed array
 			path = GetTemporaryPath("data.json");
 			Log("Saving object with large streamed array...");
 			File.Delete(path);
@@ -7905,7 +7881,7 @@ namespace Doxense.Serialization.Json.Tests
 					obj.WriteField("Date", now);
 					using (var arr = obj.BeginArrayStream("Values"))
 					{
-						// on simule un dump de 365j de data à précision 1 minute, où un batch = 1 jour (1440 values)
+						// we simulate a dump of 365 days woth of de data, with a precision of 1 minute, with a batch per day (1440 values)
 						for (int i = 0; i < 365; i++)
 						{
 							var batch = Enumerable.Range(0, 1440).Select(_ => KeyValuePair.Create(Stopwatch.GetTimestamp(), Math.Round(rnd.NextDouble() * 100000.0, 1)));
@@ -7919,10 +7895,10 @@ namespace Doxense.Serialization.Json.Tests
 			var sizeRaw = new FileInfo(path).Length;
 			Log($"> {sizeRaw:N0} bytes in {clock.Elapsed.TotalMilliseconds:N1} ms");
 
-			// vérification
+			// verify
 			Log("> reloading...");
 			verify = CrystalJson._ParseObjectFrom(path);
-			//trop gros pour être dumpé!
+			// too large to be dumped to the log!
 			Log("> verifying...");
 			Assert.That(verify, Is.Not.Null);
 			Assert.That(verify._Get<string>("Id"), Is.EqualTo("FOOBAR9000"), ".Id");
@@ -7933,7 +7909,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(values.GetElementsTypeOrDefault(), Is.EqualTo(JsonType.Array), ".Values[] should only contain arrays");
 			Assert.That(values.AsArrays(), Is.All.Count.EqualTo(2), ".Values[] should only have arrays of size 2");
 
-			// même deal, mais avec compression gzip
+			// same deal, but with gzip compression
 			Log("Saving object with large streamed array to compressed file...");
 			File.Delete(path + ".gz");
 			clock.Restart();
@@ -7947,7 +7923,7 @@ namespace Doxense.Serialization.Json.Tests
 					obj.WriteField("Date", now);
 					using (var arr = obj.BeginArrayStream("Values"))
 					{
-						// on simule un dump de 365j de data à précision 1 minute, où un batch = 1 jour (1440 values)
+						// we simulate a dump of 365 days woth of de data, with a precision of 1 minute, with a batch per day (1440 values)
 						for (int i = 0; i < 365; i++)
 						{
 							var batch = Enumerable.Range(0, 1440).Select(_ => KeyValuePair.Create(Stopwatch.GetTimestamp(), Math.Round(rnd.NextDouble() * 100000.0, 1)));
@@ -7962,7 +7938,7 @@ namespace Doxense.Serialization.Json.Tests
 			Log($"> {sizeCompressed:N0} bytes in {clock.Elapsed.TotalMilliseconds:N1} ms (1 : {(double) sizeRaw / sizeCompressed:N2})");
 			Assert.That(sizeCompressed, Is.LessThan(sizeRaw / 2), "Compressed file should be AT MINMUM 50% smaller than original");
 
-			// vérification
+			// verify
 			Log("> reloading...");
 			using(var fs = File.OpenRead(path + ".gz"))
 			using (var gs = new GZipStream(fs, CompressionMode.Decompress, false))
@@ -7987,7 +7963,7 @@ namespace Doxense.Serialization.Json.Tests
 			var cancel = CancellationToken.None;
 			var rnd = new Random();
 
-			// batch vide
+			// empty batch
 			Log("Saving empty batches...");
 			var path = GetTemporaryPath("three_empty_objects.json");
 			using (var writer = CrystalJsonStreamWriter.Create(path, CrystalJsonSettings.Json))
@@ -8008,7 +7984,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 			Log("> done");
 
-			// objet meta + data series
+			// object meta + data series
 			path = GetTemporaryPath("device.json");
 			Log("Saving multi-fragments 'export'...");
 			using (var writer = CrystalJsonStreamWriter.Create(path, CrystalJsonSettings.Json))
@@ -8020,10 +7996,10 @@ namespace Doxense.Serialization.Json.Tests
 					Metrics = new[] { "Foo", "Bar", "Baz" },
 				};
 
-				// first obj = meta contenant une array d'id
+				// first obj = meta containing an array of ids
 				await writer.WriteFragmentAsync(metric, cancel);
 
-				// ensuite, une array pour chaque id
+				// next, une array for each id in the first array
 				foreach(var _ in metric.Metrics)
 				{
 					using (var arr = writer.BeginArrayFragment(cancel))
@@ -8063,7 +8039,7 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(a.Count, Is.EqualTo(10));
 				}
 
-				// fin de fichier
+				// end of file
 				frag = reader.ReadNextFragment();
 				Assert.That(frag, Is.Null);
 			}
@@ -8113,8 +8089,8 @@ namespace Doxense.Serialization.Json.Tests
 	{
 		None,
 		Foo,
-		Bar = 2,   // nouveau nom, sans la typo
-		Barrh = 2, // ancienne version avec la typo, présente dans des vieux documents
+		Bar = 2,   // new name, with correct spelling
+		Barrh = 2, // old name, with a typo, but is still referenced (in old code, in old JSON documents, etc...)
 		Baz
 	}
 
@@ -8255,7 +8231,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(writer, Is.Not.Null, "writer");
 			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
 			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
-			// TODO: comment gérer les settings ?
 			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
 		}
 
@@ -8587,7 +8562,7 @@ namespace Doxense.Serialization.Json.Tests
 		[DataMember(Name = "IsFemale")]
 		public bool Female;
 
-		// pas d'attribut
+		// no attributes!
 		public string InvisibleField;
 
 		[DataMember]
@@ -8596,7 +8571,7 @@ namespace Doxense.Serialization.Json.Tests
 		[DataMember]
 		public string VisibleProperty => "CanBeSeen";
 
-		// pas d'attributre
+		// no attributes!
 		public string InvisibleProperty => "ShouldNotBeSeen";
 	}
 
@@ -8821,26 +8796,6 @@ namespace Doxense.Serialization.Json.Tests
 				_ = obj["osef"].OrDefault<string>();
 				_ = obj["osef"].OrDefault<string>("toto");
 				_ = obj["osef"].OrDefault<int>(123);
-			}
-			//{
-			//	_ = obj.Get<Guid>("id");
-			//	_ = obj.Get<string>("name");
-			//	_ = obj.Get<string>("osef", "tamere");
-			//	_ = obj.Get<string?>("osef", null);
-			//	_ = obj.Get<int>("required");
-			//	_ = obj.Get<int>("osef", 0);
-			//}
-			{
-				_ = obj.Get<Guid>("id", required: true);		// => Get("id")
-				_ = obj.Get<string>("name", required: true);	// => Get("name")
-				_ = obj.Get<int?>("osef") ?? 42;
-				_ = obj.Get<string?>("osef") ?? "tamere";
-				_ = obj.Get<DateTime?>("osef") ?? DateTime.Now;
-			}
-			{
-				var id = obj["id"].As<Guid>(required: true);
-				var name = obj["name"].As<string>(required: true);
-				var osef = obj["osef"].As<string>();
 			}
 		}
 #pragma warning restore IDE0059 // Unnecessary assignment of a value

@@ -2598,20 +2598,20 @@ namespace Doxense.Serialization.Json
 			}
 
 			var sb = new StringBuilder(128);
-			// Dump les 4 premiers, et rajoutes des ", ... X more" si plus que 4.
-			// On va quand même dumper le 5 eme s'il y a exactement 5 items, pour éviter le " .... 1 more" qui prend autant de places que de l'écrire!
+			// If the size of the array is higher than 5, dump the first 4 items, followed by ", ... X more".
+			// Note: If size is 5 , we will dump the fifth item, in order to not end up with ", ... 1 more" that would not be helpful and will frequently be longer than dumping the item anyway...
 			++depth;
 			sb.Append("[ ").Append(items[0].GetCompactRepresentation(depth));
 			if (size >= 2) sb.Append(", ").Append(items[1].GetCompactRepresentation(depth));
 			if (size >= 3) sb.Append(", ").Append(items[2].GetCompactRepresentation(depth));
-			if (depth == (0+1))
-			{ // on va jusqu'à 4 items (5eme joker)
+			if (depth == 1)
+			{ // we allow up to 4 items
 				if (size >= 4) sb.Append(", ").Append(items[3].GetCompactRepresentation(depth));
 				if (size == 5) sb.Append(", ").Append(items[4].GetCompactRepresentation(depth));
 				else if (size > 5) sb.Append($", /* … {size - 4:N0} more */");
 			}
 			else
-			{ // on va jusqu'à 3 items (4eme joker)
+			{ // we allow up to 3 items
 				if (size == 4) sb.Append(", ").Append(items[3].GetCompactRepresentation(depth));
 				else if (size > 4) sb.Append($", /* … {size - 3:N0} more */");
 			}

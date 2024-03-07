@@ -46,8 +46,8 @@ namespace Doxense.Serialization.Json
 			// nullable ??
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
-			{ // Nullable<T> => on retry avec le bon type
-				// note: si c'était null, on serait dans JsonNull.Bind(...) donc pas de soucis...
+			{ // Nullable<T> => retry with the underlying value type
+				// note: we will not reach here if the value is null, so we are guaranteed that it is "proper" value
 				return BindValueType(value, nullableType, resolver);
 			}
 			throw Errors.CannotBindJsonValue(nameof(type), typeof(T), type);
@@ -56,19 +56,28 @@ namespace Doxense.Serialization.Json
 		internal static object? BindNative<TJson, TNative>(TJson? jsonValue, TNative nativeValue, Type? type, ICrystalJsonTypeResolver? resolver = null)
 			where TJson : JsonValue
 		{
-			//REVIEW: vu que TNative est un valuetype, on aura autant de copie de cette méthodes en mémoire que de types! (beaucoup de boulot pour le JIT)
-			// => il faudrait peut être trouver une optimisation utilisant le pattern "if (typeof(T) == typeof(...)) { ... }" pour optimiser ??
+			// Note: Since TNative is a ValueType, we will have many different JITed versions of this method in memory, one for each value type, which may cost a lost of first-time initialization cost?
+			// in early .NET Framework versions, the JIT seemed to be in O(N^2) whith the number of generic types for the same call site, not sure if this is still an issue with modern .NET Core ?
 
-			if (jsonValue == null) return null;
+			if (jsonValue == null)
+			{
+				return null;
+			}
 
-			if (type == null || type == typeof(object)) return jsonValue.ToObject();
+			if (type == null || type == typeof(object))
+			{
+				return jsonValue.ToObject();
+			}
 
 			// short circuit...
-			if (type == typeof(TNative)) return nativeValue;
+			if (type == typeof(TNative))
+			{
+				return nativeValue;
+			}
 
 			if (type.IsPrimitive)
 			{
-				//attention: decimal et DateTime ne sont pas IsPrimitive !
+				// Note: some base types like decimal, DateTime or TimeSpan are not considered "primitive" types and are handled elsewhere
 				switch (System.Type.GetTypeCode(type))
 				{
 					case TypeCode.Boolean: return jsonValue.ToBoolean();
@@ -139,9 +148,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Essayes de déterminer la catégorie d'une object JSON à partir d'un type CLR</summary>
-		/// <param name="type">Type CLR (ex: int)</param>
-		/// <returns>Catégorie JSON correspondante (ex: JsonType.Number)</returns>
+		/// <summary>Attempts to determine the category of a JSON value, given a CLR type</summary>
+		/// <param name="type">CLR Type(ex: int)</param>
+		/// <returns>Corresponding JSON categoriy (ex: JsonType.Number)</returns>
 		internal static JsonType GetJsonTypeFromClrType(Type type)
 		{
 			if (type == null) throw ThrowHelper.ArgumentNullException(nameof(type));

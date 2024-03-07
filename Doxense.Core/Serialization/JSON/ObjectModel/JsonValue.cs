@@ -49,27 +49,43 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Conversion en object CLR (type automatique)</summary>
 		[Pure]
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public abstract object? ToObject();
 
-		/// <summary>Bind vers un type CLR spécifique</summary>
-		/// <param name="type">Type CLR désiré</param>
+		/// <summary>Bind this value into an instance of the specified <paramref name="type"/></summary>
+		/// <param name="type">Target managed type</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		/// <returns>An instance of the target type that is equivalent to the original JSON value, if there exists a valid convertion path or convention. Otherwise, an exception will be thrown.</returns>
+		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target <paramref name="type"/>.</exception>
+		/// <example><c>JsonNumber.Return(123).Bind(typeof(long))</c> will return a boxed Int64 with value <c>123</c>.</example>
+		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.OrDefault{TValue}(JsonValue?,ICrystalJsonTypeResolver?)"/>, ...</remarks>
 		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
 
-		/// <summary>Bind vers un type CLR spécifique</summary>
-		/// <typeparam name="TValue">Type CLR désiré</typeparam>
+		/// <summary>Bind this value into an instance of type <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Target managed type</typeparam>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		/// <returns>An instance of the type <typeparamref name="TValue"/> that is equivalent to the original JSON value, if there exists a valid convertion path or convention. Otherwise, an exception will be thrown.</returns>
+		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target type <typeparamref name="TValue"/>.</exception>
+		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual TValue? Bind<TValue>(ICrystalJsonTypeResolver? resolver = null) => (TValue?) Bind(typeof(TValue), resolver);
 
-		/// <summary>Indique si cette valeur est null</summary>
+		/// <summary>Tests if this value is null or missing</summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual bool IsNull { [Pure] get => false; }
 
-		/// <summary>Indique si cette valeur correspond au défaut du type (0, null, empty)</summary>
+		/// <summary>Tests if this value corresponds to the logical default for this type (0, false, null or missing, ...)</summary>
+		/// <returns><see langword="true"/> for values like 0, false, or null; or <see langword="false"/> for non-zero integers, true, strings, arrays and objects</returns>
+		/// <remarks>The empty string, array and object are NOT considered to be the default value of their type!</remarks>
+		/// <example>
+		/// <c>JsonNumber.Zero.IsDefault == true</c>,
+		/// <c>JsonNumber.Return(123).IsDefault == false</c>,
+		/// <c>JsonString.Return("").IsDefault == false</c>,
+		/// <c>new JsonArray().IsDefault == false</c>,
+		/// <c>new JsonObject().IsDefault == false</c>
+		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract bool IsDefault { [Pure] get; }
 
@@ -154,6 +170,7 @@ namespace Doxense.Serialization.Json
 			JsonSerialize(writer);
 			return sb.ToString();
 		}
+		//TODO: REVIEW: rename as "ToJsonText()" or something else? "ToXYZ" usually means that XYZ is the final result, but here it is a string, and not a JsonValue
 
 		/// <summary>Returns a "compact" string representation of this value, that can fit into a troubleshooting log.</summary>
 		/// <remarks>
@@ -164,12 +181,15 @@ namespace Doxense.Serialization.Json
 		internal virtual string GetCompactRepresentation(int depth) => this.ToJson();
 
 		/// <summary>Converts this JSON value into a printable string</summary>
-		/// <remarks>See <see cref="ToString(string,IFormatProvider)"/> if you need to specify a different format than the default</remarks>
+		/// <remarks>
+		/// <para>Please not that, due to convention in .NET, this will return the empty string for null values, since <see cref="object.ToString"/> must not return a null reference! Please call <see cref="ToStringOrDefault"/> if you need null references for null or missing JSON values.</para>
+		/// <para>See <see cref="ToString(string,IFormatProvider)"/> if you need to specify a different format than the default</para></remarks>
 		public override string ToString() => ToString(null, null);
 
 		/// <summary>Converts this JSON value into a printable string, using the specified format</summary>
 		/// <param name="format">Desired format, or "D" (default) if omitted</param>
 		/// <remarks>See <see cref="ToString(string,IFormatProvider)"/> for the list of supported formats</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public string ToString(string? format)
 		{
 			return ToString(format, null);
@@ -188,6 +208,7 @@ namespace Doxense.Serialization.Json
 		///   <item><term>Q</term><description>Quick, equivalent to calling <see cref="GetCompactRepresentation"/>, that will return a simplified/partial version, suitable for logs/traces.</description></item>
 		/// </list>
 		/// </remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual string ToString(string? format, IFormatProvider? provider)
 		{
 			switch(format ?? "D")
@@ -280,6 +301,7 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public abstract override int GetHashCode();
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual int CompareTo(JsonValue? other)
 		{
 			if (other == null) return this.IsNull ? 0 : +1;
@@ -301,6 +323,7 @@ namespace Doxense.Serialization.Json
 			return c;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual bool Contains(JsonValue? value) => false;
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -467,12 +490,12 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object.</summary>
 		/// <param name="key">Name of the property</param>
-		/// <returns>Converted value of the <paramref name="key"/> property into the type <typeparamref name="TValue"/>, or default(<typeparamref name="TValue"/>) if the property does not exist, or contains a <c>null</c> entry.</returns>
+		/// <returns>Converted value of the <paramref name="key"/> property into the type <typeparamref name="TValue"/>, or default(<typeparamref name="TValue"/>) if the property does not exist, or contains a <see langword="null"/> entry.</returns>
 		/// <example>
 		/// ({ "Hello": "World" }).Get&lt;string&gt;("Hello") // returns <c>"World"</c>
-		/// ({ }).Get&lt;string&gt;("Hello") // returns <c>null</c>
+		/// ({ }).Get&lt;string&gt;("Hello") // returns <see langword="null"/>
 		/// ({ }).Get&lt;int&gt;("Hello") // returns <c>0</c>
-		/// ({ "Hello": null }).Get&lt;string&gt;("Hello") // returns <c>null</c>
+		/// ({ "Hello": null }).Get&lt;string&gt;("Hello") // returns <see langword="null"/>
 		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // returns <c>0</c>
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -504,6 +527,10 @@ namespace Doxense.Serialization.Json
 
 		#region Object...
 
+		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, it it exists</summary>
+		/// <param name="key">Name of the field</param>
+		/// <param name="obj">When this method returns, contains the value of the field if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGetObject(string key, [MaybeNullWhen(false)] out JsonObject obj)
 		{
@@ -516,6 +543,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the JSON Object that corresponds to the item at the specified location, it it exists</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="obj">When this method returns, contains the value at this location if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGetObject(int index, [MaybeNullWhen(false)] out JsonObject obj)
 		{
@@ -528,6 +559,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the JSON Object that corresponds to the item at the specified location, it it exists</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="obj">When this method returns, contains the value at this location if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGetObject(Index index, [MaybeNullWhen(false)] out JsonObject obj)
 		{
@@ -540,16 +575,16 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
+		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
 		/// <param name="key">Name of the property</param>
-		/// <param name="value">If the property exists and is not equal to <c>null</c>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
-		/// <returns>Returns <see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
 		/// <example>
 		/// ({ "Hello": "World"}).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
 		/// ({ "Hello": "123"}).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>123"</c>
-		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>null</c>
+		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <see langword="null"/>
 		/// ({ }).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>0</c>
-		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <c>null</c>
+		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <see langword="null"/>
 		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -566,17 +601,17 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
+		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
 		/// <param name="key">Name of the property</param>
 		/// <param name="resolver"></param>
-		/// <param name="value">If the property exists and is not equal to <c>null</c>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
-		/// <returns>Returns <see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
 		/// <example>
 		/// ({ "Hello": "World"}).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
 		/// ({ "Hello": "123"}).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>123"</c>
-		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>null</c>
+		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <see langword="null"/>
 		/// ({ }).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>0</c>
-		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <c>null</c>
+		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <see langword="null"/>
 		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -592,7 +627,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Returns the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="key">Name of the field</param>
 		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or an exception if the value is null or missing</returns>
@@ -615,7 +650,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public TValue _Get<TValue>(string key) where TValue : notnull => _GetValue(key).Required<TValue>();
 
-		/// <summary>Returns the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="key">Name of the field</param>
 		/// <param name="resolver">Optional custom type resolver</param>
@@ -630,7 +665,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public TValue _Get<TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
 
-		/// <summary>Returns the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">Value returned if the value is null or missing</param>
@@ -639,10 +674,10 @@ namespace Doxense.Serialization.Json
 		/// <example>
 		/// ({ "Hello": "World"}).Get&lt;string&gt;("Hello", "not_found") // => <c>"World"</c>
 		/// ({ "Hello": "123"}).Get&lt;int&gt;("Hello", -1) // => <c>123</c>
-		/// ({ }).Get&lt;string&gt;("Hello", null) // => <c>null</c>
+		/// ({ }).Get&lt;string&gt;("Hello", null) // => <see langword="null"/>
 		/// ({ }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
 		/// ({ }).Get&lt;int&gt;("Hello", -1) // => <c>-1</c>
-		/// ({ }).Get&lt;int?&gt;("Hello", null) // => <c>null</c>
+		/// ({ }).Get&lt;int?&gt;("Hello", null) // => <see langword="null"/>
 		/// ({ "Hello": null }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
 		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // => Exception
 		/// ({ "Hello": null }).Get&lt;int?&gt;("Hello") // => Exception
@@ -653,7 +688,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? _Get<TValue>(string key, TValue defaultValue) => GetValueOrDefault(key).OrDefault(defaultValue);
 
-		/// <summary>Returns the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">Value returned if the value is null or missing</param>
@@ -666,7 +701,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? _Get<TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).OrDefault(defaultValue, resolver);
 
-		/// <summary>Returns the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
 		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
@@ -674,7 +709,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public JsonObject _GetObject(string key) => _GetValue(key)._AsObject();
 
-		/// <summary>Returns the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
 		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
 		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
@@ -683,7 +718,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonObject? _GetObject(string key, JsonObject? defaultValue) => GetValueOrDefault(key)._AsObjectOrDefault() ?? defaultValue;
 
-		/// <summary>Returns the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
 		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
@@ -691,7 +726,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public JsonObject _GetObject(int index) => GetValueOrDefault(index).RequiredIndex(index)._AsObject();
 
-		/// <summary>Returns the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
 		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
 		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
@@ -700,7 +735,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonObject? _GetObject(int index, JsonObject? defaultValue) => GetValueOrDefault(index)._AsObjectOrDefault() ?? defaultValue;
 
-		/// <summary>Returns the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
 		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
@@ -708,7 +743,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public JsonObject _GetObject(Index index) => GetValueOrDefault(index).RequiredIndex(index)._AsObject();
 
-		/// <summary>Returns the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
 		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
 		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
@@ -721,6 +756,10 @@ namespace Doxense.Serialization.Json
 
 		#region Array
 
+		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, it it exists</summary>
+		/// <param name="key">Name of the field</param>
+		/// <param name="array">When this method returns, contains the value of the field if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGetArray(string key, [MaybeNullWhen(false)] out JsonArray array)
 		{
@@ -733,6 +772,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the JSON Array that corresponds to the item at the specified location, it it exists</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="array">When this method returns, contains the value at this location if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGetArray(int index, [MaybeNullWhen(false)] out JsonArray array)
 		{
@@ -745,6 +788,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the JSON Array that corresponds to the item at the specified location, it it exists</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="array">When this method returns, contains the value at this location if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGetArray(Index index, [MaybeNullWhen(false)] out JsonArray array)
 		{
@@ -757,6 +804,18 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the converted value of the item at the specified location, if it exists.</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="value">When this method returns, if the location is within the bounds of the array, and the value is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(0, out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(2, out var value) // returns <see langword="true" /> and value will be equal to <c>123</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(3, out var value) // returns <see langword="false" />
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(3, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;string&gt;(0, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;int&gt;(0, out var value) // returns <see langword="false" />
+		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
@@ -771,6 +830,19 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the converted value of the item at the specified location, if it exists.</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="resolver"></param>
+		/// <param name="value">When this method returns, if the location is within the bounds of the array, and the value is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(0, resolver, out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(2, resolver, out var value) // returns <see langword="true" /> and value will be equal to <c>123</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(3, resolver, out var value) // returns <see langword="false" />
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(3, resolver, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;string&gt;(0, resolver, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;int&gt;(0, resolver, out var value) // returns <see langword="false" />
+		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryGet<TValue>(int index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
@@ -784,6 +856,18 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the converted value of the item at the specified location, if it exists.</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="value">When this method returns, if the location is within the bounds of the array, and the value is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(^3, out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(^1, out var value) // returns <see langword="true" /> and value will be equal to <c>123</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(^4, out var value) // returns <see langword="false" />
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(^4, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;string&gt;(^1, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;int&gt;(^1, out var value) // returns <see langword="false" />
+		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
@@ -798,6 +882,19 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the converted value of the item at the specified location, if it exists.</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="resolver"></param>
+		/// <param name="value">When this method returns, if the location is within the bounds of the array, and the value is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(^3, resolver, out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(^1, resolver, out var value) // returns <see langword="true" /> and value will be equal to <c>123</c>
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;string&gt;(^4, resolver, out var value) // returns <see langword="false" />
+		/// ([ "Hello", "World", 123 ]).TryGet&lt;int&gt;(^4, resolver, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;string&gt;(^1, resolver, out var value) // returns <see langword="false" />
+		/// ({ null }).TryGet&lt;int&gt;(^1, resolver, out var value) // returns <see langword="false" />
+		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryGet<TValue>(Index index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
@@ -811,7 +908,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or an exception if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -819,7 +916,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public TValue _Get<TValue>(int index) where TValue : notnull => _GetValue(index).Required<TValue>();
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="resolver"></param>
 		/// <param name="message"></param>
@@ -829,7 +926,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public TValue _Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>();
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or an exception if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -842,7 +939,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public TValue _Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => _GetValue(index).Required<TValue>();
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
 		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
@@ -852,89 +949,89 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? _Get<TValue>(int index, TValue defaultValue) => GetValueOrDefault(index).OrDefault(defaultValue);
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
 		/// <param name="resolver"></param>
-		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
+		/// <returns>the value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? _Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).OrDefault(defaultValue, resolver);
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
-		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
+		/// <returns>the value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? _Get<TValue>(Index index, TValue defaultValue) => GetValueOrDefault(index).OrDefault(defaultValue);
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
 		/// <param name="resolver"></param>
-		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
+		/// <returns>the value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? _Get<TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).OrDefault(defaultValue, resolver);
 
-		/// <summary>Returns the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArray(string key) => _GetValue(key)._AsArray();
 
-		/// <summary>Returns the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
 		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonArray? _GetArray(string key, JsonArray? defaultValue) => GetValueOrDefault(key)._AsArrayOrDefault() ?? defaultValue;
 
-		/// <summary>Returns the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArray(int index) => _GetValue(index)._AsArray();
 
-		/// <summary>Returns the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonArray? _GetArray(int index, JsonArray? defaultValue) => GetValueOrDefault(index)._AsArrayOrDefault() ?? defaultValue;
 
-		/// <summary>Returns the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArray(Index index) => _GetValue(index)._AsArray();
 
-		/// <summary>Returns the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
+		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -945,9 +1042,9 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Returns the value at the specified path</summary>
+		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <returns>Value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
+		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[Obsolete("OLD_API: Use _GetPathValue(path) if required, or _GetPathValueOrDefault(path, <default>) if optional")]
@@ -956,9 +1053,9 @@ namespace Doxense.Serialization.Json
 			return GetPathCore(path, null, required: false)!;
 		}
 
-		/// <summary>Returns the value at the specified path</summary>
+		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <returns>Value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
+		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public JsonValue _GetPathValue(string path)
@@ -966,10 +1063,10 @@ namespace Doxense.Serialization.Json
 			return GetPathCore(path, null, required: true);
 		}
 
-		/// <summary>Returns the value at the specified path</summary>
+		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <param name="defaultValue">Value that is returned if the path was not found, or the value is null or missing.</param>
-		/// <returns>Value found at this location, or <paramref name="defaultValue"/> if no match was found</returns>
+		/// <returns>the value found at this location, or <paramref name="defaultValue"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public JsonValue _GetPathValueOrDefault(string path, JsonValue? defaultValue = null)
@@ -1071,10 +1168,10 @@ namespace Doxense.Serialization.Json
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonArray? _GetPathArrayOrDefault(string path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false)._AsArrayOrDefault() ?? defaultValue;
 
-		/// <summary>Returns the converted value at the specified path</summary>
+		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <param name="required">If <see langword="true"/>, and no match was found, or the value is null or missing, an exception is thrown; otherwise, the <see langword="default"/> of type <typeparamref name="TValue"/> is returned.</param>
-		/// <returns>Value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <see langword="default"/> if no match was found and <paramref name="required"/> is <see langword="false"/>.</returns>
+		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <see langword="default"/> if no match was found and <paramref name="required"/> is <see langword="false"/>.</returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[Obsolete("OLD_API: use _GetPath<TValue>(path) if required, or _GetPath(path, <default>) if optional")]
@@ -1085,9 +1182,9 @@ namespace Doxense.Serialization.Json
 		}
 
 		
-		/// <summary>Returns the converted value at the specified path</summary>
+		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <returns>Value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or and exception if there was not match, or the matched value is null.</returns>
+		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or and exception if there was not match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public TValue _GetPath<TValue>(string path) where TValue : notnull
@@ -1095,10 +1192,10 @@ namespace Doxense.Serialization.Json
 			return _GetPathValue(path).Required<TValue>();
 		}
 
-		/// <summary>Returns the converted value at the specified path</summary>
+		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <param name="defaultValue">The default value to return when the no match is found for the specified <paramref name="path" />, or it is null or missing.</param>
-		/// <returns>Value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if no match was found or the value is null or missing.</returns>
+		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if no match was found or the value is null or missing.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1109,29 +1206,27 @@ namespace Doxense.Serialization.Json
 
 		//BLACK MAGIC!
 
-		// Pour pouvoir écrire "if (obj["Hello"]) ... else ...", il faut que JsonValue implémente l'opérateur 'op_true' (et 'op_false')
-		// Pour pouvoir écrire "if (obj["Hello"] && obj["World"]) ...." (resp. '||') il faut que JsonValue implémente l'opérateur 'op_&' (resp: 'op_|'),
-		// et que celui ci retourne aussi un JsonValue (qui sera passé en paramètre à 'op_true'/'op_false'.
+		// In order to be able to write "if (obj["Hello"]) ... else ...", then JsonValue must implement or operators 'op_true' and 'op_false'
+		// In order to be able to write "if (obj["Hello"] && obj["World"]) ...." (resp. '||') then JsonValue must implements the operator 'op_&' (resp: 'op_|'),
+		// and it must return a JsonValue instance (which will then be passed to 'op_true'/'op_false' to produce a boolean).
 
-		public static bool operator true(JsonValue? obj)
-		{
-			return obj != null && obj.ToBoolean();
-		}
+		/// <summary>Test if this value is logically equivalent to <see langword="true"/></summary>
+		public static bool operator true(JsonValue? obj) => obj != null && obj.ToBoolean();
 
-		public static bool operator false(JsonValue? obj)
-		{
-			return obj == null || obj.ToBoolean();
-		}
+		/// <summary>Test if this value is logically equivalent to <see langword="false"/></summary>
+		public static bool operator false(JsonValue? obj) => obj == null || obj.ToBoolean();
 
+		/// <summary>Perform a logical AND operation between two JSON values</summary>
 		public static JsonValue operator &(JsonValue? left, JsonValue? right)
 		{
-			//REVIEW:TODO: peut être gérer le cas de deux number pour faire le vrai binary AND ?
+			//REVIEW:TODO: maybe handle the cases were both values are JSON Numbers, and perform a bit-wise AND instead?
 			return left != null && right!= null && left.ToBoolean() && right.ToBoolean() ? JsonBoolean.True : JsonBoolean.False;
 		}
 
+		/// <summary>Perform a logical OR operation between two JSON values</summary>
 		public static JsonValue operator |(JsonValue? left, JsonValue? right)
 		{
-			//REVIEW:TODO: peut être gérer le cas de deux number pour faire le vrai binary AND ?
+			//REVIEW:TODO: maybe handle the cases were both values are JSON Numbers, and perform a bit-wise OR instead?
 			return (left != null && left.ToBoolean()) || (right != null && right.ToBoolean()) ? JsonBoolean.True : JsonBoolean.False;
 		}
 
@@ -1161,7 +1256,7 @@ namespace Doxense.Serialization.Json
 
 		void IJsonSerializable.JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver)
 		{
-			throw new NotSupportedException("Don't use this method!");
+			throw new NotSupportedException("Do not calls this method!");
 		}
 
 		#endregion
@@ -1311,4 +1406,5 @@ namespace Doxense.Serialization.Json
 		#endregion
 
 	}
+
 }
