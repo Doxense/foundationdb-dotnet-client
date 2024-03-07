@@ -1623,7 +1623,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retourné à la place.</remarks>
 		[Pure, ContractAnnotation("halt<=key:null")]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+		public override JsonValue _GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
 		/// <summary>Returns the JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
@@ -2690,6 +2690,9 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
+		/// <summary>Converts this JSON Object into a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object?&gt;</see>.</summary>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override object? ToObject()
 		{
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);

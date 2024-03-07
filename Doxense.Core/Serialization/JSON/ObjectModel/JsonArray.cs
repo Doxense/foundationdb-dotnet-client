@@ -1892,11 +1892,11 @@ namespace Doxense.Serialization.Json
 		public override JsonValue _GetValue(Index index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
 		
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
+		[Obsolete("OLD_API: Use _Get<TValue>(index) if required, or _Get<TValue>(index, defaultValue) if optional", error: true)]
 		public override TValue? Get<TValue>(int index) where TValue : default => m_items.AsSpan(0, m_size)[index].As<TValue>();
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
+		[Obsolete("OLD_API: Use _Get<TValue>(index) if required, or _Get<TValue>(index, defaultValue) if optional", error: true)]
 		public override TValue? Get<TValue>(Index index) where TValue : default => m_items.AsSpan(0, m_size)[index].As<TValue>();
 
 		[CollectionAccess(CollectionAccessType.Read)]
@@ -1929,7 +1929,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		public override JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null)
+		public override JsonValue _GetValueOrDefault(int index, JsonValue? defaultValue = null)
 		{
 			if ((uint) index < m_size)
 			{
@@ -1942,7 +1942,7 @@ namespace Doxense.Serialization.Json
 			return defaultValue ?? JsonNull.Null;
 		}
 
-		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null)
+		public override JsonValue _GetValueOrDefault(Index index, JsonValue? defaultValue = null)
 		{
 			var offset = index.GetOffset(m_size);
 			if ((uint) offset < m_size)
@@ -1964,7 +1964,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
 		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas un objet JSON.</exception>
 		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("OLD_API: Use GetObject(index) if required, or GetObjectOrDefault(index, ...) if optional", error: true)]
+		[Obsolete("OLD_API: Use _GetObject(index) if required, or GetObjectOrDefault(index, ...) if optional", error: true)]
 		public JsonObject? GetObject(int index, bool required = false) => this[index].AsObject(required);
 
 		/// <summary>Returns the JSON Array at the specified index</summary>
@@ -2367,8 +2367,7 @@ namespace Doxense.Serialization.Json
 
 			public bool MoveNext()
 			{
-				//TODO: check versionning?
-				if ((uint)m_index < (uint)m_size)
+				if ((uint) m_index < m_size)
 				{
 					m_current = m_items[m_index];
 					m_index++;
@@ -2492,7 +2491,7 @@ namespace Doxense.Serialization.Json
 				{
 					m_array = array;
 					m_index = 0;
-					m_current = default(TValue);
+					m_current = default;
 					m_required = required;
 				}
 
@@ -2502,8 +2501,7 @@ namespace Doxense.Serialization.Json
 				public bool MoveNext()
 				{
 					var arr = m_array;
-					//TODO: check versionning?
-					if ((uint) m_index < (uint) arr.m_size)
+					if ((uint) m_index < arr.m_size)
 					{
 
 						var val = arr.m_items[m_index];
@@ -2526,9 +2524,8 @@ namespace Doxense.Serialization.Json
 
 				private bool MoveNextRare()
 				{
-					//TODO: check versionning?
 					m_index = m_array.m_size + 1;
-					m_current = default(TValue);
+					m_current = default;
 					return false;
 				}
 
@@ -2546,9 +2543,8 @@ namespace Doxense.Serialization.Json
 
 				void IEnumerator.Reset()
 				{
-					//TODO: check versionning?
 					m_index = 0;
-					m_current = default(TValue);
+					m_current = default;
 				}
 
 				public TValue Current => m_current!;
@@ -2562,12 +2558,18 @@ namespace Doxense.Serialization.Json
 		internal override bool IsSmallValue()
 		{
 			const int LARGE_ARRAY = 5;
+
 			var items = this.AsSpan();
 			if (items.Length >= LARGE_ARRAY) return false;
+
 			foreach(var item in items)
 			{
-				if (!item.IsSmallValue()) return false;
+				if (!item.IsSmallValue())
+				{
+					return false;
+				}
 			}
+
 			return true;
 		}
 
@@ -2619,6 +2621,9 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
+		/// <summary>Converts this JSON Array with a <see cref="List{T}">List&lt;object?></see>.</summary>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override object ToObject()
 		{
 			//TODO: détecter le cas ou tt les members ont le même type T,
@@ -3142,7 +3147,7 @@ namespace Doxense.Serialization.Json
 			var total = TNumber.Zero;
 			foreach (var item in this.AsSpan())
 			{
-				total += item.As<TNumber>()!;
+				total += item.OrDefault<TNumber>(TNumber.Zero);
 			}
 			return total;
 		}
@@ -3790,6 +3795,7 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	[JetBrains.Annotations.PublicAPI]
 	public static class JsonArrayExtensions
 	{
 

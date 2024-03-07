@@ -70,7 +70,7 @@ namespace Doxense.Serialization.Json
 		protected JsonBindingException(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
-			this.Value = JsonValue.Parse(info.GetString("Value"));
+			this.Value = JsonValue._Parse(info.GetString("Value"));
 			this.Path = info.GetString("Path");
 		}
 

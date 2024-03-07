@@ -1031,7 +1031,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue[] _GetArray<TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null)
 		{
-			var value = self.GetValueOrDefault(key).RequiredField(key, message);
+			var value = self._GetValueOrDefault(key).RequiredField(key, message);
 			if (value is not JsonArray arr)
 			{
 				throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
@@ -1062,7 +1062,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue[]? _GetArray<TValue>(this JsonValue? self, string key, TValue[]? defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
-			var value = self?.GetValueOrDefault(key);
+			var value = self?._GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:
@@ -1101,7 +1101,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue[] _GetArray<TValue>(this JsonValue? self, string key, ReadOnlySpan<TValue> defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
-			var value = self?.GetValueOrDefault(key);
+			var value = self?._GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:
@@ -1146,7 +1146,7 @@ namespace Doxense.Serialization.Json
 		public static List<TValue> _GetList<TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null)
 		{
 			Contract.NotNull(self);
-			var value = self.GetValueOrDefault(key).RequiredField(key, message);
+			var value = self._GetValueOrDefault(key).RequiredField(key, message);
 			if (value is not JsonArray arr) throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
 			return arr.ToList<TValue>(resolver)!;
 		}
@@ -1174,7 +1174,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static List<TValue>? _GetList<TValue>(this JsonValue? self, string key, List<TValue>? defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
-			var value = self?.GetValueOrDefault(key);
+			var value = self?._GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:
@@ -1224,7 +1224,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static Dictionary<TKey, TValue>? _GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue, ICrystalJsonTypeResolver? resolver) where TKey : notnull
 		{
-			var value = self?.GetValueOrDefault(key);
+			var value = self?._GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:

@@ -249,12 +249,12 @@ namespace FoundationDB.Client.Status
 
 		protected JsonObject? GetObject(string field)
 		{
-			return m_data?._GetObject(field, null);
+			return m_data?._GetObjectOrDefault(field, null);
 		}
 
 		protected JsonArray? GetArray(string field)
 		{
-			return m_data?._GetArray(field, null);
+			return m_data?._GetArrayOrDefault(field, null);
 		}
 
 		protected string? GetString(string field)
@@ -837,9 +837,9 @@ namespace FoundationDB.Client.Status
 		private MetricStatistics? m_batchGrvLatencyStatistics;
 		private MetricStatistics? m_defaultGrvLatencyStatistics;
 
-		public MetricStatistics BatchGrvLatencyStatistics => m_batchGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?._GetObject("batch", null));
+		public MetricStatistics BatchGrvLatencyStatistics => m_batchGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?._GetObjectOrDefault("batch", null));
 
-		public MetricStatistics DefaultGrvLatencyStatistics => m_defaultGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?._GetObject("default", null));
+		public MetricStatistics DefaultGrvLatencyStatistics => m_defaultGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?._GetObjectOrDefault("default", null));
 
 	}
 

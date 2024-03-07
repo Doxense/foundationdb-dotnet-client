@@ -386,17 +386,17 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _GetValue(key) if required, or _GetValueOrDefault(key) if optional", error: true)]
-		public virtual JsonValue GetValue(string key) => GetValueOrDefault(key, JsonNull.Missing);
+		public virtual JsonValue GetValue(string key) => _GetValueOrDefault(key, JsonNull.Missing);
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _GetValue(index) if required, or _GetValueOrDefault(index) if optional", error: true)]
-		public virtual JsonValue GetValue(int index) => GetValueOrDefault(index, JsonNull.Missing);
+		public virtual JsonValue GetValue(int index) => _GetValueOrDefault(index, JsonNull.Missing);
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _GetValue(index) if required, or _GetValueOrDefault(index) if optional", error: true)]
-		public virtual JsonValue GetValue(Index index) => GetValueOrDefault(index, JsonNull.Missing);
+		public virtual JsonValue GetValue(Index index) => _GetValueOrDefault(index, JsonNull.Missing);
 
 		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
@@ -404,21 +404,21 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the field is null or missing</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public virtual JsonValue _GetValue(string key) => GetValueOrDefault(key, JsonNull.Missing).RequiredField(key);
+		public virtual JsonValue _GetValue(string key) => _GetValueOrDefault(key, JsonNull.Missing).RequiredField(key);
 
 		/// <summary>Returns the value at the <b>required</b> item at the specified index.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
 		/// <returns>The value located at the specified index, or an exception if the index is outside the bounds of the array, or if the item is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public virtual JsonValue _GetValue(int index) => GetValueOrDefault(index, JsonNull.Missing).RequiredIndex(index);
+		public virtual JsonValue _GetValue(int index) => _GetValueOrDefault(index, JsonNull.Missing).RequiredIndex(index);
 
 		/// <summary>Returns the value at the <b>required</b> item at the specified index.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
 		/// <returns>The value located at the specified index, or an exception if the index is outside the bounds of the array, or if the item is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public virtual JsonValue _GetValue(Index index) => GetValueOrDefault(index, JsonNull.Missing).RequiredIndex(index);
+		public virtual JsonValue _GetValue(Index index) => _GetValueOrDefault(index, JsonNull.Missing).RequiredIndex(index);
 		
 		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
@@ -426,7 +426,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public virtual JsonValue GetValueOrDefault(string key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key);
+		public virtual JsonValue _GetValueOrDefault(string key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key);
 
 		/// <summary>Returns the value at the <i>optional</i> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
@@ -434,7 +434,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, of the item is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public virtual JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);
+		public virtual JsonValue _GetValueOrDefault(int index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);
 
 		/// <summary>Returns the value at the <i>optional</i> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
@@ -442,7 +442,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, of the item is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public virtual JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);
+		public virtual JsonValue _GetValueOrDefault(Index index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);
 
 		/// <summary>Retourne la valeur d'un champ, si cette valeur est un objet JSON</summary>
 		/// <param name="key">Nom du champ à retourner</param>
@@ -453,7 +453,7 @@ namespace Doxense.Serialization.Json
 		public virtual JsonValue this[string key]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
-			get => GetValueOrDefault(key);
+			get => _GetValueOrDefault(key);
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : FailDoesNotSupportIndexingWrite(this, key));
 		}
@@ -468,7 +468,7 @@ namespace Doxense.Serialization.Json
 		public virtual JsonValue this[int index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
-			get => GetValueOrDefault(index);
+			get => _GetValueOrDefault(index);
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : FailDoesNotSupportIndexingWrite(this, index));
 		}
@@ -483,7 +483,7 @@ namespace Doxense.Serialization.Json
 		public virtual JsonValue this[Index index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
-			get => GetValueOrDefault(index);
+			get => _GetValueOrDefault(index);
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set => throw (this.IsReadOnly ? ThrowHelper.InvalidOperationException($"Cannot mutate a read-only JSON {this.Type}") : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
 		}
@@ -663,7 +663,8 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public TValue _Get<TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
+		// ReSharper disable once MethodOverloadWithOptionalParameter
+		public TValue _Get<TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => _GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -686,7 +687,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(string key, TValue defaultValue) => GetValueOrDefault(key).OrDefault(defaultValue);
+		public TValue? _Get<TValue>(string key, TValue defaultValue) => _GetValueOrDefault(key).OrDefault(defaultValue);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -699,7 +700,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).OrDefault(defaultValue, resolver);
+		public TValue? _Get<TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(key).OrDefault(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
@@ -716,7 +717,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonObject? _GetObject(string key, JsonObject? defaultValue) => GetValueOrDefault(key)._AsObjectOrDefault() ?? defaultValue;
+		public JsonObject? _GetObjectOrDefault(string key, JsonObject? defaultValue = null) => _GetValueOrDefault(key)._AsObjectOrDefault() ?? defaultValue;
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
@@ -724,7 +725,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
-		public JsonObject _GetObject(int index) => GetValueOrDefault(index).RequiredIndex(index)._AsObject();
+		public JsonObject _GetObject(int index) => _GetValueOrDefault(index).RequiredIndex(index)._AsObject();
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
@@ -733,7 +734,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonObject? _GetObject(int index, JsonObject? defaultValue) => GetValueOrDefault(index)._AsObjectOrDefault() ?? defaultValue;
+		public JsonObject? _GetObjectOrDefault(int index, JsonObject? defaultValue) => _GetValueOrDefault(index)._AsObjectOrDefault() ?? defaultValue;
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
@@ -741,7 +742,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
-		public JsonObject _GetObject(Index index) => GetValueOrDefault(index).RequiredIndex(index)._AsObject();
+		public JsonObject _GetObject(Index index) => _GetValueOrDefault(index).RequiredIndex(index)._AsObject();
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
@@ -750,7 +751,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonObject? _GetObject(Index index, JsonObject? defaultValue) => GetValueOrDefault(index)._AsObjectOrDefault() ?? defaultValue;
+		public JsonObject? _GetObjectOrDefault(Index index, JsonObject? defaultValue = null) => _GetValueOrDefault(index)._AsObjectOrDefault() ?? defaultValue;
 
 		#endregion
 
@@ -924,7 +925,8 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public TValue _Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>();
+		// ReSharper disable once MethodOverloadWithOptionalParameter
+		public TValue _Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => _GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>();
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -937,6 +939,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		// ReSharper disable once MethodOverloadWithOptionalParameter
 		public TValue _Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => _GetValue(index).Required<TValue>();
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
@@ -947,7 +950,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(int index, TValue defaultValue) => GetValueOrDefault(index).OrDefault(defaultValue);
+		public TValue? _Get<TValue>(int index, TValue defaultValue) => _GetValueOrDefault(index).OrDefault(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -958,7 +961,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).OrDefault(defaultValue, resolver);
+		public TValue? _Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(index).OrDefault(defaultValue, resolver);
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -968,7 +971,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(Index index, TValue defaultValue) => GetValueOrDefault(index).OrDefault(defaultValue);
+		public TValue? _Get<TValue>(Index index, TValue defaultValue) => _GetValueOrDefault(index).OrDefault(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -979,7 +982,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).OrDefault(defaultValue, resolver);
+		public TValue? _Get<TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(index).OrDefault(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
@@ -998,7 +1001,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? _GetArray(string key, JsonArray? defaultValue) => GetValueOrDefault(key)._AsArrayOrDefault() ?? defaultValue;
+		public JsonArray? _GetArrayOrDefault(string key, JsonArray? defaultValue) => _GetValueOrDefault(key)._AsArrayOrDefault() ?? defaultValue;
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1017,7 +1020,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? _GetArray(int index, JsonArray? defaultValue) => GetValueOrDefault(index)._AsArrayOrDefault() ?? defaultValue;
+		public JsonArray? _GetArrayOrDefault(int index, JsonArray? defaultValue = null) => _GetValueOrDefault(index)._AsArrayOrDefault() ?? defaultValue;
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1036,7 +1039,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? _GetArray(Index index, JsonArray? defaultValue) => GetValueOrDefault(index)._AsArrayOrDefault() ?? defaultValue;
+		public JsonArray? _GetArrayOrDefault(Index index, JsonArray? defaultValue = null) => _GetValueOrDefault(index)._AsArrayOrDefault() ?? defaultValue;
 
 		#endregion
 
@@ -1050,7 +1053,7 @@ namespace Doxense.Serialization.Json
 		[Obsolete("OLD_API: Use _GetPathValue(path) if required, or _GetPathValueOrDefault(path, <default>) if optional")]
 		public JsonValue GetPath(string path)
 		{
-			return GetPathCore(path, null, required: false)!;
+			return GetPathCore(path, null, required: false);
 		}
 
 		/// <summary>Gets the value at the specified path</summary>
@@ -1103,7 +1106,7 @@ namespace Doxense.Serialization.Json
 							return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Error;
 						}
 						//TODO: OPTIMIZE: whenever .NET adds support for indexing Dictionary with RoS<char>, we will be able to skip this memory allocation!
-						return obj.GetValueOrDefault(name);
+						return obj._GetValueOrDefault(name);
 
 					}
 					case JPathToken.Identifier:
@@ -1175,11 +1178,13 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("required:true => notnull")]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[Obsolete("OLD_API: use _GetPath<TValue>(path) if required, or _GetPath(path, <default>) if optional")]
+#pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
 		public TValue? GetPath<TValue>(string path, bool required = false)
 		{
 			var val = GetPath(path);
 			return required ? val.RequiredPath(path).Required<TValue>() : val.OrDefault<TValue>();
 		}
+#pragma warning restore CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
 
 		
 		/// <summary>Gets the converted value at the specified path</summary>
