@@ -367,6 +367,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual bool TryGetValue(int index, [MaybeNullWhen(false)] out JsonValue value)
 		{
+			//TODO: REVIEW: should we return false, or fail if not supported? (note: this[xxx] throws on values that do not support indexing)
 			value = null;
 			return false;
 		}
@@ -379,6 +380,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual bool TryGetValue(Index index, [MaybeNullWhen(false)] out JsonValue value)
 		{
+			//TODO: REVIEW: should we return false, or fail if not supported? (note: this[xxx] throws on values that do not support indexing)
 			value = null;
 			return false;
 		}
@@ -424,6 +426,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">Name of the field to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
 		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
+		/// <remarks>If the index is outside the bounds, and <paramref name="defaultValue"/> is not specified, then <see cref="JsonNull.Error"/> is returned.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue _GetValueOrDefault(string key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key);
@@ -432,6 +435,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="index">Index of the item to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array, or if the item at this location is null or missing.</param>
 		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, of the item is null or missing.</returns>
+		/// <remarks>If the index is outside the bounds, and <paramref name="defaultValue"/> is not specified, then <see cref="JsonNull.Error"/> is returned.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue _GetValueOrDefault(int index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);

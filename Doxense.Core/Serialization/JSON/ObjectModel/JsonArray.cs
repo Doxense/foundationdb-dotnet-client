@@ -1931,29 +1931,23 @@ namespace Doxense.Serialization.Json
 
 		public override JsonValue _GetValueOrDefault(int index, JsonValue? defaultValue = null)
 		{
-			if ((uint) index < m_size)
+			if ((uint) index >= m_size)
 			{
-				var child = m_items[index];
-				if (child is not (null or JsonNull))
-				{
-					return child;
-				}
+				return defaultValue ?? JsonNull.Error;
 			}
-			return defaultValue ?? JsonNull.Null;
+			var child = m_items[index];
+			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
 
 		public override JsonValue _GetValueOrDefault(Index index, JsonValue? defaultValue = null)
 		{
 			var offset = index.GetOffset(m_size);
-			if ((uint) offset < m_size)
+			if ((uint) offset >= m_size)
 			{
-				var child = m_items[offset];
-				if (child is not (null or JsonNull))
-				{
-					return child;
-				}
+				return defaultValue ?? JsonNull.Error;
 			}
-			return defaultValue ?? JsonNull.Null;
+			var child = m_items[offset];
+			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
 
 		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>

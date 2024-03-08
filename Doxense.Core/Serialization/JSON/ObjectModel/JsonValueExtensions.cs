@@ -83,6 +83,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Vérifie qu'une valeur JSON est bien présente dans une array</summary>
 		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
 		/// <param name="index">Index dans l'array qui doit être présent</param>
+		/// <param name="message"></param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing</exception>
 		[Pure, ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,6 +92,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Vérifie qu'une valeur JSON est bien présente dans une array</summary>
 		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
 		/// <param name="index">Index dans l'array qui doit être présent</param>
+		/// <param name="message"></param>
 		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing</exception>
 		[Pure, ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -140,10 +142,10 @@ namespace Doxense.Serialization.Json
 		internal static JsonArray FailValueIsNotAnArray(JsonValue value) => throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailIndexIsNullOrMissing(int index, string? message = null) => throw new InvalidOperationException(message ?? $"Required JSON field at index {index} was null or missing.");
+		internal static JsonValue FailIndexIsNullOrMissing(int index, JsonValue value, string? message = null) => throw new InvalidOperationException(message ?? (ReferenceEquals(value, JsonNull.Error) ? $"Index {index} is outside the bounds of the JSON Array." : $"Required JSON field at index {index} was null or missing."));
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailIndexIsNullOrMissing(Index index, string? message = null) => throw new InvalidOperationException(message ?? $"Required JSON field at index {index} was null or missing.");
+		internal static JsonValue FailIndexIsNullOrMissing(Index index, JsonValue value, string? message = null) => throw new InvalidOperationException(message ?? (ReferenceEquals(value, JsonNull.Error) ? $"Index {index} is outside the bounds of the JSON Array." : $"Required JSON field at index {index} was null or missing."));
 
 		[Pure]
 		internal static InvalidOperationException ErrorFieldIsNullOrMissing(string field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.");
