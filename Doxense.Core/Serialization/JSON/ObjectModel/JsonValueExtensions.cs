@@ -772,41 +772,29 @@ namespace Doxense.Serialization.Json
 			return (JsonObject) value;
 		}
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
-		/// <param name="value">Valeur JSON qui doit être un object</param>
-		/// <returns>Valeur castée en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
-		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas un object.</exception>
-		[Pure]
-		public static JsonObject _AsObject(this JsonValue? value)
-		{
-			if (value is null or JsonNull)
-			{
-				return FailObjectIsNullOrMissing();
-			}
-			if (value.Type != JsonType.Object)
-			{
-				return FailValueIsNotAnObject(value);
-			}
-			return (JsonObject) value;
-		}
+		/// <summary>Returns this value as a required JSON Object.</summary>
+		/// <param name="value">Value that must be a JSON Object.</param>
+		/// <returns>The same instance casted as <see cref="JsonObject"/>, Throws an exception if the value is null, missing, or any other type.</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="value"/> is null, missing, or not a JSON Object.</exception>
+		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonObject _AsObject(this JsonValue? value) => value is null or JsonNull ? FailObjectIsNullOrMissing() : value as JsonObject ?? FailValueIsNotAnObject(value);
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
-		/// <param name="value">Valeur JSON qui doit être un object</param>
-		/// <returns>Valeur castée en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
-		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas un object.</exception>
-		[Pure]
-		public static JsonObject? _AsObjectOrDefault(this JsonValue? value)
-		{
-			if (value is null or JsonNull)
-			{
-				return null;
-			}
-			if (value.Type != JsonType.Object)
-			{
-				return FailValueIsNotAnObject(value);
-			}
-			return (JsonObject) value;
-		}
+		/// <summary>Returns this value as JSON Object, or <see langword="null"/> if it is null or missing.</summary>
+		/// <param name="value">Value that can either be a JSON Object or null or missing.</param>
+		/// <returns>The same instance casted as <see cref="JsonObject"/>, or <see langword="null"/> if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="value"/> is not a JSON Object and not null or missing.</exception>
+		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonObject? _AsObjectOrDefault(this JsonValue? value) => value is null or JsonNull ? null : value as JsonObject ?? FailValueIsNotAnObject(value);
+
+		/// <summary>Returns this value as a JSON Object, or an empty (read-only) object it is null or missing.</summary>
+		/// <param name="value">Value that can either be a JSON Object or null or missing.</param>
+		/// <returns>The same instance casted as <see cref="JsonObject"/>, or the <see cref="JsonObject.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="value"/> is not a JSON Object.</exception>
+		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonObject _AsObjectOrEmpty(this JsonValue? value) => value is null or JsonNull ? JsonObject.EmptyReadOnly : value as JsonObject ?? FailValueIsNotAnObject(value);
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static JsonObject FailObjectIsNullOrMissing() => throw new InvalidOperationException("Required JSON object was null or missing.");
@@ -902,21 +890,29 @@ namespace Doxense.Serialization.Json
 
 		#region Array Helpers...
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
-		/// <param name="value">Valeur JSON qui doit être une array</param>
-		/// <returns>Valeur castée en JsonArray si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
-		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas une array.</exception>
+		/// <summary>Returns this value as a required JSON Array.</summary>
+		/// <param name="value">Value that must be a JSON Array.</param>
+		/// <returns>The same instance casted as <see cref="JsonArray"/>, Throws an exception if the value is null, missing, or any other type.</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="value"/> is null, missing, or not a JSON Array.</exception>
 		[Pure, ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonArray _AsArray(this JsonValue? value) => value is null or JsonNull ? FailArrayIsNullOrMissing() : value as JsonArray ?? FailValueIsNotAnArray(value);
 
-		/// <summary>Retourne la valeur JSON sous forme d'array, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit une array, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonArray si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
-		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> n'est ni null, ni une array.</exception>
+		/// <summary>Returns this value as a JSON Array, or <see langword="null"/> if it is null or missing.</summary>
+		/// <param name="value">Value that can either be a JSON Array or null or missing.</param>
+		/// <returns>The same instance casted as <see cref="JsonArray"/>, or <see langword="null"/> if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="value"/> is not a JSON Array and not null or missing.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonArray? _AsArrayOrDefault(this JsonValue? value) => value.IsNullOrMissing() ? null : value as JsonArray ?? FailValueIsNotAnArray(value);
+
+		/// <summary>Returns this value as a JSON Array, or an empty (read-only) object it is null or missing.</summary>
+		/// <param name="value">Value that can either be a JSON Array or null or missing.</param>
+		/// <returns>The same instance casted as <see cref="JsonArray"/>, or the <see cref="JsonArray.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="value"/> is not a JSON Array.</exception>
+		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonArray _AsArrayOrEmpty(this JsonValue? value) => value.IsNullOrMissing() ? JsonArray.EmptyReadOnly : value as JsonArray ?? FailValueIsNotAnArray(value);
 
 		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
 		/// <param name="value">Valeur JSON qui doit être une array</param>
