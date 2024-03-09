@@ -323,8 +323,11 @@ namespace Doxense.Serialization.Json
 			return c;
 		}
 
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public virtual bool Contains(JsonValue? value) => false;
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual bool Contains(JsonValue? value) => throw FailDoesNotSupportContains(this);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		protected static InvalidOperationException FailDoesNotSupportContains(JsonValue value) => new($"Cannot index into a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		protected static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, string key) => new($"Cannot read property '{key}' on a JSON {value.Type}, because it is not a JSON Object");
@@ -456,7 +459,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[string key]
 		{
-			[Pure, CollectionAccess(CollectionAccessType.Read)]
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => _GetValueOrDefault(key);
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : FailDoesNotSupportIndexingWrite(this, key));
@@ -471,7 +474,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[int index]
 		{
-			[Pure, CollectionAccess(CollectionAccessType.Read)]
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => _GetValueOrDefault(index);
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : FailDoesNotSupportIndexingWrite(this, index));
@@ -486,7 +489,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[Index index]
 		{
-			[Pure, CollectionAccess(CollectionAccessType.Read)]
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => _GetValueOrDefault(index);
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set => throw (this.IsReadOnly ? ThrowHelper.InvalidOperationException($"Cannot mutate a read-only JSON {this.Type}") : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));

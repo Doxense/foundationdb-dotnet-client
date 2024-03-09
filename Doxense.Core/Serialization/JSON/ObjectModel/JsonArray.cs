@@ -1886,9 +1886,11 @@ namespace Doxense.Serialization.Json
 		public override JsonValue GetValue(Index index) => m_items.AsSpan(0, m_size)[index];
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue _GetValue(int index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue _GetValue(Index index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
 		
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1929,6 +1931,8 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue _GetValueOrDefault(int index, JsonValue? defaultValue = null)
 		{
 			if ((uint) index >= m_size)
@@ -1939,6 +1943,8 @@ namespace Doxense.Serialization.Json
 			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
 
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue _GetValueOrDefault(Index index, JsonValue? defaultValue = null)
 		{
 			var offset = index.GetOffset(m_size);
@@ -1976,12 +1982,14 @@ namespace Doxense.Serialization.Json
 		/// <param name="item">The value to locate in the array.</param>
 		/// <returns>The index of <paramref name="item" /> if found in the array; otherwise, <see langword="-1"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int IndexOf(JsonValue item) => this.AsSpan().IndexOf(item);
 
 		/// <summary>Determines whether the JSON array contains a specific JSON value.</summary>
 		/// <param name="item">The value to locate in the array.</param>
 		/// <returns> <see langword="true" /> if <paramref name="item" /> is found in the array; otherwise, <see langword="false" />.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override bool Contains(JsonValue? item)
 		{
 			var items = m_items;

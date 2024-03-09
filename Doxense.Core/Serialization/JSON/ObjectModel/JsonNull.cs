@@ -190,6 +190,20 @@ namespace Doxense.Serialization.Json
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
+		public override JsonValue _GetValueOrDefault(string key, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
+
+		public override JsonValue _GetValueOrDefault(int index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
+
+		public override JsonValue _GetValueOrDefault(Index index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
+
+		public override JsonValue _GetValue(string key) => JsonValueExtensions.FailFieldIsNullOrMissing(key);
+
+		public override JsonValue _GetValue(int index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
+
+		public override JsonValue _GetValue(Index index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
+
+		public override bool Contains(JsonValue? value) => false;
+
 		internal override bool IsSmallValue() => true;
 
 		internal override bool IsInlinable() => true;
