@@ -249,12 +249,12 @@ namespace FoundationDB.Client.Status
 
 		protected JsonObject? GetObject(string field)
 		{
-			return m_data?._GetObjectOrDefault(field, null);
+			return m_data?._GetObjectOrDefault(field);
 		}
 
 		protected JsonArray? GetArray(string field)
 		{
-			return m_data?._GetArrayOrDefault(field, null);
+			return m_data?._GetArrayOrDefault(field);
 		}
 
 		protected string? GetString(string field)

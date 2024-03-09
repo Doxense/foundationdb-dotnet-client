@@ -836,6 +836,293 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
+		public void Test_JsonValue_AsObject()
+		{
+			{ // null
+				JsonValue? value = null;
+				Assert.That(() => value._AsObject(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(value._AsObjectOrDefault(), Is.Null);
+				Assert.That(value._AsObjectOrEmpty(), Is.SameAs(JsonObject.EmptyReadOnly));
+			}
+			{ // JsonNull
+				JsonValue value = JsonNull.Null;
+				Assert.That(() => value._AsObject(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(value._AsObjectOrDefault(), Is.Null);
+				Assert.That(value._AsObjectOrEmpty(), Is.SameAs(JsonObject.EmptyReadOnly));
+			}
+			{ // empty object
+				JsonValue value = JsonObject.Create();
+				Assert.That(value._AsObject(), Is.SameAs(value));
+				Assert.That(value._AsObjectOrDefault(), Is.SameAs(value));
+				Assert.That(value._AsObjectOrEmpty(), Is.SameAs(value));
+			}
+			{ // non empty object
+				JsonValue value = JsonObject.Create("hello", "world");
+				Assert.That(value._AsObject(), Is.SameAs(value));
+				Assert.That(value._AsObjectOrDefault(), Is.SameAs(value));
+				Assert.That(value._AsObjectOrEmpty(), Is.SameAs(value));
+			}
+			{ // not an object
+				JsonValue value = JsonArray.Create("hello", "world");
+				Assert.That(() => value._AsObject(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => value._AsObjectOrDefault(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => value._AsObjectOrEmpty(), Throws.InstanceOf<JsonBindingException>());
+			}
+		}
+
+		[Test]
+		public void Test_JsonValue_GetObject()
+		{
+			var foo = JsonObject.Create();
+			var bar = JsonObject.Create("x", 1, "y", 2, "z", 3);
+			{
+				var obj = new JsonObject()
+				{
+					["foo"] = foo,
+					["bar"] = bar,
+					["baz"] = JsonNull.Null,
+					["other"] = JsonArray.Create("hello", "world"),
+					["text"] = "hello, there!",
+					["number"] = 123,
+					["boolean"] = true,
+				};
+
+				{ // GetObject()
+					Assert.That(obj._GetObject("foo"), Is.SameAs(foo));
+					Assert.That(obj._GetObject("bar"), Is.SameAs(bar));
+					Assert.That(() => obj._GetObject("baz"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObject("not_found"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObject("other"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObject("text"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObject("number"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObject("boolean"), Throws.InstanceOf<JsonBindingException>());
+				}
+				{ // GetObjectOrDefault()
+					Assert.That(obj._GetObjectOrDefault("foo"), Is.SameAs(foo));
+					Assert.That(obj._GetObjectOrDefault("bar"), Is.SameAs(bar));
+					Assert.That(() => obj._GetObjectOrDefault("baz"), Is.Null);
+					Assert.That(() => obj._GetObjectOrDefault("not_found"), Is.Null);
+					Assert.That(() => obj._GetObjectOrDefault("other"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObjectOrDefault("text"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObjectOrDefault("number"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObjectOrDefault("boolean"), Throws.InstanceOf<JsonBindingException>());
+				}
+				{ // GetObjectOrEmpty()
+					Assert.That(obj._GetObjectOrEmpty("foo"), Is.SameAs(foo));
+					Assert.That(obj._GetObjectOrEmpty("bar"), Is.SameAs(bar));
+					Assert.That(() => obj._GetObjectOrEmpty("baz"), Is.SameAs(JsonObject.EmptyReadOnly));
+					Assert.That(() => obj._GetObjectOrEmpty("not_found"), Is.SameAs(JsonObject.EmptyReadOnly));
+					Assert.That(() => obj._GetObjectOrEmpty("other"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObjectOrEmpty("text"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObjectOrEmpty("number"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetObjectOrEmpty("boolean"), Throws.InstanceOf<JsonBindingException>());
+				}
+			}
+			{
+				var arr = new JsonArray()
+				{
+					/*0*/ foo,
+					/*1*/ bar,
+					/*2*/ JsonNull.Null,
+					/*3*/ JsonArray.Create("hello", "world"),
+					/*4*/ "hello, there!",
+					/*5*/ 123,
+					/*6*/ true,
+				};
+
+				{ // GetArray()
+					Assert.That(arr._GetObject(0), Is.SameAs(foo));
+					Assert.That(arr._GetObject(1), Is.SameAs(bar));
+					Assert.That(() => arr._GetObject(2), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObject(3), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObject(4), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObject(5), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObject(6), Throws.InstanceOf<JsonBindingException>());
+				}
+				{ // GetArrayOrDefault()
+					Assert.That(arr._GetObjectOrDefault(0), Is.SameAs(foo));
+					Assert.That(arr._GetObjectOrDefault(1), Is.SameAs(bar));
+					Assert.That(() => arr._GetObjectOrDefault(2), Is.Null);
+					Assert.That(() => arr._GetObjectOrDefault(3), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObjectOrDefault(4), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObjectOrDefault(5), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObjectOrDefault(6), Throws.InstanceOf<JsonBindingException>());
+				}
+				{ // GetArrayOrEmpty()
+					Assert.That(arr._GetObjectOrEmpty(0), Is.SameAs(foo));
+					Assert.That(arr._GetObjectOrEmpty(1), Is.SameAs(bar));
+					Assert.That(() => arr._GetObjectOrEmpty(2), Is.SameAs(JsonObject.EmptyReadOnly));
+					Assert.That(() => arr._GetObjectOrEmpty(3), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObjectOrEmpty(4), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObjectOrEmpty(5), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetObjectOrEmpty(6), Throws.InstanceOf<JsonBindingException>());
+				}
+			}
+		}
+
+		[Test]
+		public void Test_JsonValue_AsArray()
+		{
+			{ // null
+				JsonValue? value = null;
+				Assert.That(() => value._AsArray(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(value._AsArrayOrDefault(), Is.Null);
+				Assert.That(value._AsArrayOrEmpty(), Is.SameAs(JsonArray.EmptyReadOnly));
+			}
+			{ // JsonNull
+				JsonValue value = JsonNull.Null;
+				Assert.That(() => value._AsArray(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(value._AsArrayOrDefault(), Is.Null);
+				Assert.That(value._AsArrayOrEmpty(), Is.SameAs(JsonArray.EmptyReadOnly));
+			}
+			{ // empty array
+				JsonValue value = JsonArray.Create();
+				Assert.That(value._AsArray(), Is.SameAs(value));
+				Assert.That(value._AsArrayOrDefault(), Is.SameAs(value));
+				Assert.That(value._AsArrayOrEmpty(), Is.SameAs(value));
+			}
+			{ // non empty array
+				JsonValue value = JsonArray.Create("hello", "world");
+				Assert.That(value._AsArray(), Is.SameAs(value));
+				Assert.That(value._AsArrayOrDefault(), Is.SameAs(value));
+				Assert.That(value._AsArrayOrEmpty(), Is.SameAs(value));
+			}
+			{ // not an array
+				JsonValue value = JsonObject.Create("hello", "world");
+				Assert.That(() => value._AsArray(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => value._AsArrayOrDefault(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => value._AsArrayOrEmpty(), Throws.InstanceOf<JsonBindingException>());
+			}
+		}
+
+		[Test]
+		public void Test_JsonValue_GetArray()
+		{
+			var foo = JsonArray.Create();
+			var bar = JsonArray.Create("x", 1, "y", 2, "z", 3);
+			{
+				var obj = new JsonObject()
+				{
+					["foo"] = foo,
+					["bar"] = bar,
+					["baz"] = JsonNull.Null,
+					["other"] = JsonObject.Create("hello", "world"),
+					["text"] = "hello, there!",
+					["number"] = 123,
+					["boolean"] = true,
+				};
+
+				{ // GetArray()
+					Assert.That(obj._GetArray("foo"), Is.SameAs(foo));
+					Assert.That(obj._GetArray("bar"), Is.SameAs(bar));
+					Assert.That(() => obj._GetArray("baz"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArray("not_found"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArray("other"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArray("text"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArray("number"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArray("boolean"), Throws.InstanceOf<JsonBindingException>());
+				}
+				{ // GetArrayOrDefault()
+					Assert.That(obj._GetArrayOrDefault("foo"), Is.SameAs(foo));
+					Assert.That(obj._GetArrayOrDefault("bar"), Is.SameAs(bar));
+					Assert.That(obj._GetArrayOrDefault("baz"), Is.Null);
+					Assert.That(obj._GetArrayOrDefault("not_found"), Is.Null);
+					Assert.That(() => obj._GetArrayOrDefault("other"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArrayOrDefault("text"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArrayOrDefault("number"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArrayOrDefault("boolean"), Throws.InstanceOf<JsonBindingException>());
+				}
+				{ // GetArrayOrEmpty()
+					Assert.That(obj._GetArrayOrEmpty("foo"), Is.SameAs(foo));
+					Assert.That(obj._GetArrayOrEmpty("bar"), Is.SameAs(bar));
+					Assert.That(obj._GetArrayOrEmpty("baz"), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(obj._GetArrayOrEmpty("not_found"), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(() => obj._GetArrayOrEmpty("other"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArrayOrEmpty("text"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArrayOrEmpty("number"), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => obj._GetArrayOrEmpty("boolean"), Throws.InstanceOf<JsonBindingException>());
+				}
+			}
+			{
+				var arr = new JsonArray()
+				{
+					/*0*/ foo,
+					/*1*/ bar,
+					/*2*/ JsonNull.Null,
+					/*3*/ JsonObject.Create("hello", "world"),
+					/*4*/ "hello, there!",
+					/*5*/ 123,
+					/*6*/ true,
+				};
+
+				{ // GetArray()
+					Assert.That(arr._GetArray(0), Is.SameAs(foo));
+					Assert.That(arr._GetArray(1), Is.SameAs(bar));
+					Assert.That(() => arr._GetArray(2), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArray(3), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArray(4), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArray(5), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArray(6), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArray(42), Throws.InstanceOf<IndexOutOfRangeException>());
+				}
+				{ // GetArrayOrDefault()
+					Assert.That(arr._GetArrayOrDefault(0), Is.SameAs(foo));
+					Assert.That(arr._GetArrayOrDefault(1), Is.SameAs(bar));
+					Assert.That(arr._GetArrayOrDefault(2), Is.Null);
+					Assert.That(() => arr._GetArrayOrDefault(3), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrDefault(4), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrDefault(5), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrDefault(6), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrDefault(42), Throws.InstanceOf<IndexOutOfRangeException>());
+				}
+				{ // GetArrayOrEmpty()
+					Assert.That(arr._GetArrayOrEmpty(0), Is.SameAs(foo));
+					Assert.That(arr._GetArrayOrEmpty(1), Is.SameAs(bar));
+					Assert.That(arr._GetArrayOrEmpty(2), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(() => arr._GetArrayOrEmpty(3), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrEmpty(4), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrEmpty(5), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrEmpty(6), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => arr._GetArrayOrEmpty(42), Throws.InstanceOf<IndexOutOfRangeException>());
+				}
+			}
+			{
+				JsonValue missing = JsonNull.Missing;
+
+				{ // GetArray()
+					Assert.That(() => missing._GetArray(0), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => missing._GetArray(1), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => missing._GetArray(2), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => missing._GetArray(3), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => missing._GetArray(4), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => missing._GetArray(5), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => missing._GetArray(6), Throws.InstanceOf<JsonBindingException>());
+					Assert.That(() => missing._GetArray(42), Throws.InstanceOf<JsonBindingException>());
+				}
+				{ // GetArrayOrDefault()
+					Assert.That(missing._GetArrayOrDefault(0), Is.Null);
+					Assert.That(missing._GetArrayOrDefault(1), Is.Null);
+					Assert.That(missing._GetArrayOrDefault(2), Is.Null);
+					Assert.That(missing._GetArrayOrDefault(3), Is.Null);
+					Assert.That(missing._GetArrayOrDefault(4), Is.Null);
+					Assert.That(missing._GetArrayOrDefault(5), Is.Null);
+					Assert.That(missing._GetArrayOrDefault(6), Is.Null);
+					Assert.That(missing._GetArrayOrDefault(42), Is.Null);
+				}
+				{ // GetArrayOrEmpty()
+					Assert.That(missing._GetArrayOrEmpty(0), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing._GetArrayOrEmpty(1), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing._GetArrayOrEmpty(2), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing._GetArrayOrEmpty(3), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing._GetArrayOrEmpty(4), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing._GetArrayOrEmpty(5), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing._GetArrayOrEmpty(6), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing._GetArrayOrEmpty(42), Is.SameAs(JsonArray.EmptyReadOnly));
+				}
+			}
+		}
+
+		[Test]
 		public void Test_JsonFromValue_NodaTime_Types()
 		{
 			// Instant
@@ -8744,8 +9031,8 @@ namespace Doxense.Serialization.Json.Tests
 				_ = obj._Get<string[]>("hello");                                                   // REQUIRED, default resolver, => int[]
 				_ = obj._GetObject("hello").Get<string>("world");                                  // FIXED !
 				_ = obj._GetArray("hello").Get<string>(0);                                         // FIXED !
-				_ = obj._GetObjectOrDefault("hello", []).Get<string>("world");                              // FIXED !
-				_ = obj._GetArrayOrDefault("hello", []).Get<string>(0);                                     // FIXED !
+				_ = obj._GetObjectOrEmpty("hello").Get<string>("world");                           // FIXED !
+				_ = obj._GetArrayOrEmpty("hello").Get<string>(0);                                  // FIXED !
 				// OPTIONAL: => must ALWAYS specify the default value!
 				_ = obj._Get<string?>("hello", null);                                              // OPTIONAL, null if missing, default resolver, better version
 				_ = obj._Get<string>("hello", null);                                               // OPTIONAL, null if missing, default resolver, should have a compiler warning!

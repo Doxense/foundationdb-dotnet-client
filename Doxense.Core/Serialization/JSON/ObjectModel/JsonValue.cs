@@ -1015,26 +1015,23 @@ namespace Doxense.Serialization.Json
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
 		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
-		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArray(string key) => _GetValue(key)._AsArray();
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
-		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, <see langword="null"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? _GetArrayOrDefault(string key, JsonArray? defaultValue) => _GetValueOrDefault(key)._AsArrayOrDefault() ?? defaultValue;
+		public JsonArray? _GetArrayOrDefault(string key) => _GetValueOrDefault(key)._AsArrayOrDefault();
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
 		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArrayOrEmpty(string key) => _GetValueOrDefault(key)._AsArrayOrEmpty();
@@ -1042,26 +1039,23 @@ namespace Doxense.Serialization.Json
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
-		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArray(int index) => _GetValue(index)._AsArray();
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
-		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, <see langword="null"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? _GetArrayOrDefault(int index, JsonArray? defaultValue = null) => _GetValueOrDefault(index)._AsArrayOrDefault() ?? defaultValue;
+		public JsonArray? _GetArrayOrDefault(int index) => _GetValueOrDefault(index)._AsArrayOrDefault();
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArrayOrEmpty(int index) => _GetValueOrDefault(index)._AsArrayOrEmpty();
@@ -1069,26 +1063,23 @@ namespace Doxense.Serialization.Json
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
-		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <exception cref="JsonBindingException">If the value is null, missing, or not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArray(Index index) => _GetValue(index)._AsArray();
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
-		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, <see langword="null"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? _GetArrayOrDefault(Index index, JsonArray? defaultValue = null) => _GetValueOrDefault(index)._AsArrayOrDefault() ?? defaultValue;
+		public JsonArray? _GetArrayOrDefault(Index index) => _GetValueOrDefault(index)._AsArrayOrDefault();
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
-		/// <exception cref="ArgumentException">If the value is not a JSON Array.</exception>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray _GetArrayOrEmpty(Index index) => _GetValueOrDefault(index)._AsArrayOrEmpty();
