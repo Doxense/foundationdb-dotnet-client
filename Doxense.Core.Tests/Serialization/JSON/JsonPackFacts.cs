@@ -60,8 +60,8 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 			Log("done");
 #if !DEBUG
-			// mini-bench (uniquement en mode RELEASE)
-			var jbytes = value.ToJsonBuffer(CrystalJsonSettings.JsonCompact);
+			// mini-bench (only in RELEASE builds, too slow for DEBUG)
+			var jbytes = value.ToJsonSlice(CrystalJsonSettings.JsonCompact);
 			_ = CrystalJson.Parse(jbytes); // warmup
 
 			const int N = 1000;
@@ -85,7 +85,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			sw.Restart();
 			for (int i = 0; i < N; i++)
 			{
-				var _ = value.ToJsonBuffer(CrystalJsonSettings.JsonCompact);
+				var _ = value.ToJsonSlice(CrystalJsonSettings.JsonCompact);
 			}
 			sw.Stop();
 			Log("Bench: JSON     encode {0:N1} nanos", sw.Elapsed.TotalMilliseconds * 1_000_000 / N);
