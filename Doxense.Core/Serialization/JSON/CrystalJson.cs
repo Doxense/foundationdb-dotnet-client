@@ -296,18 +296,8 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
-		[Pure]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			byte[]? _ = null;
-			return ToBufferInternal(value, typeof(object), settings, resolver, ref _);
-		}
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => ToSlice(value, settings, resolver);
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
@@ -316,11 +306,30 @@ namespace Doxense.Serialization.Json
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		[Pure]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static Slice ToSlice(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			byte[]? _ = null;
-			return ToBufferInternal(value, typeof(T), settings, resolver, ref _);
+			return ToSliceInternal(value, typeof(object), settings, resolver, ref _);
 		}
+
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => ToSlice<T>(value, settings, resolver);
+
+		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
+		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <returns>Segment de buffer contenant les données sérialisées</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
+		[Pure]
+		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			byte[]? _ = null;
+			return ToSliceInternal(value, typeof(T), settings, resolver, ref _);
+		}
+
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer) => ToSlice(value, settings, resolver, ref buffer);
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
@@ -331,10 +340,13 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		/// <remarks>Attention: le segment retourné utilise le buffer <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser ce buffer, sous risque de corrompre les données générées!</remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
+		public static Slice ToSlice(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
-			return ToBufferInternal(value, typeof(object), settings, resolver, ref buffer);
+			return ToSliceInternal(value, typeof(object), settings, resolver, ref buffer);
 		}
+
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer) => ToSlice(value, type, settings, resolver, ref buffer);
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
@@ -346,10 +358,13 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		/// <remarks>Attention: le segment retourné utilise le buffer <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser ce buffer, sous risque de corrompre les données générées!</remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
+		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
-			return ToBufferInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref buffer);
+			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref buffer);
 		}
+
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer) => ToSlice<T>(value, settings, resolver, ref buffer);
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
@@ -360,9 +375,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		/// <remarks>Attention: le segment retourné utilise le buffer <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser ce buffer, sous risque de corrompre les données générées!</remarks>
 		[Pure]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
+		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
-			return ToBufferInternal(value, typeof(T), settings, resolver, ref buffer);
+			return ToSliceInternal(value, typeof(T), settings, resolver, ref buffer);
 		}
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
@@ -374,7 +389,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
 		/// <remarks>Attention: le résultat retourné utilise <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser cette instance, sous risque de corrompre les données générées!</remarks>
 		[Pure]
-		private static Slice ToBufferInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
+		private static Slice ToSliceInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
 			//REVIEW: on a besoin de coder un TextWriter+MemoryStream qui écrit directement en UTF8 en mémoire!
 			// => le profiler montre qu'on gaspille beaucoup de mémoire dans le buffer du StreamWriter, qui ne fait que copier les bytes directement dans le MemoryStream,
@@ -400,6 +415,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool) => ToSlice(value, settings, resolver, pool);
+
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
@@ -409,10 +427,13 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
+		public static Slice ToSlice(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
-			return ToBufferInternal(value, typeof(object), settings, resolver, pool);
+			return ToSliceInternal(value, typeof(object), settings, resolver, pool);
 		}
+
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver) => ToSlice(value, type, settings, resolver);
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
@@ -422,11 +443,14 @@ namespace Doxense.Serialization.Json
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		[Pure]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			byte[]? _ = null;
-			return ToBufferInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref _);
+			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref _);
 		}
+
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool) => ToSlice(value, type, settings, resolver, pool);
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
@@ -438,10 +462,13 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
+		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
-			return ToBufferInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, pool);
+			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, pool);
 		}
+
+		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
+		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool) => ToSlice<T>(value, settings, resolver, pool);
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
 		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
@@ -452,9 +479,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
 		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
 		[Pure]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
+		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
-			return ToBufferInternal(value, typeof(T), settings, resolver, pool);
+			return ToSliceInternal(value, typeof(T), settings, resolver, pool);
 		}
 
 		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
@@ -466,7 +493,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Segment de buffer contenant les données sérialisées</returns>
 		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
 		[Pure]
-		private static Slice ToBufferInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
+		private static Slice ToSliceInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
 			//REVIEW: on a besoin de coder un TextWriter+MemoryStream qui écrit directement en UTF8 en mémoire!
 			// => le profiler montre qu'on gaspille beaucoup de mémoire dans le buffer du StreamWriter, qui ne fait que copier les bytes directement dans le MemoryStream,

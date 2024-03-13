@@ -250,7 +250,7 @@ namespace Doxense.Serialization.Encoders
 		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
 		{
 			Contract.NotNullAllowStructs(value);
-			return CrystalJson.ToBuffer<T>(value, this.Settings, this.Resolver);
+			return CrystalJson.ToSlice<T>(value, this.Settings, this.Resolver);
 		}
 
 		T? IValueEncoder<T, Slice>.DecodeValue(Slice packed)

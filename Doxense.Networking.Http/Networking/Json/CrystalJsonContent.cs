@@ -112,7 +112,7 @@ namespace Doxense.Serialization.Json
 				else
 				{ // UTF-8: direct to bytes
 					var pool = ArrayPool<byte>.Shared;
-					var bytes = CrystalJson.ToBuffer(this.Value, this.ObjectType, this.JsonSettings, this.JsonResolver, pool: pool);
+					var bytes = CrystalJson.ToSlice(this.Value, this.ObjectType, this.JsonSettings, this.JsonResolver, pool: pool);
 					activity?.SetTag("json.length", bytes.Count);
 					return (bytes, pool);
 				}

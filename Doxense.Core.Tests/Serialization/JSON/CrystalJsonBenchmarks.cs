@@ -370,7 +370,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			RunBenchOnMethod("json/doxense-text   : ser  ", () => { CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact); });
 
-			RunBenchOnMethod("json/doxense-buffer : ser  ", () => { CrystalJson.ToBuffer(media, CrystalJsonSettings.JsonCompact); });
+			RunBenchOnMethod("json/doxense-buffer : ser  ", () => { CrystalJson.ToSlice(media, CrystalJsonSettings.JsonCompact); });
 
 			RunBenchOnMethod("json/doxense-manual : ser  ", () =>
 			{

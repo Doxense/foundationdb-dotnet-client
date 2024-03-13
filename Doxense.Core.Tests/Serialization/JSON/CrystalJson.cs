@@ -2547,7 +2547,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // WARMUP
-				var x = CrystalJson.ToBuffer(list);
+				var x = CrystalJson.ToSlice(list);
 				_ = x.ZstdCompress(0);
 				_ = x.DeflateCompress(CompressionLevel.Optimal);
 				_ = x.GzipCompress(CompressionLevel.Optimal);
@@ -2584,7 +2584,7 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				var data = CrystalJson.ToSlice(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 				using (var fs = File.Create(path))
 				{
 					fs.Write(data.DeflateCompress(CompressionLevel.Optimal).Span);
@@ -2599,7 +2599,7 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				var data = CrystalJson.ToSlice(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 				using (var fs = File.Create(path))
 				{
 					fs.Write(data.GzipCompress(CompressionLevel.Optimal).Span);
@@ -2615,7 +2615,7 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				var data = CrystalJson.ToSlice(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 				File.WriteAllBytes(path, data.ZstdCompress(1).GetBytes()!);
 				sw.Stop();
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
@@ -2626,7 +2626,7 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				var data = CrystalJson.ToSlice(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 				File.WriteAllBytes(path, data.ZstdCompress(3).GetBytes()!);
 				sw.Stop();
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
@@ -2637,7 +2637,7 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				var data = CrystalJson.ToSlice(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 				File.WriteAllBytes(path, data.ZstdCompress(5).GetBytes()!);
 				sw.Stop();
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
@@ -2648,7 +2648,7 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				var data = CrystalJson.ToSlice(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 				File.WriteAllBytes(path, data.ZstdCompress(9).GetBytes()!);
 				sw.Stop();
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
@@ -2659,7 +2659,7 @@ namespace Doxense.Serialization.Json.Tests
 				File.Delete(path);
 
 				sw.Restart();
-				var data = CrystalJson.ToBuffer(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
+				var data = CrystalJson.ToSlice(list, CrystalJsonSettings.JsonCompact.ExpectLargeData());
 				File.WriteAllBytes(path, data.ZstdCompress(20).GetBytes()!);
 				sw.Stop();
 				Assert.That(File.Exists(path), Is.True, "Should have created a file");
@@ -7339,7 +7339,7 @@ namespace Doxense.Serialization.Json.Tests
 				Bar = "世界!",
 				ಠ_ಠ = "(╯°□°）╯︵ ┻━┻",
 			};
-			Slice bytes = CrystalJson.ToBuffer(obj);
+			Slice bytes = CrystalJson.ToSlice(obj);
 			Log(bytes.ToString("P"));
 
 			var json = JsonValue._ParseObject(bytes);

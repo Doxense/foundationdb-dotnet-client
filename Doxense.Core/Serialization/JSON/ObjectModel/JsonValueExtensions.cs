@@ -192,15 +192,21 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBytes(value, settings);
 
-		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToJsonBuffer(this JsonValue? value) => CrystalJson.ToBuffer(value);
+		[Obsolete("OLD_API: Call value.ToJsonSlice(...) instead", error: true)]
+		public static Slice ToJsonBuffer(this JsonValue? value) => ToJsonSlice(value);
 
 		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
 		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToJsonBuffer(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBuffer(value, settings);
+		public static Slice ToJsonSlice(this JsonValue? value) => CrystalJson.ToSlice(value);
+
+		[Obsolete("OLD_API: Call value.ToJsonSlice(...) instead", error: true)]
+		public static Slice ToJsonBuffer(this JsonValue? value, CrystalJsonSettings? settings) => ToJsonSlice(value, settings);
+
+		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
+		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice ToJsonSlice(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToSlice(value, settings);
 
 		#endregion
 
