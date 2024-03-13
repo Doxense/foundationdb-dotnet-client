@@ -756,34 +756,34 @@ namespace Doxense.Serialization.Json.Tests
 			//Value Type
 			Assert.That(JsonNumber.Return(123).Required<int>(), Is.InstanceOf<int>().And.EqualTo(123));
 			Assert.That(JsonString.Return("123").Required<int>(), Is.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(() => JsonNull.Null.Required<int>(), Throws.InvalidOperationException);
-			Assert.That(() => JsonNull.Null.Required<int>(null), Throws.InvalidOperationException);
+			Assert.That(() => JsonNull.Null.Required<int>(), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => JsonNull.Null.Required<int>(null), Throws.InstanceOf<JsonBindingException>());
 
 			//Nullable Type: should induce a compiler warning on '<int?>' since the method can never return null, so expecting a nullable int is probably a mistake ?
 			Assert.That(JsonNumber.Return(123).Required<int?>(), Is.InstanceOf<int>().And.EqualTo(123));
 			Assert.That(JsonString.Return("123").Required<int?>(), Is.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(() => JsonNull.Null.Required<int?>(), Throws.InvalidOperationException);
+			Assert.That(() => JsonNull.Null.Required<int?>(), Throws.InstanceOf<JsonBindingException>());
 
 			//Reference Primitive Type
 			Assert.That(JsonNumber.Return(123).Required<string>(), Is.Not.Null.And.EqualTo("123"));
 			Assert.That(JsonString.Return("123").Required<string>(), Is.Not.Null.And.EqualTo("123"));
-			Assert.That(() => JsonNull.Null.Required<string>(), Throws.InvalidOperationException);
+			Assert.That(() => JsonNull.Null.Required<string>(), Throws.InstanceOf<JsonBindingException>());
 
 			//Value Type Array
 			Assert.That(JsonArray.Create(1, 2, 3).Required<int[]>(), Is.Not.Null.And.EqualTo(new [] { 1, 2, 3 }));
-			Assert.That(() => JsonNull.Null.Required<int[]>(), Throws.InvalidOperationException);
+			Assert.That(() => JsonNull.Null.Required<int[]>(), Throws.InstanceOf<JsonBindingException>());
 
 			//Ref Type Array
 			Assert.That(JsonArray.Create("a", "b", "c").Required<string[]>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
-			Assert.That(() => JsonNull.Null.Required<string[]>(), Throws.InvalidOperationException);
+			Assert.That(() => JsonNull.Null.Required<string[]>(), Throws.InstanceOf<JsonBindingException>());
 
 			//Value Type List
 			Assert.That(JsonArray.Create(1, 2, 3).Required<List<int>>(), Is.Not.Null.And.EqualTo(new[] { 1, 2, 3 }));
-			Assert.That(() => JsonNull.Null.Required<List<int>>(), Throws.InvalidOperationException);
+			Assert.That(() => JsonNull.Null.Required<List<int>>(), Throws.InstanceOf<JsonBindingException>());
 
 			//Ref Type List
 			Assert.That(JsonArray.Create("a", "b", "c").Required<List<string>>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
-			Assert.That(() => JsonNull.Null.Required<List<string>>(), Throws.InvalidOperationException);
+			Assert.That(() => JsonNull.Null.Required<List<string>>(), Throws.InstanceOf<JsonBindingException>());
 
 			//Format Exceptions
 			Assert.That(() => JsonString.Return("foo").Required<int>(), Throws.InstanceOf<FormatException>());
@@ -2001,7 +2001,7 @@ namespace Doxense.Serialization.Json.Tests
 			var resolver = new DummyCustomJsonResolver();
 
 			string expected = """{ "Foo": "<nobody>", "Narf": 42 }""";
-			string jsonText = CrystalJson.Serialize(x, customResolver: resolver);
+			string jsonText = CrystalJson.Serialize(x, resolver: resolver);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JSON+CustomResolver)");
 
 			expected = """{ "Foo": "<nobody>" }""";
@@ -2759,7 +2759,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<Uri>(@"""http://www.doxense.com/"""), Is.EqualTo(new Uri("http://www.doxense.com/")));
 			Assert.That(CrystalJson.Deserialize<Uri>(@"""https://www.youtube.com/watch?v=dQw4w9WgXcQ"""), Is.EqualTo(new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ")));
 			Assert.That(CrystalJson.Deserialize<Uri>(@"""ftp://root:hunter2@ftp.corporate.com/public/_/COM1:/_/__/Warez/MovieZ/Valhalla_Rising_(2009)_1080p_BrRip_x264_-_YIFY.mkv"""), Is.EqualTo(new Uri("ftp://root:hunter2@ftp.corporate.com/public/_/COM1:/_/__/Warez/MovieZ/Valhalla_Rising_(2009)_1080p_BrRip_x264_-_YIFY.mkv")));
-			Assert.That(() => CrystalJson.Deserialize<Uri>("null"), Throws.InvalidOperationException);
+			Assert.That(() => CrystalJson.Deserialize<Uri>("null"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(CrystalJson.Deserialize<Uri?>("null", null), Is.EqualTo(default(Uri)));
 		}
 
@@ -2818,17 +2818,17 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // Required<T>()
-				Assert.That(() => jnull.Required<string>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<int>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<bool>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<Guid>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<int?>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<string[]>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<List<string>>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<IList<string>>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<JsonNull>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<JsonValue>(), Throws.InvalidOperationException);
-				Assert.That(() => jnull.Required<JsonString>(), Throws.InvalidOperationException);
+				Assert.That(() => jnull.Required<string>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<int>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<bool>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<Guid>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<int?>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<string[]>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<List<string>>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<IList<string>>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<JsonNull>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<JsonValue>(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => jnull.Required<JsonString>(), Throws.InstanceOf<JsonBindingException>());
 			}
 
 			{ // OrDefault<T>()
@@ -2917,14 +2917,14 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.That(jmissing.Bind(typeof(JsonValue)), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.Bind<JsonValue>(), Is.SameAs(JsonNull.Missing));
-			Assert.That(() => jmissing.Required<JsonValue>(), Throws.InvalidOperationException);
+			Assert.That(() => jmissing.Required<JsonValue>(), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(jmissing.OrDefault<JsonValue>(), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.OrDefault<JsonValue>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.OrDefault<JsonValue>(123), Is.EqualTo(123));
 
 			Assert.That(jmissing.Bind(typeof(JsonNull)), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.Bind<JsonNull>(), Is.SameAs(JsonNull.Missing));
-			Assert.That(() => jmissing.Required<JsonNull>(), Throws.InvalidOperationException);
+			Assert.That(() => jmissing.Required<JsonNull>(), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(jmissing.OrDefault<JsonNull>(), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.OrDefault<JsonNull>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
 
@@ -4350,7 +4350,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr._GetPathValue("[0]"), Is.EqualTo("one"));
 			Assert.That(arr._GetPathValue("[1]"), Is.EqualTo("two"));
 			Assert.That(arr._GetPathValue("[2]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPathValue("[3]"), Throws.InvalidOperationException);
+			Assert.That(() => arr._GetPathValue("[3]"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(arr._GetPathValueOrDefault("[0]"), Is.EqualTo("one"));
 			Assert.That(arr._GetPathValueOrDefault("[1]"), Is.EqualTo("two"));
 			Assert.That(arr._GetPathValueOrDefault("[2]"), Is.EqualTo("three"));
@@ -4359,8 +4359,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr._GetPathValue("[^3]"), Is.EqualTo("one"));
 			Assert.That(arr._GetPathValue("[^2]"), Is.EqualTo("two"));
 			Assert.That(arr._GetPathValue("[^1]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPathValue("[^0]"), Throws.InvalidOperationException);
-			Assert.That(() => arr._GetPathValue("[^4]"), Throws.InvalidOperationException);
+			Assert.That(() => arr._GetPathValue("[^0]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => arr._GetPathValue("[^4]"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(arr._GetPathValueOrDefault("[^3]"), Is.EqualTo("one"));
 			Assert.That(arr._GetPathValueOrDefault("[^2]"), Is.EqualTo("two"));
 			Assert.That(arr._GetPathValueOrDefault("[^1]"), Is.EqualTo("three"));
@@ -4370,13 +4370,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr._GetPath<string>("[0]"), Is.EqualTo("one"));
 			Assert.That(arr._GetPath<string>("[1]"), Is.EqualTo("two"));
 			Assert.That(arr._GetPath<string>("[2]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPath<string>("[3]"), Throws.InvalidOperationException);
+			Assert.That(() => arr._GetPath<string>("[3]"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(arr._GetPath<string>("[^3]"), Is.EqualTo("one"));
 			Assert.That(arr._GetPath<string>("[^2]"), Is.EqualTo("two"));
 			Assert.That(arr._GetPath<string>("[^1]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPath<string>("[^4]"), Throws.InvalidOperationException);
-			Assert.That(() => arr._GetPath<string>("[0].foo"), Throws.InvalidOperationException);
-			Assert.That(() => arr._GetPath<string>("foo"), Throws.InvalidOperationException);
+			Assert.That(() => arr._GetPath<string>("[^4]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => arr._GetPath<string>("[0].foo"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => arr._GetPath<string>("foo"), Throws.InstanceOf<JsonBindingException>());
 
 			Assert.That(arr._GetPath<string>("[0]", "not_found"), Is.EqualTo("one"));
 			Assert.That(arr._GetPath<string>("[1]", "not_found"), Is.EqualTo("two"));
@@ -5662,14 +5662,14 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.Get<double?>("Void"), Is.Null, "Si null, doit retourner null pour des types nullables");
 
 			// missing + required: true
-			Assert.That(() => obj.Get<string>("olleH", required: true), Throws.InvalidOperationException.With.Message.Contains("olleH"), "Si manquant et required:true, une exception doit être lancée avec le nom du champ dans le message");
-			Assert.That(() => obj.Get<int>("olleH", required: true), Throws.InvalidOperationException.With.Message.Contains("olleH"), "Si manquant et required:true, une exception doit être lancée avec le nom du champ dans le message");
-			Assert.That(() => obj.Get<int?>("olleH", required: true), Throws.InvalidOperationException.With.Message.Contains("olleH"), "Si manquant et required:true, une exception doit être lancée avec le nom du champ dans le message");
+			Assert.That(() => obj.Get<string>("olleH", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"), "If missing and required:true, an exception should be throw with the key name in the message");
+			Assert.That(() => obj.Get<int>("olleH", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"), "If missing and required:true, an exception should be throw with the key name in the message");
+			Assert.That(() => obj.Get<int?>("olleH", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"), "If missing and required:true, an exception should be throw with the key name in the message");
 
 			// null + required: true
-			Assert.That(() => obj.Get<string>("Void", required: true), Throws.InvalidOperationException.With.Message.Contains("Void"), "Si null et required:true, une exception doit être lancée avec le nom du champ dans le message");
-			Assert.That(() => obj.Get<int>("Void", required: true), Throws.InvalidOperationException.With.Message.Contains("Void"), "Si null et required:true, une exception doit être lancée avec le nom du champ dans le message");
-			Assert.That(() => obj.Get<int?>("Void", required: true), Throws.InvalidOperationException.With.Message.Contains("Void"), "Si null et required:true, une exception doit être lancée avec le nom du champ dans le message");
+			Assert.That(() => obj.Get<string>("Void", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"), "If null and required:true, an exception should be throw with the key name in the message");
+			Assert.That(() => obj.Get<int>("Void", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"), "If null and required:true, an exception should be throw with the key name in the message");
+			Assert.That(() => obj.Get<int?>("Void", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"), "If null and required:true, an exception should be throw with the key name in the message");
 		}
 
 		[Test]
@@ -5718,24 +5718,24 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj._Get<double?>("olleH", null), Is.Null);
 
 			// null + nullable
-			Assert.That(() => obj._Get<string>("Void"), Throws.InvalidOperationException.With.Message.Contains("Void"));
-			Assert.That(() => obj._Get<int>("Void"), Throws.InvalidOperationException.With.Message.Contains("Void"));
-			Assert.That(() => obj._Get<bool>("Void"), Throws.InvalidOperationException.With.Message.Contains("Void"));
-			Assert.That(() => obj._Get<double>("Void"), Throws.InvalidOperationException.With.Message.Contains("Void"));
+			Assert.That(() => obj._Get<string>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
+			Assert.That(() => obj._Get<int>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
+			Assert.That(() => obj._Get<bool>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
+			Assert.That(() => obj._Get<double>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
 			Assert.That(obj._Get<string?>("Void", null), Is.Null);
 			Assert.That(obj._Get<int?>("Void", null), Is.Null);
 			Assert.That(obj._Get<bool?>("Void", null), Is.Null);
 			Assert.That(obj._Get<double?>("Void", null), Is.Null);
 
 			// missing + required: true
-			Assert.That(() => obj._Get<string>("olleH"), Throws.InvalidOperationException.With.Message.Contains("olleH"));
-			Assert.That(() => obj._Get<int>("olleH"), Throws.InvalidOperationException.With.Message.Contains("olleH"));
-			Assert.That(() => obj._Get<int?>("olleH"), Throws.InvalidOperationException.With.Message.Contains("olleH"));
+			Assert.That(() => obj._Get<string>("olleH"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"));
+			Assert.That(() => obj._Get<int>("olleH"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"));
+			Assert.That(() => obj._Get<int?>("olleH"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"));
 
 			// null + required: true
-			Assert.That(() => obj._Get<string>("Void"), Throws.InvalidOperationException.With.Message.Contains("Void"));
-			Assert.That(() => obj._Get<int>("Void"), Throws.InvalidOperationException.With.Message.Contains("Void"));
-			Assert.That(() => obj._Get<int?>("Void"), Throws.InvalidOperationException.With.Message.Contains("Void"));
+			Assert.That(() => obj._Get<string>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
+			Assert.That(() => obj._Get<int>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
+			Assert.That(() => obj._Get<int?>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
 		}
 
 		[Test]
@@ -5758,9 +5758,9 @@ namespace Doxense.Serialization.Json.Tests
 
 			//Get<string>(..) se comporte comme les autres (ne considère que null/missing)
 			Assert.That(obj._Get<string?>("Missing", null), Is.Null);
-			Assert.That(() => obj._Get<string>("Missing"), Throws.InvalidOperationException);
+			Assert.That(() => obj._Get<string>("Missing"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(obj._Get<string?>("Void", null), Is.Null);
-			Assert.That(() => obj._Get<string>("Void"), Throws.InvalidOperationException);
+			Assert.That(() => obj._Get<string>("Void"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(obj._Get<string>("Empty"), Is.EqualTo(""));
 			Assert.That(obj._Get<string>("Space"), Is.EqualTo("   "));
 		}
@@ -5813,7 +5813,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj._GetPath<int>("Coords.X"), Is.EqualTo(1));
 			Assert.That(obj._GetPath<int>("Coords.Y"), Is.EqualTo(2));
 			Assert.That(obj._GetPath<int>("Coords.Z"), Is.EqualTo(3));
-			Assert.That(() => obj._GetPath<int>("Coords.NotFound"), Throws.InvalidOperationException);
+			Assert.That(() => obj._GetPath<int>("Coords.NotFound"), Throws.InstanceOf<JsonBindingException>());
 
 			Assert.That(obj._GetPath<int?>("Foo.Bar.Baz", null), Is.EqualTo(123));
 			Assert.That(obj._GetPath<int?>("Foo.Bar.NotFound", null), Is.Null);
@@ -5825,8 +5825,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj._GetPath<string>("Values[0]"), Is.EqualTo("a"));
 			Assert.That(obj._GetPath<string>("Values[1]"), Is.EqualTo("b"));
 			Assert.That(obj._GetPath<string>("Values[2]"), Is.EqualTo("c"));
-			Assert.That(() => obj._GetPath<string>("Values[3]"), Throws.InvalidOperationException);
-			Assert.That(() => obj._GetPath<string>("Values[2].NotFound"), Throws.InvalidOperationException);
+			Assert.That(() => obj._GetPath<string>("Values[3]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj._GetPath<string>("Values[2].NotFound"), Throws.InstanceOf<JsonBindingException>());
 
 			Assert.That(obj._GetPath<string?>("Items[0].Value", null), Is.EqualTo("one"));
 			Assert.That(obj._GetPath<string?>("Items[1].Value", null), Is.EqualTo("two"));
@@ -5836,8 +5836,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj._GetPath<string?>("Items[3].Value", null), Is.Null);
 
 			// Required
-			Assert.That(() => obj._GetPath<int>("NotFound.Bar.Baz"), Throws.InvalidOperationException);
-			Assert.That(() => obj._GetPath<int>("Coords.NotFound"), Throws.InvalidOperationException);
+			Assert.That(() => obj._GetPath<int>("NotFound.Bar.Baz"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj._GetPath<int>("Coords.NotFound"), Throws.InstanceOf<JsonBindingException>());
 
 			obj = new JsonObject
 			{
@@ -5845,10 +5845,10 @@ namespace Doxense.Serialization.Json.Tests
 				["Y"] = default(Guid?),
 				["Z"] = JsonNull.Missing
 			};
-			Assert.That(() => obj._GetPath<string>("X"), Throws.InvalidOperationException);
-			Assert.That(() => obj._GetPath<Guid>("Y"), Throws.InvalidOperationException);
-			Assert.That(() => obj._GetPath<string>("Z"), Throws.InvalidOperationException);
-			Assert.That(() => obj._GetPath<string>("間"), Throws.InvalidOperationException);
+			Assert.That(() => obj._GetPath<string>("X"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj._GetPath<Guid>("Y"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj._GetPath<string>("Z"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj._GetPath<string>("間"), Throws.InstanceOf<JsonBindingException>());
 		}
 
 		[Test]
@@ -5882,7 +5882,7 @@ namespace Doxense.Serialization.Json.Tests
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(2));
 			Assert.That(obj, Is.EqualTo(JsonValue._Parse(@"{ ""Hello"": null, ""Level"": 9001 }")));
-			Assert.That(() => obj._GetPath<string>("Hello"), Throws.InvalidOperationException);
+			Assert.That(() => obj._GetPath<string>("Hello"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(obj._GetPath<string?>("Hello", null), Is.Null);
 
 			// remove
@@ -5890,13 +5890,13 @@ namespace Doxense.Serialization.Json.Tests
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(1));
 			Assert.That(obj, Is.EqualTo(JsonValue._Parse(@"{ ""Level"": 9001 }")));
-			Assert.That(() => obj._GetPath<string>("Hello"), Throws.InvalidOperationException);
+			Assert.That(() => obj._GetPath<string>("Hello"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(obj._GetPath<string?>("Hello", null), Is.Null);
 
 			obj.RemovePath("Level");
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(0));
-			Assert.That(() => obj._GetPath<int>("Level"), Throws.InvalidOperationException);
+			Assert.That(() => obj._GetPath<int>("Level"), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(obj._GetPath<int?>("Level", null), Is.Null);
 		}
 
@@ -6130,8 +6130,11 @@ namespace Doxense.Serialization.Json.Tests
 			// par contre on doit pas pouvoir écraser un non-object
 			root = JsonObject.Create();
 			root.Set("Baz", "Hello");
-			var x = Assert.Throws<InvalidOperationException>(() => root.GetOrCreateArray("Baz"));
-			Assert.That(x?.Message, Is.EqualTo("The specified key 'Baz' exists, but is of type String instead of expected Array"), "Expected error message (can change!)");
+			Assert.That(
+				() => root.GetOrCreateArray("Baz"),
+				Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The specified key 'Baz' exists, but is of type String instead of expected Array"),
+				"Expected error message (can change!)"
+			);
 		}
 
 		[Test]
@@ -7413,7 +7416,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<bool>("\"false\""), Is.False, "Deseralize<bool>('\"false\"')");
 
 			// must reject other types
-			Assert.That(() => CrystalJson.Deserialize<bool>("null"), Throws.InvalidOperationException, "Deserialize<bool>('null')");
+			Assert.That(() => CrystalJson.Deserialize<bool>("null"), Throws.InstanceOf<JsonBindingException>(), "Deserialize<bool>('null')");
 			Assert.That(() => CrystalJson.Deserialize<bool>("\"foo\""), Throws.InstanceOf<FormatException>(), "Deserialize<bool>('\"foo\"')");
 			Assert.That(() => CrystalJson.Deserialize<bool>("{ }"), Throws.InstanceOf<JsonBindingException>(), "Deserialize<bool>('{ }')");
 			Assert.That(() => CrystalJson.Deserialize<bool>("[ ]"), Throws.InstanceOf<JsonBindingException>(), "Deserialize<bool>('[ ]')");
@@ -7438,7 +7441,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// directed deserialization
 
-			Assert.That(() => CrystalJson.Deserialize<string>("null"), Throws.InvalidOperationException, "Deseralize<string>('null')");
+			Assert.That(() => CrystalJson.Deserialize<string>("null"), Throws.InstanceOf<JsonBindingException>(), "Deseralize<string>('null')");
 			Assert.That(CrystalJson.Deserialize<string?>("null", null), Is.Null, "Deseralize<string>('null')");
 			Assert.That(CrystalJson.Deserialize<string?>(@"""Hello World""", null), Is.EqualTo("Hello World"), "Deseralize<string>('\"Hello World\"')");
 

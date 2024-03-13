@@ -46,10 +46,10 @@ namespace Doxense.Serialization.Json
 
 		#region Constructors...
 
-		public CrystalJsonBuilder(StringBuilder? buffer = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public CrystalJsonBuilder(StringBuilder? buffer = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			m_buffer = new FastStringWriter(buffer ?? new StringBuilder(512));
-			m_writer = new CrystalJsonWriter(m_buffer, settings, customResolver);
+			m_writer = new CrystalJsonWriter(m_buffer, settings, resolver);
 		}
 
 		#endregion

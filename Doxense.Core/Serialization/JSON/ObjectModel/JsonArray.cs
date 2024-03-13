@@ -2757,10 +2757,10 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
 		/// <param name="value">Tableau JSON contenant des objets a priori de type T</param>
 		/// <param name="required"></param>
-		/// <param name="customResolver">Resolver optionnel</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Retourne une IList&lt;T&gt; contenant les éléments désérialisés</returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
-		public static TValue?[]? BindArray<TValue>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		public static TValue?[]? BindArray<TValue>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
 			if (value is not JsonArray array)
 			{
@@ -2769,7 +2769,7 @@ namespace Doxense.Serialization.Json
 					: throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
 			}
 
-			return array.ToArray<TValue>(customResolver);
+			return array.ToArray<TValue>(resolver);
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -3095,15 +3095,15 @@ namespace Doxense.Serialization.Json
 		/// <summary>Deserialize a JSON Array into a list of objects of the specified type</summary>
 		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
 		/// <param name="value">JSON array that contains the elements to bind</param>
-		/// <param name="customResolver">Optional type resolver</param>
+		/// <param name="resolver">Optional type resolver</param>
 		/// <param name="required">If <see langword="true"/> the array cannot be null</param>
 		/// <returns>A list of all elements that have been deserialized into instance of type <typeparamref name="TValue"/></returns>
 		[Pure, ContractAnnotation("value:null => null")]
-		public static List<TValue?>? BindList<TValue>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		public static List<TValue?>? BindList<TValue>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
 			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<TValue?>>() : null;
 			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
-			return array.ToList<TValue>(customResolver);
+			return array.ToList<TValue>(resolver);
 		}
 
 #if !DEBUG // <JIT_HACK>
@@ -3976,7 +3976,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="expectedType">Type attendu des objets de la liste (ou null si aucun filtrage)</param>
 		/// <param name="keySelector">Lambda utilisée pour extraire les clés du dictionnaire</param>
 		/// <param name="valueSelector">Lambda utilisée pour extraire les valeurs stockées dans le dictionnaire</param>
-		/// <param name="customResolver">Résolveur de type custom (ou celui par défaut si null)</param>
+		/// <param name="resolver">Résolveur de type custom (ou celui par défaut si null)</param>
 		/// <param name="overwrite">Si true, écrase toute valeur existante. Si false, provoque une exception en cas de doublon de clé</param>
 		/// <returns>L'annuaire cible passé en paramètre</returns>
 		/// <exception cref="System.ArgumentNullException">Si l'un des paramètre requis est null</exception>
@@ -3988,7 +3988,7 @@ namespace Doxense.Serialization.Json
 			JsonType? expectedType,
 			[InstantHandle] Func<JsonValue, JsonValue> keySelector,
 			[InstantHandle] Func<JsonValue, JsonValue> valueSelector,
-			ICrystalJsonTypeResolver? customResolver = null,
+			ICrystalJsonTypeResolver? resolver = null,
 			bool overwrite = false
 		) where TKey : notnull
 		{
@@ -3997,7 +3997,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(keySelector);
 			Contract.NotNull(valueSelector);
 
-			customResolver ??= CrystalJson.DefaultResolver;
+			resolver ??= CrystalJson.DefaultResolver;
 
 			int index = 0;
 			foreach (var item in source)
@@ -4011,8 +4011,8 @@ namespace Doxense.Serialization.Json
 					throw JsonArray.Error_CannotMapValueTypeToDictionary(item, index);
 				}
 
-				var key = keySelector(item).Required<TKey>(customResolver);
-				var value = valueSelector(item).OrDefault<TValue>(customResolver)!;
+				var key = keySelector(item).Required<TKey>(resolver);
+				var value = valueSelector(item).OrDefault<TValue>(resolver)!;
 				if (overwrite)
 				{
 					target[key] = value;
