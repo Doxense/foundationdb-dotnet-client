@@ -681,11 +681,11 @@ namespace Doxense.Serialization.Json
 
 		#region FromObject...
 
-		/// <summary>Transforme un objet CLR en un JsonObject</summary>
-		/// <typeparam name="TValue">Type de l'objet à convertir</typeparam>
-		/// <param name="value">Instance de l'objet à convertir</param>
-		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <returns>Corresponding JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is mutable, and cannot safely be cached or shared. If you need an immutable instance, consider calling <see cref="FromObjectReadOnly{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<TValue>(TValue value)
 		{
@@ -693,11 +693,11 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue))._AsObjectOrDefault();
 		}
 
-		/// <summary>Transforme un objet CLR en un JsonObject</summary>
-		/// <typeparam name="TValue">Type de l'objet à convertir</typeparam>
-		/// <param name="value">Instance de l'objet à convertir</param>
-		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <returns>Corresponding immutable JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value)
 		{
@@ -705,14 +705,26 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(TValue))._AsObjectOrDefault();
 		}
 
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Corresponding JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is mutable, and cannot safely be cached or shared. If you need an immutable instance, consider calling <see cref="FromObjectReadOnly{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(TValue))._AsObjectOrDefault();
 		}
 
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Corresponding immutable JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -721,8 +733,10 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
-		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		/// <summary>Converts a untyped dictionary into a JSON Object</summary>
+		/// <returns>Corresponding mutable JSON Object</returns>
+		/// <remarks>This should only be used to interface with legacy APIs that generate a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object></see>.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonObject CreateBoxed(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
@@ -735,8 +749,10 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(map, readOnly: false);
 		}
 
-		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
-		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		/// <summary>Converts a untyped dictionary into a JSON Object</summary>
+		/// <returns>Corresponding immutable JSON Object</returns>
+		/// <remarks>This should only be used to interface with legacy APIs that generate a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object></see>.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonObject CreateBoxedReadOnly(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
@@ -754,7 +770,7 @@ namespace Doxense.Serialization.Json
 #endif
 		private static System.Runtime.Serialization.FormatterConverter? CachedFormatterConverter;
 
-		/// <summary>Serialize an <see cref="Exception"/> into a JSON object</summary>
+		/// <summary>Serializes an <see cref="Exception"/> into a JSON object</summary>
 		/// <returns></returns>
 		/// <remarks>
 		/// The exception must implement <see cref="System.Runtime.Serialization.ISerializable"/>, and CANNOT contain cycles or self-references!
@@ -776,7 +792,7 @@ namespace Doxense.Serialization.Json
 			return FromISerializable(ser, includeTypes);
 		}
 
-		/// <summary>Serialize a type that implements <see cref="System.Runtime.Serialization.ISerializable"/> into a JSON object representation</summary>
+		/// <summary>Serializes a type that implements <see cref="System.Runtime.Serialization.ISerializable"/> into a JSON object representation</summary>
 		/// <remarks>
 		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
 		/// </remarks>

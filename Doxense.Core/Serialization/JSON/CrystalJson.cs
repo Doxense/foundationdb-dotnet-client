@@ -91,51 +91,51 @@ namespace Doxense.Serialization.Json
 		/// <summary>Serialize a boxed value (of any type)</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(object), null, settings, customResolver).ToString();
+			return SerializeInternal(value, typeof(object), null, settings, resolver).ToString();
 		}
 
 		/// <summary>Serialize a boxed value (of any type)</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="declaredType">Type of the field or property, as declared in the parent type.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, declaredType, null, settings, customResolver).ToString();
+			return SerializeInternal(value, declaredType, null, settings, resolver).ToString();
 		}
 
 		/// <summary>Serialize a value (of any type)</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static string Serialize<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static string Serialize<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(T), null, settings, customResolver).ToString();
+			return SerializeInternal(value, typeof(T), null, settings, resolver).ToString();
 		}
 
 		/// <summary>Serialize a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="buffer">Buffer de destination (créé automatiquement si null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The value of <paramref name="buffer"/>, for call chaining</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static StringBuilder Serialize(object? value, StringBuilder? buffer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static StringBuilder Serialize(object? value, StringBuilder? buffer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(object), buffer, settings, customResolver);
+			return SerializeInternal(value, typeof(object), buffer, settings, resolver);
 		}
 
 		/// <summary>Create a new empty buffer with the appropriate size</summary>

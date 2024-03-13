@@ -55,7 +55,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Bind this value into an instance of the specified <paramref name="type"/></summary>
 		/// <param name="type">Target managed type</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>An instance of the target type that is equivalent to the original JSON value, if there exists a valid convertion path or convention. Otherwise, an exception will be thrown.</returns>
+		/// <returns>An instance of the target type that is equivalent to the original JSON value, if there exists a valid conversion path or convention. Otherwise, an exception will be thrown.</returns>
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target <paramref name="type"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind(typeof(long))</c> will return a boxed Int64 with value <c>123</c>.</example>
 		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.OrDefault{TValue}(JsonValue?,ICrystalJsonTypeResolver?)"/>, ...</remarks>
