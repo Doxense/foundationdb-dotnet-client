@@ -57,7 +57,7 @@ namespace Doxense.Networking.Http
 		{
 			var bytes  = await content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
 
-			return CrystalJson._ParseObject(bytes.AsSlice(), settings);
+			return CrystalJson.Parse(bytes.AsSlice(), settings)._AsObject();
 		}
 
 		public static Task<T?> ReadFromCrystalJsonAsync<T>(this HttpContent content, CancellationToken ct)

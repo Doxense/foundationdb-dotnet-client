@@ -1881,7 +1881,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // As<...> should also use the ctor(JsonObject)
-				var x = CrystalJson._ParseObject(json).Required<DummyCtorBasedJsonSerializableClass>();
+				var x = JsonValue._ParseObject(json).Required<DummyCtorBasedJsonSerializableClass>();
 				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
@@ -1926,7 +1926,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // As<...> should also use the ctor(JsonObject)
-				var x = CrystalJson._ParseObject(json).Required<DummyCtorBasedJsonSerializableStruct>();
+				var x = JsonValue._ParseObject(json).Required<DummyCtorBasedJsonSerializableStruct>();
 				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
@@ -1972,7 +1972,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // As<...> should also use the ctor(JsonObject)
-				var x = CrystalJson._ParseObject(json).Required<DummyCtorBasedJsonBindableClass>();
+				var x = JsonValue._ParseObject(json).Required<DummyCtorBasedJsonBindableClass>();
 				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
@@ -2410,7 +2410,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonDeserialize_Dictionary()
 		{
 			// key => string
-			var obj = CrystalJson._ParseObject("""{ "hello": "World", "foo": 123, "bar": true }""");
+			var obj = JsonValue._ParseObject("""{ "hello": "World", "foo": 123, "bar": true }""");
 			Assert.That(obj, Is.Not.Null.And.InstanceOf<JsonObject>());
 
 			var dic = obj.Required<Dictionary<string, string>>();
@@ -2427,7 +2427,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(dic.Count, Is.EqualTo(3));
 
 			// key => int
-			obj = CrystalJson._ParseObject("""{ "1": "Hello World", "42": "Narf!", "007": "James Bond" }""");
+			obj = JsonValue._ParseObject("""{ "1": "Hello World", "42": "Narf!", "007": "James Bond" }""");
 			Assert.That(obj, Is.Not.Null.And.InstanceOf<JsonObject>());
 
 			var dicInt = obj.Required<Dictionary<int, string>>();
@@ -8163,7 +8163,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 			// verify
 			Log("> reloading...");
-			var verify = CrystalJson._ParseObjectFrom(path);
+			var verify = CrystalJson.ParseFrom(path)._AsObject();
 			Dump(verify);
 			Log("> verifying...");
 			Assert.That(verify, Is.Not.Null);
@@ -8188,7 +8188,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// verify
 			Log("> reloading...");
-			verify = CrystalJson._ParseObjectFrom(path);
+			verify = CrystalJson.ParseFrom(path)._AsObject();
 			Dump(verify);
 			Log("> verifying...");
 			Assert.That(verify, Is.Not.Null);
@@ -8225,7 +8225,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// verify
 			Log("> reloading...");
-			verify = CrystalJson._ParseObjectFrom(path);
+			verify = CrystalJson.ParseFrom(path)._AsObject();
 			// too large to be dumped to the log!
 			Log("> verifying...");
 			Assert.That(verify, Is.Not.Null);
@@ -8271,7 +8271,7 @@ namespace Doxense.Serialization.Json.Tests
 			using(var fs = File.OpenRead(path + ".gz"))
 			using (var gs = new GZipStream(fs, CompressionMode.Decompress, false))
 			{
-				verify = CrystalJson._ParseObjectFrom(gs);
+				verify = CrystalJson.ParseFrom(gs)._AsObject();
 			}
 
 			Log("> verifying...");
