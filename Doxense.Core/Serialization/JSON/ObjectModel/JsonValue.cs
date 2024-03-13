@@ -508,7 +508,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _Get(key) if required, or _Get(key, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(string key) => GetValue(key).As<TValue>();
+		public virtual TValue? Get<TValue>(string key) => _GetValueOrDefault(key).OrDefault<TValue>();
 
 		/// <summary>Returns the converted value at the specified index in this array</summary>
 		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
@@ -518,7 +518,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(int index) => GetValue(index).As<TValue>();
+		public virtual TValue? Get<TValue>(int index) => _GetValueOrDefault(index).OrDefault<TValue>();
 
 		/// <summary>Returns the converted value at the specified index in this array</summary>
 		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
@@ -528,7 +528,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(Index index) => GetValue(index).As<TValue>();
+		public virtual TValue? Get<TValue>(Index index) => _GetValueOrDefault(index).OrDefault<TValue>();
 
 		#region NEW API
 

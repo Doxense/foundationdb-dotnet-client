@@ -786,7 +786,7 @@ namespace Doxense.Serialization.Json
 			return obj;
 		}
 
-		/// <summary>Returns this value as a required JSON Object.</summary>
+		/// <summary>Returns this value as a <b>required</b> JSON Object.</summary>
 		/// <param name="value">Value that must be a JSON Object.</param>
 		/// <returns>The same instance casted as <see cref="JsonObject"/>, Throws an exception if the value is null, missing, or any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null, missing, or not a JSON Object.</exception>
@@ -953,8 +953,7 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("null => halt")]
 		public static JsonNumber AsNumber(this JsonValue? value)
 		{
-			if (value == null || value.Type != JsonType.Number) return FailValueIsNotANumber(value);
-			return (JsonNumber)value;
+			return value as JsonNumber ?? FailValueIsNotANumber(value);
 		}
 
 		/// <summary>Retourne la valeur JSON sous forme d'un number, ou null si elle est null ou manquante.</summary>
@@ -964,9 +963,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonNumber? AsNumberOrDefault(this JsonValue? value)
 		{
-			if (value.IsNullOrMissing()) return null;
-			if (value.Type != JsonType.Number) return FailValueIsNotANumber(value);
-			return (JsonNumber)value;
+			return value.IsNullOrMissing() ? null : value as JsonNumber ?? FailValueIsNotANumber(value);
 		}
 
 		[DoesNotReturn]
