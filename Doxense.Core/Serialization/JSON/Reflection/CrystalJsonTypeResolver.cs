@@ -145,12 +145,12 @@ namespace Doxense.Serialization.Json
 
 			// (value, _, resolver) =>
 			// {
-			//    var obj = value.AsObject();
+			//    var obj = value.AsObjectOrDefault();
 			//    return obj == null
 			//      ? default(KeyValuePair<TKey, TValue>)
 			//      : new KeyValuePair<TKey, TValue>(
-			//          obj.GetValue<TKey>("Key", resolver),
-			//          obj.GetValue<TValue>("Value", resolver)
+			//          obj.Get<TKey>("Key", default(TKey), resolver),
+			//          obj.Get<TValue>("Value", default(TValue), resolver)
 			//    );
 			// }
 
@@ -165,22 +165,24 @@ namespace Doxense.Serialization.Json
 			var varObj = Expression.Variable(typeof(JsonObject), "obj");
 
 			var body = Expression.Block(
-				new [] { varObj },
-				Expression.Assign(varObj, Expression.Call(typeof(JsonValueExtensions), nameof(JsonValueExtensions._AsObjectOrDefault), null, prmValue)),
-				Expression.Convert(
-					Expression.Condition(
-						Expression.ReferenceEqual(varObj, Expression.Default(typeof(JsonObject))),
-						Expression.Default(type),
-						Expression.New(
-							type.GetConstructors().Single(),
-							Expression.Call(varObj, nameof(JsonObject.Get), [ keyType ], Expression.Constant("Key"), prmResolver), // Get<TKey>(key, ICrystalTypeResolver)
-							Expression.Call(varObj, nameof(JsonObject.Get), [ valueType ], Expression.Constant("Value"), prmResolver) // Get<TValue>(key, ICrystalTypeResolver)
-						)
-					),
-					typeof(object)
-				)
+				[ varObj ],
+				[
+					Expression.Assign(varObj, Expression.Call(typeof(JsonValueExtensions), nameof(JsonValueExtensions._AsObjectOrDefault), null, prmValue)),
+					Expression.Convert(
+						Expression.Condition(
+							Expression.ReferenceEqual(varObj, Expression.Default(typeof(JsonObject))),
+							Expression.Default(type),
+							Expression.New(
+								type.GetConstructors().Single(),
+								Expression.Call(varObj, nameof(JsonObject._Get), [ keyType ], Expression.Constant("Key"), Expression.Default(keyType), prmResolver), // Get<TKey>("Key", default, resolver)
+								Expression.Call(varObj, nameof(JsonObject._Get), [ valueType ], Expression.Constant("Value"), Expression.Default(valueType), prmResolver) // Get<TValue>("Value", default, resolver)
+							)
+						),
+						typeof(object)
+					)
+				]
 			);
-			var binder = Expression.Lambda<CrystalJsonTypeBinder>(body, "<>_KV_" + keyType.Name + "_" + valueType.Name + "_Unpack", true, [ prmValue, prmType, prmResolver ]).Compile();
+			var binder = Expression.Lambda<CrystalJsonTypeBinder>(body, $"<>_KV_{keyType.Name}_{valueType.Name}_Unpack", true, [ prmValue, prmType, prmResolver ]).Compile();
 
 			//REVIEW: je suis pas sur que ce soit nécessaire, vu qu'on a déja un custom binder!
 			var members = new[]
