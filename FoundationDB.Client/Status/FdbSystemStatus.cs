@@ -41,8 +41,8 @@ namespace FoundationDB.Client.Status
 		internal FdbSystemStatus(JsonObject doc, long readVersion, Slice raw)
 			: base(doc)
 		{
-			this.Client = new ClientStatus(doc["client"]._AsObjectOrDefault());
-			this.Cluster = new ClusterStatus(doc["cluster"]._AsObjectOrDefault());
+			this.Client = new ClientStatus(doc["client"].AsObjectOrDefault());
+			this.Cluster = new ClusterStatus(doc["cluster"].AsObjectOrDefault());
 			this.ReadVersion = readVersion;
 			this.RawData = raw;
 		}
@@ -90,8 +90,8 @@ namespace FoundationDB.Client.Status
 				return new Message("", "");
 			}
 
-			var key = obj._Get<string>("name", "");
-			var value = obj._Get<string>("description", "");
+			var key = obj.Get<string>("name", "");
+			var value = obj.Get<string>("description", "");
 			return new Message(key, value);
 		}
 
@@ -107,8 +107,8 @@ namespace FoundationDB.Client.Status
 			{
 				if (array.TryGetObject(i, out var obj))
 				{
-					var key = obj._Get<string>("name", "");
-					var value = obj._Get<string>("description", "");
+					var key = obj.Get<string>("name", "");
+					var value = obj.Get<string>("description", "");
 					res[i] = new Message(key, value);
 				}
 				else
@@ -249,17 +249,17 @@ namespace FoundationDB.Client.Status
 
 		protected JsonObject? GetObject(string field)
 		{
-			return m_data?._GetObjectOrDefault(field);
+			return m_data?.GetObjectOrDefault(field);
 		}
 
 		protected JsonArray? GetArray(string field)
 		{
-			return m_data?._GetArrayOrDefault(field);
+			return m_data?.GetArrayOrDefault(field);
 		}
 
 		protected string? GetString(string field)
 		{
-			return m_data?._Get<string?>(field, null);
+			return m_data?.Get<string?>(field, null);
 		}
 
 		protected string? GetString(string field1, string field2)
@@ -269,7 +269,7 @@ namespace FoundationDB.Client.Status
 
 		protected long? GetInt64(string field)
 		{
-			return m_data?._Get<long?>(field, null);
+			return m_data?.Get<long?>(field, null);
 		}
 
 		protected long? GetInt64(string field1, string field2)
@@ -279,7 +279,7 @@ namespace FoundationDB.Client.Status
 
 		protected double? GetDouble(string field)
 		{
-			return m_data?._Get<double?>(field, null);
+			return m_data?.Get<double?>(field, null);
 		}
 
 		protected double? GetDouble(string field1, string field2)
@@ -289,7 +289,7 @@ namespace FoundationDB.Client.Status
 
 		protected bool? GetBoolean(string field)
 		{
-			return m_data?._Get<bool?>(field, null);
+			return m_data?.Get<bool?>(field, null);
 		}
 
 		protected bool? GetBoolean(string field1, string field2)
@@ -510,7 +510,7 @@ namespace FoundationDB.Client.Status
 					{
 						for (int i = 0; i < res.Length; i++)
 						{
-							res[i] = arr[i]._Get("address", "");
+							res[i] = arr[i].Get("address", "");
 						}
 					}
 					m_excludedServers = res;
@@ -785,7 +785,7 @@ namespace FoundationDB.Client.Status
 
 		public static ProcessRoleMetrics Create(JsonObject? data)
 		{
-			string? role = data?._Get<string?>("role", null);
+			string? role = data?.Get<string?>("role", null);
 			return role switch
 			{
 				null => null!, //invalid!
@@ -837,9 +837,9 @@ namespace FoundationDB.Client.Status
 		private MetricStatistics? m_batchGrvLatencyStatistics;
 		private MetricStatistics? m_defaultGrvLatencyStatistics;
 
-		public MetricStatistics BatchGrvLatencyStatistics => m_batchGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?._GetObjectOrDefault("batch", null));
+		public MetricStatistics BatchGrvLatencyStatistics => m_batchGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?.GetObjectOrDefault("batch", null));
 
-		public MetricStatistics DefaultGrvLatencyStatistics => m_defaultGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?._GetObjectOrDefault("default", null));
+		public MetricStatistics DefaultGrvLatencyStatistics => m_defaultGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?.GetObjectOrDefault("default", null));
 
 	}
 

@@ -267,7 +267,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <see langword="default"/> for <typeparamref name="TValue"/>.</remarks>
 		[Pure]
-		public static TValue? _As<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? As<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value is null)
 			{
@@ -343,7 +343,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <paramref name="defaultValue"/>.</remarks>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? _As<TValue>(this JsonValue? value, TValue defaultValue, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? As<TValue>(this JsonValue? value, TValue defaultValue, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value is null or JsonNull)
 			{
@@ -418,112 +418,112 @@ namespace Doxense.Serialization.Json
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static JsonValue _As(this JsonValue? value, JsonValue? missingValue) => (value is JsonNull ? null : value) ?? missingValue ?? JsonNull.Missing;
+		public static JsonValue As(this JsonValue? value, JsonValue? missingValue) => (value is JsonNull ? null : value) ?? missingValue ?? JsonNull.Missing;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static string _As(this JsonValue? value, string missingValue) => value?.ToStringOrDefault() ?? missingValue;
+		public static string As(this JsonValue? value, string missingValue) => value?.ToStringOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static bool _As(this JsonValue? value, bool missingValue) => value?.ToBooleanOrDefault() ?? missingValue;
+		public static bool As(this JsonValue? value, bool missingValue) => value?.ToBooleanOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static int _As(this JsonValue? value, int missingValue) => value?.ToInt32OrDefault() ?? missingValue;
+		public static int As(this JsonValue? value, int missingValue) => value?.ToInt32OrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static long _As(this JsonValue? value, long missingValue) => value?.ToInt64OrDefault() ?? missingValue;
+		public static long As(this JsonValue? value, long missingValue) => value?.ToInt64OrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static double _As(this JsonValue? value, double missingValue) => value?.ToDoubleOrDefault() ?? missingValue;
+		public static double As(this JsonValue? value, double missingValue) => value?.ToDoubleOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static float _As(this JsonValue? value, float missingValue) => value?.ToSingleOrDefault() ?? missingValue;
+		public static float As(this JsonValue? value, float missingValue) => value?.ToSingleOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Half _As(this JsonValue? value, Half missingValue) => value?.ToHalfOrDefault() ?? missingValue;
+		public static Half As(this JsonValue? value, Half missingValue) => value?.ToHalfOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Guid _As(this JsonValue? value, Guid missingValue) => value is not (null or JsonNull) ? value.ToGuid() : missingValue;
+		public static Guid As(this JsonValue? value, Guid missingValue) => value is not (null or JsonNull) ? value.ToGuid() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Uuid128 _As(this JsonValue? value, Uuid128 missingValue) => value is not (null or JsonNull) ? value.ToUuid128() : missingValue;
+		public static Uuid128 As(this JsonValue? value, Uuid128 missingValue) => value is not (null or JsonNull) ? value.ToUuid128() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Uuid64 _As(this JsonValue? value, Uuid64 missingValue) => value is not (null or JsonNull) ? value.ToUuid64() : missingValue;
+		public static Uuid64 As(this JsonValue? value, Uuid64 missingValue) => value is not (null or JsonNull) ? value.ToUuid64() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static TimeSpan _As(this JsonValue? value, TimeSpan missingValue) => value is not (null or JsonNull) ? value.ToTimeSpan() : missingValue;
+		public static TimeSpan As(this JsonValue? value, TimeSpan missingValue) => value is not (null or JsonNull) ? value.ToTimeSpan() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static DateTime _As(this JsonValue? value, DateTime missingValue) => value is not (null or JsonNull) ? value.ToDateTime() : missingValue;
+		public static DateTime As(this JsonValue? value, DateTime missingValue) => value is not (null or JsonNull) ? value.ToDateTime() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static DateTimeOffset _As(this JsonValue? value, DateTimeOffset missingValue) => value is not (null or JsonNull) ? value.ToDateTimeOffset() : missingValue;
+		public static DateTimeOffset As(this JsonValue? value, DateTimeOffset missingValue) => value is not (null or JsonNull) ? value.ToDateTimeOffset() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static NodaTime.Instant _As(this JsonValue? value, NodaTime.Instant missingValue) => value is not (null or JsonNull) ? value.ToInstant() : missingValue;
+		public static NodaTime.Instant As(this JsonValue? value, NodaTime.Instant missingValue) => value is not (null or JsonNull) ? value.ToInstant() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static NodaTime.Duration _As(this JsonValue? value, NodaTime.Duration missingValue) => value is not (null or JsonNull) ? value.ToDuration() : missingValue;
+		public static NodaTime.Duration As(this JsonValue? value, NodaTime.Duration missingValue) => value is not (null or JsonNull) ? value.ToDuration() : missingValue;
 
 		#endregion
 
@@ -535,7 +535,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null, missing, or not a JSON Object.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonObject _AsObject(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : FailObjectIsNullOrMissing()) : value as JsonObject ?? FailValueIsNotAnObject(value);
+		public static JsonObject AsObject(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : FailObjectIsNullOrMissing()) : value as JsonObject ?? FailValueIsNotAnObject(value);
 
 		/// <summary>Returns this value as JSON Object, or <see langword="null"/> if it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Object or null or missing.</param>
@@ -543,7 +543,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Object and not null or missing.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonObject? _AsObjectOrDefault(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : null) : value as JsonObject ?? FailValueIsNotAnObject(value);
+		public static JsonObject? AsObjectOrDefault(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : null) : value as JsonObject ?? FailValueIsNotAnObject(value);
 
 		/// <summary>Returns this value as a JSON Object, or an empty (read-only) object it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Object or null or missing.</param>
@@ -551,7 +551,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Object.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonObject _AsObjectOrEmpty(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : JsonObject.EmptyReadOnly) : value as JsonObject ?? FailValueIsNotAnObject(value);
+		public static JsonObject AsObjectOrEmpty(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : JsonObject.EmptyReadOnly) : value as JsonObject ?? FailValueIsNotAnObject(value);
 
 		/// <exception cref="JsonBindingException"/>
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -655,7 +655,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null, missing, or not a JSON Array.</exception>
 		[Pure, ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonArray _AsArray(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : FailArrayIsNullOrMissing()) : value as JsonArray ?? FailValueIsNotAnArray(value);
+		public static JsonArray AsArray(this JsonValue? value) => value is null or JsonNull ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : FailArrayIsNullOrMissing()) : value as JsonArray ?? FailValueIsNotAnArray(value);
 
 		/// <summary>Returns this value as a JSON Array, or <see langword="null"/> if it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Array or null or missing.</param>
@@ -663,7 +663,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Array and not null or missing.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonArray? _AsArrayOrDefault(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : null) : value as JsonArray ?? FailValueIsNotAnArray(value);
+		public static JsonArray? AsArrayOrDefault(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : null) : value as JsonArray ?? FailValueIsNotAnArray(value);
 
 		/// <summary>Returns this value as a JSON Array, or an empty (read-only) object it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Array or null or missing.</param>
@@ -671,7 +671,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Array.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonArray _AsArrayOrEmpty(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : JsonArray.EmptyReadOnly) : value as JsonArray ?? FailValueIsNotAnArray(value);
+		public static JsonArray AsArrayOrEmpty(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : JsonArray.EmptyReadOnly) : value as JsonArray ?? FailValueIsNotAnArray(value);
 
 		#endregion
 
@@ -766,9 +766,9 @@ namespace Doxense.Serialization.Json
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/></returns>
 		/// <exception cref="JsonBindingException">The field is null or missing, or cannot be bound to the specified type.</exception>
 		[Pure]
-		public static TValue[] _GetArray<TValue>(this JsonValue self, string key)
+		public static TValue[] GetArray<TValue>(this JsonValue self, string key)
 		{
-			var value = self._GetValue(key);
+			var value = self.GetValue(key);
 			if (value is not JsonArray arr)
 			{
 				throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
@@ -784,9 +784,9 @@ namespace Doxense.Serialization.Json
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/></returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
-		public static TValue[] _GetArray<TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null)
+		public static TValue[] GetArray<TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null)
 		{
-			var value = self._GetValueOrDefault(key).RequiredField(key, message);
+			var value = self.GetValueOrDefault(key).RequiredField(key, message);
 			if (value is not JsonArray arr)
 			{
 				throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
@@ -802,7 +802,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing, or cannot be bound to the specified type.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue[]? _GetArray<TValue>(this JsonValue? self, string key, TValue[]? defaultValue) => _GetArray(self, key, defaultValue, null);
+		public static TValue[]? GetArray<TValue>(this JsonValue? self, string key, TValue[]? defaultValue) => GetArray(self, key, defaultValue, null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
@@ -813,9 +813,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue[]? _GetArray<TValue>(this JsonValue? self, string key, TValue[]? defaultValue, ICrystalJsonTypeResolver? resolver)
+		public static TValue[]? GetArray<TValue>(this JsonValue? self, string key, TValue[]? defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
-			var value = self?._GetValueOrDefault(key);
+			var value = self?.GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:
@@ -840,7 +840,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the field was null or missing.</returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
-		public static TValue[] _GetArray<TValue>(this JsonValue? self, string key, ReadOnlySpan<TValue> defaultValue) => _GetArray(self, key, defaultValue, null);
+		public static TValue[] GetArray<TValue>(this JsonValue? self, string key, ReadOnlySpan<TValue> defaultValue) => GetArray(self, key, defaultValue, null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
@@ -850,9 +850,9 @@ namespace Doxense.Serialization.Json
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the field was null or missing.</returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
-		public static TValue[] _GetArray<TValue>(this JsonValue? self, string key, ReadOnlySpan<TValue> defaultValue, ICrystalJsonTypeResolver? resolver)
+		public static TValue[] GetArray<TValue>(this JsonValue? self, string key, ReadOnlySpan<TValue> defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
-			var value = self?._GetValueOrDefault(key);
+			var value = self?.GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:
@@ -876,10 +876,10 @@ namespace Doxense.Serialization.Json
 		/// <returns>List of values converted into instances of type <typeparamref name="TValue"/></returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
-		public static List<TValue> _GetList<TValue>(this JsonValue self, string key)
+		public static List<TValue> GetList<TValue>(this JsonValue self, string key)
 		{
 			Contract.NotNull(self);
-			var value = self._GetValue(key);
+			var value = self.GetValue(key);
 			if (value is not JsonArray arr) throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
 			return arr.ToList<TValue>()!;
 		}
@@ -892,10 +892,10 @@ namespace Doxense.Serialization.Json
 		/// <returns>List of values converted into instances of type <typeparamref name="TValue"/></returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
-		public static List<TValue> _GetList<TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null)
+		public static List<TValue> GetList<TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null)
 		{
 			Contract.NotNull(self);
-			var value = self._GetValueOrDefault(key).RequiredField(key, message);
+			var value = self.GetValueOrDefault(key).RequiredField(key, message);
 			if (value is not JsonArray arr) throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
 			return arr.ToList<TValue>(resolver)!;
 		}
@@ -908,7 +908,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static List<TValue>? _GetList<TValue>(this JsonValue? self, string key, List<TValue>? defaultValue) => _GetList(self, key, defaultValue, null);
+		public static List<TValue>? GetList<TValue>(this JsonValue? self, string key, List<TValue>? defaultValue) => GetList(self, key, defaultValue, null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
@@ -919,9 +919,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static List<TValue>? _GetList<TValue>(this JsonValue? self, string key, List<TValue>? defaultValue, ICrystalJsonTypeResolver? resolver)
+		public static List<TValue>? GetList<TValue>(this JsonValue? self, string key, List<TValue>? defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
-			var value = self?._GetValueOrDefault(key);
+			var value = self?.GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:
@@ -947,16 +947,16 @@ namespace Doxense.Serialization.Json
 		/// <param name="message">Optional error message if the required array is null or missing</param>
 		/// <returns>Dictionary of keys and values converted into instances of type <typeparamref name="TKey"/> and <typeparamref name="TValue"/> respectively.</returns>
 		/// <exception cref="JsonBindingException">The field is null or missing, or cannot be bound to the specified type.</exception>
-		public static Dictionary<TKey, TValue> _GetDictionary<TKey, TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TKey : notnull
+		public static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TKey : notnull
 		{
 			Contract.NotNull(self);
-			var value = self._GetValue(key);
+			var value = self.GetValue(key);
 			if (value is not JsonObject obj) throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value.Type);
 			return obj.ToDictionary<TKey, TValue>(resolver);
 		}
 
-		public static Dictionary<TKey, TValue> _GetDictionary<TKey, TValue>(this JsonValue self, string key) where TKey : notnull
-			=> _GetDictionary<TKey, TValue>(self, key, resolver: null, message: null);
+		public static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(this JsonValue self, string key) where TKey : notnull
+			=> GetDictionary<TKey, TValue>(self, key, resolver: null, message: null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a dictionary with keys of type <typeparamref name="TKey"/> and elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TKey">Type of the keys of the dictionary</typeparam>
@@ -967,9 +967,9 @@ namespace Doxense.Serialization.Json
 		/// <returns>Dictionary of keys and values converted into instances of type <typeparamref name="TKey"/> and <typeparamref name="TValue"/> respectively, or <paramref name="defaultValue"/> if the field was null or missing.</returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static Dictionary<TKey, TValue>? _GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue, ICrystalJsonTypeResolver? resolver) where TKey : notnull
+		public static Dictionary<TKey, TValue>? GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue, ICrystalJsonTypeResolver? resolver) where TKey : notnull
 		{
-			var value = self?._GetValueOrDefault(key);
+			var value = self?.GetValueOrDefault(key);
 			switch (value)
 			{
 				case null or JsonNull:
@@ -987,8 +987,8 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public static Dictionary<TKey, TValue>? _GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue) where TKey : notnull
-			=> _GetDictionary<TKey, TValue>(self, key, defaultValue, null);
+		public static Dictionary<TKey, TValue>? GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue) where TKey : notnull
+			=> GetDictionary<TKey, TValue>(self, key, defaultValue, null);
 
 		#endregion
 

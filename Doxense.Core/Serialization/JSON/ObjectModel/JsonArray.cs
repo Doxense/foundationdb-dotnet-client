@@ -1870,11 +1870,11 @@ namespace Doxense.Serialization.Json
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue _GetValue(int index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
+		public override JsonValue GetValue(int index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue _GetValue(Index index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
+		public override JsonValue GetValue(Index index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
 		
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public override bool TryGetValue(int index, [MaybeNullWhen(false)] out JsonValue value)
@@ -1903,7 +1903,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue _GetValueOrDefault(int index, JsonValue? defaultValue = null)
+		public override JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null)
 		{
 			if ((uint) index >= m_size)
 			{
@@ -1915,7 +1915,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue _GetValueOrDefault(Index index, JsonValue? defaultValue = null)
+		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null)
 		{
 			var offset = index.GetOffset(m_size);
 			if ((uint) offset >= m_size)
@@ -2439,7 +2439,7 @@ namespace Doxense.Serialization.Json
 						{
 							throw FailElementMissing();
 						}
-						m_current = val._As<TValue>();
+						m_current = val.As<TValue>();
 						m_index++;
 						return true;
 					}
@@ -2649,14 +2649,14 @@ namespace Doxense.Serialization.Json
 			{
 				for (int i = 0; i < result.Length; i++)
 				{
-					result[i] = items[i]._As<TValue>();
+					result[i] = items[i].As<TValue>();
 				}
 			}
 			else
 			{
 				for (int i = 0; i < result.Length; i++)
 				{
-					result[i] = items[i]._As<TValue>(resolver);
+					result[i] = items[i].As<TValue>(resolver);
 				}
 			}
 			return result;
@@ -2674,7 +2674,7 @@ namespace Doxense.Serialization.Json
 			var buf = new T?[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i]._As<T>();
+				buf[i] = items[i].As<T>();
 			}
 			return buf;
 		}
@@ -2947,14 +2947,14 @@ namespace Doxense.Serialization.Json
 			{
 				foreach(var item in items)
 				{
-					list.Add(item._As<TValue>());
+					list.Add(item.As<TValue>());
 				}
 			}
 			else
 			{
 				foreach(var item in items)
 				{
-					list.Add(item._As<TValue>(resolver));
+					list.Add(item.As<TValue>(resolver));
 				}
 			}
 			return list;
@@ -3052,14 +3052,14 @@ namespace Doxense.Serialization.Json
 				ref var ptr = ref tmp[0];
 				foreach (var item in items)
 				{
-					ptr = item._As<T>();
+					ptr = item.As<T>();
 					ptr = ref Unsafe.Add(ref ptr, 1);
 				}
 			}
 #else
 			foreach(var item in items)
 			{
-				result.Add(item._As<T>());
+				result.Add(item.As<T>());
 			}
 #endif
 
@@ -3077,7 +3077,7 @@ namespace Doxense.Serialization.Json
 			var total = TNumber.Zero;
 			foreach (var item in this.AsSpan())
 			{
-				total += item._As<TNumber>(TNumber.Zero);
+				total += item.As<TNumber>(TNumber.Zero);
 			}
 			return total;
 		}
@@ -3454,12 +3454,12 @@ namespace Doxense.Serialization.Json
 					{
 						case JsonType.Object:
 						{
-							parent[i] = JsonObject.Merge((JsonObject) left, right._AsObject(), deepCopy);
+							parent[i] = JsonObject.Merge((JsonObject) left, right.AsObject(), deepCopy);
 							break;
 						}
 						case JsonType.Array:
 						{
-							parent[i] = Merge((JsonArray) left, right._AsArray(), deepCopy);
+							parent[i] = Merge((JsonArray) left, right.AsArray(), deepCopy);
 							break;
 						}
 						default:
@@ -3940,7 +3940,7 @@ namespace Doxense.Serialization.Json
 				}
 
 				var key = keySelector(item).Required<TKey>(resolver);
-				var value = valueSelector(item)._As<TValue>(resolver)!;
+				var value = valueSelector(item).As<TValue>(resolver)!;
 				if (overwrite)
 				{
 					target[key] = value;

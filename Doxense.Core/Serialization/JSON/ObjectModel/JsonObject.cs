@@ -690,7 +690,7 @@ namespace Doxense.Serialization.Json
 		public static JsonObject? FromObject<TValue>(TValue value)
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
-			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue))._AsObjectOrDefault();
+			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
 		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
@@ -702,7 +702,7 @@ namespace Doxense.Serialization.Json
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value)
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
-			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(TValue))._AsObjectOrDefault();
+			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
 		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent JSON Object.</summary>
@@ -715,7 +715,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(TValue))._AsObjectOrDefault();
+			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
 		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
@@ -728,7 +728,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(TValue))._AsObjectOrDefault();
+			return CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
 		#endregion
@@ -1512,7 +1512,7 @@ namespace Doxense.Serialization.Json
 		public bool HasValues => this.Count > 0;
 
 		/// <summary>Retourne la valeur de l'attribut "__class", ou null si absent (ou pas une chaine)</summary>
-		public string? CustomClassName => _Get<string?>(JsonTokens.CustomClassAttribute, null);
+		public string? CustomClassName => Get<string?>(JsonTokens.CustomClassAttribute, null);
 
 		#endregion
 
@@ -1569,7 +1569,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">Name of the field</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue _GetValue(string key) => m_items.GetValueOrDefault(key).RequiredField(key);
+		public override JsonValue GetValue(string key) => m_items.GetValueOrDefault(key).RequiredField(key);
 
 		/// <summary>Retourne la valeur JSON d'une propriété de cet objet, ou une valeur JSON par défaut</summary>
 		/// <param name="key">Nom de la propriété recherchée</param>
@@ -1578,7 +1578,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retourné à la place.</remarks>
 		[Pure, ContractAnnotation("halt<=key:null")]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue _GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
 		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
 		/// <param name="path">Path vers le fils (peut inclure des '.')</param>
@@ -1800,7 +1800,7 @@ namespace Doxense.Serialization.Json
 						if (index.HasValue)
 						{
 							JsonArray array = name == null
-								? current._AsArray()
+								? current.AsArray()
 								: GetOrCreateChildArray(current, name, createIfMissing: true)!;
 
 							current = GetOrCreateEntryObject(array, index.Value.GetOffset(array.Count), createIfMissing: true)!;
@@ -1821,7 +1821,7 @@ namespace Doxense.Serialization.Json
 						{
 							// current.name doit être une array
 							JsonArray array = name == null
-								? current._AsArray()
+								? current.AsArray()
 								: GetOrCreateChildArray(current, name, createIfMissing: true)!;
 
 							if (valueToSet != null)
@@ -1941,7 +1941,7 @@ namespace Doxense.Serialization.Json
 							JsonArray? array;
 							if (name == null)
 							{
-								array = current._AsArray();
+								array = current.AsArray();
 							}
 							else
 							{

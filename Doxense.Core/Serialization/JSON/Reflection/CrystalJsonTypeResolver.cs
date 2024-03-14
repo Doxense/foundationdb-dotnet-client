@@ -167,15 +167,15 @@ namespace Doxense.Serialization.Json
 			var body = Expression.Block(
 				[ varObj ],
 				[
-					Expression.Assign(varObj, Expression.Call(typeof(JsonValueExtensions), nameof(JsonValueExtensions._AsObjectOrDefault), null, prmValue)),
+					Expression.Assign(varObj, Expression.Call(typeof(JsonValueExtensions), nameof(JsonValueExtensions.AsObjectOrDefault), null, prmValue)),
 					Expression.Convert(
 						Expression.Condition(
 							Expression.ReferenceEqual(varObj, Expression.Default(typeof(JsonObject))),
 							Expression.Default(type),
 							Expression.New(
 								type.GetConstructors().Single(),
-								Expression.Call(varObj, nameof(JsonObject._Get), [ keyType ], Expression.Constant("Key"), Expression.Default(keyType), prmResolver), // Get<TKey>("Key", default, resolver)
-								Expression.Call(varObj, nameof(JsonObject._Get), [ valueType ], Expression.Constant("Value"), Expression.Default(valueType), prmResolver) // Get<TValue>("Value", default, resolver)
+								Expression.Call(varObj, nameof(JsonObject.Get), [ keyType ], Expression.Constant("Key"), Expression.Default(keyType), prmResolver), // Get<TKey>("Key", default, resolver)
+								Expression.Call(varObj, nameof(JsonObject.Get), [ valueType ], Expression.Constant("Value"), Expression.Default(valueType), prmResolver) // Get<TValue>("Value", default, resolver)
 							)
 						),
 						typeof(object)
@@ -1588,12 +1588,12 @@ namespace Doxense.Serialization.Json
 
 				// JsonValueExtensions.As<T>(JsonValue, ICrystalJsonTypeResolver)
 				var asMethod = typeof(JsonValueExtensions).GetMethod(
-					nameof(JsonValueExtensions._As),
+					nameof(JsonValueExtensions.As),
 					BindingFlags.Static | BindingFlags.Public,
 					null,
 					[ typeof(JsonValue), typeof(ICrystalJsonTypeResolver) ],
 					null);
-				Contract.Debug.Assert(asMethod != null, $"Could not find the {nameof(JsonValueExtensions)}.{nameof(JsonValueExtensions._As)}As<...>(...) extension method!");
+				Contract.Debug.Assert(asMethod != null, $"Could not find the {nameof(JsonValueExtensions)}.{nameof(JsonValueExtensions.As)}As<...>(...) extension method!");
 
 				var items = new Expression[args.Length];
 				for (int i = 0; i < items.Length; i++)

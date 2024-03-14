@@ -575,13 +575,13 @@ namespace Doxense.Serialization.Json
 					{
 						VerifyCommand(op, 3);
 						var path = GetFieldPath(op, 1);
-						ApplyDiffSet(state.GetPath(path)._AsObject(), op._GetArray(2));
+						ApplyDiffSet(state._GetPathObject(path), op.GetArray(2));
 						break;
 					}
 					case Tokens.Replace:
 					{
 						VerifyCommand(op, 2);
-						var obj = op._GetObject(1);
+						var obj = op.GetObject(1);
 						state.Clear();
 						foreach (var kvp in obj)
 						{
@@ -650,7 +650,7 @@ namespace Doxense.Serialization.Json
 						VerifyCommand(op, 3);
 						string path = GetFieldPath(op, 1);
 						int count = op[2].ToInt32();
-						var arr = state.GetPath(path)._AsArrayOrDefault();
+						var arr = state._GetPathArrayOrDefault(path);
 						if (arr != null)
 						{
 							state[path] = arr.GetRange(0, count);
@@ -661,8 +661,8 @@ namespace Doxense.Serialization.Json
 					{
 						VerifyCommand(op, 3);
 						string path = GetFieldPath(op, 1);
-						var items = op._GetArray(2);
-						var prev = state.GetPath(path)._AsArrayOrDefault();
+						var items = op.GetArray(2);
+						var prev = state._GetPathArrayOrDefault(path);
 						if (prev == null)
 						{
 							state.SetPath(path, items.Copy());

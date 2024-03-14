@@ -266,7 +266,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, JsonObject>.DecodeValue(JsonObject packed)
 		{
-			return packed._As<T>(resolver: this.Resolver);
+			return packed.As<T>(resolver: this.Resolver);
 		}
 
 	}
@@ -300,7 +300,7 @@ namespace Doxense.Serialization.Encoders
 		{
 			var tuple = TuPack.Unpack(reader.ReadToEnd());
 			Contract.Debug.Assert(tuple != null);
-			value = this.Encoding.DecodeNext(tuple, out tuple)._As<T>();
+			value = this.Encoding.DecodeNext(tuple, out tuple).As<T>();
 			if (tuple != null)
 			{
 				throw new FormatException("Found extra items at the encoded of the encoded JSON value");
@@ -315,7 +315,7 @@ namespace Doxense.Serialization.Encoders
 				return false;
 			}
 			Contract.Debug.Assert(tuple != null);
-			value = this.Encoding.DecodeNext(tuple, out tuple)._As<T>();
+			value = this.Encoding.DecodeNext(tuple, out tuple).As<T>();
 			return tuple is null;
 		}
 

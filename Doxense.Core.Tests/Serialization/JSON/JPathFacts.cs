@@ -41,7 +41,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		private static JsonObject GetSample()
 		{
-			return JsonValue._ParseObject(
+			return JsonValue.ParseObject(
 				"""
 				{
 					"store":
@@ -747,7 +747,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			CheckMultiple(obj, "store.book[not(isbn)]", obj["store"]["book"][0], obj["store"]["book"][1]); // should return only items of the array that have an isbn
 
-			var arr = JsonValue._ParseArray("[ [1, 2, 3], [4, 5, 6], [7, 8, 9]]");
+			var arr = JsonValue.ParseArray("[ [1, 2, 3], [4, 5, 6], [7, 8, 9]]");
 			CheckMultiple(arr, "$", arr); // return the top array
 			CheckMultiple(arr, "$[]", arr[0], arr[1], arr[2]); // return all arrays
 			CheckMultiple(arr, "$[0]", arr[0]); // return the first array
