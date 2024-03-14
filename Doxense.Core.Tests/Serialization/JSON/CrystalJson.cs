@@ -4358,47 +4358,47 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr.TryGetValue(^4, out res), Is.False.WithOutput(res).Default);
 
 			// GetPath("[int]")
-			Assert.That(arr._GetPathValue("[0]"), Is.EqualTo("one"));
-			Assert.That(arr._GetPathValue("[1]"), Is.EqualTo("two"));
-			Assert.That(arr._GetPathValue("[2]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPathValue("[3]"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(arr._GetPathValueOrDefault("[0]"), Is.EqualTo("one"));
-			Assert.That(arr._GetPathValueOrDefault("[1]"), Is.EqualTo("two"));
-			Assert.That(arr._GetPathValueOrDefault("[2]"), Is.EqualTo("three"));
-			Assert.That(arr._GetPathValueOrDefault("[3]"), Is.EqualTo(JsonNull.Missing));
+			Assert.That(arr.GetPathValue("[0]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPathValue("[1]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPathValue("[2]"), Is.EqualTo("three"));
+			Assert.That(() => arr.GetPathValue("[3]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(arr.GetPathValueOrDefault("[0]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPathValueOrDefault("[1]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPathValueOrDefault("[2]"), Is.EqualTo("three"));
+			Assert.That(arr.GetPathValueOrDefault("[3]"), Is.EqualTo(JsonNull.Missing));
 			// GetPath("[Index]")
-			Assert.That(arr._GetPathValue("[^3]"), Is.EqualTo("one"));
-			Assert.That(arr._GetPathValue("[^2]"), Is.EqualTo("two"));
-			Assert.That(arr._GetPathValue("[^1]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPathValue("[^0]"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => arr._GetPathValue("[^4]"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(arr._GetPathValueOrDefault("[^3]"), Is.EqualTo("one"));
-			Assert.That(arr._GetPathValueOrDefault("[^2]"), Is.EqualTo("two"));
-			Assert.That(arr._GetPathValueOrDefault("[^1]"), Is.EqualTo("three"));
-			Assert.That(arr._GetPathValueOrDefault("[^0]"), Is.EqualTo(JsonNull.Missing));
-			Assert.That(arr._GetPathValueOrDefault("[^4]"), Is.EqualTo(JsonNull.Missing));
+			Assert.That(arr.GetPathValue("[^3]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPathValue("[^2]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPathValue("[^1]"), Is.EqualTo("three"));
+			Assert.That(() => arr.GetPathValue("[^0]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => arr.GetPathValue("[^4]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(arr.GetPathValueOrDefault("[^3]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPathValueOrDefault("[^2]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPathValueOrDefault("[^1]"), Is.EqualTo("three"));
+			Assert.That(arr.GetPathValueOrDefault("[^0]"), Is.EqualTo(JsonNull.Missing));
+			Assert.That(arr.GetPathValueOrDefault("[^4]"), Is.EqualTo(JsonNull.Missing));
 
-			Assert.That(arr._GetPath<string>("[0]"), Is.EqualTo("one"));
-			Assert.That(arr._GetPath<string>("[1]"), Is.EqualTo("two"));
-			Assert.That(arr._GetPath<string>("[2]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPath<string>("[3]"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(arr._GetPath<string>("[^3]"), Is.EqualTo("one"));
-			Assert.That(arr._GetPath<string>("[^2]"), Is.EqualTo("two"));
-			Assert.That(arr._GetPath<string>("[^1]"), Is.EqualTo("three"));
-			Assert.That(() => arr._GetPath<string>("[^4]"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => arr._GetPath<string>("[0].foo"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => arr._GetPath<string>("foo"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(arr.GetPath<string>("[0]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPath<string>("[1]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPath<string>("[2]"), Is.EqualTo("three"));
+			Assert.That(() => arr.GetPath<string>("[3]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(arr.GetPath<string>("[^3]"), Is.EqualTo("one"));
+			Assert.That(arr.GetPath<string>("[^2]"), Is.EqualTo("two"));
+			Assert.That(arr.GetPath<string>("[^1]"), Is.EqualTo("three"));
+			Assert.That(() => arr.GetPath<string>("[^4]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => arr.GetPath<string>("[0].foo"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => arr.GetPath<string>("foo"), Throws.InstanceOf<JsonBindingException>());
 
-			Assert.That(arr._GetPath<string>("[0]", "not_found"), Is.EqualTo("one"));
-			Assert.That(arr._GetPath<string>("[1]", "not_found"), Is.EqualTo("two"));
-			Assert.That(arr._GetPath<string>("[2]", "not_found"), Is.EqualTo("three"));
-			Assert.That(arr._GetPath<string>("[3]", "not_found"), Is.EqualTo("not_found"));
-			Assert.That(arr._GetPath<string>("[^3]", "not_found"), Is.EqualTo("one"));
-			Assert.That(arr._GetPath<string>("[^2]", "not_found"), Is.EqualTo("two"));
-			Assert.That(arr._GetPath<string>("[^1]", "not_found"), Is.EqualTo("three"));
-			Assert.That(arr._GetPath<string>("[^4]", "not_found"), Is.EqualTo("not_found"));
-			Assert.That(arr._GetPath<string>("[0].foo", "not_found"), Is.EqualTo("not_found"));
-			Assert.That(arr._GetPath<string>("foo", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(arr.GetPath<string>("[0]", "not_found"), Is.EqualTo("one"));
+			Assert.That(arr.GetPath<string>("[1]", "not_found"), Is.EqualTo("two"));
+			Assert.That(arr.GetPath<string>("[2]", "not_found"), Is.EqualTo("three"));
+			Assert.That(arr.GetPath<string>("[3]", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(arr.GetPath<string>("[^3]", "not_found"), Is.EqualTo("one"));
+			Assert.That(arr.GetPath<string>("[^2]", "not_found"), Is.EqualTo("two"));
+			Assert.That(arr.GetPath<string>("[^1]", "not_found"), Is.EqualTo("three"));
+			Assert.That(arr.GetPath<string>("[^4]", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(arr.GetPath<string>("[0].foo", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(arr.GetPath<string>("foo", "not_found"), Is.EqualTo("not_found"));
 		}
 
 		[Test]
@@ -5737,55 +5737,55 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Direct descendants...
 
-			value = obj._GetPathValueOrDefault("Hello", null);
+			value = obj.GetPathValueOrDefault("Hello", null);
 			DumpCompact(value);
 			Assert.That(value.Type, Is.EqualTo(JsonType.String));
 			Assert.That(value.Required<string>(), Is.EqualTo("World"));
-			Assert.That(obj._GetPath<string>("Hello"), Is.EqualTo("World"));
+			Assert.That(obj.GetPath<string>("Hello"), Is.EqualTo("World"));
 
-			value = obj._GetPathValueOrDefault("Coords", null);
+			value = obj.GetPathValueOrDefault("Coords", null);
 			DumpCompact(value);
 			Assert.That(value.Type, Is.EqualTo(JsonType.Object));
 
-			value = obj._GetPathValueOrDefault("Values", null);
+			value = obj.GetPathValueOrDefault("Values", null);
 			DumpCompact(value);
 			Assert.That(value.Type, Is.EqualTo(JsonType.Array));
 
-			value = obj._GetPathValueOrDefault("NotFound", null);
+			value = obj.GetPathValueOrDefault("NotFound", null);
 			DumpCompact(value);
 			Assert.That(value.Type, Is.EqualTo(JsonType.Null));
 			Assert.That(value, Is.EqualTo(JsonNull.Missing));
 
 			// Children
 
-			Assert.That(obj._GetPath<int>("Coords.X"), Is.EqualTo(1));
-			Assert.That(obj._GetPath<int>("Coords.Y"), Is.EqualTo(2));
-			Assert.That(obj._GetPath<int>("Coords.Z"), Is.EqualTo(3));
-			Assert.That(() => obj._GetPath<int>("Coords.NotFound"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(obj.GetPath<int>("Coords.X"), Is.EqualTo(1));
+			Assert.That(obj.GetPath<int>("Coords.Y"), Is.EqualTo(2));
+			Assert.That(obj.GetPath<int>("Coords.Z"), Is.EqualTo(3));
+			Assert.That(() => obj.GetPath<int>("Coords.NotFound"), Throws.InstanceOf<JsonBindingException>());
 
-			Assert.That(obj._GetPath<int?>("Foo.Bar.Baz", null), Is.EqualTo(123));
-			Assert.That(obj._GetPath<int?>("Foo.Bar.NotFound", null), Is.Null);
-			Assert.That(obj._GetPath<int?>("Foo.NotFound.Baz", null), Is.Null);
-			Assert.That(obj._GetPath<int?>("NotFound.Bar.Baz", null), Is.Null);
+			Assert.That(obj.GetPath<int?>("Foo.Bar.Baz", null), Is.EqualTo(123));
+			Assert.That(obj.GetPath<int?>("Foo.Bar.NotFound", null), Is.Null);
+			Assert.That(obj.GetPath<int?>("Foo.NotFound.Baz", null), Is.Null);
+			Assert.That(obj.GetPath<int?>("NotFound.Bar.Baz", null), Is.Null);
 
 			// Array Indexing
 
-			Assert.That(obj._GetPath<string>("Values[0]"), Is.EqualTo("a"));
-			Assert.That(obj._GetPath<string>("Values[1]"), Is.EqualTo("b"));
-			Assert.That(obj._GetPath<string>("Values[2]"), Is.EqualTo("c"));
-			Assert.That(() => obj._GetPath<string>("Values[3]"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => obj._GetPath<string>("Values[2].NotFound"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(obj.GetPath<string>("Values[0]"), Is.EqualTo("a"));
+			Assert.That(obj.GetPath<string>("Values[1]"), Is.EqualTo("b"));
+			Assert.That(obj.GetPath<string>("Values[2]"), Is.EqualTo("c"));
+			Assert.That(() => obj.GetPath<string>("Values[3]"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj.GetPath<string>("Values[2].NotFound"), Throws.InstanceOf<JsonBindingException>());
 
-			Assert.That(obj._GetPath<string?>("Items[0].Value", null), Is.EqualTo("one"));
-			Assert.That(obj._GetPath<string?>("Items[1].Value", null), Is.EqualTo("two"));
-			Assert.That(obj._GetPath<string?>("Items[2].Value", null), Is.EqualTo("three"));
-			Assert.That(obj._GetPath<string?>("Items[0].NotFound", null), Is.Null);
-			Assert.That(obj._GetPath<string?>("Items[3]", null), Is.Null);
-			Assert.That(obj._GetPath<string?>("Items[3].Value", null), Is.Null);
+			Assert.That(obj.GetPath<string?>("Items[0].Value", null), Is.EqualTo("one"));
+			Assert.That(obj.GetPath<string?>("Items[1].Value", null), Is.EqualTo("two"));
+			Assert.That(obj.GetPath<string?>("Items[2].Value", null), Is.EqualTo("three"));
+			Assert.That(obj.GetPath<string?>("Items[0].NotFound", null), Is.Null);
+			Assert.That(obj.GetPath<string?>("Items[3]", null), Is.Null);
+			Assert.That(obj.GetPath<string?>("Items[3].Value", null), Is.Null);
 
 			// Required
-			Assert.That(() => obj._GetPath<int>("NotFound.Bar.Baz"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => obj._GetPath<int>("Coords.NotFound"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj.GetPath<int>("NotFound.Bar.Baz"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj.GetPath<int>("Coords.NotFound"), Throws.InstanceOf<JsonBindingException>());
 
 			obj = new JsonObject
 			{
@@ -5793,10 +5793,10 @@ namespace Doxense.Serialization.Json.Tests
 				["Y"] = default(Guid?),
 				["Z"] = JsonNull.Missing
 			};
-			Assert.That(() => obj._GetPath<string>("X"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => obj._GetPath<Guid>("Y"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => obj._GetPath<string>("Z"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(() => obj._GetPath<string>("間"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj.GetPath<string>("X"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj.GetPath<Guid>("Y"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj.GetPath<string>("Z"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => obj.GetPath<string>("間"), Throws.InstanceOf<JsonBindingException>());
 		}
 
 		[Test]
@@ -5809,43 +5809,43 @@ namespace Doxense.Serialization.Json.Tests
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(1));
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Hello"": ""World"" }")));
-			Assert.That(obj._GetPath<string>("Hello"), Is.EqualTo("World"));
+			Assert.That(obj.GetPath<string>("Hello"), Is.EqualTo("World"));
 
 			// update
 			obj.SetPath("Hello", "Le Monde!");
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(1));
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Hello"": ""Le Monde!"" }")));
-			Assert.That(obj._GetPath<string>("Hello"), Is.EqualTo("Le Monde!"));
+			Assert.That(obj.GetPath<string>("Hello"), Is.EqualTo("Le Monde!"));
 
 			// add other
 			obj.SetPath("Level", 9001);
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(2));
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Hello"": ""Le Monde!"", ""Level"": 9001 }")));
-			Assert.That(obj._GetPath<int>("Level"), Is.EqualTo(9001));
+			Assert.That(obj.GetPath<int>("Level"), Is.EqualTo(9001));
 
 			// null => JsonNull.Null
 			obj.SetPath("Hello", null);
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(2));
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Hello"": null, ""Level"": 9001 }")));
-			Assert.That(() => obj._GetPath<string>("Hello"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(obj._GetPath<string?>("Hello", null), Is.Null);
+			Assert.That(() => obj.GetPath<string>("Hello"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(obj.GetPath<string?>("Hello", null), Is.Null);
 
 			// remove
 			obj.RemovePath("Hello");
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(1));
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Level"": 9001 }")));
-			Assert.That(() => obj._GetPath<string>("Hello"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(obj._GetPath<string?>("Hello", null), Is.Null);
+			Assert.That(() => obj.GetPath<string>("Hello"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(obj.GetPath<string?>("Hello", null), Is.Null);
 
 			obj.RemovePath("Level");
 			DumpCompact(obj);
 			Assert.That(obj.Count, Is.EqualTo(0));
-			Assert.That(() => obj._GetPath<int>("Level"), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(obj._GetPath<int?>("Level", null), Is.Null);
+			Assert.That(() => obj.GetPath<int>("Level"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(obj.GetPath<int?>("Level", null), Is.Null);
 		}
 
 		[Test]
@@ -5855,17 +5855,17 @@ namespace Doxense.Serialization.Json.Tests
 			obj.SetPath("Foo.Bar", 123);
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foo"": { ""Bar"": 123 } }")));
-			Assert.That(obj._GetPath<int>("Foo.Bar"), Is.EqualTo(123));
+			Assert.That(obj.GetPath<int>("Foo.Bar"), Is.EqualTo(123));
 
 			obj.SetPath("Foo.Baz", 456);
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foo"": { ""Bar"": 123, ""Baz"": 456 } }")));
-			Assert.That(obj._GetPath<int>("Foo.Baz"), Is.EqualTo(456));
+			Assert.That(obj.GetPath<int>("Foo.Baz"), Is.EqualTo(456));
 
 			obj.RemovePath("Foo.Bar");
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foo"": { ""Baz"": 456 } }")));
-			Assert.That(obj._GetPath<int?>("Foo.Bar", null), Is.Null);
+			Assert.That(obj.GetPath<int?>("Foo.Bar", null), Is.Null);
 
 			obj.RemovePath("Foo");
 			DumpCompact(obj);
@@ -5880,18 +5880,18 @@ namespace Doxense.Serialization.Json.Tests
 			obj.SetPath("Foos[0]", 123);
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foos"": [ 123 ] }")));
-			Assert.That(obj._GetPath<int?>("Foos[0]", null), Is.EqualTo(123));
+			Assert.That(obj.GetPath<int?>("Foos[0]", null), Is.EqualTo(123));
 
 			obj.SetPath("Foos[1]", 456);
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foos"": [ 123, 456 ] }")));
-			Assert.That(obj._GetPath<int?>("Foos[1]", null), Is.EqualTo(456));
+			Assert.That(obj.GetPath<int?>("Foos[1]", null), Is.EqualTo(456));
 
 			obj.SetPath("Foos[3]", 789); //skip one
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foos"": [ 123, 456, null, 789 ] }")));
-			Assert.That(obj._GetPath<int?>("Foos[2]", null), Is.Null);
-			Assert.That(obj._GetPath<int?>("Foos[3]", null), Is.EqualTo(789));
+			Assert.That(obj.GetPath<int?>("Foos[2]", null), Is.Null);
+			Assert.That(obj.GetPath<int?>("Foos[3]", null), Is.EqualTo(789));
 		}
 
 		[Test]
@@ -5902,13 +5902,13 @@ namespace Doxense.Serialization.Json.Tests
 			obj.SetPath("Foos[0]", JsonObject.Create("X", 1, "Y", 2, "Z", 3));
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 } ] }""")));
-			Assert.That(obj._GetPathValueOrDefault("Foos[0]", null), Is.EqualTo(JsonValue.Parse(@"{ ""X"": 1, ""Y"": 2, ""Z"": 3 }")));
+			Assert.That(obj.GetPathValueOrDefault("Foos[0]", null), Is.EqualTo(JsonValue.Parse(@"{ ""X"": 1, ""Y"": 2, ""Z"": 3 }")));
 
 			obj.SetPath("Foos[2]", JsonObject.Create("X", 4, "Y", 5, "Z", 6));
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 }, null, { "X": 4, "Y": 5, "Z": 6 } ] }""")));
-			Assert.That(obj._GetPathValueOrDefault("Foos[1]", null), Is.EqualTo(JsonNull.Null));
-			Assert.That(obj._GetPathValueOrDefault("Foos[2]", null), Is.EqualTo(JsonValue.Parse(@"{ ""X"": 4, ""Y"": 5, ""Z"": 6 }")));
+			Assert.That(obj.GetPathValueOrDefault("Foos[1]", null), Is.EqualTo(JsonNull.Null));
+			Assert.That(obj.GetPathValueOrDefault("Foos[2]", null), Is.EqualTo(JsonValue.Parse(@"{ ""X"": 4, ""Y"": 5, ""Z"": 6 }")));
 
 			// auto-created
 			obj = JsonObject.Create();
@@ -5917,18 +5917,18 @@ namespace Doxense.Serialization.Json.Tests
 			obj.SetPath("Foos[0].Z", 3);
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 } ] }""")));
-			Assert.That(obj._GetPath<int?>("Foos[0].X", null), Is.EqualTo(1));
-			Assert.That(obj._GetPath<int?>("Foos[0].Y", null), Is.EqualTo(2));
-			Assert.That(obj._GetPath<int?>("Foos[0].Z", null), Is.EqualTo(3));
+			Assert.That(obj.GetPath<int?>("Foos[0].X", null), Is.EqualTo(1));
+			Assert.That(obj.GetPath<int?>("Foos[0].Y", null), Is.EqualTo(2));
+			Assert.That(obj.GetPath<int?>("Foos[0].Z", null), Is.EqualTo(3));
 
 			obj.SetPath("Foos[2].X", 4);
 			obj.SetPath("Foos[2].Y", 5);
 			obj.SetPath("Foos[2].Z", 6);
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 }, null, { "X": 4, "Y": 5, "Z": 6 } ] }""")));
-			Assert.That(obj._GetPath<int?>("Foos[2].X", null), Is.EqualTo(4));
-			Assert.That(obj._GetPath<int?>("Foos[2].Y", null), Is.EqualTo(5));
-			Assert.That(obj._GetPath<int?>("Foos[2].Z", null), Is.EqualTo(6));
+			Assert.That(obj.GetPath<int?>("Foos[2].X", null), Is.EqualTo(4));
+			Assert.That(obj.GetPath<int?>("Foos[2].Y", null), Is.EqualTo(5));
+			Assert.That(obj.GetPath<int?>("Foos[2].Z", null), Is.EqualTo(6));
 		}
 
 		[Test]
@@ -5958,11 +5958,11 @@ namespace Doxense.Serialization.Json.Tests
 				obj.SetPath("Foos[0][2].Bar", 123);
 				DumpCompact(obj);
 				Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foos"" : [ [ null, null, { ""Bar"": 123 } ] ] }")));
-				Assert.That(obj._GetPath<int>("Foos[0][2].Bar"), Is.EqualTo(123));
+				Assert.That(obj.GetPath<int>("Foos[0][2].Bar"), Is.EqualTo(123));
 				obj.SetPath("Foos[0][2].Bar", 456);
 				DumpCompact(obj);
 				Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foos"" : [ [ null, null, { ""Bar"": 456 } ] ] }")));
-				Assert.That(obj._GetPath<int>("Foos[0][2].Bar"), Is.EqualTo(456));
+				Assert.That(obj.GetPath<int>("Foos[0][2].Bar"), Is.EqualTo(456));
 			}
 
 			{
@@ -5970,7 +5970,7 @@ namespace Doxense.Serialization.Json.Tests
 				obj.SetPath("Foos[0].Bar[2]", 123);
 				DumpCompact(obj);
 				Assert.That(obj, Is.EqualTo(JsonValue.Parse(@"{ ""Foos"" : [ { ""Bar"": [ null, null, 123 ] } ] }")));
-				Assert.That(obj._GetPath<int>("Foos[0].Bar[2]"), Is.EqualTo(123));
+				Assert.That(obj.GetPath<int>("Foos[0].Bar[2]"), Is.EqualTo(123));
 			}
 		}
 
@@ -6409,8 +6409,8 @@ namespace Doxense.Serialization.Json.Tests
 			// ensure the original is not mutated
 			Assert.That(original.Get<string>("hello"), Is.EqualTo("world"));
 			Assert.That(original.Get<int?>("level", null), Is.Null);
-			Assert.That(original._GetPath<string?>("foo.bar", null), Is.EqualTo("baz"));
-			Assert.That(original._GetPath<string?>("foo.baz", null), Is.Null);
+			Assert.That(original.GetPath<string?>("foo.bar", null), Is.EqualTo("baz"));
+			Assert.That(original.GetPath<string?>("foo.baz", null), Is.Null);
 			Assert.That(original.GetArray("bar"), Has.Count.EqualTo(3));
 		}
 
@@ -6743,7 +6743,7 @@ namespace Doxense.Serialization.Json.Tests
 			var obj = (JsonObject)j;
 			Assert.That(obj.Get<string?>("_class", null), Is.Null, "Not on top level");
 			Assert.That(obj.ContainsKey("Agent"));
-			Assert.That(obj._GetPathValue("Agent._class").ToString(), Is.EqualTo(typeof(DummyDerivedJsonClass).FullName + ", " + typeof(DummyDerivedJsonClass).Assembly.GetName().Name), "On sub-object");
+			Assert.That(obj.GetPathValue("Agent._class").ToString(), Is.EqualTo(typeof(DummyDerivedJsonClass).FullName + ", " + typeof(DummyDerivedJsonClass).Assembly.GetName().Name), "On sub-object");
 			var y = obj.Required<DummyOuterDerivedClass>();
 			Assert.That(y.Agent, Is.Not.Null.And.InstanceOf<DummyDerivedJsonClass>());
 			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));

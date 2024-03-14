@@ -1033,21 +1033,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		[Obsolete("OLD_API: Use _GetPathValue(path) if required, or _GetPathValueOrDefault(path, <default>) if optional", error: true)]
-		public JsonValue GetPath(string path)
-		{
-			return GetPathCore(path, null, required: false);
-		}
-
-		/// <summary>Gets the value at the specified path</summary>
-		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		public JsonValue _GetPathValue(string path)
-		{
-			return GetPathCore(path, null, required: true);
-		}
+		public JsonValue GetPathValue(string path) => GetPathCore(path, null, required: true);
 
 		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
@@ -1055,10 +1041,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, or <paramref name="defaultValue"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public JsonValue _GetPathValueOrDefault(string path, JsonValue? defaultValue = null)
-		{
-			return GetPathCore(path, defaultValue, required: false);
-		}
+		public JsonValue GetPathValueOrDefault(string path, JsonValue? defaultValue = null) => GetPathCore(path, defaultValue, required: false);
 
 		private JsonValue GetPathCore(string path, JsonValue? defaultValue, bool required)
 		{
@@ -1143,41 +1126,31 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public JsonObject _GetPathObject(string path) => GetPathCore(path, null, required: true).AsObject();
+		public JsonObject GetPathObject(string path) => GetPathCore(path, null, required: true).AsObject();
 
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonObject? _GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: true).AsObjectOrDefault() ?? defaultValue;
+		public JsonObject? GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: true).AsObjectOrDefault() ?? defaultValue;
 
 		[Pure]
-		public JsonArray _GetPathArray(string path) => GetPathCore(path, null, required: true).AsArray();
+		public JsonObject GetPathObjectOrEmpty(string path) => GetPathCore(path, null, required: false).AsObjectOrEmpty();
+
+		[Pure]
+		public JsonArray GetPathArray(string path) => GetPathCore(path, null, required: true).AsArray();
 
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? _GetPathArrayOrDefault(string path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false).AsArrayOrDefault() ?? defaultValue;
+		public JsonArray? GetPathArrayOrDefault(string path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false).AsArrayOrDefault() ?? defaultValue;
 
-		/// <summary>Gets the converted value at the specified path</summary>
-		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <param name="required">If <see langword="true"/>, and no match was found, or the value is null or missing, an exception is thrown; otherwise, the <see langword="default"/> of type <typeparamref name="TValue"/> is returned.</param>
-		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <see langword="default"/> if no match was found and <paramref name="required"/> is <see langword="false"/>.</returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		[Obsolete("OLD_API: use _GetPath<TValue>(path) if required, or _GetPath(path, <default>) if optional", error: true)]
-#pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
-		public TValue? GetPath<TValue>(string path, bool required = false)
-		{
-			var val = _GetPathValue(path);
-			return required ? val.RequiredPath(path).Required<TValue>() : val.As<TValue>();
-		}
-#pragma warning restore CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
+		[Pure]
+		public JsonArray GetPathArrayOrEmpty(string path) => GetPathCore(path, null, required: false).AsArrayOrEmpty();
 
-		
 		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or and exception if there was not match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public TValue _GetPath<TValue>(string path) where TValue : notnull
+		public TValue GetPath<TValue>(string path) where TValue : notnull
 		{
-			return _GetPathValue(path).Required<TValue>();
+			return GetPathValue(path).Required<TValue>();
 		}
 
 		/// <summary>Gets the converted value at the specified path</summary>
@@ -1187,9 +1160,9 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _GetPath<TValue>(string path, TValue defaultValue)
+		public TValue? GetPath<TValue>(string path, TValue defaultValue)
 		{
-			return _GetPathValueOrDefault(path, JsonNull.Missing).As(defaultValue);
+			return GetPathValueOrDefault(path, JsonNull.Missing).As(defaultValue);
 		}
 
 		//BLACK MAGIC!
