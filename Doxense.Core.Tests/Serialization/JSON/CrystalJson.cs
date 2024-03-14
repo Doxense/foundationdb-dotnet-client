@@ -708,49 +708,6 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		[Obsolete("OLD_API")]
-		public void Test_JsonValue_As_Of_T()
-		{
-			//Value Type
-			Assert.That(JsonNumber.Return(123).As<int>(), Is.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(JsonNumber.Return(123).As<int?>(), Is.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(JsonString.Return("123").As<int>(), Is.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(JsonString.Return("123").As<int?>(), Is.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(JsonNull.Null.As<int>(), Is.InstanceOf<int>().And.EqualTo(0));
-
-			//Nullable Type
-			Assert.That(JsonNumber.Return(123).As<int?>(), Is.Not.Null.And.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(JsonString.Return("123").As<int?>(), Is.Not.Null.And.InstanceOf<int>().And.EqualTo(123));
-			Assert.That(JsonNull.Null.As<int?>(), Is.Null);
-
-			//Reference Primitive Type
-			Assert.That(JsonNumber.Return(123).As<string>(), Is.Not.Null.And.EqualTo("123"));
-			Assert.That(JsonString.Return("123").As<string>(), Is.Not.Null.And.EqualTo("123"));
-			Assert.That(JsonNull.Null.As<string>(), Is.Null);
-
-			//Value Type Array
-			Assert.That(JsonArray.Create(1, 2, 3).As<int[]>(), Is.Not.Null.And.EqualTo(new [] { 1, 2, 3 }));
-			Assert.That(JsonNull.Null.As<int[]>(), Is.Null);
-
-			//Ref Type Array
-			Assert.That(JsonArray.Create("a", "b", "c").As<string[]>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
-			Assert.That(JsonNull.Null.As<string[]>(), Is.Null);
-
-			//Value Type List
-			Assert.That(JsonArray.Create(1, 2, 3).As<List<int>>(), Is.Not.Null.And.EqualTo(new[] { 1, 2, 3 }));
-			Assert.That(JsonNull.Null.As<List<int>>(), Is.Null);
-
-			//Ref Type List
-			Assert.That(JsonArray.Create("a", "b", "c").As<List<string>>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
-			Assert.That(JsonNull.Null.As<List<string>>(), Is.Null);
-
-			//Format Exceptions
-			Assert.That(() => JsonString.Return("foo").As<int>(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => JsonArray.Create("foo").As<int[]>(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => JsonArray.Create("foo").As<List<int>>(), Throws.InstanceOf<FormatException>());
-		}
-
-		[Test]
 		public void Test_JsonValue_Required_Of_T()
 		{
 			//Value Type
@@ -792,7 +749,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_JsonValue_OrDefault_Of_T()
+		public void Test_JsonValue_As_Of_T()
 		{
 			var guid = Guid.NewGuid();
 			var now = DateTime.Now;
@@ -5664,70 +5621,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		[Obsolete("OLD_API")]
 		public void Test_JsonObject_Get()
-		{
-			var obj = new JsonObject
-			{
-				["Hello"] = "World",
-				["Foo"] = 123,
-				["Bar"] = true,
-				["Baz"] = Math.PI,
-				["Void"] = null,
-				["Empty"] = "",
-				["Space"] = "   ", // Space! Space? Space!!!
-			};
-
-			Assert.That(obj.Get<string>("Hello"), Is.EqualTo("World"));
-			Assert.That(obj.Get<string>("Hello", required: true), Is.EqualTo("World"));
-
-			Assert.That(obj.Get<int>("Foo"), Is.EqualTo(123));
-			Assert.That(obj.Get<int>("Foo", required: true), Is.EqualTo(123));
-
-			Assert.That(obj.Get<bool>("Bar"), Is.True);
-			Assert.That(obj.Get<bool>("Bar", required: true), Is.True);
-
-			Assert.That(obj.Get<double>("Baz"), Is.EqualTo(Math.PI));
-			Assert.That(obj.Get<double>("Baz", required: true), Is.EqualTo(Math.PI));
-
-			// empty doit retourner default(T) pour les ValueType, càd 0/false/...
-			Assert.That(obj.Get<string>("Empty"), Is.EqualTo(""), "'' -> string");
-			Assert.That(obj.Get<int>("Empty"), Is.EqualTo(0), "'' -> int");
-			Assert.That(obj.Get<bool>("Empty"), Is.False, "'' -> bool");
-			Assert.That(obj.Get<double>("Empty"), Is.EqualTo(0.0), "'' -> double");
-			Assert.That(obj.Get<Guid>("Empty"), Is.EqualTo(Guid.Empty), "'' -> Guid");
-
-			// empty doit doit retourner default(?) pour les Nullable, càd null
-			Assert.That(obj.Get<int?>("Empty"), Is.Null, "'' -> int?");
-			Assert.That(obj.Get<bool?>("Empty"), Is.Null, "'' -> bool?");
-			Assert.That(obj.Get<double?>("Empty"), Is.Null, "'' -> double?");
-			Assert.That(obj.Get<Guid?>("Empty"), Is.Null, "'' -> Guid?");
-
-			// missing + nullable
-			Assert.That(obj.Get<string>("olleH"), Is.Null, "Si manquant, doit retourner null pour des types nullables");
-			Assert.That(obj.Get<int?>("olleH"), Is.Null, "Si manquant, doit retourner null pour des types nullables");
-			Assert.That(obj.Get<bool?>("olleH"), Is.Null, "Si manquant, doit retourner null pour des types nullables");
-			Assert.That(obj.Get<double?>("olleH"), Is.Null, "Si manquant, doit retourner null pour des types nullables");
-
-			// null + nullable
-			Assert.That(obj.Get<string>("Void"), Is.Null, "Si null, doit retourner null pour des types nullables");
-			Assert.That(obj.Get<int?>("Void"), Is.Null, "Si null, doit retourner null pour des types nullables");
-			Assert.That(obj.Get<bool?>("Void"), Is.Null, "Si null, doit retourner null pour des types nullables");
-			Assert.That(obj.Get<double?>("Void"), Is.Null, "Si null, doit retourner null pour des types nullables");
-
-			// missing + required: true
-			Assert.That(() => obj.Get<string>("olleH", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"), "If missing and required:true, an exception should be throw with the key name in the message");
-			Assert.That(() => obj.Get<int>("olleH", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"), "If missing and required:true, an exception should be throw with the key name in the message");
-			Assert.That(() => obj.Get<int?>("olleH", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("olleH"), "If missing and required:true, an exception should be throw with the key name in the message");
-
-			// null + required: true
-			Assert.That(() => obj.Get<string>("Void", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"), "If null and required:true, an exception should be throw with the key name in the message");
-			Assert.That(() => obj.Get<int>("Void", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"), "If null and required:true, an exception should be throw with the key name in the message");
-			Assert.That(() => obj.Get<int?>("Void", required: true), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"), "If null and required:true, an exception should be throw with the key name in the message");
-		}
-
-		[Test]
-		public void Test_JsonObject_Get_NewAPI()
 		{
 			var obj = new JsonObject
 			{
@@ -6224,7 +6118,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj._Get<string>("StackTraceString"), Is.Not.Null.Or.Empty, ".StackTraceString");
 			Assert.That(obj._Get<int>("HResult"), Is.EqualTo(-2147024894), ".HResult");
 
-			var inner = obj.GetObject("InnerException")!;
+			var inner = obj._GetObject("InnerException")!;
 			Assert.That(inner, Is.Not.Null, ".InnerException");
 			Assert.That(inner._Get<string>("ClassName"), Is.EqualTo("System.InvalidOperationException"), "InnerException.ClassName");
 			Assert.That(inner._Get<string>("Message"), Is.EqualTo("Oh noes!"), "InnerException.Message");
@@ -6278,7 +6172,7 @@ namespace Doxense.Serialization.Json.Tests
 			Check(obj, "HResult", "int", Is.EqualTo(-2147024894));
 			Check(obj, "InnerException", "System.Exception", Is.Not.EqualTo(JsonNull.Null));
 
-			var inner = obj.GetArray("InnerException")![1];
+			var inner = obj._GetArray("InnerException")[1];
 			Check(inner, "ClassName", "string", Is.EqualTo("System.InvalidOperationException"));
 			Check(inner, "Message", "string", Is.EqualTo("Oh noes!"));
 			Check(inner, "Source", "string", Is.EqualTo("Doxense.Core.Tests")); //note: assembly name
@@ -9024,168 +8918,5 @@ namespace Doxense.Serialization.Json.Tests
 	}
 
 #endregion
-
-	#region Sandbox
-
-	public static class ApiSandbox
-	{
-		public sealed class Something { }
-
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-		[Obsolete]
-		public static void Sandbox()
-		{
-			var obj = new JsonObject();
-			var resolver = CrystalJson.DefaultResolver;
-
-			{ // CURRENT API
-				// REQUIRED
-				_ = obj.Get<string>("hello", required: true)!;               // REQUIRED, string or throw, must add '!' to prevent false positive on ullatibility!
-				_ = obj.Get<int>("hello", required: true);                   // REQUIRED, int or throw
-				_ = obj.Get<bool>("hello", required: true);                  // REQUIRED, bool or throw
-				_ = obj.Get<string[]>("hello", required: true)!;             // REQUIRED, string[] or throw, must add '!' to prevent false positive on ullatibility!
-				_ = obj.Get<List<string>>("hello", required: true)!;         // REQUIRED, List<string> or throw, must add '!' to prevent false positive on ullatibility!
-				_ = obj.Get<Something>("hello", required: true)!;            // REQUIRED, custom class or throw, must add '!' to prevent false positive on ullatibility!
-				// OPTIONAL
-				_ = obj.Get<string>("hello");                                // OPTIONAL, string or null
-				_ = obj.Get<int>("hello");                                   // OPTIONAL, int or 0
-				_ = obj.Get<int?>("hello");                                  // OPTIONAL, int or null
-				_ = obj.Get<bool>("hello");                                  // OPTIONAL, bool or false
-				_ = obj.Get<bool?>("hello");                                 // OPTIONAL, bool or false
-				_ = obj.Get<string>("hello", required: false);               // OPTIONAL, same as variant with single param
-				_ = obj.Get<string>("hello", resolver);                      // OPTIONAL, with custom resolver, rarely used, <== creates ambiguity with Get<string>("foo", null) !
-				_ = obj.Get<string[]>("hello");                              // OPTIONAL, string[] or null
-				_ = obj.Get<List<string>>("hello");                          // OPTIONAL, List<string> or null
-				_ = obj.Get<Something>("hello");                             // OPTIONAL, custom class or null
-				// COMPLEX TYPES
-				_ = obj.Get<string[]>("hello");                              // OPTIONAL, array
-				_ = obj.Get<List<string>>("hello");                          // OPTIONAL, list
-				_ = obj.Get<Something>("hello");                             // OPTIONAL, custom class or struct
-				// PROBABLY BUGS!
-				_ = obj.Get<string>("hello", null);                          // OPTIONAL, actually the (..., ICrystalTypeResolver resolver) overload!
-				_ = obj.Get<string?>("hello", required: true);               // REQUIRED, will throw if null !
-				_ = obj.Get<int?>("hello", required: true);                  // REQUIRED, will throw if null !
-				_ = obj.Get<bool?>("hello", required: true);                 // REQUIRED, will throw if null !
-				// PAS COOL
-				_ = obj.GetObject("hello", required: true)!.Get<string>("world"); // GetObject() non null mais VS comprend pas
-				_ = obj.GetArray("hello", required: true)!.Get<string>(0);      // GetArray() non null mais VS comprend pas
-			}
-
-			{ // NEW API
-
-				// "_Get" temporaire, renommé en "Get" un fois terminé phase 1 terminée
-
-				// BREAKING CHANGE:
-				// - Get(...) avec un seul paramètre passe de OPTIONAL a REQUIRED !!!
-
-				// REQUIRED: throws if missing OR explicit null
-				_ = obj._Get<string>("hello");                                                     // REQUIRED, default resolver
-				_ = obj._Get<int>("hello");                                                        // REQUIRED, default resolver
-				_ = obj._Get<string>("hello", resolver);                                           // REQUIRED, with custom resolver
-				_ = obj._Get<string>("hello", resolver, "You must greet properly!!!");             // REQUIRED, with custom resolver, with custom error message is missing
-				_ = obj._Get<string>("hello", message: "You must greet properly!");                // REQUIRED, default resolver, with custom error message is missing
-				_ = obj._Get<string[]>("hello");                                                   // REQUIRED, default resolver, => int[]
-				_ = obj._Get<string[]>("hello");                                                   // REQUIRED, default resolver, => int[]
-				_ = obj._GetObject("hello").Get<string>("world");                                  // FIXED !
-				_ = obj._GetArray("hello").Get<string>(0);                                         // FIXED !
-				_ = obj._GetObjectOrEmpty("hello").Get<string>("world");                           // FIXED !
-				_ = obj._GetArrayOrEmpty("hello").Get<string>(0);                                  // FIXED !
-				// OPTIONAL: => must ALWAYS specify the default value!
-				_ = obj._Get<string?>("hello", null);                                              // OPTIONAL, null if missing, default resolver, better version
-				_ = obj._Get<string>("hello", null);                                               // OPTIONAL, null if missing, default resolver, should have a compiler warning!
-				_ = obj._Get<string>("hello", "world");                                            // OPTIONAL, "world" if missing, default resolver
-				_ = obj._Get<string?>("hello", null, resolver);                                    // OPTIONAL, null if missing, with custom resolver
-				_ = obj._Get<string>("hello", null, resolver);                                     // OPTIONAL, null if missing, with custom resolver, should have a compiler warning!
-				_ = obj._Get<string>("hello", "world", resolver);                                  // OPTIONAL, "world" if missing, with custom resolver
-				_ = obj._Get<int?>("hello", null);                                                 // OPTIONAL, null if missing, default resolver, better version
-				_ = obj._Get<int>("hello", 123);                                                   // OPTIONAL, 123 if missing, default resolver
-				_ = obj._Get<int>("hello", 123, resolver);                                         // OPTIONAL, null if missing, with custom resolver, but with warning can return string?
-				_ = obj._Get<int?>("hello", null, resolver);                                       // OPTIONAL, null if missing, with custom resolver
-				_ = obj._Get<int>("hello", 123, resolver);                                         // OPTIONAL, 123 if missing, with custom resolver
-				// COMPLEX TYPES
-				_ = obj._Get<Something>("hello");                                                  // REQUIRED, custom class or struct
-				_ = obj._Get<string[]>("hello");                                                   // REQUIRED, string[]
-				_ = obj._Get<List<string>>("hello");                                               // REQUIRED, List<string>()
-				_ = obj._Get<Dictionary<string, Something>>("hello");                              // REQUIRED, Dictionary<string, MagicOfTheDead>()
-				_ = obj._Get<string[]>("hello", []);                                               // OPTIONAL, string[], default to empty array
-				_ = obj._Get<List<string>>("hello", []);                                           // OPTIONAL, List<string>(), default to empty list
-				_ = obj._Get<Dictionary<string, Something>>("hello", []);                          // OPTIONAL, Dictionary<string, MagicOfTheDead>(), default to empty dict
-				_ = obj._GetArray<string>("hello");                                                // REQUIRED, string[], optimized
-				_ = obj._GetArray<string>("hello", resolver);                                      // REQUIRED, string[], optimized
-				_ = obj._GetArray<string>("hello", null);                                          // OPTIONAL, string[], optimized, returns null
-				_ = obj._GetArray<string>("hello", [ ]);                                           // OPTIONAL, string[], optimized
-				_ = obj._GetArray<string>("hello", [ ], resolver);                                 // OPTIONAL, string[], optimized
-				_ = obj._GetArray<int>("hello", [ 1, 2, 3 ]);                                      // OPTIONAL, int[], optimized
-				_ = obj._GetArray<int>("hello", [ 1, 2, 3 ], resolver);                            // OPTIONAL, int[], optimized
-				_ = obj._GetList<string>("hello");                                                 // OPTIONAL, List<string>(), optimized
-				_ = obj._GetList<int>("hello", [ 1, 2, 3 ]);                                       // OPTIONAL, List<int>(), optimized
-				_ = obj._GetDictionary<string, Something>("hello");                                // OPTIONAL, Dictionary<string, MagicOfTheDead>(), optimized
-				// PROBABLY BUGS !
-				_ = obj._Get<string?>("hello");                                                    // REQUIRED, default resolver, but with warning because cannot return null
-				_ = obj._Get<int?>("hello");                                                       // REQUIRED, default resolver, but with warning because cannot return null
-				_ = obj._Get<string>("hello", null);                                               // OPTIONAL, null if missing, default resolver, but with warning because can return string?
-				_ = obj._Get<string>("hello", null, resolver);                                     // OPTIONAL, null if missing, with custom resolver, but with warning can return string?
-				// AMBIGUITY !!!!!
-				_ = obj._Get<int>("hello", null);                                                  // BAD! looks like OPTIONAL, but is in fact REQUIRED, with resolver == null
-				//x = obj._Get<int>("hello", null, resolver);                                      // this one is protected behind a syntax error
-				_ = obj._Get<int>("hello", default);                                               // BAD! looks like the same, but here it is the OPTIONAL, that returns 'int' or 0
-				_ = obj._Get<int?>("hello", null);                                                 // BAD! looks like the same, but here it is the OPTIONAL, that returns 'int?'
-
-			}
-
-			{
-				_ = obj.GetValue("hello", required: true);
-				_ = obj.GetValue("hello");
-				_ = obj._GetValueOrDefault("hello");
-				_ = obj.GetValue("hello").As<string>();           // => obj.NewGet<string>("hello", default)
-				_ = obj.Get<string>("hello");                     // => obj.NewGet<string>("hello", default)
-				_ = obj.Get<string>("hello", null);               // => obj.NewGet<string>("hello", default)    (bug où l'appelant voulait null par défaut, au lieu d'un resolver!)
-				_ = obj.Get<string>("hello", resolver);           // => obj.NewGet<string>("hello", default, resolver)
-				_ = obj.Get<string>("hello") ?? "world";          // => obj.NewGet<string>("hello", "world");
-				_ = obj.Get<int?>("hello") ?? 456;                // => obj.NewGet<int>("hello", 456);
-
-				// old forms
-				_ = obj["hello"].As<string>();                    // => obj.NewGet<string>("hello", null)
-				_ = obj["hello"].As<int>();                       // => obj.NewGet<string>("hello", 0)
-				_ = obj["hello"].As<int?>();                      // => obj.NewGet<string>("hello", 0)
-				_ = obj["hello"].As<bool>();                      // => obj.NewGet<string>("hello", false)
-
-				// weird cases
-				JsonObject? obj2 = null;
-				_ = obj2?.Get<string>("hello");                   // => obj?.NewGet<string>("hello", null)
-				_ = obj2?.Get<int>("hello");                      // => obj?.NewGet<int>("hello", 0)
-				_ = obj2?.Get<int?>("hello");                     // => obj?.NewGet<int?>("hello", null)
-				_ = obj2?.Get<bool>("hello");                     // => obj?.NewGet<bool>("hello", false)
-				_ = obj2?.Get<bool?>("hello");                    // => obj?.NewGet<bool?>("hello", null)
-			}
-
-			{ // NOW
-				_ = obj.Get<Guid>("id", required: true);          // => GetRequired(..)
-				_ = obj.Get<string>("name", required: true);      // => GetRequired(..)
-				_ = obj.Get<string>("osef");                      // => GetOrDefault(..)
-				_ = obj.Get<string>("osef");                      // => GetOrDefault(..)
-			}
-			{ // Fluent
-				_ = obj["id"].Required().As<Guid>();     // GUID or throw
-				_ = obj["name"].Required().As<string>(); // string or throw
-				_ = obj["osef"].As<string>();            // => null
-				_ = obj["osef"].As<int>();               // false
-				_ = obj["osef"].As<string>() ?? "toto";  // "toto"
-				_ = obj["osef"].As<int?>() ?? 123;       // 123
-			}
-			{ // Fluent NEW
-				_ = obj["id"].Required<Guid>();          // review: we loose the "id" in the exception message :(
-				_ = obj["name"].Required<string>();
-				_ = obj["osef"]._As<string>();
-				_ = obj["osef"]._As<string>("toto");
-				_ = obj["osef"]._As<int>(123);
-			}
-		}
-
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-
-	}
-
-	#endregion
 
 }

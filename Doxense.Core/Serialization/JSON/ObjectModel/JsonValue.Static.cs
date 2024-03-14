@@ -201,20 +201,6 @@ namespace Doxense.Serialization.Json
 
 		// Text/Binary => JsonValue
 
-		[Obsolete("OLD_API: please call _Parse(...) and if necessary call Required() on the result", error: true)]
-		public static JsonValue Parse(
-#if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
-#endif
-			string? jsonText,
-			CrystalJsonSettings? settings = null,
-			bool required = false
-		)
-		{
-			var res = CrystalJson.Parse(jsonText, settings);
-			return required ? res.Required() : res;
-		}
-
 		/// <summary>Parses a JSON text literal, and returns the corresponding JSON value</summary>
 		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
@@ -255,20 +241,6 @@ namespace Doxense.Serialization.Json
 		)
 		{
 			return CrystalJson.Parse(jsonText, settings?.AsReadOnly() ?? CrystalJsonSettings.JsonReadOnly);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API", error: true)]
-		public static JsonArray? ParseArray(
-#if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
-#endif
-			string? jsonText,
-			CrystalJsonSettings? settings = null,
-			bool required = false
-		)
-		{
-			return CrystalJson.Parse(jsonText, settings).AsArray(required);
 		}
 
 		/// <summary>Parses a JSON text literal that is expected to contain an Array</summary>
@@ -313,28 +285,6 @@ namespace Doxense.Serialization.Json
 		)
 		{
 			return CrystalJson.Parse(jsonText, settings?.AsReadOnly() ?? CrystalJsonSettings.JsonReadOnly)._AsArray();
-		}
-
-		/// <summary>Parse a string literal containing a JSON Object</summary>
-		/// <param name="jsonText">Input text to parse</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required">If <paramref name="jsonText"/> is empty or equal to the token <c>"null"</c>, the method will either throw an exception if <see langword="true"/>, or return <see langword="null"/> if <see langword="false"/></param>
-		/// <returns>Parsed JSON , or <see langword="null"/> if <paramref name="required"/> is <see langword="false"/> and <paramref name="jsonText"/> is empty or equal to <c>"null"</c></returns>
-		/// <remarks>The JSON object that is returned is mutable and ca be modified. If you require an immutable/readonly version, please call <see cref="_ParseObjectReadOnly(string?,CrystalJsonSettings?)"/> or enable immutability in the <paramref name="settings"/></remarks>
-		/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
-		/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>, and <paramref name="required"/> is <see langword="true"/>.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API", error: true)]
-		public static JsonObject? ParseObject(
-#if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
-#endif
-			string? jsonText,
-			CrystalJsonSettings? settings = null,
-			bool required = false
-		)
-		{
-			return CrystalJson.Parse(jsonText, settings).AsObject(required);
 		}
 
 		/// <summary>Parses a JSON text literal that is expected to contain an Object</summary>
@@ -455,18 +405,6 @@ namespace Doxense.Serialization.Json
 		public static JsonObject _ParseObjectReadOnly(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
 			return CrystalJson.Parse(jsonBytes, settings?.AsReadOnly() ?? CrystalJsonSettings.JsonReadOnly)._AsObject();
-		}
-
-		[Pure]
-		[Obsolete("OLD_API: please call _Parse(...) and if necessary call Required() on the result", error: true)]
-		public static JsonValue Parse(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false) => Parse(jsonBytes.AsSlice(), settings, required);
-
-		[Pure]
-		[Obsolete("OLD_API: please call _Parse(...) and if necessary call Required() on the result", error: true)]
-		public static JsonValue Parse(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			var res = CrystalJson.Parse(jsonBytes, settings);
-			return required ? res.Required() : res;
 		}
 
 		/// <summary>Parses a buffer containing an UTF-8 JSON document, and returns the corresponding JSON value</summary>

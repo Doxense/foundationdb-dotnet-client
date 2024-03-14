@@ -89,16 +89,6 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract bool IsDefault { [Pure] get; }
 
-		/// <summary>Indique si cette valeur est une array qui contient d'autres valeurs</summary>
-		[Obsolete("OLD_API: Either check that the Type property is JsonType.Array, or cast to JsonArray", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool IsArray { [Pure] get => this.Type == JsonType.Array; }
-
-		/// <summary>Indique si cette valeur est une dictionnaire qui contient d'autres valeurs</summary>
-		[Obsolete("OLD_API: Either check that the Type property is JsonType.Object, or cast to JsonObject", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool IsMap { [Pure] get => this.Type == JsonType.Object; }
-
 		/// <summary>Returns <see langword="true"/> if this value is read-only, and cannot be modified, or <see langword="false"/> if it allows mutations.</summary>
 		/// <remarks>
 		/// <para>Only JSON Objects and Arrays can return <see langword="false"/>. All other "value types" (string, boolean, numbers, ...) are always immutable, and will always be read-only.</para>
@@ -388,21 +378,6 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("OLD_API: Use _GetValue(key) if required, or _GetValueOrDefault(key) if optional", error: true)]
-		public virtual JsonValue GetValue(string key) => _GetValueOrDefault(key, JsonNull.Missing);
-
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("OLD_API: Use _GetValue(index) if required, or _GetValueOrDefault(index) if optional", error: true)]
-		public virtual JsonValue GetValue(int index) => _GetValueOrDefault(index, JsonNull.Missing);
-
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("OLD_API: Use _GetValue(index) if required, or _GetValueOrDefault(index) if optional", error: true)]
-		public virtual JsonValue GetValue(Index index) => _GetValueOrDefault(index, JsonNull.Missing);
-
 		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
 		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
@@ -494,41 +469,6 @@ namespace Doxense.Serialization.Json
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set => throw (this.IsReadOnly ? ThrowHelper.InvalidOperationException($"Cannot mutate a read-only JSON {this.Type}") : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
 		}
-
-		/// <summary>Returns the converted value of the <paramref name="key"/> property of this object.</summary>
-		/// <param name="key">Name of the property</param>
-		/// <returns>Converted value of the <paramref name="key"/> property into the type <typeparamref name="TValue"/>, or default(<typeparamref name="TValue"/>) if the property does not exist, or contains a <see langword="null"/> entry.</returns>
-		/// <example>
-		/// ({ "Hello": "World" }).Get&lt;string&gt;("Hello") // returns <c>"World"</c>
-		/// ({ }).Get&lt;string&gt;("Hello") // returns <see langword="null"/>
-		/// ({ }).Get&lt;int&gt;("Hello") // returns <c>0</c>
-		/// ({ "Hello": null }).Get&lt;string&gt;("Hello") // returns <see langword="null"/>
-		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // returns <c>0</c>
-		/// </example>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("OLD_API: Use _Get(key) if required, or _Get(key, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(string key) => _GetValueOrDefault(key)._As<TValue>();
-
-		/// <summary>Returns the converted value at the specified index in this array</summary>
-		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
-		/// <param name="index">Index of the value in the array</param>
-		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="TValue"/></returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(int index) => _GetValueOrDefault(index)._As<TValue>();
-
-		/// <summary>Returns the converted value at the specified index in this array</summary>
-		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
-		/// <param name="index">Index of the value in the array</param>
-		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="TValue"/></returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(Index index) => _GetValueOrDefault(index)._As<TValue>();
 
 		#region NEW API
 

@@ -192,16 +192,10 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBytes(value, settings);
 
-		[Obsolete("OLD_API: Call value.ToJsonSlice(...) instead", error: true)]
-		public static Slice ToJsonBuffer(this JsonValue? value) => ToJsonSlice(value);
-
 		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
 		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonSlice(this JsonValue? value) => CrystalJson.ToSlice(value);
-
-		[Obsolete("OLD_API: Call value.ToJsonSlice(...) instead", error: true)]
-		public static Slice ToJsonBuffer(this JsonValue? value, CrystalJsonSettings? settings) => ToJsonSlice(value, settings);
 
 		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
 		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
@@ -212,247 +206,8 @@ namespace Doxense.Serialization.Json
 
 		#region As<T>...
 
-		/// <summary>Convert this value into a the specified CLR type.</summary>
-		/// <typeparam name="TValue">Target CLR type</typeparam>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the default <typeparam name="TValue"/> value (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...)</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Please use Required<T>() if required, or OrDefault<T>() if optional", error: true)]
-		public static TValue? As<TValue>(this JsonValue? value) //BUGBUG: will become _REQUIRED_ !
-		{
-			if (value == null)
-			{
-				return default(TValue) == null ? JsonNull.Default<TValue>(value) : default;
-			}
-
-			#region <JIT_HACK>
-			// pattern recognized and optimized by the JIT, only in Release build
-#if !DEBUG
-			if (typeof(TValue) == typeof(bool)) return (TValue) (object) value.ToBoolean();
-			if (typeof(TValue) == typeof(char)) return (TValue) (object) value.ToChar();
-			if (typeof(TValue) == typeof(byte)) return (TValue) (object) value.ToByte();
-			if (typeof(TValue) == typeof(sbyte)) return (TValue) (object) value.ToSByte();
-			if (typeof(TValue) == typeof(short)) return (TValue) (object) value.ToInt16();
-			if (typeof(TValue) == typeof(ushort)) return (TValue) (object) value.ToUInt16();
-			if (typeof(TValue) == typeof(int)) return (TValue) (object) value.ToInt32();
-			if (typeof(TValue) == typeof(uint)) return (TValue) (object) value.ToUInt32();
-			if (typeof(TValue) == typeof(long)) return (TValue) (object) value.ToInt64();
-			if (typeof(TValue) == typeof(ulong)) return (TValue) (object) value.ToUInt64();
-			if (typeof(TValue) == typeof(float)) return (TValue) (object) value.ToSingle();
-			if (typeof(TValue) == typeof(double)) return (TValue) (object) value.ToDouble();
-			if (typeof(TValue) == typeof(decimal)) return (TValue) (object) value.ToDecimal();
-			if (typeof(TValue) == typeof(Guid)) return (TValue) (object) value.ToGuid();
-			if (typeof(TValue) == typeof(Uuid128)) return (TValue) (object) value.ToUuid128();
-			if (typeof(TValue) == typeof(Uuid96)) return (TValue) (object) value.ToUuid96();
-			if (typeof(TValue) == typeof(Uuid80)) return (TValue) (object) value.ToUuid80();
-			if (typeof(TValue) == typeof(Uuid64)) return (TValue) (object) value.ToUuid64();
-			if (typeof(TValue) == typeof(TimeSpan)) return (TValue) (object) value.ToTimeSpan();
-			if (typeof(TValue) == typeof(DateTime)) return (TValue) (object) value.ToDateTime();
-			if (typeof(TValue) == typeof(DateTimeOffset)) return (TValue) (object) value.ToDateTimeOffset();
-			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstant();
-			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDuration();
-
-			//note: value peut être un JsonNull, donc on doit invoquer les ...OrDefault() !
-			if (typeof(TValue) == typeof(bool?)) return (TValue?) (object?) value.ToBooleanOrDefault();
-			if (typeof(TValue) == typeof(char?)) return (TValue?) (object?) value.ToCharOrDefault();
-			if (typeof(TValue) == typeof(byte?)) return (TValue?) (object?) value.ToByteOrDefault();
-			if (typeof(TValue) == typeof(sbyte?)) return (TValue?) (object?) value.ToSByteOrDefault();
-			if (typeof(TValue) == typeof(short?)) return (TValue?) (object?) value.ToInt16OrDefault();
-			if (typeof(TValue) == typeof(ushort?)) return (TValue?) (object?) value.ToUInt16OrDefault();
-			if (typeof(TValue) == typeof(int?)) return (TValue?) (object?) value.ToInt32OrDefault();
-			if (typeof(TValue) == typeof(uint?)) return (TValue?) (object?) value.ToUInt32OrDefault();
-			if (typeof(TValue) == typeof(long?)) return (TValue?) (object?) value.ToInt64OrDefault();
-			if (typeof(TValue) == typeof(ulong?)) return (TValue?) (object?) value.ToUInt64OrDefault();
-			if (typeof(TValue) == typeof(float?)) return (TValue?) (object?) value.ToSingleOrDefault();
-			if (typeof(TValue) == typeof(double?)) return (TValue?) (object?) value.ToDoubleOrDefault();
-			if (typeof(TValue) == typeof(decimal?)) return (TValue?) (object?) value.ToDecimalOrDefault();
-			if (typeof(TValue) == typeof(Guid?)) return (TValue?) (object?) value.ToGuidOrDefault();
-			if (typeof(TValue) == typeof(Uuid128?)) return (TValue?) (object?) value.ToUuid128OrDefault();
-			if (typeof(TValue) == typeof(Uuid96?)) return (TValue?) (object?) value.ToUuid96OrDefault();
-			if (typeof(TValue) == typeof(Uuid80?)) return (TValue?) (object?) value.ToUuid80OrDefault();
-			if (typeof(TValue) == typeof(Uuid64?)) return (TValue?) (object?) value.ToUuid64OrDefault();
-			if (typeof(TValue) == typeof(TimeSpan?)) return (TValue?) (object?) value.ToTimeSpanOrDefault();
-			if (typeof(TValue) == typeof(DateTime?)) return (TValue?) (object?) value.ToDateTimeOrDefault();
-			if (typeof(TValue) == typeof(DateTimeOffset?)) return (TValue?) (object?) value.ToDateTimeOffsetOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Instant?)) return (TValue?) (object?) value.ToInstantOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Duration?)) return (TValue?) (object?) value.ToDurationOrDefault();
-#endif
-			#endregion </JIT_HACK>
-
-			return value.Bind<TValue>();
-		}
-
-		/// <summary>Convert this value into a the specified CLR type.</summary>
-		/// <typeparam name="TValue">Target CLR type</typeparam>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the default <typeparam name="TValue"/> value (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...)</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Please use _As<T>(T, default) instead", error: true)]
-		public static TValue? As<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver)
-		{
-			if (value == null)
-			{
-				return default(TValue) == null ? JsonNull.Default<TValue>(value) : default;
-			}
-
-			#region <JIT_HACK>
-
-			// En mode RELEASE, le JIT reconnaît les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une méthode générique Foo<T> quand T est un ValueType,
-			// et les remplace par des "if (true) { ...}" ce qui permet d'éliminer le reste du code (très efficace si le if contient un return!)
-			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour éviter le boxing inutile (le cast intermédiaire en object est pour faire taire le compilateur)
-			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
-			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
-
-#if !DEBUG
-
-			//note: si value est un JsonNull, toutes les versions de ToVALUETYPE() retourne le type attendu!
-
-			if (typeof(TValue) == typeof(bool)) return (TValue) (object) value.ToBoolean();
-			if (typeof(TValue) == typeof(char)) return (TValue) (object) value.ToChar();
-			if (typeof(TValue) == typeof(byte)) return (TValue) (object) value.ToByte();
-			if (typeof(TValue) == typeof(sbyte)) return (TValue) (object) value.ToSByte();
-			if (typeof(TValue) == typeof(short)) return (TValue) (object) value.ToInt16();
-			if (typeof(TValue) == typeof(ushort)) return (TValue) (object) value.ToUInt16();
-			if (typeof(TValue) == typeof(int)) return (TValue) (object) value.ToInt32();
-			if (typeof(TValue) == typeof(uint)) return (TValue) (object) value.ToUInt32();
-			if (typeof(TValue) == typeof(long)) return (TValue) (object) value.ToInt64();
-			if (typeof(TValue) == typeof(ulong)) return (TValue) (object) value.ToUInt64();
-			if (typeof(TValue) == typeof(float)) return (TValue) (object) value.ToSingle();
-			if (typeof(TValue) == typeof(double)) return (TValue) (object) value.ToDouble();
-			if (typeof(TValue) == typeof(decimal)) return (TValue) (object) value.ToDecimal();
-			if (typeof(TValue) == typeof(Guid)) return (TValue) (object) value.ToGuid();
-			if (typeof(TValue) == typeof(Uuid128)) return (TValue) (object) value.ToUuid128();
-			if (typeof(TValue) == typeof(Uuid96)) return (TValue) (object) value.ToUuid96();
-			if (typeof(TValue) == typeof(Uuid80)) return (TValue) (object) value.ToUuid80();
-			if (typeof(TValue) == typeof(Uuid64)) return (TValue) (object) value.ToUuid64();
-			if (typeof(TValue) == typeof(TimeSpan)) return (TValue) (object) value.ToTimeSpan();
-			if (typeof(TValue) == typeof(DateTime)) return (TValue) (object) value.ToDateTime();
-			if (typeof(TValue) == typeof(DateTimeOffset)) return (TValue) (object) value.ToDateTimeOffset();
-			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstant();
-			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDuration();
-
-			//note: value peut être un JsonNull, donc on doit invoquer les ...OrDefault() !
-			if (typeof(TValue) == typeof(bool?)) return (TValue?) (object?) value.ToBooleanOrDefault();
-			if (typeof(TValue) == typeof(char?)) return (TValue?) (object?) value.ToCharOrDefault();
-			if (typeof(TValue) == typeof(byte?)) return (TValue?) (object?) value.ToByteOrDefault();
-			if (typeof(TValue) == typeof(sbyte?)) return (TValue?) (object?) value.ToSByteOrDefault();
-			if (typeof(TValue) == typeof(short?)) return (TValue?) (object?) value.ToInt16OrDefault();
-			if (typeof(TValue) == typeof(ushort?)) return (TValue?) (object?) value.ToUInt16OrDefault();
-			if (typeof(TValue) == typeof(int?)) return (TValue?) (object?) value.ToInt32OrDefault();
-			if (typeof(TValue) == typeof(uint?)) return (TValue?) (object?) value.ToUInt32OrDefault();
-			if (typeof(TValue) == typeof(long?)) return (TValue?) (object?) value.ToInt64OrDefault();
-			if (typeof(TValue) == typeof(ulong?)) return (TValue?) (object?) value.ToUInt64OrDefault();
-			if (typeof(TValue) == typeof(float?)) return (TValue?) (object?) value.ToSingleOrDefault();
-			if (typeof(TValue) == typeof(double?)) return (TValue?) (object?) value.ToDoubleOrDefault();
-			if (typeof(TValue) == typeof(decimal?)) return (TValue?) (object?) value.ToDecimalOrDefault();
-			if (typeof(TValue) == typeof(Guid?)) return (TValue?) (object?) value.ToGuidOrDefault();
-			if (typeof(TValue) == typeof(Uuid128?)) return (TValue?) (object?) value.ToUuid128OrDefault();
-			if (typeof(TValue) == typeof(Uuid96?)) return (TValue?) (object?) value.ToUuid96OrDefault();
-			if (typeof(TValue) == typeof(Uuid80?)) return (TValue?) (object?) value.ToUuid80OrDefault();
-			if (typeof(TValue) == typeof(Uuid64?)) return (TValue?) (object?) value.ToUuid64OrDefault();
-			if (typeof(TValue) == typeof(TimeSpan?)) return (TValue?) (object?) value.ToTimeSpanOrDefault();
-			if (typeof(TValue) == typeof(DateTime?)) return (TValue?) (object?) value.ToDateTimeOrDefault();
-			if (typeof(TValue) == typeof(DateTimeOffset?)) return (TValue?) (object?) value.ToDateTimeOffsetOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Instant?)) return (TValue?) (object?) value.ToInstantOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Duration?)) return (TValue?) (object?) value.ToDurationOrDefault();
-#endif
-
-			#endregion </JIT_HACK>
-
-			return value.Bind<TValue>(resolver);
-		}
-
-		/// <summary>Convert this value into a the specified CLR type.</summary>
-		/// <typeparam name="TValue">Target CLR type</typeparam>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the default <typeparam name="TValue"/> value (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...) if <paramref name="required"/> is <see langword="false"/>, or an exception if it is <see langword="true"/>.</remarks>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Please use _As<T>(T) if required, or As<T>(T, default) if optional", error: true)]
-		public static TValue? As<TValue>(this JsonValue? value, bool required, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (value == null)
-			{
-				return required ? FailRequiredValueIsNullOrMissing<TValue>() : default(TValue) == null ? JsonNull.Default<TValue>(value) : default;
-			}
-			if (required && value.IsNull)
-			{
-				return FailRequiredValueIsNullOrMissing<TValue>();
-			}
-
-			#region <JIT_HACK>
-
-			// En mode RELEASE, le JIT reconnaît les patterns "if (typeof(T) == typeof(VALUETYPE)) { ... }" dans une méthode générique Foo<T> quand T est un ValueType,
-			// et les remplace par des "if (true) { ...}" ce qui permet d'éliminer le reste du code (très efficace si le if contient un return!)
-			// Egalement, le JIT optimise le "(VALUE_TYPE)(object)value" si T == VALUE_TYPE pour éviter le boxing inutile (le cast intermédiaire en object est pour faire taire le compilateur)
-			// => pour le vérifier, il faut inspecter l'asm généré par le JIT au runtime (en mode release, en dehors du debugger, etc...) ce qui n'est pas facile...
-			// => vérifié avec .NET 4.6.1 + RyuJIT x64, la méthode FromValue<int> est directement inlinée en l'appel à JsonNumber.Return(...) !
-
-#if !DEBUG // trop lent en debug !
-
-			//note: si value est un JsonNull, toutes les versions de ToVALUETYPE() retourne le type attendu!
-
-			if (typeof(TValue) == typeof(bool)) return (TValue) (object) value.ToBoolean();
-			if (typeof(TValue) == typeof(char)) return (TValue) (object) value.ToChar();
-			if (typeof(TValue) == typeof(byte)) return (TValue) (object) value.ToByte();
-			if (typeof(TValue) == typeof(sbyte)) return (TValue) (object) value.ToSByte();
-			if (typeof(TValue) == typeof(short)) return (TValue) (object) value.ToInt16();
-			if (typeof(TValue) == typeof(ushort)) return (TValue) (object) value.ToUInt16();
-			if (typeof(TValue) == typeof(int)) return (TValue) (object) value.ToInt32();
-			if (typeof(TValue) == typeof(uint)) return (TValue) (object) value.ToUInt32();
-			if (typeof(TValue) == typeof(long)) return (TValue) (object) value.ToInt64();
-			if (typeof(TValue) == typeof(ulong)) return (TValue) (object) value.ToUInt64();
-			if (typeof(TValue) == typeof(float)) return (TValue) (object) value.ToSingle();
-			if (typeof(TValue) == typeof(double)) return (TValue) (object) value.ToDouble();
-			if (typeof(TValue) == typeof(decimal)) return (TValue) (object) value.ToDecimal();
-			if (typeof(TValue) == typeof(Guid)) return (TValue) (object) value.ToGuid();
-			if (typeof(TValue) == typeof(Uuid128)) return (TValue) (object) value.ToUuid128();
-			if (typeof(TValue) == typeof(Uuid96)) return (TValue) (object) value.ToUuid96();
-			if (typeof(TValue) == typeof(Uuid80)) return (TValue) (object) value.ToUuid80();
-			if (typeof(TValue) == typeof(Uuid64)) return (TValue) (object) value.ToUuid64();
-			if (typeof(TValue) == typeof(TimeSpan)) return (TValue) (object) value.ToTimeSpan();
-			if (typeof(TValue) == typeof(DateTime)) return (TValue) (object) value.ToDateTime();
-			if (typeof(TValue) == typeof(DateTimeOffset)) return (TValue) (object) value.ToDateTimeOffset();
-			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstant();
-			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDuration();
-
-			//note: value peut être un JsonNull, donc on doit invoquer les ...OrDefault() !
-			if (typeof(TValue) == typeof(bool?)) return (TValue?) (object?) value.ToBooleanOrDefault();
-			if (typeof(TValue) == typeof(char?)) return (TValue?) (object?) value.ToCharOrDefault();
-			if (typeof(TValue) == typeof(byte?)) return (TValue?) (object?) value.ToByteOrDefault();
-			if (typeof(TValue) == typeof(sbyte?)) return (TValue?) (object?) value.ToSByteOrDefault();
-			if (typeof(TValue) == typeof(short?)) return (TValue?) (object?) value.ToInt16OrDefault();
-			if (typeof(TValue) == typeof(ushort?)) return (TValue?) (object?) value.ToUInt16OrDefault();
-			if (typeof(TValue) == typeof(int?)) return (TValue?) (object?) value.ToInt32OrDefault();
-			if (typeof(TValue) == typeof(uint?)) return (TValue?) (object?) value.ToUInt32OrDefault();
-			if (typeof(TValue) == typeof(long?)) return (TValue?) (object?) value.ToInt64OrDefault();
-			if (typeof(TValue) == typeof(ulong?)) return (TValue?) (object?) value.ToUInt64OrDefault();
-			if (typeof(TValue) == typeof(float?)) return (TValue?) (object?) value.ToSingleOrDefault();
-			if (typeof(TValue) == typeof(double?)) return (TValue?) (object?) value.ToDoubleOrDefault();
-			if (typeof(TValue) == typeof(decimal?)) return (TValue?) (object?) value.ToDecimalOrDefault();
-			if (typeof(TValue) == typeof(Guid?)) return (TValue?) (object?) value.ToGuidOrDefault();
-			if (typeof(TValue) == typeof(Uuid128?)) return (TValue?) (object?) value.ToUuid128OrDefault();
-			if (typeof(TValue) == typeof(Uuid96?)) return (TValue?) (object?) value.ToUuid96OrDefault();
-			if (typeof(TValue) == typeof(Uuid80?)) return (TValue?) (object?) value.ToUuid80OrDefault();
-			if (typeof(TValue) == typeof(Uuid64?)) return (TValue?) (object?) value.ToUuid64OrDefault();
-			if (typeof(TValue) == typeof(TimeSpan?)) return (TValue?) (object?) value.ToTimeSpanOrDefault();
-			if (typeof(TValue) == typeof(DateTime?)) return (TValue?) (object?) value.ToDateTimeOrDefault();
-			if (typeof(TValue) == typeof(DateTimeOffset?)) return (TValue?) (object?) value.ToDateTimeOffsetOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Instant?)) return (TValue?) (object?) value.ToInstantOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Duration?)) return (TValue?) (object?) value.ToDurationOrDefault();
-#endif
-
-			#endregion </JIT_HACK>
-
-			return value.Bind<TValue>(resolver);
-		}
-
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static T FailRequiredValueIsNullOrMissing<T>() => throw new JsonBindingException($"Required JSON value of type {typeof(T).GetFriendlyName()} was null or missing");
-
-		#endregion
-
-		#region OrDefault...
 
 		/// <summary>Convert this required JSON value into an instance of the specified type.</summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
@@ -774,42 +529,6 @@ namespace Doxense.Serialization.Json
 
 		#region Object Helpers...
 
-		// magic cast entre JsonValue et JsonObject
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
-
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
-		/// <param name="value">Valeur JSON qui doit être un object</param>
-		/// <returns>Valeur castée en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
-		/// <exception cref="JsonBindingException">Si <paramref name="value"/> est null, missing, ou n'est pas un object.</exception>
-		[Pure]
-		[Obsolete("OLD_API: Please use _AsObject() if required, or _AsObjectOrDefault(...) if optional", error: true)]
-		public static JsonObject AsObject(this JsonValue? value)
-		{
-			if (value is null or JsonNull) return FailObjectIsNullOrMissing();
-			if (value is not JsonObject obj) return FailValueIsNotAnObject(value); // => throws
-			return obj;
-		}
-
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'un JsonObject.</summary>
-		/// <param name="value">Valeur JSON qui doit être un object</param>
-		/// <param name="required">Si true, une exception sera générée si l'objet est null.</param>
-		/// <returns>Valeur castée en JsonObject si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
-		/// <exception cref="JsonBindingException">Si <paramref name="value"/> est null, missing, ou n'est pas un object.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Please use _AsObject() if required, or _AsObjectOrDefault(...) if optional", error: true)]
-		public static JsonObject? AsObject(this JsonValue? value, bool required)
-		{
-			if (value is null or JsonNull)
-			{
-				return !required ? null : FailObjectIsNullOrMissing();
-			}
-			if (value is not JsonObject obj)
-			{
-				return FailValueIsNotAnObject(value);
-			}
-			return obj;
-		}
-
 		/// <summary>Returns this value as a <b>required</b> JSON Object.</summary>
 		/// <param name="value">Value that must be a JSON Object.</param>
 		/// <returns>The same instance casted as <see cref="JsonObject"/>, Throws an exception if the value is null, missing, or any other type.</returns>
@@ -953,15 +672,6 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonArray _AsArrayOrEmpty(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : JsonArray.EmptyReadOnly) : value as JsonArray ?? FailValueIsNotAnArray(value);
-
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
-		/// <param name="value">Valeur JSON qui doit être une array</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <returns>Valeur castée en JsonArray si elle existe, ou null si la valeur est null/missing et que <paramref name="required"/> vaut false. Throw dans tous les autres cas</returns>
-		/// <exception cref="JsonBindingException">Si <paramref name="value"/> est null ou missing et que <paramref name="required"/> vaut true. Ou si <paramref name="value"/> n'est pas une array.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use AsArray() if required, or AsArrayOrDefault() if optional", error: true)]
-		public static JsonArray? AsArray(this JsonValue? value, bool required) => required ? _AsArray(value) : _AsArrayOrDefault(value);
 
 		#endregion
 

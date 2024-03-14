@@ -296,9 +296,6 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => ToSlice(value, settings, resolver);
-
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
@@ -311,9 +308,6 @@ namespace Doxense.Serialization.Json
 			byte[]? _ = null;
 			return ToSliceInternal(value, typeof(object), settings, resolver, ref _);
 		}
-
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => ToSlice<T>(value, settings, resolver);
 
 		/// <summary>Serializes a value into an UTF-8 encoded Slice</summary>
 		/// <typeparam name="T">Advertized type of the instance.</typeparam>
@@ -331,9 +325,6 @@ namespace Doxense.Serialization.Json
 			return ToSliceInternal(value, typeof(T), settings, resolver, ref _);
 		}
 
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer) => ToSlice(value, settings, resolver, ref buffer);
-
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
@@ -349,9 +340,6 @@ namespace Doxense.Serialization.Json
 		{
 			return ToSliceInternal(value, typeof(object), settings, resolver, ref buffer);
 		}
-
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer) => ToSlice(value, type, settings, resolver, ref buffer);
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
@@ -370,9 +358,6 @@ namespace Doxense.Serialization.Json
 		{
 			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref buffer);
 		}
-
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer) => ToSlice<T>(value, settings, resolver, ref buffer);
 
 		/// <summary>Serializes a value into an UTF-8 encoded Slice</summary>
 		/// <typeparam name="T">Advertized type of the instance.</typeparam>
@@ -429,9 +414,6 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool) => ToSlice(value, settings, resolver, pool);
-
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
@@ -447,9 +429,6 @@ namespace Doxense.Serialization.Json
 		{
 			return ToSliceInternal(value, typeof(object), settings, resolver, pool);
 		}
-
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver) => ToSlice(value, type, settings, resolver);
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
@@ -468,9 +447,6 @@ namespace Doxense.Serialization.Json
 			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref _);
 		}
 
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool) => ToSlice(value, type, settings, resolver, pool);
-
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
@@ -488,11 +464,6 @@ namespace Doxense.Serialization.Json
 		{
 			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, pool);
 		}
-
-		[Obsolete("Call CrystalJson.ToSlice(...) instead", error: true)]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool) => ToSlice<T>(value, settings, resolver, pool);
-
-
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <typeparam name="T">Advertized type of the instance.</typeparam>
@@ -767,13 +738,6 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes.AsSlice(), settings);
 		}
 
-		[Obsolete("OLD_API: Call PArse(Slice) or Parse(ReadOnlySpan<byte>) instead.", error: true)]
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Parse(byte[] jsonBytes, int index, int count, CrystalJsonSettings? settings = null)
-		{
-			return ParseFromReader(new JsonSliceReader(jsonBytes.AsSlice(index, count)), settings);
-		}
-
 		/// <summary>Parses a JSON buffer, and returns the corresponding JSON value</summary>
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
@@ -1007,189 +971,6 @@ namespace Doxense.Serialization.Json
 				return ParseFromReader(new JsonTextReader(reader), settings);
 			}
 		}
-
-		#region ParseObject...
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonText, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes.AsSlice(), settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(byte[]? jsonBytes, int offset, int count, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes.AsSpan(offset, count), settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(ref jsonBytes, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonText, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonText, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObject(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(ref jsonText, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObjectFrom(TextReader source, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return ParseFromReader(new JsonTextReader(source), settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _ParseFrom(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObjectFrom(Stream source, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return ParseFrom(source, settings).AsObject(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _ParseFrom(..)._AsObject[OrDefault](...) instead", error: true)]
-		public static JsonObject? ParseObjectFrom(string path, CrystalJsonSettings? settings = null, bool required = false, LoadOptions options = LoadOptions.None)
-		{
-			return LoadAndParseInternal(path, settings, options).AsObject(required);
-		}
-
-		#endregion
-
-		#region ParseArray...
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes.AsSlice(), settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(byte[]? jsonBytes, int offset, int count, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes.AsSlice(offset, count), settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonBytes, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(ref jsonBytes, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonText, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonText, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(ref jsonText, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _Parse(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArray(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonText, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _ParseFrom(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArrayFrom(TextReader source, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return ParseFrom(source, settings).AsArray(required);
-		}
-
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _ParseFrom(..)._AsArray[OrDefault](...) instead", error: true)]
-		public static JsonArray? ParseArrayFrom(string path, CrystalJsonSettings? settings = null, bool required = false, LoadOptions options = LoadOptions.None)
-		{
-			return LoadAndParseInternal(path, settings, options).AsArray(required);
-		}
-
-		#endregion
 
 		[Pure, ContractAnnotation("null => false")]
 		public static bool MaybeJsonDocument(byte[]? jsonBytes)

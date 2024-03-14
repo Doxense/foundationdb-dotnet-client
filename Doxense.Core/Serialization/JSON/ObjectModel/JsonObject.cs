@@ -1565,67 +1565,6 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Has(string key) => TryGetValue(key, out var value) && !value.IsNullOrMissing();
 
-		/// <summary>Returns the converted value that corresponds to the field with the specified <paramref name="key"/>.</summary>
-		/// <param name="key">Name of the field</param>
-		/// <param name="required">Si true, une exception est lancée si la propriété n'existe pas où vaut null. Si false, retourne default(<typeparamref name="TValue"/>) si la propriété est manquante ou vaut explicitement null</param>
-		/// <returns>
-		/// Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="TValue"/>, ou default(<typeparamref name="TValue"/>) si la propriété contient null ou n'existe pas.
-		/// Si <typeparamref name="TValue"/> est un ValueType qui n'est pas nullable, et que le champ est manquant (avec <paramref name="required"/> == false), alors c'est le "zéro" du type qui sera retourné (0, false, Guid.Empty, ...)
-		/// Si par contre <typeparamref name="TValue"/> est un <see cref="Nullable{T}"/> alors c'est bien 'null' qui sera retourné dans ce cas.
-		/// </returns>
-		/// <example>
-		/// obj.Get&lt;int&gt;"FieldThatExists", required: true) // returns the value of the field as an int
-		/// obj.Get&lt;bool&gt;"FieldThatExists", required: true) // ALWAYS specify 'required' to make sure not to call the Get&lt;bool&gt; with defaultValue by mistake!
-		/// obj.Get&lt;string&gt;"FieldThatIsMissing", required: true) // => throws
-		/// obj.Get&lt;string&gt;"FieldThatIsNull", required: true) // => throws
-		/// </example>
-		/// <remarks> Cette méthode est équivalente à <code>obj[key].RequiredField(key).As&lt;T&gt;()</code> </remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Please use _Get<TValue>(key) if required, or _Get<TValue>(key, <default>) if optional", error: true)]
-		public TValue? Get<TValue>(string key, bool required)
-		{
-			var val = m_items.GetValueOrDefault(key);
-			if (required) val = val.RequiredField(key);
-			return val._As<TValue>();
-		}
-
-		/// <summary>Returns the converted value that corresponds to the field with the specified name.</summary>
-		/// <param name="key">Name of the field</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="TValue"/>, ou default(<typeparamref name="TValue"/>} si la propriété contient null ou n'existe pas.</returns>
-		/// <remarks>Cette méthode est équivalente à <code>obj[key].As&lt;T&gt;(defaultValue, resolver)</code></remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		[Obsolete("OLD_API: Please use _Get<TValue>(key, resolver) if required, or _Get<TValue>(key, <default>, resolver) if optional", error: true)]
-		public TValue? Get<TValue>(string key, ICrystalJsonTypeResolver resolver)
-		{
-			return this[key]._As<TValue>(resolver);
-		}
-
-		/// <summary>Returns the JSON value that corresponds to the field with the specified name.</summary>
-		/// <param name="key">Name of the field</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		[Obsolete("OLD_API: Use _GetValue(key) if required, or GetValueOrDefault(key) if optional", error: true)]
-		public override JsonValue GetValue(string key) => m_items.GetValueOrDefault(key) ?? JsonNull.Missing;
-
-		/// <summary>Returns the JSON Value that corresponds to the field with the specified name.</summary>
-		/// <param name="key">Name of the field</param>
-		/// <param name="required"></param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		[Obsolete("OLD_API: Use _GetValue(key) if required, or GetValueOrDefault(key) if optional", error: true)]
-		public JsonValue GetValue(string key, bool required)
-		{
-			var val = m_items.GetValueOrDefault(key);
-			return required ? val.RequiredField(key) : val ?? JsonNull.Missing;
-		}
-
 		/// <summary>Returns the <b>required</b> JSON Value that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1640,32 +1579,6 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("halt<=key:null")]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue _GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
-
-		/// <summary>Returns the JSON Object that corresponds to the field with the specified name.</summary>
-		/// <param name="key">Name of the field that is expected to be an object.</param>
-		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient null, une exception est lancée. Sinon, la méthode retourne null.</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, or <see langword="null"/> if it is null, missing, or an exception if not a JSON Object.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _GetObject(key) if required, or _GetArray(key, null) if optional", error: true)]
-		public JsonObject? GetObject(string key, bool required = false) => InternalGet<JsonObject>(JsonType.Object, key, required);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining), ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _GetPathObject(path) if required, or _GetPathObject(path, ...) if optional")]
-		public JsonObject? GetObjectPath(string path, bool required = false) => GetPath(path).AsObject(required);
-
-		/// <summary>Returns the JSON Array that corresponds to the field with the specified name.</summary>
-		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient <b>null</b>, une exception est lancée. Sinon, la méthode retourne null.</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or <see langword="null"/> if it is null, missing, or an exception if not a JSON Array.</returns>
-		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _GetArray(key) if required, or _GetArray(key, null) if optional", error: true)]
-		public JsonArray? GetArray(string key, bool required = false) => InternalGet<JsonArray>(JsonType.Array, key, required);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining), ContractAnnotation("required:true => notnull")]
-		[Obsolete("OLD_API: Use _GetPathArray(path) if required, or _GetPathArrayOrDefault(path, ...) if optional")]
-		public JsonArray? GetArrayPath(string path, bool required = false) => required ? GetPath(path)._AsArray() : GetPath(path)._AsArrayOrDefault();
 
 		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
 		/// <param name="path">Path vers le fils (peut inclure des '.')</param>

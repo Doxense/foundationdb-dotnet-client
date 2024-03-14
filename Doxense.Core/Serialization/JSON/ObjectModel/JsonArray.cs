@@ -1868,23 +1868,6 @@ namespace Doxense.Serialization.Json
 			//TODO: versionning?
 		}
 
-		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
-		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use GetValue(index) if required, or GetValueOrDefault(index, ...) if optional", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public JsonValue Get(int index) => this[index];
-
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use GetValueOrDefault(int) instead.", error: true)]
-		public override JsonValue GetValue(int index) => m_items.AsSpan(0, m_size)[index];
-
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use GetValueOrDefault(Index) instead.", error: true)]
-		public override JsonValue GetValue(Index index) => m_items.AsSpan(0, m_size)[index];
-
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue _GetValue(int index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
@@ -1893,19 +1876,6 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue _GetValue(Index index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
 		
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use _Get<TValue>(index) if required, or _Get<TValue>(index, defaultValue) if optional", error: true)]
-		public override TValue? Get<TValue>(int index) where TValue : default => m_items.AsSpan(0, m_size)[index]._As<TValue>();
-
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use _Get<TValue>(index) if required, or _Get<TValue>(index, defaultValue) if optional", error: true)]
-		public override TValue? Get<TValue>(Index index) where TValue : default => m_items.AsSpan(0, m_size)[index]._As<TValue>();
-
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("OLD_API: Use TryGetValue(int, out JsonValue) instead.", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet(int index, [MaybeNullWhen(false)] out JsonValue value) => TryGetValue(index, out value);
-
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public override bool TryGetValue(int index, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -1955,28 +1925,6 @@ namespace Doxense.Serialization.Json
 			var child = m_items[offset];
 			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
-
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
-		/// <param name="index">Index de l'objet à retourner</param>
-		/// <param name="required">Si true et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
-		/// <returns>Valeur de l'objet à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas un objet, ou si la valeur est null (et que <paramref name="required"/> est true)</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas un objet JSON.</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("OLD_API: Use _GetObject(index) if required, or GetObjectOrDefault(index, ...) if optional", error: true)]
-		public JsonObject? GetObject(int index, bool required = false) => this[index].AsObject(required);
-
-		/// <summary>Returns the JSON Array at the specified index</summary>
-		/// <param name="index">Index of the Array to retrieve</param>
-		/// <param name="required">Si <see langword="true"/> et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
-		/// <returns>Valeur à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas une array, ou si la valeur est <see langword="null"/> (et que <paramref name="required"/> est <see langword="true"/>)</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut <see langword="true"/>.</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("OLD_API: Use GetArray(index) if required, or GetArrayOrDefault(index, ...) if optional", error: true)]
-		public JsonArray? GetArray(int index, bool required = false) => this[index].AsArray(required);
 
 		/// <summary>Determines the index of a specific value in the JSON array.</summary>
 		/// <param name="item">The value to locate in the array.</param>
@@ -2135,16 +2083,6 @@ namespace Doxense.Serialization.Json
 		public void CopyTo(JsonValue[] array, int arrayIndex) => this.AsSpan().CopyTo(array.AsSpan(arrayIndex));
 		//TODO: REVIEW: make this explicit? (to force callers to use the Span overload)
 
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("Use arr.GetSpan(index).CopyTo(Span<JsonValue>) instead.", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public void CopyTo(int index, Span<JsonValue> array) => this.AsSpan().Slice(index).CopyTo(array);
-
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("Use arr.GetSpan(index, count).CopyTo(Span<JsonValue>) instead.", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public void CopyTo(int index, int count, Span<JsonValue> array) => this.AsSpan().Slice(index, count).CopyTo(array);
-
 		#endregion
 
 		#region Operators...
@@ -2254,11 +2192,6 @@ namespace Doxense.Serialization.Json
 			m_size = p;
 		}
 
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("OLD_API: Use GetRange(index) instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public JsonArray Substring(int index) => GetRange(index);
-
 		/// <summary>Returns a new JSON array with a shallow copy of all the items starting from the specified index</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonArray GetRange(int index)
@@ -2285,11 +2218,6 @@ namespace Doxense.Serialization.Json
 		{
 			return GetRange(index.GetOffset(m_size));
 		}
-
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("OLD_API: Use GetRange(index, count) instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public JsonArray Substring(int index, int count) => GetRange(index, count);
 
 		/// <summary>Returns a new JSON array with a shallow copy of all the items in the specified range</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
