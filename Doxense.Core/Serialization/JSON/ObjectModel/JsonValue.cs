@@ -58,7 +58,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>An instance of the target type that is equivalent to the original JSON value, if there exists a valid conversion path or convention. Otherwise, an exception will be thrown.</returns>
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target <paramref name="type"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind(typeof(long))</c> will return a boxed Int64 with value <c>123</c>.</example>
-		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.OrDefault{TValue}(JsonValue?,ICrystalJsonTypeResolver?)"/>, ...</remarks>
+		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions._As{TValue}"/>, ...</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
@@ -508,7 +508,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _Get(key) if required, or _Get(key, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(string key) => _GetValueOrDefault(key).OrDefault<TValue>();
+		public virtual TValue? Get<TValue>(string key) => _GetValueOrDefault(key)._As<TValue>();
 
 		/// <summary>Returns the converted value at the specified index in this array</summary>
 		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
@@ -518,7 +518,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(int index) => _GetValueOrDefault(index).OrDefault<TValue>();
+		public virtual TValue? Get<TValue>(int index) => _GetValueOrDefault(index)._As<TValue>();
 
 		/// <summary>Returns the converted value at the specified index in this array</summary>
 		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
@@ -528,7 +528,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("OLD_API: Use _Get(index) if required, or _Get(index, ...) if optional", error: true)]
-		public virtual TValue? Get<TValue>(Index index) => _GetValueOrDefault(index).OrDefault<TValue>();
+		public virtual TValue? Get<TValue>(Index index) => _GetValueOrDefault(index)._As<TValue>();
 
 		#region NEW API
 
@@ -694,7 +694,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(string key, TValue defaultValue) => _GetValueOrDefault(key).OrDefault(defaultValue);
+		public TValue? _Get<TValue>(string key, TValue defaultValue) => _GetValueOrDefault(key)._As(defaultValue);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -707,7 +707,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(key).OrDefault(defaultValue, resolver);
+		public TValue? _Get<TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(key)._As(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
@@ -978,7 +978,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(int index, TValue defaultValue) => _GetValueOrDefault(index).OrDefault(defaultValue);
+		public TValue? _Get<TValue>(int index, TValue defaultValue) => _GetValueOrDefault(index)._As(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -989,7 +989,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(index).OrDefault(defaultValue, resolver);
+		public TValue? _Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(index)._As(defaultValue, resolver);
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -999,7 +999,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(Index index, TValue defaultValue) => _GetValueOrDefault(index).OrDefault(defaultValue);
+		public TValue? _Get<TValue>(Index index, TValue defaultValue) => _GetValueOrDefault(index)._As(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1010,7 +1010,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? _Get<TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(index).OrDefault(defaultValue, resolver);
+		public TValue? _Get<TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => _GetValueOrDefault(index)._As(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
@@ -1225,7 +1225,7 @@ namespace Doxense.Serialization.Json
 		public TValue? GetPath<TValue>(string path, bool required = false)
 		{
 			var val = GetPath(path);
-			return required ? val.RequiredPath(path).Required<TValue>() : val.OrDefault<TValue>();
+			return required ? val.RequiredPath(path).Required<TValue>() : val._As<TValue>();
 		}
 #pragma warning restore CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
 
@@ -1249,7 +1249,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? _GetPath<TValue>(string path, TValue defaultValue)
 		{
-			return _GetPathValueOrDefault(path, JsonNull.Missing).OrDefault(defaultValue);
+			return _GetPathValueOrDefault(path, JsonNull.Missing)._As(defaultValue);
 		}
 
 		//BLACK MAGIC!

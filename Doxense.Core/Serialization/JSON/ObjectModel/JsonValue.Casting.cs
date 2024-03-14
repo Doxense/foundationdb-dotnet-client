@@ -831,7 +831,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static explicit operator NodaTime.OffsetDateTime(JsonValue? value)
 		{
-			return (value ?? JsonNull.Null).OrDefault<NodaTime.OffsetDateTime>();
+			return (value ?? JsonNull.Null)._As<NodaTime.OffsetDateTime>();
 		}
 
 		[Pure]
@@ -843,7 +843,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static explicit operator NodaTime.OffsetDateTime?(JsonValue? value)
 		{
-			return value.OrDefault<NodaTime.OffsetDateTime?>();
+			return value._As<NodaTime.OffsetDateTime?>();
 		}
 
 		#endregion
@@ -859,7 +859,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static explicit operator NodaTime.ZonedDateTime(JsonValue? value)
 		{
-			return value.OrDefault<NodaTime.ZonedDateTime>();
+			return value._As<NodaTime.ZonedDateTime>();
 		}
 
 		[Pure]
@@ -871,7 +871,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static explicit operator NodaTime.ZonedDateTime?(JsonValue? value)
 		{
-			return value.OrDefault<NodaTime.ZonedDateTime>();
+			return value._As<NodaTime.ZonedDateTime>();
 		}
 
 		#endregion
@@ -887,7 +887,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static explicit operator NodaTime.LocalDateTime(JsonValue? value)
 		{
-			return value.OrDefault<NodaTime.LocalDateTime>();
+			return value._As<NodaTime.LocalDateTime>();
 		}
 
 		[Pure]
@@ -898,7 +898,7 @@ namespace Doxense.Serialization.Json
 
 		public static explicit operator NodaTime.LocalDateTime?(JsonValue? value)
 		{
-			return value.OrDefault<NodaTime.LocalDateTime?>();
+			return value._As<NodaTime.LocalDateTime?>();
 		}
 
 		#endregion
@@ -914,7 +914,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator NodaTime.LocalDate(JsonValue? value)
 		{
-			return value.OrDefault<NodaTime.LocalDate>();
+			return value._As<NodaTime.LocalDate>();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -926,7 +926,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator NodaTime.LocalDate?(JsonValue? value)
 		{
-			return value.OrDefault<NodaTime.LocalDate?>();
+			return value._As<NodaTime.LocalDate?>();
 		}
 
 		#endregion

@@ -1378,7 +1378,7 @@ namespace Doxense.Serialization.Json
 			string jsonText,
 			TValue defaultValue)
 		{
-			return Parse(jsonText).OrDefault(defaultValue);
+			return Parse(jsonText)._As(defaultValue);
 		}
 
 		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
@@ -1401,7 +1401,7 @@ namespace Doxense.Serialization.Json
 			ICrystalJsonTypeResolver? resolver = null
 		)
 		{
-			return Parse(jsonText, settings).OrDefault(defaultValue, resolver);
+			return Parse(jsonText, settings)._As(defaultValue, resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
@@ -1438,7 +1438,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue)
 		{
-			return Parse(jsonBytes).OrDefault(defaultValue);
+			return Parse(jsonBytes)._As(defaultValue);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
@@ -1453,7 +1453,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return Parse(jsonBytes, settings).OrDefault(defaultValue, resolver);
+			return Parse(jsonBytes, settings)._As(defaultValue, resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
@@ -1487,7 +1487,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
 		{
-			return Parse(jsonBytes).OrDefault(defaultValue);
+			return Parse(jsonBytes)._As(defaultValue);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
@@ -1501,7 +1501,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return Parse(jsonBytes, settings).OrDefault(defaultValue, resolver);
+			return Parse(jsonBytes, settings)._As(defaultValue, resolver);
 		}
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
@@ -1525,7 +1525,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
 		{
-			return Parse(jsonBytes).OrDefault(defaultValue);
+			return Parse(jsonBytes)._As(defaultValue);
 		}
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
@@ -1539,7 +1539,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return Parse(jsonBytes, settings).OrDefault(defaultValue, resolver);
+			return Parse(jsonBytes, settings)._As(defaultValue, resolver);
 		}
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
@@ -1564,7 +1564,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
 		{
-			return Parse(jsonBytes).OrDefault(defaultValue);
+			return Parse(jsonBytes)._As(defaultValue);
 		}
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
@@ -1578,7 +1578,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return Parse(jsonBytes, settings).OrDefault(defaultValue, resolver);
+			return Parse(jsonBytes, settings)._As(defaultValue, resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
@@ -1591,7 +1591,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue? LoadFrom<TValue>(TextReader source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
-			return ParseFrom(source, settings).OrDefault<TValue>(resolver);
+			return ParseFrom(source, settings)._As<TValue>(resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de données JSON vers un type défini</summary>
@@ -1611,7 +1611,7 @@ namespace Doxense.Serialization.Json
 
 			using (var sr = new StreamReader(source, Encoding.UTF8, true))
 			{
-				return ParseFromReader(new JsonTextReader(sr), settings).OrDefault<TValue>(resolver);
+				return ParseFromReader(new JsonTextReader(sr), settings)._As<TValue>(resolver);
 			}
 		}
 
@@ -1626,7 +1626,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue? LoadFrom<TValue>(string path, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, LoadOptions options = LoadOptions.None) where TValue : notnull
 		{
-			return LoadAndParseInternal(path, settings ?? CrystalJsonSettings.Json, options).OrDefault<TValue>(resolver);
+			return LoadAndParseInternal(path, settings ?? CrystalJsonSettings.Json, options)._As<TValue>(resolver);
 		}
 
 		#endregion

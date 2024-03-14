@@ -799,94 +799,94 @@ namespace Doxense.Serialization.Json.Tests
 
 			//Value Type
 
-			Assert.That(JsonNumber.Return(123).OrDefault<int>(), Is.EqualTo(123));
-			Assert.That(JsonString.Return("123").OrDefault<int>(), Is.EqualTo(123));
-			Assert.That(JsonNumber.Return(123).OrDefault<int>(456), Is.EqualTo(123));
-			Assert.That(JsonBoolean.False.OrDefault<bool>(), Is.False);
-			Assert.That(JsonBoolean.True.OrDefault<bool>(), Is.True);
-			Assert.That(JsonString.Return(guid).OrDefault<Guid>(), Is.EqualTo(guid));
-			Assert.That(JsonDateTime.Return(now).OrDefault<DateTime>(), Is.EqualTo(now));
-			Assert.That(JsonNull.Null.OrDefault<int>(), Is.EqualTo(0));
-			Assert.That(JsonNull.Null.OrDefault<int>(123), Is.EqualTo(123));
-			Assert.That(JsonNull.Null.OrDefault<bool>(), Is.False);
-			Assert.That(JsonNull.Null.OrDefault<bool>(false), Is.False);
-			Assert.That(JsonNull.Null.OrDefault<bool>(true), Is.True);
-			Assert.That(JsonNull.Null.OrDefault<Guid>(), Is.EqualTo(Guid.Empty));
-			Assert.That(JsonNull.Null.OrDefault<Guid>(guid), Is.EqualTo(guid));
-			Assert.That(JsonNull.Null.OrDefault<DateTime>(), Is.EqualTo(DateTime.MinValue));
-			Assert.That(JsonNull.Null.OrDefault<DateTime>(now), Is.EqualTo(now));
-			Assert.That(default(JsonValue).OrDefault<int>(), Is.EqualTo(0));
-			Assert.That(default(JsonValue).OrDefault<int>(123), Is.EqualTo(123));
-			Assert.That(default(JsonValue).OrDefault<bool>(), Is.False);
-			Assert.That(default(JsonValue).OrDefault<bool>(false), Is.False);
-			Assert.That(default(JsonValue).OrDefault<bool>(true), Is.True);
-			Assert.That(default(JsonValue).OrDefault<Guid>(), Is.EqualTo(Guid.Empty));
-			Assert.That(default(JsonValue).OrDefault<Guid>(guid), Is.EqualTo(guid));
-			Assert.That(default(JsonValue).OrDefault<DateTime>(), Is.EqualTo(DateTime.MinValue));
-			Assert.That(default(JsonValue).OrDefault<DateTime>(now), Is.EqualTo(now));
+			Assert.That(JsonNumber.Return(123)._As<int>(), Is.EqualTo(123));
+			Assert.That(JsonString.Return("123")._As<int>(), Is.EqualTo(123));
+			Assert.That(JsonNumber.Return(123)._As<int>(456), Is.EqualTo(123));
+			Assert.That(JsonBoolean.False._As<bool>(), Is.False);
+			Assert.That(JsonBoolean.True._As<bool>(), Is.True);
+			Assert.That(JsonString.Return(guid)._As<Guid>(), Is.EqualTo(guid));
+			Assert.That(JsonDateTime.Return(now)._As<DateTime>(), Is.EqualTo(now));
+			Assert.That(JsonNull.Null._As<int>(), Is.EqualTo(0));
+			Assert.That(JsonNull.Null._As<int>(123), Is.EqualTo(123));
+			Assert.That(JsonNull.Null._As<bool>(), Is.False);
+			Assert.That(JsonNull.Null._As<bool>(false), Is.False);
+			Assert.That(JsonNull.Null._As<bool>(true), Is.True);
+			Assert.That(JsonNull.Null._As<Guid>(), Is.EqualTo(Guid.Empty));
+			Assert.That(JsonNull.Null._As<Guid>(guid), Is.EqualTo(guid));
+			Assert.That(JsonNull.Null._As<DateTime>(), Is.EqualTo(DateTime.MinValue));
+			Assert.That(JsonNull.Null._As<DateTime>(now), Is.EqualTo(now));
+			Assert.That(default(JsonValue)._As<int>(), Is.EqualTo(0));
+			Assert.That(default(JsonValue)._As<int>(123), Is.EqualTo(123));
+			Assert.That(default(JsonValue)._As<bool>(), Is.False);
+			Assert.That(default(JsonValue)._As<bool>(false), Is.False);
+			Assert.That(default(JsonValue)._As<bool>(true), Is.True);
+			Assert.That(default(JsonValue)._As<Guid>(), Is.EqualTo(Guid.Empty));
+			Assert.That(default(JsonValue)._As<Guid>(guid), Is.EqualTo(guid));
+			Assert.That(default(JsonValue)._As<DateTime>(), Is.EqualTo(DateTime.MinValue));
+			Assert.That(default(JsonValue)._As<DateTime>(now), Is.EqualTo(now));
 
 			//Nullable Type
-			Assert.That(JsonNumber.Return(123).OrDefault<int?>(), Is.Not.Null.And.EqualTo(123));
-			Assert.That(JsonString.Return("123").OrDefault<int?>(), Is.Not.Null.And.EqualTo(123));
-			Assert.That(JsonNumber.Return(123).OrDefault<int?>(456), Is.Not.Null.And.EqualTo(123));
-			Assert.That(JsonBoolean.True.OrDefault<bool?>(), Is.True);
-			Assert.That(JsonNull.Null.OrDefault<int?>(123), Is.EqualTo(123));
-			Assert.That(JsonNull.Null.OrDefault<int?>(), Is.Null);
-			Assert.That(JsonNull.Null.OrDefault<bool?>(), Is.Null);
-			Assert.That(JsonNull.Null.OrDefault<bool?>(false), Is.False);
-			Assert.That(JsonNull.Null.OrDefault<bool?>(true), Is.True);
-			Assert.That(JsonNull.Null.OrDefault<Guid?>(), Is.Null);
-			Assert.That(JsonNull.Null.OrDefault<Guid?>(guid), Is.EqualTo(guid));
-			Assert.That(default(JsonValue).OrDefault<int?>(null), Is.Null);
-			Assert.That(default(JsonValue).OrDefault<int?>(123), Is.EqualTo(123));
-			Assert.That(default(JsonValue).OrDefault<bool?>(), Is.Null);
-			Assert.That(default(JsonValue).OrDefault<bool?>(false), Is.False);
-			Assert.That(default(JsonValue).OrDefault<bool?>(true), Is.True);
-			Assert.That(default(JsonValue).OrDefault<Guid?>(), Is.Null);
-			Assert.That(default(JsonValue).OrDefault<Guid?>(guid), Is.EqualTo(guid));
+			Assert.That(JsonNumber.Return(123)._As<int?>(), Is.Not.Null.And.EqualTo(123));
+			Assert.That(JsonString.Return("123")._As<int?>(), Is.Not.Null.And.EqualTo(123));
+			Assert.That(JsonNumber.Return(123)._As<int?>(456), Is.Not.Null.And.EqualTo(123));
+			Assert.That(JsonBoolean.True._As<bool?>(), Is.True);
+			Assert.That(JsonNull.Null._As<int?>(123), Is.EqualTo(123));
+			Assert.That(JsonNull.Null._As<int?>(), Is.Null);
+			Assert.That(JsonNull.Null._As<bool?>(), Is.Null);
+			Assert.That(JsonNull.Null._As<bool?>(false), Is.False);
+			Assert.That(JsonNull.Null._As<bool?>(true), Is.True);
+			Assert.That(JsonNull.Null._As<Guid?>(), Is.Null);
+			Assert.That(JsonNull.Null._As<Guid?>(guid), Is.EqualTo(guid));
+			Assert.That(default(JsonValue)._As<int?>(null), Is.Null);
+			Assert.That(default(JsonValue)._As<int?>(123), Is.EqualTo(123));
+			Assert.That(default(JsonValue)._As<bool?>(), Is.Null);
+			Assert.That(default(JsonValue)._As<bool?>(false), Is.False);
+			Assert.That(default(JsonValue)._As<bool?>(true), Is.True);
+			Assert.That(default(JsonValue)._As<Guid?>(), Is.Null);
+			Assert.That(default(JsonValue)._As<Guid?>(guid), Is.EqualTo(guid));
 
 			//Reference Primitive Type
-			Assert.That(JsonNumber.Return(123).OrDefault<string>(), Is.Not.Null.And.EqualTo("123"));
-			Assert.That(JsonString.Return("123").OrDefault<string>(), Is.Not.Null.And.EqualTo("123"));
-			Assert.That(JsonNull.Null.OrDefault<string>(), Is.Null);
-			Assert.That(JsonNull.Null.OrDefault<string>("not_found"), Is.EqualTo("not_found"));
-			Assert.That(default(JsonValue).OrDefault<string>(), Is.Null);
-			Assert.That(default(JsonValue).OrDefault<string>("not_found"), Is.EqualTo("not_found"));
+			Assert.That(JsonNumber.Return(123)._As<string>(), Is.Not.Null.And.EqualTo("123"));
+			Assert.That(JsonString.Return("123")._As<string>(), Is.Not.Null.And.EqualTo("123"));
+			Assert.That(JsonNull.Null._As<string>(), Is.Null);
+			Assert.That(JsonNull.Null._As<string>("not_found"), Is.EqualTo("not_found"));
+			Assert.That(default(JsonValue)._As<string>(), Is.Null);
+			Assert.That(default(JsonValue)._As<string>("not_found"), Is.EqualTo("not_found"));
 
 			//Value Type Array
-			Assert.That(JsonArray.Create(1, 2, 3).OrDefault<int[]>(), Is.Not.Null.And.EqualTo(new [] { 1, 2, 3 }));
-			Assert.That(JsonNull.Null.OrDefault<int[]>(), Is.Null);
-			Assert.That(JsonNull.Null.OrDefault<int[]>([ 1, 2, 3 ]), Is.EqualTo(new [] { 1, 2, 3 }));
-			Assert.That(default(JsonValue).OrDefault<int[]>(), Is.Null);
-			Assert.That(default(JsonValue).OrDefault<int[]>([ 1, 2, 3 ]), Is.EqualTo(new [] { 1, 2, 3 }));
+			Assert.That(JsonArray.Create(1, 2, 3)._As<int[]>(), Is.Not.Null.And.EqualTo(new [] { 1, 2, 3 }));
+			Assert.That(JsonNull.Null._As<int[]>(), Is.Null);
+			Assert.That(JsonNull.Null._As<int[]>([ 1, 2, 3 ]), Is.EqualTo(new [] { 1, 2, 3 }));
+			Assert.That(default(JsonValue)._As<int[]>(), Is.Null);
+			Assert.That(default(JsonValue)._As<int[]>([ 1, 2, 3 ]), Is.EqualTo(new [] { 1, 2, 3 }));
 
 			//Ref Type Array
-			Assert.That(JsonArray.Create("a", "b", "c").OrDefault<string[]>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
-			Assert.That(JsonNull.Null.OrDefault<string[]>(), Is.Null);
-			Assert.That(JsonNull.Null.OrDefault<string[]>([ "a", "b", "c" ]), Is.EqualTo(new[] { "a", "b", "c" }));
-			Assert.That(default(JsonValue).OrDefault<string[]>(), Is.Null);
-			Assert.That(default(JsonValue).OrDefault<string[]>([ "a", "b", "c" ]), Is.EqualTo(new[] { "a", "b", "c" }));
+			Assert.That(JsonArray.Create("a", "b", "c")._As<string[]>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
+			Assert.That(JsonNull.Null._As<string[]>(), Is.Null);
+			Assert.That(JsonNull.Null._As<string[]>([ "a", "b", "c" ]), Is.EqualTo(new[] { "a", "b", "c" }));
+			Assert.That(default(JsonValue)._As<string[]>(), Is.Null);
+			Assert.That(default(JsonValue)._As<string[]>([ "a", "b", "c" ]), Is.EqualTo(new[] { "a", "b", "c" }));
 
 			//Value Type List
-			Assert.That(JsonArray.Create(1, 2, 3).OrDefault<List<int>>(), Is.Not.Null.And.EqualTo(new[] { 1, 2, 3 }));
-			Assert.That(JsonNull.Null.OrDefault<List<int>>(), Is.Null);
+			Assert.That(JsonArray.Create(1, 2, 3)._As<List<int>>(), Is.Not.Null.And.EqualTo(new[] { 1, 2, 3 }));
+			Assert.That(JsonNull.Null._As<List<int>>(), Is.Null);
 
 			//Ref Type List
-			Assert.That(JsonArray.Create("a", "b", "c").OrDefault<List<string>>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
-			Assert.That(JsonNull.Null.OrDefault<List<string>>(), Is.Null);
+			Assert.That(JsonArray.Create("a", "b", "c")._As<List<string>>(), Is.Not.Null.And.EqualTo(new[] { "a", "b", "c" }));
+			Assert.That(JsonNull.Null._As<List<string>>(), Is.Null);
 
 			// JsonNull
-			Assert.That(JsonNull.Null.OrDefault<JsonValue>(), Is.SameAs(JsonNull.Null));
-			Assert.That(JsonNull.Null.OrDefault<JsonNull>(), Is.SameAs(JsonNull.Null));
-			Assert.That(JsonNull.Missing.OrDefault<JsonValue>(), Is.SameAs(JsonNull.Missing));
-			Assert.That(JsonNull.Missing.OrDefault<JsonNull>(), Is.SameAs(JsonNull.Missing));
-			Assert.That(default(JsonValue).OrDefault<JsonValue>(), Is.SameAs(JsonNull.Null));
-			Assert.That(default(JsonValue).OrDefault<JsonNull>(), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNull.Null._As<JsonValue>(), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNull.Null._As<JsonNull>(), Is.SameAs(JsonNull.Null));
+			Assert.That(JsonNull.Missing._As<JsonValue>(), Is.SameAs(JsonNull.Missing));
+			Assert.That(JsonNull.Missing._As<JsonNull>(), Is.SameAs(JsonNull.Missing));
+			Assert.That(default(JsonValue)._As<JsonValue>(), Is.SameAs(JsonNull.Null));
+			Assert.That(default(JsonValue)._As<JsonNull>(), Is.SameAs(JsonNull.Null));
 
 			//Format Exceptions
-			Assert.That(() => JsonString.Return("foo").OrDefault<int>(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => JsonArray.Create("foo").OrDefault<int[]>(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => JsonArray.Create("foo").OrDefault<List<int>>(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => JsonString.Return("foo")._As<int>(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => JsonArray.Create("foo")._As<int[]>(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => JsonArray.Create("foo")._As<List<int>>(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -1187,7 +1187,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(json.Type, Is.EqualTo(JsonType.String));
 				Assert.That(((JsonString) json).Value, Is.EqualTo("2015-07-16T22:00:00Z"));
 				Assert.That(json.ToInstant(), Is.EqualTo(instant));
-				Assert.That(json.OrDefault<NodaTime.Instant>(), Is.EqualTo(instant));
+				Assert.That(json._As<NodaTime.Instant>(), Is.EqualTo(instant));
 			}
 
 			// Duration
@@ -1198,7 +1198,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(((JsonNumber)json).ToDouble(), Is.EqualTo(3600.0));
 				Assert.That(json.ToDuration(), Is.EqualTo(duration));
 				Assert.That(json.Required<NodaTime.Duration>(), Is.EqualTo(duration));
-				Assert.That(json.OrDefault<NodaTime.Duration>(), Is.EqualTo(duration));
+				Assert.That(json._As<NodaTime.Duration>(), Is.EqualTo(duration));
 			}
 
 			//TODO: autre types
@@ -2886,23 +2886,23 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // OrDefault<T>()
-				Assert.That(jnull.OrDefault<string>(), Is.Null);
-				Assert.That(jnull.OrDefault<int>(), Is.Zero);
-				Assert.That(jnull.OrDefault<bool>(), Is.False);
-				Assert.That(jnull.OrDefault<Guid>(), Is.EqualTo(Guid.Empty));
-				Assert.That(jnull.OrDefault<int?>(), Is.Null);
-				Assert.That(jnull.OrDefault<string[]>(), Is.Null);
-				Assert.That(jnull.OrDefault<List<string>>(), Is.Null);
-				Assert.That(jnull.OrDefault<IList<string>>(), Is.Null);
+				Assert.That(jnull._As<string>(), Is.Null);
+				Assert.That(jnull._As<int>(), Is.Zero);
+				Assert.That(jnull._As<bool>(), Is.False);
+				Assert.That(jnull._As<Guid>(), Is.EqualTo(Guid.Empty));
+				Assert.That(jnull._As<int?>(), Is.Null);
+				Assert.That(jnull._As<string[]>(), Is.Null);
+				Assert.That(jnull._As<List<string>>(), Is.Null);
+				Assert.That(jnull._As<IList<string>>(), Is.Null);
 
 				// special case
-				Assert.That(jnull.OrDefault<JsonNull>(), Is.SameAs(JsonNull.Null), "JsonNull.OrDefault<JsonNull>() should bind to JsonNull.Null, and not 'null' !");
-				Assert.That(jnull.OrDefault<JsonValue>(), Is.SameAs(JsonNull.Null), "JsonNull.OrDefault<JsonValue>() should bind to JsonNull.Null, and not 'null' !");
-				Assert.That(jnull.OrDefault<JsonString>(), Is.Null, "JsonNull.OrDefault<JsonString>() should return null, because a JsonString instance cannot represent null itself!");
-				Assert.That(jnull.OrDefault<JsonNumber>(), Is.Null, "JsonNull.OrDefault<JsonNumber>() should return null, because a JsonNumber instance cannot represent null itself!");
-				Assert.That(jnull.OrDefault<JsonBoolean>(), Is.Null, "JsonNull.OrDefault<JsonBoolean>() should return null, because a JsonBoolean instance cannot represent null itself!");
-				Assert.That(jnull.OrDefault<JsonObject>(), Is.Null, "JsonNull.OrDefault<JsonObject>() should return null, because a JsonObject instance cannot represent null itself!");
-				Assert.That(jnull.OrDefault<JsonArray>(), Is.Null, "JsonNull.OrDefault<JsonArray>() should return null, because a JsonArray instance cannot represent null itself!");
+				Assert.That(jnull._As<JsonNull>(), Is.SameAs(JsonNull.Null), "JsonNull.OrDefault<JsonNull>() should bind to JsonNull.Null, and not 'null' !");
+				Assert.That(jnull._As<JsonValue>(), Is.SameAs(JsonNull.Null), "JsonNull.OrDefault<JsonValue>() should bind to JsonNull.Null, and not 'null' !");
+				Assert.That(jnull._As<JsonString>(), Is.Null, "JsonNull.OrDefault<JsonString>() should return null, because a JsonString instance cannot represent null itself!");
+				Assert.That(jnull._As<JsonNumber>(), Is.Null, "JsonNull.OrDefault<JsonNumber>() should return null, because a JsonNumber instance cannot represent null itself!");
+				Assert.That(jnull._As<JsonBoolean>(), Is.Null, "JsonNull.OrDefault<JsonBoolean>() should return null, because a JsonBoolean instance cannot represent null itself!");
+				Assert.That(jnull._As<JsonObject>(), Is.Null, "JsonNull.OrDefault<JsonObject>() should return null, because a JsonObject instance cannot represent null itself!");
+				Assert.That(jnull._As<JsonArray>(), Is.Null, "JsonNull.OrDefault<JsonArray>() should return null, because a JsonArray instance cannot represent null itself!");
 			}
 
 			{ // Embedded Fields with explicit null
@@ -2926,7 +2926,7 @@ namespace Doxense.Serialization.Json.Tests
 				// when deserializing an object with all members explicitly set to null, we should return the default of this type
 				var j = JsonValue
 					._ParseObject(@"{ ""Int32"": null, ""Bool"": null, ""String"": null, ""Guid"": null, ""NullInt32"": null, ""NullBool"": null, ""NullGuid"": null, ""JsonValue"": null, ""JsonNull"": null, ""JsonArray"": null, ""JsonObject"": null }")
-					.OrDefault(template);
+					._As(template);
 
 				Assert.That(j.Int32, Is.Zero);
 				Assert.That(j.Bool, Is.False);
@@ -2972,15 +2972,15 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(jmissing.Bind(typeof(JsonValue)), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.Bind<JsonValue>(), Is.SameAs(JsonNull.Missing));
 			Assert.That(() => jmissing.Required<JsonValue>(), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(jmissing.OrDefault<JsonValue>(), Is.SameAs(JsonNull.Missing));
-			Assert.That(jmissing.OrDefault<JsonValue>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
-			Assert.That(jmissing.OrDefault<JsonValue>(123), Is.EqualTo(123));
+			Assert.That(jmissing._As<JsonValue>(), Is.SameAs(JsonNull.Missing));
+			Assert.That(jmissing._As<JsonValue>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
+			Assert.That(jmissing._As<JsonValue>(123), Is.EqualTo(123));
 
 			Assert.That(jmissing.Bind(typeof(JsonNull)), Is.SameAs(JsonNull.Missing));
 			Assert.That(jmissing.Bind<JsonNull>(), Is.SameAs(JsonNull.Missing));
 			Assert.That(() => jmissing.Required<JsonNull>(), Throws.InstanceOf<JsonBindingException>());
-			Assert.That(jmissing.OrDefault<JsonNull>(), Is.SameAs(JsonNull.Missing));
-			Assert.That(jmissing.OrDefault<JsonNull>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
+			Assert.That(jmissing._As<JsonNull>(), Is.SameAs(JsonNull.Missing));
+			Assert.That(jmissing._As<JsonNull>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
 
 			Assert.That(SerializeToSlice(jmissing), Is.EqualTo(Slice.FromString("null")));
 		}
@@ -3338,8 +3338,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("Barrh").Required<DummyJsonEnumTypo>(), Is.EqualTo(DummyJsonEnumTypo.Bar));
 			Assert.That(() => JsonString.Return("Barrh").Required<DummyJsonEnum>(), Throws.InstanceOf<JsonBindingException>());
 
-			Assert.That(JsonNull.Null.OrDefault<IPAddress>(), Is.Null);
-			Assert.That(JsonString.Empty.OrDefault<IPAddress>(), Is.Null);
+			Assert.That(JsonNull.Null._As<IPAddress>(), Is.Null);
+			Assert.That(JsonString.Empty._As<IPAddress>(), Is.Null);
 			Assert.That(JsonString.Return("127.0.0.1").Required<IPAddress>(), Is.EqualTo(IPAddress.Loopback));
 			Assert.That(JsonString.Return("0.0.0.0").Required<IPAddress>(), Is.EqualTo(IPAddress.Any));
 			Assert.That(JsonString.Return("255.255.255.255").Required<IPAddress>(), Is.EqualTo(IPAddress.None));
@@ -3363,13 +3363,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Empty.Required<DateTimeOffset>(), Is.EqualTo(DateTimeOffset.MinValue), "'' -> DateTimeOffset");
 
 			// empty => T?: must return default(T?) so null
-			Assert.That(JsonString.Empty.OrDefault<bool?>(), Is.Null, "'' -> bool?");
-			Assert.That(JsonString.Empty.OrDefault<int?>(), Is.Null, "'' -> int?");
-			Assert.That(JsonString.Empty.OrDefault<long?>(), Is.Null, "'' -> long?");
-			Assert.That(JsonString.Empty.OrDefault<float?>(), Is.Null, "'' -> float?");
-			Assert.That(JsonString.Empty.OrDefault<double?>(), Is.Null, "'' -> double?");
-			Assert.That(JsonString.Empty.OrDefault<DateTime?>(), Is.Null, "'' -> DateTime?");
-			Assert.That(JsonString.Empty.OrDefault<DateTimeOffset?>(), Is.Null, "'' -> DateTimeOffset?");
+			Assert.That(JsonString.Empty._As<bool?>(), Is.Null, "'' -> bool?");
+			Assert.That(JsonString.Empty._As<int?>(), Is.Null, "'' -> int?");
+			Assert.That(JsonString.Empty._As<long?>(), Is.Null, "'' -> long?");
+			Assert.That(JsonString.Empty._As<float?>(), Is.Null, "'' -> float?");
+			Assert.That(JsonString.Empty._As<double?>(), Is.Null, "'' -> double?");
+			Assert.That(JsonString.Empty._As<DateTime?>(), Is.Null, "'' -> DateTime?");
+			Assert.That(JsonString.Empty._As<DateTimeOffset?>(), Is.Null, "'' -> DateTimeOffset?");
 
 			// auto cast
 			{
@@ -3881,7 +3881,7 @@ namespace Doxense.Serialization.Json.Tests
 			v = (int?) 123;
 			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
 			Assert.That(v.ToInt32OrDefault(), Is.EqualTo(123));
-			Assert.That(v.OrDefault<int?>(), Is.EqualTo(123));
+			Assert.That(v._As<int?>(), Is.EqualTo(123));
 			Assert.That((int?) v, Is.EqualTo(123));
 			j = (JsonNumber) v;
 			Assert.That(j.IsDecimal, Is.False);
@@ -3890,7 +3890,7 @@ namespace Doxense.Serialization.Json.Tests
 			v = (uint?) 123;
 			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
 			Assert.That(v.ToUInt32OrDefault(), Is.EqualTo(123));
-			Assert.That(v.OrDefault<uint?>(), Is.EqualTo(123));
+			Assert.That(v._As<uint?>(), Is.EqualTo(123));
 			Assert.That((uint?) v, Is.EqualTo(123));
 			j = (JsonNumber) v;
 			Assert.That(j.IsDecimal, Is.False);
@@ -9176,9 +9176,9 @@ namespace Doxense.Serialization.Json.Tests
 			{ // Fluent NEW
 				_ = obj["id"].Required<Guid>();          // review: we loose the "id" in the exception message :(
 				_ = obj["name"].Required<string>();
-				_ = obj["osef"].OrDefault<string>();
-				_ = obj["osef"].OrDefault<string>("toto");
-				_ = obj["osef"].OrDefault<int>(123);
+				_ = obj["osef"]._As<string>();
+				_ = obj["osef"]._As<string>("toto");
+				_ = obj["osef"]._As<int>(123);
 			}
 		}
 

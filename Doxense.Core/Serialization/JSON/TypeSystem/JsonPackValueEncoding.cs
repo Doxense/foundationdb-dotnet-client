@@ -94,7 +94,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, Slice>.DecodeValue(Slice packed)
 		{
-			return JsonPack.Decode(packed, this.Settings).OrDefault<T>(resolver: this.Resolver);
+			return JsonPack.Decode(packed, this.Settings)._As<T>(resolver: this.Resolver);
 		}
 
 		#endregion

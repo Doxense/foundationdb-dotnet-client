@@ -1570,7 +1570,7 @@ namespace Doxense.Serialization.Json
 
 		private static CrystalJsonTypeBinder CreateBinderForValueTuple(Type type)
 		{
-			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].OrDefault<Ti>(resolver), ...)
+			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].As<Ti>(resolver), ...)
 
 			var prmValue = Expression.Parameter(typeof(JsonValue), "value");
 			var prmType = Expression.Parameter(typeof(Type), "type");
@@ -1584,19 +1584,19 @@ namespace Doxense.Serialization.Json
 				// JsonValue JsonValue[int index]
 				var arrayIndexer = typeof(JsonValue).GetProperty("Item", typeof(JsonValue), [ typeof(int) ]);
 
-				// JsonValueExtensions.OrDefault<T>(JsonValue, ICrystalJsonTypeResolver)
+				// JsonValueExtensions.As<T>(JsonValue, ICrystalJsonTypeResolver)
 				var asMethod = typeof(JsonValueExtensions).GetMethod(
-					nameof(JsonValueExtensions.OrDefault),
+					nameof(JsonValueExtensions._As),
 					BindingFlags.Static | BindingFlags.Public,
 					null,
 					[ typeof(JsonValue), typeof(ICrystalJsonTypeResolver) ],
 					null);
-				Contract.Debug.Assert(asMethod != null, "Could not find the JsonValue.As<...>(...) extension method!");
+				Contract.Debug.Assert(asMethod != null, $"Could not find the {nameof(JsonValueExtensions)}.{nameof(JsonValueExtensions._As)}As<...>(...) extension method!");
 
 				var items = new Expression[args.Length];
 				for (int i = 0; i < items.Length; i++)
 				{
-					// value[i].OrDefault<Ti>(resolver)
+					// value[i].As<Ti>(resolver)
 					items[i] = Expression.Call(
 						asMethod.MakeGenericMethod(args[i]),
 						Expression.MakeIndex(prmValue, arrayIndexer, [ Expression.Constant(i) ]),

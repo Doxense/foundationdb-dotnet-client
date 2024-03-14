@@ -512,7 +512,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <see langword="default"/> for <typeparamref name="TValue"/>.</remarks>
 		[Pure]
-		public static TValue? OrDefault<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? _As<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value is null)
 			{
@@ -588,7 +588,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <paramref name="defaultValue"/>.</remarks>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? OrDefault<TValue>(this JsonValue? value, TValue defaultValue, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? _As<TValue>(this JsonValue? value, TValue defaultValue, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value is null or JsonNull)
 			{
@@ -663,112 +663,112 @@ namespace Doxense.Serialization.Json
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static JsonValue OrDefault(this JsonValue? value, JsonValue? missingValue) => (value is JsonNull ? null : value) ?? missingValue ?? JsonNull.Missing;
+		public static JsonValue _As(this JsonValue? value, JsonValue? missingValue) => (value is JsonNull ? null : value) ?? missingValue ?? JsonNull.Missing;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static string OrDefault(this JsonValue? value, string missingValue) => value?.ToStringOrDefault() ?? missingValue;
+		public static string _As(this JsonValue? value, string missingValue) => value?.ToStringOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static bool OrDefault(this JsonValue? value, bool missingValue) => value?.ToBooleanOrDefault() ?? missingValue;
+		public static bool _As(this JsonValue? value, bool missingValue) => value?.ToBooleanOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static int OrDefault(this JsonValue? value, int missingValue) => value?.ToInt32OrDefault() ?? missingValue;
+		public static int _As(this JsonValue? value, int missingValue) => value?.ToInt32OrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static long OrDefault(this JsonValue? value, long missingValue) => value?.ToInt64OrDefault() ?? missingValue;
+		public static long _As(this JsonValue? value, long missingValue) => value?.ToInt64OrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static double OrDefault(this JsonValue? value, double missingValue) => value?.ToDoubleOrDefault() ?? missingValue;
+		public static double _As(this JsonValue? value, double missingValue) => value?.ToDoubleOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static float OrDefault(this JsonValue? value, float missingValue) => value?.ToSingleOrDefault() ?? missingValue;
+		public static float _As(this JsonValue? value, float missingValue) => value?.ToSingleOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Half OrDefault(this JsonValue? value, Half missingValue) => value?.ToHalfOrDefault() ?? missingValue;
+		public static Half _As(this JsonValue? value, Half missingValue) => value?.ToHalfOrDefault() ?? missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Guid OrDefault(this JsonValue? value, Guid missingValue) => value is not (null or JsonNull) ? value.ToGuid() : missingValue;
+		public static Guid _As(this JsonValue? value, Guid missingValue) => value is not (null or JsonNull) ? value.ToGuid() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Uuid128 OrDefault(this JsonValue? value, Uuid128 missingValue) => value is not (null or JsonNull) ? value.ToUuid128() : missingValue;
+		public static Uuid128 _As(this JsonValue? value, Uuid128 missingValue) => value is not (null or JsonNull) ? value.ToUuid128() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static Uuid64 OrDefault(this JsonValue? value, Uuid64 missingValue) => value is not (null or JsonNull) ? value.ToUuid64() : missingValue;
+		public static Uuid64 _As(this JsonValue? value, Uuid64 missingValue) => value is not (null or JsonNull) ? value.ToUuid64() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static TimeSpan OrDefault(this JsonValue? value, TimeSpan missingValue) => value is not (null or JsonNull) ? value.ToTimeSpan() : missingValue;
+		public static TimeSpan _As(this JsonValue? value, TimeSpan missingValue) => value is not (null or JsonNull) ? value.ToTimeSpan() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static DateTime OrDefault(this JsonValue? value, DateTime missingValue) => value is not (null or JsonNull) ? value.ToDateTime() : missingValue;
+		public static DateTime _As(this JsonValue? value, DateTime missingValue) => value is not (null or JsonNull) ? value.ToDateTime() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static DateTimeOffset OrDefault(this JsonValue? value, DateTimeOffset missingValue) => value is not (null or JsonNull) ? value.ToDateTimeOffset() : missingValue;
+		public static DateTimeOffset _As(this JsonValue? value, DateTimeOffset missingValue) => value is not (null or JsonNull) ? value.ToDateTimeOffset() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static NodaTime.Instant OrDefault(this JsonValue? value, NodaTime.Instant missingValue) => value is not (null or JsonNull) ? value.ToInstant() : missingValue;
+		public static NodaTime.Instant _As(this JsonValue? value, NodaTime.Instant missingValue) => value is not (null or JsonNull) ? value.ToInstant() : missingValue;
 
 		/// <summary>Returns the converted value, or a fallback value if it is missing</summary>
 		/// <param name="value">JSON value to convert</param>
 		/// <param name="missingValue">Fallback value</param>
 		/// <returns>The converted value, or <paramref name="missingValue"/> if it is <see langword="null"/> or missing</returns>
 		[Pure]
-		public static NodaTime.Duration OrDefault(this JsonValue? value, NodaTime.Duration missingValue) => value is not (null or JsonNull) ? value.ToDuration() : missingValue;
+		public static NodaTime.Duration _As(this JsonValue? value, NodaTime.Duration missingValue) => value is not (null or JsonNull) ? value.ToDuration() : missingValue;
 
 		#endregion
 
