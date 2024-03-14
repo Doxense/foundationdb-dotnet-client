@@ -1895,11 +1895,11 @@ namespace Doxense.Serialization.Json
 		
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("OLD_API: Use _Get<TValue>(index) if required, or _Get<TValue>(index, defaultValue) if optional", error: true)]
-		public override TValue? Get<TValue>(int index) where TValue : default => m_items.AsSpan(0, m_size)[index].As<TValue>();
+		public override TValue? Get<TValue>(int index) where TValue : default => m_items.AsSpan(0, m_size)[index].OrDefault<TValue>();
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("OLD_API: Use _Get<TValue>(index) if required, or _Get<TValue>(index, defaultValue) if optional", error: true)]
-		public override TValue? Get<TValue>(Index index) where TValue : default => m_items.AsSpan(0, m_size)[index].As<TValue>();
+		public override TValue? Get<TValue>(Index index) where TValue : default => m_items.AsSpan(0, m_size)[index].OrDefault<TValue>();
 
 		[CollectionAccess(CollectionAccessType.Read)]
 		[Obsolete("OLD_API: Use TryGetValue(int, out JsonValue) instead.", error: true)]
@@ -3124,7 +3124,7 @@ namespace Doxense.Serialization.Json
 				ref var ptr = ref tmp[0];
 				foreach (var item in items)
 				{
-					ptr = item.As<T>();
+					ptr = item.OrDefault<T>();
 					ptr = ref Unsafe.Add(ref ptr, 1);
 				}
 			}

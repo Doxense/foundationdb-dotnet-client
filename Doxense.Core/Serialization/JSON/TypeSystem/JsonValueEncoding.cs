@@ -255,7 +255,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, Slice>.DecodeValue(Slice packed)
 		{
-			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver);
+			return packed.IsNullOrEmpty ? default : CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver);
 		}
 
 		JsonObject IValueEncoder<T, JsonObject>.EncodeValue(T? value)
@@ -266,7 +266,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, JsonObject>.DecodeValue(JsonObject packed)
 		{
-			return packed.As<T>(required: true, resolver: this.Resolver);
+			return packed.OrDefault<T>(resolver: this.Resolver);
 		}
 
 	}
@@ -300,7 +300,7 @@ namespace Doxense.Serialization.Encoders
 		{
 			var tuple = TuPack.Unpack(reader.ReadToEnd());
 			Contract.Debug.Assert(tuple != null);
-			value = this.Encoding.DecodeNext(tuple, out tuple).As<T>();
+			value = this.Encoding.DecodeNext(tuple, out tuple).OrDefault<T>();
 			if (tuple != null)
 			{
 				throw new FormatException("Found extra items at the encoded of the encoded JSON value");
@@ -315,7 +315,7 @@ namespace Doxense.Serialization.Encoders
 				return false;
 			}
 			Contract.Debug.Assert(tuple != null);
-			value = this.Encoding.DecodeNext(tuple, out tuple).As<T>();
+			value = this.Encoding.DecodeNext(tuple, out tuple).OrDefault<T>();
 			return tuple is null;
 		}
 

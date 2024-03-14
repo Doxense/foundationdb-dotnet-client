@@ -217,7 +217,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the default <typeparam name="TValue"/> value (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...)</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Please use _As<T>(default) instead")]
+		[Obsolete("Please use Required<T>() if required, or OrDefault<T>() if optional", error: true)]
 		public static TValue? As<TValue>(this JsonValue? value) //BUGBUG: will become _REQUIRED_ !
 		{
 			if (value == null)
@@ -287,7 +287,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the default <typeparam name="TValue"/> value (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...)</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Please use _As<T>(T, default) instead")]
+		[Obsolete("Please use _As<T>(T, default) instead", error: true)]
 		public static TValue? As<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver)
 		{
 			if (value == null)
@@ -368,7 +368,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the default <typeparam name="TValue"/> value (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...) if <paramref name="required"/> is <see langword="false"/>, or an exception if it is <see langword="true"/>.</remarks>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Please use _As<T>(T) if required, or As<T>(T, default) if optional")]
+		[Obsolete("Please use _As<T>(T) if required, or As<T>(T, default) if optional", error: true)]
 		public static TValue? As<TValue>(this JsonValue? value, bool required, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value == null)
@@ -496,7 +496,6 @@ namespace Doxense.Serialization.Json
 			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstant();
 			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDuration();
 			// Nullable variants don't really make sense here since null will always throw.
-
 #endif
 			#endregion </JIT_HACK>
 
@@ -511,11 +510,11 @@ namespace Doxense.Serialization.Json
 		/// <summary>Convert this value into a the specified CLR type, with a fallback value if it is null or missing.</summary>
 		/// <typeparam name="TValue">Target CLR type</typeparam>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <paramref name="defaultValue"/>.</remarks>
+		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <see langword="default"/> for <typeparamref name="TValue"/>.</remarks>
 		[Pure]
 		public static TValue? OrDefault<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (value is null or JsonNull)
+			if (value is null)
 			{
 				return default(TValue) == null ? JsonNull.Default<TValue>(value)! : default;
 			}
@@ -523,30 +522,55 @@ namespace Doxense.Serialization.Json
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(TValue) == typeof(bool) || typeof(TValue) == typeof(bool?)) return (TValue?) (object?) value.ToBooleanOrDefault();
-			if (typeof(TValue) == typeof(char) || typeof(TValue) == typeof(char?)) return (TValue?) (object?) value.ToCharOrDefault();
-			if (typeof(TValue) == typeof(byte) || typeof(TValue) == typeof(byte?)) return (TValue?) (object?) value.ToByteOrDefault();
-			if (typeof(TValue) == typeof(sbyte) || typeof(TValue) == typeof(sbyte?)) return (TValue?) (object?) value.ToSByteOrDefault();
-			if (typeof(TValue) == typeof(short) || typeof(TValue) == typeof(short?)) return (TValue?) (object?) value.ToInt16OrDefault();
-			if (typeof(TValue) == typeof(ushort) || typeof(TValue) == typeof(ushort?)) return (TValue?) (object?) value.ToUInt16OrDefault();
-			if (typeof(TValue) == typeof(int) || typeof(TValue) == typeof(int?)) return (TValue?) (object?) value.ToInt32OrDefault();
-			if (typeof(TValue) == typeof(uint) || typeof(TValue) == typeof(uint?)) return (TValue?) (object?) value.ToUInt32OrDefault();
-			if (typeof(TValue) == typeof(long) || typeof(TValue) == typeof(long?)) return (TValue?) (object?) value.ToInt64OrDefault();
-			if (typeof(TValue) == typeof(ulong) || typeof(TValue) == typeof(ulong?)) return (TValue?) (object?) value.ToUInt64OrDefault();
-			if (typeof(TValue) == typeof(float) || typeof(TValue) == typeof(float?)) return (TValue?) (object?) value.ToSingleOrDefault();
-			if (typeof(TValue) == typeof(double) || typeof(TValue) == typeof(double?)) return (TValue?) (object?) value.ToDoubleOrDefault();
-			if (typeof(TValue) == typeof(Half) || typeof(TValue) == typeof(Half?)) return (TValue?) (object?) value.ToHalfOrDefault();
-			if (typeof(TValue) == typeof(decimal) || typeof(TValue) == typeof(decimal?)) return (TValue?) (object?) value.ToDecimalOrDefault();
-			if (typeof(TValue) == typeof(Guid) || typeof(TValue) == typeof(Guid?)) return (TValue?) (object?) value.ToGuidOrDefault();
-			if (typeof(TValue) == typeof(Uuid128) || typeof(TValue) == typeof(Uuid128?)) return (TValue?) (object?) value.ToUuid128OrDefault();
-			if (typeof(TValue) == typeof(Uuid96) || typeof(TValue) == typeof(Uuid96?)) return (TValue?) (object?) value.ToUuid96OrDefault();
-			if (typeof(TValue) == typeof(Uuid80) || typeof(TValue) == typeof(Uuid80?)) return (TValue?) (object?) value.ToUuid80OrDefault();
-			if (typeof(TValue) == typeof(Uuid64) || typeof(TValue) == typeof(Uuid64?)) return (TValue?) (object?) value.ToUuid64OrDefault();
-			if (typeof(TValue) == typeof(TimeSpan) || typeof(TValue) == typeof(TimeSpan?)) return (TValue?) (object?) value.ToTimeSpanOrDefault();
-			if (typeof(TValue) == typeof(DateTime) || typeof(TValue) == typeof(DateTime?)) return (TValue?) (object?) value.ToDateTimeOrDefault();
-			if (typeof(TValue) == typeof(DateTimeOffset) || typeof(TValue) == typeof(DateTimeOffset?)) return (TValue?) (object?) value.ToDateTimeOffsetOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Instant) || typeof(TValue) == typeof(NodaTime.Instant?)) return (TValue?) (object?) value.ToInstantOrDefault();
-			if (typeof(TValue) == typeof(NodaTime.Duration) || typeof(TValue) == typeof(NodaTime.Duration?)) return (TValue?) (object?) value.ToDurationOrDefault();
+			if (typeof(TValue) == typeof(bool)) return (TValue) (object) value.ToBoolean();
+			if (typeof(TValue) == typeof(char)) return (TValue) (object) value.ToChar();
+			if (typeof(TValue) == typeof(byte)) return (TValue) (object) value.ToByte();
+			if (typeof(TValue) == typeof(sbyte)) return (TValue) (object) value.ToSByte();
+			if (typeof(TValue) == typeof(short)) return (TValue) (object) value.ToInt16();
+			if (typeof(TValue) == typeof(ushort)) return (TValue) (object) value.ToUInt16();
+			if (typeof(TValue) == typeof(int)) return (TValue) (object) value.ToInt32();
+			if (typeof(TValue) == typeof(uint)) return (TValue) (object) value.ToUInt32();
+			if (typeof(TValue) == typeof(long)) return (TValue) (object) value.ToInt64();
+			if (typeof(TValue) == typeof(ulong)) return (TValue) (object) value.ToUInt64();
+			if (typeof(TValue) == typeof(float)) return (TValue) (object) value.ToSingle();
+			if (typeof(TValue) == typeof(double)) return (TValue) (object) value.ToDouble();
+			if (typeof(TValue) == typeof(Half)) return (TValue) (object) value.ToHalf();
+			if (typeof(TValue) == typeof(decimal)) return (TValue) (object) value.ToDecimal();
+			if (typeof(TValue) == typeof(Guid)) return (TValue) (object) value.ToGuid();
+			if (typeof(TValue) == typeof(Uuid128)) return (TValue) (object) value.ToUuid128();
+			if (typeof(TValue) == typeof(Uuid96)) return (TValue) (object) value.ToUuid96();
+			if (typeof(TValue) == typeof(Uuid80)) return (TValue) (object) value.ToUuid80();
+			if (typeof(TValue) == typeof(Uuid64)) return (TValue) (object) value.ToUuid64();
+			if (typeof(TValue) == typeof(TimeSpan)) return (TValue) (object) value.ToTimeSpan();
+			if (typeof(TValue) == typeof(DateTime)) return (TValue) (object) value.ToDateTime();
+			if (typeof(TValue) == typeof(DateTimeOffset)) return (TValue) (object) value.ToDateTimeOffset();
+			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstant();
+			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDuration();
+
+			if (typeof(TValue) == typeof(bool?)) return (TValue?) (object?) value.ToBooleanOrDefault();
+			if (typeof(TValue) == typeof(char?)) return (TValue?) (object?) value.ToCharOrDefault();
+			if (typeof(TValue) == typeof(byte?)) return (TValue?) (object?) value.ToByteOrDefault();
+			if (typeof(TValue) == typeof(sbyte?)) return (TValue?) (object?) value.ToSByteOrDefault();
+			if (typeof(TValue) == typeof(short?)) return (TValue?) (object?) value.ToInt16OrDefault();
+			if (typeof(TValue) == typeof(ushort?)) return (TValue?) (object?) value.ToUInt16OrDefault();
+			if (typeof(TValue) == typeof(int?)) return (TValue?) (object?) value.ToInt32OrDefault();
+			if (typeof(TValue) == typeof(uint?)) return (TValue?) (object?) value.ToUInt32OrDefault();
+			if (typeof(TValue) == typeof(long?)) return (TValue?) (object?) value.ToInt64OrDefault();
+			if (typeof(TValue) == typeof(ulong?)) return (TValue?) (object?) value.ToUInt64OrDefault();
+			if (typeof(TValue) == typeof(float?)) return (TValue?) (object?) value.ToSingleOrDefault();
+			if (typeof(TValue) == typeof(double?)) return (TValue?) (object?) value.ToDoubleOrDefault();
+			if (typeof(TValue) == typeof(Half?)) return (TValue?) (object?) value.ToHalfOrDefault();
+			if (typeof(TValue) == typeof(decimal?)) return (TValue?) (object?) value.ToDecimalOrDefault();
+			if (typeof(TValue) == typeof(Guid?)) return (TValue?) (object?) value.ToGuidOrDefault();
+			if (typeof(TValue) == typeof(Uuid128?)) return (TValue?) (object?) value.ToUuid128OrDefault();
+			if (typeof(TValue) == typeof(Uuid96?)) return (TValue?) (object?) value.ToUuid96OrDefault();
+			if (typeof(TValue) == typeof(Uuid80?)) return (TValue?) (object?) value.ToUuid80OrDefault();
+			if (typeof(TValue) == typeof(Uuid64?)) return (TValue?) (object?) value.ToUuid64OrDefault();
+			if (typeof(TValue) == typeof(TimeSpan?)) return (TValue?) (object?) value.ToTimeSpanOrDefault();
+			if (typeof(TValue) == typeof(DateTime?)) return (TValue?) (object?) value.ToDateTimeOrDefault();
+			if (typeof(TValue) == typeof(DateTimeOffset?)) return (TValue?) (object?) value.ToDateTimeOffsetOrDefault();
+			if (typeof(TValue) == typeof(NodaTime.Instant?)) return (TValue?) (object?) value.ToInstantOrDefault();
+			if (typeof(TValue) == typeof(NodaTime.Duration?)) return (TValue?) (object?) value.ToDurationOrDefault();
 #endif
 			#endregion </JIT_HACK>
 

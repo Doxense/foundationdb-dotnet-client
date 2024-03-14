@@ -1570,7 +1570,7 @@ namespace Doxense.Serialization.Json
 
 		private static CrystalJsonTypeBinder CreateBinderForValueTuple(Type type)
 		{
-			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].As<Ti>(resolver), ...)
+			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].OrDefault<Ti>(resolver), ...)
 
 			var prmValue = Expression.Parameter(typeof(JsonValue), "value");
 			var prmType = Expression.Parameter(typeof(Type), "type");
@@ -1584,9 +1584,9 @@ namespace Doxense.Serialization.Json
 				// JsonValue JsonValue[int index]
 				var arrayIndexer = typeof(JsonValue).GetProperty("Item", typeof(JsonValue), [ typeof(int) ]);
 
-				// JsonValue.As<T>(resolver)
+				// JsonValueExtensions.OrDefault<T>(JsonValue, ICrystalJsonTypeResolver)
 				var asMethod = typeof(JsonValueExtensions).GetMethod(
-					nameof(JsonValueExtensions.As),
+					nameof(JsonValueExtensions.OrDefault),
 					BindingFlags.Static | BindingFlags.Public,
 					null,
 					[ typeof(JsonValue), typeof(ICrystalJsonTypeResolver) ],
@@ -1596,7 +1596,7 @@ namespace Doxense.Serialization.Json
 				var items = new Expression[args.Length];
 				for (int i = 0; i < items.Length; i++)
 				{
-					// value[i].As<Ti>(resolver)
+					// value[i].OrDefault<Ti>(resolver)
 					items[i] = Expression.Call(
 						asMethod.MakeGenericMethod(args[i]),
 						Expression.MakeIndex(prmValue, arrayIndexer, [ Expression.Constant(i) ]),

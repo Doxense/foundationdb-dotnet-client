@@ -1587,7 +1587,7 @@ namespace Doxense.Serialization.Json
 		{
 			var val = m_items.GetValueOrDefault(key);
 			if (required) val = val.RequiredField(key);
-			return val.As<TValue>();
+			return val.OrDefault<TValue>();
 		}
 
 		/// <summary>Returns the converted value that corresponds to the field with the specified name.</summary>
@@ -1600,7 +1600,7 @@ namespace Doxense.Serialization.Json
 		[Obsolete("OLD_API: Please use _Get<TValue>(key, resolver) if required, or _Get<TValue>(key, <default>, resolver) if optional", error: true)]
 		public TValue? Get<TValue>(string key, ICrystalJsonTypeResolver resolver)
 		{
-			return this[key].As<TValue>(resolver);
+			return this[key].OrDefault<TValue>(resolver);
 		}
 
 		/// <summary>Returns the JSON value that corresponds to the field with the specified name.</summary>
