@@ -42,7 +42,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 	/// <summary>Tests sur la classe statique Doxense.Diagnostics.Contracts.Contract</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class ContractTests : DoxenseTest
+	public class ContractTests : SimpleTest
 	{
 		private bool m_status;
 
@@ -494,6 +494,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 
 			Assert.DoesNotThrow(() => { Contract.Debug.Requires(true); });
 
+			// ReSharper disable once RedundantAssignment
 			int x = 69;
 			var cex = Assert.Throws<ContractException>(() => { Contract.Debug.Requires(x == 42, "le message"); });
 			Assert.That(cex.Message, Is.EqualTo("Precondition failed: x == 42  le message"));
@@ -514,6 +515,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.DoesNotThrow(() => { Contract.Debug.Assert(true); });
 
 			// note: Contract.Assert(...) fait un Debug.Fail(...) pour spammer les logs
+			// ReSharper disable once RedundantAssignment
 			int x = 69;
 			Trace.WriteLine("====== vvv IGNORER L'ASSERTION QUI EST JUSTE APRES (C'EST NORMAL! :) vvv ======");
 			var cex = Assert.Throws<ContractException>(() => { Contract.Debug.Assert(x == 42, "le message"); });
@@ -535,6 +537,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 
 			Assert.DoesNotThrow(() => { Contract.Debug.Ensures(true); });
 
+			// ReSharper disable once RedundantAssignment
 			int x = 69;
 			var cex = Assert.Throws<ContractException>(() => { Contract.Debug.Ensures(x == 42, "le message"); });
 			Assert.That(cex.Message, Is.EqualTo("Postcondition failed: x == 42  le message"));
@@ -554,6 +557,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 
 			Assert.DoesNotThrow(() => { Contract.Debug.Invariant(true); });
 
+			// ReSharper disable once RedundantAssignment
 			int x = 69;
 			var cex = Assert.Throws<ContractException>(() => { Contract.Debug.Invariant(x == 42, "le message"); });
 			Assert.That(cex.Message, Is.EqualTo("Invariant failed: x == 42  le message"));

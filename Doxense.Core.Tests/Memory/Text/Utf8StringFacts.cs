@@ -39,7 +39,7 @@ namespace Doxense.Text.Utf8.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class Utf8StringFacts : DoxenseTest
+	public class Utf8StringFacts : SimpleTest
 	{
 
 		[Test]

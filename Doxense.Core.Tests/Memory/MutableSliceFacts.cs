@@ -38,7 +38,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class MutableSliceFacts : DoxenseTest
+	public class MutableSliceFacts : SimpleTest
 	{
 
 		[Test]

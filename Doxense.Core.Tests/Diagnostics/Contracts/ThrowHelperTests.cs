@@ -39,7 +39,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 	/// <summary>Tests sur la classe statique ThrowHelper</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class ThrowHelperTests : DoxenseTest
+	public class ThrowHelperTests : SimpleTest
 	{
 
 		protected override void OnBeforeEverything()
@@ -52,13 +52,13 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		{
 			public static string CallMe(string s)
 			{
-				DoxenseTest.Log("CallMe(string):" + s);
+				Log($"CallMe(string):{s}");
 				return "CallMe(string):" + s;
 			}
 
 			public static string CallMe(ref DefaultInterpolatedStringHandler s)
 			{
-				DoxenseTest.Log("CallMe(interpolated):" + s.ToString());
+				Log($"CallMe(interpolated):{s.ToString()}");
 				return "CallMe(interpolated):" + s.ToStringAndClear();
 			}
 		}

@@ -35,7 +35,7 @@ namespace Doxense.Serialization.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class Base64EncodingTest : DoxenseTest
+	public class Base64EncodingTest : SimpleTest
 	{
 
 		[Test]

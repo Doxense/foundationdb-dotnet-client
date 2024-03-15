@@ -27,7 +27,6 @@
 namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Text;
 	using Doxense.Memory;
 	using Doxense.Testing;
@@ -35,7 +34,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class SliceWriterFacts : DoxenseTest
+	public class SliceWriterFacts : SimpleTest
 	{
 
 		private static string Clean(string value)

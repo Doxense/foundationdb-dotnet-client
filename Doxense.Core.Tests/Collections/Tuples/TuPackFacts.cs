@@ -39,27 +39,26 @@ namespace Doxense.Collections.Tuples.Tests
 	using Doxense.Serialization;
 	using Doxense.Testing;
 	using NUnit.Framework;
-	using NUnit.Framework.Interfaces;
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class TuPackFacts : DoxenseTest
+	public class TuPackFacts : SimpleTest
 	{
 
 		private static void Dump(string label, Slice slice)
 		{
 			if (slice.IsNull)
 			{
-				WriteToLog($"{label}: <null>");
+				Log($"{label}: <null>");
 			}
 			else if (slice.IsEmpty)
 			{
-				WriteToLog($"{label}: [ ]");
+				Log($"{label}: [ ]");
 			}
 			else
 			{
-				WriteToLog($"{label}: [{slice.Count}] {slice.PrettyPrint(128)}");
-				WriteToLog(HexaDump.Format(slice, HexaDump.Options.NoFooter | HexaDump.Options.NoHeader | HexaDump.Options.OmmitLastNewLine, indent: 1));
+				Log($"{label}: [{slice.Count}] {slice.PrettyPrint(128)}");
+				Log(HexaDump.Format(slice, HexaDump.Options.NoFooter | HexaDump.Options.NoHeader | HexaDump.Options.OmmitLastNewLine, indent: 1));
 			}
 		}
 
@@ -67,14 +66,14 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			if (tuple is null)
 			{
-				WriteToLog($"{label}: <null>");
+				Log($"{label}: <null>");
 			}
 			else
 			{
-				WriteToLog($"{label}: [{tuple.Count}] {tuple.ToString()}, {tuple.GetType().GetFriendlyName()}");
+				Log($"{label}: [{tuple.Count}] {tuple.ToString()}, {tuple.GetType().GetFriendlyName()}");
 				for (int i = 0; i < tuple.Count; i++)
 				{
-					WriteToLog($"- t[{i}] = {tuple[i]}");
+					Log($"- t[{i}] = {tuple[i]}");
 				}
 			}
 		}
@@ -83,14 +82,14 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			if (tuple is null)
 			{
-				WriteToLog($"{label}: <null>");
+				Log($"{label}: <null>");
 			}
 			else
 			{
-				WriteToLog($"{label}: [{tuple.Count}] {tuple.ToString()}, {tuple.GetType().GetFriendlyName()}");
+				Log($"{label}: [{tuple.Count}] {tuple.ToString()}, {tuple.GetType().GetFriendlyName()}");
 				for (int i = 0; i < tuple.Count; i++)
 				{
-					WriteToLog($"- t[{i}] = ({tuple.GetElementType(i)}) {STuple.Formatter.Stringify(tuple[i])} : [ {tuple.GetSlice(i):X} ]");
+					Log($"- t[{i}] = ({tuple.GetElementType(i)}) {STuple.Formatter.Stringify(tuple[i])} : [ {tuple.GetSlice(i):X} ]");
 				}
 			}
 		}

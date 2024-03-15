@@ -18,7 +18,7 @@ namespace Doxense.IO.Tests
 	using Doxense.Testing;
 	using NUnit.Framework;
 
-	public class PartialReadOnlyStreamFacts : DoxenseTest
+	public class PartialReadOnlyStreamFacts : SimpleTest
 	{
 
 		private const int DEFAULT_STREAM_SIZE = 1 * 1024 * 1024;

@@ -33,7 +33,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class BitHelpersFacts : DoxenseTest
+	public class BitHelpersFacts : SimpleTest
 	{
 		[Test]
 		public void Test_BitHelpers_NextPowerOfTwo()

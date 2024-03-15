@@ -33,7 +33,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class SliceComparerFacts : DoxenseTest
+	public class SliceComparerFacts : SimpleTest
 	{
 
 		#region SliceComparer...
