@@ -38,7 +38,7 @@ namespace Doxense.Web.Tests
 	/// <summary>Tests sur la classe statique KTL</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class UrlEncoderTest : DoxenseTest
+	public class UrlEncoderTest : SimpleTest
 	{
 
 		[Test]

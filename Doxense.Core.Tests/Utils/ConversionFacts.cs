@@ -32,7 +32,7 @@ namespace Doxense.Runtime.Converters.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class ConversionFacts : DoxenseTest
+	public class ConversionFacts : SimpleTest
 	{
 
 		[Test]

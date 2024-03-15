@@ -1,153 +1,24 @@
-﻿
+﻿#region Copyright (c) 2023-2024 SnowBank SAS
+//
+// All rights are reserved. Reproduction or transmission in whole or in part, in
+// any form or by any means, electronic, mechanical or otherwise, is prohibited
+// without the prior written consent of the copyright owner.
+//
+#endregion
+
 // ReSharper disable MethodHasAsyncOverload
 namespace FoundationDB.Client.Testing
 {
 	using System;
 	using System.Collections.Generic;
-	using System.IO;
 	using System.Linq;
+	using System.Text;
 	using System.Threading.Tasks;
 	using System.Threading;
 	using Doxense.Collections.Tuples;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Microsoft.Extensions.Logging;
 	using Microsoft.Extensions.Logging.Abstractions;
-
-	public enum InstructionCode
-	{
-		Invalid = 0,
-
-		// data operations
-		Push,
-		Dup,
-		EmptyStack,
-		Swap,
-		Pop,
-		Sub,
-		Concat,
-		LogStack,
-
-		// foundationdb operations
-		NewTransaction,
-		UseTransaction,
-		OnError,
-		Get,
-		GetKey,
-		GetRange,
-		GetReadVersion,
-		GetVersionstamp,
-		Set,
-		SetReadVersion,
-		Clear,
-		ClearRange,
-		AtomicOp,
-		ReadConflictRange,
-		WriteConflictRange,
-		ReadConflictKey,
-		WriteConflictKey,
-		DisableWriteConflict,
-		Commit,
-		Reset,
-		Cancel,
-		GetCommittedVersion,
-		GetApproximateSize,
-		WaitFuture,
-		GetEstimatedRangeSize,
-		GetRangeSplitPoints,
-
-		TuplePack,
-		TuplePackWithVersionstamp,
-		TupleUnpack,
-		TupleRange,
-		TupleSort,
-		EncodeFloat,
-		EncodeDouble,
-		DecodeFloat,
-		DecodeDouble,
-
-		// Thread Operations
-		StartThread,
-		WaitEmpty,
-
-		// misc
-		UnitTests,
-
-		// Directory/Subspace/Layer Creation
-		DirectoryCreateSubspace,
-		DirectoryCreateLayer,
-		DirectoryCreateOrOpen,
-		DirectoryCreate,
-		DirectoryOpen,
-
-		// Directory Management
-		DirectoryChange,
-		DirectorySetErrorIndex,
-
-		// Directory Operations
-		DirectoryMove,
-		DirectoryMoveTo,
-		DirectoryRemove,
-		DirectoryRemoveIfExists,
-		DirectoryList,
-		DirectoryExists,
-
-		// Subspace operation
-		DirectoryPackKey,
-		DirectoryUnpackKey,
-		DirectoryRange,
-		DirectoryContains,
-		DirectoryOpenSubspace,
-
-		// Directory Logging
-		DirectoryLogSubspace,
-		DirectoryLogDirectory,
-
-		// Other
-		DirectoryStripPrefix,
-
-		// Tenants
-		TenantCreate,
-		TenantDelete,
-		TenantSetActive,
-		TenantClearActive,
-		TenantList,
-	}
-
-	[Flags]
-	public enum InstructionFlags
-	{
-		None = 0,
-		Database = 1 << 0,
-		Snapshot = 1 << 1,
-		Tenant = 1 << 2,
-		StartsWith = 1 << 3,
-		Selector = 1 << 4,
-	}
-
-	public sealed record TransactionState : IDisposable
-	{
-
-		public required IFdbTransaction Transaction { get; init; }
-
-		public FdbTenant? Tenant { get; init; }
-
-		public bool Dead { get; private set; }
-
-		public void Dispose()
-		{
-			this.Dead = true;
-			this.Transaction.Dispose();
-		}
-
-	}
-
-	public sealed record StackFuture
-	{
-		public (Slice, TransactionState) State { get; init; }
-
-		public Slice Data { get; init; }
-	}
 
 	public sealed class StackMachine : IDisposable
 	{
@@ -162,7 +33,7 @@ namespace FoundationDB.Client.Testing
 		
 		public IFdbDatabase Db { get; }
 
-		private ILogger<StackMachine>? Log { get; }
+		private ILogger<StackMachine> Log { get; }
 
 		public FdbTenant? Tenant { get; private set; }
 
@@ -174,7 +45,7 @@ namespace FoundationDB.Client.Testing
 
 		public Dictionary<string, TransactionState> Transactions { get; } = new(StringComparer.Ordinal);
 
-		public long LastVersion { get; private set; }
+		public long? LastVersion { get; private set; }
 
 		public long DirectoryIndex { get; set; }
 
@@ -190,27 +61,37 @@ namespace FoundationDB.Client.Testing
 		private IFdbTransaction GetCurrentTransaction()
 		{
 			var name = this.TransactionName;
-			if (string.IsNullOrEmpty(name)) throw new InvalidOperationException("No transaction name specified");
-			if (!this.Transactions.TryGetValue(name, out var state)) throw new InvalidOperationException($"No transaction with name '{name}'");
+			if (string.IsNullOrEmpty(name))
+			{
+				throw new InvalidOperationException("No transaction name specified");
+			}
+			if (!this.Transactions.TryGetValue(name, out var state))
+			{
+				throw new InvalidOperationException($"No transaction with name '{name}'");
+			}
+			if (state.Dead)
+			{
+				throw new InvalidOperationException($"Transaction '{name}' has already been disposed");
+			}
 			return state.Transaction;
 		}
 
-		private void Push(TestInstruction instr, IVarTuple arg, int index)
+		private void Push(int index, TestInstruction instr, IVarTuple arg)
 		{
 			this.Stack.Push(new(instr, arg, index));
 		}
 
-		private void Push<T>(TestInstruction instr, T value, int index)
+		private void Push<T>(int index, TestInstruction instr, T value)
 		{
 			this.Stack.Push(new(instr, STuple.Create(value), index));
 		}
 
-		private void PushFuture<TState>(TestInstruction instr, TState state, Func<TState, Task<IVarTuple>> handler, int index)
+		private void PushFuture<TState>(int index, TestInstruction instr, TState state, Func<TState, Task<IVarTuple>> handler)
 		{
-			PushFuture(instr, handler(state), index);
+			PushFuture(index, instr, handler(state));
 		}
 
-		private void PushFuture(TestInstruction instr, Task<IVarTuple> future, int index)
+		private void PushFuture(int index, TestInstruction instr, Task<IVarTuple> future)
 		{
 			this.Stack.Push(new(instr, future, index));
 		}
@@ -261,25 +142,37 @@ namespace FoundationDB.Client.Testing
 		public async Task Run(TestSuite suite, CancellationToken ct)
 		{
 			var instructions = suite.Instructions;
-			this.Log?.LogInformation($"Execute Test '{suite.Name}' with {instructions.Length:N0} instructions");
+			this.Log.LogInformation($"Execute Test '{suite.Name}' with {instructions.Length:N0} instructions");
 			for (int i = 0; i < instructions.Length; i++)
 			{
-				await Execute(instructions[i], i, ct);
+				ct.ThrowIfCancellationRequested();
+				try
+				{
+					await Execute(instructions[i], i, ct);
+				}
+				catch (Exception e)
+				{
+					this.Stack.Push(new(instructions[i], e, i));
+					if (ct.IsCancellationRequested && e is OperationCanceledException)
+					{
+						throw;
+					}
+				}
 				//Dump();
 			}
-			this.Log?.LogInformation("Test executed");
+			this.Log.LogInformation("Test executed");
 		}
 
 		public async Task Execute(TestInstruction instr, int index, CancellationToken ct)
 		{
-			this.Log?.LogDebug($"> @{index}: {instr}");
+			this.Log.LogDebug($"> @{index}: {instr}");
 
 			switch (instr.Code)
 			{
 				case InstructionCode.Push:
 				{ // PUSH <item>
 					if (instr.Args == null) throw new InvalidOperationException("Missing argument for PUSH command");
-					Push(instr, instr.Args, index);
+					Push(index, instr, instr.Args);
 					break;
 				}
 				case InstructionCode.Dup:
@@ -308,7 +201,7 @@ namespace FoundationDB.Client.Testing
 					var a = await PopAsync<long>();
 					var b = await PopAsync<long>();
 					var r = a - b;
-					Push(instr, r, 0);
+					Push(index, instr, r);
 					break;
 				}
 				case InstructionCode.Concat:
@@ -320,13 +213,13 @@ namespace FoundationDB.Client.Testing
 						case (string strA, string strB):
 						{
 							var r = strA + strB;
-							Push(instr, r, 0);
+							Push(index, instr, r);
 							break;
 						}
 						case (Slice sliceA, Slice sliceB):
 						{
 							var r = sliceA + sliceB;
-							Push(instr, r, 0);
+							Push(index, instr, r);
 							break;
 						}
 						default:
@@ -342,24 +235,29 @@ namespace FoundationDB.Client.Testing
 					var prefix = await PopAsync<Slice>();
 
 					var results = this.Stack.ToArray();
-					var items = new List<StackResult>(results.Length);
+					var stack = new List<(StackItem Item, StackResult Result)>(results.Length);
 					foreach (var result in results)
 					{
-						items.Add(await result.Resolve());
+						stack.Add((result, await result.Resolve()));
 					}
 
-					var kvs = items.Select((item, i) => KeyValuePair.Create(prefix + TuPack.EncodeKey(i, item.Index), TuPack.Pack(item.Value).Truncate(40_000))).ToArray();
 
 					if (true) //HACKHACK
 					{
-						for(int i = 0; i < kvs.Length; i++)
+						var sb = new StringBuilder();
+						sb.AppendLine($"LogStack: {prefix}");
+						for(int i = 0; i < stack.Count; i++)
 						{
-							var (k, v) = kvs[i];
-							this.Log?.LogDebug($"- {TuPack.Unpack(k)} = {TuPack.Unpack(v)}");
+							var item = stack[i].Item;
+							var result = stack[i].Result;
+							var (k, v) = KeyValuePair.Create(prefix + TuPack.EncodeKey(i, result.Index), TuPack.Pack(result.Value).Truncate(40_000));
+							sb.AppendLine($"- {TuPack.Unpack(k)} = {TuPack.Unpack(v)} // {item.Instruction}");
 						}
+						this.Log.LogInformation(sb.ToString());
 					}
 					else
 					{
+						var kvs = stack.Select((entry, i) => KeyValuePair.Create(prefix + TuPack.EncodeKey(i, entry.Result.Index), TuPack.Pack(entry.Result.Value).Truncate(40_000))).ToArray();
 						await this.Db.WriteAsync((tr) => tr.SetValues(kvs), ct);
 					}
 
@@ -407,47 +305,74 @@ namespace FoundationDB.Client.Testing
 				}
 				case InstructionCode.GetReadVersion:
 				{
-					PushFuture(
-						instr,
-						GetCurrentTransaction(),
+					PushFuture(index, instr, GetCurrentTransaction(),
 						async (tr) =>
 						{
 							var rv = await tr.GetReadVersionAsync();
 							this.LastVersion = rv;
 							return STuple.Create("GOT_READ_VERSION");
-						},
-						index);
+						});
+					break;
+				}
+				case InstructionCode.SetReadVersion:
+				{
+					var tr = GetCurrentTransaction();
+					if (this.LastVersion == null)
+					{
+						throw new InvalidOperationException("Cannot set read version because without a prior call to GetReadVersion.");
+					}
+					tr.SetReadVersion(this.LastVersion.Value);
 					break;
 				}
 				case InstructionCode.Reset:
-				{ // RESET
-					var tr = GetCurrentTransaction();
-
-					tr.Reset();
-					break;
-				}
-				case InstructionCode.Commit:
 				{
+					// RESET
+					// Resets the current transaction.
 					var tr = GetCurrentTransaction();
-
-					var t = tr.CommitAsync();
-					PushFuture(instr, MapVoidFuture(t), index);
+					tr.Reset();
 					break;
 				}
 				case InstructionCode.Cancel:
 				{
+					// CANCEL
+					// Cancels the current transaction.
 					var tr = GetCurrentTransaction();
-
 					tr.Cancel();
 					break;
 				}
+				case InstructionCode.Commit:
+				{
+					// COMMIT
+					// Commits the current transaction (with no retry behavior). May optionally
+					// push a future onto the stack.
+					var tr = GetCurrentTransaction();
+					var t = tr.CommitAsync();
+					PushFuture(index, instr, MapVoidFuture(t));
+					break;
+				}
 				case InstructionCode.OnError:
-				{ // ON_ERROR
-					throw new NotImplementedException();
+				{
+					// ON_ERROR
+					// Pops the top item off of the stack as ERROR_CODE. Passes ERROR_CODE in a
+					// language-appropriate way to the on_error method of current transaction
+					// object and blocks on the future. If on_error re-raises the error, bubbles
+					// the error out as indicated above. May optionally push a future onto the
+					// stack.
+					var errorCode = await PopAsync<FdbError>();
+
+					var tr = GetCurrentTransaction();
+					var t = tr.OnErrorAsync(errorCode);
+
+					PushFuture(index, instr, MapVoidFuture(t));
+					break;
 				}
 
 				case InstructionCode.Get:
-				{ // GET, GET_SNAPSHOT, GET_DATABASE
+				{
+					// GET (_SNAPSHOT, _DATABASE)
+					// Pops the top item off of the stack as KEY and then looks up KEY in the
+					// database using the get() method. May optionally push a future onto the
+					// stack.
 					var key = await PopAsync<Slice>();
 
 					Task<Slice> future;
@@ -463,12 +388,13 @@ namespace FoundationDB.Client.Testing
 							: tr.GetAsync(key);
 					}
 
-					PushFuture(instr, future, async (t) =>
-					{
-						var res = await t.ConfigureAwait(false);
-						if (res.IsNull) return STuple.Create("RESULT_NOT_PRESENT");
-						return STuple.Create(res);
-					}, index);
+					PushFuture(index, instr, future,
+						async (t) =>
+						{
+							var res = await t.ConfigureAwait(false);
+							if (res.IsNull) return STuple.Create("RESULT_NOT_PRESENT");
+							return STuple.Create(res);
+						});
 					break;
 				}
 				case InstructionCode.GetRange:
@@ -480,6 +406,14 @@ namespace FoundationDB.Client.Testing
 					FdbStreamingMode streamingMode;
 					if (instr.IsSelector())
 					{
+						// GET_RANGE_SELECTOR (_SNAPSHOT, _DATABASE)
+						// Pops the top ten items off of the stack as BEGIN_KEY, BEGIN_OR_EQUAL,
+						// BEGIN_OFFSET, END_KEY, END_OR_EQUAL, END_OFFSET, LIMIT, REVERSE,
+						// STREAMING_MODE, and PREFIX. Constructs key selectors BEGIN and END from
+						// the first six parameters, and then performs a range read in a language-
+						// appropriate way using BEGIN, END, LIMIT, REVERSE and STREAMING_MODE. Output
+						// is pushed onto the stack as with GET_RANGE, excluding any keys that do not
+						// begin with PREFIX.
 						var beginKey = await PopAsync<Slice>();
 						var beginOrEqual = await PopAsync<bool>();
 						var beginOffset = await PopAsync<int>();
@@ -494,6 +428,10 @@ namespace FoundationDB.Client.Testing
 					}
 					else if (instr.IsStartsWith())
 					{
+						// GET_RANGE_STARTS_WITH (_SNAPSHOT, _DATABASE)
+						// Pops the top four items off of the stack as PREFIX, LIMIT, REVERSE and
+						// STREAMING_MODE. Performs a prefix range read in a language-appropriate way
+						// using these parameters. Output is pushed onto the stack as with GET_RANGE.
 						var prefix = await PopAsync<Slice>();
 						(begin, end) = KeySelectorPair.StartsWith(prefix);
 						limit = await PopAsync<int>();
@@ -502,6 +440,12 @@ namespace FoundationDB.Client.Testing
 					}
 					else
 					{
+						// GET_RANGE (_SNAPSHOT, _DATABASE)
+						// Pops the top five items off of the stack as BEGIN_KEY, END_KEY, LIMIT,
+						// REVERSE and STREAMING_MODE. Performs a range read in a language-appropriate
+						// way using these parameters. The resulting range of n key-value pairs are
+						// packed into a tuple as [k1,v1,k2,v2,...,kn,vn], and this single packed value
+						// is pushed onto the stack.
 						var beginKey = await PopAsync<Slice>();
 						begin = KeySelector.FirstGreaterOrEqual(beginKey);
 						var endKey = await PopAsync<Slice>();
@@ -524,30 +468,34 @@ namespace FoundationDB.Client.Testing
 							: tr.GetRangeAsync(begin, end, limit: limit, reverse: reverse, mode: streamingMode);
 					}
 
-					PushFuture(instr, future, async (t) =>
-					{
-						var chunk = await t;
-						var res = STuple.Empty;
-						foreach (var (k, v) in chunk.Items)
+					PushFuture(index, instr, future,
+						async (t) =>
 						{
-							res = res.Append(k);
-							res = res.Append(v);
-						}
-						return res;
-					}, index);
+							var chunk = await t;
+							var res = STuple.Empty;
+							foreach (var (k, v) in chunk.Items)
+							{
+								res = res.Append(k, v);
+							}
+							return res;
+						});
 
 					break;
 				}
 
 				case InstructionCode.Set:
-				{
+				{ // SET (_DATABASE)
+
+					// Pops the top two items off of the stack as KEY and VALUE. Sets KEY to have
+					// the value VALUE. A SET_DATABASE call may optionally push a future onto the
+					// stack.
 					var key = await PopAsync<Slice>();
 					var value = await PopAsync<Slice>();
 
 					if (instr.IsDatabase())
 					{
 						var res = this.Db.WriteAsync(tr => tr.Set(key, value), ct);
-						PushFuture(instr, MapVoidFuture(res), index);
+						PushFuture(index, instr, MapVoidFuture(res));
 					}
 					else
 					{
@@ -558,12 +506,14 @@ namespace FoundationDB.Client.Testing
 				}
 				case InstructionCode.Clear:
 				{
+					// Pops the top item off of the stack as KEY and then clears KEY from the
+					// database. A CLEAR_DATABASE call may optionally push a future onto the stack.
 					var key = await PopAsync<Slice>();
 
 					if (instr.IsDatabase())
 					{
 						var res = this.Db.WriteAsync(tr => tr.Clear(key), ct);
-						PushFuture(instr, MapVoidFuture(res), index);
+						PushFuture(index, instr, MapVoidFuture(res));
 					}
 					else
 					{
@@ -577,11 +527,17 @@ namespace FoundationDB.Client.Testing
 					KeyRange range;
 					if (instr.IsStartsWith())
 					{
+						// Pops the top item off of the stack as PREFIX and then clears all keys from
+						// the database that begin with PREFIX. A CLEAR_RANGE_STARTS_WITH_DATABASE call
+						// may optionally push a future onto the stack.
 						var prefix = await PopAsync<Slice>();
 						range = KeyRange.StartsWith(prefix);
 					}
 					else
 					{
+						// Pops the top two items off of the stack as BEGIN_KEY and END_KEY. Clears the
+						// range of keys from BEGIN_KEY to END_KEY in the database. A
+						// CLEAR_RANGE_DATABASE call may optionally push a future onto the stack.
 						var beginKey = await PopAsync<Slice>();
 						var endKey = await PopAsync<Slice>();
 						range = new KeyRange(beginKey, endKey);
@@ -590,7 +546,7 @@ namespace FoundationDB.Client.Testing
 					if (instr.IsDatabase())
 					{
 						var res = this.Db.WriteAsync(tr => tr.ClearRange(range), ct);
-						PushFuture(instr, MapVoidFuture(res), index);
+						PushFuture(index, instr, MapVoidFuture(res));
 					}
 					else
 					{
@@ -600,18 +556,75 @@ namespace FoundationDB.Client.Testing
 					break;
 				}
 
+				case InstructionCode.ReadConflictKey:
+				{
+					// Pops the top item off of the stack as KEY. Adds KEY as a read conflict key
+					// or write conflict key. Pushes the byte string "SET_CONFLICT_KEY" onto the stack.
+					var key = await PopAsync<Slice>();
+					var tr = GetCurrentTransaction();
+					tr.AddReadConflictKey(key);
+					Push(index, instr, "SET_CONFLICT_KEY");
+					break;
+				}
+
+				case InstructionCode.ReadConflictRange:
+				{
+					// Pops the top two items off of the stack as BEGIN_KEY and END_KEY. Adds a
+					// read conflict range or write conflict range from BEGIN_KEY to END_KEY.
+					// Pushes the byte string "SET_CONFLICT_RANGE" onto the stack.
+					var beginKey = await PopAsync<Slice>();
+					var endKey = await PopAsync<Slice>();
+					var tr = GetCurrentTransaction();
+					tr.AddReadConflictRange(beginKey, endKey);
+					Push(index, instr, "SET_CONFLICT_RANGE");
+					break;
+				}
+
+				case InstructionCode.WriteConflictKey:
+				{
+					// Pops the top item off of the stack as KEY. Adds KEY as a read conflict key
+					// or write conflict key. Pushes the byte string "SET_CONFLICT_KEY" onto the stack.
+					var key = await PopAsync<Slice>();
+					var tr = GetCurrentTransaction();
+					tr.AddWriteConflictKey(key);
+					Push(index, instr, "SET_CONFLICT_KEY");
+					break;
+				}
+
+				case InstructionCode.WriteConflictRange:
+				{
+					// Pops the top two items off of the stack as BEGIN_KEY and END_KEY. Adds a
+					// read conflict range or write conflict range from BEGIN_KEY to END_KEY.
+					// Pushes the byte string "SET_CONFLICT_RANGE" onto the stack.
+					var beginKey = await PopAsync<Slice>();
+					var endKey = await PopAsync<Slice>();
+					var tr = GetCurrentTransaction();
+					tr.AddWriteConflictRange(beginKey, endKey);
+					Push(index, instr, "SET_CONFLICT_RANGE");
+					break;
+				}
+
+				case InstructionCode.DisableWriteConflict:
+				{
+					//Sets the NEXT_WRITE_NO_WRITE_CONFLICT_RANGE transaction option on the
+					// current transaction. Does not modify the stack.
+					var tr = GetCurrentTransaction();
+					tr.Options.WithNextWriteNoWriteConflictRange();
+					break;
+				}
+
 				case InstructionCode.EncodeFloat:
 				{
 					var bytes = await PopAsync<Slice>();
 					var x = bytes.ToSingleBE();
-					Push(instr, x, index);
+					Push(index, instr, x);
 					break;
 				}
 				case InstructionCode.DecodeFloat:
 				{
 					var x = await PopAsync<float>();
 					var bytes = Slice.FromSingleBE(x);
-					Push(instr, bytes, index);
+					Push(index, instr, bytes);
 					break;
 				}
 
@@ -619,14 +632,14 @@ namespace FoundationDB.Client.Testing
 				{
 					var bytes = await PopAsync<Slice>();
 					var x = bytes.ToDoubleBE();
-					Push(instr, x, index);
+					Push(index, instr, x);
 					break;
 				}
 				case InstructionCode.DecodeDouble:
 				{
 					var x = await PopAsync<double>();
 					var bytes = Slice.FromDoubleBE(x);
-					Push(instr, bytes, index);
+					Push(index, instr, bytes);
 					break;
 				}
 
@@ -649,8 +662,6 @@ namespace FoundationDB.Client.Testing
 		public void Dump()
 		{
 			var log = this.Log;
-			if (log == null) return;
-
 			log.LogInformation($"Stack: [{this.Stack.Count}]");
 			int p = 0;
 			foreach (var item in this.Stack.ToArray())

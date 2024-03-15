@@ -37,7 +37,7 @@ namespace Doxense.Linq.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class EnumerableFacts : DoxenseTest
+	public class EnumerableFacts : SimpleTest
 	{
 
 		[Test]

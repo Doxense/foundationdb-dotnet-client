@@ -38,7 +38,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class TupleFacts : DoxenseTest
+	public class TupleFacts : SimpleTest
 	{
 
 		#region General Use...

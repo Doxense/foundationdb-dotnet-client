@@ -36,7 +36,7 @@ namespace Doxense.Mathematics.Test
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class FastDtoaFacts : DoxenseTest
+	public class FastDtoaFacts : SimpleTest
 	{
 
 		[Test]

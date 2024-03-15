@@ -34,7 +34,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class JPathFacts : DoxenseTest
+	public class JPathFacts : SimpleTest
 	{
 
 		#region Test Helpers...

@@ -45,7 +45,7 @@ namespace Doxense.Linq.Async.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class AsyncEnumerableFacts : DoxenseTest
+	public class AsyncEnumerableFacts : SimpleTest
 	{
 
 		[Test]

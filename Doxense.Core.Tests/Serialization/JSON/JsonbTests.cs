@@ -40,7 +40,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class JsonbTest : DoxenseTest
+	public class JsonbTest : SimpleTest
 	{
 
 		private void VerifyRoundtrip(JsonValue value)
@@ -86,14 +86,14 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				_ = Jsonb.EncodeBuffer(value);
 			}
 			sw.Stop();
-			Log("Bench: jsonb encode {0:N1} nanos", sw.Elapsed.TotalMilliseconds * 1000000 / N);
+			Log($"Bench: jsonb encode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
 			sw = System.Diagnostics.Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
 			{
 				_ = Jsonb.Decode(bytes);
 			}
 			sw.Stop();
-			Log("Bench: jsonb decode {0:N1} nanos", sw.Elapsed.TotalMilliseconds * 1000000 / N);
+			Log($"Bench: jsonb decode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
 
 			sw = System.Diagnostics.Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
@@ -101,14 +101,14 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				_ = value.ToJsonBytes(CrystalJsonSettings.JsonCompact);
 			}
 			sw.Stop();
-			Log("Bench: JSON  encode {0:N1} nanos", sw.Elapsed.TotalMilliseconds * 1000000 / N);
+			Log($"Bench: JSON  encode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
 			sw = System.Diagnostics.Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
 			{
 				_ = CrystalJson.Parse(jbytes);
 			}
 			sw.Stop();
-			Log("Bench: JSON  decode {0:N1} nanos", sw.Elapsed.TotalMilliseconds * 1000000 / N);
+			Log($"Bench: JSON  decode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
 #endif
 		}
 

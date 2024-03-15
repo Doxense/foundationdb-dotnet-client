@@ -36,7 +36,7 @@ namespace Doxense.Tools.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class StringConvertersFacts : DoxenseTest
+	public class StringConvertersFacts : SimpleTest
 	{
 
 		[Test]

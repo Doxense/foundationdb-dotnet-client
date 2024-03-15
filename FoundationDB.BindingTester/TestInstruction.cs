@@ -1,4 +1,11 @@
-﻿
+﻿#region Copyright (c) 2023-2024 SnowBank SAS
+//
+// All rights are reserved. Reproduction or transmission in whole or in part, in
+// any form or by any means, electronic, mechanical or otherwise, is prohibited
+// without the prior written consent of the copyright owner.
+//
+#endregion
+
 namespace FoundationDB.Client.Testing
 {
 	using System;
@@ -18,7 +25,16 @@ namespace FoundationDB.Client.Testing
 
 		public string Command { get; init; }
 
-		public T? GetValue<T>() => this.Args.Count > 0 ? this.Args.Get<T>(0) : throw new InvalidOperationException($"Operation {this.Command} did not provide any argument");
+		[Flags]
+		public enum InstructionFlags
+		{
+			None = 0,
+			Database = 1 << 0,
+			Snapshot = 1 << 1,
+			Tenant = 1 << 2,
+			StartsWith = 1 << 3,
+			Selector = 1 << 4,
+		}
 
 		public TestInstruction(InstructionCode code, string cmd, IVarTuple? args, InstructionFlags flags)
 		{
@@ -27,6 +43,8 @@ namespace FoundationDB.Client.Testing
 			this.Command = cmd;
 			this.Args = args ?? STuple.Empty;
 		}
+
+		public T? GetValue<T>() => this.Args.Count > 0 ? this.Args.Get<T>(0) : throw new InvalidOperationException($"Operation {this.Command} did not provide any argument");
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsDatabase() => this.Flags.HasFlag(InstructionFlags.Database);
@@ -209,14 +227,19 @@ namespace FoundationDB.Client.Testing
 		public static TestInstruction UseTransaction() => new(InstructionCode.UseTransaction, "USE_TRANSACTION", null, InstructionFlags.None);
 
 		public static TestInstruction Get() => new(InstructionCode.Get, "GET", null, InstructionFlags.None);
+
 		public static TestInstruction GetDatabase() => new(InstructionCode.Get, "GET_DATABASE", null, InstructionFlags.Database);
+
 		public static TestInstruction GetSnapshot() => new(InstructionCode.Get, "GET_SNAPSHOT", null, InstructionFlags.Snapshot);
 
 		public static TestInstruction Set() => new(InstructionCode.Set, "SET", null, InstructionFlags.None);
+
 		public static TestInstruction SetDatabase() => new(InstructionCode.Set, "SET_DATABASE", null, InstructionFlags.Database);
 
 		public static TestInstruction Clear() => new(InstructionCode.Clear, "CLEAR", null, InstructionFlags.None);
+
 		public static TestInstruction ClearDatabase() => new(InstructionCode.Clear, "CLEAR_DATABASE", null, InstructionFlags.Database);
 
 	}
+
 }

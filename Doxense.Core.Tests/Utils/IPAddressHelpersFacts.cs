@@ -35,7 +35,7 @@ namespace Doxense.Networking.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class IPAddressHelpersFacts : DoxenseTest
+	public class IPAddressHelpersFacts : SimpleTest
 	{
 
 		[Test]

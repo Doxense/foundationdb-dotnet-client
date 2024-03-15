@@ -39,7 +39,7 @@ namespace Doxense.Core.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class Uuid64Facts : DoxenseTest
+	public class Uuid64Facts : SimpleTest
 	{
 		[Test]
 		public void Test_Uuid64_Empty()

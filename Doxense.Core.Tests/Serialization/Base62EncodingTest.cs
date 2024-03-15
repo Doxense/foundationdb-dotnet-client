@@ -32,7 +32,7 @@ namespace Doxense.Serialization.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class Base62EncodingTest : DoxenseTest
+	public class Base62EncodingTest : SimpleTest
 	{
 
 		[Test]

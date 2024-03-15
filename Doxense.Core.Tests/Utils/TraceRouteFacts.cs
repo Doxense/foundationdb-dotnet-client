@@ -37,7 +37,7 @@ namespace Doxense.Networking.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class TraceRouteFacts: DoxenseTest
+	public class TraceRouteFacts: SimpleTest
 	{
 
 		[Test]

@@ -32,7 +32,7 @@ namespace Doxense.Slices.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class SliceReaderFacts : DoxenseTest
+	public class SliceReaderFacts : SimpleTest
 	{
 
 		[Test]

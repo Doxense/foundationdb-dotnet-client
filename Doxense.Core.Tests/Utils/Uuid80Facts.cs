@@ -36,7 +36,7 @@ namespace Doxense.Core.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class Uuid80Facts : DoxenseTest
+	public class Uuid80Facts : SimpleTest
 	{
 		[Test]
 		public void Test_Uuid80_Empty()

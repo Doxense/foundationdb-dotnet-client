@@ -89,7 +89,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class CrystalJsonTest : DoxenseTest
+	public class CrystalJsonTest : SimpleTest
 	{
 
 		#region Settings...

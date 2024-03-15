@@ -38,7 +38,7 @@ namespace Doxense.IO.Tests
 	/// <summary>Actor that pushes messages around until a counter reaches 0</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class BitMapFacts : DoxenseTest
+	public class BitMapFacts : SimpleTest
 	{
 
 		[Test]

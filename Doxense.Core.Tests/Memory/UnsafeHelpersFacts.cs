@@ -35,7 +35,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public unsafe class UnsafeHelpersFacts : DoxenseTest
+	public unsafe class UnsafeHelpersFacts : SimpleTest
 	{
 
 		private static void Wipe(byte[] data)

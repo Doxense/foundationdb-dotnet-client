@@ -35,7 +35,7 @@ namespace Doxense.IO.Hashing.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class HighestRandomWeightHashFacts : DoxenseTest
+	public class HighestRandomWeightHashFacts : SimpleTest
 	{
 
 		[Test]

@@ -34,7 +34,7 @@ namespace Doxense.Runtime.Comparison.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	public class ModelComparerFacts : DoxenseTest
+	public class ModelComparerFacts : SimpleTest
 	{
 
 		private static void EnsureEqual<T>(string label, IEqualityComparer<T> cmp, T left, T right)
