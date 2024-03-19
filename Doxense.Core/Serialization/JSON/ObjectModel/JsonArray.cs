@@ -780,7 +780,7 @@ namespace Doxense.Serialization.Json
 		public override JsonValue this[int index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => m_items.AsSpan(0, m_size)[index];
+			get => GetValueOrDefault(index);
 			set
 			{
 				if (m_readOnly) ThrowCannotMutateReadOnlyObject();
@@ -794,7 +794,7 @@ namespace Doxense.Serialization.Json
 		public override JsonValue this[Index index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => m_items.AsSpan(0, m_size)[index];
+			get => GetValueOrDefault(index);
 			set
 			{
 				if (m_readOnly) ThrowCannotMutateReadOnlyObject();

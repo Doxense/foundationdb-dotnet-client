@@ -172,21 +172,21 @@ namespace Doxense.Serialization.Json
 		[AllowNull] // setter only
 		public override JsonValue this[int index]
 		{
-			get => JsonNull.Missing;
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
 		[AllowNull] // setter only
 		public override JsonValue this[Index key]
 		{
-			get => JsonNull.Missing;
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
 		[AllowNull] // setter only
 		public override JsonValue this[string key]
 		{
-			get => JsonNull.Missing;
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 

@@ -136,13 +136,16 @@ namespace Doxense.Serialization.Json
 			return base.Equals(value);
 		}
 
-		public override bool Equals(JsonValue? value) => value switch
+		public override bool Equals(JsonValue? value)
 		{
-			JsonBoolean b => Equals(b),
-			JsonNumber n => Equals(n),
-			JsonString s => Equals(s),
-			_ => false
-		};
+			return value switch
+			{
+				JsonBoolean b => Equals(b),
+				JsonNumber n => Equals(n),
+				JsonString s => Equals(s),
+				_ => false
+			};
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(JsonBoolean? obj) => obj is not null && obj.m_value == m_value;
