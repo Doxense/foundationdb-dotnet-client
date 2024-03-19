@@ -1158,8 +1158,6 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(json.Required<NodaTime.Duration>(), Is.EqualTo(duration));
 				Assert.That(json.As<NodaTime.Duration>(), Is.EqualTo(duration));
 			}
-
-			//TODO: autre types
 		}
 
 		[Test]
@@ -6100,7 +6098,7 @@ namespace Doxense.Serialization.Json.Tests
 				}
 				catch (Exception e1)
 				{
-					throw new FileNotFoundException("I'm missing a coin", fileName: "C:\\path\\to\\file.ext", innerException: e1);
+					throw new FileNotFoundException("I'm missing a coin", fileName: @"C:\path\to\file.ext", innerException: e1);
 				}
 			}
 			catch (Exception e2)
@@ -6112,20 +6110,19 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj, Is.Not.Null);
 			Dump(obj);
 
-			Assert.That(obj.Get<string>("ClassName"), Is.EqualTo("System.IO.FileNotFoundException"), ".ClassName");
-			Assert.That(obj.Get<string>("Message"), Is.EqualTo("I'm missing a coin"), ".Message");
-			Assert.That(obj.Get<string>("FileNotFound_FileName"), Is.EqualTo("C:\\path\\to\\file.ext"), ".Message");
-			Assert.That(obj.Get<string>("Source"), Is.EqualTo("Doxense.Core.Tests"), ".Source"); //note: assembly name
-			Assert.That(obj.Get<string>("StackTraceString"), Is.Not.Null.Or.Empty, ".StackTraceString");
-			Assert.That(obj.Get<int>("HResult"), Is.EqualTo(-2147024894), ".HResult");
+			Assert.That(obj["ClassName"], IsJson.EqualTo("System.IO.FileNotFoundException"));
+			Assert.That(obj["Message"], IsJson.EqualTo("I'm missing a coin"));
+			Assert.That(obj["FileNotFound_FileName"], IsJson.EqualTo(@"C:\path\to\file.ext"));
+			Assert.That(obj["Source"], IsJson.EqualTo("Doxense.Core.Tests")); //note: assembly name
+			Assert.That(obj["StackTraceString"], IsJson.Not.Empty);
+			Assert.That(obj["HResult"], IsJson.EqualTo(-2147024894));
 
 			var inner = obj.GetObject("InnerException");
-			Assert.That(inner, Is.Not.Null, ".InnerException");
-			Assert.That(inner.Get<string>("ClassName"), Is.EqualTo("System.InvalidOperationException"), "InnerException.ClassName");
-			Assert.That(inner.Get<string>("Message"), Is.EqualTo("Oh noes!"), "InnerException.Message");
-			Assert.That(inner.Get<string>("Source"), Is.EqualTo("Doxense.Core.Tests"), ".InnerException.Source"); //note: assembly name
-			Assert.That(inner.Get<string>("StackTraceString"), Is.Not.Null.Or.Empty, "InnerException.StackTraceString");
-			Assert.That(inner.Get<int>("HResult"), Is.EqualTo(-2146233079), ".HResult");
+			Assert.That(inner["ClassName"], IsJson.EqualTo("System.InvalidOperationException"));
+			Assert.That(inner["Message"], IsJson.EqualTo("Oh noes!"));
+			Assert.That(inner["Source"], IsJson.EqualTo("Doxense.Core.Tests")); //note: assembly name
+			Assert.That(inner["StackTraceString"], IsJson.Not.Empty);
+			Assert.That(inner["HResult"], IsJson.EqualTo(-2146233079));
 		}
 
 		[Test]
@@ -6201,8 +6198,8 @@ namespace Doxense.Serialization.Json.Tests
 			p = obj.Pick([ "Id", "Name" ]);
 			Assert.That(p, Is.Not.Null.And.Not.SameAs(obj));
 			DumpCompact(p);
-			Assert.That(p.Get<int>("Id"), Is.EqualTo(1));
-			Assert.That(p.Get<string>("Name"), Is.EqualTo("Walter White"));
+			Assert.That(p["Id"], IsJson.EqualTo(1));
+			Assert.That(p["Name"], IsJson.EqualTo("Walter White"));
 			Assert.That(p.Count, Is.EqualTo(2));
 			// l'original ne doit pas être modifié
 			Assert.That(obj.Count, Is.EqualTo(5));
@@ -6210,20 +6207,20 @@ namespace Doxense.Serialization.Json.Tests
 			p = obj.Pick([ "Id" ]);
 			Assert.That(p, Is.Not.Null.And.Not.SameAs(obj));
 			DumpCompact(p);
-			Assert.That(p.Get<int>("Id"), Is.EqualTo(1));
+			Assert.That(p["Id"], IsJson.EqualTo(1));
 			Assert.That(p.Count, Is.EqualTo(1));
 
 			p = obj.Pick([ "Id", "NotFound" ]);
 			Assert.That(p, Is.Not.Null.And.Not.SameAs(obj));
 			DumpCompact(p);
-			Assert.That(p.Get<int>("Id"), Is.EqualTo(1));
+			Assert.That(p["Id"], IsJson.EqualTo(1));
 			Assert.That(p.ContainsKey("NotFound"), Is.False);
 			Assert.That(p.Count, Is.EqualTo(1));
 
 			p = obj.Pick([ "Id", "NotFound" ], keepMissing: true);
 			Assert.That(p, Is.Not.Null.And.Not.SameAs(obj));
 			DumpCompact(p);
-			Assert.That(p.Get<int>("Id"), Is.EqualTo(1));
+			Assert.That(p["Id"], IsJson.EqualTo(1));
 			Assert.That(p.ContainsKey("NotFound"), Is.True);
 			Assert.That(p["NotFound"], Is.EqualTo(JsonNull.Missing));
 			Assert.That(p.Count, Is.EqualTo(2));
@@ -6237,7 +6234,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(p, Is.Not.Null.And.Not.SameAs(obj));
 			DumpCompact(p);
 			Assert.That(p.ContainsKey("NotFound"), Is.True);
-			Assert.That(p["NotFound"], Is.EqualTo(JsonNull.Missing));
+			Assert.That(p["NotFound"], IsJson.Missing);
 			Assert.That(p.Count, Is.EqualTo(1));
 		}
 
@@ -6956,11 +6953,29 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(top["true"], IsJson.Not.False);
 
 			Assert.That(obj["str"], IsJson.Not.EqualTo(123));
-
+			Assert.That(obj["str"], IsJson.Not.Boolean.Or.Number);
+			Assert.That(obj["str"], IsJson.GreaterThan("worlc"));
+			Assert.That(obj["str"], IsJson.GreaterThanOrEqualTo("world"));
+			Assert.That(obj["str"], IsJson.LessThan("worle"));
+			Assert.That(obj["str"], IsJson.LessThanOrEqualTo("world"));
 			Assert.That(() => Assert.That(obj["str"], IsJson.EqualTo("something_else")), Throws.InstanceOf<AssertionException>());
+			Assert.That(() => Assert.That(obj["str"], IsJson.GreaterThan("world")), Throws.InstanceOf<AssertionException>());
+			Assert.That(() => Assert.That(obj["str"], IsJson.LessThan("world")), Throws.InstanceOf<AssertionException>());
+
+			Assert.That(obj["int"], IsJson.GreaterThan(41));
+			Assert.That(obj["int"], IsJson.GreaterThanOrEqualTo(42));
+			Assert.That(obj["int"], IsJson.LessThan(43));
+			Assert.That(obj["int"], IsJson.LessThanOrEqualTo(42));
 			Assert.That(() => Assert.That(obj["int"], IsJson.EqualTo(123)), Throws.InstanceOf<AssertionException>());
+			Assert.That(() => Assert.That(obj["int"], IsJson.GreaterThan(42)), Throws.InstanceOf<AssertionException>());
+			Assert.That(() => Assert.That(obj["int"], IsJson.LessThan(42)), Throws.InstanceOf<AssertionException>());
+
 			Assert.That(() => Assert.That(obj["true"], IsJson.False), Throws.InstanceOf<AssertionException>());
 			Assert.That(() => Assert.That(obj["false"], IsJson.True), Throws.InstanceOf<AssertionException>());
+
+			Assert.That(() => Assert.That(obj["str"], IsJson.Not.String), Throws.InstanceOf<AssertionException>());
+			Assert.That(() => Assert.That(obj["str"], IsJson.String.And.Number), Throws.InstanceOf<AssertionException>());
+			Assert.That(() => Assert.That(obj["str"], IsJson.Boolean.Or.Number), Throws.InstanceOf<AssertionException>());
 		}
 
 		#endregion
@@ -7318,46 +7333,45 @@ namespace Doxense.Serialization.Json.Tests
 			var obj = JsonValue.Parse(jsonText);
 			Assert.That(obj, Is.Not.Null, jsonText);
 			Assert.That(obj, Is.InstanceOf<JsonObject>(), jsonText);
-			var parsed = (JsonObject) obj;
-			Assert.That(parsed.Count, Is.EqualTo(0), jsonText + ".Count");
+			var parsed = obj.AsObject();
+			Assert.That(parsed, Has.Count.EqualTo(0));
 
 			jsonText = "{ }";
 			parsed = JsonValue.ParseObject(jsonText);
 			Assert.That(parsed, Is.Not.Null, jsonText);
-			Assert.That(parsed.Count, Is.EqualTo(0), jsonText + ".Count");
+			Assert.That(parsed, Has.Count.EqualTo(0));
 			Assert.That(parsed, Is.EqualTo(JsonObject.Create()), jsonText);
 
 			jsonText = @"{ ""Name"":""James Bond"" }";
 			obj = JsonValue.Parse(jsonText);
 			Assert.That(obj, Is.InstanceOf<JsonObject>(), jsonText);
-			parsed = (JsonObject) obj;
+			parsed = obj.AsObject();
 			Assert.That(parsed, Is.Not.Null, jsonText);
-			Assert.That(parsed.Count, Is.EqualTo(1), jsonText + ".Count");
-			Assert.That(parsed.ContainsKey("Name"), Is.True, jsonText + ".Name?");
-			Assert.That(parsed["Name"], Is.EqualTo(JsonString.Return("James Bond")), jsonText + ".Name");
+			Assert.That(parsed, Has.Count.EqualTo(1));
+			Assert.That(parsed.ContainsKey("Name"), Is.True);
+			Assert.That(parsed["Name"], IsJson.EqualTo("James Bond"));
 
 			jsonText = @"{ ""Id"":7, ""Name"":""James Bond"", ""IsDeadly"":true }";
 			parsed = JsonValue.ParseObject(jsonText);
-			Assert.That(parsed.Count, Is.EqualTo(3), jsonText + ".Count");
-			Assert.That(parsed["Name"], Is.EqualTo(JsonString.Return("James Bond")), jsonText + ".Name");
-			Assert.That(parsed["Id"], Is.EqualTo(JsonNumber.Return(7)), jsonText + ".Id");
-			Assert.That(parsed["IsDeadly"], Is.EqualTo(JsonBoolean.True), jsonText + ".IsDeadly");
+			Assert.That(parsed, Has.Count.EqualTo(3));
+			Assert.That(parsed["Name"], IsJson.EqualTo("James Bond"));
+			Assert.That(parsed["Id"], IsJson.EqualTo(7));
+			Assert.That(parsed["IsDeadly"], IsJson.True);
 
 			jsonText = @"{ ""Id"":7, ""Name"":""James Bond"", ""IsDeadly"":true, ""Created"":""\/Date(-52106400000+0200)\/"", ""Weapons"":[{""Name"":""Walter PPK""}] }";
 			parsed = JsonValue.ParseObject(jsonText);
-			Assert.That(parsed.Count, Is.EqualTo(5), jsonText + ".Count");
-			Assert.That(parsed["Name"], Is.EqualTo(JsonString.Return("James Bond")), jsonText + ".Name");
-			Assert.That(parsed["Id"], Is.EqualTo(JsonNumber.Return(7)), jsonText + ".Id");
-			Assert.That(parsed["IsDeadly"], Is.EqualTo(JsonBoolean.True), jsonText + ".IsDeadly");
-			//Assert.That(parsed["Created"], Is.EqualTo(new JsonDateTime(1968, 5, 8)), jsonText + ".Created"));
-			Assert.That(parsed["Created"], Is.EqualTo(JsonString.Return("/Date(-52106400000+0200)/")), jsonText + ".Created"); //BUGBUG
-			Assert.That(parsed.ContainsKey("Weapons"), Is.True, jsonText + ".Weapons");
+			Assert.That(parsed, Has.Count.EqualTo(5));
+			Assert.That(parsed["Name"], IsJson.EqualTo("James Bond"));
+			Assert.That(parsed["Id"], IsJson.EqualTo(7));
+			Assert.That(parsed["IsDeadly"], IsJson.True);
+			Assert.That(parsed["Created"], IsJson.EqualTo("/Date(-52106400000+0200)/")); //BUGBUG
+			Assert.That(parsed.ContainsKey("Weapons"), Is.True);
 			var weapons = parsed.GetArray("Weapons");
-			Assert.That(weapons, Is.Not.Null, jsonText + ".Weapons");
-			Assert.That(weapons.Count, Is.EqualTo(1), jsonText + ".Weapons.Count");
-			var weapon = (JsonObject) weapons[0];
-			Assert.That(weapon, Is.Not.Null, jsonText + ".Weapons[0]");
-			Assert.That(weapon["Name"], Is.EqualTo(JsonString.Return("Walter PPK")), jsonText + ".Weapons[0].Name");
+			Assert.That(weapons, Is.Not.Null);
+			Assert.That(weapons, Has.Count.EqualTo(1));
+			var weapon = weapons.GetObject(0);
+			Assert.That(weapon, Is.Not.Null);
+			Assert.That(weapon["Name"], IsJson.EqualTo("Walter PPK"));
 
 			// incomplete
 			Assert.That(() => JsonValue.Parse(@"{""foo""}"), Throws.InstanceOf<JsonSyntaxException>(), "Missing property separator");
