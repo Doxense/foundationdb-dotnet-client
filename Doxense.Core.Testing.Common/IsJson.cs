@@ -91,6 +91,9 @@ namespace SnowBank.Testing
 		/// <remarks>Supports Objects, Arrays and Strings.</remarks>
 		public static JsonConstraint Empty => new JsonEmptyConstraint();
 
+		/// <summary>Assert that the value is read-only.</summary>
+		public static JsonConstraint ReadOnly => new JsonReadOnlyConstraint();
+
 		#region JsonValue...
 		
 		/// <summary>Assert that the value is a JSON Value equal to the expected value</summary>
@@ -540,6 +543,48 @@ namespace SnowBank.Testing
 
 		}
 
+		internal sealed class JsonReadOnlyConstraint : JsonConstraint
+		{
+
+			public override ConstraintResult ApplyTo<TActual>(TActual actual)
+			{
+				return ((object?) actual) switch
+				{
+					null => new JsonReadOnlyConstraintResult(this, JsonNull.Null, true),
+					JsonValue val => new JsonReadOnlyConstraintResult(this, val, val.IsReadOnly),
+					_ => throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual)),
+				};
+			}
+
+			public override string Description => "<read-only>";
+
+			public class JsonReadOnlyConstraintResult : ConstraintResult
+			{
+
+				public JsonValue ActualJsonValue { get; }
+
+				public JsonReadOnlyConstraintResult(JsonReadOnlyConstraint constraint, JsonValue actual, bool hasSucceeded)
+					: base(constraint, actual, hasSucceeded)
+				{
+					this.ActualJsonValue = actual;
+				}
+
+				public override void WriteMessageTo(MessageWriter writer)
+				{
+					if (this.IsSuccess)
+					{
+						base.WriteMessageTo(writer);
+						return;
+					}
+
+					writer.WriteMessageLine("Expected: <read-only>");
+					writer.Write("  But was:  <mutable>");
+					writer.WriteActualValue(this.ActualJsonValue.ToJsonCompact());
+				}
+			}
+
+		}
+
 		internal sealed class JsonNotConstraint : PrefixConstraint
 		{
 
@@ -739,6 +784,9 @@ namespace SnowBank.Testing
 			/// <summary>Assert that the value is empty</summary>
 			/// <remarks>Supports Objects, Arrays and Strings.</remarks>
 			public JsonConstraintExpression Empty => this.Append(new JsonEmptyConstraint());
+
+			/// <summary>Assert that the value is read-only.</summary>
+			public JsonConstraintExpression ReadOnly => this.Append(new JsonReadOnlyConstraint());
 
 			/// <summary>Assert that the value is <see cref="JsonBoolean.False"/></summary>
 			public JsonConstraintExpression False => AddEqualConstraint(JsonBoolean.False);

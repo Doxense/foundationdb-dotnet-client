@@ -6975,6 +6975,19 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(() => Assert.That(obj["str"], IsJson.Not.String), Throws.InstanceOf<AssertionException>());
 			Assert.That(() => Assert.That(obj["str"], IsJson.String.And.Number), Throws.InstanceOf<AssertionException>());
 			Assert.That(() => Assert.That(obj["str"], IsJson.Boolean.Or.Number), Throws.InstanceOf<AssertionException>());
+
+			Assert.That(JsonString.Return("hello world"), IsJson.ReadOnly);
+			Assert.That(JsonNumber.Return(42), IsJson.ReadOnly);
+			Assert.That(JsonBoolean.True, IsJson.ReadOnly);
+			Assert.That(JsonNull.Null, IsJson.ReadOnly);
+			Assert.That(JsonObject.EmptyReadOnly, IsJson.ReadOnly);
+			Assert.That(new JsonObject(), IsJson.Not.ReadOnly);
+			Assert.That(new JsonObject().ToReadOnly(), IsJson.ReadOnly);
+			Assert.That(JsonArray.EmptyReadOnly, IsJson.ReadOnly);
+			Assert.That(new JsonArray(), IsJson.Not.ReadOnly);
+			Assert.That(new JsonArray().ToReadOnly(), IsJson.ReadOnly);
+			Assert.That(() => Assert.That(new JsonArray(), IsJson.ReadOnly), Throws.InstanceOf<AssertionException>());
+			Assert.That(() => Assert.That(JsonArray.EmptyReadOnly, IsJson.Not.ReadOnly), Throws.InstanceOf<AssertionException>());
 		}
 
 		#endregion
