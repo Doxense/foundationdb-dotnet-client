@@ -39,8 +39,10 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using JetBrains.Annotations;
 	using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 	using ContractAnnotationAttribute = JetBrains.Annotations.ContractAnnotationAttribute;
 	using UsedImplicitlyAttribute = JetBrains.Annotations.UsedImplicitlyAttribute;
@@ -219,7 +221,7 @@ namespace Doxense.Serialization.Json
 			var map = new Dictionary<string, JsonValue>(items.Count, items.Comparer);
 			foreach (var item in items)
 			{
-				var child = item.Value.Copy(deep: true, readOnly: true);
+				var child = item.Value.ToReadOnly();
 #if DEBUG
 				Contract.Debug.Assert(child.IsReadOnly);
 #endif
@@ -227,6 +229,7 @@ namespace Doxense.Serialization.Json
 			}
 			return new(map, readOnly: true);
 		}
+
 
 		/// <summary>Convert this JSON Object so that it, or any of its children that were previously read-only, can be mutated.</summary>
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
@@ -920,6 +923,294 @@ namespace Doxense.Serialization.Json
 			Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
 			// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
+		}
+
+		private static void MakeReadOnly(Dictionary<string, JsonValue> items)
+		{
+			foreach (var kv in items)
+			{
+				if (!kv.Value.IsReadOnly)
+				{
+					items[kv.Key] = kv.Value.ToReadOnly();
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this object with an additional item</summary>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, an exception will be thrown.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, an exception will be thrown.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public JsonObject CopyAndAdd(string key, JsonValue? value)
+		{
+			// copy and add the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+			items.Add(key, value?.ToReadOnly() ?? JsonNull.Null);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Replaces a published JSON Object with a new version with an added field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Object</param>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, an exception will be thrown.</param>
+		/// <param name="value">Value of the field to add</param>
+		/// <returns>New published JSON Object, that includes the new field.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Object with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonObject CopyAndAdd(ref JsonObject original, string key, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndAdd(key, value);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndAddSpin(ref original, key, value);
+
+			static JsonObject CopyAndAddSpin(ref JsonObject original, string key, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndAdd(key, value);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this object with an additional item</summary>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, the method will return <see langword="false"/>.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <param name="copy">Receives a new instance with the same content of the original object, plus the additional item</param>
+		/// <returns><see langword="true"/> if the field was added, or <see langword="false"/> if there was already a field with the same name.</returns>
+		/// <remarks>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public bool TryCopyAndAdd(string key, JsonValue? value, [MaybeNullWhen(false)] out JsonObject copy)
+		{
+			if (m_items.ContainsKey(key))
+			{
+				copy = null;
+				return false;
+			}
+
+			// copy and add the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+			items.Add(key, value?.ToReadOnly() ?? JsonNull.Null);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			copy = new (items, readOnly: true);
+			return true;
+		}
+
+		/// <summary>Returns a new read-only copy of this object, with an additional field</summary>
+		/// <param name="key">Name of the field to set. If a field with the same name already exists, its previous value will be overwritten.</param>
+		/// <param name="value">Value of the new field</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, its value will be overwritten.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public JsonObject CopyAndSet(string key, JsonValue? value)
+		{
+			// copy and set the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+			items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Replaces a published JSON Object with a new version with an added field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Object</param>
+		/// <param name="key">Name of the field to set. If a field with the same name already exists, its previous value will be overwritten.</param>
+		/// <param name="value">Value of the field.</param>
+		/// <returns>New published JSON Object, that includes the new field.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Object with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonObject CopyAndSet(ref JsonObject original, string key, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndSet(key, value);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndSetSpin(ref original, key, value);
+
+			static JsonObject CopyAndSetSpin(ref JsonObject original, string key, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndSet(key, value);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this object, with an additional field</summary>
+		/// <param name="key">Name of the new field</param>
+		/// <param name="value">Value of the new field</param>
+		/// <param name="previous">If the field was already present, receives its previous value. If not, receives <see langword="null"/>.</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, its value will be overwritten and the previous value will be stored in <see cref="previous"/>.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public JsonObject CopyAndSet(string key, JsonValue? value, out JsonValue? previous)
+		{
+			var items = new Dictionary<string, JsonValue>(m_items);
+
+			// get the previous value if it exists
+			items.TryGetValue(key, out previous);
+			// set the new value
+			items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specifield item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(string key)
+		{
+			var items = m_items;
+			if (!items.ContainsKey(key))
+			{ // the key does not exist so there will be no changes
+				return m_readOnly ? this : ToReadOnly();
+			}
+
+			if (items.Count == 1)
+			{ // we already now key is contained in the object, so if its the only one, the object will become empty.
+				return EmptyReadOnly;
+			}
+
+			// copy and remove
+			items = new(items);
+			items.Remove(key);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specifield item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <param name="previous"></param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(string key, out JsonValue? previous)
+		{
+			var items = m_items;
+			if (!items.TryGetValue(key, out previous))
+			{ // the key does not exist so there will be no changes
+				return m_readOnly ? this : ToReadOnly();
+			}
+
+			if (items.Count == 1)
+			{ // we already now key is contained in the object, so if its the only one, the object will become empty.
+				return EmptyReadOnly;
+			}
+
+			// copy and remove
+			items = new(items);
+			items.Remove(key);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Replaces a published JSON Object with a new version without the specified field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Object</param>
+		/// <param name="key">Name of the field to remove. If the field was not present, the object will not be changed.</param>
+		/// <returns>New published JSON Object without the field, or the original object if the was not present.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Object with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonObject CopyAndRemove(ref JsonObject original, string key)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndRemove(key);
+			if (ReferenceEquals(copy, snapshot))
+			{ // the field did not exist
+				return snapshot;
+			}
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndRemoveSpin(ref original, key);
+
+			static JsonObject CopyAndRemoveSpin(ref JsonObject original, string key)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndRemove(key);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
 		}
 
 		#region AddRange...

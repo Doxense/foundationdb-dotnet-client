@@ -6409,6 +6409,172 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(original.GetArray("bar"), Has.Count.EqualTo(3));
 		}
 
+		[Test]
+		public void Test_JsonObject_CopyAndMutate()
+		{
+			// Test the "builder" API that can simplify making changes to a read-only object and publishing the new instance.
+			// All methods will create return a new copy of the original, with the mutation applied, leaving the original untouched.
+			// The new read-only copy should reuse the same JsonValue instances as the original, to reduce memory copies.
+
+			var obj = JsonObject.EmptyReadOnly;
+			Assume.That(obj, IsJson.Empty);
+			Assume.That(obj, IsJson.ReadOnly);
+			Assume.That(obj["hello"], IsJson.Missing);
+			DumpCompact(obj);
+
+			// copy and add first field
+			var obj2 = obj.CopyAndAdd("hello", "world");
+			DumpCompact(obj2);
+			Assert.That(obj2, Is.Not.SameAs(obj));
+			Assert.That(obj2, Has.Count.EqualTo(1));
+			Assert.That(obj2, IsJson.ReadOnly);
+			Assert.That(obj2["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj, IsJson.Empty);
+			Assert.That(obj["hello"], IsJson.Missing);
+
+			// copy and set second field
+			var obj3 = obj2.CopyAndSet("foo", "bar");
+			DumpCompact(obj3);
+			Assert.That(obj3, Is.Not.SameAs(obj2));
+			Assert.That(obj3, Has.Count.EqualTo(2));
+			Assert.That(obj3, IsJson.ReadOnly);
+			Assert.That(obj3["hello"], Is.SameAs(obj2["hello"]));
+			Assert.That(obj3["foo"], IsJson.EqualTo("bar"));
+			Assert.That(obj2, Has.Count.EqualTo(1));
+			Assert.That(obj2["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj2["foo"], IsJson.Missing);
+			Assert.That(obj, IsJson.Empty);
+
+			// copy and add existing field should fail
+			Assert.That(() => obj3.CopyAndAdd("foo", "baz"), Throws.ArgumentException.With.Message.Contains("foo"));
+			Assert.That(obj3, Has.Count.EqualTo(2));
+			Assert.That(obj3["foo"], IsJson.EqualTo("bar"));
+
+			// copy and set should overwrite existing field
+			var obj4 = obj3.CopyAndSet("foo", "baz");
+			DumpCompact(obj4);
+			Assert.That(obj4, Is.Not.SameAs(obj3));
+			Assert.That(obj4, Has.Count.EqualTo(2));
+			Assert.That(obj4, IsJson.ReadOnly);
+			Assert.That(obj4["hello"], Is.EqualTo("world").And.SameAs(obj3["hello"]));
+			Assert.That(obj4["foo"], IsJson.EqualTo("baz"));
+			Assert.That(obj3, Has.Count.EqualTo(2));
+			Assert.That(obj3["hello"], Is.EqualTo("world").And.SameAs(obj2["hello"]));
+			Assert.That(obj3["foo"], IsJson.EqualTo("bar"));
+			Assert.That(obj2, Has.Count.EqualTo(1));
+			Assert.That(obj2["hello"], Is.EqualTo("world"));
+			Assert.That(obj2["foo"], IsJson.Missing);
+			Assert.That(obj, IsJson.Empty);
+			Assert.That(obj["foo"], IsJson.Missing);
+
+			// copy and remove
+			var obj5 = obj4.CopyAndRemove("hello");
+			DumpCompact(obj5);
+			Assert.That(obj5, Is.Not.SameAs(obj4));
+			Assert.That(obj5, Has.Count.EqualTo(1));
+			Assert.That(obj5, IsJson.ReadOnly);
+			Assert.That(obj5["hello"], IsJson.Missing);
+			Assert.That(obj5["foo"], IsJson.EqualTo("baz"));
+			Assert.That(obj4, Has.Count.EqualTo(2));
+			Assert.That(obj4["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj4["foo"], IsJson.EqualTo("baz"));
+			Assert.That(obj3, Has.Count.EqualTo(2));
+			Assert.That(obj3["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj3["foo"], IsJson.EqualTo("bar"));
+			Assert.That(obj2, Has.Count.EqualTo(1));
+			Assert.That(obj2["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj2["foo"], IsJson.Missing);
+			Assert.That(obj, IsJson.Empty);
+			Assert.That(obj["foo"], IsJson.Missing);
+
+			// copy and try remove last field
+			var obj6 = obj5.CopyAndRemove("foo", out var prev);
+			DumpCompact(obj6);
+			Assert.That(obj6, Is.Not.SameAs(obj5));
+			Assert.That(obj6, Is.Empty);
+			Assert.That(obj6, IsJson.ReadOnly);
+			Assert.That(obj6["hello"], IsJson.Missing);
+			Assert.That(obj6["foo"], IsJson.Missing);
+			Assert.That(obj6, Is.SameAs(JsonObject.EmptyReadOnly));
+			Assert.That(prev, Is.SameAs(obj5["foo"]));
+			Assert.That(obj5, Has.Count.EqualTo(1));
+			Assert.That(obj5["hello"], IsJson.Missing);
+			Assert.That(obj5["foo"], IsJson.EqualTo("baz"));
+			Assert.That(obj4, Has.Count.EqualTo(2));
+			Assert.That(obj4["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj4["foo"], IsJson.EqualTo("baz"));
+			Assert.That(obj3, Has.Count.EqualTo(2));
+			Assert.That(obj3["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj3["foo"], IsJson.EqualTo("bar"));
+			Assert.That(obj2, Has.Count.EqualTo(1));
+			Assert.That(obj2["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj2["foo"], IsJson.Missing);
+			Assert.That(obj, IsJson.Empty);
+			Assert.That(obj["foo"], IsJson.Missing);
+
+		}
+
+		[Test]
+		public async Task Test_JsonObject_CopyAndPublish()
+		{
+			var prev = JsonObject.EmptyReadOnly;
+
+			JsonObject published = prev;
+
+			var obj = JsonObject.CopyAndAdd(ref published, "hello", "world");
+			Assert.That(obj, Is.SameAs(published));
+			Assert.That(published, Is.Not.SameAs(prev));
+			Assert.That(obj, IsJson.ReadOnly);
+			Assert.That(obj["hello"], IsJson.EqualTo("world"));
+
+			prev = published;
+			obj = JsonObject.CopyAndSet(ref published, "foo", "bar");
+			Assert.That(obj, Is.SameAs(published));
+			Assert.That(published, Is.Not.SameAs(prev));
+			Assert.That(obj, IsJson.ReadOnly);
+			Assert.That(obj["hello"], IsJson.EqualTo("world"));
+			Assert.That(obj["foo"], IsJson.EqualTo("bar"));
+			Assert.That(prev["foo"], IsJson.Missing);
+
+			// attempts to verify the thread safety by spinnig N threads that will all add M fields, and checking that the result is an object with N x M unique fields
+
+			published = JsonObject.EmptyReadOnly;
+
+			var go = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+			const int N = 10;
+			const int M = 100;
+
+			var keys = Enumerable.Range(0, N).Select(idx => Enumerable.Range(0, M).Select(i => $"{idx}_{i}").ToArray()).ToArray();
+
+			var workers = keys.Select(async row =>
+			{
+				// precompute a maximum so that we can ensure the most contention between threads!
+				await go.Task.ConfigureAwait(false);
+				var value = JsonBoolean.True;
+				foreach(var key in row)
+				{
+					JsonObject.CopyAndAdd(ref published, key, value);
+				}
+			}).ToList();
+
+			go.TrySetResult();
+
+			await WhenAll(workers, TimeSpan.FromSeconds(30));
+			// Ensure that all the keys and values are accounted for.
+			Assert.That(published, Has.Count.EqualTo(N * M));
+			foreach (var row in keys)
+			{
+				foreach (var key in row)
+				{
+					if (!published.ContainsKey(key))
+					{
+						Dump(published);
+						Assert.That(published, Does.ContainKey(key));
+					}
+				}
+			}
+		}
+
 		#endregion
 
 		[Test]
