@@ -29,8 +29,8 @@ namespace Doxense.Serialization.Json.Tests
 	using System;
 	using System.Linq.Expressions;
 	using Doxense.Serialization.Json.JsonPath;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

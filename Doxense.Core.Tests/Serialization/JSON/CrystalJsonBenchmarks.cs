@@ -45,11 +45,11 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Threading;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Runtime;
-	using Doxense.Testing;
 #if ENABLE_NEWTONSOFT
 	using NJ = Newtonsoft.Json;
 #endif
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

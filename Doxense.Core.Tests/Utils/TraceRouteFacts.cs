@@ -32,8 +32,8 @@ namespace Doxense.Networking.Tests
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
 	using System.Threading.Tasks;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

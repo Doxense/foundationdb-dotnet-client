@@ -34,8 +34,8 @@ namespace Doxense.Text.Utf8.Tests
 	using System.Linq;
 	using System.Text;
 	using Doxense.Memory.Text;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

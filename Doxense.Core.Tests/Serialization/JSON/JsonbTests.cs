@@ -35,8 +35,8 @@ namespace Doxense.Serialization.Json.Binary.Tests
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO.Compression;
 	using System.Linq;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

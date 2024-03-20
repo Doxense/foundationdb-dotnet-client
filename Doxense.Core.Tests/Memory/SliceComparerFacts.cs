@@ -28,8 +28,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 {
 	using System;
 	using System.Text;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

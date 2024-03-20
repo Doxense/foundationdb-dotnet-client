@@ -32,8 +32,8 @@ namespace Doxense.Web.Tests
 	using System.Linq;
 	using System.Text;
 	using System.Web;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	/// <summary>Tests sur la classe statique KTL</summary>
 	[TestFixture]

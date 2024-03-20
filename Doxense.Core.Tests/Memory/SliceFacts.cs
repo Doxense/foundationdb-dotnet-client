@@ -42,7 +42,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
-	using Doxense.Testing;
+	using SnowBank.Testing;
 	using static Doxense.Testing.TestVariables;
 
 	[TestFixture]

@@ -40,8 +40,8 @@ namespace Doxense.Linq.Async.Tests
 	using Doxense.Async;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

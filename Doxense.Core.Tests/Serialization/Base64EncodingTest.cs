@@ -30,8 +30,8 @@ namespace Doxense.Serialization.Tests
 	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

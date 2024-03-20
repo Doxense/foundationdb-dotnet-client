@@ -31,8 +31,8 @@ namespace Doxense.Mathematics.Test
 	using System;
 	using System.Globalization;
 	using Doxense.Mathematics.Statistics;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

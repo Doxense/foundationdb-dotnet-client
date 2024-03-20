@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Testing
+namespace SnowBank.Testing
 {
 	using System;
 	using System.IO;
@@ -66,6 +66,6 @@ namespace Doxense.Testing
 			}
 		}
 
-
 	}
+
 }

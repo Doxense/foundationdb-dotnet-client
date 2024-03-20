@@ -25,7 +25,7 @@
 #endregion
 
 // ReSharper disable MemberHidesStaticFromOuterClass
-namespace Snowbank.Testing
+namespace SnowBank.Testing
 {
 	using System;
 	using System.Collections.Generic;

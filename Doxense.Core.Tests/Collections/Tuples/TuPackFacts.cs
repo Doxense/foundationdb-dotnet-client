@@ -37,8 +37,8 @@ namespace Doxense.Collections.Tuples.Tests
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics;
 	using Doxense.Serialization;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]
