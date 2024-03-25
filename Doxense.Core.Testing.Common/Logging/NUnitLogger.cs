@@ -132,10 +132,7 @@ namespace Doxense
 
 			System.Diagnostics.Debug.WriteLine(text);
 
-			if (logLevel >= LogLevel.Error)
-			{
-				this.Options.ErrorHandler?.Invoke(logLevel, text);
-			}
+			this.Options.MessageHandler?.Invoke((logLevel, logName, eventId, message, exception));
 
 			logBuilder.Clear();
 			if (logBuilder.Capacity > 1024)

@@ -61,8 +61,9 @@ namespace Doxense
 		/// <summary>If true, outputs only the class name (ex: "Foo"). If false, outputs the full name (ex: "Acme.Frobs.Stuff.Foo")</summary>
 		public bool UseShortName { get; set; } = true;
 
-		/// <summary>Custom handler called for log with level <see cref="LogLevel">Error</see> or higher</summary>
-		public Action<LogLevel, string>? ErrorHandler { get; set; }
+		/// <summary>Optional handler called for each log entry</summary>
+		/// <remarks>The handler should not block the calling thread!</remarks>
+		public Action<(LogLevel Level, string LogName, int EventId, string? Message, Exception? Exception)>? MessageHandler { get; set; }
 
 	}
 
