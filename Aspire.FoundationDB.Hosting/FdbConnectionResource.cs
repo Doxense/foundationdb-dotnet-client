@@ -27,6 +27,10 @@ namespace Aspire.Hosting.ApplicationModel
 
 		public Version? ClusterVersion { get; set; }
 
+		public string? NativeLibraryPath { get; set; }
+
+		public bool DisableNativePreloading { get; set; }
+
 		//TODO: more options? Debug? TraceId? Timeout? ....
 
 		public string? GetConnectionString()

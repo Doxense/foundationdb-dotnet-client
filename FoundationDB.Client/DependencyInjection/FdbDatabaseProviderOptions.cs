@@ -35,6 +35,7 @@ namespace FoundationDB.DependencyInjection
 	public sealed class FdbDatabaseProviderOptions
 	{
 
+		/// <summary>Selected API Version</summary>
 		public int ApiVersion { get; set; }
 
 		public FdbConnectionOptions ConnectionOptions { get; set;} = new FdbConnectionOptions();
@@ -55,6 +56,14 @@ namespace FoundationDB.DependencyInjection
 		/// </remarks>
 		public bool AutoStop { get; set; }
 		//note: for now it is opt-in, because it would break all unit tests.
+
+		/// <summary>Overrides the path to the native library (aka "fdb_c.dll", "fdb_c.so", ...) that must be used.</summary>
+		/// <remarks>
+		/// <para>If <see langword="null"/>, pre-loading of the native C API library will be disabled, and the CLR will handle the binding of the library.</para>
+		/// <para>If <see cref="string.Empty">empty</see>, pre-loading of the native C API library will be enabled, and the operating system will handle the binding of the library.</para>
+		/// <para>If not empty, the native C API library will be pre-loaded using the specified path. If the file does not exist, is not readable, or is corrupted, the startup will fail.</para>
+		/// </remarks>
+		public string? NativeLibraryPath { get; set; } = string.Empty;
 
 		/// <summary>If not null, log handler that will be applied to all transactions</summary>
 		public Action<FdbTransactionLog>? DefaultLogHandler { get; set; }

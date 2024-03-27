@@ -35,6 +35,10 @@ namespace Aspire.Hosting.ApplicationModel
 
 		public required string DockerTag { get; set; }
 
+		public string? NativeLibraryPath { get; set; }
+
+		public bool DisableNativePreloading { get; set; }
+
 		public FdbPath Root { get; set; } = FdbPath.Root;
 
 		public string? ClusterDescription { get; set; } = "docker";
@@ -141,6 +145,14 @@ namespace Aspire.Hosting.ApplicationModel
 				["ClusterVersion"] = this.ClusterVersion.ToString(),
 				//TODO: more options? Debug? TraceId? Timeout? ...
 			};
+			if (this.DisableNativePreloading)
+			{
+				builder["DisableNativePreloading"] = true;
+			}
+			else if (!string.IsNullOrEmpty(this.NativeLibraryPath))
+			{
+				builder["NativeLibrary"] = this.NativeLibraryPath;
+			}
 			return builder.ConnectionString;
 		}
 

@@ -281,6 +281,21 @@ namespace Aspire.Hosting
 			return builder;
 		}
 
+		/// <summary>Specifies the path to the native FoundationDB C library that should be used by the application</summary>
+		/// <param name="builder">FDB cluster builder</param>
+		/// <param name="nativeLibraryPath">Path to the library on the host. The path may be rewritten if required.</param>
+		/// <remarks>
+		/// <para>This should only be used for local developement, or very specific deployments where the application must use a very specific build of the native library.</para>
+		/// <para>The file must be present on the host. If a project that references this resource runs inside a Docker image, the path may be rewritten to where the library was copied inside the container image.</para>
+		/// </remarks>
+		public static IResourceBuilder<FdbClusterResource> WithNativeLibrary(this IResourceBuilder<FdbClusterResource> builder, string? nativeLibraryPath)
+		{
+			Contract.NotNull(builder);
+			var fdbCluster = builder.Resource;
+			fdbCluster.NativeLibraryPath = !string.IsNullOrWhiteSpace(nativeLibraryPath) ? nativeLibraryPath.Trim() : null;
+			return builder;
+		}
+
 		#endregion
 
 		private static void WriteFdbClusterToManifest(ManifestPublishingContext context, FdbClusterResource cluster)
@@ -333,6 +348,15 @@ namespace Aspire.Hosting
 			if (!string.IsNullOrWhiteSpace(connection.ClusterContents))
 			{
 				jsonWriter.WriteString("clusterFileContents", connection.ClusterContents);
+			}
+
+			if (connection.DisableNativePreloading)
+			{
+				jsonWriter.WriteBoolean("disableNativePreloading", true);
+			}
+			else if (!string.IsNullOrWhiteSpace(connection.NativeLibraryPath))
+			{
+				jsonWriter.WriteString("nativeLibrary", connection.ClusterContents);
 			}
 
 		}

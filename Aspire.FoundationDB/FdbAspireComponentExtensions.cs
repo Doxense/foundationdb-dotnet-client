@@ -88,6 +88,27 @@ namespace Microsoft.Extensions.Hosting
 				}
 				options.ApiVersion = apiVersion;
 
+				// Native Library Path
+				if (cnx != null && cnx.ContainsKey("NativeLibrary"))
+				{
+					var nativeLibraryPath = (cnx["NativeLibrary"] as string)?.Trim();
+					if (!string.IsNullOrEmpty(nativeLibraryPath))
+					{ // preload the library at the specified path
+						options.NativeLibraryPath = nativeLibraryPath;
+					}
+				}
+				else if (cnx != null && cnx.ContainsKey("PreloadNativeLibrary"))
+				{
+					if (string.Equals((string) cnx["PreloadNativeLibrary"], "true", StringComparison.OrdinalIgnoreCase))
+					{ // automatic pre-loading, OS will resolve
+						options.NativeLibraryPath = "";
+					}
+					else
+					{ // disable pre-loading, CLR will resolve
+						options.NativeLibraryPath = null;
+					}
+				}
+
 				// Cluster File Path
 
 				// either specified directly with ClusterFile=/path/to/file.cluster, or indirectly via ClusterFileContenst=desc:id@ip:port
@@ -106,7 +127,7 @@ namespace Microsoft.Extensions.Hosting
 				//REVIEW: what to do if BOTH are specified? write the content to the specified path instead of a temp file ??
 				if (!string.IsNullOrWhiteSpace(clusterFilePath))
 				{
-					options.ConnectionOptions.ClusterFile = clusterFilePath;
+					options.ConnectionOptions.ClusterFile = clusterFilePath.Trim();
 				}
 				else if (!string.IsNullOrWhiteSpace(clusterFileContents))
 				{

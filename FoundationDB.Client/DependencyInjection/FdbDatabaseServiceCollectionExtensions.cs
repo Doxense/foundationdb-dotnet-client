@@ -125,7 +125,22 @@ namespace FoundationDB.DependencyInjection
 				{
 					res.AddError("Invalid or malformed cluster file path", nameof(options.ConnectionOptions.ClusterFile));
 				}
+				//TODO: check if the file exists?
 			}
+
+			if (!string.IsNullOrEmpty(options.NativeLibraryPath))
+			{
+				//note: at the moment I don't know of any method in the BCL that checks a path for validity (!= existence), but calling the ctor of FileInfo will throw if there is something is wrong with it!
+				FileInfo? fi;
+				try { fi = new FileInfo(options.NativeLibraryPath); } catch { fi = null; }
+
+				if (fi == null)
+				{
+					res.AddError("Invalid or malformed native library path", nameof(options.NativeLibraryPath));
+				}
+				//TODO: check if the file exists?
+			}
+
 
 			if (options.ConnectionOptions.DefaultMaxRetryDelay < 0)
 			{ // cannot be negative

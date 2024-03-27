@@ -92,7 +92,29 @@ namespace FoundationDB.DependencyInjection
 			{
 				try
 				{
+					// configure the native library
+					switch (this.Options.NativeLibraryPath)
+					{
+						case null:
+						{ // disable pre-loading
+							Fdb.Options.DisableNativeLibraryPreloading();
+							break;
+						}
+						case "":
+						{ // enable pre-loading
+							Fdb.Options.EnableNativeLibraryPreloading();
+							break;
+						}
+						default:
+						{ // pre-load specified library
+							Fdb.Options.SetNativeLibPath(this.Options.NativeLibraryPath); break;
+						}
+					}
+
+					// configure the API version
 					Fdb.Start(this.Options.ApiVersion);
+
+					// connect to the cluster
 					var db = await Fdb.OpenAsync(this.Options.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
 
 					if (this.Options.DefaultLogHandler != null)
