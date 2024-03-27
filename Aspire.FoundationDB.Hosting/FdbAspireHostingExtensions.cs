@@ -358,7 +358,7 @@ namespace Aspire.Hosting
 					{
 						case (7, 3):
 						{
-							return "7.3.27";
+							return "7.3.35";
 						}
 						case (7, 2):
 						{
@@ -366,7 +366,7 @@ namespace Aspire.Hosting
 						}
 						case (7, 1):
 						{
-							return "7.1.43";
+							return "7.1.59";
 						}
 						default:
 						{
@@ -390,9 +390,9 @@ namespace Aspire.Hosting
 								throw ErrorVersionIsGreaterThanSupportedByThisPackage(version);
 							}
 
-							return version is { Minor: 3, Build: > 27 }
+							return version is { Minor: 3, Build: > 35 }
 								? "7.3." + version.Build.ToString(CultureInfo.InvariantCulture)
-								: "7.3.27";
+								: "7.3.35";
 						}
 						default:
 						{
@@ -408,13 +408,13 @@ namespace Aspire.Hosting
 						throw ErrorVersionIsGreaterThanSupportedByThisPackage(version);
 					}
 
-					if (version is { Major: 7, Minor: 3, Build: > 27 })
+					if (version is { Major: 7, Minor: 3, Build: > 35 })
 					{
 						return "7.3." + version.Build.ToString(CultureInfo.InvariantCulture);
 					}
 					else
 					{
-						return "7.3.27";
+						return "7.3.35";
 					}
 				}
 				default:
