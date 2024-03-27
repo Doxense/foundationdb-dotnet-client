@@ -35,8 +35,8 @@ namespace Doxense.Diagnostics.Contracts.Tests
 	using System.Diagnostics.Contracts;
 	using System.IO;
 	using System.Threading;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 	using Contract = Doxense.Diagnostics.Contracts.Contract;
 
 	/// <summary>Tests sur la classe statique Doxense.Diagnostics.Contracts.Contract</summary>

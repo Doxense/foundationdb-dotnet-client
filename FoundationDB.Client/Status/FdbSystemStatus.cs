@@ -32,7 +32,6 @@ namespace FoundationDB.Client.Status
 	using System.Diagnostics;
 	using System.Globalization;
 	using Doxense.Serialization.Json;
-	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>
@@ -42,8 +41,8 @@ namespace FoundationDB.Client.Status
 		internal FdbSystemStatus(JsonObject doc, long readVersion, Slice raw)
 			: base(doc)
 		{
-			this.Client = new ClientStatus(doc.GetObject("client"));
-			this.Cluster = new ClusterStatus(doc.GetObject("cluster"));
+			this.Client = new ClientStatus(doc["client"].AsObjectOrDefault());
+			this.Cluster = new ClusterStatus(doc["cluster"].AsObjectOrDefault());
 			this.ReadVersion = readVersion;
 			this.RawData = raw;
 		}
@@ -86,24 +85,36 @@ namespace FoundationDB.Client.Status
 
 		internal static Message From(JsonObject? data, string field)
 		{
-			var obj = data?.GetObject(field);
-			var key = obj?.Get<string>("name") ?? string.Empty;
-			var value = obj?.Get<string>("description") ?? string.Empty;
+			if (data == null || !data.TryGetObject(field, out var obj))
+			{
+				return new Message("", "");
+			}
+
+			var key = obj.Get<string>("name", "");
+			var value = obj.Get<string>("description", "");
 			return new Message(key, value);
 		}
 
 		internal static Message[] FromArray(JsonObject? data, string field)
 		{
-			var array = data?.GetArray(field);
-			if (array == null || array.Count == 0) return Array.Empty<Message>();
+			if (data == null || !data.TryGetArray(field, out var array) || array.Count == 0)
+			{
+				return [];
+			}
 
 			var res = new Message[array.Count];
 			for (int i = 0; i < res.Length; i++)
 			{
-				var obj = array.GetObject(i);
-				var key = obj?.Get<string>("name") ?? string.Empty;
-				var value = obj?.Get<string>("description") ?? string.Empty;
-				res[i] = new Message(key, value);
+				if (array.TryGetObject(i, out var obj))
+				{
+					var key = obj.Get<string>("name", "");
+					var value = obj.Get<string>("description", "");
+					res[i] = new Message(key, value);
+				}
+				else
+				{
+					res[i] = new Message("", "");
+				}
 			}
 			return res;
 		}
@@ -238,52 +249,52 @@ namespace FoundationDB.Client.Status
 
 		protected JsonObject? GetObject(string field)
 		{
-			return m_data?.GetObject(field);
+			return m_data?.GetObjectOrDefault(field);
 		}
 
 		protected JsonArray? GetArray(string field)
 		{
-			return m_data?.GetArray(field);
+			return m_data?.GetArrayOrDefault(field);
 		}
 
 		protected string? GetString(string field)
 		{
-			return m_data?.Get<string?>(field);
+			return m_data?.Get<string?>(field, null);
 		}
 
 		protected string? GetString(string field1, string field2)
 		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<string?>(field2, out var v2) ? v2 : null;;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<string>(field2, out var v2) ? v2 : null;
 		}
 
 		protected long? GetInt64(string field)
 		{
-			return m_data?.Get<long?>(field);
+			return m_data?.Get<long?>(field, null);
 		}
 
 		protected long? GetInt64(string field1, string field2)
 		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<long?>(field2, out var v2) ? v2 : null;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<long>(field2, out var v2) ? v2 : null;
 		}
 
 		protected double? GetDouble(string field)
 		{
-			return m_data?.Get<double?>(field);
+			return m_data?.Get<double?>(field, null);
 		}
 
 		protected double? GetDouble(string field1, string field2)
 		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<double?>(field2, out var v2) ? v2 : null;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<double>(field2, out var v2) ? v2 : null;
 		}
 
 		protected bool? GetBoolean(string field)
 		{
-			return m_data?.Get<bool?>(field);
+			return m_data?.Get<bool?>(field, null);
 		}
 
 		protected bool? GetBoolean(string field1, string field2)
 		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<bool?>(field2, out var v2) ? v2 : null;
+			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<bool>(field2, out var v2) ? v2 : null;
 		}
 
 	}
@@ -494,13 +505,12 @@ namespace FoundationDB.Client.Status
 				if (m_excludedServers == null)
 				{
 					var arr = GetArray("excluded_servers");
-					var res = arr?.Count > 0 ? new string[arr.Count] : Array.Empty<string>();
+					var res = arr?.Count > 0 ? new string[arr.Count] : [ ];
 					if (arr != null)
 					{
 						for (int i = 0; i < res.Length; i++)
 						{
-							var obj = arr.GetObject(i);
-							res[i] = obj?.Get<string?>("address") ?? string.Empty;
+							res[i] = arr[i].Get("address", "");
 						}
 					}
 					m_excludedServers = res;
@@ -743,7 +753,7 @@ namespace FoundationDB.Client.Status
 					//REVIEW: should we have (K=id, V=role) or (K=role, V=id) ?
 
 					var arr = GetArray("roles");
-					var res = arr?.Count > 0 ? new ProcessRoleMetrics[arr.Count] : Array.Empty<ProcessRoleMetrics>();
+					var res = arr?.Count > 0 ? new ProcessRoleMetrics[arr.Count] : [ ];
 					if (arr != null)
 					{
 						for (int i = 0; i < res.Length; i++)
@@ -775,7 +785,7 @@ namespace FoundationDB.Client.Status
 
 		public static ProcessRoleMetrics Create(JsonObject? data)
 		{
-			string? role = data?.Get<string?>("role");
+			string? role = data?.Get<string?>("role", null);
 			return role switch
 			{
 				null => null!, //invalid!
@@ -827,9 +837,9 @@ namespace FoundationDB.Client.Status
 		private MetricStatistics? m_batchGrvLatencyStatistics;
 		private MetricStatistics? m_defaultGrvLatencyStatistics;
 
-		public MetricStatistics BatchGrvLatencyStatistics => m_batchGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?.GetObject("batch"));
+		public MetricStatistics BatchGrvLatencyStatistics => m_batchGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?.GetObjectOrDefault("batch", null));
 
-		public MetricStatistics DefaultGrvLatencyStatistics => m_defaultGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?.GetObject("default"));
+		public MetricStatistics DefaultGrvLatencyStatistics => m_defaultGrvLatencyStatistics ??= new MetricStatistics(GetObject("grv_latency_statistics")?.GetObjectOrDefault("default", null));
 
 	}
 

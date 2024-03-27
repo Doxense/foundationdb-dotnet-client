@@ -33,8 +33,8 @@ namespace Doxense.Diagnostics.Contracts.Tests
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	/// <summary>Tests sur la classe statique ThrowHelper</summary>
 	[TestFixture]

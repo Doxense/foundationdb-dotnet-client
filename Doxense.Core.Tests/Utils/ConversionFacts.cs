@@ -27,8 +27,8 @@
 namespace Doxense.Runtime.Converters.Tests
 {
 	using System;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -28,7 +28,7 @@ namespace Doxense.Serialization.Tests
 {
 	using System;
 	using NUnit.Framework;
-	using Doxense.Testing;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

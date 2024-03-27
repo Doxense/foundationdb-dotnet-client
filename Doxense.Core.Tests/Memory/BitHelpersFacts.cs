@@ -28,8 +28,8 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 {
 	using System;
 	using Doxense.Memory;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -40,7 +40,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>JSON string literal</summary>
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
 	[DebuggerNonUserCode]
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 	public sealed class JsonString : JsonValue, IEquatable<JsonString>, IEquatable<string>, IEquatable<Guid>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
 	{
 		public static readonly JsonValue Empty = new JsonString(string.Empty);
@@ -595,11 +595,11 @@ namespace Doxense.Serialization.Json
 				{ // Adresse IP
 					return m_value.Length != 0 ? System.Net.IPAddress.Parse(m_value) : null;
 				}
-				else if (typeof(System.Version) == type)
+				else if (typeof(Version) == type)
 				{ // Version
-					return m_value.Length != 0 ? System.Version.Parse(m_value) : null;
+					return m_value.Length != 0 ? Version.Parse(m_value) : null;
 				}
-				else if (typeof(System.Uri) == type)
+				else if (typeof(Uri) == type)
 				{
 					return ToUri();
 				}
@@ -635,6 +635,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// check si implémente IJsonBindable
+#pragma warning disable CS0618 // Type or member is obsolete
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
 			{ // HACKHACK: pour les type qui se sérialisent en string (par ex: Oid)
 				var typeDef = resolver.ResolveJsonType(type);
@@ -643,6 +644,7 @@ namespace Doxense.Serialization.Json
 					return typeDef.CustomBinder(this, type, resolver);
 				}
 			}
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			// passe par un custom binder?
 			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques
@@ -759,7 +761,7 @@ namespace Doxense.Serialization.Json
 
 		public override int CompareTo(JsonValue? other)
 		{
-			if (object.ReferenceEquals(other, null)) return +1;
+			if (other is null) return +1;
 			switch (other.Type)
 			{
 				case JsonType.String: return CompareTo(other as JsonString);
@@ -789,7 +791,7 @@ namespace Doxense.Serialization.Json
 		public override string ToString() => m_value;
 
 		[ContractAnnotation("=> notnull")]
-		public override string ToStringOrDefault() => m_value;
+		public override string ToStringOrDefault(string? defaultValue = null) => m_value;
 
 		public bool TryConvertString(out string value)
 		{
@@ -806,9 +808,9 @@ namespace Doxense.Serialization.Json
 			return !string.IsNullOrEmpty(m_value) && bool.Parse(m_value);
 		}
 
-		public override bool? ToBooleanOrDefault()
+		public override bool? ToBooleanOrDefault(bool? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(bool?) : bool.Parse(m_value);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : bool.Parse(m_value);
 		}
 
 		#endregion
@@ -820,9 +822,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(byte) : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override byte? ToByteOrDefault()
+		public override byte? ToByteOrDefault(byte? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(byte?) : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		#endregion
@@ -834,9 +836,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(sbyte) : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override sbyte? ToSByteOrDefault()
+		public override sbyte? ToSByteOrDefault(sbyte? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(sbyte?) : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		#endregion
@@ -848,9 +850,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(char) : m_value[0];
 		}
 
-		public override char? ToCharOrDefault()
+		public override char? ToCharOrDefault(char? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(char?) : m_value[0];
+			return string.IsNullOrEmpty(m_value) ? defaultValue : m_value[0];
 		}
 
 		#endregion
@@ -862,9 +864,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(short) : short.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override short? ToInt16OrDefault()
+		public override short? ToInt16OrDefault(short? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(short?) : ToInt16();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt16();
 		}
 
 		public bool TryConvertInt16(out short value)
@@ -882,9 +884,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(ushort) : ushort.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override ushort? ToUInt16OrDefault()
+		public override ushort? ToUInt16OrDefault(ushort? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(ushort?) : ToUInt16();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt16();
 		}
 
 		public bool TryConvertUInt16(out ushort value)
@@ -909,9 +911,9 @@ namespace Doxense.Serialization.Json
 			return int.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override int? ToInt32OrDefault()
+		public override int? ToInt32OrDefault(int? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(int?) : ToInt32();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt32();
 		}
 
 		public bool TryConvertInt32(out int value)
@@ -937,9 +939,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? 0U : uint.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override uint? ToUInt32OrDefault()
+		public override uint? ToUInt32OrDefault(uint? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(uint?) : ToUInt32();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt32();
 		}
 
 		public bool TryConvertUInt32(out uint value)
@@ -964,9 +966,9 @@ namespace Doxense.Serialization.Json
 			return long.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override long? ToInt64OrDefault()
+		public override long? ToInt64OrDefault(long? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(long?) : ToInt64();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt64();
 		}
 
 		public bool TryConvertInt64(out long value)
@@ -991,9 +993,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? 0UL : ulong.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override ulong? ToUInt64OrDefault()
+		public override ulong? ToUInt64OrDefault(ulong? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(ulong?) : ToUInt64();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt64();
 		}
 
 		public bool TryConvertUInt64(out ulong value)
@@ -1011,9 +1013,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? 0f : float.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override float? ToSingleOrDefault()
+		public override float? ToSingleOrDefault(float? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(float?) : ToSingle();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToSingle();
 		}
 
 		public bool TryConvertSingle(out float value)
@@ -1031,9 +1033,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? 0d : double.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override double? ToDoubleOrDefault()
+		public override double? ToDoubleOrDefault(double? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(double?) : ToDouble();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDouble();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1057,9 +1059,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override Half? ToHalfOrDefault()
+		public override Half? ToHalfOrDefault(Half? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(Half?) : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1082,9 +1084,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? 0m : decimal.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override decimal? ToDecimalOrDefault()
+		public override decimal? ToDecimalOrDefault(decimal? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(decimal?) : ToDecimal();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDecimal();
 		}
 
 		public bool TryConvertDecimal(out decimal value)
@@ -1102,9 +1104,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(Guid) : Guid.Parse(m_value);
 		}
 
-		public override Guid? ToGuidOrDefault()
+		public override Guid? ToGuidOrDefault(Guid? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(Guid?) : Guid.Parse(m_value);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : Guid.Parse(m_value);
 		}
 
 		public bool TryConvertGuid(out Guid value)
@@ -1121,19 +1123,19 @@ namespace Doxense.Serialization.Json
 
 		public override Uuid128 ToUuid128() => string.IsNullOrEmpty(m_value) ? default : Uuid128.Parse(m_value);
 
-		public override Uuid128? ToUuid128OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid128.Parse(m_value);
+		public override Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid128.Parse(m_value);
 
 		public override Uuid96 ToUuid96() => string.IsNullOrEmpty(m_value) ? default : Uuid96.Parse(m_value);
 
-		public override Uuid96? ToUuid96OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid96.Parse(m_value);
+		public override Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid96.Parse(m_value);
 
 		public override Uuid80 ToUuid80() => string.IsNullOrEmpty(m_value) ? default : Uuid80.Parse(m_value);
 
-		public override Uuid80? ToUuid80OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid80.Parse(m_value);
+		public override Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid80.Parse(m_value);
 
 		public override Uuid64 ToUuid64() => string.IsNullOrEmpty(m_value) ? default : Uuid64.Parse(m_value);
 
-		public override Uuid64? ToUuid64OrDefault() => string.IsNullOrEmpty(m_value) ? null : Uuid64.Parse(m_value);
+		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid64.Parse(m_value);
 
 		#endregion
 
@@ -1141,7 +1143,7 @@ namespace Doxense.Serialization.Json
 
 		public override DateTime ToDateTime()
 		{
-			if (string.IsNullOrEmpty(m_value)) return default(DateTime);
+			if (string.IsNullOrEmpty(m_value)) return default;
 
 			if (CrystalJsonParser.TryParseIso8601DateTime(m_value, out var d))
 			{
@@ -1162,9 +1164,9 @@ namespace Doxense.Serialization.Json
 			return StringConverters.ParseDateTime(m_value);
 		}
 
-		public override DateTime? ToDateTimeOrDefault()
+		public override DateTime? ToDateTimeOrDefault(DateTime? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(DateTime?) : ToDateTime();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTime();
 		}
 
 		public bool TryConvertDateTime(out DateTime dt)
@@ -1225,9 +1227,9 @@ namespace Doxense.Serialization.Json
 			return new DateTimeOffset(StringConverters.ParseDateTime(m_value));
 		}
 
-		public override DateTimeOffset? ToDateTimeOffsetOrDefault()
+		public override DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(DateTimeOffset?) : ToDateTimeOffset();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTimeOffset();
 		}
 
 		public bool TryConvertDateTimeOffset(out DateTimeOffset dto)
@@ -1273,9 +1275,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(TimeSpan) : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
 		}
 
-		public override TimeSpan? ToTimeSpanOrDefault()
+		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(TimeSpan?) : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
 		}
 
 		#endregion
@@ -1295,9 +1297,9 @@ namespace Doxense.Serialization.Json
 			return NodaTime.Instant.FromDateTimeOffset(dateTimeOffset); //on sait le convertir en Instant !
 		}
 
-		public override NodaTime.Instant? ToInstantOrDefault()
+		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(NodaTime.Instant?) : ToInstant();
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInstant();
 		}
 
 		public override NodaTime.Duration ToDuration()
@@ -1308,12 +1310,9 @@ namespace Doxense.Serialization.Json
 				: NodaTime.Duration.FromTicks((long) (double.Parse(value) * NodaTime.NodaConstants.TicksPerSecond));
 		}
 
-		public override NodaTime.Duration? ToDurationOrDefault()
+		public override NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null)
 		{
-			string value = m_value;
-			return string.IsNullOrEmpty(value)
-				? default(NodaTime.Duration?)
-				: NodaTime.Duration.FromTicks((long)(double.Parse(value) * NodaTime.NodaConstants.TicksPerSecond));
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDuration();
 		}
 
 		public NodaTime.LocalDateTime ToLocalDateTime()
@@ -1379,9 +1378,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? default(TEnum) : (TEnum) Enum.Parse(typeof (TEnum), m_value, true);
 		}
 
-		public override TEnum? ToEnumOrDefault<TEnum>()
+		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(TEnum?) : (TEnum)Enum.Parse(typeof(TEnum), m_value, true);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : (TEnum) Enum.Parse(typeof(TEnum), m_value, true);
 		}
 
 		#endregion

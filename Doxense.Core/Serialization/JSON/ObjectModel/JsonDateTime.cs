@@ -214,7 +214,7 @@ namespace Doxense.Serialization.Json
 		public double UnixTimeDays
 		{
 			//note: normalement pas affecté par le Y2038 bug
-			get { return (double)(UtcTicks - UNIX_EPOCH_TICKS) / (double)TimeSpan.TicksPerDay; }
+			get { return (UtcTicks - UNIX_EPOCH_TICKS) / (double) TimeSpan.TicksPerDay; }
 		}
 
 		public bool IsLocalTime { get { return m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Local : m_offset != 0 /*TODO: comparer avec la TZ courrante ? */; } }
@@ -324,9 +324,9 @@ namespace Doxense.Serialization.Json
 
 		public override bool Equals(JsonValue? obj)
 		{
-			if (object.ReferenceEquals(obj, null)) return false;
 			switch (obj)
 			{
+				case null: return false;
 				case JsonDateTime date: return Equals(date);
 				case JsonNumber num: return num.Equals(this);
 				case JsonString str: return this.HasOffset
@@ -339,7 +339,7 @@ namespace Doxense.Serialization.Json
 
 		public bool Equals(JsonDateTime? obj)
 		{
-			return !object.ReferenceEquals(obj, null) && m_value == obj.m_value && m_offset == obj.m_offset;
+			return obj is not null && m_value == obj.m_value && m_offset == obj.m_offset;
 		}
 
 		public bool Equals(DateTime value)

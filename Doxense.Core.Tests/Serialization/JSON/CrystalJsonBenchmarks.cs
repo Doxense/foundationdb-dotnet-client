@@ -45,11 +45,11 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Threading;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Runtime;
-	using Doxense.Testing;
 #if ENABLE_NEWTONSOFT
 	using NJ = Newtonsoft.Json;
 #endif
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -370,7 +370,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			RunBenchOnMethod("json/doxense-text   : ser  ", () => { CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact); });
 
-			RunBenchOnMethod("json/doxense-buffer : ser  ", () => { CrystalJson.ToBuffer(media, CrystalJsonSettings.JsonCompact); });
+			RunBenchOnMethod("json/doxense-buffer : ser  ", () => { CrystalJson.ToSlice(media, CrystalJsonSettings.JsonCompact); });
 
 			RunBenchOnMethod("json/doxense-manual : ser  ", () =>
 			{
@@ -763,7 +763,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// sealed
 			{
-				var users = CrystalJson.LoadFrom<UserSealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"), required: true)!;
+				var users = CrystalJson.LoadFrom<UserSealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"));
 				RunTestMethod(users[0]);
 				RunTestMethod(users.Take(7).ToArray());
 				RunTestMethod(users.Take(100).ToArray());
@@ -771,7 +771,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// unsealed
 			{
-				var users = CrystalJson.LoadFrom<UserUnsealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"), required: true)!;
+				var users = CrystalJson.LoadFrom<UserUnsealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"));
 				RunTestMethod(users[0]);
 				RunTestMethod(users.Take(7).ToArray());
 				RunTestMethod(users.Take(100).ToArray());
@@ -779,7 +779,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// abstract
 			{
-				var users = CrystalJson.LoadFrom<UserDerived[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"), required: true)!.Cast<UserAbstract>().ToList();
+				var users = CrystalJson.LoadFrom<UserDerived[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json")).Cast<UserAbstract>().ToList();
 				RunTestMethod(users[0]);
 				RunTestMethod(users.Take(7).ToArray());
 				RunTestMethod(users.Take(100).ToArray());

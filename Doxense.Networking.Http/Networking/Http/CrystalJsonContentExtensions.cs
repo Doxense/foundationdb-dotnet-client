@@ -53,11 +53,11 @@ namespace Doxense.Networking.Http
 			return ReadFromJsonObjectAsyncCore(content, sourceEncoding, settings, ct);
 		}
 
-		private static async Task<JsonObject?> ReadFromJsonObjectAsyncCore(HttpContent content, Encoding? sourceEncoding, CrystalJsonSettings? settings, CancellationToken ct)
+		private static async Task<JsonObject> ReadFromJsonObjectAsyncCore(HttpContent content, Encoding? sourceEncoding, CrystalJsonSettings? settings, CancellationToken ct)
 		{
 			var bytes  = await content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
 
-			return CrystalJson.ParseObject(bytes.AsSlice(), settings);
+			return CrystalJson.Parse(bytes.AsSlice(), settings).AsObject();
 		}
 
 		public static Task<T?> ReadFromCrystalJsonAsync<T>(this HttpContent content, CancellationToken ct)

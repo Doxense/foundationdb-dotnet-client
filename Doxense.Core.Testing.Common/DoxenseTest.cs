@@ -28,13 +28,10 @@ namespace Doxense.Testing
 {
 	using System;
 	using System.Diagnostics;
-	using System.Globalization;
 	using System.IO;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
-	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
+	using SnowBank.Testing;
 
 	/// <summary>Legacy base class.</summary>
 	[DebuggerNonUserCode]
@@ -43,44 +40,6 @@ namespace Doxense.Testing
 	{
 
 		// this contains deprecated methods that must be kept around for a little bit more time...
-
-		[StringFormatMethod(nameof(format)), Obsolete("Use string interpolation instead")]
-		public static void Log(string format, object? arg0) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, arg0));
-
-		[StringFormatMethod(nameof(format)), Obsolete("Use string interpolation instead")]
-		public static void Log(string format, object? arg0, object? arg1) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
-
-		[StringFormatMethod(nameof(format)),Obsolete("Use string interpolation instead")]
-		public static void Log(string format, params object?[] args) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, args));
-
-		[Obsolete("This method is not required anymore. You can call Log() with an interporlated directly", error: true)]
-		public static void LogInv(FormattableString msg) => SimpleTest.Log(msg.ToString(CultureInfo.InvariantCulture));
-
-		[Obsolete("Renamed to Await(...)")]
-		protected Task WaitFor(Task task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)")]
-		public Task WaitFor(ValueTask task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)")]
-		protected Task WaitFor(Task task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
-
-		[Obsolete("Renamed to Await(...)")]
-		protected Task WaitFor(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
-
-		[Obsolete("Renamed to Await(...)")]
-		protected Task<TResult> WaitFor<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)")]
-		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await<TResult>(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)")]
-		protected Task<TResult> WaitFor<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await<TResult>(task, timeout, taskExpression);
-
-		[Obsolete("Renamed to Await(...)")]
-		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await<TResult>(task, timeout, taskExpression);
-
-
 
 		/// <summary>[DANGEROUS] Computes the path to a file that is located inside the test project</summary>
 		/// <returns>Absolute path to the file</returns>
@@ -337,4 +296,5 @@ namespace Doxense.Testing
 		#endregion
 
 	}
+
 }

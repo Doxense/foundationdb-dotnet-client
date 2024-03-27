@@ -88,57 +88,57 @@ namespace Doxense.Serialization.Json
 
 		#region Serialization...
 
-		/// <summary>Serialize a boxed value (of any type)</summary>
+		/// <summary>Serializes a boxed value (of any type)</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(object), null, settings, customResolver).ToString();
+			return SerializeInternal(value, typeof(object), null, settings, resolver).ToString();
 		}
 
-		/// <summary>Serialize a boxed value (of any type)</summary>
+		/// <summary>Serializes a boxed value (of any type)</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="declaredType">Type of the field or property, as declared in the parent type.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, declaredType, null, settings, customResolver).ToString();
+			return SerializeInternal(value, declaredType, null, settings, resolver).ToString();
 		}
 
-		/// <summary>Serialize a value (of any type)</summary>
+		/// <summary>Serializes a value (of any type)</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static string Serialize<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static string Serialize<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(T), null, settings, customResolver).ToString();
+			return SerializeInternal(value, typeof(T), null, settings, resolver).ToString();
 		}
 
-		/// <summary>Serialize a boxed value (of any type) into the specified buffer</summary>
+		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="buffer">Buffer de destination (créé automatiquement si null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The value of <paramref name="buffer"/>, for call chaining</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static StringBuilder Serialize(object? value, StringBuilder? buffer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static StringBuilder Serialize(object? value, StringBuilder? buffer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(object), buffer, settings, customResolver);
+			return SerializeInternal(value, typeof(object), buffer, settings, resolver);
 		}
 
-		/// <summary>Create a new empty buffer with the appropriate size</summary>
+		/// <summary>Creates a new empty buffer with the appropriate size</summary>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Empty StringBuilder, with an initial capacity that depends on the settings</returns>
 		[Pure]
@@ -148,15 +148,15 @@ namespace Doxense.Serialization.Json
 			return new StringBuilder(capacity);
 		}
 
-		/// <summary>Serialize a boxed value (of any type) into the specified buffer</summary>
+		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Class, struct, Enumerable, Nullable&lt;T&gt;, ...</param>
 		/// <param name="declaredType"></param>
 		/// <param name="buffer">Destination buffer (created automically if null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Value of <paramref name="buffer"/>, or of the newly created buffer if it was null (for call chaining)</returns>
 		[Pure]
-		private static StringBuilder SerializeInternal(object? value, Type declaredType, StringBuilder? buffer, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver)
+		private static StringBuilder SerializeInternal(object? value, Type declaredType, StringBuilder? buffer, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (value == null)
 			{ // special case for null instances
@@ -170,107 +170,107 @@ namespace Doxense.Serialization.Json
 
 			using (var fsw = new FastStringWriter(buffer))
 			{
-				var writer = new CrystalJsonWriter(fsw, settings, customResolver);
+				var writer = new CrystalJsonWriter(fsw, settings, resolver);
 				CrystalJsonVisitor.VisitValue(value, declaredType, writer);
 				return buffer;
 			}
 		}
 
-		/// <summary>Serialize a boxed value (of any type) into the specified output</summary>
+		/// <summary>Serializes a boxed value (of any type) into the specified output</summary>
 		/// <param name="output">Output for the JSON document</param>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The <paramref name="output"/> instance, for call chaining</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
-		public static TextWriter SerializeTo(TextWriter output, object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static TextWriter SerializeTo(TextWriter output, object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeToInternal(output, value, typeof(object), settings, customResolver);
+			return SerializeToInternal(output, value, typeof(object), settings, resolver);
 		}
 
-		/// <summary>Serialize a value (of any type) into the specified output</summary>
+		/// <summary>Serializes a value (of any type) into the specified output</summary>
 		/// <param name="output">Output for the JSON document</param>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The <paramref name="output"/> instance, for call chaining</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
-		public static TextWriter SerializeTo<T>(TextWriter output, T value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static TextWriter SerializeTo<T>(TextWriter output, T value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeToInternal(output, value, typeof(T), settings, customResolver);
+			return SerializeToInternal(output, value, typeof(T), settings, resolver);
 		}
 
-		/// <summary>Serialize a value (of any type) into the specified stream</summary>
+		/// <summary>Serializes a value (of any type) into the specified stream</summary>
 		/// <param name="output">Output for the JSON document</param>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
-		public static void SerializeTo<T>(Stream output, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static void SerializeTo<T>(Stream output, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(output);
 			using (var sw = new StreamWriter(output, Utf8NoBom))
 			{
-				SerializeToInternal(sw, value, typeof(T), settings, customResolver);
+				SerializeToInternal(sw, value, typeof(T), settings, resolver);
 			}
 		}
 
-		/// <summary>Serialize a boxed <paramref name="value"/> (of any type) into the file at the specified <paramref name="path"/></summary>
+		/// <summary>Serializes a boxed <paramref name="value"/> (of any type) into the file at the specified <paramref name="path"/></summary>
 		/// <param name="path">Path to the output file</param>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <param name="options">Save settings</param>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
-		public static void SaveTo(string path, object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, SaveOptions options = SaveOptions.None)
+		public static void SaveTo(string path, object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, SaveOptions options = SaveOptions.None)
 		{
-			SerializeAndSaveInternal(path, value, typeof(object), settings, customResolver, options);
+			SerializeAndSaveInternal(path, value, typeof(object), settings, resolver, options);
 		}
 
-		/// <summary>Serialize a <paramref name="value"/> (of any type) into the file at the specified <paramref name="path"/></summary>
+		/// <summary>Serializes a <paramref name="value"/> (of any type) into the file at the specified <paramref name="path"/></summary>
 		/// <param name="path">Path to the output file</param>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <param name="options">Save settings</param>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
-		public static void SaveTo<T>(string path, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, SaveOptions options = SaveOptions.None)
+		public static void SaveTo<T>(string path, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, SaveOptions options = SaveOptions.None)
 		{
-			SerializeAndSaveInternal(path, value, typeof(T), settings, customResolver, options);
+			SerializeAndSaveInternal(path, value, typeof(T), settings, resolver, options);
 		}
 
-		/// <summary>Serialize a boxed value into an indented JSON string, suitable for humans (logging, troubleshooting, ...)</summary>
+		/// <summary>Serializes a boxed value into an indented JSON string, suitable for humans (logging, troubleshooting, ...)</summary>
 		[Pure]
 		public static string Dump(object? value)
 		{
 			return Serialize(value, CrystalJsonSettings.JsonIndented);
 		}
 
-		/// <summary>Serialize a value into an indented JSON string, suitable for humans (logging, troubleshooting, ...)</summary>
+		/// <summary>Serializes a value into an indented JSON string, suitable for humans (logging, troubleshooting, ...)</summary>
 		[Pure]
-		public static string Dump<T>(T? value)
+		public static string Dump<TValue>(TValue? value)
 		{
-			return Serialize<T>(value, CrystalJsonSettings.JsonIndented);
+			return Serialize(value, CrystalJsonSettings.JsonIndented);
 		}
 
-		/// <summary>Serialized a boxed value into an in-memory buffer</summary>
+		/// <summary>Serializes a boxed value into an in-memory buffer</summary>
 		/// <returns>Byte array that contains the resulting JSON document</returns>
 		[Pure]
-		public static byte[] ToBytes(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static byte[] ToBytes(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return ToBytesInternal(value, typeof(object), settings, customResolver);
+			return ToBytesInternal(value, typeof(object), settings, resolver);
 		}
 
-		/// <summary>Serialized a value into an in-memory buffer</summary>
+		/// <summary>Serializes a value into an in-memory buffer</summary>
 		/// <returns>Byte array that contains the resulting JSON document</returns>
 		[Pure]
-		public static byte[] ToBytes<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static byte[] ToBytes<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return ToBytesInternal(value, typeof(T), settings, customResolver);
+			return ToBytesInternal(value, typeof(T), settings, resolver);
 		}
 
 		[Pure]
-		private static byte[] ToBytesInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver)
+		private static byte[] ToBytesInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			var bufferSize = 256;
 			if (settings != null && settings.OptimizeForLargeData)
@@ -287,7 +287,7 @@ namespace Doxense.Serialization.Json
 				// note: we are serializing to memory, the size of the StreamWriter's buffer does not matter so make it as small as possible
 				using (var sw = new StreamWriter(ms, Utf8NoBom, bufferSize, leaveOpen: true))
 				{
-					SerializeToInternal(sw, value, declaredType, settings, customResolver);
+					SerializeToInternal(sw, value, declaredType, settings, resolver);
 				}
 
 				if (ms.Position == 0) return Array.Empty<byte>();
@@ -296,85 +296,99 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		[Pure]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static Slice ToSlice(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			byte[]? _ = null;
-			return ToBufferInternal(value, typeof(object), settings, customResolver, ref _);
+			return ToSliceInternal(value, typeof(object), settings, resolver, ref _);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
+		/// <summary>Serializes a value into an UTF-8 encoded Slice</summary>
+		/// <typeparam name="T">Advertized type of the instance.</typeparam>
+		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <remarks>
+		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			byte[]? _ = null;
-			return ToBufferInternal(value, typeof(T), settings, customResolver, ref _);
+			return ToSliceInternal(value, typeof(T), settings, resolver, ref _);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Buffer pré-alloué pour la sérialisation. Si null, ou trop petit, il sera remplacé par un nouveau buffer</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
-		/// <remarks>Attention: le segment retourné utilise le buffer <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser ce buffer, sous risque de corrompre les données générées!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller should fully consume the result before reusing the buffer, or risk data corruption!</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ref byte[]? buffer)
+		public static Slice ToSlice(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
-			return ToBufferInternal(value, typeof(object), settings, customResolver, ref buffer);
+			return ToSliceInternal(value, typeof(object), settings, resolver, ref buffer);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
-		/// <param name="type">Type attendu</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
+		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Buffer pré-alloué pour la sérialisation. Si null, ou trop petit, il sera remplacé par un nouveau buffer</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
-		/// <remarks>Attention: le segment retourné utilise le buffer <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser ce buffer, sous risque de corrompre les données générées!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller <b>MUST</b> fully consume the result before reusing the buffer, or risk data corruption!</para>
+		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ref byte[]? buffer)
+		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
-			return ToBufferInternal(value, type ?? value?.GetType() ?? typeof(object), settings, customResolver, ref buffer);
+			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref buffer);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
+		/// <summary>Serializes a value into an UTF-8 encoded Slice</summary>
+		/// <typeparam name="T">Advertized type of the instance.</typeparam>
+		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Buffer pré-alloué pour la sérialisation. Si null, ou trop petit, il sera remplacé par un nouveau buffer</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
-		/// <remarks>Attention: le segment retourné utilise le buffer <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser ce buffer, sous risque de corrompre les données générées!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <remarks>
+		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller <b>MUST</b> fully consume the result before reusing the buffer, or risk data corruption!</para>
+		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ref byte[]? buffer)
+		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
-			return ToBufferInternal(value, typeof(T), settings, customResolver, ref buffer);
+			return ToSliceInternal(value, typeof(T), settings, resolver, ref buffer);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser</param>
-		/// <param name="declaredType">Type déclaré de la valeur (ou typeof(object))</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
+		/// <param name="declaredType">Advertized type of the serialize instance.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Buffer utilisé en interne pour la sérialisation, qui sera redimensionné au besoin.</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <remarks>Attention: le résultat retourné utilise <paramref name="buffer"/>. L'appelant doit entièrement consommer le résultat, avant de réutiliser cette instance, sous risque de corrompre les données générées!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller <b>MUST</b> fully consume the result before reusing the buffer, or risk data corruption!</para>
+		/// </remarks>
 		[Pure]
-		private static Slice ToBufferInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ref byte[]? buffer)
+		private static Slice ToSliceInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
 		{
 			//REVIEW: on a besoin de coder un TextWriter+MemoryStream qui écrit directement en UTF8 en mémoire!
 			// => le profiler montre qu'on gaspille beaucoup de mémoire dans le buffer du StreamWriter, qui ne fait que copier les bytes directement dans le MemoryStream,
@@ -395,78 +409,94 @@ namespace Doxense.Serialization.Json
 			// note: vu qu'on sérialise en mémoire, la taille du buffer du StreamWriter importe peu donc autant la réduire le plus possible pour éviter d'allouer 1K par défaut !
 			using (var sw = new Utf8StringWriter(new SliceWriter(buffer)))
 			{
-				SerializeToInternal(sw, value, declaredType, settings, customResolver);
+				SerializeToInternal(sw, value, declaredType, settings, resolver);
 				return sw.GetBuffer();
 			}
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
-		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ArrayPool<byte>? pool)
+		public static Slice ToSlice(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
-			return ToBufferInternal(value, typeof(object), settings, customResolver, pool);
+			return ToSliceInternal(value, typeof(object), settings, resolver, pool);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
-		/// <param name="type">Type attendu</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
+		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver)
+		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			byte[]? _ = null;
-			return ToBufferInternal(value, type ?? value?.GetType() ?? typeof(object), settings, customResolver, ref _);
+			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref _);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de type compatible avec <paramref name="type"/>)</param>
-		/// <param name="type">Type attendu</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
+		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
-		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ArrayPool<byte>? pool)
+		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
-			return ToBufferInternal(value, type ?? value?.GetType() ?? typeof(object), settings, customResolver, pool);
+			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, pool);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser (de n'importe quel type)</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <typeparam name="T">Advertized type of the instance.</typeparam>
+		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">En cas d'erreur de sérialisation</exception>
-		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// </remarks>
 		[Pure]
-		public static Slice ToBuffer<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ArrayPool<byte>? pool)
+		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
-			return ToBufferInternal(value, typeof(T), settings, customResolver, pool);
+			return ToSliceInternal(value, typeof(T), settings, resolver, pool);
 		}
 
-		/// <summary>Sérialise une valeur sous forme binaire, en mémoire</summary>
-		/// <param name="value">Valeur à sérialiser</param>
-		/// <param name="declaredType">Type déclarer de la valeur (ou typeof(object))</param>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
+		/// <param name="declaredType">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool utilisé en interne pour l'obtention de buffers.</param>
-		/// <returns>Segment de buffer contenant les données sérialisées</returns>
-		/// <remarks>Attention: le résultat retourné utilise <paramref name="pool"/>. L'appelant doit entièrement consommer le résultat, avant de le retourner dans le pool!</remarks>
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// <para>If <paramref name="declaredType"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// </remarks>
 		[Pure]
-		private static Slice ToBufferInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, ArrayPool<byte>? pool)
+		private static Slice ToSliceInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
 		{
 			//REVIEW: on a besoin de coder un TextWriter+MemoryStream qui écrit directement en UTF8 en mémoire!
 			// => le profiler montre qu'on gaspille beaucoup de mémoire dans le buffer du StreamWriter, qui ne fait que copier les bytes directement dans le MemoryStream,
@@ -484,18 +514,18 @@ namespace Doxense.Serialization.Json
 			// note: vu qu'on sérialise en mémoire, la taille du buffer du StreamWriter importe peu donc autant la réduire le plus possible pour éviter d'allouer 1K par défaut !
 			using (var sw = new Utf8StringWriter(new SliceWriter(bufferSize, pool)))
 			{
-				SerializeToInternal(sw, value, declaredType, settings, customResolver);
+				SerializeToInternal(sw, value, declaredType, settings, resolver);
 				return sw.GetBuffer();
 			}
 		}
-		/// <summary>Sérialise un objet ou une valeur</summary>
-		/// <param name="output">Stream de destination</param>
-		/// <param name="value">Classe, structure, Enumerable, Nullable&lt;T&gt;, ...</param>
-		/// <param name="declaredType">Type déclaré de l'objet (ou typeof(object) si seulement connu au runtime)</param>
+		/// <summary>Serializes a boxed value into a <see cref="TextWriter"/></summary>
+		/// <param name="output">Destination where the serialized JSON document will be written</param>
+		/// <param name="value">Instance to serialize, can be <see langword="null"/></param>
+		/// <param name="declaredType">Advertized type of the instance. Use <c>typeof(object)</c> is unknown.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <returns>Buffer contenant l'objet sérialisé</returns>
-		private static TextWriter SerializeToInternal(TextWriter output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver)
+		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <returns>The same instance as <paramref name="output"/></returns>
+		private static TextWriter SerializeToInternal(TextWriter output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			Contract.NotNull(output);
 
@@ -505,7 +535,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				var writer = new CrystalJsonWriter(output, settings, customResolver);
+				var writer = new CrystalJsonWriter(output, settings, resolver);
 				if (value is JsonValue jval)
 				{ // shortcurt pour la sérialisation de DOM json
 					jval.JsonSerialize(writer);
@@ -518,10 +548,11 @@ namespace Doxense.Serialization.Json
 			return output;
 		}
 
-		/// <summary>Crée un writer vers un fichier sur le disque</summary>
-		/// <param name="path">Chemin du fichier à écrire</param>
+		/// <summary>Creates a new <see cref="StreamWriter"/> that can be used to serialize JSON into a file, with the specified settings</summary>
+		/// <param name="path">Path to the output file</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Writer prêt à écrire dans le fichier</returns>
+		/// <returns>Writer that will output bytes into the specified file</returns>
+		/// <remarks>The stream will be tuned according to the serialization settings used, especially if planning to write a large amount of data.</remarks>
 		private static StreamWriter OpenJsonStreamWriter(string path, CrystalJsonSettings? settings)
 		{
 			var bufferSize = 0x400;
@@ -546,7 +577,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		private static void SerializeAndSaveInternal(string path, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? customResolver, SaveOptions options)
+		private static void SerializeAndSaveInternal(string path, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, SaveOptions options)
 		{
 			Contract.NotNullOrEmpty(path);
 			path = Path.GetFullPath(path);
@@ -600,7 +631,7 @@ namespace Doxense.Serialization.Json
 				{
 					using (var output = OpenJsonStreamWriter(savePath, settings))
 					{
-						SerializeToInternal(output, value, declaredType, settings, customResolver);
+						SerializeToInternal(output, value, declaredType, settings, resolver);
 						// note: certains implémentation "bugguée" de streams (GzipStream, etc..) requiert un flush pour finir d'écrire les data...
 
 						output.Flush();
@@ -631,7 +662,7 @@ namespace Doxense.Serialization.Json
 
 					using (var output = OpenJsonStreamWriter(savePath, settings))
 					{
-						SerializeToInternal(output, value, declaredType, settings, customResolver);
+						SerializeToInternal(output, value, declaredType, settings, resolver);
 					}
 				}
 				catch (Exception)
@@ -653,7 +684,7 @@ namespace Doxense.Serialization.Json
 				{
 					using (var output = OpenJsonStreamWriter(savePath, settings))
 					{
-						SerializeToInternal(output, value, declaredType, settings, customResolver);
+						SerializeToInternal(output, value, declaredType, settings, resolver);
 					}
 				}
 				catch (Exception)
@@ -668,15 +699,23 @@ namespace Doxense.Serialization.Json
 
 		#region Parsing...
 
-		//note: Parse(....) est générique, ParseArray(...)/ParseObject(...) sont à utiliser si on veut absolument une JsonArray ou JsonObject
-
-		/// <summary>Parse une chaîne de texte JSON</summary>
-		/// <param name="jsonText">Chaîne de texte JSON à parser</param>
+		/// <summary>Parses a JSON text literal, and returns the corresponding JSON value</summary>
+		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Parse(string? jsonText, CrystalJsonSettings? settings = null)
+		public static JsonValue Parse(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string? jsonText,
+			CrystalJsonSettings? settings = null
+		)
 		{
 #if DEBUG_JSON_PARSER
 			Debug.WriteLine("CrystalJson.Parse('" + jsonText + "', ...)");
@@ -684,45 +723,45 @@ namespace Doxense.Serialization.Json
 			return ParseFromReader(new JsonStringReader(jsonText), settings);
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>Parses a JSON buffer, and returns the corresponding JSON value</summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante, ou null si <paramref name="jsonBytes"/> est vide</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(byte[]? jsonBytes, CrystalJsonSettings? settings = null)
 		{
 			return Parse(jsonBytes.AsSlice(), settings);
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="index">Offset dans <paramref name="jsonBytes"/> du premier octet</param>
-		/// <param name="count">Nombre d'octets dans <paramref name="jsonBytes"/></param>
+		/// <summary>Parses a JSON buffer, and returns the corresponding JSON value</summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Parse(byte[] jsonBytes, int index, int count, CrystalJsonSettings? settings = null)
-		{
-			return ParseFromReader(new JsonSliceReader(jsonBytes.AsSlice(index, count)), settings);
-		}
-
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(Slice jsonBytes, CrystalJsonSettings? settings = null)
 		{
 			return ParseFromReader(new JsonSliceReader(jsonBytes), settings);
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>Parses a JSON buffer, and returns the corresponding JSON value</summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -735,20 +774,30 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>Parses a JSON buffer, and returns the corresponding JSON value</summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
 			return Parse(jsonBytes.Span, settings);
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonBytes">Bloc de données contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>Parses a JSON sequence of buffer, and returns the corresponding JSON value</summary>
+		/// <param name="jsonBytes">Sequence of buffers containing the UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -791,20 +840,30 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonText">Bloc de données contenant du texte JSON</param>
+		/// <summary>Parses a JSON text literal, and returns the corresponding JSON value</summary>
+		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null)
 		{
 			return Parse(jsonText.Span, settings);
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonText">Bloc de données contenant du texte JSON</param>
+		/// <summary>Parses a JSON text literal sequence, and returns the corresponding JSON value</summary>
+		/// <param name="jsonText">Sequence of buffers containing the JSON text document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null)
 		{
@@ -831,11 +890,15 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Parse une source de texte JSON</summary>
-		/// <param name="reader">Source de texte JSON à parser</param>
+		/// <summary>Reads the content of a reader, and returns the corresponding JSON value</summary>
+		/// <param name="reader">Instance from which to read the JSON text document</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
-		/// <exception cref="FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <returns>Corresponding JSON value. If <paramref name="reader"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
 		public static JsonValue ParseFrom(TextReader reader, CrystalJsonSettings? settings = null)
 		{
@@ -843,11 +906,15 @@ namespace Doxense.Serialization.Json
 			return ParseFromReader(new JsonTextReader(reader), settings);
 		}
 
-		/// <summary>Parse une source de texte JSON</summary>
-		/// <param name="source">Source de texte JSON à parser</param>
+		/// <summary>Reads the content of a reader, and returns the corresponding JSON value</summary>
+		/// <param name="source">Instance from which to read the JSON text document</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <returns>Corresponding JSON value. If <paramref name="source"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
 		internal static JsonValue ParseFromReader<TReader>(TReader source, CrystalJsonSettings? settings = null)
 			where TReader : struct, IJsonReader
@@ -866,23 +933,31 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Parse le contenu d'un fichier JSON sur le disque</summary>
-		/// <param name="path">Nom du fichier à lire sur le disque</param>
+		/// <summary>Reads the content of a file, and returns the corresponding JSON value</summary>
+		/// <param name="path">Instance from which to read the JSON document</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="options"></param>
-		/// <returns>Valeur JSON correspondante (ou JsonNull.Missing si le fichier est vide)</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <param name="options">Options used for streaming operations.</param>
+		/// <returns>Corresponding JSON value. If <paramref name="path"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue ParseFrom(string path, CrystalJsonSettings? settings = null, LoadOptions options = LoadOptions.None)
 		{
 			return LoadAndParseInternal(path, settings, options);
 		}
 
-		/// <summary>Parse le contenu d'un stream contenant du JSON </summary>
-		/// <param name="source">Stream à décoder</param>
+		/// <summary>Reads the content of a file, and returns the corresponding JSON value</summary>
+		/// <param name="source">Instance from which to read the JSON document</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante (ou JsonNull.Missing si le fichier est vide)</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
+		/// <returns>Corresponding JSON value. If <paramref name="source"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
 		public static JsonValue ParseFrom(Stream source, CrystalJsonSettings? settings = null)
 		{
@@ -895,394 +970,6 @@ namespace Doxense.Serialization.Json
 			{
 				return ParseFromReader(new JsonTextReader(reader), settings);
 			}
-		}
-
-		/// <summary>Parse une chaîne de texte JSON représentant un objet</summary>
-		/// <param name="jsonText">Chaîne de texte JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Objet JSON correspondant</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas un objet</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			return Parse(jsonText, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Objet JSON correspondant</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas un objet</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes.AsSlice(), settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="count"></param>
-		/// <param name="offset"></param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Objet JSON correspondant</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas un objet</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(byte[]? jsonBytes, int offset, int count, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes.AsSlice(offset, count), settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns></returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns></returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns></returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns></returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(ref jsonBytes, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns></returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonText, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns></returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonText, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant un object JSON</summary>
-		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns></returns>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObject(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(ref jsonText, settings).AsObject(required);
-		}
-
-		/// <summary>Parse une source de texte JSON représentant un objet</summary>
-		/// <param name="source">Source de texte JSON à parser (de type "{...}")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Objet JSON correspondant</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas un objet</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObjectFrom(TextReader source, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return ParseFromReader(new JsonTextReader(source), settings).AsObject(required);
-		}
-
-		/// <summary>Parse le contenu d'un stream contenant du JSON </summary>
-		/// <param name="source">Stream à décoder</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Valeur JSON correspondante (ou JsonNull.Missing si le fichier est vide)</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObjectFrom(Stream source, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return ParseFrom(source, settings).AsObject(required);
-		}
-
-		/// <summary>Parse un fichier JSON sur le disque représentant un objet</summary>
-		/// <param name="path">Chemin du fichier à lire</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <param name="options">Options de lecture</param>
-		/// <returns>Objet JSON correspondant</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas un objet</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonObject? ParseObjectFrom(string path, CrystalJsonSettings? settings = null, bool required = false, LoadOptions options = LoadOptions.None)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return LoadAndParseInternal(path, settings, options).AsObject(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(byte[]? jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes.AsSlice(), settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonBytes">Tableau contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="count"></param>
-		/// <param name="offset"></param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(byte[]? jsonBytes, int offset, int count, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes.AsSlice(offset, count), settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(Slice jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes, settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes, settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonBytes, settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonBytes">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(ref jsonBytes, settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonText, settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an object, the caller can call Parse(..) and check manually IsNullOrMissing() / AsObject()
-			return Parse(jsonText, settings).AsArray(required);
-		}
-
-		/// <summary>Parse un buffer contenant une array JSON</summary>
-		/// <param name="jsonText">Buffer contenant le document JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
-			return Parse(ref jsonText, settings).AsArray(required);
-		}
-
-		/// <summary>Parse une chaîne de texte JSON représentant un tableau</summary>
-		/// <param name="jsonText">Chaîne de texte JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Tableau JSON correspondant</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas un tableau</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArray(string? jsonText, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
-			return Parse(jsonText, settings).AsArray(required);
-		}
-
-		/// <summary>Parse une source de texte JSON représentant un tableau</summary>
-		/// <param name="source">Source de texte JSON à parser (de type "[...]")</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <returns>Tableau JSON correspondant</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas un tableau</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArrayFrom(TextReader source, CrystalJsonSettings? settings = null, bool required = false)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
-			return ParseFrom(source, settings).AsArray(required);
-		}
-
-		/// <summary>Parse un fichier JSON sur le disque représentant une array</summary>
-		/// <param name="path">Chemin du fichier à lire</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="required"></param>
-		/// <param name="options">Options de lecture</param>
-		/// <returns>Array JSON correspondante</returns>
-		/// <exception cref="System.FormatException">En cas d'erreur de syntaxe JSON</exception>
-		/// <exception cref="System.ArgumentException">Si l'objet JSON parsé n'est pas une array</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? ParseArrayFrom(string path, CrystalJsonSettings? settings = null, bool required = false, LoadOptions options = LoadOptions.None)
-		{
-			//TODO: REVIEW: we should change this so that it required by default, and throw if null, because it generates too many nullability false positives!
-			// => in 99.99% of cases you are parsing SOMETHING.
-			// => if the thing can either be null or an array, the caller can call Parse(..) and check manually IsNullOrMissing() / AsArray()
-			return LoadAndParseInternal(path, settings, options).AsArray(required);
 		}
 
 		[Pure, ContractAnnotation("null => false")]
@@ -1394,27 +1081,27 @@ namespace Doxense.Serialization.Json
 		/// <summary>Désérialise une chaîne de texte JSON en l'objet CLR le plus approprié</summary>
 		/// <param name="jsonText">Texte JSON à désérialiser</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant (dont le type dépend du contexte)</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		/// <remarks>A n'utiliser que si vous ne connaissez absolument pas le type attendu!</remarks>
 		[Pure]
 		[Obsolete("Please avoid doing untyped deserialization!")]
-		public static object? DeserializeBoxed(string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null)
+		public static object? DeserializeBoxed(string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return BindBoxed(Parse(jsonText, settings), null, customResolver);
+			return BindBoxed(Parse(jsonText, settings), null, resolver);
 		}
 
 		/// <summary>Désérialise une valeure JSON en l'objet CLR le plus approprié</summary>
 		/// <param name="value">Valeure JSON à désérialiser</param>
 		/// <param name="type"></param>
-		/// <param name="customResolver">Resolver optionnel</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant (dont le type dépend du contexte)</returns>
 		/// <remarks>A n'utiliser que si vous ne connaissez absolument pas le type attendu!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static object? BindBoxed(JsonValue? value, Type? type, ICrystalJsonTypeResolver? customResolver = null)
+		public static object? BindBoxed(JsonValue? value, Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return value == null ? null : (customResolver ?? CrystalJson.DefaultResolver).BindJsonValue(type, value);
+			return value == null ? null : (resolver ?? CrystalJson.DefaultResolver).BindJsonValue(type, value);
 		}
 
 		#endregion
@@ -1423,111 +1110,280 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
 		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
 		/// <returns>Objet correspondant</returns>
-		/// <remarks>Si <paramref name="required"/> vaut true, et que <typeparamref name="T"/> est un ValueType, une exception sera tout de même générée si <paramref name="jsonText"/> est vide ou vaut 'null' explicitement</remarks>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		/// <exception cref="InvalidOperationException">Si l'objet dé-sérialisé est 'null' et <paramref name="required"/> vaut true</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize<T>(string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue Deserialize<TValue>(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string jsonText
+		) where TValue : notnull
 		{
-			return Parse(jsonText, settings).As<T>(required, customResolver);
+			return Parse(jsonText).Required<TValue>(resolver: null);
+		}
+
+		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
+		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Resolver optionnel</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue Deserialize<TValue>(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string jsonText,
+			CrystalJsonSettings? settings = null,
+			ICrystalJsonTypeResolver? resolver = null
+		) where TValue : notnull
+		{
+			return Parse(jsonText, settings).Required<TValue>(resolver);
+		}
+
+		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
+		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <param name="defaultValue"></param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string jsonText,
+			TValue defaultValue)
+		{
+			return Parse(jsonText).As(defaultValue);
+		}
+
+		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
+		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <param name="defaultValue"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Resolver optionnel</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(
+#if NET8_0_OR_GREATER
+			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+#endif
+			string jsonText,
+			TValue defaultValue,
+			CrystalJsonSettings? settings = null,
+			ICrystalJsonTypeResolver? resolver = null
+		)
+		{
+			return Parse(jsonText, settings).As(defaultValue, resolver);
+		}
+
+		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue Deserialize<TValue>(byte[] jsonBytes) where TValue : notnull
+		{
+			return Parse(jsonBytes).Required<TValue>();
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		/// <exception cref="InvalidOperationException">Si l'objet dé-sérialisé est 'null' et <paramref name="required"/> vaut true</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize<T>(byte[] jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue Deserialize<TValue>(byte[] jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
-			return Parse(jsonBytes.AsSlice(), settings).As<T>(required, customResolver);
+			return Parse(jsonBytes, settings).Required<TValue>(resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
-		/// <param name="index">Offset de départ dans <paramref name="jsonBytes"/></param>
-		/// <param name="count">Nombre d'octets à parser</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
+		/// <param name="defaultValue"></param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		/// <exception cref="InvalidOperationException">Si l'objet dé-sérialisé est 'null' et <paramref name="required"/> vaut true</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize<T>(byte[]? jsonBytes, int index, int count, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue)
 		{
-			return Parse(jsonBytes.AsSlice(index, count), settings).As<T>(required, customResolver);
+			return Parse(jsonBytes).As(defaultValue);
+		}
+
+		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <param name="defaultValue"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Resolver optionnel</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return Parse(jsonBytes, settings).As(defaultValue, resolver);
+		}
+
+		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		[Pure]
+		public static TValue Deserialize<TValue>(Slice jsonBytes) where TValue : notnull
+		{
+			return Parse(jsonBytes).Required<TValue>(resolver: null);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize<T>(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		[Pure]
+		public static TValue Deserialize<TValue>(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
-			return Parse(jsonBytes, settings).As<T>(required, customResolver);
+			return Parse(jsonBytes, settings).Required<TValue>(resolver);
+		}
+
+		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <param name="defaultValue"></param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
+		{
+			return Parse(jsonBytes).As(defaultValue);
+		}
+
+		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <param name="defaultValue"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Resolver optionnel</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize<T>(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		[Pure]
+		public static TValue Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
-			return Parse(jsonBytes, settings).As<T>(required, customResolver);
+			return Parse(jsonBytes, settings).Required<TValue>(resolver);
+		}
+
+		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <param name="defaultValue"></param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
+		{
+			return Parse(jsonBytes).As(defaultValue);
+		}
+
+		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <param name="defaultValue"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Resolver optionnel</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
 
 		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, génère une exception si le text JSON est vide ou "null"</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize<T>(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
-			return Parse(jsonBytes, settings).As<T>(required, customResolver);
+			return Parse(jsonBytes, settings).Required<TValue>(resolver);
+		}
+
+		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <param name="defaultValue"></param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
+		{
+			return Parse(jsonBytes).As(defaultValue);
+		}
+
+		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
+		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <param name="defaultValue"></param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Resolver optionnel</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
 		/// <param name="source">Source contenant le texte JSON à dé-sérialiser</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, l'objet retourne ne peut pas être null (si c'est le cas, un exception est générée à la place</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		/// <exception cref="InvalidOperationException">Si l'objet dé-sérialisé est 'null' alors que <paramref name="required"/> vaut true</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? LoadFrom<T>(TextReader source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue? LoadFrom<TValue>(TextReader source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
-			return ParseFrom(source, settings).As<T>(required, customResolver);
+			return ParseFrom(source, settings).As<TValue>(resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de données JSON vers un type défini</summary>
 		/// <param name="source">Source contenant le JSON à dé-sérialiser (encodé en UTF-8)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
-		/// <param name="required">Si true, l'objet retourne ne peut pas être null (si c'est le cas, un exception est générée à la place</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		/// <exception cref="InvalidOperationException">Si l'objet dé-sérialisé est 'null' alors que <paramref name="required"/> vaut true</exception>
-		public static T? LoadFrom<T>(Stream source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue? LoadFrom<TValue>(Stream source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
 			Contract.NotNull(source);
 
@@ -1536,23 +1392,22 @@ namespace Doxense.Serialization.Json
 
 			using (var sr = new StreamReader(source, Encoding.UTF8, true))
 			{
-				return ParseFromReader(new JsonTextReader(sr), settings).As<T>(required, customResolver);
+				return ParseFromReader(new JsonTextReader(sr), settings).As<TValue>(resolver);
 			}
 		}
 
 		/// <summary>Dé-sérialise le contenu d'un fichier JSON sur le disque vers un type défini</summary>
 		/// <param name="path">Nom du fichier à lire</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="customResolver">Resolver optionnel</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <param name="options">Options de lecture</param>
-		/// <param name="required">Si true et que l'objet est null, une exception est générée à la place</param>
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		/// <exception cref="InvalidOperationException">Si l'objet dé-sérialisé est 'null' et <paramref name="required"/> vaut true</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static T? LoadFrom<T>(string path, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? customResolver = null, bool required = false, LoadOptions options = LoadOptions.None)
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue? LoadFrom<TValue>(string path, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, LoadOptions options = LoadOptions.None) where TValue : notnull
 		{
-			return LoadAndParseInternal(path, settings ?? CrystalJsonSettings.Json, options).As<T>(required, customResolver);
+			return LoadAndParseInternal(path, settings ?? CrystalJsonSettings.Json, options).As<TValue>(resolver);
 		}
 
 		#endregion
@@ -1704,27 +1559,27 @@ namespace Doxense.Serialization.Json
 			#region Parsing Errors...
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSyntaxException Parsing_CannotCastToJsonObject(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonType valueType)
 			{
-				return new JsonSyntaxException($"Cannot parse JSON {valueType} as an Object.");
+				return new JsonBindingException($"Cannot parse JSON {valueType} as an Object.");
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSyntaxException Parsing_CannotCastToJsonArray(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonArray(JsonType valueType)
 			{
-				return new JsonSyntaxException($"Cannot parse JSON {valueType} as an Array.");
+				return new JsonBindingException($"Cannot parse JSON {valueType} as an Array.");
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSyntaxException Parsing_CannotCastToJsonNumber(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonNumber(JsonType valueType)
 			{
-				return new JsonSyntaxException($"Cannot parse JSON {valueType} as a Number.");
+				return new JsonBindingException($"Cannot parse JSON {valueType} as a Number.");
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSyntaxException Parsing_CannotCastToJsonString(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonString(JsonType valueType)
 			{
-				return new JsonSyntaxException($"Cannot parse JSON {valueType} as a String.");
+				return new JsonBindingException($"Cannot parse JSON {valueType} as a String.");
 			}
 
 			#endregion

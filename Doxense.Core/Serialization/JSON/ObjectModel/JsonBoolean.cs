@@ -101,10 +101,10 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion
 
-			return (T?) BindNative<JsonBoolean, bool>(this, m_value, typeof(T), resolver);
+			return (T?) BindNative(this, m_value, typeof(T), resolver);
 		}
 
-		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null) => BindNative<JsonBoolean, bool>(this, m_value, type, resolver);
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null) => BindNative(this, m_value, type, resolver);
 
 		internal override bool IsSmallValue() => true;
 
@@ -120,23 +120,32 @@ namespace Doxense.Serialization.Json
 
 			switch (System.Type.GetTypeCode(value.GetType()))
 			{
-				case TypeCode.Boolean: return m_value == (bool)value;
-				case TypeCode.Int32: return m_value == ((int)value != 0);
-				case TypeCode.UInt32: return m_value == ((uint)value != 0U);
-				case TypeCode.Int64: return m_value == ((long)value != 0L);
-				case TypeCode.UInt64: return m_value == ((ulong)value != 0UL);
-				//TODO: autres!
+				case TypeCode.Boolean: return m_value == (bool) value;
+				case TypeCode.Int32: return m_value == ((int) value != 0);
+				case TypeCode.UInt32: return m_value == ((uint) value != 0U);
+				case TypeCode.Int64: return m_value == ((long) value != 0L);
+				case TypeCode.UInt64: return m_value == ((ulong) value != 0UL);
+				case TypeCode.Single: return m_value == ((float) value != 0.0f);
+				case TypeCode.Double: return m_value == ((double) value != 0.0);
+				case TypeCode.Int16: return m_value == ((short) value != 0);
+				case TypeCode.UInt16: return m_value == ((ushort) value != 0);
+				case TypeCode.SByte: return m_value == ((sbyte) value != 0);
+				case TypeCode.Byte: return m_value == ((byte) value != 0);
+				//TODO: others?
 			}
 			return base.Equals(value);
 		}
 
-		public override bool Equals(JsonValue? value) => value switch
+		public override bool Equals(JsonValue? value)
 		{
-			JsonBoolean b => Equals(b),
-			JsonNumber n => Equals(n),
-			JsonString s => Equals(s),
-			_ => false
-		};
+			return value switch
+			{
+				JsonBoolean b => Equals(b),
+				JsonNumber n => Equals(n),
+				JsonString s => Equals(s),
+				_ => false
+			};
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(JsonBoolean? obj) => obj is not null && obj.m_value == m_value;
@@ -158,7 +167,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region IEquatable<...>
+		#region IComparable<...>
 
 		public override int CompareTo(JsonValue? other)
 		{
@@ -222,7 +231,7 @@ namespace Doxense.Serialization.Json
 
 		public override decimal ToDecimal() => m_value ? 1m : 0m;
 
-		private static readonly Guid AllF = new Guid(new byte[16] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
+		private static readonly Guid AllF = new(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
 
 		public override Guid ToGuid() => m_value ? AllF : Guid.Empty;
 

@@ -15,8 +15,8 @@ namespace Doxense.IO.Tests
 	using System.IO;
 	using System.Threading.Tasks;
 	using Doxense.IO;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	public class PartialReadOnlyStreamFacts : SimpleTest
 	{

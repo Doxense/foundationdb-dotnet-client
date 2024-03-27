@@ -29,8 +29,8 @@ namespace Doxense.Serialization.Json.Tests
 	using System;
 	using System.Linq.Expressions;
 	using Doxense.Serialization.Json.JsonPath;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -86,7 +86,7 @@ namespace Doxense.Serialization.Json.Tests
 						}
 					}
 				}
-				""")!;
+				""");
 		}
 
 		private static void CheckSingle(JsonValue node, string query, JsonValue expected, string? label = null)
@@ -96,9 +96,13 @@ namespace Doxense.Serialization.Json.Tests
 			var res = node.Find(query);
 			Assert.That(res, Is.Not.Null);
 			if (res.Equals(JsonNull.Missing))
+			{
 				Log("> (no result)");
+			}
 			else
+			{
 				Log($"> {GetType(res)} {res:Q}");
+			}
 			Assert.That(res, Is.Not.Null, label);
 			Assert.That(res, Is.EqualTo(expected), label);
 		}
@@ -734,7 +738,7 @@ namespace Doxense.Serialization.Json.Tests
 			CheckMultiple(obj, "store.book[-1]", obj["store"]["book"][3]); // should only return the last item
 			CheckMultiple(obj, "store.book[^1]", obj["store"]["book"][3]); // should only return the last item
 
-			CheckMultiple(obj, "store.book[]", obj["store"]["book"].As<JsonValue[]>()!); // should return the items of the array!
+			CheckMultiple(obj, "store.book[]", obj["store"]["book"].Required<JsonValue[]>()); // should return the items of the array!
 			CheckMultiple(obj, "store.book[].title", "Sayings of the Century", "Sword of Honour", "Moby Dick", "The Lord of the Rings"); // should flatten array of a single JsonArray into an array of all items
 			CheckMultiple(obj, "store.book[isbn]", obj["store"]["book"][2], obj["store"]["book"][3]); // should return only items of the array that have an isbn
 			CheckMultiple(obj, "store.book[isbn].title", "Moby Dick", "The Lord of the Rings"); // should all the titles of the books that have an isbn
@@ -743,7 +747,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			CheckMultiple(obj, "store.book[not(isbn)]", obj["store"]["book"][0], obj["store"]["book"][1]); // should return only items of the array that have an isbn
 
-			var arr = JsonValue.ParseArray("[ [1, 2, 3], [4, 5, 6], [7, 8, 9]]", required: true)!;
+			var arr = JsonValue.ParseArray("[ [1, 2, 3], [4, 5, 6], [7, 8, 9]]");
 			CheckMultiple(arr, "$", arr); // return the top array
 			CheckMultiple(arr, "$[]", arr[0], arr[1], arr[2]); // return all arrays
 			CheckMultiple(arr, "$[0]", arr[0]); // return the first array

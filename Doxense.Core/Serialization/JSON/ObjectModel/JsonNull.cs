@@ -30,14 +30,13 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Valeur JSON null</summary>
 	[DebuggerDisplay("JSON Null({m_kind})")]
 	[DebuggerNonUserCode]
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 	public sealed class JsonNull : JsonValue, IEquatable<JsonNull>
 	{
 		//REVIEW: il faudrait soit renommer JsonNull en JsonNil, ou alors .Null en .Nil, pour éviter l'ambiguité "JsonNull.Null" et aussi "get_IsNull" qui retourne true aussi pour missing/error
@@ -75,10 +74,13 @@ namespace Doxense.Serialization.Json
 		public override string ToString() => string.Empty;
 
 		[ContractAnnotation("=> null")]
-		public override string? ToStringOrDefault() => null;
+		public override string? ToStringOrDefault(string? defaultValue = null) => defaultValue;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static T? Default<T>() => DefaultCache<T>.Instance;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static T? Default<T>(JsonValue? value) => DefaultCache<T>.CanBeJsonNull && value is JsonNull jn ? (T) (object) jn : DefaultCache<T>.Instance;
 
 		[Pure, ContractAnnotation("=> null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static object? Default([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
@@ -106,6 +108,8 @@ namespace Doxense.Serialization.Json
 		{
 			// ReSharper disable once ExpressionIsAlwaysNull
 			public static readonly T? Instance = (T?) Default(typeof(T))!;
+
+			public static readonly bool CanBeJsonNull = default(T) == null && typeof(T) == typeof(JsonValue) || typeof(T) == typeof(JsonNull);
 		}
 
 		#region JsonValue Members
@@ -168,23 +172,37 @@ namespace Doxense.Serialization.Json
 		[AllowNull] // setter only
 		public override JsonValue this[int index]
 		{
-			get => JsonNull.Missing;
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
 		[AllowNull] // setter only
 		public override JsonValue this[Index key]
 		{
-			get => JsonNull.Missing;
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
 		[AllowNull] // setter only
 		public override JsonValue this[string key]
 		{
-			get => JsonNull.Missing;
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
 			set => throw FailCannotMutateImmutableValue(this);
 		}
+
+		public override JsonValue GetValueOrDefault(string key, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
+
+		public override JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
+
+		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
+
+		public override JsonValue GetValue(string key) => JsonValueExtensions.FailFieldIsNullOrMissing(key);
+
+		public override JsonValue GetValue(int index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
+
+		public override JsonValue GetValue(Index index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
+
+		public override bool Contains(JsonValue? value) => false;
 
 		internal override bool IsSmallValue() => true;
 
@@ -253,103 +271,103 @@ namespace Doxense.Serialization.Json
 
 		public override bool ToBoolean() => false;
 
-		public override bool? ToBooleanOrDefault() => null;
+		public override bool? ToBooleanOrDefault(bool? defaultValue = null) => defaultValue;
 
-		public override byte ToByte() => default(byte);
+		public override byte ToByte() => default;
 
-		public override byte? ToByteOrDefault() => null;
+		public override byte? ToByteOrDefault(byte? defaultValue = null) => defaultValue;
 
-		public override sbyte ToSByte() => default(sbyte);
+		public override sbyte ToSByte() => default;
 
-		public override sbyte? ToSByteOrDefault() => null;
+		public override sbyte? ToSByteOrDefault(sbyte? defaultValue = null) => defaultValue;
 
 		public override char ToChar() => '\0';
 
-		public override char? ToCharOrDefault() => null;
+		public override char? ToCharOrDefault(char? defaultValue = null) => defaultValue;
 
-		public override short ToInt16() => default(short);
+		public override short ToInt16() => default;
 
-		public override short? ToInt16OrDefault() => null;
+		public override short? ToInt16OrDefault(short? defaultValue = null) => defaultValue;
 
-		public override ushort ToUInt16() => default(ushort);
+		public override ushort ToUInt16() => default;
 
-		public override ushort? ToUInt16OrDefault() => null;
+		public override ushort? ToUInt16OrDefault(ushort? defaultValue = null) => defaultValue;
 
 		public override int ToInt32() => 0;
 
-		public override int? ToInt32OrDefault() => null;
+		public override int? ToInt32OrDefault(int? defaultValue = null) => defaultValue;
 
 		public override uint ToUInt32() => 0U;
 
-		public override uint? ToUInt32OrDefault() => null;
+		public override uint? ToUInt32OrDefault(uint? defaultValue = null) => defaultValue;
 
 		public override long ToInt64() => 0L;
 
-		public override long? ToInt64OrDefault() => null;
+		public override long? ToInt64OrDefault(long? defaultValue = null) => defaultValue;
 
 		public override ulong ToUInt64() => 0UL;
 
-		public override ulong? ToUInt64OrDefault() => null;
+		public override ulong? ToUInt64OrDefault(ulong? defaultValue = null) => defaultValue;
 
 		public override float ToSingle() => 0f;
 
-		public override float? ToSingleOrDefault() => null;
+		public override float? ToSingleOrDefault(float? defaultValue = null) => defaultValue;
 
 		public override double ToDouble() => 0d;
 
-		public override double? ToDoubleOrDefault() => null;
+		public override double? ToDoubleOrDefault(double? defaultValue = null) => defaultValue;
 
 		public override Half ToHalf() => default;
 
-		public override Half? ToHalfOrDefault() => null;
+		public override Half? ToHalfOrDefault(Half? defaultValue = null) => defaultValue;
 
 		public override decimal ToDecimal() => 0m;
 
-		public override decimal? ToDecimalOrDefault() => null;
+		public override decimal? ToDecimalOrDefault(decimal? defaultValue = null) => defaultValue;
 
-		public override Guid ToGuid() => default(Guid);
+		public override Guid ToGuid() => default;
 
-		public override Guid? ToGuidOrDefault() => null;
+		public override Guid? ToGuidOrDefault(Guid? defaultValue = null) => defaultValue;
 
 		public override Uuid128 ToUuid128() => Uuid128.Empty;
 
-		public override Uuid128? ToUuid128OrDefault() => null;
+		public override Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => defaultValue;
 
 		public override Uuid96 ToUuid96() => Uuid96.Empty;
 
-		public override Uuid96? ToUuid96OrDefault() => null;
+		public override Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => defaultValue;
 
 		public override Uuid80 ToUuid80() => Uuid80.Empty;
 
-		public override Uuid80? ToUuid80OrDefault() => null;
+		public override Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => defaultValue;
 
 		public override Uuid64 ToUuid64() => Uuid64.Empty;
 
-		public override Uuid64? ToUuid64OrDefault() => null;
+		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => defaultValue;
 
-		public override DateTime ToDateTime() => default(DateTime);
+		public override DateTime ToDateTime() => default;
 
-		public override DateTime? ToDateTimeOrDefault() => null;
+		public override DateTime? ToDateTimeOrDefault(DateTime? defaultValue = null) => defaultValue;
 
-		public override DateTimeOffset ToDateTimeOffset() => default(DateTimeOffset);
+		public override DateTimeOffset ToDateTimeOffset() => default;
 
-		public override DateTimeOffset? ToDateTimeOffsetOrDefault() => null;
+		public override DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null) => defaultValue;
 
-		public override TimeSpan ToTimeSpan() => default(TimeSpan);
+		public override TimeSpan ToTimeSpan() => default;
 
-		public override TimeSpan? ToTimeSpanOrDefault() => null;
+		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => defaultValue;
 
-		public override TEnum ToEnum<TEnum>() => default(TEnum);
+		public override TEnum ToEnum<TEnum>() => default;
 
-		public override TEnum? ToEnumOrDefault<TEnum>() => null;
+		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null) => defaultValue;
 
-		public override NodaTime.Instant ToInstant() => default(NodaTime.Instant);
+		public override NodaTime.Instant ToInstant() => default;
 
-		public override NodaTime.Instant? ToInstantOrDefault() => null;
+		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null) => defaultValue;
 
 		public override NodaTime.Duration ToDuration() => NodaTime.Duration.Zero;
 
-		public override NodaTime.Duration? ToDurationOrDefault() => null;
+		public override NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null) => defaultValue;
 
 		#endregion
 

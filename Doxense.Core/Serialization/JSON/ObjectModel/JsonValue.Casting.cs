@@ -666,10 +666,10 @@ namespace Doxense.Serialization.Json
 		#region IPAddress...
 
 		[Pure]
-		public static implicit operator JsonValue(System.Net.IPAddress? value) => JsonString.Return(value);
+		public static implicit operator JsonValue(IPAddress? value) => JsonString.Return(value);
 
 		[Pure]
-		public static explicit operator System.Net.IPAddress?(JsonValue? value)
+		public static explicit operator IPAddress?(JsonValue? value)
 		{
 			if (value.IsNullOrMissing()) return default;
 			var str = value.ToString();
@@ -825,7 +825,6 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.OffsetDateTime value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -838,14 +837,13 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.OffsetDateTime? value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
 		[Pure]
 		public static explicit operator NodaTime.OffsetDateTime?(JsonValue? value)
 		{
-			return value.IsNullOrMissing() ? default(NodaTime.OffsetDateTime?) : value.As<NodaTime.OffsetDateTime>();
+			return value.As<NodaTime.OffsetDateTime?>();
 		}
 
 		#endregion
@@ -855,27 +853,25 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.ZonedDateTime value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
 		[Pure]
 		public static explicit operator NodaTime.ZonedDateTime(JsonValue? value)
 		{
-			return (value ?? JsonNull.Null).As<NodaTime.ZonedDateTime>();
+			return value.As<NodaTime.ZonedDateTime>();
 		}
 
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.ZonedDateTime? value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
 		[Pure]
 		public static explicit operator NodaTime.ZonedDateTime?(JsonValue? value)
 		{
-			return value.IsNullOrMissing() ? default(NodaTime.ZonedDateTime?) : value.As<NodaTime.ZonedDateTime>();
+			return value.As<NodaTime.ZonedDateTime>();
 		}
 
 		#endregion
@@ -885,26 +881,24 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.LocalDateTime value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
 		[Pure]
 		public static explicit operator NodaTime.LocalDateTime(JsonValue? value)
 		{
-			return (value ?? JsonNull.Null).As<NodaTime.LocalDateTime>();
+			return value.As<NodaTime.LocalDateTime>();
 		}
 
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.LocalDateTime? value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
 		public static explicit operator NodaTime.LocalDateTime?(JsonValue? value)
 		{
-			return value.IsNullOrMissing() ? default(NodaTime.LocalDateTime?) : value.As<NodaTime.LocalDateTime>();
+			return value.As<NodaTime.LocalDateTime?>();
 		}
 
 		#endregion
@@ -914,32 +908,28 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(NodaTime.LocalDate value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator NodaTime.LocalDate(JsonValue? value)
 		{
-			return (value ?? JsonNull.Null).As<NodaTime.LocalDate>();
+			return value.As<NodaTime.LocalDate>();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(NodaTime.LocalDate? value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator NodaTime.LocalDate?(JsonValue? value)
 		{
-			return value.IsNullOrMissing() ? default(NodaTime.LocalDate?) : value.As<NodaTime.LocalDate>();
+			return value.As<NodaTime.LocalDate?>();
 		}
 
 		#endregion
-
-		//TODO: les autres NodaTime.XXX
 
 		#region Common Array Types
 		
@@ -954,7 +944,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator string?[]?(JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToStringArray();
+			return value.AsArrayOrDefault()?.ToStringArray();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -966,7 +956,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator bool[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToBoolArray();
+			return value.AsArrayOrDefault()?.ToBoolArray();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -978,7 +968,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator int[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToInt32Array();
+			return value.AsArrayOrDefault()?.ToInt32Array();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -990,7 +980,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator uint[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToUInt32Array();
+			return value.AsArrayOrDefault()?.ToUInt32Array();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1002,7 +992,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator long[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToInt64Array();
+			return value.AsArrayOrDefault()?.ToInt64Array();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1014,7 +1004,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator ulong[]?(JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToUInt64Array();
+			return value.AsArrayOrDefault()?.ToUInt64Array();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1026,7 +1016,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator float[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToSingleArray();
+			return value.AsArrayOrDefault()?.ToSingleArray();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1038,7 +1028,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator double[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToDoubleArray();
+			return value.AsArrayOrDefault()?.ToDoubleArray();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1050,7 +1040,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Guid[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToGuidArray();
+			return value.AsArrayOrDefault()?.ToGuidArray();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1062,11 +1052,11 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator NodaTime.Instant[]? (JsonValue? value)
 		{
-			return value.AsArray(required: false)?.ToInstantArray();
+			return value.AsArrayOrDefault()?.ToInstantArray();
 		}
 
-
 		#endregion
+
 	}
 
 }

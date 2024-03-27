@@ -97,13 +97,13 @@ namespace FoundationDB.Client
 				// note: the prefix is encoded as a Unicode String, with one "code point" per byte (???) which is weird (it should probably have been encoded as Base64 ??)
 				//       this means that "\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008" represents the prefix '\x01\x02\x03\x04\x05\x06\x07\x08` or <00 01 02 03 04 05 06 07 08>
 
-				var obj = CrystalJson.ParseObject(data);
+				var obj = CrystalJson.Parse(data).AsObjectOrDefault();
 				if (obj == null) throw new FormatException("Invalid Tenant Metadata format: required JSON document is missing.");
 
-				var id = obj.Get<int?>("id");
+				var id = obj.Get<int?>("id", null);
 				if (id == null) throw new FormatException("Invalid Tenant Metadata format: required 'id' field is missing.");
 
-				var prefixLiteral = obj.Get<string?>("prefix");
+				var prefixLiteral = obj.Get<string?>("prefix", null);
 				if (prefixLiteral == null) throw new FormatException("Invalid Tenant Metadata format: required 'prefix' field is missing.");
 
 				// the prefix is encoded _as a string_ in the JSON which is NOT a good idea :(

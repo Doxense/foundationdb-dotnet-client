@@ -39,8 +39,10 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using JetBrains.Annotations;
 	using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 	using ContractAnnotationAttribute = JetBrains.Annotations.ContractAnnotationAttribute;
 	using UsedImplicitlyAttribute = JetBrains.Annotations.UsedImplicitlyAttribute;
@@ -219,7 +221,7 @@ namespace Doxense.Serialization.Json
 			var map = new Dictionary<string, JsonValue>(items.Count, items.Comparer);
 			foreach (var item in items)
 			{
-				var child = item.Value.Copy(deep: true, readOnly: true);
+				var child = item.Value.ToReadOnly();
 #if DEBUG
 				Contract.Debug.Assert(child.IsReadOnly);
 #endif
@@ -227,6 +229,7 @@ namespace Doxense.Serialization.Json
 			}
 			return new(map, readOnly: true);
 		}
+
 
 		/// <summary>Convert this JSON Object so that it, or any of its children that were previously read-only, can be mutated.</summary>
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
@@ -417,6 +420,16 @@ namespace Doxense.Serialization.Json
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(ReadOnlySpan<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
+		{
+			return CreateEmptyWithComparer(comparer).AddRange(items);
+		}
+
+		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <param name="items">Map of key/values to copy</param>
+		/// <param name="comparer"></param>
+		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items, IEqualityComparer<string>? comparer = null)
 		{
 			return CreateEmptyWithComparer(comparer).AddRange(items);
 		}
@@ -671,48 +684,62 @@ namespace Doxense.Serialization.Json
 
 		#region FromObject...
 
-		/// <summary>Transforme un objet CLR en un JsonObject</summary>
-		/// <typeparam name="TValue">Type de l'objet à convertir</typeparam>
-		/// <param name="value">Instance de l'objet à convertir</param>
-		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <returns>Corresponding JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is mutable, and cannot safely be cached or shared. If you need an immutable instance, consider calling <see cref="FromObjectReadOnly{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<TValue>(TValue value)
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
-			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue)).AsObject(required: false);
+			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
-		/// <summary>Transforme un objet CLR en un JsonObject</summary>
-		/// <typeparam name="TValue">Type de l'objet à convertir</typeparam>
-		/// <param name="value">Instance de l'objet à convertir</param>
-		/// <returns>JsonObject correspondant, ou null si <paramref name="value"/> est null</returns>
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <returns>Corresponding immutable JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value)
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
-			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(TValue)).AsObject(required: false);
+			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Corresponding JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is mutable, and cannot safely be cached or shared. If you need an immutable instance, consider calling <see cref="FromObjectReadOnly{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(TValue)).AsObject(required: false);
+			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
-		[ContractAnnotation("value:notnull => notnull")]
+		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
+		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
+		/// <param name="value">Instance to convert.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Corresponding immutable JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
+		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(TValue)).AsObject(required: false);
+			return CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
 		#endregion
 
-		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
-		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		/// <summary>Converts a untyped dictionary into a JSON Object</summary>
+		/// <returns>Corresponding mutable JSON Object</returns>
+		/// <remarks>This should only be used to interface with legacy APIs that generate a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object></see>.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonObject CreateBoxed(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
@@ -725,8 +752,10 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(map, readOnly: false);
 		}
 
-		/// <summary>Convertit un dictionnaire en JsonObject, en convertissant chaque valeur du dictionnaire en JsonValue</summary>
-		/// <returns>Ne pas utiliser cette méthode pour *construire* un JsonObject! Elle n'est à utiliser que pour s'interfacer avec une API qui utilise des dictionnaires, comme par exemple OWIN</returns>
+		/// <summary>Converts a untyped dictionary into a JSON Object</summary>
+		/// <returns>Corresponding immutable JSON Object</returns>
+		/// <remarks>This should only be used to interface with legacy APIs that generate a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object></see>.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonObject CreateBoxedReadOnly(IDictionary<string, object> members, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
@@ -744,7 +773,7 @@ namespace Doxense.Serialization.Json
 #endif
 		private static System.Runtime.Serialization.FormatterConverter? CachedFormatterConverter;
 
-		/// <summary>Serialize an <see cref="Exception"/> into a JSON object</summary>
+		/// <summary>Serializes an <see cref="Exception"/> into a JSON object</summary>
 		/// <returns></returns>
 		/// <remarks>
 		/// The exception must implement <see cref="System.Runtime.Serialization.ISerializable"/>, and CANNOT contain cycles or self-references!
@@ -766,7 +795,7 @@ namespace Doxense.Serialization.Json
 			return FromISerializable(ser, includeTypes);
 		}
 
-		/// <summary>Serialize a type that implements <see cref="System.Runtime.Serialization.ISerializable"/> into a JSON object representation</summary>
+		/// <summary>Serializes a type that implements <see cref="System.Runtime.Serialization.ISerializable"/> into a JSON object representation</summary>
 		/// <remarks>
 		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
 		/// </remarks>
@@ -872,25 +901,6 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		[ContractAnnotation("halt<=key:null; =>true,array:notnull; =>false,array:null")]
-		public bool TryGetArray(string key, [MaybeNullWhen(false)] out JsonArray array)
-		{
-			m_items.TryGetValue(key, out var value);
-			array = value as JsonArray;
-			return array != null;
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		[ContractAnnotation("halt<=key:null; =>true,obj:notnull; =>false,obj:null")]
-		public bool TryGetObject(string key, [MaybeNullWhen(false)] out JsonObject obj)
-		{
-			Contract.NotNull(key);
-			m_items.TryGetValue(key, out var value);
-			obj = value as JsonObject;
-			return obj != null;
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Add(string key, JsonValue? value)
 		{
 			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
@@ -915,6 +925,294 @@ namespace Doxense.Serialization.Json
 			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
 		}
 
+		private static void MakeReadOnly(Dictionary<string, JsonValue> items)
+		{
+			foreach (var kv in items)
+			{
+				if (!kv.Value.IsReadOnly)
+				{
+					items[kv.Key] = kv.Value.ToReadOnly();
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this object with an additional item</summary>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, an exception will be thrown.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, an exception will be thrown.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public JsonObject CopyAndAdd(string key, JsonValue? value)
+		{
+			// copy and add the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+			items.Add(key, value?.ToReadOnly() ?? JsonNull.Null);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Replaces a published JSON Object with a new version with an added field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Object</param>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, an exception will be thrown.</param>
+		/// <param name="value">Value of the field to add</param>
+		/// <returns>New published JSON Object, that includes the new field.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Object with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonObject CopyAndAdd(ref JsonObject original, string key, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndAdd(key, value);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndAddSpin(ref original, key, value);
+
+			static JsonObject CopyAndAddSpin(ref JsonObject original, string key, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndAdd(key, value);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this object with an additional item</summary>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, the method will return <see langword="false"/>.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <param name="copy">Receives a new instance with the same content of the original object, plus the additional item</param>
+		/// <returns><see langword="true"/> if the field was added, or <see langword="false"/> if there was already a field with the same name.</returns>
+		/// <remarks>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public bool TryCopyAndAdd(string key, JsonValue? value, [MaybeNullWhen(false)] out JsonObject copy)
+		{
+			if (m_items.ContainsKey(key))
+			{
+				copy = null;
+				return false;
+			}
+
+			// copy and add the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+			items.Add(key, value?.ToReadOnly() ?? JsonNull.Null);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			copy = new (items, readOnly: true);
+			return true;
+		}
+
+		/// <summary>Returns a new read-only copy of this object, with an additional field</summary>
+		/// <param name="key">Name of the field to set. If a field with the same name already exists, its previous value will be overwritten.</param>
+		/// <param name="value">Value of the new field</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, its value will be overwritten.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public JsonObject CopyAndSet(string key, JsonValue? value)
+		{
+			// copy and set the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+			items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Replaces a published JSON Object with a new version with an added field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Object</param>
+		/// <param name="key">Name of the field to set. If a field with the same name already exists, its previous value will be overwritten.</param>
+		/// <param name="value">Value of the field.</param>
+		/// <returns>New published JSON Object, that includes the new field.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Object with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonObject CopyAndSet(ref JsonObject original, string key, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndSet(key, value);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndSetSpin(ref original, key, value);
+
+			static JsonObject CopyAndSetSpin(ref JsonObject original, string key, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndSet(key, value);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this object, with an additional field</summary>
+		/// <param name="key">Name of the new field</param>
+		/// <param name="value">Value of the new field</param>
+		/// <param name="previous">If the field was already present, receives its previous value. If not, receives <see langword="null"/>.</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, its value will be overwritten and the previous value will be stored in <see cref="previous"/>.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+		public JsonObject CopyAndSet(string key, JsonValue? value, out JsonValue? previous)
+		{
+			var items = new Dictionary<string, JsonValue>(m_items);
+
+			// get the previous value if it exists
+			items.TryGetValue(key, out previous);
+			// set the new value
+			items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specifield item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(string key)
+		{
+			var items = m_items;
+			if (!items.ContainsKey(key))
+			{ // the key does not exist so there will be no changes
+				return m_readOnly ? this : ToReadOnly();
+			}
+
+			if (items.Count == 1)
+			{ // we already now key is contained in the object, so if its the only one, the object will become empty.
+				return EmptyReadOnly;
+			}
+
+			// copy and remove
+			items = new(items);
+			items.Remove(key);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specifield item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <param name="previous"></param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(string key, out JsonValue? previous)
+		{
+			var items = m_items;
+			if (!items.TryGetValue(key, out previous))
+			{ // the key does not exist so there will be no changes
+				return m_readOnly ? this : ToReadOnly();
+			}
+
+			if (items.Count == 1)
+			{ // we already now key is contained in the object, so if its the only one, the object will become empty.
+				return EmptyReadOnly;
+			}
+
+			// copy and remove
+			items = new(items);
+			items.Remove(key);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Replaces a published JSON Object with a new version without the specified field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Object</param>
+		/// <param name="key">Name of the field to remove. If the field was not present, the object will not be changed.</param>
+		/// <returns>New published JSON Object without the field, or the original object if the was not present.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Object with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonObject CopyAndRemove(ref JsonObject original, string key)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndRemove(key);
+			if (ReferenceEquals(copy, snapshot))
+			{ // the field did not exist
+				return snapshot;
+			}
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndRemoveSpin(ref original, key);
+
+			static JsonObject CopyAndRemoveSpin(ref JsonObject original, string key)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndRemove(key);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
 		#region AddRange...
 
 		#region Mutable...
@@ -932,6 +1230,24 @@ namespace Doxense.Serialization.Json
 			{
 				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
 				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+				self.Add(item.Key, item.Value ?? JsonNull.Null);
+			}
+
+			return this;
+		}
+
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject AddRange(ReadOnlySpan<(string Key, JsonValue? Value)> items)
+		{
+			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (items.Length == 0) return this;
+
+			var self = m_items;
+			self.EnsureCapacity(unchecked(self.Count + items.Length));
+
+			foreach (var item in items)
+			{
+				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
 				self.Add(item.Key, item.Value ?? JsonNull.Null);
 			}
 
@@ -1487,7 +1803,7 @@ namespace Doxense.Serialization.Json
 		public bool HasValues => this.Count > 0;
 
 		/// <summary>Retourne la valeur de l'attribut "__class", ou null si absent (ou pas une chaine)</summary>
-		public string? CustomClassName => Get<string>(JsonTokens.CustomClassAttribute);
+		public string? CustomClassName => Get<string?>(JsonTokens.CustomClassAttribute, null);
 
 		#endregion
 
@@ -1497,13 +1813,8 @@ namespace Doxense.Serialization.Json
 		private TJson? InternalGet<TJson>(JsonType expectedType, string key, bool required)
 			where TJson : JsonValue
 		{
-			if (!TryGetValue(key, out var value))
-			{ // The property does not exist in this object
-				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(key);
-				return null;
-			}
-			if (value.Type == JsonType.Null)
-			{ // The property exists, but is null or missing
+			if (!m_items.TryGetValue(key, out var value) || value is JsonNull)
+			{ // The property does not exist in this object, or is null or missing
 				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(key);
 				return null;
 			}
@@ -1511,7 +1822,7 @@ namespace Doxense.Serialization.Json
 			{ // The property exists, but is not of the expected type ??
 				throw Error_ExistingKeyTypeMismatch(key, value, expectedType);
 			}
-			return (TJson)value;
+			return (TJson) value;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -1545,100 +1856,11 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Has(string key) => TryGetValue(key, out var value) && !value.IsNullOrMissing();
 
-		/// <inheritdoc />
-		[Pure, ContractAnnotation("=> false, value:null")]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override bool TryGet<TValue>(string key, [MaybeNullWhen(false)] out TValue value)
-		{
-			if (m_items.TryGetValue(key, out var item) && !item.IsNullOrMissing())
-			{
-				value = item.As<TValue>()!;
-				return true;
-			}
-			value = default;
-			return false;
-		}
-
-		/// <summary>Tries to get the value associated with the specified <paramref name="key" /> in the JSON Object.</summary>
-		/// <param name="key">Name of the propertyThe key of the value to get.</param>
-		/// <returns>A <typeparamref name="TValue" /> instance. When the method is successful, the returned object is the converted value associated with the specified <paramref name="key" />. When the method fails, it returns the <see langword="default" /> value for <typeparamref name="TValue" />.</returns>
-		/// <example>
-		/// ({ "Hello": "World"}).GetOrDefault&lt;string&gt;("Hello") // => <c>"World"</c>
-		/// ({ "Hello": "123"}).GetOrDefault&lt;int&gt;("Hello") // => <c>123</c>
-		/// ({ }).GetOrDefault&lt;string&gt;("Hello") // => <c>null</c>
-		/// ({ }).GetOrDefault&lt;int&gt;("Hello") // => <c>0</c>
-		/// ({ }).GetOrDefault&lt;int?&gt;("Hello") // => <c>null</c>
-		/// ({ "Hello": null }).GetOrDefault&lt;string&gt;("Hello") // => <c>null</c>
-		/// ({ "Hello": null }).GetOrDefault&lt;int&gt;("Hello") // => <c>0</c>
-		/// ({ "Hello": null }).GetOrDefault&lt;int?&gt;("Hello") // => <c>null</c>
-		/// </example>
-		public TValue? GetOrDefault<TValue>(string key)
-		{
-			return m_items.TryGetValue(key, out var item) && !item.IsNullOrMissing() ? item.As<TValue>() : default;
-		}
-
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public override TValue? GetOrDefault<TValue>(string key, TValue? defaultValue) where TValue : default
-		{
-			return m_items.TryGetValue(key, out var item) ? (item.As<TValue>() ?? defaultValue) : defaultValue;
-		}
-
-		/// <summary>Retourne la valeur d'une propriété de cet objet, avec une contrainte de présence optionnelle</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="required">Si true, une exception est lancée si la propriété n'existe pas où vaut null. Si false, retourne default(<typeparamref name="TValue"/>) si la propriété est manquante ou vaut explicitement null</param>
-		/// <returns>
-		/// Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="TValue"/>, ou default(<typeparamref name="TValue"/>) si la propriété contient null ou n'existe pas.
-		/// Si <typeparamref name="TValue"/> est un ValueType qui n'est pas nullable, et que le champ est manquant (avec <paramref name="required"/> == false), alors c'est le "zéro" du type qui sera retourné (0, false, Guid.Empty, ...)
-		/// Si par contre <typeparamref name="TValue"/> est un <see cref="Nullable{T}"/> alors c'est bien 'null' qui sera retourné dans ce cas.
-		/// </returns>
-		/// <example>
-		/// obj.Get&lt;int&gt;"FieldThatExists", required: true) // returns the value of the field as an int
-		/// obj.Get&lt;bool&gt;"FieldThatExists", required: true) // ALWAYS specify 'required' to make sure not to call the Get&lt;bool&gt; with defaultValue by mistake!
-		/// obj.Get&lt;string&gt;"FieldThatIsMissing", required: true) // => throws
-		/// obj.Get&lt;string&gt;"FieldThatIsNull", required: true) // => throws
-		/// </example>
-		/// <remarks> Cette méthode est équivalente à <code>obj[key].RequiredField(key).As&lt;T&gt;()</code> </remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[ContractAnnotation("required:true => notnull")]
-		public TValue? Get<TValue>(string key, bool required)
-		{
-			var val = this[key];
-			if (required) val = val.RequiredField(key);
-			return val.As<TValue>();
-		}
-
-		/// <summary>Retourne la valeur d'une propriété de cet objet, ou une valeur par défaut si elle n'existe pas</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> convertit en <typeparamref name="TValue"/>, ou default(<typeparamref name="TValue"/>} si la propriété contient null ou n'existe pas.</returns>
-		/// <remarks>Cette méthode est équivalente à <code>obj[key].As&lt;T&gt;(defaultValue, resolver)</code></remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public TValue? Get<TValue>(string key, ICrystalJsonTypeResolver resolver)
-		{
-			return this[key].As<TValue>(resolver);
-		}
-
-		/// <summary>Retourne la valeur JSON d'une propriété de cet objet</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
+		/// <summary>Returns the <b>required</b> JSON Value that corresponds to the field with the specified name.</summary>
+		/// <param name="key">Name of the field</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValue(string key) => m_items.TryGetValue(key, out var value) ? value : JsonNull.Missing;
-
-		/// <summary>Retourne la valeur JSON d'une propriété de cet objet</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="required"></param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété contient null, ou <see cref="JsonNull.Missing"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai nul (ie: default(objet)), alors JsonNull.Null est retourné à la place.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		public JsonValue GetValue(string key, bool required)
-		{
-			var val = m_items.TryGetValue(key, out var value) ? value : JsonNull.Missing;
-			return required ? val.RequiredField(key) : val;
-		}
+		public override JsonValue GetValue(string key) => m_items.GetValueOrDefault(key).RequiredField(key);
 
 		/// <summary>Retourne la valeur JSON d'une propriété de cet objet, ou une valeur JSON par défaut</summary>
 		/// <param name="key">Nom de la propriété recherchée</param>
@@ -1647,29 +1869,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retourné à la place.</remarks>
 		[Pure, ContractAnnotation("halt<=key:null")]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
-
-		/// <summary>Retourne la valeur d'une propriété de type JsonObject</summary>
-		/// <param name="key">Nom de la propriété qui contient le sous-objet recherché</param>
-		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient null, une exception est lancée. Sinon, la méthode retourne null.</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, ou null si la propriété contient null ou n'existe pas et <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas un object.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni un JsonObject, ni null.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public JsonObject? GetObject(string key, bool required = false) => InternalGet<JsonObject>(JsonType.Object, key, required);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining), ContractAnnotation("required:true => notnull")]
-		public JsonObject? GetObjectPath(string path, bool required = false) => GetPath(path).AsObject(required);
-
-		/// <summary>Retourne la valeur d'une propriété de type JsonArray</summary>
-		/// <param name="key">Nom de la propriété qui contient l'array recherchée</param>
-		/// <param name="required">Si <b>true</b> et que le champ n'existe pas, ou contient <b>null</b>, une exception est lancée. Sinon, la méthode retourne null.</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonArray, ou null si la propriété contient null ou n'existe pas et que <paramref name="required"/> est <b>false</b>. Génère une exception si la propriété ne contient pas une array.</returns>
-		/// <exception cref="ArgumentException">Si l'objet contient une propriété nommée <paramref name="key"/>, mais qui n'est ni une JsonArray, ni null.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public JsonArray? GetArray(string key, bool required = false) => InternalGet<JsonArray>(JsonType.Array, key, required);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining), ContractAnnotation("required:true => notnull")]
-		public JsonArray? GetArrayPath(string path, bool required = false) => GetPath(path).AsArray(required);
+		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
 		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
 		/// <param name="path">Path vers le fils (peut inclure des '.')</param>
@@ -1891,7 +2091,7 @@ namespace Doxense.Serialization.Json
 						if (index.HasValue)
 						{
 							JsonArray array = name == null
-								? current.AsArray(required: true)!
+								? current.AsArray()
 								: GetOrCreateChildArray(current, name, createIfMissing: true)!;
 
 							current = GetOrCreateEntryObject(array, index.Value.GetOffset(array.Count), createIfMissing: true)!;
@@ -1912,7 +2112,7 @@ namespace Doxense.Serialization.Json
 						{
 							// current.name doit être une array
 							JsonArray array = name == null
-								? current.AsArray(required: true)!
+								? current.AsArray()
 								: GetOrCreateChildArray(current, name, createIfMissing: true)!;
 
 							if (valueToSet != null)
@@ -2032,7 +2232,7 @@ namespace Doxense.Serialization.Json
 							JsonArray? array;
 							if (name == null)
 							{
-								array = current.AsArray(required: true)!;
+								array = current.AsArray();
 							}
 							else
 							{
@@ -2710,6 +2910,9 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
+		/// <summary>Converts this JSON Object into a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object?&gt;</see>.</summary>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override object? ToObject()
 		{
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
@@ -2823,6 +3026,12 @@ namespace Doxense.Serialization.Json
 			var res = new KeyValuePair<string, JsonValue>[m_items.Count];
 			CopyTo(res, 0);
 			return res;
+		}
+
+		public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(ICrystalJsonTypeResolver? resolver = null)
+			where TKey : notnull
+		{
+			return (Dictionary<TKey, TValue>) (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(Dictionary<TKey, TValue>), this)!;
 		}
 
 		public void CopyTo(KeyValuePair<string, JsonValue>[] array)

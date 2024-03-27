@@ -244,18 +244,18 @@ namespace Doxense.Serialization.Encoders
 		T? IValueEncoder<T, string>.DecodeValue(string packed)
 		{
 			Contract.NotNull(packed);
-			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver, required: true);
+			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver);
 		}
 
 		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
 		{
 			Contract.NotNullAllowStructs(value);
-			return CrystalJson.ToBuffer<T>(value, this.Settings, this.Resolver);
+			return CrystalJson.ToSlice<T>(value, this.Settings, this.Resolver);
 		}
 
 		T? IValueEncoder<T, Slice>.DecodeValue(Slice packed)
 		{
-			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver, required: true);
+			return packed.IsNullOrEmpty ? default : CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver);
 		}
 
 		JsonObject IValueEncoder<T, JsonObject>.EncodeValue(T? value)
@@ -266,7 +266,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, JsonObject>.DecodeValue(JsonObject packed)
 		{
-			return packed.As<T>(required: true, resolver: this.Resolver);
+			return packed.As<T>(resolver: this.Resolver);
 		}
 
 	}

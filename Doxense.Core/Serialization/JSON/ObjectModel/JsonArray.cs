@@ -85,7 +85,7 @@ namespace Doxense.Serialization.Json
 		#region Constructors...
 
 		/// <summary>Retourne une nouvelle array vide</summary>
-		[Obsolete("Use JsonArray.CreateEmpty() instead, or use JsonArray.EmptyReadOnly or a readonly emtpy singleton")]
+		[Obsolete("OLD_API: Use JsonArray.CreateEmpty() instead, or use JsonArray.EmptyReadOnly or a readonly emtpy singleton")]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonArray Empty
 		{
@@ -364,7 +364,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonArray Copy(ReadOnlySpan<JsonValue> values)
 		{
-			return new JsonArray().AddRange(values);
+			return new JsonArray().AddRange(values!);
 		}
 
 		/// <summary>Create a new JsonArray using a list of elements</summary>
@@ -374,7 +374,7 @@ namespace Doxense.Serialization.Json
 		public static JsonArray Copy(JsonValue[] values)
 		{
 			Contract.NotNull(values);
-			return new JsonArray().AddRange(values.AsSpan());
+			return new JsonArray().AddRange(values.AsSpan()!);
 		}
 
 		/// <summary>Create a new JsonArray using a list of elements</summary>
@@ -394,14 +394,14 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonArray CopyReadOnly(ReadOnlySpan<JsonValue> items)
 		{
-			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items).FreezeUnsafe();
+			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items!).FreezeUnsafe();
 		}
 
 		/// <summary>Create a new JsonArray from a list of elements</summary>
 		public static JsonArray CopyReadOnly(JsonValue[] items)
 		{
 			Contract.NotNull(items);
-			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items.AsSpan()).FreezeUnsafe();
+			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items.AsSpan()!).FreezeUnsafe();
 		}
 
 		/// <summary>Create a new JsonArray from a list of elements</summary>
@@ -512,6 +512,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Crée une nouvelle JsonArray à partir d'un tableu d'éléments dont le type est connu.</summary>
 		/// <typeparam name="TValue">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les éléments du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValuesReadOnly<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -552,6 +554,8 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValuesReadOnly<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -565,6 +569,8 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
 		/// <param name="values">Tableau d'éléments à convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les valeurs du tableau, convertis en JsonValue</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValuesReadOnly<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -578,6 +584,8 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type des valeurs extraites de chaque élément, et insérée dans la JsonArray</typeparam>
 		/// <param name="values">Séquences d'éléments à convertir</param>
 		/// <param name="selector">Lambda qui extrait une valeur d'un item</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>JsonArray contenant tous les valeurs de la séquence, convertis en JsonValue</returns>
 		[Pure]
 		public static JsonArray FromValuesReadOnly<TItem, TValue>(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -665,7 +673,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Indique si le tableau est vide</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Use 'arr.Count == 0' instead.")]
+		[Obsolete("OLD_API: Use 'arr.Count == 0' instead.")]
 		public bool IsEmpty //REVIEW: remove this? (Count == 0)
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -764,7 +772,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		private void ThrowCannotMutateReadOnlyObject() => throw FailCannotMutateReadOnlyValue(this);
+		internal void ThrowCannotMutateReadOnlyObject() => throw FailCannotMutateReadOnlyValue(this);
 
 		/// <inheritdoc cref="JsonValue.this[int]"/>
 		[AllowNull] // only for the setter
@@ -772,7 +780,7 @@ namespace Doxense.Serialization.Json
 		public override JsonValue this[int index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => m_items.AsSpan(0, m_size)[index];
+			get => GetValueOrDefault(index);
 			set
 			{
 				if (m_readOnly) ThrowCannotMutateReadOnlyObject();
@@ -786,7 +794,7 @@ namespace Doxense.Serialization.Json
 		public override JsonValue this[Index index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => m_items.AsSpan(0, m_size)[index];
+			get => GetValueOrDefault(index);
 			set
 			{
 				if (m_readOnly) ThrowCannotMutateReadOnlyObject();
@@ -833,7 +841,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(ReadOnlySpan<JsonValue> array)
+		public JsonArray AddRange(ReadOnlySpan<JsonValue?> array)
 		{
 			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (array.Length > 0)
@@ -845,7 +853,7 @@ namespace Doxense.Serialization.Json
 				Contract.Debug.Assert(items != null && size + array.Length <= items.Length);
 
 				var tail = items.AsSpan(size, array.Length);
-				array.CopyTo(tail);
+				array.CopyTo(tail!);
 				FillNullValues(tail!);
 				m_size = size + array.Length;
 			}
@@ -868,61 +876,9 @@ namespace Doxense.Serialization.Json
 			return AddRangeReadOnly(items.AsSpan()!);
 		}
 
-		/// <summary>Append une autre array en copiant ou collant ses éléments à la fin</summary>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(JsonArray array)
-		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
-			Contract.NotNull(array);
-
-			if (array.Count > 0)
-			{
-				// resize
-				int count = array.m_size;
-				int size = m_size;
-				int newSize = checked(size + count);
-				EnsureCapacity(newSize);
-
-				// append
-				var tail = m_items.AsSpan(size, count);
-				array.AsSpan().CopyTo(tail);
-				m_size = newSize;
-			}
-
-			return this;
-		}
-
-		/// <summary>Append une autre array en copiant ou collant ses éléments à la fin</summary>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly(JsonArray array)
-		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
-			Contract.NotNull(array);
-
-			if (array.Count > 0)
-			{
-				// resize
-				int count = array.m_size;
-				int size = m_size;
-				int newSize = checked(size + count);
-				EnsureCapacity(newSize);
-
-				// append
-				var items = array.AsSpan();
-				var tail = m_items.AsSpan(size, items.Length);
-				for (int i = 0; i < tail.Length; i++)
-				{
-					tail[i] = items[i].ToReadOnly();
-				}
-				m_size = newSize;
-			}
-
-			return this;
-		}
-
 		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonValue> array)
+		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonValue?> array)
 		{
 			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (array.Length > 0)
@@ -954,17 +910,17 @@ namespace Doxense.Serialization.Json
 			// JsonArray
 			if (items is JsonArray jarr)
 			{ // optimized
-				return AddRange(jarr);
+				return AddRange(jarr.GetSpan()!);
 			}
 
 			// Regular Array
-			if (items is JsonValue[] arr)
+			if (items is JsonValue?[] arr)
 			{ // optimized
 				return AddRange(arr.AsSpan());
 			}
 
 			// Collection
-			if (items is List<JsonValue> list)
+			if (items is List<JsonValue?> list)
 			{
 				return AddRange(CollectionsMarshal.AsSpan(list));
 			}
@@ -1005,17 +961,17 @@ namespace Doxense.Serialization.Json
 			// JsonArray
 			if (items is JsonArray jarr)
 			{ // optimized
-				return AddRangeReadOnly(jarr);
+				return AddRangeReadOnly(jarr.GetSpan()!);
 			}
 
 			// Regular Array
-			if (items is JsonValue[] arr)
+			if (items is JsonValue?[] arr)
 			{ // optimized
 				return AddRangeReadOnly(arr.AsSpan());
 			}
 
 			// Collection
-			if (items is List<JsonValue> list)
+			if (items is List<JsonValue?> list)
 			{
 				return AddRangeReadOnly(CollectionsMarshal.AsSpan(list));
 			}
@@ -1121,7 +1077,7 @@ namespace Doxense.Serialization.Json
 
 			if (typeof(TValue) == typeof(JsonValue))
 			{
-				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<TValue, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
+				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue?>(ref Unsafe.As<TValue, JsonValue?>(ref MemoryMarshal.GetReference(items)), items.Length);
 				return AddRange(json);
 			}
 
@@ -1505,7 +1461,7 @@ namespace Doxense.Serialization.Json
 			if (typeof(TValue) == typeof(JsonValue))
 			{
 				// force cast to a ReadOnlySpan<JsonValue>
-				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue>(ref Unsafe.As<TValue, JsonValue>(ref MemoryMarshal.GetReference(items)), items.Length);
+				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue?>(ref Unsafe.As<TValue, JsonValue?>(ref MemoryMarshal.GetReference(items)), items.Length);
 				// then add these values directly
 				return AddRangeReadOnly(json);
 			}
@@ -1912,54 +1868,14 @@ namespace Doxense.Serialization.Json
 			//TODO: versionning?
 		}
 
-		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
-		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use GetValue(int) instead.")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public JsonValue Get(int index) => this[index];
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValue(int index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
 
-		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
-		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override JsonValue GetValue(int index) => m_items.AsSpan(0, m_size)[index];
-
-		/// <summary>Retourne la valeur d'un élément d'après son index</summary>
-		/// <param name="index">Index de l'élément à retourner</param>
-		/// <returns>Valeur de l'élément à l'index spécifié, ou une exception si l'index est en dehors des bornes de l'array</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override JsonValue GetValue(Index index) => m_items.AsSpan(0, m_size)[index];
-
-		/// <summary>Returns the converted value at the specified index in this array</summary>
-		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
-		/// <param name="index">Index of the value in the array</param>
-		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="TValue"/></returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override TValue? Get<TValue>(int index) where TValue : default => m_items.AsSpan(0, m_size)[index].As<TValue>();
-
-		/// <summary>Returns the converted value at the specified index in this array</summary>
-		/// <typeparam name="TValue">Target CLR type used to bind the JSON value</typeparam>
-		/// <param name="index">Index of the value in the array</param>
-		/// <returns>Converted value at the specified index, or an exception if the index is outside the bounds of the array, or if the value cannot be bound to type <typeparamref name="TValue"/></returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override TValue? Get<TValue>(Index index) where TValue : default => m_items.AsSpan(0, m_size)[index].As<TValue>();
-
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("Use TryGetValue(int, out JsonValue) instead.")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet(int index, [MaybeNullWhen(false)] out JsonValue value) => TryGetValue(index, out value);
-
-		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="value">When this method returns, the value located at the specified index, if the index is inside the bounds of the array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
-		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValue(Index index) => m_items.AsSpan(0, m_size)[index].RequiredIndex(index);
+		
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public override bool TryGetValue(int index, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -1972,10 +1888,6 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="value">When this method returns, the value located at the specified index, if the index is inside the bounds of the array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
-		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public override bool TryGetValue(Index index, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -1989,136 +1901,43 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="value">When this method returns, the value located at the specified index converted into type <typeparamref name="TValue"/>, if the index is inside the bounds of the array; otherwise, the default value for the type of the <paramref name="value" /> parameter. This parameter is passed uninitialized.</param>
-		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public override bool TryGet<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null)
 		{
-			if ((uint) index < m_size)
+			if ((uint) index >= m_size)
 			{
-				var val = m_items[index];
-				if (!val.IsNullOrMissing())
-				{
-					value = val.As<TValue>()!;
-					return true;
-				}
+				return defaultValue ?? JsonNull.Error;
 			}
-			value = default;
-			return false;
+			var child = m_items[index];
+			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
 
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="value">When this method returns, the value located at the specified index converted into type <typeparamref name="TValue"/>, if the index is inside the bounds of the array; otherwise, the default value for the type of the <paramref name="value" /> parameter. This parameter is passed uninitialized.</param>
-		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public override bool TryGet<TValue>(Index index, [MaybeNullWhen(false)] out TValue value)
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null)
 		{
 			var offset = index.GetOffset(m_size);
-			if ((uint) offset < m_size)
+			if ((uint) offset >= m_size)
 			{
-				var val = m_items[offset];
-				if (!val.IsNullOrMissing())
-				{
-					value = val.As<TValue>()!;
-					return true;
-				}
+				return defaultValue ?? JsonNull.Error;
 			}
-			value = default;
-			return false;
+			var child = m_items[offset];
+			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
-
-		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
-		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array.</returns>
-		public override JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null) => TryGetValue(index, out var res) ? res : (defaultValue ?? JsonNull.Missing);
-
-		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
-		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array.</returns>
-		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => TryGetValue(index, out var res) ? res : (defaultValue ?? JsonNull.Missing);
-
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
-		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public override TValue? GetOrDefault<TValue>(int index, TValue? defaultValue = default) where TValue : default => TryGetValue(index, out var res) ? (res.As<TValue>() ?? defaultValue) : defaultValue;
-
-		/// <summary>Returns the converted value at the specified index, if it is contains inside the array's bound.</summary>
-		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
-		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public override TValue? GetOrDefault<TValue>(Index index, TValue? defaultValue = default) where TValue : default => TryGetValue(index, out var res) ? (res.As<TValue>() ?? defaultValue) : defaultValue;
-
-		/// <summary>Retourne la valeur à l'index spécifié sous forme d'objet JSON</summary>
-		/// <param name="index">Index de l'objet à retourner</param>
-		/// <param name="required">Si true et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
-		/// <returns>Valeur de l'objet à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas un objet, ou si la valeur est null (et que <paramref name="required"/> est true)</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut true.</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas un objet JSON.</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read)]
-		public JsonObject? GetObject(int index, bool required = false) => this[index].AsObject(required);
-
-		/// <summary>Returns the JSON Object at the specified index</summary>
-		/// <param name="index">Index of the Object to retrieve</param>
-		/// <returns>Value of the object at the specified location, or <see langword="null"/> if the location contains a null or missing value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Object</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
-		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Object.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public JsonObject? GetObjectOrDefault(int index) => GetValue(index).AsObject(required: false);
-
-		/// <summary>Returns the JSON Object at the specified index</summary>
-		/// <param name="index">Index of the Object to retrieve</param>
-		/// <returns>Value of the object at the specified index, <see langword="null"/> if the location contains a null or missing value. Throws an exception if the index is oustide the bounds of the array, OR if the value is not a JSON Object</returns>
-		/// <exception cref="IndexOutOfRangeException"> <paramref name="index"/> is outside the bounds of the array.</exception>
-		/// <exception cref="ArgumentException"> the value at the specified index is not a JSON Object.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public JsonObject? GetObjectOrDefault(Index index) => GetValue(index).AsObject(required: false);
-
-		/// <summary>Returns the JSON Array at the specified index</summary>
-		/// <param name="index">Index of the Array to retrieve</param>
-		/// <param name="required">Si <see langword="true"/> et que l'array contient null à cet index, provoque une exception. Sinon, retourne null.</param>
-		/// <returns>Valeur à l'index spécifié, ou null si l'array contient null à cet index (et que <paramref name="required"/> est false), ou une exception si l'index est en dehors des bornes de l'array, où si la valeur n'est pas une array, ou si la valeur est <see langword="null"/> (et que <paramref name="required"/> est <see langword="true"/>)</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> est en dehors des bornes du tableau</exception>
-		/// <exception cref="InvalidOperationException">Si la valeur à l'<paramref name="index"/> spécifié est null, et que <paramref name="required"/> vaut <see langword="true"/>.</exception>
-		/// <exception cref="ArgumentException">Si la valeur à l'<paramref name="index"/> spécifié n'est pas une array JSON.</exception>
-		[Pure, ContractAnnotation("required:true => notnull"), CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonArray? GetArray(int index, bool required = false) => this[index].AsArray(required);
-
-		/// <summary>Returns the JSON Array at the specified index</summary>
-		/// <param name="index">Index of the Array to retrieve</param>
-		/// <returns>Value of the array at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Array</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
-		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Array.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public JsonArray? GetArrayOrDefault(int index) => this[index].AsArray(required: false);
-
-		/// <summary>Returns the JSON Array at the specified index</summary>
-		/// <param name="index">Index of the Array to retrieve</param>
-		/// <returns>Value of the array at the specified location, or <see langword="null"/> if the location contains a <c>null</c> value, or an exception if the index is oustide the bounds of the array, or the value is not a JSON Array</returns>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array.</exception>
-		/// <exception cref="ArgumentException">the value at the specified index is not a JSON Array.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public JsonArray? GetArrayOrDefault(Index index) => this[index].AsArray(required: false);
 
 		/// <summary>Determines the index of a specific value in the JSON array.</summary>
 		/// <param name="item">The value to locate in the array.</param>
 		/// <returns>The index of <paramref name="item" /> if found in the array; otherwise, <see langword="-1"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int IndexOf(JsonValue item) => this.AsSpan().IndexOf(item);
 
 		/// <summary>Determines whether the JSON array contains a specific JSON value.</summary>
 		/// <param name="item">The value to locate in the array.</param>
 		/// <returns> <see langword="true" /> if <paramref name="item" /> is found in the array; otherwise, <see langword="false" />.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override bool Contains(JsonValue? item)
 		{
 			var items = m_items;
@@ -2264,18 +2083,6 @@ namespace Doxense.Serialization.Json
 		public void CopyTo(JsonValue[] array, int arrayIndex) => this.AsSpan().CopyTo(array.AsSpan(arrayIndex));
 		//TODO: REVIEW: make this explicit? (to force callers to use the Span overload)
 
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("Use arr.GetSpan(index).CopyTo(Span<JsonValue>) instead.", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public void CopyTo(int index, Span<JsonValue> array) => this.AsSpan().Slice(index).CopyTo(array);
-		//TODO: REMOVE ME!
-
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("Use arr.GetSpan(index, count).CopyTo(Span<JsonValue>) instead.", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public void CopyTo(int index, int count, Span<JsonValue> array) => this.AsSpan().Slice(index, count).CopyTo(array);
-		//TODO: REMOVE ME!
-
 		#endregion
 
 		#region Operators...
@@ -2385,11 +2192,6 @@ namespace Doxense.Serialization.Json
 			m_size = p;
 		}
 
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("Use GetRange(index) instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public JsonArray Substring(int index) => GetRange(index);
-
 		/// <summary>Returns a new JSON array with a shallow copy of all the items starting from the specified index</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonArray GetRange(int index)
@@ -2416,11 +2218,6 @@ namespace Doxense.Serialization.Json
 		{
 			return GetRange(index.GetOffset(m_size));
 		}
-
-		[CollectionAccess(CollectionAccessType.Read)]
-		[Obsolete("Use GetRange(index, count) instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public JsonArray Substring(int index, int count) => GetRange(index, count);
 
 		/// <summary>Returns a new JSON array with a shallow copy of all the items in the specified range</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -2500,8 +2297,7 @@ namespace Doxense.Serialization.Json
 
 			public bool MoveNext()
 			{
-				//TODO: check versionning?
-				if ((uint)m_index < (uint)m_size)
+				if ((uint) m_index < m_size)
 				{
 					m_current = m_items[m_index];
 					m_index++;
@@ -2625,7 +2421,7 @@ namespace Doxense.Serialization.Json
 				{
 					m_array = array;
 					m_index = 0;
-					m_current = default(TValue);
+					m_current = default;
 					m_required = required;
 				}
 
@@ -2635,8 +2431,7 @@ namespace Doxense.Serialization.Json
 				public bool MoveNext()
 				{
 					var arr = m_array;
-					//TODO: check versionning?
-					if ((uint) m_index < (uint) arr.m_size)
+					if ((uint) m_index < arr.m_size)
 					{
 
 						var val = arr.m_items[m_index];
@@ -2659,9 +2454,8 @@ namespace Doxense.Serialization.Json
 
 				private bool MoveNextRare()
 				{
-					//TODO: check versionning?
 					m_index = m_array.m_size + 1;
-					m_current = default(TValue);
+					m_current = default;
 					return false;
 				}
 
@@ -2679,9 +2473,8 @@ namespace Doxense.Serialization.Json
 
 				void IEnumerator.Reset()
 				{
-					//TODO: check versionning?
 					m_index = 0;
-					m_current = default(TValue);
+					m_current = default;
 				}
 
 				public TValue Current => m_current!;
@@ -2695,12 +2488,18 @@ namespace Doxense.Serialization.Json
 		internal override bool IsSmallValue()
 		{
 			const int LARGE_ARRAY = 5;
+
 			var items = this.AsSpan();
 			if (items.Length >= LARGE_ARRAY) return false;
+
 			foreach(var item in items)
 			{
-				if (!item.IsSmallValue()) return false;
+				if (!item.IsSmallValue())
+				{
+					return false;
+				}
 			}
+
 			return true;
 		}
 
@@ -2731,20 +2530,20 @@ namespace Doxense.Serialization.Json
 			}
 
 			var sb = new StringBuilder(128);
-			// Dump les 4 premiers, et rajoutes des ", ... X more" si plus que 4.
-			// On va quand même dumper le 5 eme s'il y a exactement 5 items, pour éviter le " .... 1 more" qui prend autant de places que de l'écrire!
+			// If the size of the array is higher than 5, dump the first 4 items, followed by ", ... X more".
+			// Note: If size is 5 , we will dump the fifth item, in order to not end up with ", ... 1 more" that would not be helpful and will frequently be longer than dumping the item anyway...
 			++depth;
 			sb.Append("[ ").Append(items[0].GetCompactRepresentation(depth));
 			if (size >= 2) sb.Append(", ").Append(items[1].GetCompactRepresentation(depth));
 			if (size >= 3) sb.Append(", ").Append(items[2].GetCompactRepresentation(depth));
-			if (depth == (0+1))
-			{ // on va jusqu'à 4 items (5eme joker)
+			if (depth == 1)
+			{ // we allow up to 4 items
 				if (size >= 4) sb.Append(", ").Append(items[3].GetCompactRepresentation(depth));
 				if (size == 5) sb.Append(", ").Append(items[4].GetCompactRepresentation(depth));
 				else if (size > 5) sb.Append($", /* … {size - 4:N0} more */");
 			}
 			else
-			{ // on va jusqu'à 3 items (4eme joker)
+			{ // we allow up to 3 items
 				if (size == 4) sb.Append(", ").Append(items[3].GetCompactRepresentation(depth));
 				else if (size > 4) sb.Append($", /* … {size - 3:N0} more */");
 			}
@@ -2752,6 +2551,9 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
+		/// <summary>Converts this JSON Array with a <see cref="List{T}">List&lt;object?></see>.</summary>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override object ToObject()
 		{
 			//TODO: détecter le cas ou tt les members ont le même type T,
@@ -2879,30 +2681,14 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		[Pure]
-		public TValue[] ToArray<TValue>([InstantHandle] Func<JsonValue, TValue> transform)
-		{
-			Contract.NotNull(transform);
-
-			var items = this.AsSpan();
-			var buf = new TValue[items.Length];
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = transform(items[i]);
-			}
-
-			return buf;
-		}
-
 		/// <summary>Désérialise une JSON Array en array d'objets dont le type est défini</summary>
 		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
 		/// <param name="value">Tableau JSON contenant des objets a priori de type T</param>
 		/// <param name="required"></param>
-		/// <param name="customResolver">Resolver optionnel</param>
+		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Retourne une IList&lt;T&gt; contenant les éléments désérialisés</returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
-		public static TValue?[]? BindArray<TValue>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		public static TValue?[]? BindArray<TValue>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
 			if (value is not JsonArray array)
 			{
@@ -2911,7 +2697,7 @@ namespace Doxense.Serialization.Json
 					: throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
 			}
 
-			return array.ToArray<TValue>(customResolver);
+			return array.ToArray<TValue>(resolver);
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -3237,15 +3023,15 @@ namespace Doxense.Serialization.Json
 		/// <summary>Deserialize a JSON Array into a list of objects of the specified type</summary>
 		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
 		/// <param name="value">JSON array that contains the elements to bind</param>
-		/// <param name="customResolver">Optional type resolver</param>
+		/// <param name="resolver">Optional type resolver</param>
 		/// <param name="required">If <see langword="true"/> the array cannot be null</param>
 		/// <returns>A list of all elements that have been deserialized into instance of type <typeparamref name="TValue"/></returns>
 		[Pure, ContractAnnotation("value:null => null")]
-		public static List<TValue?>? BindList<TValue>(JsonValue? value, ICrystalJsonTypeResolver? customResolver = null, bool required = false)
+		public static List<TValue?>? BindList<TValue>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
 			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<TValue?>>() : null;
 			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
-			return array.ToList<TValue>(customResolver);
+			return array.ToList<TValue>(resolver);
 		}
 
 #if !DEBUG // <JIT_HACK>
@@ -3291,7 +3077,7 @@ namespace Doxense.Serialization.Json
 			var total = TNumber.Zero;
 			foreach (var item in this.AsSpan())
 			{
-				total += item.As<TNumber>()!;
+				total += item.As<TNumber>(TNumber.Zero);
 			}
 			return total;
 		}
@@ -3668,12 +3454,12 @@ namespace Doxense.Serialization.Json
 					{
 						case JsonType.Object:
 						{
-							parent[i] = JsonObject.Merge((JsonObject) left, right.AsObject(required: true)!, deepCopy);
+							parent[i] = JsonObject.Merge((JsonObject) left, right.AsObject(), deepCopy);
 							break;
 						}
 						case JsonType.Array:
 						{
-							parent[i] = Merge((JsonArray) left, right.AsArray(required: true)!, deepCopy);
+							parent[i] = Merge((JsonArray) left, right.AsArray(), deepCopy);
 							break;
 						}
 						default:
@@ -3779,35 +3565,34 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable
 
-		private static bool ShouldInlineArray(JsonValue[] items, int size)
+		private static bool ShouldInlineArray(ReadOnlySpan<JsonValue> items)
 		{
-			switch (size)
+			switch (items.Length)
 			{
 				case 0: return true;
-				case 1: return items[0]?.IsInlinable() ?? true;
-				case 2: return (items[0]?.IsInlinable() ?? true) && (items[1]?.IsInlinable() ?? true);
+				case 1: return items[0].IsInlinable();
+				case 2: return items[0].IsInlinable() && items[1].IsInlinable();
 				default: return false;
 			}
 		}
 
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
-			int count = m_size;
-			if (count == 0)
+			var items = GetSpan();
+			if (items.Length == 0)
 			{
 				writer.WriteEmptyArray();
 				return;
 			}
 
 			writer.MarkVisited(this);
-			var items = m_items;
-			bool inline = writer.Indented && ShouldInlineArray(items, m_size);
+			bool inline = writer.Indented && ShouldInlineArray(items);
 			if (inline)
 			{
 				var state = writer.BeginInlineArray();
 				writer.WriteInlineHeadSeparator();
 				items[0].JsonSerialize(writer);
-				for (int i = 1; i < count; i++)
+				for (int i = 1; i < items.Length; i++)
 				{
 					writer.WriteInlineTailSeparator();
 					items[i].JsonSerialize(writer);
@@ -3819,7 +3604,7 @@ namespace Doxense.Serialization.Json
 				var state = writer.BeginArray();
 				writer.WriteHeadSeparator();
 				items[0].JsonSerialize(writer);
-				for (int i = 1; i < count; i++)
+				for (int i = 1; i < items.Length; i++)
 				{
 					writer.WriteTailSeparator();
 					items[i].JsonSerialize(writer);
@@ -3940,43 +3725,26 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	[JetBrains.Annotations.PublicAPI]
 	public static class JsonArrayExtensions
 	{
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
-		/// <param name="value">Valeur JSON qui doit être une array</param>
-		/// <returns>Valeur castée en JsonArray si elle existe. Une exception si la valeur est null, missing, ou n'est pas une array.</returns>
-		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> est null, missing, ou n'est pas une array.</exception>
-		[Pure, ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use AsArray(required: true) instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static JsonArray AsArray(this JsonValue? value) => value.IsNullOrMissing() ? FailArrayIsNullOrMissing() : value as JsonArray ?? FailValueIsNotAnArray(value);
+		[Pure]
+		public static TValue[] ToArray<TValue>(this JsonArray self, [InstantHandle] Func<JsonValue, TValue> transform)
+		{
+			Contract.NotNull(self);
+			Contract.NotNull(transform);
 
-		/// <summary>Retourne la valeur JSON sous forme d'array, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit une array, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonArray si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
-		/// <exception cref="System.InvalidOperationException">Si <paramref name="value"/> n'est ni null, ni une array.</exception>
-		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use AsArray(required: false) instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static JsonArray? AsArrayOrDefault(this JsonValue? value) => value.IsNullOrMissing() ? null : value as JsonArray ?? FailValueIsNotAnArray(value);
+			var items = self.AsSpan();
+			var buf = new TValue[items.Length];
 
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonArray.</summary>
-		/// <param name="value">Valeur JSON qui doit être une array</param>
-		/// <param name="required">Si true, throw une exception si le document JSON parsé est équivalent à null (vide, 'null', ...)</param>
-		/// <returns>Valeur castée en JsonArray si elle existe, ou null si la valeur est null/missing et que <paramref name="required"/> vaut false. Throw dans tous les autres cas</returns>
-		/// <exception cref="InvalidOperationException">Si <paramref name="value"/> est null ou missing et que <paramref name="required"/> vaut true. Ou si <paramref name="value"/> n'est pas une array.</exception>
-		[Pure, ContractAnnotation("required:true => notnull")]
-		public static JsonArray? AsArray(this JsonValue? value, bool required) =>
-			value.IsNullOrMissing()
-				? (required ? FailArrayIsNullOrMissing() : null)
-				: value as JsonArray ?? FailValueIsNotAnArray(value);
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = transform(items[i]);
+			}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonArray FailArrayIsNullOrMissing() => throw new InvalidOperationException("Required JSON array was null or missing.");
-
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonArray FailValueIsNotAnArray(JsonValue value) => throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value.Type);
+			return buf;
+		}
 
 		#region ToJsonArray...
 
@@ -3985,12 +3753,12 @@ namespace Doxense.Serialization.Json
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this ReadOnlySpan<JsonValue> source)
-			=> new JsonArray().AddRange(source);
+			=> new JsonArray().AddRange(source!);
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this Span<JsonValue> source)
-			=> new JsonArray().AddRange(source);
+			=> new JsonArray().AddRange(source!);
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4032,12 +3800,12 @@ namespace Doxense.Serialization.Json
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this ReadOnlySpan<JsonValue> source)
-			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
+			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this Span<JsonValue> source)
-			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
+			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
 
 		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4136,7 +3904,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="expectedType">Type attendu des objets de la liste (ou null si aucun filtrage)</param>
 		/// <param name="keySelector">Lambda utilisée pour extraire les clés du dictionnaire</param>
 		/// <param name="valueSelector">Lambda utilisée pour extraire les valeurs stockées dans le dictionnaire</param>
-		/// <param name="customResolver">Résolveur de type custom (ou celui par défaut si null)</param>
+		/// <param name="resolver">Résolveur de type custom (ou celui par défaut si null)</param>
 		/// <param name="overwrite">Si true, écrase toute valeur existante. Si false, provoque une exception en cas de doublon de clé</param>
 		/// <returns>L'annuaire cible passé en paramètre</returns>
 		/// <exception cref="System.ArgumentNullException">Si l'un des paramètre requis est null</exception>
@@ -4148,16 +3916,16 @@ namespace Doxense.Serialization.Json
 			JsonType? expectedType,
 			[InstantHandle] Func<JsonValue, JsonValue> keySelector,
 			[InstantHandle] Func<JsonValue, JsonValue> valueSelector,
-			ICrystalJsonTypeResolver? customResolver = null,
+			ICrystalJsonTypeResolver? resolver = null,
 			bool overwrite = false
-		)
+		) where TKey : notnull
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(target);
 			Contract.NotNull(keySelector);
 			Contract.NotNull(valueSelector);
 
-			customResolver ??= CrystalJson.DefaultResolver;
+			resolver ??= CrystalJson.DefaultResolver;
 
 			int index = 0;
 			foreach (var item in source)
@@ -4171,10 +3939,8 @@ namespace Doxense.Serialization.Json
 					throw JsonArray.Error_CannotMapValueTypeToDictionary(item, index);
 				}
 
-				var key = keySelector(item).As<TKey>(customResolver);
-				Contract.Debug.Assert(key != null);
-				var value = valueSelector(item).As<TValue>(customResolver)!;
-
+				var key = keySelector(item).Required<TKey>(resolver);
+				var value = valueSelector(item).As<TValue>(resolver)!;
 				if (overwrite)
 				{
 					target[key] = value;
@@ -4183,7 +3949,6 @@ namespace Doxense.Serialization.Json
 				{
 					target.Add(key, value);
 				}
-
 				++index;
 			}
 

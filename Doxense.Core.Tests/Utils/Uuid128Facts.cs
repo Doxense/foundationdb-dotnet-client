@@ -31,8 +31,8 @@ namespace Doxense.Core.Tests
 	using System.Globalization;
 	using System.Linq;
 	using System.Text;
-	using Doxense.Testing;
 	using NUnit.Framework;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

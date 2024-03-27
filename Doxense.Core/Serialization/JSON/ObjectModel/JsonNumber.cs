@@ -1427,7 +1427,7 @@ namespace Doxense.Serialization.Json
 			string literal = new string((sbyte*)ptr, 0, size); //ASCII is ok
 
 			var num = CrystalJsonParser.ParseJsonNumber(literal);
-			if (num == null) throw ThrowHelper.FormatException($"Invalid number literal '{literal}'.");
+			if (num is null) throw ThrowHelper.FormatException($"Invalid number literal '{literal}'.");
 			return num;
 		}
 
@@ -1624,12 +1624,14 @@ namespace Doxense.Serialization.Json
 
 			resolver ??= CrystalJson.DefaultResolver;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
 			{ // on tente notre chance...
 				var obj = (IJsonBindable) Activator.CreateInstance(type)!;
 				obj.JsonUnpack(this, resolver);
 				return obj;
 			}
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			// passe par un custom binder?
 			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques
@@ -2461,8 +2463,43 @@ namespace Doxense.Serialization.Json
 
 		bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			charsWritten = 0;
-			return false;
+			// From the documentation:
+			// - An implementation of this interface should produce the same string of characters as an implementation of ToString(String, IFormatProvider) on the same type.
+			// - TryFormat should return false only if there is not enough space in the destination buffer. Any other failures should throw an exception.
+			// The last point is very important, or else it could create an infinite loop!
+			// For example, DefaultInterpolatedStringHandler will call Grow() in an infinite loop, trying to produce a buffer large enough until TryFormat returns true (or throws)
+
+			var len = this.Literal.Length;
+
+			if (format.Length == 0 || (format.Length == 1 && format[0] is 'D' or 'd' or 'C' or 'c' or 'P' or 'p' or 'Q' or 'q'))
+			{
+				if (destination.Length < len)
+				{
+					charsWritten = 0;
+					return false;
+				}
+				this.Literal.CopyTo(destination);
+				charsWritten = len;
+				return true;
+			}
+
+			if (format.Length == 1 && format[0] is 'B' or 'b')
+			{
+				if (destination.Length < checked(len + 2))
+				{
+					charsWritten = 0;
+					return false;
+				}
+
+				destination[0] = '"';
+				this.Literal.CopyTo(destination[1..]);
+				destination[len + 1] = '"';
+				charsWritten = len + 2;
+				return true;
+			}
+
+			// the format is not recognized
+			throw new ArgumentException("Unsupported format", nameof(format));
 		}
 
 		static JsonNumber IParsable<JsonNumber>.Parse(string s, IFormatProvider? provider) => Return(s);

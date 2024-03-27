@@ -32,7 +32,7 @@ namespace Doxense.Tools.Tests
 	using System.Globalization;
 	using NUnit.Framework;
 	using Doxense.Serialization;
-	using Doxense.Testing;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

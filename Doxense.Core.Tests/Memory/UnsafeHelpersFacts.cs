@@ -31,7 +31,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 	using System.Linq;
 	using System.Text;
 	using Doxense.Memory;
-	using Doxense.Testing;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]
