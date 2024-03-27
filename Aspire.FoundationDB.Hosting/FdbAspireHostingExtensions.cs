@@ -224,7 +224,7 @@ namespace Aspire.Hosting
 				.WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbContainerToManifest(ctx, container.Resource)))
 				.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: container.Resource.Port, containerPort: 4550)) // default container port is set to 4550
 				.WithAnnotation(new ContainerImageAnnotation { Image = "foundationdb/foundationdb", Tag = container.Resource.DockerTag })
-				.WithVolumeMount("fdb_data", "/var/fdb/data", VolumeMountType.Named, isReadOnly: false) //HACKHACK: TODO: make this configurable!
+				.WithVolumeMount("fdb_data", "/var/fdb/data", isReadOnly: false) //HACKHACK: TODO: make this configurable!
 				.WithEnvironment((context) =>
 				{
 					// override the process class, if specified. The default is "unset"

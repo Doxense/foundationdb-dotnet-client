@@ -18,11 +18,11 @@
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.0" />
-		<PackageReference Include="Microsoft.Net.Http.Headers" Version="8.0.2" />
+		<PackageReference Include="Microsoft.Net.Http.Headers" Version="8.0.3" />
 		<PackageReference Include="OpenTelemetry.Api" Version="1.7.0" />
 	</ItemGroup>
 
