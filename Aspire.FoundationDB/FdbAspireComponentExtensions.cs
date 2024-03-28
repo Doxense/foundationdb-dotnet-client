@@ -131,10 +131,17 @@ namespace Microsoft.Extensions.Hosting
 				}
 				else if (!string.IsNullOrWhiteSpace(clusterFileContents))
 				{
-					//HACKHACK: BUGBUG: TODO: we need to find a proper location for this file, and which will not conflict with other processes!
-					clusterFilePath = Path.GetFullPath("local-" + connectionName + ".cluster");
-					File.WriteAllText(clusterFilePath, clusterFileContents);
-					options.ConnectionOptions.ClusterFile = clusterFilePath;
+					if (options.ApiVersion >= 720)
+					{ // we can use fdb_create_database_from_connection_string which does not require a file on disk
+						options.ConnectionOptions.ConnectionString = clusterFileContents;
+					}
+					else
+					{ // unfortunately, we need to store the content of the connection stirng into a temporary cluster file
+						//HACKHACK: BUGBUG: TODO: we need to find a proper location for this file, and which will not conflict with other processes!
+						clusterFilePath = Path.GetFullPath("local-" + connectionName + ".cluster");
+						File.WriteAllText(clusterFilePath, clusterFileContents);
+						options.ConnectionOptions.ClusterFile = clusterFilePath;
+					}
 				}
 				else
 				{
