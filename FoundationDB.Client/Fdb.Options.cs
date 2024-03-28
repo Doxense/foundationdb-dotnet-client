@@ -27,7 +27,9 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.IO;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Native;
 	using JetBrains.Annotations;
 
 	public static partial class Fdb
@@ -71,11 +73,48 @@ namespace FoundationDB.Client
 			/// </remarks>
 			public static void SetNativeLibPath(string path)
 			{
-				Contract.NotNull(path);
+				Contract.NotNullOrWhiteSpace(path);
+
+				// note: the file name MUST be "fdb_c" (with the proper extension on the platform, so for ex 'fdb_c.dll' on Windows)
+				// or else the binding of the native methods will not recognize that the library has already be pre-loaded!
+
+				// name must match what the binder will expected
+				var expectedFileName = GetExpectedNativeLibraryName();
+				var fileName = Path.GetFileName(path);
+
+				if (File.Exists(path))
+				{ // this is a file
+					if (fileName != expectedFileName)
+					{ 
+						throw new ArgumentException($"The name of the file must match exactly '{expectedFileName}'. If you need to handle multiple versions, they should be placed in a dedicated folder.");
+					}
+				}
+				else if (global::System.IO.Directory.Exists(path))
+				{ // this is a folder, add the expected file name
+					path = Path.Combine(path, expectedFileName);
+					if (!File.Exists(path))
+					{
+						throw new ArgumentException($"The specified folder must contain a file named '{expectedFileName}'.");
+					}
+				}
+				else
+				{ // path is not found
+					throw new ArgumentException($"The path must reference either a file with name '{expectedFileName}', or a folder that contains a file named '{expectedFileName}'.");
+				}
 
 				//TODO: throw if native library has already been loaded
 				Fdb.Options.NativeLibPath = path;
 			}
+
+			public static string GetExpectedNativeLibraryName()
+			{
+				if (OperatingSystem.IsWindows())
+				{
+					return FdbNative.FDB_C_DLL + ".dll";
+				}
+				return FdbNative.FDB_C_DLL + ".so";
+			}
+
 
 			#endregion
 

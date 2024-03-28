@@ -45,7 +45,7 @@ namespace FoundationDB.Client.Native
 		public const int FDB_API_MAX_VERSION = 720;
 
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
-		private const string FDB_C_DLL = "fdb_c";
+		internal const string FDB_C_DLL = "fdb_c";
 
 		/// <summary>Handle on the native FDB C API library</summary>
 		private static readonly UnmanagedLibrary? FdbCLib;
