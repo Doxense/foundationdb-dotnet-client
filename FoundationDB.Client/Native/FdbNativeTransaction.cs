@@ -133,6 +133,8 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
+					// for 610 and below, we must use fdb_future_get_version
+					// for 620 or above, we must use fdb_future_get_int64
 					long version;
 					var err = Fdb.BindingVersion < 620 
 						? FdbNative.FutureGetVersion(h, out version)

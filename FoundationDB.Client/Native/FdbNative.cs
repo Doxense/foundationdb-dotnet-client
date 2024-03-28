@@ -31,7 +31,6 @@ namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
@@ -191,21 +190,51 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_database_create_transaction(DatabaseHandle database, out TransactionHandle transaction);
 
+			//TODO: documentation! (added 7.0)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_database_reboot_worker(DatabaseHandle database, byte* address, int addressLength, bool check, int duration);
+
+			//TODO: documentation! (added 7.0)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_database_force_recovery_with_data_loss(DatabaseHandle database, byte* dcId, int dcIdLength);
+
+			//TODO: documentation! (added 7.0)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_database_create_snapshot(DatabaseHandle database, byte* uid, int uidLength, byte* snapCommand, int snapCommandLength);
+
 			/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
-			/// <returns>By default, this value is updated every second.</returns>
+			/// <returns>
+			/// <para>By default, this value is updated every second.</para>
+			/// <para>Added in 700</para>
+			/// </returns>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern double fdb_database_get_main_thread_busyness(DatabaseHandle database);
 
+			//TODO: documentation! (added 7.0)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_database_get_server_protocol(DatabaseHandle database, ulong expectedVersion);
+
+			//TODO: documentation! (added 7.1)
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_database_open_tenant(DatabaseHandle database, byte* tenantName, int tenantNameLength, out TenantHandle handle);
 
+			//TODO: documentation! (added 7.3)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_database_get_client_status(DatabaseHandle database);
+
 			// Tenant
 
+			//TODO: documentation! (added 7.1)
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_tenant_destroy(IntPtr tenant);
 
+			//TODO: documentation! (added 7.1)
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_tenant_create_transaction(TenantHandle database, out TransactionHandle transaction);
+
+			//TODO: documentation! (added 7.3)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_tenant_get_id(TenantHandle tenant);
 
 			// Transaction
 
@@ -266,6 +295,7 @@ namespace FoundationDB.Client.Native
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the list of split points.</returns>
 			/// <remarks>
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_key_array"/> to extract the array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// <para>Added in 700</para>
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_range_split_points(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, long chunkSize);
@@ -297,6 +327,17 @@ namespace FoundationDB.Client.Native
 				TransactionHandle transaction,
 				/* begin */ byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
 				/* end */ byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
+				int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse
+			);
+
+			//TODO: documentation! (added 7.1)
+			//TODO: 'fdb_transaction_get_range_and_flat_map' was added in 7.0 but renamed to 'fdb_transaction_get_mapped_range' in 7.1 ... should we support the old name?
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_mapped_range(
+				TransactionHandle transaction,
+				/* begin */ byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
+				/* end */ byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
+				/* mapper */ byte* mapperName, int mapperNameLength,
 				int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse
 			);
 
@@ -444,6 +485,19 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_approximate_size(TransactionHandle transaction);
 
+
+			//TODO: documentation! (added 7.3)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_tag_throttled_duration(TransactionHandle transaction);
+
+			//TODO: documentation! (added 7.3)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_total_cost(TransactionHandle transaction);
+
+			//TODO: documentation! (added 7.3)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_blob_granule_ranges(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength);
+
 			// Future
 
 			/// <summary>Destroys an <see cref="FutureHandle">FDBFuture</see> object.</summary>
@@ -507,13 +561,26 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_version(FutureHandle future, out long version);
 
+			//TODO: documentation! (added 7.2)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_bool(FutureHandle future, out bool version);
+
 			/// <summary>Extracts a 64-bit integer from a pointer to <see cref="FutureHandle">FDBFuture</see> into a caller-provided variable of type int64_t.</summary>
 			/// <remarks>
-			/// <paramref name="future"/> must represent a result of the appropriate type (i.e. must have been returned by a function documented as returning this type), or the results are undefined.
-			/// Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).
+			/// <para><paramref name="future"/> must represent a result of the appropriate type (i.e. must have been returned by a function documented as returning this type), or the results are undefined.</para>
+			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
+			/// <para>Added in 630</para>
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_int64(FutureHandle future, out long version);
+			public static extern FdbError fdb_future_get_int64(FutureHandle future, out long value);
+
+			//TODO: documentation! (added 7.0)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_uint64(FutureHandle future, out ulong value);
+
+			//TODO: documentation! (added 7.3)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_double(FutureHandle future, out double value);
 
 			/// <summary>Extracts a key from an <see cref="FutureHandle">FDBFuture</see> into caller-provided variables of type <c>uint8_t*</c> (a pointer to the beginning of the key) and int (the length of the key). </summary>
 			/// <remarks>
@@ -535,13 +602,22 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_future_get_value(FutureHandle future, out bool present, out byte* value, out int valueLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_string_array(FutureHandle future, out byte** strings, out int count);
-
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_keyvalue_array(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
 
+			//TODO: documentation! (added 7.1)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_mappedkeyvalue_array(FutureHandle future, out FdbMappedKeyValue* kvm, out int count, out bool more);
+
+			//TODO: documentation! (added 7.0)
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_key_array(FutureHandle future, out FdbKey* keyArray, out int count);
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_string_array(FutureHandle future, out byte** strings, out int count);
+
+			//TODO: documentation! (added 7.1)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_keyrange_array(FutureHandle future, out FdbKeyRange* ranges, out int count);
 
 		}
 
@@ -572,7 +648,6 @@ namespace FoundationDB.Client.Native
 				}
 				LibraryLoadError = ExceptionDispatchInfo.Capture(e);
 			}
-			
 		}
 
 		private static string? GetPreloadPath()
@@ -1083,19 +1158,39 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_version(0x" + future.Handle.ToString("x") + ")");
 #endif
-			// for 620 or above, we must use fdb_future_get_int64
-			// for 610 and below, we must use fdb_future_get_version
 			return NativeMethods.fdb_future_get_version(future, out version);
 		}
 
-		public static FdbError FutureGetInt64(FutureHandle future, out long version)
+		public static FdbError FutureGetInt64(FutureHandle future, out long value)
 		{
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_int64(0x" + future.Handle.ToString("x") + ")");
 #endif
-			// for 620 or above, we must use fdb_future_get_int64
-			// for 610 and below, we must use fdb_future_get_version
-			return NativeMethods.fdb_future_get_int64(future, out version);
+			return NativeMethods.fdb_future_get_int64(future, out value);
+		}
+
+		public static FdbError FutureGetUInt64(FutureHandle future, out ulong value)
+		{
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_uint64(0x" + future.Handle.ToString("x") + ")");
+#endif
+			return NativeMethods.fdb_future_get_uint64(future, out value);
+		}
+
+		public static FdbError FutureGetBool(FutureHandle future, out bool value)
+		{
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_bool(0x" + future.Handle.ToString("x") + ")");
+#endif
+			return NativeMethods.fdb_future_get_bool(future, out value);
+		}
+
+		public static FdbError FutureGetDouble(FutureHandle future, out double value)
+		{
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_double(0x" + future.Handle.ToString("x") + ")");
+#endif
+			return NativeMethods.fdb_future_get_double(future, out value);
 		}
 
 		public static FutureHandle TransactionGet(TransactionHandle transaction, ReadOnlySpan<byte> key, bool snapshot)
@@ -1282,12 +1377,12 @@ namespace FoundationDB.Client.Native
 					for (int i = 0; i < result.Length; i++)
 					{
 						int kl = (int) kvp[i].KeyLength;
-						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						new ReadOnlySpan<byte>(kvp[i].Key, kl).CopyTo(page.AsSpan(p));
 						var key = page.AsSlice(p, kl);
 						p += kl;
 
 						int vl = (int) kvp[i].ValueLength;
-						new ReadOnlySpan<byte>(kvp[i].Value.ToPointer(), vl).CopyTo(page.AsSpan(p));
+						new ReadOnlySpan<byte>(kvp[i].Value, vl).CopyTo(page.AsSpan(p));
 						var value = page.AsSlice(p, vl);
 						p += vl;
 
@@ -1351,7 +1446,7 @@ namespace FoundationDB.Client.Native
 					for (int i = 0; i < result.Length; i++)
 					{
 						int kl = checked((int) kvp[i].KeyLength);
-						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						new ReadOnlySpan<byte>(kvp[i].Key, kl).CopyTo(page.AsSpan(p));
 						var key = page.AsSlice(p, kl);
 						p += kl;
 
@@ -1427,14 +1522,14 @@ namespace FoundationDB.Client.Native
 						if (i == 0 || i == end)
 						{
 							int kl = checked((int) kvp[i].KeyLength);
-							new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+							new ReadOnlySpan<byte>(kvp[i].Key, kl).CopyTo(page.AsSpan(p));
 							var key = page.AsSlice(p, kl);
 							p += kl;
 							if (i == 0) first = key; else last = key;
 						}
 
 						int vl = checked((int) kvp[i].ValueLength);
-						new ReadOnlySpan<byte>(kvp[i].Value.ToPointer(), vl).CopyTo(page.AsSpan(p));
+						new ReadOnlySpan<byte>(kvp[i].Value, vl).CopyTo(page.AsSpan(p));
 						var value = page.AsSlice(p, vl);
 						p += vl;
 
@@ -1488,7 +1583,7 @@ namespace FoundationDB.Client.Native
 					for (int i = 0; i < result.Length; i++)
 					{
 						int kl = checked((int) kvp[i].Length);
-						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						new ReadOnlySpan<byte>(kvp[i].Key, kl).CopyTo(page.AsSpan(p));
 						var key = page.AsSlice(p, kl);
 						p += kl;
 

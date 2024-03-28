@@ -24,27 +24,62 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System;
-using System.Runtime.InteropServices;
-
 namespace FoundationDB.Client.Native
 {
+	using System;
+	using System.Runtime.InteropServices;
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKeyValue
+	internal unsafe struct FdbKeyValue
 	{
-		public IntPtr Key;
+		public byte* Key;
 		public uint KeyLength;
-		public IntPtr Value;
+		public byte* Value;
 		public uint ValueLength;
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKey
+	internal unsafe struct FdbKey
 	{
-		public IntPtr Key;
-
+		public byte* Key;
 		public uint Length;
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
+	internal unsafe struct FdbKeyRange
+	{
+		public byte* BeginKey;
+		public uint BeginKeyLength;
+		public byte* EndKey;
+		public uint EndKeyLength;
+
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
+	internal ref struct FdbMappedKeyValue
+	{
+		public FdbKey Key;
+		public FdbKey Value;
+		public FdbGetRangeReqAndResult GetRange;
+		public byte Buffer; // note: this is a byte[32] !
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
+	internal unsafe struct FdbGetRangeReqAndResult
+	{
+		public FdbKeySelector Begin;
+		public FdbKeySelector End;
+		public FdbKeyValue* Data;
+		public int Size;
+		public int Capacity;
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
+	internal struct FdbKeySelector
+	{
+		public FdbKey Key;
+		public bool OrEqual;
+		public int Offset;
 	}
 
 }
