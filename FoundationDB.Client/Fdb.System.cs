@@ -137,7 +137,7 @@ namespace FoundationDB.Client
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
-			public static async Task<FdbClusterFile> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken ct)
+			public static async Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 
@@ -152,7 +152,7 @@ namespace FoundationDB.Client
 
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
 
-				return FdbClusterFile.Parse(coordinators.ToStringAscii()!);
+				return FdbClusterConnectionString.Parse(coordinators.ToStringAscii()!);
 			}
 
 			#region Special Keys...

@@ -161,6 +161,10 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			public static extern FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath, out DatabaseHandle database);
 
+			//TODO: documentation! (added 7.2)
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+			public static extern FdbError fdb_create_database_from_connection_string([MarshalAs(UnmanagedType.LPStr)] string? connectionString, out DatabaseHandle database);
+
 			/// <summary>Destroys an FDBDatabase object.</summary>
 			/// <remarks>
 			/// It must be called exactly once for each successful call to <see cref="fdb_create_database"/>.

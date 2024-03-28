@@ -51,16 +51,21 @@ namespace FoundationDB.Client.Native
 		/// <summary>Path to the cluster file</summary>
 		private readonly string? m_clusterFile;
 
+		/// <summary>Connection string to the cluster</summary>
+		/// <remarks>If null, then a cluster file was used</remarks>
+		private readonly string? m_connectionString;
+
 #if CAPTURE_STACKTRACES
 		private readonly StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeDatabase(DatabaseHandle handle, string? clusterFile)
+		public FdbNativeDatabase(DatabaseHandle handle, string? clusterFile, string? connectionString)
 		{
 			Contract.NotNull(handle);
 
 			m_handle = handle;
 			m_clusterFile = clusterFile;
+			m_connectionString = connectionString;
 #if CAPTURE_STACKTRACES
 			m_stackTrace = new StackTrace();
 #endif
@@ -105,7 +110,20 @@ namespace FoundationDB.Client.Native
 			var err = FdbNative.CreateDatabase(clusterFile, out var handle);
 			FdbNative.DieOnError(err);
 
-			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile));
+			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile, default(string)));
+		}
+
+		public static ValueTask<IFdbDatabaseHandler> CreateDatabaseFromConnectionStringAsync(string connectionString, CancellationToken ct)
+		{
+			if (Fdb.GetMaxApiVersion() < 720)
+			{ // not supported before 720
+				throw new NotSupportedException("This method requires API level 720 or greater");
+			}
+
+			var err = FdbNative.CreateDatabaseFromConnectionString(connectionString, out var handle);
+			FdbNative.DieOnError(err);
+
+			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, default(string), connectionString));
 		}
 
 		[Obsolete("Deprecated since API level 610")]
@@ -151,6 +169,8 @@ namespace FoundationDB.Client.Native
 		}
 
 		public string? ClusterFile => m_clusterFile;
+
+		public string? ConnectionString => m_connectionString;
 
 		public bool IsInvalid => m_handle.IsInvalid;
 
@@ -227,6 +247,7 @@ namespace FoundationDB.Client.Native
 				m_clusterHandle?.Dispose();
 			}
 		}
+
 	}
 
 }

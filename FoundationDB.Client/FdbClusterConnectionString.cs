@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 	/// <summary>Class that exposes the content of a FoundationDB .cluster file</summary>
 	[DebuggerDisplay("{RawValue,nq}")]
 	[PublicAPI]
-	public sealed class FdbClusterFile
+	public sealed class FdbClusterConnectionString
 	{
 		/// <summary>The raw value of the file</summary>
 		internal string RawValue { get; }
@@ -52,7 +52,7 @@ namespace FoundationDB.Client
 		/// <summary>List of coordination servers</summary>
 		public FdbEndPoint[] Coordinators { get; }
 
-		private FdbClusterFile(string rawValue, string description, string identifier, FdbEndPoint[] coordinators)
+		private FdbClusterConnectionString(string rawValue, string description, string identifier, FdbEndPoint[] coordinators)
 		{
 			Contract.Debug.Requires(rawValue != null && description != null && identifier != null && coordinators != null);
 			this.RawValue = rawValue;
@@ -65,7 +65,7 @@ namespace FoundationDB.Client
 		/// <param name="description"></param>
 		/// <param name="identifier"></param>
 		/// <param name="coordinators"></param>
-		public FdbClusterFile(string description, string identifier, IEnumerable<FdbEndPoint> coordinators)
+		public FdbClusterConnectionString(string description, string identifier, IEnumerable<FdbEndPoint> coordinators)
 		{
 			Contract.NotNull(description);
 			Contract.NotNull(identifier);
@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 		/// <summary>Parse the content of a .cluster file</summary>
 		/// <param name="rawValue">First line of a .cluster file</param>
 		/// <returns>Parsed cluster file instance</returns>
-		public static FdbClusterFile Parse(string rawValue)
+		public static FdbClusterConnectionString Parse(string rawValue)
 		{
 			if (string.IsNullOrEmpty(rawValue)) throw new FormatException("Cluster file descriptor cannot be empty.");
 
@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 			}).ToArray();
 			if (coordinators.Length == 0) throw new FormatException("Empty coordination server list.");
 
-			return new FdbClusterFile(rawValue, description, identifier, coordinators);
+			return new FdbClusterConnectionString(rawValue, description, identifier, coordinators);
 		}
 
 		/// <summary>Returns the raw text of the cluster file</summary>
@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 		/// <summary>Check if this cluster file is equal to another object</summary>
 		public override bool Equals(object? obj)
 		{
-			return obj is FdbClusterFile cf && string.Equals(this.RawValue, cf.RawValue, StringComparison.Ordinal);
+			return obj is FdbClusterConnectionString cf && string.Equals(this.RawValue, cf.RawValue, StringComparison.Ordinal);
 		}
 
 	}

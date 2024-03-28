@@ -43,6 +43,9 @@ namespace FoundationDB.Client
 		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
 		public string? ClusterFile { get; set; }
 
+		//TODO: documentation!
+		public string? ConnectionString { get; set; }
+
 		/// <summary>Default database name</summary>
 		/// <remarks>Only "DB" is supported for now</remarks>
 		[Obsolete("This property should not be used anymore, and its value will be ignored.")]

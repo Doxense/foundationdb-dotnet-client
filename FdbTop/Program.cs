@@ -126,7 +126,7 @@ namespace FdbTop
 		public static int ScreenHeight;
 		public static int ScreenWidth;
 
-		public static FdbClusterFile CurrentCoordinators;
+		public static FdbClusterConnectionString CurrentCoordinators;
 
 		private static async Task MainAsync(string[] args, CancellationToken cancel)
 		{

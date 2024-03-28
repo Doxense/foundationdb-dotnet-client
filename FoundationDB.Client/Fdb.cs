@@ -497,11 +497,20 @@ namespace FoundationDB.Client
 			// "" should also be considered to mean "default cluster file"
 			if (string.IsNullOrEmpty(clusterFile)) clusterFile = null;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "CreateDatabase", clusterFile == null ? "Connecting to default database..." : $"Connecting to database using '{clusterFile}' ...");
-
 			//TODO: check the path ? (exists, readable, ...)
 
 			var handler = await FdbNativeDatabase.CreateDatabaseAsync(clusterFile, ct).ConfigureAwait(false);
+			return FdbDatabase.Create(handler, directory, root, readOnly);
+		}
+
+		private static async ValueTask<FdbDatabase> CreateDatabaseFromConnectionStringInternalAsync(string connectionString, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken ct)
+		{
+			EnsureIsStarted();
+			ct.ThrowIfCancellationRequested();
+
+			//TODO: can we perform a validation check on the connection string before passing it on ?
+
+			var handler = await FdbNativeDatabase.CreateDatabaseFromConnectionStringAsync(connectionString, ct).ConfigureAwait(false);
 			return FdbDatabase.Create(handler, directory, root, readOnly);
 		}
 
@@ -533,19 +542,28 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(options != null);
 			ct.ThrowIfCancellationRequested();
 
+			string? connectionString = options.ConnectionString;
 			string? clusterFile = options.ClusterFile;
 			bool readOnly = options.ReadOnly;
 			var directory = new FdbDirectoryLayer(SubspaceLocation.Root);
 			var root = new FdbDirectorySubspaceLocation(options.Root ?? FdbPath.Root);
 			bool hasPartition = root.Path.Count != 0;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile ?? "<default>"}' and root '{root}' ...");
 
 			FdbDatabase? db = null;
 			bool success = false;
 			try
 			{
-				db = await CreateDatabaseInternalAsync(clusterFile, directory, root, !hasPartition && readOnly, ct).ConfigureAwait(false);
+				if (!string.IsNullOrWhiteSpace(connectionString))
+				{
+					if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using connection string '{connectionString}' and root '{root}' ...");
+					db = await CreateDatabaseFromConnectionStringInternalAsync(connectionString, directory, root, !hasPartition && readOnly, ct).ConfigureAwait(false);
+				}
+				else
+				{
+					if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile ?? "<default>"}' and root '{root}' ...");
+					db = await CreateDatabaseInternalAsync(clusterFile, directory, root, !hasPartition && readOnly, ct).ConfigureAwait(false);
+				}
 
 				// set the default options
 				if (options.DefaultTimeout != TimeSpan.Zero) db.Options.WithDefaultTimeout(options.DefaultTimeout);
