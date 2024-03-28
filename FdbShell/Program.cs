@@ -171,6 +171,7 @@ namespace FdbShell
 			#region Options Parsing...
 
 			string? clusterFile = null;
+			string? connectionString = null;
 			var partition = FdbPath.Root;
 			bool showHelp = false;
 			int timeout = 30;
@@ -183,6 +184,11 @@ namespace FdbShell
 					"c|C|connfile=",
 					"The path of a file containing the connection string for the FoundationDB cluster.",
 					v => clusterFile = v
+				},
+				{ 
+					"connStr=",
+					"The connection string for the FoundationDB cluster.",
+					v => connectionString = v
 				},
 				{ 
 					"p|partition=",
@@ -239,6 +245,7 @@ namespace FdbShell
 				var cnxOptions = new FdbConnectionOptions
 				{
 					ClusterFile = clusterFile,
+					ConnectionString = connectionString,
 					Root = partition
 				};
 				Db = await ChangeDatabase(cnxOptions, cancel);
@@ -910,6 +917,7 @@ namespace FdbShell
 			options.DefaultTimeout = TimeSpan.FromSeconds(30);
 			options.DefaultRetryLimit = 50;
 			Program.StdOut("Connecting to cluster...", ConsoleColor.Gray);
+
 			return Fdb.OpenAsync(options, ct);
 		}
 

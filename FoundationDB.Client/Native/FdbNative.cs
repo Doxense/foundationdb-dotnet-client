@@ -869,6 +869,16 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
+		public static FdbError CreateDatabaseFromConnectionString(string connectionString, out DatabaseHandle database)
+		{
+			var err = NativeMethods.fdb_create_database_from_connection_string(connectionString, out database);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_create_database_from_connection_string(" + connectionString + ") => err=" + err);
+#endif
+
+			//TODO: check if err == Success ?
+			return err;
+		}
 
 		public static FdbError FutureGetDatabase(FutureHandle future, out DatabaseHandle database)
 		{
