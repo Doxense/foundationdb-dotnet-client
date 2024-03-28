@@ -249,6 +249,27 @@ namespace FoundationDB.Client
 			return FdbNative.MapToException(code);
 		}
 
+		/// <summary>Return the version of the client library</summary>
+		public static (string Version, string Protocol, string CommitHash) GetClientVersion()
+		{
+			if (!s_started) throw new InvalidOperationException("You must first select an API version by calling Fdb.Start(...) before this method.");
+
+			// the string will look something like:
+			// - "7.1.29,1b2517abce552441e3d0ed8836d1cc3f40e61a2a,fdb00b071010000"
+			// - "7.3.36,f9a42ee0e79763cf4f38dd84d9e554f0b128b6b0,fdb00b073000000"
+
+			var s = FdbNative.GetClientVersion();
+
+			// the first part is the human-readable version, next is the commit hash of the build, and then the protocol version
+			var parts = s.Split(',');
+			if (parts.Length != 3)
+			{
+				throw new InvalidOperationException($"Unrecognized client version format: '{s}'");
+			}
+
+			return (parts[0], parts[2], parts[1]);
+		}
+
 		#region Network Thread / Event Loop...
 
 		private static Thread? s_eventLoop;

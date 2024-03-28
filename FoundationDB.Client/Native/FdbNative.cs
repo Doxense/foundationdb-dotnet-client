@@ -74,6 +74,10 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern int fdb_get_max_api_version();
 
+			//TODO: documentation!
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern byte* fdb_get_client_version();
+
 			/// <summary>Returns a (somewhat) human-readable English message from an error code.</summary>
 			/// <remarks>The return value is a statically allocated null-terminated string that must not be freed by the caller.</remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
@@ -723,6 +727,13 @@ namespace FoundationDB.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_get_max_api_version();
+		}
+
+		//TODO: documentation!
+		public static string GetClientVersion()
+		{
+			byte* ptr = NativeMethods.fdb_get_client_version();
+			return ToManagedString(ptr) ?? string.Empty;
 		}
 
 		#endregion
