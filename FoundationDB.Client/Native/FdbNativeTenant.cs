@@ -31,6 +31,8 @@ namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Diagnostics;
+	using System.Threading;
+	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
 
@@ -90,6 +92,26 @@ namespace FoundationDB.Client.Native
 				handle?.Dispose();
 				throw;
 			}
+		}
+
+		public Task<long> GetIdAsync(CancellationToken ct)
+		{
+			Contract.Debug.Assert(Fdb.BindingVersion >= 730);
+
+			var future = FdbNative.TenantGetId(this.Handle);
+			return FdbFuture.CreateTaskFromHandle(future,
+				(h) =>
+				{
+					var err = FdbNative.FutureGetInt64(h, out var value);
+#if DEBUG_TRANSACTIONS
+					Debug.WriteLine("FdbTenant[" + m_name + "].GetIdAsync() => err=" + err + ", id=" + value);
+#endif
+					FdbNative.DieOnError(err);
+					return value;
+				},
+				ct
+			);
+
 		}
 
 		#region IDisposable...

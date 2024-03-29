@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
+	using FoundationDB.Client.Native;
 
 	[DebuggerDisplay("Name={Name}")]
 	public class FdbTenant : IFdbTenant, IDisposable
@@ -78,7 +79,6 @@ namespace FoundationDB.Client
 		public CancellationToken Cancellation { get; }
 
 		public bool StillAlive => !m_handler.IsClosed;
-
 
 		#region Transaction Management...
 
@@ -151,7 +151,7 @@ namespace FoundationDB.Client
 		internal void EnsureTransactionIsValid(FdbTransaction transaction)
 		{
 			Contract.Debug.Requires(transaction != null);
-			if (m_disposed) ThrowIfDisposed();
+			ThrowIfDisposed();
 			//TODO?
 		}
 
@@ -167,7 +167,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Remove a transaction from the list of tracked transactions</summary>
-		/// <param name="transaction"></param>
 		internal void UnregisterTransaction(FdbTransaction transaction)
 		{
 			Contract.Debug.Requires(transaction != null);
@@ -179,13 +178,25 @@ namespace FoundationDB.Client
 			m_transactions.TryRemove(System.Collections.Generic.KeyValuePair.Create(transaction.Id, transaction));
 		}
 
+		/// <summary>Fetch the id of this tenant</summary>
+		public async Task<long> GetIdAsync(CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+
+			return await m_handler.GetIdAsync(ct).ConfigureAwait(false);
+		}
+
 		#endregion
 
 		#region IDisposable...
 
 		private void ThrowIfDisposed()
 		{
-			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
+			if (m_disposed)
+			{
+				throw ThrowHelper.ObjectDisposedException(this);
+			}
 		}
 
 		/// <summary>Close this database instance, aborting any pending transaction that was created by this instance.</summary>

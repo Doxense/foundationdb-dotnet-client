@@ -1104,6 +1104,19 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
+		/// <summary>fdb_tenant_get_id, >= 730</summary>
+		public static FutureHandle TenantGetId(TenantHandle tenant)
+		{
+			Contract.Debug.Requires(Fdb.BindingVersion >= 730);
+
+			var future = NativeMethods.fdb_tenant_get_id(tenant);
+			Contract.Debug.Assert(future != null);
+#if DEBUG_NATIVE_CALLS
+			System.Diagnostics.Debug.WriteLine("fdb_tenant_get_id(0x" + tenant.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+#endif
+			return future;
+		}
+
 		#endregion
 
 		#region Transactions...

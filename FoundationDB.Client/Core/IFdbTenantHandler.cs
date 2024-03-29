@@ -27,6 +27,8 @@
 namespace FoundationDB.Client.Core
 {
 	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	/// <summary>Basic API for FoundationDB tenants</summary>
@@ -39,6 +41,8 @@ namespace FoundationDB.Client.Core
 		bool IsClosed { get; }
 
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
+
+		Task<long> GetIdAsync(CancellationToken ct);
 
 	}
 
