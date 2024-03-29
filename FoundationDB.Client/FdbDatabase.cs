@@ -100,7 +100,7 @@ namespace FoundationDB.Client
 			m_readOnly = readOnly;
 			m_root = root;
 			m_directory = directory;
-			var cts = new CancellationTokenSource();
+			var cts = CancellationTokenSource.CreateLinkedTokenSource(Fdb.NetworkThreadStopped);
 			m_cts = cts;
 			this.Cancellation = cts.Token;
 		}

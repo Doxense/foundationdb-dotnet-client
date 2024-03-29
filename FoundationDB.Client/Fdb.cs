@@ -756,11 +756,27 @@ namespace FoundationDB.Client
 
 				FdbNative.DieOnError(FdbNative.SetupNetwork());
 				s_started = true; //BUGBUG: already set at the start of the method. Maybe we need state flags ?
+
+				// hook the callback for when the network thread stops
+				Fdb.NetworkThreadLifetime = new CancellationTokenSource();
+				FdbNative.AddNetworkThreadCompletionHook(OnNetworkThreadCompletion, IntPtr.Zero);
 			}
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", "Network thread has been set up");
 
 			StartEventLoop();
+		}
+
+		/// <summary>Use to detect the shutdown of the network thread</summary>
+		private static CancellationTokenSource? NetworkThreadLifetime;
+
+		/// <summary>Token that will fire when the network thread stops or is aborted</summary>
+		public static CancellationToken NetworkThreadStopped => NetworkThreadLifetime?.Token ?? new CancellationToken(true);
+
+		private static void OnNetworkThreadCompletion(IntPtr paramter)
+		{
+			if (Logging.On) Logging.Info(typeof(Fdb), "Stop", "Network thread has completed.");
+			Fdb.NetworkThreadLifetime?.Cancel();
 		}
 
 		/// <summary>Set the value of a network option on the database handler</summary>
