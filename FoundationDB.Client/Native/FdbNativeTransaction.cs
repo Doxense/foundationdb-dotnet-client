@@ -137,8 +137,9 @@ namespace FoundationDB.Client.Native
 					// for 620 or above, we must use fdb_future_get_int64
 					long version;
 					var err = Fdb.BindingVersion < 620 
-						? FdbNative.FutureGetVersion(h, out version)
-						: FdbNative.FutureGetInt64(h, out version);
+			          ? FdbNative.FutureGetVersion(h, out version)
+			          : FdbNative.FutureGetInt64(h, out version);
+
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
 #endif

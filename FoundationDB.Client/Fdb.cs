@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -82,9 +81,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Event handler called when the AppDomain gets unloaded</summary>
 		private static EventHandler? s_appDomainUnloadHandler;
-
-		internal static readonly byte[] EmptyArray = new byte[0];
-		//TODO: move this somewhere else (Slice?)
 
 		#endregion
 
@@ -249,7 +245,7 @@ namespace FoundationDB.Client
 			return FdbNative.MapToException(code);
 		}
 
-		/// <summary>Return the version of the client library</summary>
+		/// <summary>Returns the version of the client library, git commit hash of the build, and the supported protocol version</summary>
 		public static (string Version, string Protocol, string CommitHash) GetClientVersion()
 		{
 			if (!s_started) throw new InvalidOperationException("You must first select an API version by calling Fdb.Start(...) before this method.");
