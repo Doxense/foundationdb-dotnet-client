@@ -1489,8 +1489,9 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr1))!;
+					var foo = subspace.Encode("foo", 0);
 					// fGE{0} => 50
-					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("foo", 0)));
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(foo));
 					Assert.That(key, Is.EqualTo(subspace.Encode("foo", 50)));
 
 					// 42 < 50 => conflict !!!
@@ -1504,7 +1505,7 @@ namespace FoundationDB.Client.Tests
 					// we need to write something to force a conflict
 					tr1.Set(subspace.Encode("bar"), Slice.Empty);
 
-					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(42) in TR2 should have conflicted with the GetKey(fGE{0}) in TR1");
+					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, $"The Set(42) in TR2 should have conflicted with the GetKey(fGE{foo}) in TR1");
 				}
 
 				// if the other transaction insert something AFTER 50, our key selector would have still returned the same result, and we would have any conflict

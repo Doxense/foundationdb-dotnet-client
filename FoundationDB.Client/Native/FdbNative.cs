@@ -31,6 +31,7 @@ namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
@@ -533,7 +534,7 @@ namespace FoundationDB.Client.Native
 			/// <remarks>
 			/// If called before the future is ready, attempts to access its value will return an operation_cancelled error.
 			/// Cancelling a future which is already ready has no effect.
-			/// Note that even if a future is not ready, its associated asynchronous operation may have succesfully completed and be unable to be cancelled.
+			/// Note that even if a future is not ready, its associated asynchronous operation may have successfully completed and be unable to be cancelled.
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_cancel(FutureHandle future);
@@ -647,18 +648,18 @@ namespace FoundationDB.Client.Native
 
 			//TODO: documentation! (added 7.1)
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_mappedkeyvalue_array(FutureHandle future, out FdbMappedKeyValue* kvm, out int count, out bool more);
+			public static extern FdbError fdb_future_get_mappedkeyvalue_array(FutureHandle future, out FdbMappedKeyValueNative* kvm, out int count, out bool more);
 
 			//TODO: documentation! (added 7.0)
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_key_array(FutureHandle future, out FdbKey* keyArray, out int count);
+			public static extern FdbError fdb_future_get_key_array(FutureHandle future, out FdbKeyNative* keyArray, out int count);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_string_array(FutureHandle future, out byte** strings, out int count);
 
 			//TODO: documentation! (added 7.1)
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_keyrange_array(FutureHandle future, out FdbKeyRange* ranges, out int count);
+			public static extern FdbError fdb_future_get_keyrange_array(FutureHandle future, out FdbKeyRangeNative* ranges, out int count);
 
 		}
 
@@ -689,6 +690,15 @@ namespace FoundationDB.Client.Native
 				}
 				LibraryLoadError = ExceptionDispatchInfo.Capture(e);
 			}
+		}
+
+		[Conditional("DEBUG_NATIVE_CALLS")]
+		private static void LogNative(string message)
+		{
+#if DEBUG_NATIVE_CALLS
+			System.Diagnostics.Debug.WriteLine(message);
+			Console.WriteLine(message);
+#endif
 		}
 
 		private static string? GetPreloadPath()
@@ -887,11 +897,11 @@ namespace FoundationDB.Client.Native
 		public static FdbError FutureBlockUntilReady(FutureHandle future)
 		{
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("calling fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ")...");
+			LogNative($"calling fdb_future_block_until_ready(0x{future.Handle:x})...");
 #endif
 			var err = NativeMethods.fdb_future_block_until_ready(future);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ") => err=" + err);
+			LogNative($"fdb_future_block_until_ready(0x{future.Handle:x}) => err={err}");
 #endif
 			return err;
 		}
@@ -901,7 +911,7 @@ namespace FoundationDB.Client.Native
 		{
 			var err = NativeMethods.fdb_future_set_callback(future, callback, callbackParameter);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_set_callback(0x" + future.Handle.ToString("x") + ", 0x" + callbackParameter.ToString("x") + ") => err=" + err);
+			LogNative($"fdb_future_set_callback(0x{future.Handle:x}, 0x{callbackParameter:x}) => err={err}");
 #endif
 			return err;
 		}
@@ -955,7 +965,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_create_cluster(path);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + future.Handle.ToString("x"));
+			LogNative($"fdb_create_cluster({path}) => 0x{future.Handle:x}");
 #endif
 
 			return future;
@@ -981,7 +991,7 @@ namespace FoundationDB.Client.Native
 		{
 			var err = NativeMethods.fdb_future_get_cluster(future, out cluster);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_cluster(0x" + future.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + cluster.Handle.ToString("x"));
+			LogNative($"fdb_future_get_cluster(0x{future.Handle:x}) => err={err}, handle=0x{cluster.Handle:x}");
 #endif
 			//TODO: check if err == Success ?
 			return err;
@@ -996,7 +1006,7 @@ namespace FoundationDB.Client.Native
 		{
 			var err = NativeMethods.fdb_create_database(path, out database);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_create_database(" + path + ") => err=" + err);
+			LogNative($"fdb_create_database({path}) => err={err}");
 #endif
 
 			//TODO: check if err == Success ?
@@ -1009,7 +1019,7 @@ namespace FoundationDB.Client.Native
 			Contract.Debug.Requires(Fdb.BindingVersion >= 720);
 			var err = NativeMethods.fdb_create_database_from_connection_string(connectionString, out database);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_create_database_from_connection_string(" + connectionString + ") => err=" + err);
+			LogNative($"fdb_create_database_from_connection_string({connectionString}) => err={err}");
 #endif
 
 			//TODO: check if err == Success ?
@@ -1021,7 +1031,7 @@ namespace FoundationDB.Client.Native
 		{
 			var err = NativeMethods.fdb_future_get_database(future, out database);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_database(0x" + future.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + database.Handle.ToString("x"));
+			LogNative($"fdb_future_get_database(0x{future.Handle:x}) => err={err}, handle=0x{database.Handle:x}");
 #endif
 			//TODO: check if err == Success ?
 			return err;
@@ -1057,7 +1067,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_cluster_create_database(cluster, name, name.Length);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", name: '" + name + "') => 0x" + cluster.Handle.ToString("x"));
+			LogNative($"fdb_cluster_create_database(0x{cluster.Handle:x}, name: '{name}') => 0x{cluster.Handle:x}");
 #endif
 			return future;
 		}
@@ -1071,7 +1081,7 @@ namespace FoundationDB.Client.Native
 			{
 				var err = NativeMethods.fdb_database_open_tenant(database, ptr, name.Length, out tenant);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_database_open_tenant(0x" + database.Handle.ToString("x") + ", '" + name + "') => err=" + err + ", handle=0x" + tenant.Handle.ToString("x"));
+				LogNative($"fdb_database_open_tenant(db: 0x{database.Handle:x}, '{Slice.Copy(name):K}') => err={err}, handle=0x{tenant.Handle:x}");
 #endif
 				return err;
 			}
@@ -1099,7 +1109,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_tenant_create_transaction(tenant, out transaction);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_tenant_create_transaction(0x" + tenant.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + transaction.Handle.ToString("x"));
+			LogNative($"fdb_tenant_create_transaction(0x{tenant.Handle:x}) => err={err}, handle=0x{transaction.Handle:x}");
 #endif
 			return err;
 		}
@@ -1112,7 +1122,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_tenant_get_id(tenant);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_tenant_get_id(0x" + tenant.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+			LogNative($"fdb_tenant_get_id(0x{tenant.Handle:x}) => 0x{future.Handle:x}");
 #endif
 			return future;
 		}
@@ -1141,7 +1151,7 @@ namespace FoundationDB.Client.Native
 		{
 			var err = NativeMethods.fdb_database_create_transaction(database, out transaction);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_database_create_transaction(0x" + database.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + transaction.Handle.ToString("x"));
+			LogNative($"fdb_database_create_transaction(db: 0x{database.Handle:x}) => err={err}, handle=0x{transaction.Handle:x}");
 #endif
 			return err;
 		}
@@ -1152,7 +1162,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_transaction_commit(transaction);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+			LogNative($"fdb_transaction_commit(tr: 0x{transaction.Handle:x}) => 0x{future.Handle:x}");
 #endif
 			return future;
 		}
@@ -1163,7 +1173,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_transaction_get_versionstamp(transaction);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_get_versionstamp(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+			LogNative($"fdb_transaction_get_versionstamp(tr: 0x{transaction.Handle:x}) => 0x{future.Handle:x}");
 #endif
 			return future;
 		}
@@ -1178,7 +1188,7 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_watch(transaction, ptrKey, key.Length);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_watch(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
+				LogNative($"fdb_transaction_watch(tr: 0x{transaction.Handle:x}, key: '{Slice.Copy(key):K}') => 0x{future.Handle:x}");
 #endif
 				return future;
 			}
@@ -1190,7 +1200,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_transaction_on_error(transaction, errorCode);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_on_error(0x" + transaction.Handle.ToString("x") + ", " + errorCode + ") => 0x" + future.Handle.ToString("x"));
+			LogNative($"fdb_transaction_on_error(tr: 0x{transaction.Handle:x}, {errorCode}) => 0x{future.Handle:x}");
 #endif
 			return future;
 		}
@@ -1199,7 +1209,7 @@ namespace FoundationDB.Client.Native
 		public static void TransactionReset(TransactionHandle transaction)
 		{
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_reset(0x" + transaction.Handle.ToString("x") + ")");
+			LogNative($"fdb_transaction_reset(tr: 0x{transaction.Handle:x})");
 #endif
 			NativeMethods.fdb_transaction_reset(transaction);
 		}
@@ -1208,7 +1218,7 @@ namespace FoundationDB.Client.Native
 		public static void TransactionCancel(TransactionHandle transaction)
 		{
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_cancel(0x" + transaction.Handle.ToString("x") + ")");
+			LogNative($"fdb_transaction_cancel(tr: 0x{transaction.Handle:x})");
 #endif
 			NativeMethods.fdb_transaction_cancel(transaction);
 		}
@@ -1217,7 +1227,7 @@ namespace FoundationDB.Client.Native
 		public static void TransactionSetReadVersion(TransactionHandle transaction, long version)
 		{
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_set_read_version(0x" + transaction.Handle.ToString("x") + ", version: " + version.ToString() + ")");
+			LogNative($"fdb_transaction_set_read_version(tr: 0x{transaction.Handle:x}, version: {version})");
 #endif
 			NativeMethods.fdb_transaction_set_read_version(transaction, version);
 		}
@@ -1228,7 +1238,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_transaction_get_read_version(transaction);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+			LogNative($"fdb_transaction_get_read_version(tr: 0x{transaction.Handle:x}) => 0x{future.Handle:x}");
 #endif
 			return future;
 		}
@@ -1237,7 +1247,7 @@ namespace FoundationDB.Client.Native
 		public static FdbError TransactionGetCommittedVersion(TransactionHandle transaction, out long version)
 		{
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_get_committed_version(0x" + transaction.Handle.ToString("x") + ")");
+			LogNative($"fdb_transaction_get_committed_version(tr: 0x{transaction.Handle:x})");
 #endif
 			return NativeMethods.fdb_transaction_get_committed_version(transaction, out version);
 		}
@@ -1248,7 +1258,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Debug.Requires(Fdb.BindingVersion <= 610);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_version(0x" + future.Handle.ToString("x") + ")");
+			LogNative($"fdb_future_get_version(fut: 0x{future.Handle:x})");
 #endif
 			return NativeMethods.fdb_future_get_version(future, out version);
 		}
@@ -1259,7 +1269,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Debug.Requires(Fdb.BindingVersion >= 620);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_int64(0x" + future.Handle.ToString("x") + ")");
+			LogNative($"fdb_future_get_int64(fut: 0x{future.Handle:x})");
 #endif
 			return NativeMethods.fdb_future_get_int64(future, out value);
 		}
@@ -1269,7 +1279,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Debug.Requires(Fdb.BindingVersion >= 700);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_uint64(0x" + future.Handle.ToString("x") + ")");
+			LogNative($"fdb_future_get_uint64(fut: 0x{future.Handle:x})");
 #endif
 			return NativeMethods.fdb_future_get_uint64(future, out value);
 		}
@@ -1279,7 +1289,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Debug.Requires(Fdb.BindingVersion >= 720);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_bool(0x" + future.Handle.ToString("x") + ")");
+			LogNative($"fdb_future_get_bool(fut: 0x{future.Handle:x})");
 #endif
 			return NativeMethods.fdb_future_get_bool(future, out value);
 		}
@@ -1289,7 +1299,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Debug.Requires(Fdb.BindingVersion >= 730);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_double(0x" + future.Handle.ToString("x") + ")");
+			LogNative($"fdb_future_get_double(fut: 0x{future.Handle:x})");
 #endif
 			return NativeMethods.fdb_future_get_double(future, out value);
 		}
@@ -1303,7 +1313,7 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey, key.Length, snapshot);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.Handle.ToString("x"));
+				LogNative($"fdb_transaction_get(tr: 0x{transaction.Handle:x}, key: '{FdbKey.Dump(key)}', snapshot: {snapshot}) => 0x{future.Handle:x}");
 #endif
 				return future;
 			}
@@ -1322,7 +1332,7 @@ namespace FoundationDB.Client.Native
 					limit, targetBytes, mode, iteration, snapshot, reverse);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", begin: " + begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", end: " + end.PrettyPrint(FdbKey.PrettyPrintMode.End) + ", " + snapshot + ") => 0x" + future.Handle.ToString("x"));
+				LogNative($"fdb_transaction_get_range(tr: 0x{transaction.Handle:x}, begin: {begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin)}, end: {end.PrettyPrint(FdbKey.PrettyPrintMode.End)}, {snapshot}) => 0x{future.Handle:x}");
 #endif
 				return future;
 			}
@@ -1338,7 +1348,7 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get_key(transaction, ptrKey, selector.Key.Count, selector.OrEqual, selector.Offset, snapshot);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", " + selector.ToString() + ", " + snapshot + ") => 0x" + future.Handle.ToString("x"));
+				LogNative($"fdb_transaction_get_key(tr: 0x{transaction.Handle:x}, {selector}, {snapshot}) => 0x{future.Handle:x}");
 #endif
 				return future;
 			}
@@ -1354,7 +1364,7 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get_addresses_for_key(transaction, ptrKey, key.Length);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_get_addresses_for_key(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
+				LogNative($"fdb_transaction_get_addresses_for_key(tr: 0x{transaction.Handle:x}, key: '{FdbKey.Dump(key)}') => 0x{future.Handle:x}");
 #endif
 				return future;
 			}
@@ -1369,7 +1379,7 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get_range_split_points(transaction, ptrBeginKey, beginKey.Length, ptrEndKey, endKey.Length, chunkSize);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_get_range_split_points(0x" + transaction.Handle.ToString("x") + ", begin: '" + FdbKey.Dump(beginKey) + "', end: '" + FdbKey.Dump(endKey) + "') => 0x" + future.Handle.ToString("x"));
+				LogNative($"fdb_transaction_get_range_split_points(tr: 0x{transaction.Handle:x}, begin: '{FdbKey.Dump(beginKey)}', end: '{FdbKey.Dump(endKey)}') => 0x{future.Handle:x}");
 #endif
 				return future;
 			}
@@ -1384,7 +1394,7 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get_estimated_range_size_bytes(transaction, ptrBeginKey, beginKey.Length, ptrEndKey, endKey.Length);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_get_estimated_range_size_bytes(0x" + transaction.Handle.ToString("x") + ", begin: '" + FdbKey.Dump(beginKey) + "', end: '" + FdbKey.Dump(endKey) + "') => 0x" + future.Handle.ToString("x"));
+				LogNative($"fdb_transaction_get_estimated_range_size_bytes(tr: 0x{transaction.Handle:x}, begin: '{FdbKey.Dump(beginKey)}', end: '{FdbKey.Dump(endKey)}') => 0x{future.Handle:x}");
 #endif
 				return future;
 			}
@@ -1397,7 +1407,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_future_get_value(future, out valuePresent, out byte* ptr, out int valueLength);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_value(0x" + future.Handle.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
+			LogNative($"fdb_future_get_value(0x{future.Handle:x}) => err={err}, present={valuePresent}, valueLength={valueLength}");
 #endif
 			if (valueLength > 0 && ptr != null)
 			{
@@ -1415,7 +1425,7 @@ namespace FoundationDB.Client.Native
 		{
 			var err = NativeMethods.fdb_future_get_key(future, out byte* ptr, out int keyLength);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
+			LogNative($"fdb_future_get_key(0x{future.Handle:x}) => err={err}, keyLength={keyLength}");
 #endif
 
 			// note: fdb_future_get_key is allowed to return NULL for the empty key (not to be confused with a key that has an empty value)
@@ -1440,7 +1450,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
+			LogNative($"fdb_future_get_keyvalue_array(0x{future.Handle:x}) => err={err}, count={count}, more={more}");
 #endif
 
 			if (err == FdbError.Success)
@@ -1450,7 +1460,7 @@ namespace FoundationDB.Client.Native
 				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
 
 				if (count > 0)
-				{ // convert the FdbKeyValue result into an array of slices
+				{ // convert the FdbKeyValueNative result into an array of slices
 
 					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
 
@@ -1511,7 +1521,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
+			LogNative($"fdb_future_get_keyvalue_array(0x{future.Handle:x}) => err={err}, count={count}, more={more}");
 #endif
 
 			if (err == FdbError.Success)
@@ -1521,7 +1531,7 @@ namespace FoundationDB.Client.Native
 				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
 
 				if (count > 0)
-				{ // convert the FdbKeyValue result into an array of slices
+				{ // convert the FdbKeyValueNative result into an array of slices
 
 					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
 
@@ -1580,7 +1590,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
+			LogNative($"fdb_future_get_keyvalue_array(0x{future.Handle:x}) => err={err}, count={count}, more={more}");
 #endif
 
 			if (err == FdbError.Success)
@@ -1590,7 +1600,7 @@ namespace FoundationDB.Client.Native
 				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
 
 				if (count > 0)
-				{ // convert the FdbKeyValue result into an array of slices
+				{ // convert the FdbKeyValueNative result into an array of slices
 
 					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
 
@@ -1659,9 +1669,9 @@ namespace FoundationDB.Client.Native
 		{
 			result = null;
 
-			var err = NativeMethods.fdb_future_get_key_array(future, out FdbKey* kvp, out int count);
+			var err = NativeMethods.fdb_future_get_key_array(future, out FdbKeyNative* kvp, out int count);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_key_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
+			LogNative($"fdb_future_get_key_array(0x{future.Handle:x}) => err={err}, count={count}");
 #endif
 
 			if (err == FdbError.Success)
@@ -1669,7 +1679,7 @@ namespace FoundationDB.Client.Native
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
 				if (count > 0)
-				{ // convert the FdbKeyValue result into an array of slices
+				{ // convert the FdbKeyValueNative result into an array of slices
 
 					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
 
@@ -1721,7 +1731,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_future_get_string_array(future, out byte** strings, out int count);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_string_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
+			LogNative($"fdb_future_get_string_array(0x{future.Handle:x}) => err={err}, count={count}");
 #endif
 
 			if (err == FdbError.Success)
@@ -1760,7 +1770,7 @@ namespace FoundationDB.Client.Native
 			int keyLength;
 			var err = NativeMethods.fdb_future_get_key(future, out ptr, out keyLength);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
+			LogNative($"fdb_future_get_key(0x{future.Handle:x}) => err={err}, keyLength={keyLength}");
 #endif
 
 			if (keyLength != 10 || ptr == null)
@@ -1781,7 +1791,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* pValue = value)
 			{
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', value: '" + FdbKey.Dump(value) + "')");
+				LogNative($"fdb_transaction_set(tr: 0x{transaction.Handle:x}, key: '{FdbKey.Dump(key)}', value: '{FdbKey.Dump(value)}')");
 #endif
 				NativeMethods.fdb_transaction_set(transaction, pKey, key.Length, pValue, value.Length);
 			}
@@ -1794,7 +1804,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* pParam = param)
 			{
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_atomic_op(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', param: '" + FdbKey.Dump(param) + "', " + operationType.ToString() + ")");
+				LogNative($"fdb_transaction_atomic_op(tr: 0x{transaction.Handle:x}, key: '{FdbKey.Dump(key)}', param: '{FdbKey.Dump(param)}', {operationType})");
 #endif
 				NativeMethods.fdb_transaction_atomic_op(transaction, pKey, key.Length, pParam, param.Length, operationType);
 			}
@@ -1806,7 +1816,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* pKey = key)
 			{
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "')");
+				LogNative($"fdb_transaction_clear(tr: 0x{transaction.Handle:x}, key: '{FdbKey.Dump(key)}')");
 #endif
 				NativeMethods.fdb_transaction_clear(transaction, pKey, key.Length);
 			}
@@ -1819,7 +1829,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* pEndKey = endKey)
 			{
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_clear_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "')");
+				LogNative($"fdb_transaction_clear_range(tr: 0x{transaction.Handle:x}, beginKey: '{FdbKey.Dump(beginKey)}, endKey: '{FdbKey.Dump(endKey)}')");
 #endif
 				NativeMethods.fdb_transaction_clear_range(transaction, pBeginKey, beginKey.Length, pEndKey, endKey.Length);
 			}
@@ -1832,7 +1842,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* pEndKey = endKey)
 			{
 #if DEBUG_NATIVE_CALLS
-				System.Diagnostics.Debug.WriteLine("fdb_transaction_add_conflict_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "', " + type.ToString() + ")");
+				LogNative($"fdb_transaction_add_conflict_range(tr: 0x{transaction.Handle:x}, beginKey: '{FdbKey.Dump(beginKey)}, endKey: '{FdbKey.Dump(endKey)}', {type})");
 #endif
 				return NativeMethods.fdb_transaction_add_conflict_range(transaction, pBeginKey, beginKey.Length, pEndKey, endKey.Length, type);
 			}
@@ -1844,7 +1854,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_transaction_get_approximate_size(transaction);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			System.Diagnostics.Debug.WriteLine("fdb_transaction_get_approximate_size(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+			LogNative($"fdb_transaction_get_approximate_size(tr: 0x{transaction.Handle:x}) => 0x{future.Handle:x}");
 #endif
 			return future;
 		}

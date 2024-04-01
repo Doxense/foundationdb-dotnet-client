@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Native
 
 	/// <summary>Wraps a native FDB_TRANSACTION handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Size={m_payloadBytes}, Closed={m_handle.IsClosed}")]
-	internal class FdbNativeTransaction : IFdbTransactionHandler
+	internal class FdbNativeTransaction : IFdbTransactionHandler, IEquatable<FdbNativeTransaction>
 	{
 		/// <summary>FDB_DATABASE* handle</summary>
 		private readonly FdbNativeDatabase m_database;
@@ -55,7 +55,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Estimated current size of the transaction</summary>
 		private int m_payloadBytes;
-		//TODO: this is redundant with GetApproximateSize which does the exact book-keeping (but is async!). Should we keep it? or get remove it?
+		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or get remove it?
 
 #if CAPTURE_STACKTRACES
 		private StackTrace m_stackTrace;
@@ -637,6 +637,18 @@ namespace FoundationDB.Client.Native
 				if (!m_handle.IsClosed) m_handle.Dispose();
 			}
 		}
+
+		#endregion
+
+		#region IEquatable...
+
+		public override string ToString() => $"FdbTransaction(0x{m_handle.Handle:x})";
+
+		public bool Equals(FdbNativeTransaction? other) => ReferenceEquals(other, this) || (other != null && other.m_handle.Equals(m_handle));
+
+		public override bool Equals(object? obj) => obj is FdbNativeTransaction tr && Equals(tr);
+
+		public override int GetHashCode() => m_handle.GetHashCode();
 
 		#endregion
 

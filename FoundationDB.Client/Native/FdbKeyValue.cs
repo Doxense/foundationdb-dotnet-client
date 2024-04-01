@@ -39,14 +39,14 @@ namespace FoundationDB.Client.Native
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal unsafe struct FdbKey
+	internal unsafe struct FdbKeyNative
 	{
 		public byte* Key;
 		public uint Length;
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal unsafe struct FdbKeyRange
+	internal unsafe struct FdbKeyRangeNative
 	{
 		public byte* BeginKey;
 		public uint BeginKeyLength;
@@ -56,28 +56,28 @@ namespace FoundationDB.Client.Native
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal ref struct FdbMappedKeyValue
+	internal ref struct FdbMappedKeyValueNative
 	{
-		public FdbKey Key;
-		public FdbKey Value;
-		public FdbGetRangeReqAndResult GetRange;
+		public FdbKeyNative Key;
+		public FdbKeyNative Value;
+		public FdbGetRangeReqAndResultNative GetRange;
 		public byte Buffer; // note: this is a byte[32] !
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal unsafe struct FdbGetRangeReqAndResult
+	internal unsafe struct FdbGetRangeReqAndResultNative
 	{
-		public FdbKeySelector Begin;
-		public FdbKeySelector End;
+		public FdbKeySelectorNative Begin;
+		public FdbKeySelectorNative End;
 		public FdbKeyValue* Data;
 		public int Size;
 		public int Capacity;
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKeySelector
+	internal struct FdbKeySelectorNative
 	{
-		public FdbKey Key;
+		public FdbKeyNative Key;
 		public bool OrEqual;
 		public int Offset;
 	}

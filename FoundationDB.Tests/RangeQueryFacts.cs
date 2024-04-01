@@ -50,7 +50,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can get a chunk of data
 
-			const int N = 100; // total item count
+			const int N = 200; // total item count
 			//note: should be small enough so that a WantAll read all of it in one chunk, but large enough that Iterator does not!
 
 			void Verify(FdbRangeChunk chunk, KeyValuePair<Slice, Slice>[] expected, int offset)
