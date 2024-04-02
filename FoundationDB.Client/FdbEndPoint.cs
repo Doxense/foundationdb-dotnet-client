@@ -27,22 +27,29 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Net;
 
 	/// <summary>Represents a FoundationDB network endpoint as an IP address, port number and TLS mode.</summary>
-	public sealed class FdbEndPoint : IPEndPoint
+	[DebuggerDisplay("{ToString(),nq}")]
+	public sealed class FdbEndPoint : IPEndPoint, IEquatable<FdbEndPoint>
 	{
-		private readonly bool m_tls;
+
+		public static readonly FdbEndPoint Invalid = new(IPAddress.None, 0, false);
 
 		public FdbEndPoint(IPAddress address, int port, bool tls)
 			: base(address, port)
 		{
-			m_tls = tls;
+			this.Tls = tls;
 		}
 
 		/// <summary>Gets or sets the TLS mode of the endpoint.</summary>
 		/// <remarks>True if the endpoint uses TLS</remarks>
-		public bool Tls => m_tls;
+		public bool Tls { get; }
+
+		/// <summary>Tests if this is a valid endpoint</summary>
+		public bool IsValid() => !IPAddress.None.Equals(this.Address) && this.Port > 0;
 
 		public override SocketAddress Serialize()
 		{
@@ -53,8 +60,11 @@ namespace FoundationDB.Client
 
 			var sockAddr = new SocketAddress(this.AddressFamily, count + 1);
 
-			for(int i=0;i<count;i++) sockAddr[i] = tmp[i];
-			sockAddr[count] = m_tls ? (byte)1 : (byte)0;
+			for (int i = 0; i < count; i++)
+			{
+				sockAddr[i] = tmp[i];
+			}
+			sockAddr[count] = this.Tls ? (byte) 1 : (byte) 0;
 
 			return sockAddr;
 		}
@@ -65,7 +75,7 @@ namespace FoundationDB.Client
 
 			// Current implementation of IPEndPoint does really check the exact size of the buffer, and should not use the extra byte we added...
 			// > Fix this if this is no longer the case in future .NET implementations (or Mono?)
-			var tmp = (IPEndPoint)base.Create(socketAddress);
+			var tmp = (IPEndPoint) base.Create(socketAddress);
 
 			bool tls = false;
 			int count = socketAddress.Size;
@@ -77,22 +87,43 @@ namespace FoundationDB.Client
 			return new FdbEndPoint(tmp.Address, tmp.Port, tls);
 		}
 
-		public override string ToString()
-		{
-			string s = base.ToString();
-			return m_tls ? (s + ":tls") : s;
-		}
+		public override string ToString() => this.Tls ? base.ToString() + ":tls" : base.ToString();
 
-		public override bool Equals(object? comparand)
-		{
-			return comparand is FdbEndPoint fep && fep.m_tls == m_tls && base.Equals(fep);
-		}
+		public override bool Equals(object? other) => other is FdbEndPoint fep && Equals(fep);
+
+		public bool Equals(FdbEndPoint? other) => other != null && other.Tls == this.Tls && base.Equals(other);
 
 		public override int GetHashCode()
 		{
 			int h = base.GetHashCode();
-			return m_tls ? ~h : h;
+			return this.Tls ? ~h : h;
 		}
+
+		public void Deconstruct(out IPAddress address, out int port)
+		{
+			address = this.Address;
+			port = this.Port;
+		}
+
+		public void Deconstruct(out IPAddress address, out int port, out bool tls)
+		{
+			address = this.Address;
+			port = this.Port;
+			tls = this.Tls;
+		}
+
+		public static bool TryParse(ReadOnlySpan<char> address, [MaybeNullWhen(false)] out FdbEndPoint endpoint)
+		{
+			if (!Fdb.System.TryParseAddress(address, out var ip, out var port, out var tls))
+			{
+				endpoint = null;
+				return false;
+			}
+
+			endpoint = new(ip, port, tls);
+			return true;
+		}
+
 	}
 
 }

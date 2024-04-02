@@ -155,6 +155,42 @@ namespace FoundationDB.Client
 				return FdbClusterConnectionString.Parse(coordinators.ToStringAscii()!);
 			}
 
+			public static bool TryParseAddress(ReadOnlySpan<char> address, [MaybeNullWhen(false)] out IPAddress host, out int port, out bool tls)
+			{
+				host = null;
+				port = 0;
+				tls = false;
+				if (address.IsEmpty)
+				{
+					return false;
+				}
+
+				if (address.EndsWith(":tls"))
+				{
+					tls = true;
+					address = address[..^4];
+				}
+
+				// split host and port
+				int p = address.IndexOf(':');
+				if (p <= 0) return false;
+
+				// parse host (we assume an IP address)
+				// TODO: change this if it could be a host name
+				if (!IPAddress.TryParse(address[..p], out host))
+				{
+					return false;
+				}
+
+				// parse the port
+				if (!int.TryParse(address[(p + 1)..], out port))
+				{
+					return false;
+				}
+
+				return true;
+			}
+
 			#region Special Keys...
 
 			/// <summary>Return the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>

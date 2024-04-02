@@ -31,6 +31,7 @@ namespace FoundationDB.Client.Status
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.Linq;
 	using Doxense.Serialization.Json;
 	using JetBrains.Annotations;
 
@@ -59,6 +60,10 @@ namespace FoundationDB.Client.Status
 		/// <summary>Raw JSON data of this snapshot.</summary>
 		/// <remarks>This is the same value that is returned by running 'status json' in fdbcli</remarks>
 		public Slice RawData { get; }
+
+		/// <summary>Raw JSON text of this snapshot.</summary>
+		/// <remarks>This is the same value that is returned by running 'status json' in fdbcli, decoded as utf-8</remarks>
+		public string RawJson => this.RawData.ToStringUtf8() ?? string.Empty;
 
 		/// <summary>Parsed JSON data of this snapshot.</summary>
 		public JsonObject? JsonData => m_data;
@@ -234,7 +239,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Base class for all metrics containers</summary>
-	public abstract class MetricsBase
+	public abstract class MetricsBase : IJsonSerializable, IJsonPackable
 	{
 		protected readonly JsonObject? m_data;
 
@@ -247,55 +252,41 @@ namespace FoundationDB.Client.Status
 		/// <remarks>If <c>false</c>, the content of this instance should be discarded</remarks>
 		public bool Exists() => m_data != null;
 
-		protected JsonObject? GetObject(string field)
-		{
-			return m_data?.GetObjectOrDefault(field);
-		}
+		protected JsonObject? GetObject(string field) => m_data?.GetObjectOrDefault(field);
 
-		protected JsonArray? GetArray(string field)
-		{
-			return m_data?.GetArrayOrDefault(field);
-		}
+		protected JsonArray? GetArray(string field) => m_data?.GetArrayOrDefault(field);
 
-		protected string? GetString(string field)
-		{
-			return m_data?.Get<string?>(field, null);
-		}
+		protected string? GetString(string field) => m_data?.Get<string?>(field, null);
 
-		protected string? GetString(string field1, string field2)
-		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<string>(field2, out var v2) ? v2 : null;
-		}
+		protected string? GetString(string field1, string field2) => m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<string>(field2, out var v2) ? v2 : null;
 
-		protected long? GetInt64(string field)
-		{
-			return m_data?.Get<long?>(field, null);
-		}
+		protected int? GetInt32(string field) => m_data?.Get<int?>(field, null);
 
-		protected long? GetInt64(string field1, string field2)
-		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<long>(field2, out var v2) ? v2 : null;
-		}
+		protected int? GetInt32(string field1, string field2) => m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<int>(field2, out var v2) ? v2 : null;
 
-		protected double? GetDouble(string field)
-		{
-			return m_data?.Get<double?>(field, null);
-		}
+		protected long? GetInt64(string field) => m_data?.Get<int?>(field, null);
 
-		protected double? GetDouble(string field1, string field2)
-		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<double>(field2, out var v2) ? v2 : null;
-		}
+		protected long? GetInt64(string field1, string field2) => m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<long>(field2, out var v2) ? v2 : null;
 
-		protected bool? GetBoolean(string field)
-		{
-			return m_data?.Get<bool?>(field, null);
-		}
+		protected double? GetDouble(string field) => m_data?.Get<double?>(field, null);
 
-		protected bool? GetBoolean(string field1, string field2)
-		{
-			return m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<bool>(field2, out var v2) ? v2 : null;
-		}
+		protected double? GetDouble(string field1, string field2) => m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<double>(field2, out var v2) ? v2 : null;
+
+		protected bool? GetBoolean(string field) => m_data?.Get<bool?>(field, null);
+
+		protected bool? GetBoolean(string field1, string field2) => m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<bool>(field2, out var v2) ? v2 : null;
+
+		protected FdbEndPoint GetEndpoint(string field) => FdbEndPoint.TryParse(GetString(field), out var ep) ? ep : FdbEndPoint.Invalid;
+
+		protected FdbEndPoint[] GetEndpoints(string field) => GetArray(field).OrEmpty().Select(value => FdbEndPoint.TryParse(value.ToStringOrDefault(), out var ep) ? ep : FdbEndPoint.Invalid).ToArray();
+
+		public override string ToString() => m_data?.ToJsonIndented() ?? string.Empty;
+
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => (m_data ?? JsonNull.Null).JsonSerialize(writer);
+
+		public void JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver) => throw new NotSupportedException();
+
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_data ?? JsonNull.Null;
 
 	}
 

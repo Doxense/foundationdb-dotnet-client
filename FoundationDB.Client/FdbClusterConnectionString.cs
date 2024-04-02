@@ -102,24 +102,12 @@ namespace FoundationDB.Client
 			if (identifier.Length == 0) throw new FormatException("Empty description field.");
 
 			string[] pairs = rawValue[(q + 1)..].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-			var coordinators = pairs.Select(pair =>
-			{
-				bool tls = false;
-				if (pair.EndsWith(":tls", StringComparison.OrdinalIgnoreCase))
-				{
-					pair = pair[..^4];
-					tls = true;
-				}
-				int r = pair.LastIndexOf(':');
-				if (r < 0) throw new FormatException("Missing ':' in coordinator address.");
-				// the format is "{IP}:{PORT}" or "{IP}:{PORT}:tls"
 
-				return new FdbEndPoint(
-					IPAddress.Parse(pair[..r]),
-					Int32.Parse(pair[(r + 1)..]),
-					tls
-				);
-			}).ToArray();
+			// the expected format is "{IP}:{PORT}" or "{IP}:{PORT}:tls"
+			var coordinators = pairs
+				.Select(pair => FdbEndPoint.TryParse(pair, out var ep) ? ep : throw new FormatException($"Invalid coordinator address: '{pair}'"))
+				.ToArray();
+
 			if (coordinators.Length == 0) throw new FormatException("Empty coordination server list.");
 
 			return new FdbClusterConnectionString(rawValue, description, identifier, coordinators);
