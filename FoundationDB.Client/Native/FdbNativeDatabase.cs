@@ -228,6 +228,28 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		public Task RebootWorkerAsync(ReadOnlySpan<char> name, bool check, int duration, CancellationToken ct)
+		{
+			Contract.Debug.Requires(name.Length > 0 && duration >= 0);
+
+			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseRebootWorker(m_handle, name, check, duration), (h) => null, ct);
+		}
+
+		public Task ForceRecoveryWithDataLossAsync(ReadOnlySpan<char> dcId, CancellationToken ct)
+		{
+			Contract.Debug.Requires(dcId.Length > 0);
+
+			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseForceRecoveryWithDataLoss(m_handle, dcId), (h) => null, ct);
+		}
+
+		public Task DatabaseCreateSnapshotAsync(ReadOnlySpan<char> uid, ReadOnlySpan<char> snapCommand, CancellationToken ct)
+		{
+			Contract.Debug.Requires(uid.Length > 0);
+			Contract.Debug.Requires(snapCommand.Length > 0);
+
+			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseCreateSnapshot(m_handle, uid, snapCommand), (h) => null, ct);
+		}
+
 		public double GetMainThreadBusyness()
 		{
 			return FdbNative.GetMainThreadBusyness(m_handle);

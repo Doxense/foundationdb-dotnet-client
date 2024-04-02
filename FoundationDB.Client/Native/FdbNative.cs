@@ -1067,7 +1067,7 @@ namespace FoundationDB.Client.Native
 			var future = NativeMethods.fdb_cluster_create_database(cluster, name, name.Length);
 			Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			LogNative($"fdb_cluster_create_database(0x{cluster.Handle:x}, name: '{name}') => 0x{cluster.Handle:x}");
+			LogNative($"fdb_cluster_create_database(0x{cluster.Handle:x}, name: '{name}') => 0x{future.Handle:x}");
 #endif
 			return future;
 		}
@@ -1084,6 +1084,56 @@ namespace FoundationDB.Client.Native
 				LogNative($"fdb_database_open_tenant(db: 0x{database.Handle:x}, '{Slice.Copy(name):K}') => err={err}, handle=0x{tenant.Handle:x}");
 #endif
 				return err;
+			}
+		}
+
+		/// <summary>fdb_database_reboot_worker, >= 700</summary>
+		public static FutureHandle DatabaseRebootWorker(DatabaseHandle database, ReadOnlySpan<char> name, bool check, int duration)
+		{
+			Contract.Debug.Requires(Fdb.BindingVersion >= 700);
+
+			var bytes = ToNativeString(name, true);
+			fixed (byte* ptr = bytes)
+			{
+				var future = NativeMethods.fdb_database_reboot_worker(database, ptr, name.Length, check, duration);
+#if DEBUG_NATIVE_CALLS
+				LogNative($"fdb_database_reboot_worker(db: 0x{database.Handle:x}, '{Slice.Copy(name)}') => 0x{future.Handle:x}");
+#endif
+				return future;
+			}
+		}
+
+		/// <summary>fdb_database_reboot_worker, >= 700</summary>
+		public static FutureHandle DatabaseForceRecoveryWithDataLoss(DatabaseHandle database, ReadOnlySpan<char> dcId)
+		{
+			Contract.Debug.Requires(Fdb.BindingVersion >= 700);
+
+			var bytes = ToNativeString(dcId, true);
+			fixed (byte* ptr = bytes)
+			{
+				var future = NativeMethods.fdb_database_force_recovery_with_data_loss(database, ptr, dcId.Length);
+#if DEBUG_NATIVE_CALLS
+				LogNative($"fdb_database_force_recovery_with_data_loss(db: 0x{database.Handle:x}, '{Slice.Copy(dcId)}') => 0x{future.Handle:x}");
+#endif
+				return future;
+			}
+		}
+
+		/// <summary>fdb_database_create_snapshot, >= 700</summary>
+		public static FutureHandle DatabaseCreateSnapshot(DatabaseHandle database, ReadOnlySpan<char> uid, ReadOnlySpan<char> snapCommand)
+		{
+			Contract.Debug.Requires(Fdb.BindingVersion >= 700);
+
+			var uidBytes = ToNativeString(uid, true);
+			var snapCommandBytes = ToNativeString(snapCommand, true);
+			fixed (byte* uidPtr = uidBytes)
+			fixed (byte* snampCommandPtr = snapCommandBytes)
+			{
+				var future = NativeMethods.fdb_database_create_snapshot(database, uidPtr, uid.Length, snampCommandPtr, snapCommand.Length);
+#if DEBUG_NATIVE_CALLS
+				LogNative($"fdb_database_create_snapshot(db: 0x{database.Handle:x}, '{Slice.Copy(uid)}', '{Slice.Copy(snapCommand)}') => 0x{future.Handle:x}");
+#endif
+				return future;
 			}
 		}
 

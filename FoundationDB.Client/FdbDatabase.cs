@@ -195,15 +195,18 @@ namespace FoundationDB.Client
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
 		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
 		{
+			ThrowIfDisposed();
 			ct.ThrowIfCancellationRequested();
+
 			if (context == null)
 			{
 				context = new FdbOperationContext(this, null, mode, ct);
 			}
-			else
+			else if (context.Database != this)
 			{
-				if (context.Database != this) throw new ArgumentException("This operation context was created for a different database instance", nameof(context));
+				throw new ArgumentException("This operation context was created for a different database instance", nameof(context));
 			}
+
 			return CreateNewTransaction(context);
 		}
 
@@ -357,6 +360,32 @@ namespace FoundationDB.Client
 				}
 				throw;
 			}
+		}
+
+		public Task RebootWorkerAsync(string name, bool check, int duration, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			Contract.NotNullOrEmpty(name);
+			Contract.Positive(duration);
+
+			return m_handler.RebootWorkerAsync(name, check, duration, ct);
+		}
+
+		public Task ForceRecoveryWithDataLossAsync(string dcId, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			Contract.NotNullOrEmpty(dcId);
+
+			return m_handler.ForceRecoveryWithDataLossAsync(dcId, ct);
+		}
+
+		public Task DatabaseCreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			Contract.NotNullOrEmpty(uid);
+			Contract.NotNullOrEmpty(snapCommand);
+
+			return m_handler.DatabaseCreateSnapshotAsync(uid, snapCommand, ct);
 		}
 
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)

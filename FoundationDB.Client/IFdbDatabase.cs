@@ -107,6 +107,12 @@ namespace FoundationDB.Client
 		/// <remarks>The value is updated in the background at regular interval (by default every second).</remarks>
 		double GetMainThreadBusyness();
 
+		Task RebootWorkerAsync(string name, bool check, int duration, CancellationToken ct);
+
+		Task ForceRecoveryWithDataLossAsync(string dcId, CancellationToken ct);
+
+		Task DatabaseCreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct);
+
 	}
 
 }

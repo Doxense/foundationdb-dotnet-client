@@ -28,6 +28,8 @@ namespace FoundationDB.Client.Core
 {
 	using JetBrains.Annotations;
 	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Basic API for FoundationDB databases</summary>
 	[PublicAPI]
@@ -45,6 +47,12 @@ namespace FoundationDB.Client.Core
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
 
 		IFdbTenantHandler OpenTenant(FdbTenantName name);
+
+		Task RebootWorkerAsync(ReadOnlySpan<char> name, bool check, int duration, CancellationToken ct);
+
+		Task ForceRecoveryWithDataLossAsync(ReadOnlySpan<char> dcId, CancellationToken ct);
+
+		Task DatabaseCreateSnapshotAsync(ReadOnlySpan<char> uid, ReadOnlySpan<char> snapCommand, CancellationToken ct);
 
 		/// <summary>Returns the currently selected API version for this native handler.</summary>
 		int GetApiVersion();
