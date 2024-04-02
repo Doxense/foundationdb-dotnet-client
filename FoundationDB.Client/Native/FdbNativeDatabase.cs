@@ -115,10 +115,7 @@ namespace FoundationDB.Client.Native
 
 		public static ValueTask<IFdbDatabaseHandler> CreateDatabaseFromConnectionStringAsync(string connectionString, CancellationToken ct)
 		{
-			if (Fdb.GetMaxApiVersion() < 720)
-			{ // not supported before 720
-				throw new NotSupportedException("This method requires API level 720 or greater");
-			}
+			Fdb.EnsureApiVersion(720);
 
 			var err = FdbNative.CreateDatabaseFromConnectionString(connectionString, out var handle);
 			FdbNative.DieOnError(err);
@@ -212,8 +209,9 @@ namespace FoundationDB.Client.Native
 
 		public IFdbTenantHandler OpenTenant(FdbTenantName name)
 		{
-			TenantHandle? handle = null;
+			Fdb.EnsureApiVersion(710);
 
+			TenantHandle? handle = null;
 			try
 			{
 				var err = FdbNative.DatabaseOpenTenant(m_handle, name.Value.Span, out handle);
@@ -231,6 +229,7 @@ namespace FoundationDB.Client.Native
 		public Task RebootWorkerAsync(ReadOnlySpan<char> name, bool check, int duration, CancellationToken ct)
 		{
 			Contract.Debug.Requires(name.Length > 0 && duration >= 0);
+			Fdb.EnsureApiVersion(700);
 
 			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseRebootWorker(m_handle, name, check, duration), (h) => null, ct);
 		}
@@ -238,20 +237,23 @@ namespace FoundationDB.Client.Native
 		public Task ForceRecoveryWithDataLossAsync(ReadOnlySpan<char> dcId, CancellationToken ct)
 		{
 			Contract.Debug.Requires(dcId.Length > 0);
+			Fdb.EnsureApiVersion(700);
 
 			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseForceRecoveryWithDataLoss(m_handle, dcId), (h) => null, ct);
 		}
 
-		public Task DatabaseCreateSnapshotAsync(ReadOnlySpan<char> uid, ReadOnlySpan<char> snapCommand, CancellationToken ct)
+		public Task CreateSnapshotAsync(ReadOnlySpan<char> uid, ReadOnlySpan<char> snapCommand, CancellationToken ct)
 		{
 			Contract.Debug.Requires(uid.Length > 0);
 			Contract.Debug.Requires(snapCommand.Length > 0);
+			Fdb.EnsureApiVersion(700);
 
 			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseCreateSnapshot(m_handle, uid, snapCommand), (h) => null, ct);
 		}
 
 		public double GetMainThreadBusyness()
 		{
+			Fdb.EnsureApiVersion(700);
 			return FdbNative.GetMainThreadBusyness(m_handle);
 		}
 

@@ -211,14 +211,19 @@ namespace FoundationDB.Client.Native
 			public static extern FutureHandle fdb_database_create_snapshot(DatabaseHandle database, byte* uid, int uidLength, byte* snapCommand, int snapCommandLength);
 
 			/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
-			/// <returns>
+			/// <remarks>
 			/// <para>By default, this value is updated every second.</para>
 			/// <para>Added in 700</para>
-			/// </returns>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern double fdb_database_get_main_thread_busyness(DatabaseHandle database);
 
-			//TODO: documentation! (added 7.0)
+			/// <summary>Returns the protocol version reported by the coordinator this client is connected to.</summary>
+			/// <remarks>
+			/// <para>If an expected version is non-zero, the future won't return until the protocol version is different than expected</para>
+			/// <para>Note: this will never return if the server is running a protocol from FDB 5.0 or older</para>
+			/// <para>Added in 700</para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_database_get_server_protocol(DatabaseHandle database, ulong expectedVersion);
 

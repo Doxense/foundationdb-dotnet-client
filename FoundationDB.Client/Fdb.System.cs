@@ -97,6 +97,7 @@ namespace FoundationDB.Client
 
 			private static readonly Slice StatusJsonKey = Slice.FromByteString("\xFF\xFF/status/json");
 
+			/// <summary>Query the current status of the cluster</summary>
 			public static async Task<FdbSystemStatus?> GetStatusAsync(IFdbReadOnlyTransaction trans)
 			{
 				Contract.NotNull(trans);
@@ -116,6 +117,7 @@ namespace FoundationDB.Client
 				return new FdbSystemStatus(doc, rv, data);
 			}
 
+			/// <summary>Query the current status of the cluster</summary>
 			public static Task<FdbSystemStatus?> GetStatusAsync(IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db);

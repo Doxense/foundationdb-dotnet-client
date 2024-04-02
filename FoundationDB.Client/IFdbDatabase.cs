@@ -111,7 +111,7 @@ namespace FoundationDB.Client
 
 		Task ForceRecoveryWithDataLossAsync(string dcId, CancellationToken ct);
 
-		Task DatabaseCreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct);
+		Task CreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct);
 
 	}
 

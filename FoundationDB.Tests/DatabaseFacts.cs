@@ -214,7 +214,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_System_Status()
 		{
-
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				var status = await Fdb.System.GetStatusAsync(db, this.Cancellation);
@@ -229,17 +228,13 @@ namespace FoundationDB.Client.Tests
 				Assert.That(status.Cluster.Qos, Is.Not.Null);
 				Assert.That(status.Cluster.Workload, Is.Not.Null);
 			}
-
 		}
 
 		[Test]
 		public async Task Test_Can_Change_Location_Cache_Size()
 		{
-			// New in Beta2
-
 			using (var db = await OpenTestDatabaseAsync())
 			{
-
 				//TODO: how can we test that it is successful ?
 
 				db.Options.WithLocationCacheSize(1000);
@@ -281,7 +276,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Check_Timeout_On_Non_Existing_Database()
 		{
-
 			string clusterPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, "notfound.cluster");
 			await File.WriteAllTextAsync(clusterPath, "local:thisClusterShouldNotExist@127.0.0.1:4566", this.Cancellation);
 			var options = new FdbConnectionOptions { ClusterFile = clusterPath };
@@ -345,7 +339,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=/etc/foundationdb/fdb.cluster; timeout=3.1415926; machine_id=""James \""The Machine\"" Wade"""));
 		}
 
-		[Test]
+		[Test, Category("LongRunning")]
 		public async Task Test_Can_Get_Main_Thread_Busyness()
 		{
 			using (var db = await OpenTestDatabaseAsync())
@@ -357,30 +351,29 @@ namespace FoundationDB.Client.Tests
 				var start = DateTime.Now;
 
 				// we will call this multiple times, when idle
-				Log("Querying busyness...");
-				for (int i = 0; i < 20; i++)
+				Log("Querying busyness when idle...");
+				for (int i = 0; i < 3; i++)
 				{
-					await Task.Delay(100, this.Cancellation);
+					await Task.Delay(1000, this.Cancellation);
 					value = db.GetMainThreadBusyness();
 					Assert.That(value, Is.GreaterThanOrEqualTo(0).And.LessThanOrEqualTo(1), "Value must be [0, 1]");
-					Log($"> T+{(DateTime.Now - start).TotalSeconds:N2}s: {value:N4} ({value * 100:N2}%)");
+					Log($"> T+{(DateTime.Now - start).TotalSeconds:N2}s: {value:N4} ({value * 100,6:N2}%) {new string('#', (int) Math.Ceiling(value * 100))}");
 				}
 
 				// read a bunch of keys to generate _some_ activity
-				Log("Generating some load in the background...");
-				var t = Task.WhenAll(Enumerable.Range(0, 100).Select(i => db.ReadAsync(async tr =>
+				Log("Querying busyness with some load in the background...");
+				var t = Task.WhenAll(Enumerable.Range(0, 200).Select(i => db.ReadAsync(async tr =>
 				{
-					await tr.GetValuesAsync(Enumerable.Range(0, 100).Select(x => TuPack.EncodeKey("Hello", i, x)));
+					await tr.GetValuesAsync(Enumerable.Range(0, 200).Select(x => TuPack.EncodeKey("Hello", i, x)));
 				}, this.Cancellation)).ToArray());
 
-				Log("Querying busyness again...");
 				// we will call this multiple times, when idle
-				for (int i = 0; i < 30; i++)
+				for (int i = 0; i < 3; i++)
 				{
-					await Task.Delay(100, this.Cancellation);
+					if (i > 0) await Task.Delay(1000, this.Cancellation);
 					value = db.GetMainThreadBusyness();
 					Assert.That(value, Is.GreaterThanOrEqualTo(0).And.LessThanOrEqualTo(1), "Value must be [0, 1]");
-					Log($"> T+{(DateTime.Now - start).TotalSeconds:N2}s: {value:N4} ({value * 100:N2}%)");
+					Log($"> T+{(DateTime.Now - start).TotalSeconds:N2}s: {value:N4} ({value * 100,6:N2}%) {new string('#', (int) Math.Ceiling(value * 100))}");
 				}
 
 				await t;

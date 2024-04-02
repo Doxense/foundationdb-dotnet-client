@@ -379,13 +379,13 @@ namespace FoundationDB.Client
 			return m_handler.ForceRecoveryWithDataLossAsync(dcId, ct);
 		}
 
-		public Task DatabaseCreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct)
+		public Task CreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			Contract.NotNullOrEmpty(uid);
 			Contract.NotNullOrEmpty(snapCommand);
 
-			return m_handler.DatabaseCreateSnapshotAsync(uid, snapCommand, ct);
+			return m_handler.CreateSnapshotAsync(uid, snapCommand, ct);
 		}
 
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
