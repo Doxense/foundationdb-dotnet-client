@@ -645,6 +645,10 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(map, readOnly: false);
 		}
 
+		/// <summary>Returns either the object itself, or an empty read-only object if it was missing</summary>
+		[Pure]
+		public static JsonObject OrEmpty(this JsonObject? self) => self ?? JsonObject.EmptyReadOnly;
+
 		#endregion
 
 		#region Array Helpers...
@@ -672,6 +676,10 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonArray AsArrayOrEmpty(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : JsonArray.EmptyReadOnly) : value as JsonArray ?? FailValueIsNotAnArray(value);
+
+		/// <summary>Returns either the array itself, or an empty read-only array if it was missing</summary>
+		[Pure]
+		public static JsonArray OrEmpty(this JsonArray? self) => self ?? JsonArray.EmptyReadOnly;
 
 		#endregion
 
