@@ -492,7 +492,7 @@ namespace SnowBank.Testing
 		public Task Await(Task task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
-			     : task.IsCompleted ? Task.FromResult(true)
+			     : task.IsCompleted ? task
 			     : WaitForInternal(task, timeout, throwIfExpired: true, taskExpression!);
 		}
 
@@ -500,7 +500,7 @@ namespace SnowBank.Testing
 		public Task Await(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
-				: task.IsCompleted ? Task.FromResult(true)
+				: task.IsCompleted ? task.AsTask()
 				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, taskExpression!);
 		}
 

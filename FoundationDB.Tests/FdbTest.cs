@@ -29,13 +29,13 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using NUnit.Framework;
+	using NUnit.Framework.Internal;
 
 	/// <summary>Base class for all FoundationDB tests</summary>
 	public abstract class FdbTest
@@ -441,5 +441,156 @@ namespace FoundationDB.Client.Tests
 			return db.ReadAsync(async (tr) => { await handler(tr); return true; }, this.Cancellation);
 		}
 
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <param name="task">The task that will be awaited.</param>
+		/// <param name="timeoutMs">The maximum allowed time (in milliseconds) for the task to complete.</param>
+		/// <param name="taskExpression">Expression that generated the task (for logging purpose)</param>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
+		public Task Await(Task task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
+		}
+
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <param name="task">The task that will be awaited.</param>
+		/// <param name="timeoutMs">The maximum allowed time (in milliseconds) for the task to complete.</param>
+		/// <param name="taskExpression">Expression that generated the task (for logging purpose)</param>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
+		public Task Await(ValueTask task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
+		}
+
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <param name="task">The task that will be awaited.</param>
+		/// <param name="timeout">The maximum allowed time for the task to complete.</param>
+		/// <param name="taskExpression">Expression that generated the task (for logging purpose)</param>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
+		public Task Await(Task task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
+			     : task.IsCompleted ? task
+			     : WaitForInternal(task, timeout, throwIfExpired: true, taskExpression!);
+		}
+
+		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		public Task Await(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
+				: task.IsCompleted ? task.AsTask()
+				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, taskExpression!);
+		}
+
+		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		public Task<TResult> Await<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
+		}
+
+		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		public Task<TResult> Await<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
+		}
+
+		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		public Task<TResult> Await<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
+				: task.IsCompleted ? task
+				: WaitForInternal(task, timeout, taskExpression!);
+		}
+
+		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		public Task<TResult> Await<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
+				: task.IsCompleted ? task.AsTask()
+				: WaitForInternal(task.AsTask(), timeout, taskExpression!);
+		}
+
+		private async Task<bool> WaitForInternal(Task task, TimeSpan delay, bool throwIfExpired, string taskExpression)
+		{
+			if (!task.IsCompleted)
+			{
+				var ct = this.Cancellation;
+				if (task != (await Task.WhenAny(task, Task.Delay(delay, ct)).ConfigureAwait(false)))
+				{ // timeout!
+					if (ct.IsCancellationRequested)
+					{
+						Log("### Wait aborted due to test cancellation! ###");
+						Assert.Fail("Test execution has been aborted because it took too long to execute!");
+					}
+
+					if (throwIfExpired)
+					{
+						Log("### Wait aborted due to timeout! ###");
+						Assert.Fail($"Operation took more than {delay} to execute: {taskExpression}");
+					}
+
+					return false;
+				}
+			}
+
+			if (task.Status != TaskStatus.RanToCompletion)
+			{ // re-throw error
+				var ex = task.Exception!.Unwrap();
+				Assert.Fail($"Task '{taskExpression}' failed with following error: {ex}");
+			}
+
+			return true;
+		}
+
+		private async Task<TResult> WaitForInternal<TResult>(Task<TResult> task, TimeSpan delay, string taskExpression)
+		{
+			bool? success = null;
+			Exception? error = null;
+			if (!task.IsCompleted)
+			{
+				var ct = this.Cancellation;
+				if (task != (await Task.WhenAny(task, Task.Delay(delay, ct)).ConfigureAwait(false)))
+				{ // timeout!
+					success = false;
+
+					if (ct.IsCancellationRequested)
+					{
+						Log("### Wait aborted due to test cancellation! ###");
+						Assert.Fail("Test execution has been aborted because it took too long to execute!");
+					}
+					else
+					{
+						Log("### Wait aborted due to timeout! ###");
+						Assert.Fail($"Operation took more than {delay} to execute: {taskExpression}");
+					}
+				}
+
+				if (!task.IsCompleted)
+				{
+					Assert.Fail($"Task did not complete in time ({task.Status})");
+				}
+			}
+
+			// return result or throw error
+			try
+			{
+				return await task;
+			}
+			catch (Exception ex)
+			{
+				Assert.Fail($"Task '{taskExpression}' failed with following error: {ex}");
+				throw null!;
+			}
+		}
+
 	}
+
 }
