@@ -462,7 +462,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(status.JsonData, Is.Not.Null);
 
 				Log($"Received status: {status.RawData.Count:N0} bytes");
-#if FULL_DEBUG || true
+#if FULL_DEBUG
 				Log(status.JsonData?.ToJsonIndented());
 #else
 				Log(status.JsonData?.ToJson());
