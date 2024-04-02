@@ -32,9 +32,11 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.IO;
 	using System.Linq;
+	using System.Net;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
+	using Doxense.Serialization.Json;
 	using FoundationDB.Client;
 	using NUnit.Framework;
 
@@ -407,6 +409,78 @@ namespace FoundationDB.Client.Tests
 				else
 				{ // future version?
 					Assert.Inconclusive($"Unknown protocol version: {majorMinor:x} for cluster protocol 0x{ver:x}");
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Client_Status()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+
+				// we need to read something so that the client connects to at least one storage server!
+				await db.ReadAsync((tr) => tr.GetAsync(Slice.FromString("HelloWorld")), this.Cancellation);
+
+				Log("Getting client status...");
+				var status = await Fdb.System.GetClientStatusAsync(db, this.Cancellation);
+				Assert.That(status, Is.Not.Null);
+				Assert.That(status.Exists(), Is.True);
+				Assert.That(status.RawData.Count, Is.GreaterThan(0));
+				Assert.That(status.JsonData, Is.Not.Null);
+
+				Log($"Received status: {status.RawData.Count:N0} bytes");
+#if FULL_DEBUG || true
+				Log(status.JsonData?.ToJsonIndented());
+#else
+				Log(status.JsonData?.ToJson());
+#endif
+
+				Assert.That(status.Healthy, Is.True);
+				Assert.That(status.InitializationError, Is.Null);
+				Assert.That(status.ClusterId, Is.Not.Null.Or.Empty);
+				Assert.That(status.CurrentCoordinator, Is.Not.Null);
+				Assert.That(status.CurrentCoordinator.IsValid(), Is.True);
+				Assert.That(status.Coordinators, Is.Not.Null.Or.Empty.And.All.Not.Null);
+				Assert.That(status.Coordinators, Does.Contain(status.CurrentCoordinator));
+				Assert.That(status.Connections, Is.Not.Null.Or.Empty.And.All.Not.Null);
+				Assert.That(status.CommitProxies, Is.Not.Null.Or.Empty.And.All.Not.Null);
+				Assert.That(status.GrvProxies, Is.Not.Null.Or.Empty.And.All.Not.Null);
+				Assert.That(status.StorageServers, Is.Not.Null.Or.Empty.And.All.Not.Null);
+				Assert.That(status.NumConnectionsFailed, Is.Not.Null.And.GreaterThanOrEqualTo(0));
+
+				Log($"Coordinators: current is {status.CurrentCoordinator}");
+				foreach(var coord in status.Coordinators)
+				{
+					Log($"- {coord}");
+					Assert.That(coord, Is.Not.Null);
+					Assert.That(coord.Address, Is.Not.Null.And.Not.EqualTo(IPAddress.None));
+					Assert.That(coord.Port, Is.GreaterThan(0));
+				}
+				Log($"Connections: {status.Connections.Length}");
+				foreach (var conn in status.Connections)
+				{
+					Log($"- {conn.Address}: {conn.Status}, {conn.ProtocolVersion}");
+					Assert.That(conn.Address, Is.Not.Null);
+					Assert.That(conn.Address.IsValid());
+					Assert.That(conn.Address.Address, Is.Not.Null.Or.EqualTo(IPAddress.None));
+					Assert.That(conn.Address.Port, Is.GreaterThan(0));
+					Assert.That(conn.Status, Is.AnyOf("connected", "connecting", "disconnected", "failed"));
+					Assert.That(conn.Compatible, Is.Not.Null);
+					Assert.That(conn.BytesReceived, Is.Not.Null.And.GreaterThanOrEqualTo(0));
+					Assert.That(conn.BytesSent, Is.Not.Null.And.GreaterThanOrEqualTo(0));
+					Assert.That(conn.ProtocolVersion, Is.Null.Or.Not.Empty); // sometimes missing (maybe the client did not connect to this coordinator yet?)
+				}
+
+				Log($"Storage Servers: {status.StorageServers.Length}");
+				foreach (var stor in status.StorageServers)
+				{
+					Log($"- {stor.Address}: {stor.SSID}");
+					Assert.That(stor.Address, Is.Not.Null);
+					Assert.That(stor.Address.IsValid());
+					Assert.That(stor.Address.Address, Is.Not.Null.And.Not.EqualTo(IPAddress.None));
+					Assert.That(stor.Address.Port, Is.GreaterThan(0));
+					Assert.That(stor.SSID, Is.Not.Null.Or.Empty);
 				}
 			}
 		}

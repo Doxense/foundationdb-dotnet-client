@@ -56,6 +56,8 @@ namespace FoundationDB.Client.Core
 
 		Task<ulong> GetServerProtocolAsync(ulong expectedVersion, CancellationToken ct);
 
+		Task<Slice> GetClientStatus(CancellationToken ct);
+
 		/// <summary>Returns the currently selected API version for this native handler.</summary>
 		int GetApiVersion();
 

@@ -275,6 +275,21 @@ namespace FoundationDB.Client.Native
 				ct);
 		}
 
+		public Task<Slice> GetClientStatus(CancellationToken ct)
+		{
+			Fdb.EnsureApiVersion(730);
+
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.DatabaseGetClientStatus(m_handle),
+				(h) =>
+				{
+					var err = FdbNative.FutureGetKey(h, out var result);
+					FdbNative.DieOnError(err);
+					return Slice.Copy(result);
+				},
+				ct);
+		}
+
 		public void Dispose()
 		{
 			Dispose(true);

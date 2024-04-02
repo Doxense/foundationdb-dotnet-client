@@ -1154,6 +1154,18 @@ namespace FoundationDB.Client.Native
 			return future;
 		}
 
+		/// <summary>fdb_database_get_client_status, >= 730</summary>
+		public static FutureHandle DatabaseGetClientStatus(DatabaseHandle database)
+		{
+			Contract.Debug.Requires(Fdb.BindingVersion >= 730);
+
+			var future = NativeMethods.fdb_database_get_client_status(database);
+#if DEBUG_NATIVE_CALLS
+			LogNative($"fdb_database_get_client_status(db: 0x{database.Handle:x}) => 0x{future.Handle:x}");
+#endif
+			return future;
+		}
+
 		#endregion
 
 		#region Tenants...

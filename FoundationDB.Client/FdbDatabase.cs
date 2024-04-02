@@ -395,6 +395,13 @@ namespace FoundationDB.Client
 			return m_handler.GetServerProtocolAsync(0, ct);
 		}
 
+		public Task<Slice> GetClientStatus(CancellationToken ct)
+		{
+			ThrowIfDisposed();
+
+			return m_handler.GetClientStatus(ct);
+		}
+
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
 		{
 			this.DefaultLogHandler = handler;

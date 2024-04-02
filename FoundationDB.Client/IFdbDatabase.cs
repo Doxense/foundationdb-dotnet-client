@@ -116,6 +116,8 @@ namespace FoundationDB.Client
 		/// <summary>Return the protocol version reported by the coordinator the client is connected to.</summary>
 		Task<ulong> GetServerProtocolAsync(CancellationToken ct);
 
+		Task<Slice> GetClientStatus(CancellationToken ct);
+
 	}
 
 }

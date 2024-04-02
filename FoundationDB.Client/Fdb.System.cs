@@ -30,6 +30,8 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Net;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -131,6 +133,24 @@ namespace FoundationDB.Client
 					//TODO: set a custom timeout?
 					return GetStatusAsync(tr);
 				}, ct);
+			}
+
+			/// <summary>Query the current status of the client</summary>
+			/// <remarks>
+			/// <para>Requires API version 730 or greater</para>
+			/// </remarks>
+			public static async Task<FdbClientStatus> GetClientStatusAsync(IFdbDatabase db, CancellationToken ct)
+			{
+				Contract.NotNull(db);
+
+				// we should not retry the read to the status key!
+				var data = await db.GetClientStatus(ct).ConfigureAwait(false);
+
+				if (data.IsNullOrEmpty) return new (null, Slice.Nil);
+
+				var doc = CrystalJson.Parse(data).AsObject();
+
+				return new FdbClientStatus(doc, data);
 			}
 
 			#endregion
