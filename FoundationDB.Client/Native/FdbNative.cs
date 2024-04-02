@@ -1142,6 +1142,18 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		/// <summary>fdb_database_get_server_protocol, >= 700</summary>
+		public static FutureHandle DatabaseGetServerProtocol(DatabaseHandle database, ulong expectedVersion)
+		{
+			Contract.Debug.Requires(Fdb.BindingVersion >= 700);
+
+			var future = NativeMethods.fdb_database_get_server_protocol(database, expectedVersion);
+#if DEBUG_NATIVE_CALLS
+			LogNative($"fdb_database_get_server_protocol(db: 0x{database.Handle:x}, expectedVersion: 0x{expectedVersion:x}) => 0x{future.Handle:x}");
+#endif
+			return future;
+		}
+
 		#endregion
 
 		#region Tenants...

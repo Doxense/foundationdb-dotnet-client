@@ -257,6 +257,24 @@ namespace FoundationDB.Client.Native
 			return FdbNative.GetMainThreadBusyness(m_handle);
 		}
 
+		public Task<ulong> GetServerProtocolAsync(ulong expectedVersion, CancellationToken ct)
+		{
+			Fdb.EnsureApiVersion(700);
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.DatabaseGetServerProtocol(m_handle, expectedVersion),
+				(h) =>
+				{
+					var err = FdbNative.FutureGetUInt64(h, out var value);
+					FdbNative.DieOnError(err);
+					//REVIEW: BUGBUG: I'm not sure why, but the return value is not masked properly: instead of "" we get back "".
+					// Looking at the code (class ProtocolVersion) the extra '1' comes from objectSerializerFlag (0x1000000000000000LL) which should be masked, but somehow isn't?
+
+					// mask the serialization flags that are exposed (at least as of 7.3.30)
+					return value & 0x0FFFFFFFFFFFFFFFL;
+				},
+				ct);
+		}
+
 		public void Dispose()
 		{
 			Dispose(true);

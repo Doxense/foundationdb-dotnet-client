@@ -54,6 +54,8 @@ namespace FoundationDB.Client.Core
 
 		Task CreateSnapshotAsync(ReadOnlySpan<char> uid, ReadOnlySpan<char> snapCommand, CancellationToken ct);
 
+		Task<ulong> GetServerProtocolAsync(ulong expectedVersion, CancellationToken ct);
+
 		/// <summary>Returns the currently selected API version for this native handler.</summary>
 		int GetApiVersion();
 

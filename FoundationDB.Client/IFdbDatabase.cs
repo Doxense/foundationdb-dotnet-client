@@ -113,6 +113,9 @@ namespace FoundationDB.Client
 
 		Task CreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct);
 
+		/// <summary>Return the protocol version reported by the coordinator the client is connected to.</summary>
+		Task<ulong> GetServerProtocolAsync(CancellationToken ct);
+
 	}
 
 }

@@ -378,8 +378,39 @@ namespace FoundationDB.Client.Tests
 
 				await t;
 			}
+		}
 
+		[Test]
+		public async Task Test_Can_Get_Server_Protocol()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				Log("Getting server protocol version...");
+				var ver = await Await(db.GetServerProtocolAsync(this.Cancellation), TimeSpan.FromSeconds(10));
+				Log($"> 0x{ver:x} ({ver})");
+
+				// The upper 32 bits should be 0x0fdb00b0
+				Assert.That(ver >> 32, Is.EqualTo(0xfdb00b0), "Invalid FDB protocol version");
+
+				// The lower 32 bits should be the cluster version.
+				// note: this is tricky to test because we don't know which server version will be used when running the test, we will _assume_ that it is at least 7.x something
+
+				// the format is "XYZR0000" for version "vX.Y.Z" and R is the "dev" version which may or may not be used anymore (unclear)
+				// for example: "73000000" is 7.3, and "61020000" is 6.1 dev version 2
+
+				// the upper 8 bits are the 
+				var majorMinor = (ver >> 24) & 0xFF;
+				if (majorMinor <= 0x73)
+				{ // known versions
+					Assert.That(majorMinor, Is.AnyOf(0x61, 0x62, 0x63, 0x70, 0x71, 0x72, 0x73));
+				}
+				else
+				{ // future version?
+					Assert.Inconclusive($"Unknown protocol version: {majorMinor:x} for cluster protocol 0x{ver:x}");
+				}
+			}
 		}
 
 	}
+
 }

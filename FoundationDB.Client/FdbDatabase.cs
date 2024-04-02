@@ -388,6 +388,13 @@ namespace FoundationDB.Client
 			return m_handler.CreateSnapshotAsync(uid, snapCommand, ct);
 		}
 
+		public Task<ulong> GetServerProtocolAsync(CancellationToken ct)
+		{
+			ThrowIfDisposed();
+
+			return m_handler.GetServerProtocolAsync(0, ct);
+		}
+
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
 		{
 			this.DefaultLogHandler = handler;
