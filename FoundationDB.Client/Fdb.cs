@@ -517,7 +517,7 @@ namespace FoundationDB.Client
 			//TODO: check the path ? (exists, readable, ...)
 
 			var handler = await FdbNativeDatabase.CreateDatabaseAsync(clusterFile, ct).ConfigureAwait(false);
-			return FdbDatabase.Create(handler, directory, root, readOnly);
+			return FdbDatabase.Create(handler, directory, root, readOnly, Fdb.NetworkThreadStopped);
 		}
 
 		private static async ValueTask<FdbDatabase> CreateDatabaseFromConnectionStringInternalAsync(string connectionString, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken ct)
@@ -528,7 +528,7 @@ namespace FoundationDB.Client
 			//TODO: can we perform a validation check on the connection string before passing it on ?
 
 			var handler = await FdbNativeDatabase.CreateDatabaseFromConnectionStringAsync(connectionString, ct).ConfigureAwait(false);
-			return FdbDatabase.Create(handler, directory, root, readOnly);
+			return FdbDatabase.Create(handler, directory, root, readOnly, Fdb.NetworkThreadStopped);
 		}
 
 		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file.</summary>
@@ -612,6 +612,10 @@ namespace FoundationDB.Client
 		/// <summary>Ensure that we have loaded the C API library, and that the Network Thread has been started</summary>
 		private static void EnsureIsStarted()
 		{
+			if (s_eventLoopStopRequested)
+			{
+				throw new InvalidOperationException("The fdb network thread has been stopped.");
+			}
 			if (!s_eventLoopStarted)
 			{
 				throw new InvalidOperationException("The fdb API version has not been selected. You must call Fdb.Start(...) in your Main() or Startup class before calling this method.");

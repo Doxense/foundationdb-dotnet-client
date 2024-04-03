@@ -92,7 +92,8 @@ namespace FoundationDB.Client
 		/// <param name="directory">Directory Layer attached to this instance</param>
 		/// <param name="root">Root location of this database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		protected FdbDatabase(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly)
+		/// <param name="globalToken">Global cancellation token that this database instance should use as a global shutdown signal</param>
+		protected FdbDatabase(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken globalToken)
 		{
 			Contract.Debug.Requires(handler != null && directory != null && root != null);
 
@@ -100,7 +101,7 @@ namespace FoundationDB.Client
 			m_readOnly = readOnly;
 			m_root = root;
 			m_directory = directory;
-			var cts = CancellationTokenSource.CreateLinkedTokenSource(Fdb.NetworkThreadStopped);
+			var cts = CancellationTokenSource.CreateLinkedTokenSource(globalToken);
 			m_cts = cts;
 			this.Cancellation = cts.Token;
 		}
@@ -110,13 +111,14 @@ namespace FoundationDB.Client
 		/// <param name="directory">Directory Layer instance used by this database instance</param>
 		/// <param name="root">Root location of the database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		public static FdbDatabase Create(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly)
+		/// <param name="globalToken">Global cancellation token that this database instance should use as a global shutdown signal</param>
+		public static FdbDatabase Create(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken globalToken)
 		{
 			Contract.NotNull(handler);
 			Contract.NotNull(directory);
 			Contract.NotNull(root);
 
-			return new FdbDatabase(handler, directory, root, readOnly);
+			return new FdbDatabase(handler, directory, root, readOnly, globalToken);
 		}
 
 		#endregion
