@@ -246,6 +246,14 @@ namespace SnowBank.Testing
 
 		#endregion
 
+		private static JsonValue? CoerceToJsonValue<TActual>(TActual actual) => actual switch
+		{
+			null                   => JsonNull.Null,
+			JsonValue value        => value,
+			IJsonPackable packable => packable.JsonPack(CrystalJsonSettings.Json, CrystalJson.DefaultResolver) ?? JsonNull.Null,
+			_                      => null
+		};
+
 		public enum JsonComparisonOperator
 		{
 			Equal,
@@ -310,10 +318,10 @@ namespace SnowBank.Testing
 
 			public override ConstraintResult ApplyTo<TActual>(TActual actual)
 			{
-				var obj = actual as JsonValue ?? (actual is null ? JsonNull.Null : null);
+				var obj = CoerceToJsonValue(actual);
 				if (obj is null)
 				{ // the actual value is NOT a JsonValue
-					return new JsonEqualConstraintResult(this, obj, false);
+					return new JsonEqualConstraintResult(this, actual, false);
 				}
 				return this.Operator switch
 				{
@@ -487,7 +495,7 @@ namespace SnowBank.Testing
 
 			public override ConstraintResult ApplyTo<TActual>(TActual actual)
 			{
-				var val = actual as JsonValue ?? (actual is null ? JsonNull.Null : null);
+				var val = CoerceToJsonValue(actual);
 				return val switch
 				{
 					null => throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual)),
