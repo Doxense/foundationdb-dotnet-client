@@ -554,7 +554,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
-		/// <param name="comparer"></param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject CreateReadOnly(ReadOnlySpan<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
@@ -564,7 +564,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
-		/// <param name="comparer"></param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject CreateReadOnly(KeyValuePair<string, JsonValue>[] items, IEqualityComparer<string>? comparer = null)
@@ -575,7 +575,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
-		/// <param name="comparer"></param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject CreateReadOnly(IEnumerable<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
@@ -590,18 +590,34 @@ namespace Doxense.Serialization.Json
 
 		#region FromValues...
 
+		/// <summary>Creates a JSON Object from a sequence of key/value pairs.</summary>
+		/// <typeparam name="TValue">Type of the values, that must support conversion to JSON values</typeparam>
+		/// <param name="items">Sequence of key/value pairs that will become the fields of the new JSON Object. There must not be any duplicate key, or an exception will be thrown.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that can be modified.</returns>
 		public static JsonObject FromValues<TValue>(IEnumerable<KeyValuePair<string, TValue>> items, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(items);
 			return CreateEmptyWithComparer(comparer, items).AddValues(items);
 		}
 
+		/// <summary>Creates a read-only JSON Object from a list of key/value pairs.</summary>
+		/// <typeparam name="TValue"></typeparam>
+		/// <param name="items">Sequence of key/value pairs that will become the fields of the new JSON Object. There must not be any duplicate key, or an exception will be thrown.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that cannot be modified.</returns>
 		public static JsonObject FromValuesReadOnly<TValue>(IEnumerable<KeyValuePair<string, TValue>> items, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(items);
 			return CreateEmptyWithComparer(comparer, items).AddValuesReadOnly(items).FreezeUnsafe();
 		}
 
+		/// <summary>Creates a JSON Object from an existing dictionary, using a custom JSON converter.</summary>
+		/// <typeparam name="TValue">Type of the values, that must support conversion to JSON values</typeparam>
+		/// <param name="members">Dictionary that must be converted.</param>
+		/// <param name="valueSelector">Handler that is called for each value of the dictionary, and must return the converted JSON value.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that can be modified.</returns>
 		public static JsonObject FromValues<TValue>(IDictionary<string, TValue> members, Func<TValue, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
@@ -616,6 +632,12 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(items, readOnly: false);
 		}
 
+		/// <summary>Creates a read-only JSON Object from an existing dictionary, using a custom JSON converter.</summary>
+		/// <typeparam name="TValue">Type of the values, that must support conversion to JSON values</typeparam>
+		/// <param name="members">Dictionary that must be converted.</param>
+		/// <param name="valueSelector">Handler that is called for each value of the dictionary, and must return the converted JSON value.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that cannot be modified.</returns>
 		public static JsonObject FromValuesReadOnly<TValue>(IDictionary<string, TValue> members, Func<TValue, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(members);
@@ -630,21 +652,13 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(items, readOnly: true);
 		}
 
-		public static JsonObject FromValues<TValue>(IDictionary<string, TValue> members, Func<TValue, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
-		{
-			Contract.NotNull(members);
-
-			comparer ??= ExtractKeyComparer(members) ?? StringComparer.Ordinal;
-
-			var items = new Dictionary<string, JsonValue>(members.Count, comparer);
-			var context = new CrystalJsonDomWriter.VisitingContext();
-			foreach (var kvp in members)
-			{
-				items.Add(kvp.Key, JsonValue.FromValue(CrystalJsonDomWriter.Default, ref context, valueSelector(kvp.Value)));
-			}
-			return new JsonObject(items, readOnly: false);
-		}
-
+		/// <summary>Creates a JSON Object from a sequence of elements, using a custom key and value selector.</summary>
+		/// <typeparam name="TElement">Types of elements to be converted into key/value pairs.</typeparam>
+		/// <param name="source">Sequence of elements to convert</param>
+		/// <param name="keySelector">Handler that is called for each element of the sequence, and should return the corresponding unique key.</param>
+		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding JSON value.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that can be modified</returns>
 		public static JsonObject FromValues<TElement>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
@@ -655,6 +669,31 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(map, readOnly: false);
 		}
 
+		/// <summary>Creates a read-only JSON Object from a sequence of elements, using a custom key and value selector.</summary>
+		/// <typeparam name="TElement">Types of elements to be converted into key/value pairs.</typeparam>
+		/// <param name="source">Sequence of elements to convert</param>
+		/// <param name="keySelector">Handler that is called for each element of the sequence, and should return the corresponding unique key.</param>
+		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding JSON value.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that cannot be modified</returns>
+		public static JsonObject FromValuesReadOnly<TElement>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
+		{
+			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
+			foreach (var item in source)
+			{
+				map.Add(keySelector(item), (valueSelector(item) ?? JsonNull.Missing).ToReadOnly());
+			}
+			return new JsonObject(map, readOnly: true);
+		}
+
+		/// <summary>Creates a JSON Object from a sequence of elements, using a custom key and value selector.</summary>
+		/// <typeparam name="TElement">Types of elements to be converted into key/value pairs.</typeparam>
+		/// <typeparam name="TValue">Type of the extracted values, that must supported conversion to JSON values</typeparam>
+		/// <param name="source">Sequence of elements to convert</param>
+		/// <param name="keySelector">Handler that is called for each element of the sequence, and should return the corresponding unique key.</param>
+		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding value, that will in turn be converted into JSON.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that can be modified</returns>
 		public static JsonObject FromValues<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
@@ -667,6 +706,14 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(map, readOnly: false);
 		}
 
+		/// <summary>Creates a read-only JSON Object from a sequence of elements, using a custom key and value selector.</summary>
+		/// <typeparam name="TElement">Types of elements to be converted into key/value pairs.</typeparam>
+		/// <typeparam name="TValue">Type of the extracted values, that must supported conversion to JSON values</typeparam>
+		/// <param name="source">Sequence of elements to convert</param>
+		/// <param name="keySelector">Handler that is called for each element of the sequence, and should return the corresponding unique key.</param>
+		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding value, that will in turn be converted into JSON.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>Corresponding JSON object, that cannot be modified</returns>
 		public static JsonObject FromValuesReadOnly<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
