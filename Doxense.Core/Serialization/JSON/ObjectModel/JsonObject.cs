@@ -326,6 +326,12 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonObject Create() => new(new Dictionary<string, JsonValue>(0, StringComparer.Ordinal), readOnly: false);
 
+		/// <summary>Create a new empty JSON object</summary>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>JSON object of size 0, that can be modified.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonObject Create(IEqualityComparer<string> comparer) => new(new Dictionary<string, JsonValue>(0, comparer), readOnly: false);
+
 		/// <summary>Create a new JSON object with a single field</summary>
 		/// <param name="key0">Name of the field</param>
 		/// <param name="value0">Value of the field</param>
@@ -464,7 +470,17 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON object of size 0, that cannot be modified.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonObject CreateReadOnly() => EmptyReadOnly;
-		
+
+		/// <summary>Create a new empty read-only JSON object</summary>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <returns>JSON object of size 0, that cannot be modified.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonObject CreateReadOnly(IEqualityComparer<string>? comparer)
+		{
+			comparer ??= StringComparer.Ordinal;
+			return ReferenceEquals(comparer, StringComparer.Ordinal) ? EmptyReadOnly : new(new(0, comparer), readOnly: true);
+		}
+
 		/// <summary>Create a new immutable JSON object with a single field</summary>
 		/// <param name="key0">Name of the field</param>
 		/// <param name="value0">Value of the field</param>
