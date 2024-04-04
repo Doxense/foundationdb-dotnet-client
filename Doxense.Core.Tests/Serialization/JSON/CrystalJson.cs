@@ -5389,6 +5389,120 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(original, Has.Count.EqualTo(4));
 		}
 
+		[Test]
+		public void Test_JsonArray_CopyAndMutate()
+		{
+			// Test the "builder" API that can simplify making changes to a read-only arrays and publishing the new instance.
+			// All methods will create return a new copy of the original, with the mutation applied, leaving the original untouched.
+			// The new read-only copy should reuse the same JsonValue instances as the original, to reduce memory copies.
+
+			var arr = JsonArray.EmptyReadOnly;
+			Assume.That(arr, IsJson.Empty);
+			Assume.That(arr, IsJson.ReadOnly);
+			Assume.That(arr[0], IsJson.Error);
+			DumpCompact(arr);
+
+			// copy and add first item
+			var arr2 = arr.CopyAndAdd("world");
+			DumpCompact(arr2);
+			Assert.That(arr2, Is.Not.SameAs(arr));
+			Assert.That(arr2, Has.Count.EqualTo(1));
+			Assert.That(arr2, IsJson.ReadOnly);
+			Assert.That(arr2, IsJson.EqualTo([ "world" ]));
+			Assert.That(arr, IsJson.Empty);
+
+			// copy and set second item
+			var arr3 = arr2.CopyAndSet(1, "bar");
+			DumpCompact(arr3);
+			Assert.That(arr3, Is.Not.SameAs(arr2));
+			Assert.That(arr3, Has.Count.EqualTo(2));
+			Assert.That(arr3, IsJson.ReadOnly);
+			Assert.That(arr3[0], Is.SameAs(arr2[0]));
+			Assert.That(arr3[1], IsJson.EqualTo("bar"));
+			Assert.That(arr2, IsJson.EqualTo([ "world" ]));
+			Assert.That(arr, IsJson.Empty);
+
+			// copy and set should overwrite existing item
+			var arr4 = arr3.CopyAndSet(1, "baz");
+			DumpCompact(arr4);
+			Assert.That(arr4, Is.Not.SameAs(arr3));
+			Assert.That(arr4, Has.Count.EqualTo(2));
+			Assert.That(arr4, IsJson.ReadOnly);
+			Assert.That(arr4[0], Is.EqualTo("world").And.SameAs(arr3[0]));
+			Assert.That(arr4[1], IsJson.EqualTo("baz"));
+			Assert.That(arr3, IsJson.EqualTo([ "world", "bar" ]));
+			Assert.That(arr2, IsJson.EqualTo([ "world" ]));
+			Assert.That(arr, IsJson.Empty);
+
+			// copy and remove
+			var arr5 = arr4.CopyAndRemove(0);
+			DumpCompact(arr5);
+			Assert.That(arr5, Is.Not.SameAs(arr4));
+			Assert.That(arr5, Has.Count.EqualTo(1));
+			Assert.That(arr5, IsJson.ReadOnly);
+			Assert.That(arr5[0], IsJson.EqualTo("baz"));
+			Assert.That(arr5[1], IsJson.Error);
+			Assert.That(arr4, IsJson.EqualTo([ "world", "baz" ]));
+			Assert.That(arr3, IsJson.EqualTo([ "world", "bar" ]));
+			Assert.That(arr2, IsJson.EqualTo([ "world" ]));
+			Assert.That(arr, IsJson.Empty);
+
+			// copy and try remove last field
+			var arr6 = arr5.CopyAndRemove(0, out var prev);
+			DumpCompact(arr6);
+			Assert.That(arr6, Is.Not.SameAs(arr5));
+			Assert.That(arr6, Is.Empty);
+			Assert.That(arr6, IsJson.ReadOnly);
+			Assert.That(arr6[0], IsJson.Error);
+			Assert.That(arr6[1], IsJson.Error);
+			Assert.That(arr6, Is.SameAs(JsonArray.EmptyReadOnly));
+			Assert.That(prev, Is.SameAs(arr5[0]));
+			Assert.That(arr5, IsJson.EqualTo([ "baz" ]));
+			Assert.That(arr4, IsJson.EqualTo([ "world", "baz" ]));
+			Assert.That(arr3, IsJson.EqualTo([ "world", "bar" ]));
+			Assert.That(arr2, IsJson.EqualTo([ "world" ]));
+			Assert.That(arr, IsJson.Empty);
+
+			// maximize test coverage
+
+			static void Check(
+				JsonArray actual,
+				IResolveConstraint expression,
+				NUnitString message = default(NUnitString),
+				[CallerArgumentExpression("actual")] string actualExpression = "",
+				[CallerArgumentExpression("expression")]
+				string constraintExpression = "")
+			{
+				Dump(actualExpression, actual);
+				Assert.That(actual, expression, message, actualExpression, constraintExpression);
+			}
+
+			Check(JsonArray.EmptyReadOnly.CopyAndAdd("hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
+			Check(JsonArray.Create(["hello"]).CopyAndAdd("world"), IsJson.ReadOnly.And.EqualTo([ "hello", "world" ]));
+
+			Check(JsonArray.EmptyReadOnly.CopyAndSet(0, "hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
+			Check(JsonArray.EmptyReadOnly.CopyAndSet(1, "hello"), IsJson.ReadOnly.And.EqualTo([ null, "hello" ]));
+
+			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(0, "bonjour"), IsJson.ReadOnly.And.EqualTo([ "bonjour", "world" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(1, "le monde"), IsJson.ReadOnly.And.EqualTo([ "hello", "le monde" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(2, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", "!" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(3, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", null, "!" ]));
+
+			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(^2, "bonjour"), IsJson.ReadOnly.And.EqualTo([ "bonjour", "world" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(^1, "le monde"), IsJson.ReadOnly.And.EqualTo([ "hello", "le monde" ]));
+
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(0, "say"), IsJson.ReadOnly.And.EqualTo([ "say", "hello", "world" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(1, ", "), IsJson.ReadOnly.And.EqualTo([ "hello", ", ", "world" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(2, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", "!" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(3, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", null, "!" ]));
+
+			Check(JsonArray.EmptyReadOnly.CopyAndRemove(0), Is.SameAs(JsonArray.EmptyReadOnly));
+			Check(JsonArray.EmptyReadOnly.CopyAndRemove(1), Is.SameAs(JsonArray.EmptyReadOnly));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndRemove(0), IsJson.ReadOnly.And.EqualTo([ "world" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndRemove(1), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndRemove(2), IsJson.ReadOnly.And.EqualTo([ "hello", "world" ]));
+		}
+
 		#endregion
 
 		#region Checks...

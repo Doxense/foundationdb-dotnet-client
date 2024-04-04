@@ -39,6 +39,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using NodaTime;
@@ -1844,6 +1845,525 @@ namespace Doxense.Serialization.Json
 		}
 
 		#endregion
+
+		#endregion
+
+
+		#region CopyAndXYZ...
+
+		private static void MakeReadOnly(Span<JsonValue> items)
+		{
+			for(int i = 0; i < items.Length; i++)
+			{
+				if (!items[i].IsReadOnly)
+				{
+					items[i] = items[i].ToReadOnly();
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this array with an additional item</summary>
+		/// <param name="value">Item that will be appended to the end of the new copy</param>
+		/// <returns>A new instance with the same content of the original array, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
+		/// </remarks>
+		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		public JsonArray CopyAndAdd(JsonValue? value)
+		{
+			value = value?.ToReadOnly() ?? JsonNull.Null;
+
+			if (m_size == 0)
+			{
+				return new JsonArray([value], 1, readOnly: true);
+			}
+
+			// copy and add the new value
+			int newSize = checked(m_size + 1);
+			var items = new JsonValue[newSize];
+			this.AsSpan().CopyTo(items);
+			items[m_size] = value;
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, newSize, readOnly: true);
+		}
+
+		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an added item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
+		/// <param name="value">Value of the field to append</param>
+		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndAdd(ref JsonArray original, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndAdd(value);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndAddSpin(ref original, value);
+
+			static JsonArray CopyAndAddSpin(ref JsonArray original, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndAdd(value);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
+		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>A new instance with the same content of the original object, except the additional item at the specified location.</returns>
+		/// <remarks>
+		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
+		/// </remarks>
+		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		public JsonArray CopyAndSet(int index, JsonValue? value) => CopyAndSet(index, value, out _);
+
+		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
+		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>A new instance with the same content of the original object, except the additional item at the specified location.</returns>
+		/// <remarks>
+		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
+		/// </remarks>
+		public JsonArray CopyAndSet(Index index, JsonValue? value) => CopyAndSet(index.GetOffset(m_size), value, out _);
+
+		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an new item at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
+		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndSet(ref JsonArray original, int index, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndSet(index, value, out _);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndSetSpin(ref original, index, value);
+
+			static JsonArray CopyAndSetSpin(ref JsonArray original, int index, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndSet(index, value, out _);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an new item at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
+		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndSet(ref JsonArray original, Index index, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndSet(index, value, out _);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndSetSpin(ref original, index, value);
+
+			static JsonArray CopyAndSetSpin(ref JsonArray original, Index index, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndSet(index, value, out _);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
+		/// <param name="index">Index where to write the new item</param>
+		/// <param name="value">Value of the new item</param>
+		/// <param name="previous">Receives the previous value at this location, or <see langword="null"/> if the index is outside the bounds of the array.</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
+		/// </remarks>
+		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		public JsonArray CopyAndSet(int index, JsonValue? value, out JsonValue? previous)
+		{
+			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
+
+			// copy and set the new value
+			JsonValue[] items;
+			int newSize;
+			if (index < m_size)
+			{ // update in place
+				items = this.AsSpan().ToArray();
+				newSize = m_size;
+				previous = items[index];
+			}
+			else
+			{ // update outside the array, must resize
+				newSize = checked(index + 1);
+				items = new JsonValue[newSize];
+				var prev = this.AsSpan();
+				prev.CopyTo(items);
+				if (index > prev.Length)
+				{ // fill the gap!
+					items.AsSpan(prev.Length, index - prev.Length).Fill(JsonNull.Null);
+				}
+				previous = null;
+			}
+			items[index] = value?.ToReadOnly() ?? JsonNull.Null;
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, newSize, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
+		/// <param name="index">Index where to write the new item</param>
+		/// <param name="value">Value of the new item</param>
+		/// <param name="previous">Receives the previous value at this location, or <see langword="null"/> if the index is outside the bounds of the array.</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
+		/// </remarks>
+		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		public JsonArray CopyAndSet(Index index, JsonValue? value, out JsonValue? previous) => CopyAndSet(index.GetOffset(m_size), value, out previous);
+
+		/// <summary>Returns a new read-only copy of this array, with a new item inserted at the specified location</summary>
+		/// <param name="index">Index where to insert to insert, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value to write at this location</param>
+		/// <returns>A new instance with the same content of the original object, with the additional item inserted at the specified location.</returns>
+		/// <remarks>
+		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
+		/// </remarks>
+		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		public JsonArray CopyAndInsert(int index, JsonValue? value)
+		{
+			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
+
+			value = value?.ToReadOnly() ?? JsonNull.Null;
+
+			// copy and set the new value
+			JsonValue[] items;
+			int newSize;
+			if (m_size == 0)
+			{ // add to empty array
+				newSize = checked(index + 1);
+				items = new JsonValue[newSize];
+				// fill with nulls
+				if (index > 0)
+				{
+					items.AsSpan(0, index).Fill(JsonNull.Null);
+				}
+				// insert item
+				items[index] = value;
+			}
+			else if (index < m_size)
+			{ // insert inside the array, must shift the tail
+				newSize = checked(m_size + 1);
+				var prev = this.AsSpan();
+				items = new JsonValue[newSize];
+				// copy head
+				prev[..index].CopyTo(items);
+				// insert item
+				items[index] = value;
+				// copy tail
+				prev[index..].CopyTo(items.AsSpan(index + 1));
+			}
+			else
+			{ // insert outside the array, must fill gaps with nulls
+				newSize = checked(index + 1);
+				items = new JsonValue[newSize];
+				var prev = this.AsSpan();
+				prev.CopyTo(items);
+				if (index > prev.Length)
+				{ // please, mind the gap!
+					items.AsSpan(prev.Length, index - prev.Length).Fill(JsonNull.Null);
+				}
+				items[index] = value;
+			}
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, newSize, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this array, with a new item inserted at the specified location</summary>
+		/// <param name="index">Index where to insert the item, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value to write at this location</param>
+		/// <returns>A new instance with the same content of the original object, with the additional item inserted at the specified location.</returns>
+		/// <remarks>
+		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
+		/// </remarks>
+		public JsonArray CopyAndInsert(Index index, JsonValue? value) => CopyAndSet(index.GetOffset(m_size), value);
+
+		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an item inserted at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
+		/// <param name="index">Index where to insert the item, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value to write at this location</param>
+		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndInsert(ref JsonArray original, int index, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndInsert(index, value);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndInsertSpin(ref original, index, value);
+
+			static JsonArray CopyAndInsertSpin(ref JsonArray original, int index, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndInsert(index, value);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an item inserted at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
+		/// <param name="index">Index where to insert the item, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
+		/// <param name="value">Value to write at this location</param>
+		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndInsert(ref JsonArray original, Index index, JsonValue? value)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndInsert(index, value);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndInsertSpin(ref original, index, value);
+
+			static JsonArray CopyAndInsertSpin(ref JsonArray original, Index index, JsonValue? value)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndInsert(index, value);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		//TODO: CopyAndRemove ?
+
+		/// <summary>Returns a new read-only copy of this array without the specifield item</summary>
+		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
+		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays.</para>
+		/// </remarks>
+		public JsonArray CopyAndRemove(int index) => CopyAndRemove(index, out _);
+
+		/// <summary>Returns a new read-only copy of this array without the specifield item</summary>
+		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
+		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays.</para>
+		/// </remarks>
+		public JsonArray CopyAndRemove(Index index) => CopyAndRemove(index.GetOffset(m_size), out _);
+
+		/// <summary>Returns a new read-only copy of this array without the specifield item</summary>
+		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
+		/// <param name="previous">Receives the value that was removed, or <see langword="null"/> if the index was outside the bounds of the array</param>
+		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays.</para>
+		/// </remarks>
+		public JsonArray CopyAndRemove(int index, out JsonValue? previous)
+		{
+			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
+
+			var prev = this.AsSpan();
+			if (index >= prev.Length)
+			{ // the index is outside the bounds, no changes
+				previous = null;
+				return m_readOnly ? this : ToReadOnly();
+			}
+
+			if (prev.Length == 1)
+			{ // removing the last item
+				Contract.Debug.Assert(index == 0);
+				previous = prev[0];
+				return EmptyReadOnly;
+			}
+
+			// copy and remove
+			var items = new JsonValue[prev.Length - 1];
+			if (index > 0)
+			{ // copy head
+				prev[..index].CopyTo(items);
+			}
+			previous = prev[index];
+			if (index < prev.Length - 1)
+			{ // copy tail
+				prev[(index + 1)..].CopyTo(items.AsSpan(index));
+			}
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, items.Length, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this array without the specifield item</summary>
+		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
+		/// <param name="previous">Receives the value that was removed, or <see langword="null"/> if the index was outside the bounds of the array</param>
+		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays.</para>
+		/// </remarks>
+		public JsonArray CopyAndRemove(Index index, out JsonValue? previous) => CopyAndRemove(index.GetOffset(m_size), out previous);
+
+		/// <summary>Replaces a published JSON Array with a new version without the specified item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Array</param>
+		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
+		/// <returns>New published JSON Array without the field, or the original arrray if the was not present.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Array with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndRemove(ref JsonArray original, int index)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndRemove(index, out _);
+			if (ReferenceEquals(copy, snapshot))
+			{ // the field did not exist
+				return snapshot;
+			}
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndRemoveSpin(ref original, index);
+
+			static JsonArray CopyAndRemoveSpin(ref JsonArray original, int index)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndRemove(index, out _);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		/// <summary>Replaces a published JSON Array with a new version without the specified item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published JSON Array</param>
+		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
+		/// <returns>New published JSON Array without the field, or the original arrray if the was not present.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original JSON Array with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndRemove(ref JsonArray original, Index index)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndRemove(index, out _);
+			if (ReferenceEquals(copy, snapshot))
+			{ // the field did not exist
+				return snapshot;
+			}
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndRemoveSpin(ref original, index);
+
+			static JsonArray CopyAndRemoveSpin(ref JsonArray original, Index index)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndRemove(index, out _);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
+		//TODO: CopyAndSwap ?
 
 		#endregion
 
