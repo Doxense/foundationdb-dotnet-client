@@ -41,6 +41,7 @@ namespace Doxense.Serialization.Json
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using NodaTime;
 
 	// JetBrains annotation mappings
 	using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
@@ -50,7 +51,6 @@ namespace Doxense.Serialization.Json
 	using CollectionAccessType = JetBrains.Annotations.CollectionAccessType;
 	using InstantHandle = JetBrains.Annotations.InstantHandleAttribute;
 	using Pure = System.Diagnostics.Contracts.PureAttribute;
-	using NodaTime;
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]
@@ -93,7 +93,7 @@ namespace Doxense.Serialization.Json
 			get => new([], 0, readOnly: false);
 		}
 
-		/// <summary>Return an empty, read-only, JSON array singleton</summary>
+		/// <summary>Return an empty, read-only, <see cref="JsonArray">JSON Array</see> singleton</summary>
 		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
 		public static readonly JsonArray EmptyReadOnly = new([], 0, readOnly: true);
 
@@ -178,7 +178,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Return an new immutable read-only version of this JSON array (and all of its children)</summary>
+		/// <summary>Return an new immutable read-only version of this <see cref="JsonArray">JSON Array</see> (and all of its children)</summary>
 		/// <returns>The same object, if it is already read-only; otherwise, a deep copy marked as read-only.</returns>
 		/// <remarks>A JSON object that is immutable is truly safe against any modification, including of any of its direct or indirect children.</remarks>
 		public override JsonArray ToReadOnly()
@@ -197,7 +197,7 @@ namespace Doxense.Serialization.Json
 			return new(res, items.Length, readOnly: true);
 		}
 
-		/// <summary>Return a new mutable copy of this JSON array (and all of its children)</summary>
+		/// <summary>Return a new mutable copy of this <see cref="JsonArray">JSON Array</see> (and all of its children)</summary>
 		/// <returns>A deep copy of this array and its children.</returns>
 		/// <remarks>
 		/// <para>This will recursively copy all JSON objects or arrays present in the array, even if they are already mutable.</para>
@@ -224,8 +224,8 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		protected internal override JsonArray Copy(bool deep, bool readOnly) => Copy(this, deep, readOnly);
 
-		/// <summary>Create a copy of a JSON array</summary>
-		/// <param name="array">JSON Array to clone</param>
+		/// <summary>Create a copy of a <see cref="JsonArray">JSON Array</see></summary>
+		/// <param name="array"><see cref="JsonArray">JSON Array</see> to clone</param>
 		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
 		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
 		/// <returns>Copy of <paramref name="array"/>, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
@@ -1926,14 +1926,14 @@ namespace Doxense.Serialization.Json
 			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
 
-		/// <summary>Determines the index of a specific value in the JSON array.</summary>
+		/// <summary>Determines the index of a specific value in the <see cref="JsonArray">JSON Array</see>.</summary>
 		/// <param name="item">The value to locate in the array.</param>
 		/// <returns>The index of <paramref name="item" /> if found in the array; otherwise, <see langword="-1"/>.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int IndexOf(JsonValue item) => this.AsSpan().IndexOf(item);
 
-		/// <summary>Determines whether the JSON array contains a specific JSON value.</summary>
+		/// <summary>Determines whether the <see cref="JsonArray">JSON Array</see> contains a specific JSON value.</summary>
 		/// <param name="item">The value to locate in the array.</param>
 		/// <returns> <see langword="true" /> if <paramref name="item" /> is found in the array; otherwise, <see langword="false" />.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -1995,7 +1995,12 @@ namespace Doxense.Serialization.Json
 			m_size = index + 1;
 		}
 
-		/// <inheritdoc />
+		/// <summary>Inserts an item to the <see cref="JsonArray">JSON Array</see> at the specified index.</summary>
+		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
+		/// <param name="item">The object to insert into the array.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException">
+		/// <paramref name="index" /> is not a valid index in the array.</exception>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Insert(int index, JsonValue? item)
 		{
@@ -2019,13 +2024,22 @@ namespace Doxense.Serialization.Json
 			//TODO: versionning?
 		}
 
+		/// <summary>Inserts an item to the <see cref="JsonArray">JSON Array</see> at the specified index.</summary>
+		/// <param name="index">The index at which <paramref name="item" /> should be inserted.</param>
+		/// <param name="item">The object to insert into the array.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException">
+		/// <paramref name="index" /> is not a valid index in the array.</exception>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Insert(Index index, JsonValue? item)
 		{
 			Insert(index.GetOffset(m_size), item);
 		}
 
-		/// <inheritdoc />
+		/// <summary>Removes the first occurrence of a specific value from the <see cref="JsonArray">JSON Array</see>.</summary>
+		/// <param name="item">The value to remove from the array.</param>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
+		/// <returns><see langword="true" /> if <paramref name="item" /> was successfully removed from the array; otherwise, <see langword="false" />. This method also returns <see langword="false" /> if <paramref name="item" /> is not found in the original array.</returns>
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public bool Remove(JsonValue item)
 		{
@@ -2040,7 +2054,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <inheritdoc />
+		/// <summary>Removes the item at the specified index.</summary>
+		/// <param name="index">The zero-based index of the item to remove.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index" /> is not a valid index in the array.</exception>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void RemoveAt(int index)
 		{
@@ -2059,6 +2076,10 @@ namespace Doxense.Serialization.Json
 			m_size = size;
 		}
 
+		/// <summary>Removes the item at the specified index.</summary>
+		/// <param name="index">The index of the item to remove.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index" /> is not a valid index in the array.</exception>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void RemoveAt(Index index)
 		{
@@ -2071,7 +2092,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.Read)]
 		public void CopyTo(Span<JsonValue> destination) => this.AsSpan().CopyTo(destination);
 
-		/// <summary>Attempts to copy the contents of this JSON array to a destination <see cref="T:System.Span`1" /> and returns a value that indicates whether the copy operation succeeded.</summary>
+		/// <summary>Attempts to copy the contents of this <see cref="JsonArray">JSON Array</see> to a destination <see cref="T:System.Span`1" /> and returns a value that indicates whether the copy operation succeeded.</summary>
 		/// <param name="destination">The target of the copy operation.</param>
 		/// <returns> <see langword="true" /> if the copy operation succeeded; otherwise, <see langword="false" />.</returns>
 		[CollectionAccess(CollectionAccessType.Read)]
@@ -2192,7 +2213,7 @@ namespace Doxense.Serialization.Json
 			m_size = p;
 		}
 
-		/// <summary>Returns a new JSON array with a shallow copy of all the items starting from the specified index</summary>
+		/// <summary>Returns a new <see cref="JsonArray">JSON Array</see> with a shallow copy of all the items starting from the specified index</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonArray GetRange(int index)
 		{
@@ -2212,14 +2233,14 @@ namespace Doxense.Serialization.Json
 			return new JsonArray(tmp.ToArray(), tmp.Length, m_readOnly);
 		}
 
-		/// <summary>Returns a new JSON array with a shallow copy of all the items starting from the specified index</summary>
+		/// <summary>Returns a new <see cref="JsonArray">JSON Array</see> with a shallow copy of all the items starting from the specified index</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonArray GetRange(Index index)
 		{
 			return GetRange(index.GetOffset(m_size));
 		}
 
-		/// <summary>Returns a new JSON array with a shallow copy of all the items in the specified range</summary>
+		/// <summary>Returns a new <see cref="JsonArray">JSON Array</see> with a shallow copy of all the items in the specified range</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonArray GetRange(int index, int count)
 		{
@@ -2239,7 +2260,7 @@ namespace Doxense.Serialization.Json
 			return new JsonArray(tmp.ToArray(), tmp.Length, m_readOnly);
 		}
 
-		/// <summary>Return a new JSON array with a shallow copy of all the items in the specified range</summary>
+		/// <summary>Return a new <see cref="JsonArray">JSON Array</see> with a shallow copy of all the items in the specified range</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonArray GetRange(Range range)
 		{
@@ -2551,7 +2572,7 @@ namespace Doxense.Serialization.Json
 			return sb.ToString();
 		}
 
-		/// <summary>Converts this JSON Array with a <see cref="List{T}">List&lt;object?></see>.</summary>
+		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> with a <see cref="List{T}">List&lt;object?></see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override object ToObject()
@@ -2681,7 +2702,7 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		/// <summary>Désérialise une JSON Array en array d'objets dont le type est défini</summary>
+		/// <summary>Désérialise une <see cref="JsonArray">JSON Array</see> en array d'objets dont le type est défini</summary>
 		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
 		/// <param name="value">Tableau JSON contenant des objets a priori de type T</param>
 		/// <param name="required"></param>
@@ -2986,7 +3007,7 @@ namespace Doxense.Serialization.Json
 			return list;
 		}
 
-		/// <summary>Convert this JSON Array so that it, or any of its children that were previously read-only, can be mutated.</summary>
+		/// <summary>Convert this <see cref="JsonArray">JSON Array</see> so that it, or any of its children that were previously read-only, can be mutated.</summary>
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
 		/// <remarks>
 		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
@@ -3020,9 +3041,9 @@ namespace Doxense.Serialization.Json
 			return new(copy, items.Length, readOnly: false);
 		}
 
-		/// <summary>Deserialize a JSON Array into a list of objects of the specified type</summary>
+		/// <summary>Deserialize a <see cref="JsonArray">JSON Array</see> into a list of objects of the specified type</summary>
 		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
-		/// <param name="value">JSON array that contains the elements to bind</param>
+		/// <param name="value"><see cref="JsonArray">JSON Array</see> that contains the elements to bind</param>
 		/// <param name="resolver">Optional type resolver</param>
 		/// <param name="required">If <see langword="true"/> the array cannot be null</param>
 		/// <returns>A list of all elements that have been deserialized into instance of type <typeparamref name="TValue"/></returns>
@@ -3070,7 +3091,7 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
-		/// <summary>Return the sum of all the items in JSON array interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <summary>Return the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
 		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
 		public TNumber Sum<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
 		{
@@ -3082,7 +3103,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-		/// <summary>Return the average of all the items in JSON array interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <summary>Return the average of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
 		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Average()</c></remarks>
 		public TNumber Average<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
 		{
@@ -3091,7 +3112,7 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="bool"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="bool"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<bool> ToBoolList()
 		{
@@ -3103,7 +3124,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="int"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="int"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<int> ToInt32List()
 		{
@@ -3115,7 +3136,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Return the sum of all the items in JSON array interpreted as 32-bit signed integers</summary>
+		/// <summary>Return the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as 32-bit signed integers</summary>
 		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;int&gt;().Sum()</c></remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public int SumInt32()
@@ -3128,7 +3149,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="uint"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="uint"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<uint> ToUInt32List()
 		{
@@ -3140,7 +3161,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Return the sum of all the items in JSON array interpreted as 32-bit unsigned integers</summary>
+		/// <summary>Return the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as 32-bit unsigned integers</summary>
 		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;uint&gt;().Sum()</c></remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public uint SumUInt32()
@@ -3153,7 +3174,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="long"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="long"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<long> ToInt64List()
 		{
@@ -3176,7 +3197,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="ulong"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="ulong"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<ulong> ToUInt64List()
 		{
@@ -3199,7 +3220,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="float"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="float"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<float> ToSingleList()
 		{
@@ -3214,7 +3235,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public float SumSingle() => (float) SumDouble(); // use higher precision
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="double"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="double"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<double> ToDoubleList()
 		{
@@ -3237,7 +3258,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="double"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="double"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<double> ToHalfList()
 		{
@@ -3252,7 +3273,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public Half SumHalf() => (Half) SumDouble(); // use the best precision
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="decimal"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="decimal"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<decimal> ToDecimalList()
 		{
@@ -3275,7 +3296,7 @@ namespace Doxense.Serialization.Json
 			return total;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="Guid"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="Guid"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<Guid> ToGuidList()
 		{
@@ -3287,7 +3308,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="Instant"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="Instant"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<Instant> ToInstantList()
 		{
@@ -3299,7 +3320,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Deserialize this JSON array into a list of <see cref="string"/></summary>
+		/// <summary>Deserialize this <see cref="JsonArray">JSON Array</see> into a list of <see cref="string"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<string?> ToStringList()
 		{

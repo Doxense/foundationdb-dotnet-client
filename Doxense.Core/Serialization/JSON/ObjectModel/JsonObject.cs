@@ -988,6 +988,8 @@ namespace Doxense.Serialization.Json
 			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
 		}
 
+		#region CopyAndXYZ()...
+
 		private static void MakeReadOnly(Dictionary<string, JsonValue> items)
 		{
 			foreach (var kv in items)
@@ -1275,6 +1277,8 @@ namespace Doxense.Serialization.Json
 				}
 			}
 		}
+
+		#endregion
 
 		#region AddRange...
 
