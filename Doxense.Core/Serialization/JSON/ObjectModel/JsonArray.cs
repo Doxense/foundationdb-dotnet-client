@@ -2086,7 +2086,30 @@ namespace Doxense.Serialization.Json
 			RemoveAt(index.GetOffset(m_size));
 		}
 
-		/// <summary>Copies the contents of this JSON array into a destination <see cref="T:System.Span`1" />.</summary>
+		/// <summary>Swap two items in this <see cref="JsonArray">JSON Array</see></summary>
+		/// <param name="first">Index of the first item</param>
+		/// <param name="second">Index of the second item</param>
+		/// <exception cref="ArgumentOutOfRangeException">If any of <paramref name="first"/> or <paramref name="second"/> is outside the bounds of the array</exception>
+		/// <example><c>[ 1, 2, 3, 4 ].Swap(1, 2) === [ 1, 3, 2, 4 ]</c></example>
+		public void Swap(int first, int second)
+		{
+			if ((uint) first >= m_size) throw new ArgumentOutOfRangeException(nameof(first), first, "The first index is outside the bounds of the array");
+			if ((uint) second >= m_size) throw new ArgumentOutOfRangeException(nameof(second), second, "The second index is outside the bounds of the array");
+
+			if (first != second)
+			{ // swap both items
+				(m_items[second], m_items[first]) = (m_items[first], m_items[second]);
+			}
+		}
+
+		/// <summary>Swap two items in this <see cref="JsonArray">JSON Array</see></summary>
+		/// <param name="first">Index of the first item</param>
+		/// <param name="second">Index of the second item</param>
+		/// <exception cref="ArgumentOutOfRangeException">If any of <paramref name="first"/> or <paramref name="second"/> is outside the bounds of the array</exception>
+		/// <example><c>[ 1, 2, 3, 4 ].Swap(^2, ^1) === [ 1, 2, 4, 3 ]</c></example>
+		public void Swap(Index first, Index second) => Swap(first.GetOffset(m_size), second.GetOffset(m_size));
+
+		/// <summary>Copies the contents of this <see cref="JsonArray">JSON Array</see> into a destination <see cref="T:System.Span`1" />.</summary>
 		/// <param name="destination">The destination <see cref="T:System.Span`1" /> object.</param>
 		/// <exception cref="T:System.ArgumentException"><paramref name="destination" /> is shorter than the source <see cref="T:System.Span`1" />.</exception>
 		[CollectionAccess(CollectionAccessType.Read)]
