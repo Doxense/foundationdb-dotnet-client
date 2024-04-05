@@ -42,12 +42,14 @@ namespace Doxense.Serialization.Json
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
-	using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
-	using ContractAnnotationAttribute = JetBrains.Annotations.ContractAnnotationAttribute;
-	using UsedImplicitlyAttribute = JetBrains.Annotations.UsedImplicitlyAttribute;
+
+	// Contract annotation mappings
+	using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
 	using ImplicitUseTargetFlags = JetBrains.Annotations.ImplicitUseTargetFlags;
-	using NoEnumerationAttribute = JetBrains.Annotations.NoEnumerationAttribute;
+	using Pure = System.Diagnostics.Contracts.PureAttribute;
+	using MustUseReturnValue = JetBrains.Annotations.MustUseReturnValueAttribute;
+	using NoEnumeration = JetBrains.Annotations.NoEnumerationAttribute;
+	using UsedImplicitly = JetBrains.Annotations.UsedImplicitlyAttribute;
 
 	/// <summary>JSON Object with fields</summary>
 	[Serializable]

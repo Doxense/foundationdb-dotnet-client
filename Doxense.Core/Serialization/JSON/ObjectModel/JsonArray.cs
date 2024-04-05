@@ -44,14 +44,15 @@ namespace Doxense.Serialization.Json
 	using Doxense.Memory;
 	using NodaTime;
 
-	// JetBrains annotation mappings
-	using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
-	using UsedImplicitly = JetBrains.Annotations.UsedImplicitlyAttribute;
-	using ImplicitUseTargetFlags = JetBrains.Annotations.ImplicitUseTargetFlags;
+	// Contract annotation mappings
 	using CollectionAccess = JetBrains.Annotations.CollectionAccessAttribute;
 	using CollectionAccessType = JetBrains.Annotations.CollectionAccessType;
+	using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
+	using ImplicitUseTargetFlags = JetBrains.Annotations.ImplicitUseTargetFlags;
 	using InstantHandle = JetBrains.Annotations.InstantHandleAttribute;
+	using MustUseReturnValue = JetBrains.Annotations.MustUseReturnValueAttribute;
 	using Pure = System.Diagnostics.Contracts.PureAttribute;
+	using UsedImplicitly = JetBrains.Annotations.UsedImplicitlyAttribute;
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]
@@ -1869,7 +1870,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
 		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
 		/// </remarks>
-		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		[Pure, MustUseReturnValue]
 		public JsonArray CopyAndAdd(JsonValue? value)
 		{
 			value = value?.ToReadOnly() ?? JsonNull.Null;
@@ -1934,7 +1935,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
 		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
 		/// </remarks>
-		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		[Pure, MustUseReturnValue]
 		public JsonArray CopyAndSet(int index, JsonValue? value) => CopyAndSet(index, value, out _);
 
 		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
@@ -2024,7 +2025,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
 		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
 		/// </remarks>
-		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		[Pure, MustUseReturnValue]
 		public JsonArray CopyAndSet(int index, JsonValue? value, out JsonValue? previous)
 		{
 			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
@@ -2069,7 +2070,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
 		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
 		/// </remarks>
-		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		[Pure, MustUseReturnValue]
 		public JsonArray CopyAndSet(Index index, JsonValue? value, out JsonValue? previous) => CopyAndSet(index.GetOffset(m_size), value, out previous);
 
 		/// <summary>Returns a new read-only copy of this array, with a new item inserted at the specified location</summary>
@@ -2080,7 +2081,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
 		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
 		/// </remarks>
-		[Pure, JetBrains.Annotations.MustUseReturnValue]
+		[Pure, MustUseReturnValue]
 		public JsonArray CopyAndInsert(int index, JsonValue? value)
 		{
 			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
