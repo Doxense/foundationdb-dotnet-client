@@ -27,6 +27,7 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -206,30 +207,40 @@ namespace FoundationDB.DependencyInjection
 
 		public CancellationToken Cancellation => this.LifeTime.Token;
 
+		/// <inheritdoc cref="IFdbDatabaseScopeProvider.GetDatabase"/>
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
 		{
 			var db = this.Db;
-			return db != null ? new ValueTask<IFdbDatabase>(db) : GetDatabaseRare(ct);
+			return db != null
+				? new ValueTask<IFdbDatabase>(db)
+				: GetDatabaseRare(this, ct);
+
+			static async ValueTask<IFdbDatabase> GetDatabaseRare(FdbDatabaseProvider provider, CancellationToken ct)
+			{
+				if (provider.InitTask == null && provider.Options.AutoStart)
+				{ // start is deferred
+					provider.Start();
+				}
+
+				var t = provider.DbTask;
+				if (!t.IsCompleted && ct.CanBeCanceled)
+				{
+					//REVIEW: is there a faster way to do this? (we want to make sure not to leak tons of Task.Delay(...) that will linger on until the original ct is triggered
+					using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+					{
+						await Task.WhenAny(t, Task.Delay(Timeout.InfiniteTimeSpan, cts.Token)).ConfigureAwait(false);
+						ct.ThrowIfCancellationRequested();
+					}
+				}
+				return await provider.DbTask.ConfigureAwait(false);
+			}
 		}
 
-		private async ValueTask<IFdbDatabase> GetDatabaseRare(CancellationToken ct)
+		/// <inheritdoc cref="IFdbDatabaseScopeProvider.TryGetDatabase"/>
+		public bool TryGetDatabase([MaybeNullWhen(false)] out IFdbDatabase db)
 		{
-			if (this.InitTask == null && this.Options.AutoStart)
-			{ // start is deferred
-				Start();
-			}
-
-			var t = this.DbTask;
-			if (!t.IsCompleted && ct.CanBeCanceled)
-			{
-				//REVIEW: is there a faster way to do this? (we want to make sure not to leak tons of Task.Delay(...) that will linger on until the original ct is triggered
-				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
-				{
-					await Task.WhenAny(t, Task.Delay(Timeout.InfiniteTimeSpan, cts.Token)).ConfigureAwait(false);
-					ct.ThrowIfCancellationRequested();
-				}
-			}
-			return await this.DbTask.ConfigureAwait(false);
+			db = this.Db;
+			return db != null;
 		}
 
 		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)

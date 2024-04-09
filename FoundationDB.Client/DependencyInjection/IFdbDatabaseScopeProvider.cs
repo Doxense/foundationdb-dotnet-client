@@ -28,6 +28,7 @@ namespace FoundationDB.Client
 {
 	using JetBrains.Annotations;
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -38,9 +39,18 @@ namespace FoundationDB.Client
 		/// <summary>Returns the parent scope (or null if this is the top-level scope)</summary>
 		IFdbDatabaseScopeProvider? Parent { get; }
 
-		/// <summary>Return an instance of the database, once it is ready</summary>
+		/// <summary>Returns the database instance, once it is ready</summary>
 		/// <remarks>During the startup of the application, the task returned will wait until the database becomes ready. After that, the task will immediately return the database singleton.</remarks>
 		ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct);
+
+		/// <summary>Returns the database instance, if it is ready</summary>
+		/// <param name="db">Receives the database instance, if it is ready.</param>
+		/// <returns><see langword="true"/> if the database is ready; otherwise, <see langword="false"/>, in which case the caller should call <see cref="GetDatabase"/> and await the task.</returns>
+		/// <remarks>
+		/// <para>This method is for advanced optimizations, that allows the caller to obtain the database handler in a non-async context, allowing the use of <see cref="ReadOnlySpan{T}"/> or <see cref="Span{T}"/> parameters.</para>
+		/// <para>Calling this will not attempt to auto-start the connection</para>
+		/// </remarks>
+		bool TryGetDatabase([MaybeNullWhen(false)] out IFdbDatabase db);
 
 		/// <summary>Path to the root of the database</summary>
 		FdbDirectorySubspaceLocation Root { get; }
@@ -65,8 +75,27 @@ namespace FoundationDB.Client
 		/// <summary>Return both the underlying database and the scope's State, once they are ready</summary>
 		ValueTask<(IFdbDatabase Database, TState? State)> GetDatabaseAndState(CancellationToken ct = default);
 
+		/// <summary>Returns both the underlying database and the scope's State, if they are ready</summary>
+		/// <param name="db">Receives the database instance, if it is ready.</param>
+		/// <param name="state">Receives the scope's state, if it is ready.</param>
+		/// <returns><see langword="true"/> if the database is ready; otherwise, <see langword="false"/>, in which case the caller should call <see cref="GetDatabaseAndState"/> and await the task.</returns>
+		/// <remarks>
+		/// <para>This method is for advanced optimizations, that allows the caller to obtain the database handler in a non-async context, allowing the use of <see cref="ReadOnlySpan{T}"/> or <see cref="Span{T}"/> parameters.</para>
+		/// <para>Calling this will not attempt to auto-start the connection</para>
+		/// </remarks>
+		bool TryGetDatabaseAndState([MaybeNullWhen(false)] out IFdbDatabase db, out TState? state);
+
 		/// <summary>Return the scope's State, once it is ready.</summary>
 		ValueTask<TState?> GetState(IFdbReadOnlyTransaction tr);
+
+		/// <summary>Returns the scope's State, if it is ready.</summary>
+		/// <returns><see langword="true"/> if the state is ready; otherwise, <see langword="false"/>, in which case the caller should call <see cref="GetState"/> and await the task.</returns>
+		/// <remarks>
+		/// <para>This method is for advanced optimizations, that allows the caller to obtain the database handler in a non-async context, allowing the use of <see cref="ReadOnlySpan{T}"/> or <see cref="Span{T}"/> parameters.</para>
+		/// <para>Calling this will not attempt to auto-start the connection</para>
+		/// </remarks>
+		bool TryGetState(IFdbReadOnlyTransaction tr, out TState? state);
+
 	}
 
 }

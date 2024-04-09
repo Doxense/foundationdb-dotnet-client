@@ -27,6 +27,7 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -160,15 +161,34 @@ namespace FoundationDB.DependencyInjection
 		{
 			//BUGBUG: what if the parent scope has been shut down?
 			var t = ReadInternalState();
-			return t.Database != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<(IFdbDatabase, TState?)>((t.Database, t.State)) : GetDatabaseAndStateSlow(ct);
+			return t.Database != null && !this.LifeTime.IsCancellationRequested
+				? new ValueTask<(IFdbDatabase, TState?)>((t.Database, t.State))
+				: GetDatabaseAndStateSlow(this, ct);
+
+			static async ValueTask<(IFdbDatabase, TState?)> GetDatabaseAndStateSlow(FdbDatabaseScopeProvider<TState> provider, CancellationToken ct)
+			{
+				var (db, state, _) = await provider.EnsureInitialized(ct).ConfigureAwait(false);
+				Contract.Debug.Assert(db != null);
+				return (db!, state);
+			}
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private async ValueTask<(IFdbDatabase, TState?)> GetDatabaseAndStateSlow(CancellationToken ct)
+		/// <inheritdoc />
+		public bool TryGetDatabaseAndState([MaybeNullWhen(false)] out IFdbDatabase db, out TState? state)
 		{
-			var (db, state, _) = await EnsureInitialized(ct);
-			Contract.Debug.Assert(db != null);
-			return (db!, state);
+			var t = ReadInternalState();
+
+			if (t.Database != null && !this.LifeTime.IsCancellationRequested)
+			{
+				db = t.Database;
+				state = t.State;
+				return true;
+			}
+
+			db = null;
+			state = default;
+			state = default;
+			return false;
 		}
 
 		/// <inheritdoc />
@@ -176,15 +196,29 @@ namespace FoundationDB.DependencyInjection
 		{
 			//BUGBUG: what if the parent scope has been shut down?
 			var (db, _, _) = ReadInternalState();
-			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
+			return db != null && !this.LifeTime.IsCancellationRequested
+				? new ValueTask<IFdbDatabase>(db)
+				: GetDatabaseSlow(this, ct);
+
+			static async ValueTask<IFdbDatabase> GetDatabaseSlow(FdbDatabaseScopeProvider<TState> provider, CancellationToken ct)
+			{
+				var (db, _, _) = await provider.EnsureInitialized(ct).ConfigureAwait(false);
+				Contract.Debug.Assert(db != null);
+				return db;
+			}
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
+		/// <inheritdoc />
+		public bool TryGetDatabase([MaybeNullWhen(false)] out IFdbDatabase db)
 		{
-			var (db, _, _) = await EnsureInitialized(ct);
-			Contract.Debug.Assert(db != null);
-			return db;
+			var state = ReadInternalState();
+			if (state.Database != null && !this.LifeTime.IsCancellationRequested)
+			{
+				db = state.Database;
+				return true;
+			}
+			db = null;
+			return false;
 		}
 
 		/// <inheritdoc />
@@ -192,14 +226,29 @@ namespace FoundationDB.DependencyInjection
 		{
 			tr.Cancellation.ThrowIfCancellationRequested();
 			var (db, state, _) = ReadInternalState();
-			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<TState?>(state) : GetStateSlow(tr);
+			return db != null && !this.LifeTime.IsCancellationRequested
+				? new ValueTask<TState?>(state)
+				: GetStateSlow(this, tr);
+
+			static async ValueTask<TState?> GetStateSlow(FdbDatabaseScopeProvider<TState> provider, IFdbReadOnlyTransaction tr)
+			{
+				var (_, state, _) = await provider.EnsureInitialized(tr.Cancellation).ConfigureAwait(false);
+				return state;
+			}
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private async ValueTask<TState?> GetStateSlow(IFdbReadOnlyTransaction tr)
+		/// <inheritdoc />
+		public bool TryGetState(IFdbReadOnlyTransaction tr, out TState? state)
 		{
-			var (_, state, _) = await EnsureInitialized(tr.Cancellation);
-			return state;
+			var t = ReadInternalState();
+			if (t.Database != null && !tr.Cancellation.IsCancellationRequested)
+			{
+				state = t.State;
+				return true;
+			}
+
+			state = default;
+			return false;
 		}
 
 		public void Dispose()

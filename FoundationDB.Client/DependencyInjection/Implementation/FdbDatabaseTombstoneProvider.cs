@@ -27,6 +27,7 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -43,6 +44,7 @@ namespace FoundationDB.DependencyInjection
 			this.Lifetime = parent != null ? CancellationTokenSource.CreateLinkedTokenSource(parent.Cancellation, lifetime) : CancellationTokenSource.CreateLinkedTokenSource(lifetime);
 		}
 
+		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider? Parent { get; }
 
 		public Exception Error { get; private set; }
@@ -51,6 +53,7 @@ namespace FoundationDB.DependencyInjection
 
 		private CancellationTokenSource Lifetime { get; }
 
+		/// <inheritdoc />
 		public CancellationToken Cancellation => this.Lifetime.Token;
 
 		private bool m_disposed;
@@ -72,6 +75,7 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
+		/// <inheritdoc />
 		public FdbDirectorySubspaceLocation Root
 		{
 			get
@@ -81,6 +85,7 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
+		/// <inheritdoc />
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct)
 		{
 			return new ValueTask<IFdbDatabase>(
@@ -90,6 +95,14 @@ namespace FoundationDB.DependencyInjection
 			);
 		}
 
+		/// <inheritdoc />
+		public bool TryGetDatabase([MaybeNullWhen(false)] out IFdbDatabase db)
+		{
+			db = null;
+			return false;
+		}
+
+		/// <inheritdoc />
 		public ValueTask<TState?> GetState(IFdbReadOnlyTransaction tr)
 		{
 			return new ValueTask<TState?>(
@@ -99,6 +112,14 @@ namespace FoundationDB.DependencyInjection
 			);
 		}
 
+		/// <inheritdoc />
+		public bool TryGetState(IFdbReadOnlyTransaction tr, out TState? state)
+		{
+			state = default;
+			return false;
+		}
+
+		/// <inheritdoc />
 		public ValueTask<(IFdbDatabase Database, TState? State)> GetDatabaseAndState(CancellationToken ct)
 		{
 			return new ValueTask<(IFdbDatabase, TState?)>(
@@ -108,12 +129,22 @@ namespace FoundationDB.DependencyInjection
 			);
 		}
 
+		/// <inheritdoc />
+		public bool TryGetDatabaseAndState([MaybeNullWhen(false)] out IFdbDatabase db, out TState? state)
+		{
+			db = null;
+			state = default;
+			return false;
+		}
+
+		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TNewState State)>> start, CancellationToken lifetime = default)
 		{
 			// poison all child scopes with the same error
 			return new FdbDatabaseTombstoneProvider<TNewState>(this, this.Error, lifetime);
 		}
 
+		/// <inheritdoc />
 		public bool IsAvailable => false;
 
 	}

@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -797,6 +798,12 @@ namespace FoundationDB.Client
 		{
 			ct.ThrowIfCancellationRequested();
 			return new ValueTask<IFdbDatabase>(this);
+		}
+
+		bool IFdbDatabaseScopeProvider.TryGetDatabase([MaybeNullWhen(false)] out IFdbDatabase db)
+		{
+			db = this;
+			return true;
 		}
 
 		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)

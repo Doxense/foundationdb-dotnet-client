@@ -27,6 +27,7 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -101,6 +102,20 @@ namespace FoundationDB.DependencyInjection
 		}
 
 		/// <inheritdoc />
+		public bool TryGetDatabase([MaybeNullWhen(false)] out IFdbDatabase db)
+		{
+			var scope = Volatile.Read(ref this.InternalState);
+			if (scope != null)
+			{
+				db = scope.Db;
+				return true;
+			}
+
+			db = null;
+			return false;
+		}
+
+		/// <inheritdoc />
 		public ValueTask<TState?> GetState(IFdbReadOnlyTransaction tr)
 		{
 			tr.Cancellation.ThrowIfCancellationRequested();
@@ -109,10 +124,40 @@ namespace FoundationDB.DependencyInjection
 		}
 
 		/// <inheritdoc />
+		public bool TryGetState(IFdbReadOnlyTransaction tr, out TState? state)
+		{
+			var scope = Volatile.Read(ref this.InternalState);
+			if (scope != null && !tr.Cancellation.IsCancellationRequested)
+			{
+				state = scope.State;
+				return true;
+			}
+
+			state = default;
+			return false;
+		}
+
+		/// <inheritdoc />
 		public ValueTask<(IFdbDatabase Database, TState? State)> GetDatabaseAndState(CancellationToken ct = default)
 		{
 			var scope = EnsureReady();
 			return new ValueTask<(IFdbDatabase, TState?)>((scope.Db, scope.State));
+		}
+
+		/// <inheritdoc />
+		public bool TryGetDatabaseAndState([MaybeNullWhen(false)] out IFdbDatabase db, out TState? state)
+		{
+			var scope = Volatile.Read(ref this.InternalState);
+			if (scope != null)
+			{
+				db = scope.Db;
+				state = scope.State;
+				return true;
+			}
+
+			db = null;
+			state = default;
+			return false;
 		}
 
 		/// <inheritdoc />
