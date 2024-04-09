@@ -426,7 +426,7 @@ namespace FoundationDB.Client
 			lock (this)
 			{
 				var cache = GetMetadataVersionKeysCache();
-				if (!cache.TryGetValue(key, out t) || t.Task == null) //REVIEW: BUGBUG: should this be null or PoisonedMetadataVersion ?
+				if (!cache.TryGetValue(key, out t) || t.Task == null!) //REVIEW: BUGBUG: should this be null or PoisonedMetadataVersion ?
 				{
 					mustAddConflictRange = !snapshot;
 					t = (ReadAndParseMetadataVersionSlow(key), snapshot);
@@ -673,11 +673,8 @@ namespace FoundationDB.Client
 		#region GetValues...
 
 		/// <inheritdoc />
-		public Task<Slice[]> GetValuesAsync(Slice[] keys)
+		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys)
 		{
-			Contract.NotNull(keys);
-			//TODO: should we make a copy of the key array ?
-
 			EnsureCanRead();
 
 			FdbKey.EnsureKeysAreValid(keys);
@@ -689,11 +686,11 @@ namespace FoundationDB.Client
 			return PerformGetValuesOperation(keys, snapshot: false);
 		}
 
-		private Task<Slice[]> PerformGetValuesOperation(Slice[] keys, bool snapshot)
+		private Task<Slice[]> PerformGetValuesOperation(ReadOnlySpan<Slice> keys, bool snapshot)
 		{
 			return m_log == null ? m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, snapshot);
 
-			static Task<Slice[]> ExecuteLogged(FdbTransaction self, Slice[] keys, bool snapshot)
+			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetValuesCommand(self.m_log.Grab(keys)) { Snapshot =  snapshot },
@@ -718,8 +715,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
-			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(in beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
 
 			FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
 
@@ -781,8 +778,8 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(selector != null);
 
 			EnsureCanRead();
-			FdbKey.EnsureKeyIsValid(begin.Key);
-			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(in begin.Key);
+			FdbKey.EnsureKeyIsValid(in end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -815,7 +812,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			FdbKey.EnsureKeyIsValid(selector.Key);
+			FdbKey.EnsureKeyIsValid(in selector.Key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -841,13 +838,13 @@ namespace FoundationDB.Client
 		#region GetKeys..
 
 		/// <inheritdoc />
-		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
+		public Task<Slice[]> GetKeysAsync(ReadOnlySpan<KeySelector> selectors)
 		{
 			EnsureCanRead();
 
-			foreach (var selector in selectors)
+			for (int i = 0; i < selectors.Length; i++)
 			{
-				FdbKey.EnsureKeyIsValid(selector.Key);
+				FdbKey.EnsureKeyIsValid(in selectors[i].Key);
 			}
 
 #if DEBUG
@@ -858,11 +855,11 @@ namespace FoundationDB.Client
 		}
 
 
-		private Task<Slice[]> PerformGetKeysOperation(KeySelector[] selectors, bool snapshot)
+		private Task<Slice[]> PerformGetKeysOperation(ReadOnlySpan<KeySelector> selectors, bool snapshot)
 		{
 			return m_log == null ? m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selectors, snapshot);
 
-			static Task<Slice[]> ExecuteLogged(FdbTransaction self, KeySelector[] selectors, bool snapshot)
+			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<KeySelector> selectors, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetKeysCommand(self.m_log.Grab(selectors)) { Snapshot =  snapshot },

@@ -142,10 +142,8 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public Task<Slice[]> GetValuesAsync(Slice[] keys)
+			public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys)
 			{
-				Contract.NotNull(keys);
-
 				EnsureCanRead();
 
 				FdbKey.EnsureKeysAreValid(keys);
@@ -162,7 +160,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				FdbKey.EnsureKeyIsValid(selector.Key);
+				FdbKey.EnsureKeyIsValid(in selector.Key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -172,13 +170,13 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
+			public Task<Slice[]> GetKeysAsync(ReadOnlySpan<KeySelector> selectors)
 			{
 				EnsureCanRead();
 
 				for(int i = 0; i < selectors.Length; i++)
 				{
-					FdbKey.EnsureKeyIsValid(selectors[i].Key);
+					FdbKey.EnsureKeyIsValid(in selectors[i].Key);
 				}
 
 #if DEBUG
@@ -211,8 +209,8 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
-				FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+				FdbKey.EnsureKeyIsValid(in beginInclusive.Key);
+				FdbKey.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
 
 				FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
 

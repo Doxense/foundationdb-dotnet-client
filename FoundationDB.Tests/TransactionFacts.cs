@@ -66,6 +66,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.IsSnapshot, Is.False, "Transaction is not in snapshot mode by default");
 
 					// manually dispose the transaction
+					// ReSharper disable once DisposeOnUsingVariable
 					tr.Dispose();
 
 					Assert.That(tr.State == FdbTransaction.STATE_DISPOSED, "Transaction should now be in the disposed state");
@@ -73,6 +74,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.Handler.IsClosed, Is.True, "Transaction handle should now be closed");
 
 					// multiple calls to dispose should not do anything more
+					// ReSharper disable once DisposeOnUsingVariable
 					Assert.That(() => { tr.Dispose(); }, Throws.Nothing);
 				}
 			}
@@ -2438,8 +2440,8 @@ namespace FoundationDB.Client.Tests
 						Log($"- {addr}");
 						// we expect "IP:PORT" or "IP:PORT:tls"
 						Assert.That(addr, Is.Not.Null.Or.Empty);
-						Assert.That(FdbEndPoint.TryParse(addr, out var ep), $"Result address '{addr}' is invalid");
-						Assert.That(ep.IsValid(), Is.True);
+						Assert.That(FdbEndPoint.TryParse(addr, out var ep), Is.True, $"Result address '{addr}' is invalid");
+						Assert.That(ep!.IsValid(), Is.True);
 						Assert.That(ep.Address, Is.Not.Null);
 						Assert.That(ep.Port, Is.GreaterThan(0));
 					}
@@ -2464,8 +2466,8 @@ namespace FoundationDB.Client.Tests
 						Assert.That(addr, Is.Not.Null.Or.Empty);
 						Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
 						int p = addr.IndexOf(':');
-						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out _), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
-						Assert.That(int.TryParse(addr.Substring(p + 1), out _), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
+						Assert.That(System.Net.IPAddress.TryParse(addr.AsSpan(0, p), out _), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
+						Assert.That(int.TryParse(addr.AsSpan(p + 1), out _), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
 					}
 
 				}

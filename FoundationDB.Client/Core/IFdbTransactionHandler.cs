@@ -102,7 +102,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		Task<Slice[]> GetKeysAsync(KeySelector[] selectors, bool snapshot, CancellationToken ct);
+		Task<Slice[]> GetKeysAsync(ReadOnlySpan<KeySelector> selectors, bool snapshot, CancellationToken ct);
 
 		/// <summary>Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the begin key selector and lexicographically less than the key resolved by the end key selector.</summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>

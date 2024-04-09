@@ -220,13 +220,21 @@ namespace FoundationDB.Client.Native
 		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct)
 		{
 			Contract.Debug.Requires(keys != null);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice[]>(ct);
 
-			if (keys.Length == 0) return Task.FromResult(Array.Empty<Slice>());
+			if (keys.Length == 0)
+			{
+				return Task.FromResult(Array.Empty<Slice>());
+			}
+
+			//HACKHACK: as of now (730), there is no way to read multiple keys or values in a single API call
+			// so we have to start one get request per key, and hide them all inside on "meta" future.
+			// this is still has the same overhead for interop with the native library, but reduces the number of Task objects allocated by the CLR.
 
 			var futures = new FutureHandle[keys.Length];
 			try
 			{
-				//REVIEW: as of now (700), there is no way to read multiple keys in a single API call
+				//note: if one of the operation triggers an error, the array will be partially filled, but all previous futures will be canceled in the catch block below
 				for (int i = 0; i < keys.Length; i++)
 				{
 					futures[i] = FdbNative.TransactionGet(m_handle, keys[i].Span, snapshot);
@@ -234,15 +242,16 @@ namespace FoundationDB.Client.Native
 			}
 			catch
 			{
-				// cancel all requests leading up to the failure
-				for (int i = 0; i < futures.Length; i++)
+				// we need to cancel any future created before the error
+				foreach(var future in futures)
 				{
-					if (futures[i] == null) break;
-					futures[i].Dispose();
+					if (future == null!) break;
+					future.Dispose();
 				}
 				throw;
 			}
-			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), ct);
+
+			return FdbFuture.CreateTaskFromHandleArray(futures, GetValueResultBytes, ct);
 		}
 
 		/// <summary>Extract a chunk of result from a completed Future</summary>
@@ -352,7 +361,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Debug.Requires(h != null);
 
-			var err = FdbNative.FutureGetKey(h, out ReadOnlySpan<byte> result);
+			var err = FdbNative.FutureGetKey(h, out var result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + result.ToString());
 #endif
@@ -365,20 +374,29 @@ namespace FoundationDB.Client.Native
 			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
-				(h) => GetKeyResult(h),
+				GetKeyResult,
 				ct
 			);
 		}
 
-		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors, bool snapshot, CancellationToken ct)
+		public Task<Slice[]> GetKeysAsync(ReadOnlySpan<KeySelector> selectors, bool snapshot, CancellationToken ct)
 		{
 			Contract.Debug.Requires(selectors != null);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice[]>(ct);
 
-			if (selectors.Length == 0) return Task.FromResult(Array.Empty<Slice>());
+			if (selectors.Length == 0)
+			{
+				return Task.FromResult(Array.Empty<Slice>());
+			}
+
+			//HACKHACK: as of now (730), there is no way to read multiple keys or values in a single API call
+			// so we have to start one get request per key, and hide them all inside on "meta" future.
+			// this is still has the same overhead for interop with the native library, but reduces the number of Task objects allocated by the CLR.
 
 			var futures = new FutureHandle[selectors.Length];
 			try
 			{
+				//note: if one of the operation triggers an error, the array will be partially filled, but all previous futures will be canceled in the catch block below
 				for (int i = 0; i < selectors.Length; i++)
 				{
 					futures[i] = FdbNative.TransactionGetKey(m_handle, selectors[i], snapshot);
@@ -386,14 +404,16 @@ namespace FoundationDB.Client.Native
 			}
 			catch
 			{
-				for (int i = 0; i < selectors.Length; i++)
+				// we need to cancel any future created before the error
+				foreach (var future in futures)
 				{
-					if (futures[i] == null) break;
-					futures[i].Dispose();
+					if (future == null!) break;
+					future.Dispose();
 				}
+
 				throw;
 			}
-			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetKeyResult(h), ct);
+			return FdbFuture.CreateTaskFromHandleArray(futures, GetKeyResult, ct);
 		}
 
 		public Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected, bool snapshot, CancellationToken ct)

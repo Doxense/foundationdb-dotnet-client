@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.IO;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -311,9 +312,9 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			foreach (var kv in keyValuePairs)
+			for(int i = 0; i < keyValuePairs.Length; i++)
 			{
-				Set(trans, kv.Key, kv.Value);
+				Set(trans, keyValuePairs[i].Key, keyValuePairs[i].Value);
 			}
 		}
 
@@ -333,12 +334,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			Contract.NotNull(keys);
 			Contract.NotNull(values);
-			if (values.Length != keys.Length) throw new ArgumentException("Both key and value arrays must have the same size.", nameof(values));
 
-			for (int i = 0; i < keys.Length;i++)
-			{
-				Set(trans, keys[i], values[i]);
-			}
+			trans.SetValues(keys.AsSpan(), values.AsSpan());
 		}
 
 		/// <summary>Set the values of a list of keys in the database.</summary>
@@ -377,9 +374,27 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			Contract.NotNull(keyValuePairs);
 
-			foreach (var kv in keyValuePairs)
+			if (keyValuePairs is KeyValuePair<Slice, Slice>[] arr)
 			{
-				Set(trans, kv.Key, kv.Value);
+				SetValues(trans, arr.AsSpan());
+			}
+			else if (keyValuePairs is List<KeyValuePair<Slice, Slice>> lst)
+			{
+				SetValues(trans, CollectionsMarshal.AsSpan(lst));
+			}
+			else if (keyValuePairs is Dictionary<Slice, Slice> dict)
+			{
+				foreach (var kv in dict)
+				{
+					Set(trans, kv.Key, kv.Value);
+				}
+			}
+			else
+			{
+				foreach (var kv in keyValuePairs)
+				{
+					Set(trans, kv.Key, kv.Value);
+				}
 			}
 		}
 
@@ -400,16 +415,72 @@ namespace FoundationDB.Client
 			Contract.NotNull(keys);
 			Contract.NotNull(values);
 
-			using(var keyIter = keys.GetEnumerator())
-			using(var valueIter = values.GetEnumerator())
+			// attempt to extract a Span from both keys & values
+			// if we fail, then fallback to a slow enumeration
+
+			ReadOnlySpan<Slice> k;
+			switch (keys)
 			{
-				while(keyIter.MoveNext())
+				case Slice[] arr:
 				{
-					if (!valueIter.MoveNext()) throw new ArgumentException("Both key and value sequences must have the same size.", nameof(values));
-					Set(trans, keyIter.Current, valueIter.Current);
+					k = arr.AsSpan();
+					break;
 				}
-				if (valueIter.MoveNext()) throw new ArgumentException("Both key and values sequences must have the same size.", nameof(values));
+				case List<Slice> lst:
+				{
+					k = CollectionsMarshal.AsSpan(lst);
+					break;
+				}
+				default:
+				{
+					SetValuesSlow(trans, keys, values);
+					return;
+				}
 			}
+
+			switch (values)
+			{
+				case Slice[] arr:
+				{
+					SetValues(trans, k, arr.AsSpan());
+					break;
+				}
+				case List<Slice> lst:
+				{
+					SetValues(trans, k, CollectionsMarshal.AsSpan(lst));
+					break;
+				}
+				default:
+				{
+					SetValuesSlow(trans, keys, values);
+					break;
+				}
+			}
+
+
+			static void SetValuesSlow(IFdbTransaction trans, IEnumerable<Slice> keys, IEnumerable<Slice> values)
+			{
+				using(var keyIter = keys.GetEnumerator())
+				using(var valueIter = values.GetEnumerator())
+				{
+					while(keyIter.MoveNext())
+					{
+						if (!valueIter.MoveNext())
+						{
+							throw new ArgumentException("Both key and value sequences must have the same size.", nameof(values));
+						}
+
+						Set(trans, keyIter.Current, valueIter.Current);
+					}
+					if (valueIter.MoveNext())
+					{
+						throw new ArgumentException("Both key and values sequences must have the same size.", nameof(values));
+					}
+				}
+
+
+			}
+
 		}
 
 		#endregion
@@ -1720,9 +1791,17 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction
-		/// </summary>
+		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="keys">Keys to be looked up in the database</param>
+		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, Slice[] keys)
+		{
+			Contract.NotNull(keys);
+			return trans.GetValuesAsync(keys.AsSpan());
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value will be Slice.Nil.</returns>
@@ -1731,9 +1810,12 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			Contract.NotNull(keys);
 
-			var array = keys as Slice[] ?? keys.ToArray();
-
-			return trans.GetValuesAsync(array);
+			return keys switch
+			{
+				Slice[] arr      => trans.GetValuesAsync(arr.AsSpan()),
+				List<Slice> list => trans.GetValuesAsync(CollectionsMarshal.AsSpan(list)),
+				_                => trans.GetValuesAsync(keys.ToArray()),
+			};
 		}
 
 		/// <summary>
@@ -1751,9 +1833,18 @@ namespace FoundationDB.Client
 			return decoder.DecodeValues(await GetValuesAsync(trans, keys).ConfigureAwait(false));
 		}
 
-		/// <summary>
-		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
-		/// </summary>
+		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="selectors">Key selectors to resolve</param>
+		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransaction trans, KeySelector[] selectors)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(selectors);
+			return trans.GetKeysAsync(selectors.AsSpan());
+		}
+
+		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="selectors">Sequence of key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
@@ -1762,9 +1853,12 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			Contract.NotNull(selectors);
 
-			var array = selectors as KeySelector[] ?? selectors.ToArray();
-
-			return trans.GetKeysAsync(array);
+			return selectors switch
+			{
+				KeySelector[] arr => trans.GetKeysAsync(arr.AsSpan()),
+				List<KeySelector> list => trans.GetKeysAsync(CollectionsMarshal.AsSpan(list)),
+				_ => trans.GetKeysAsync(CollectionsMarshal.AsSpan(selectors.ToList())),
+			};
 		}
 
 		/// <summary>
@@ -1862,15 +1956,11 @@ namespace FoundationDB.Client
 			Contract.NotNull(db);
 			Contract.NotNull(handler);
 
-			return db.ReadAsync(
-				(tr) =>
-				{
-					var query = handler(tr);
-					if (query == null) throw new InvalidOperationException("The query handler returned a null sequence");
-					return query.ToListAsync();
-				},
-				ct
-			);
+			return db.ReadAsync((tr) =>
+			{
+				var query = handler(tr) ?? throw new InvalidOperationException("The query handler returned a null sequence");
+				return query.ToListAsync();
+			}, ct);
 		}
 
 		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
@@ -1885,8 +1975,7 @@ namespace FoundationDB.Client
 
 			return db.ReadAsync(async (tr) =>
 			{
-				var query = await handler(tr);
-				if (query == null) throw new InvalidOperationException("The query handler returned a null sequence");
+				var query = (await handler(tr).ConfigureAwait(false)) ?? throw new InvalidOperationException("The query handler returned a null sequence");
 				return await query.ToListAsync();
 			}, ct);
 		}

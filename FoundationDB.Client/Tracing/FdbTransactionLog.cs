@@ -144,9 +144,9 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		internal Slice[] Grab(Slice[]? slices)
+		internal Slice[] Grab(ReadOnlySpan<Slice> slices)
 		{
-			if (slices == null || slices.Length == 0) return Array.Empty<Slice>();
+			if (slices.Length == 0) return [ ];
 
 			lock (m_lock)
 			{
@@ -179,9 +179,9 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		internal KeySelector[] Grab(KeySelector[]? selectors)
+		internal KeySelector[] Grab(ReadOnlySpan<KeySelector> selectors)
 		{
-			if (selectors == null || selectors.Length == 0) return Array.Empty<KeySelector>();
+			if (selectors.Length == 0) return [ ];
 
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)

@@ -92,14 +92,28 @@ namespace FoundationDB.Client
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] Merge(Slice prefix, Slice[] keys)
 		{
-			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
 			Contract.NotNull(keys);
+			return Merge(prefix, keys.AsSpan());
+		}
+
+		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Array of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] Merge(Slice prefix, ReadOnlySpan<Slice> keys)
+		{
+			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
 			// we can pre-allocate exactly the buffer by computing the total size of all keys
-			int size = keys.Sum(key => key.Count) + keys.Length * prefix.Count;
-			var writer = new SliceWriter(size);
+			long size = keys.Length * prefix.Count;
+			for (int i = 0; i < keys.Length; i++)
+			{
+				size += keys[i].Count;
+			}
+
+			var writer = new SliceWriter(checked((int) size));
 			var next = new List<int>(keys.Length);
 
 			//TODO: use multiple buffers if item count is huge ?
@@ -531,9 +545,12 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		public static void EnsureKeyIsValid(Slice key, bool endExclusive = false)
+		public static void EnsureKeyIsValid(in Slice key, bool endExclusive = false)
 		{
-			if (!ValidateKey(key, endExclusive, false, out var ex)) throw ex!;
+			if (!ValidateKey(key, endExclusive, false, out var ex))
+			{
+				throw ex!;
+			}
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -551,9 +568,12 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		public static void EnsureKeysAreValid(ReadOnlySpan<Slice> keys, bool endExclusive = false)
 		{
-			foreach (var key in keys)
+			for (int i = 0; i < keys.Length; i++)
 			{
-				if (!ValidateKey(key, endExclusive, false, out var ex)) throw ex!;
+				if (!ValidateKey(in keys[i], endExclusive, false, out var ex))
+				{
+					throw ex!;
+				}
 			}
 		}
 

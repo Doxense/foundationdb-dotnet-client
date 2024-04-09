@@ -66,6 +66,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbFutureSingle<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
 			return new FdbFutureSingle<T>(handle, selector, ct);
@@ -77,6 +78,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="selector">Func that will be called for each future that complete (and did not fail)</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of all the FDBFuture handles</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbFutureArray<T> FromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
 			return new FdbFutureArray<T>(handles, selector, ct);
@@ -88,6 +90,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="continuation">Lambda that will be called once the future completes successfully, to extract the result from the future handle.</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return the result of the continuation lambda, or an exception</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation, CancellationToken ct)
 		{
 			return new FdbFutureSingle<T>(handle, continuation, ct).Task;
@@ -100,11 +103,13 @@ namespace FoundationDB.Client.Native
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Task<T[]> CreateTaskFromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> continuation, CancellationToken ct)
 		{
 			return new FdbFutureArray<T>(handles, continuation, ct).Task;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbFuture<T> Create<T>(CancellationToken ct)
 		{
 			return new FdbFutureTask<T>(ct);

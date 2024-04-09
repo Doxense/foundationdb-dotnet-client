@@ -124,7 +124,7 @@ namespace FoundationDB.Client
 				if (this.Begin != bounds.Begin || this.End != bounds.End)
 				{
 					//TODO: find a better way to do this!
-					var keys = await this.Transaction.GetKeysAsync(new[] { bounds.Begin, this.Begin, bounds.End, this.End }).ConfigureAwait(false);
+					var keys = await this.Transaction.GetKeysAsync([ bounds.Begin, this.Begin, bounds.End, this.End ]).ConfigureAwait(false);
 
 					var min = keys[0] >= keys[1] ? keys[0] : keys[1];
 					var max = keys[2] <= keys[3] ? keys[2] : keys[3];
