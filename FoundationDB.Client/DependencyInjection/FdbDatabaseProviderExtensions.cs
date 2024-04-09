@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
 
@@ -104,16 +105,15 @@ namespace FoundationDB.Client
 		/// <summary>Wait for the scope to become ready.</summary>
 		public static ValueTask EnsureIsReady(this IFdbDatabaseScopeProvider provider, CancellationToken ct)
 		{
-			if (provider.IsAvailable)
-			{
-				return default;
-			}
-			return WaitForReadiness(provider, ct);
-		}
+			Contract.NotNull(provider);
 
-		private static async ValueTask WaitForReadiness(IFdbDatabaseScopeProvider provider, CancellationToken ct)
-		{
-			_ = await provider.GetDatabase(ct).ConfigureAwait(false);
+			return provider.IsAvailable && !ct.IsCancellationRequested ? default : WaitForRedinessDeferred(provider, ct);
+
+			static async ValueTask WaitForRedinessDeferred(IFdbDatabaseScopeProvider provider, CancellationToken ct)
+			{
+				ct.ThrowIfCancellationRequested();
+				_ = await provider.GetDatabase(ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
@@ -124,13 +124,22 @@ namespace FoundationDB.Client
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task<TResult> ReadAsync<TResult>(
+		public static Task<TResult> ReadAsync<TResult>(
 			this IFdbDatabaseScopeProvider provider,
 			[InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.ReadAsync(handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabase(out var db) 
+				? db.ReadAsync(handler, ct)
+				: ReadDeferred(provider, handler, ct);
+
+			static async Task<TResult> ReadDeferred(IFdbDatabaseScopeProvider provider, Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
+			{
+				var db = await provider.GetDatabase(ct).ConfigureAwait(false);
+				return await db.ReadAsync(handler, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
@@ -141,13 +150,22 @@ namespace FoundationDB.Client
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task<TResult> ReadAsync<TState, TResult>(
+		public static Task<TResult> ReadAsync<TState, TResult>(
 			this IFdbDatabaseScopeProvider<TState> provider,
 			[InstantHandle] Func<IFdbReadOnlyTransaction, TState?, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
-			return await db.ReadAsync(state, handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabaseAndState(out var db, out var state) 
+				? db.ReadAsync(state, handler, ct)
+				: ReadDeferred(provider, handler, ct);
+
+			static async Task<TResult> ReadDeferred(IFdbDatabaseScopeProvider<TState> provider, Func<IFdbReadOnlyTransaction, TState?, Task<TResult>> handler, CancellationToken ct)
+			{
+				var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+				return await db.ReadAsync(state, handler, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
@@ -158,14 +176,24 @@ namespace FoundationDB.Client
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task<List<TResult>> QueryAsync<TResult>(
+		public static Task<List<TResult>> QueryAsync<TResult>(
 			this IFdbDatabaseScopeProvider provider,
 			[InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TResult>> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.QueryAsync(handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabase(out var db)
+				? db.QueryAsync(handler, ct)
+				: QueryDeferred(provider, handler, ct);
+
+			static async Task<List<TResult>> QueryDeferred(IFdbDatabaseScopeProvider provider, Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TResult>> handler, CancellationToken ct)
+			{
+				var db = await provider.GetDatabase(ct).ConfigureAwait(false);
+				return await db.QueryAsync(handler, ct).ConfigureAwait(false);
+			}
 		}
+
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="provider">Provider of the database</param>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
@@ -174,13 +202,22 @@ namespace FoundationDB.Client
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task<List<TResult>> QueryAsync<TResult>(
+		public static Task<List<TResult>> QueryAsync<TResult>(
 			this IFdbDatabaseScopeProvider provider,
 			[InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<TResult>>> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.QueryAsync(handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabase(out var db)
+				? db.QueryAsync(handler, ct)
+				: QueryDeferred(provider, handler, ct);
+
+			static async Task<List<TResult>> QueryDeferred(IFdbDatabaseScopeProvider provider, Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<TResult>>> handler, CancellationToken ct)
+			{
+				var db = await provider.GetDatabase(ct).ConfigureAwait(false);
+				return await db.QueryAsync(handler, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -193,13 +230,25 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task<TResult> ReadWriteAsync<TResult>(
+		public static Task<TResult> ReadWriteAsync<TResult>(
 			this IFdbDatabaseScopeProvider provider,
 			[InstantHandle] Func<IFdbTransaction, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.ReadWriteAsync(handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabase(out var db)
+				? db.ReadWriteAsync(handler, ct)
+				: ReadWriteDeferred(provider, handler, ct);
+
+			static async Task<TResult> ReadWriteDeferred(
+				IFdbDatabaseScopeProvider provider,
+				Func<IFdbTransaction, Task<TResult>> handler,
+				CancellationToken ct)
+			{
+				var db = await provider.GetDatabase(ct).ConfigureAwait(false);
+				return await db.ReadWriteAsync(handler, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -212,13 +261,22 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task<TResult> ReadWriteAsync<TState, TResult>(
+		public static Task<TResult> ReadWriteAsync<TState, TResult>(
 			this IFdbDatabaseScopeProvider<TState> provider,
 			[InstantHandle] Func<IFdbTransaction, TState?, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
-			return await db.ReadWriteAsync(state, handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabaseAndState(out var db, out var state)
+				? db.ReadWriteAsync(state, handler, ct)
+				: ReadWriteDeferred(provider, handler, ct);
+
+			static async Task<TResult> ReadWriteDeferred(IFdbDatabaseScopeProvider<TState> provider, Func<IFdbTransaction, TState?, Task<TResult>> handler, CancellationToken ct)
+			{
+				var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+				return await db.ReadWriteAsync(state, handler, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -231,13 +289,22 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task WriteAsync(
+		public static Task WriteAsync(
 			this IFdbDatabaseScopeProvider provider,
 			[InstantHandle] Func<IFdbTransaction, Task> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			await db.WriteAsync(handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabase(out var db)
+				? db.WriteAsync(handler, ct)
+				: WriteDeferred(provider, handler, ct);
+
+			static async Task WriteDeferred(IFdbDatabaseScopeProvider provider, Func<IFdbTransaction, Task> handler, CancellationToken ct)
+			{
+				var db = await provider.GetDatabase(ct).ConfigureAwait(false);
+				await db.WriteAsync(handler, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -250,13 +317,24 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task WriteAsync<TState>(
+		public static Task WriteAsync<TState>(
 			this IFdbDatabaseScopeProvider<TState> provider,
 			[InstantHandle] Func<IFdbTransaction, TState?, Task> handler,
 			CancellationToken ct)
 		{
-			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
-			await db.WriteAsync((tr) => handler(tr, state), ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabaseAndState(out var db, out var state)
+				? db.WriteAsync(WrapHandler(handler, state), ct)
+				: WriteDeferred(provider, handler, ct);
+
+			static Func<IFdbTransaction, Task> WrapHandler(Func<IFdbTransaction, TState?, Task> handler, TState? state) => (tr) => handler(tr, state);
+
+			static async Task WriteDeferred(IFdbDatabaseScopeProvider<TState> provider, Func<IFdbTransaction, TState?, Task> handler, CancellationToken ct)
+			{
+				var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+				await db.WriteAsync(WrapHandler(handler, state), ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -268,13 +346,22 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task WriteAsync(
+		public static Task WriteAsync(
 			this IFdbDatabaseScopeProvider provider,
 			[InstantHandle] Action<IFdbTransaction> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			await db.WriteAsync(handler, ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabase(out var db)
+				? db.WriteAsync(handler, ct)
+				: WriteDeferred(provider, handler, ct);
+
+			static async Task WriteDeferred(IFdbDatabaseScopeProvider provider, Action<IFdbTransaction> handler, CancellationToken ct)
+			{
+				var db = await provider.GetDatabase(ct).ConfigureAwait(false);
+				await db.WriteAsync(handler, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -286,13 +373,27 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task WriteAsync<TState>(
+		public static Task WriteAsync<TState>(
 			this IFdbDatabaseScopeProvider<TState> provider,
 			[InstantHandle] Action<IFdbTransaction, TState?> handler,
 			CancellationToken ct)
 		{
-			var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
-			await db.WriteAsync((tr) => handler(tr, state), ct).ConfigureAwait(false);
+			Contract.NotNull(provider);
+
+			return !ct.IsCancellationRequested && provider.TryGetDatabaseAndState(out var db, out var state)
+				? db.WriteAsync(WrapHandler(handler, state), ct)
+				: WriteDeferred(provider, handler, ct);
+
+			static Action<IFdbTransaction> WrapHandler(Action<IFdbTransaction, TState?> handler, TState? state)
+			{
+				return (tr) => handler(tr, state);
+			}
+
+			static async Task WriteDeferred(IFdbDatabaseScopeProvider<TState> provider, Action<IFdbTransaction, TState?> handler, CancellationToken ct)
+			{
+				var (db, state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+				await db.WriteAsync(WrapHandler(handler, state), ct).ConfigureAwait(false);
+			}
 		}
 
 	}
