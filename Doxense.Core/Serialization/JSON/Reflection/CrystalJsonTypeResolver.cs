@@ -489,7 +489,7 @@ namespace Doxense.Serialization.Json
 
 			//TODO: ducktyping! aka ctor(JsonValue)
 
-			if (type.IsInstanceOf<IJsonBindable>())
+			if (type.IsAssignableTo<IJsonBindable>())
 			{
 				var generator = type.CompileGenerator();
 				if (generator != null)
@@ -508,7 +508,7 @@ namespace Doxense.Serialization.Json
 				return CreateDefaultJsonArrayBinder_Binder(type, binder);
 			}
 
-			if (type.IsInstanceOf<IJsonSerializable>())
+			if (type.IsAssignableTo<IJsonDeserializable>())
 			{
 				var generator = type.CompileGenerator();
 				if (generator != null)
@@ -519,7 +519,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			if (type.IsInstanceOf<IEnumerable>())
+			if (type.IsAssignableTo<IEnumerable>())
 			{
 				return CreateDefaultJsonArrayBinder_Boxed(type);
 			}
@@ -569,7 +569,7 @@ namespace Doxense.Serialization.Json
 				res.Add(convert(typeof(object), item));
 			}
 
-			if (type.IsInstanceOf<ICollection>())
+			if (type.IsAssignableTo<ICollection>())
 			{ // Modifiable ?
 				return res;
 			}
@@ -1032,7 +1032,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// IJsonBindable...
-			if (type.IsInstanceOf<IJsonBindable>())
+			if (type.IsAssignableTo<IJsonBindable>())
 			{
 				generator = RequireGeneratorForType(type);
 				binder = CreateBinderForIJsonBindable(type, generator);

@@ -152,7 +152,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// If the type implements IJsonSerializable, we defer to it
-			if (type.IsInstanceOf<IJsonSerializable>())
+			if (type.IsAssignableTo<IJsonSerializable>())
 			{
 				return VisitJsonSerializable;
 			}
@@ -165,7 +165,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// If the type implements IJsonPackable, we can also use it (though it is less performant because it will first create a JsonValue that then will be serialized)
-			if (type.IsInstanceOf<IJsonPackable>())
+			if (type.IsAssignableTo<IJsonPackable>())
 			{
 				return VisitJsonPackable;
 			}
@@ -177,12 +177,12 @@ namespace Doxense.Serialization.Json
 
 			// Reference Types (string, classes, ...)
 
-			if (type.IsInstanceOf<System.Xml.XmlNode>())
+			if (type.IsAssignableTo<System.Xml.XmlNode>())
 			{ // XML node
 				return (v, _, _, writer) => writer.WriteValue(((System.Xml.XmlNode?) v)?.OuterXml);
 			}
 
-			if (type.IsInstanceOf<System.Collections.IEnumerable>())
+			if (type.IsAssignableTo<System.Collections.IEnumerable>())
 			{ // non-generic collection
 				return CreateVisitorForEnumerableType(type);
 			}
@@ -339,7 +339,7 @@ namespace Doxense.Serialization.Json
 				return (v, _, _, writer) => writer.WriteValue((char) v!);
 			}
 
-			if (type.IsInstanceOf<IConvertible>())
+			if (type.IsAssignableTo<IConvertible>())
 			{ // the type can convert itself into a string
 				return (v, _, _, writer) => writer.WriteRaw(((IConvertible) v!).ToString(CultureInfo.InvariantCulture));
 			}
@@ -562,12 +562,12 @@ namespace Doxense.Serialization.Json
 				return (v, _, _, writer) => writer.WriteValue((Uuid64) v!);
 			}
 
-			if (type.IsInstanceOf<IVarTuple>())
+			if (type.IsAssignableTo<IVarTuple>())
 			{ // Variable-Length Tuple (struct)
 				return CreateVisitorForSTupleType(type);
 			}
 
-			if (type.IsInstanceOf<System.Runtime.CompilerServices.ITuple>())
+			if (type.IsAssignableTo<System.Runtime.CompilerServices.ITuple>())
 			{ // Value-Tuple
 				return CreateVisitorForITupleType(type);
 			}
@@ -666,24 +666,24 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Type that implements IEnumerable</param>
 		private static CrystalJsonTypeVisitor CreateVisitorForEnumerableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
 		{
-			if (type.IsInstanceOf<ICollection<KeyValuePair<string, string>>>())
+			if (type.IsAssignableTo<ICollection<KeyValuePair<string, string>>>())
 			{ // Key/Value store
 				return (v, _, _, writer) => VisitStringDictionary(v as ICollection<KeyValuePair<string, string>>, writer);
 			}
 
-			if (type.IsInstanceOf<ICollection<KeyValuePair<string, object>>>())
+			if (type.IsAssignableTo<ICollection<KeyValuePair<string, object>>>())
 			{ // Key/Value store / ExpandoObject
 				return (v, _, _, writer) => VisitGenericObjectDictionary(v as ICollection<KeyValuePair<string, object>>, writer);
 			}
 
-			if (type.IsInstanceOf<IVarTuple>())
+			if (type.IsAssignableTo<IVarTuple>())
 			{ // Tuple (non struct)
 				return CreateVisitorForSTupleType(type);
 			}
 
 			//TODO: détecter s'il s'agit d'un Dictionary<string, V> et appeler VisitGenericDictionary<V>(...) qui est optimisé pour ce cas
 
-			if (type.IsInstanceOf<IDictionary>())
+			if (type.IsAssignableTo<IDictionary>())
 			{ // Key/Value store
 
 				if (type.IsGenericType)
@@ -723,7 +723,7 @@ namespace Doxense.Serialization.Json
 				return CompileGenericVisitorMethod(nameof(VisitArrayInternal), nameof(VisitArray), elemType);
 			}
 
-			if (type.IsInstanceOf<IEnumerable<string>>())
+			if (type.IsAssignableTo<IEnumerable<string>>())
 			{ // Sequence of strings
 				return (v, _, _, writer) => VisitEnumerableOfString((IEnumerable<string>?) v, writer);
 			}
