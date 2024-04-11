@@ -44,47 +44,26 @@ namespace Doxense.Serialization
 	public static class TypeHelper
 	{
 
-		/// <summary>Retourne la version string d'un clé d'un dictionnaire, en faisant le moins d'efforts possible</summary>
-		/// <param name="key">Clé d'un dictionnaire</param>
-		/// <returns>Version string de la clé</returns>
+		/// <summary>Converts an arbirtrary dictionary key as a string literal, that can be used as a key in a string-only map (such as the field name in a JSON Object)</summary>
+		/// <param name="key">Instance that represents a key</param>
+		/// <returns>Corresponding string literal</returns>
 		[Pure, ContractAnnotation("key:notnull => notnull")]
 		[return: NotNullIfNotNull("key")]
 		public static string? ConvertKeyToString(object? key)
 		{
-			if (key == null) return null;
-
-			if (key is string name)
-			{ // c'est une string
-				return name;
-			}
-
-			// special cases
-			// => float/double: on doit utiliser "R" pour que ne pas perdre les dernières décimales
-			if (key is double d) return d.ToString("R", CultureInfo.InvariantCulture);
-			if (key is float f) return f.ToString("R", CultureInfo.InvariantCulture);
-			// => DateTime: ISO !
-			if (key is DateTime dt) return dt.ToString("O", CultureInfo.InvariantCulture);
-
-			// La plupart des valuetypes supportent IFormattable
-
-			// Au cas où la clé serait un Type
-			if (key is Type type)
+			return key switch
 			{
-				return GetFriendlyName(type);
-			}
-
-			// note: pour le moment tous les IConvertible sont aussi IFormattable...
-			// Le problème de IFormattable c'est qu'hormis "G" et null, il n'y a pas de convention sur le format,
-			// donc cela ne sert pas à grand chose ...
-			if (key is IConvertible convertible)
-			{ // l'objet sait se convertir en string
-				return convertible.ToString(CultureInfo.InvariantCulture);
-			}
-
-			// TODO: utiliser TypeDescriptor.GetConverter ? A priori cela se base sur l'attribut [TypeConverter]
-
-			// on tente notre chance ...
-			return key.ToString()!;
+				null => null,
+				string name => name, // already a string
+				double d => d.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundript) so as not to loose the last digit
+				float f => f.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundript) so as not to loose the last digit
+				DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture), // use ISO format
+				DateTimeOffset dto => dto.ToString("O", CultureInfo.InvariantCulture), // use ISO format
+				NodaTime.Instant t => NodaTime.Text.InstantPattern.ExtendedIso.Format(t), // use Extended ISO format
+				Type type => GetFriendlyName(type), // use a readable version of the type (ex: "List<int>" instead of "List`1")
+				IConvertible convertible => convertible.ToString(CultureInfo.InvariantCulture), // hope that the type returns something sensible
+				_ => key.ToString()
+			};
 		}
 
 		[Pure]
@@ -112,81 +91,90 @@ namespace Doxense.Serialization
 			return null;
 		}
 
-		/// <summary>Crée un générateur d'objet en fonction du type, si c'est possible</summary>
-		/// <param name="type">Type de l'objet à créer</param>
-		/// <returns>Fonction qui créer l'objet via un constructeur par défaut (sans paramètre), ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
+		/// <summary>Generates a factory method that will instantiate an object of the specified type, or equivalent, if possible</summary>
+		/// <param name="type">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</param>
+		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract aclass, type without a parameterless ctor, ...)</returns>
 		[Pure]
 		public static Func<object>? CompileGenerator([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]this Type type)
 		{
 			Contract.Debug.Requires(type != null);
 			if (type.IsInterface || type.IsAbstract)
-			{ // impossible de créer une interface oue une classe abstraite!
+			{ // must be a well known type
 				var replacementType = FindReplacementType(type);
 				if (replacementType == null)
-				{
+				{ // no luck !
 					return null;
 				}
-				// on a trouvé un type qui devrait correspondre
+				// we have an alternative type that'll do the job
 				type = replacementType;
 			}
 
 			if (type.IsClass)
-			{ // "object func() { return new T(); }"
+			{ // "object func() => new T();"
 				var defaultConstructor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
-				if (defaultConstructor != null)
-					return Expression.Lambda<Func<object>>(Expression.TypeAs(Expression.New(defaultConstructor), typeof(object))).Compile();
-				else
-					return () => Activator.CreateInstance(type)!;
 
-				//NOTE: il y a assi FormatterServices.GetUninitializedObject(Type) qui permet de créer une instance sans appeler le constructeur
+				if (defaultConstructor != null)
+				{
+					return Expression.Lambda<Func<object>>(Expression.TypeAs(Expression.New(defaultConstructor), typeof(object))).Compile();
+				}
+				else
+				{
+					return () => Activator.CreateInstance(type)!;
+				}
+				//NOTE: we could also try FormatterServices.GetUninitializedObject(Type) that can instantiate without calling a ctor
 				// ( http://msdn.microsoft.com/en-us/library/system.runtime.serialization.formatterservices.getuninitializedobject.aspx )
-				// Problème: certains types risquent de ne pas fonctionner correctement si le constructeur n'est pas appelé (ex: des private fields ne seront pas initialisés correctement)
+				// Problem: some types may not work properly if the ctor is not called (ex: private fields may not be initialized correctly!)
 			}
-			else
-			{
-				return Expression.Lambda<Func<object>>(Expression.Convert(Expression.Default(type), typeof(object))).Compile();
-			}
+
+			// we can always instantiate structs with the default ctor
+			return Expression.Lambda<Func<object>>(Expression.Convert(Expression.Default(type), typeof(object))).Compile();
 		}
 
-		/// <summary>Crée un générateur d'objet en fonction du type, si c'est possible</summary>
-		/// <returns>Fonction qui créer l'objet via un constructeur par défaut (sans paramètre), ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
+		/// <summary>Generates a factory method that will instantiate an object of the specified type, or equivalent, if possible</summary>
+		/// <typeparam name="TInstance">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</typeparam>
+		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract aclass, type without a parameterless ctor, ...)</returns>
 		[Pure]
 		public static Func<TInstance>? CompileTypedGenerator<TInstance>()
 		{
 			var type = typeof(TInstance);
 			if (type.IsInterface || type.IsAbstract)
-			{ // impossible de créer une interface oue une classe abstraite!
+			{ // must be a well known type
 				var replacementType = FindReplacementType(type);
 				if (replacementType == null)
-				{
+				{ // no luck!
 					return null;
 				}
-				// on a trouvé un type qui devrait correspondre
+				// we have an alternative type that'll do the job
 				type = replacementType;
 			}
 
 			if (type.IsClass)
 			{ // "object func() { return new T(); }"
 				var defaultConstructor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
-				if (defaultConstructor != null)
-					return Expression.Lambda<Func<TInstance>>(Expression.New(defaultConstructor)).Compile();
-				else
-					return () => (TInstance) Activator.CreateInstance(type)!;
 
-				//NOTE: il y a assi FormatterServices.GetUninitializedObject(Type) qui permet de créer une instance sans appeler le constructeur
+				if (defaultConstructor != null)
+				{
+					return Expression.Lambda<Func<TInstance>>(Expression.New(defaultConstructor)).Compile();
+				}
+				else
+				{
+					return () => (TInstance) Activator.CreateInstance(type)!;
+				}
+
+				//NOTE: we could also try FormatterServices.GetUninitializedObject(Type) that can instantiate without calling a ctor
 				// ( http://msdn.microsoft.com/en-us/library/system.runtime.serialization.formatterservices.getuninitializedobject.aspx )
-				// Problème: certains types risquent de ne pas fonctionner correctement si le constructeur n'est pas appelé (ex: des private fields ne seront pas initialisés correctement)
+				// Problem: some types may not work properly if the ctor is not called (ex: private fields may not be initialized correctly!)
 			}
-			else
-			{
-				return Expression.Lambda<Func<TInstance>>(Expression.Default(type)).Compile();
-			}
+
+			// we can always instantiate structs with the default ctor
+			return Expression.Lambda<Func<TInstance>>(Expression.Default(type)).Compile();
 		}
 
-		/// <summary>Crée un générateur d'objet (prenant un paramètre) en fonction du type</summary>
-		/// <param name="type">Type de l'objet à créer</param>
-		/// <typeparam name="TArg0">Type du paramètre du constructeur</typeparam>
-		/// <returns>Fonction qui créer l'objet via un constructeur prenant un paramètre, ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
+		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes one parameter</summary>
+		/// <typeparam name="TArg0">Type of the ctor parameter</typeparam>
+		/// <param name="type">Type of the object to instantiate, which must have a ctor with one paramter (can be private or public)</param>
+		/// <returns>Function that takes in a parameter and instantiante a instance of the type</returns>
+		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
 		[Pure]
 		public static Func<TArg0, object> CompileGenerator<TArg0>(this Type type)
 		{
@@ -199,10 +187,11 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<TArg0, object>>(body, arg0).Compile();
 		}
 
-		/// <summary>Crée un générateur d'objet (prenant un seul paramètre) en fonction du type</summary>
-		/// <typeparam name="TInstance">Type concret de l'instance a créer</typeparam>
-		/// <typeparam name="TArg0">Type du paramètre du constructeur</typeparam>
-		/// <returns>Fonction qui créer l'objet via un constructeur prenant un paramètre, ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
+		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes one parameter</summary>
+		/// <typeparam name="TArg0">Type of the ctor parameter</typeparam>
+		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with one parameter (can be private or public)</typeparam>
+		/// <returns>Function that takes in a parameter and instantiante a instance of the type</returns>
+		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
 		[Pure]
 		public static Func<TArg0, TInstance> CompileTypedGenerator<TInstance, TArg0>()
 		{
@@ -217,11 +206,12 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<TArg0, TInstance>>(body, arg0).Compile();
 		}
 
-		/// <summary>Crée un générateur d'objet (prenant deux paramètres) en fonction du type</summary>
-		/// <typeparam name="TInstance">Type concret de l'instance a créer</typeparam>
-		/// <typeparam name="TArg0">Type du premier paramètre du constructeur</typeparam>
-		/// <typeparam name="TArg1">Type du deuxième paramètre du constructeur</typeparam>
-		/// <returns>Fonction qui créer l'objet via un constructeur prenant un paramètre, ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
+		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes two parameters</summary>
+		/// <typeparam name="TArg0">Type of the first parameter</typeparam>
+		/// <typeparam name="TArg1">Type of the second parameter</typeparam>
+		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with two parameters (can be private or public)</typeparam>
+		/// <returns>Function that takes in two parameters and instantiante a instance of the type</returns>
+		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes two parameters of type <typeparamref name="TArg0"/> and <typeparamref name="TArg1"/></exception>
 		[Pure]
 		public static Func<TArg0, TArg1, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1>()
 		{
@@ -237,30 +227,13 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<TArg0, TArg1, TInstance>>(body, arg0, arg1).Compile();
 		}
 
-		/// <summary>Crée un générateur typé d'objets en fonction d'un constructeur</summary>
-		/// <returns>Fonction qui créer l'objet via un constructeur prenant un paramètre, ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
-		[Pure]
-		public static Delegate CompileTypedGenerator(ConstructorInfo ctor)
-		{
-			Contract.NotNull(ctor);
-			var type = ctor.DeclaringType;
-
-			var prms = ctor.GetParameters();
-			var args = new ParameterExpression[prms.Length];
-			for (int i = 0; i < prms.Length; i++)
-			{
-				args[i] = Expression.Parameter(prms[i].ParameterType, prms[i].Name);
-			}
-			var body = Expression.New(ctor, args);
-			return Expression.Lambda(body, tailCall: true, args).Compile();
-		}
-
-		/// <summary>Crée un générateur d'objet (prenant trois paramètres) en fonction du type</summary>
-		/// <typeparam name="TInstance">Type concret de l'instance a créer</typeparam>
-		/// <typeparam name="TArg0">Type du premier paramètre du constructeur</typeparam>
-		/// <typeparam name="TArg1">Type du deuxième paramètre du constructeur</typeparam>
-		/// <typeparam name="TArg2">Type du troisième paramètre du constructeur</typeparam>
-		/// <returns>Fonction qui créer l'objet via un constructeur prenant un paramètre, ou null s'il est impossible de créer un objet de ce type (interface, abstract, pas de constructeur par défaut, ...)</returns>
+		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes three parameters</summary>
+		/// <typeparam name="TArg0">Type of the first parameter</typeparam>
+		/// <typeparam name="TArg1">Type of the second parameter</typeparam>
+		/// <typeparam name="TArg2">Type of the third parameter</typeparam>
+		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with three parameters (can be private or public)</typeparam>
+		/// <returns>Function that takes in three parameters and instantiante a instance of the type</returns>
+		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes three parameters of type <typeparamref name="TArg0"/>, <typeparamref name="TArg1"/> and <typeparamref name="TArg2"/></exception>
 		[Pure]
 		public static Func<TArg0, TArg1, TArg2, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1, TArg2>()
 		{
@@ -275,6 +248,24 @@ namespace Doxense.Serialization
 			var arg2 = Expression.Parameter(typeof(TArg2), prms[2].Name);
 			var body = Expression.New(ctor, arg0, arg1, arg2);
 			return Expression.Lambda<Func<TArg0, TArg1, TArg2, TInstance>>(body, arg0, arg1, arg2).Compile();
+		}
+
+		/// <summary>Generates a <see cref="System.Delegate"/> that will invoke the specified constructor</summary>
+		/// <param name="ctor">Constructor that must be wrapped</param>
+		/// <returns>Method that takes in the same arguments as the ctors, calls it, and return the newly created instance. This type can be casted into <c>Func&lt;TArg0, TArg1, ... TArgN, TInstance></c></returns>
+		[Pure]
+		public static Delegate CompileTypedGenerator(ConstructorInfo ctor)
+		{
+			Contract.NotNull(ctor);
+
+			var prms = ctor.GetParameters();
+			var args = new ParameterExpression[prms.Length];
+			for (int i = 0; i < prms.Length; i++)
+			{
+				args[i] = Expression.Parameter(prms[i].ParameterType, prms[i].Name);
+			}
+			var body = Expression.New(ctor, args);
+			return Expression.Lambda(body, tailCall: true, args).Compile();
 		}
 
 		#region Getters / Setters...
@@ -498,12 +489,12 @@ namespace Doxense.Serialization
 
 		#endregion
 
-		/// <summary>Retourne un Attribute d'un member (type, méthode, field, ...) à partir de son nom</summary>
-		/// <param name="member">Field d'un type</param>
-		/// <param name="attributeName">Nom (court) de l'attribut (ex: "DataMemberAttribute")</param>
-		/// <param name="inherit">True pour remonter la chaine de dérivation</param>
-		/// <param name="attribute">Attribute correspondant, ou null</param>
-		/// <returns>Retourne true si l'attribut existe (accessible via <paramref name="attribute"/>).</returns>
+		/// <summary>Returns an <see cref="System.Attribute"/> of a member of a type, given its name</summary>
+		/// <param name="member">Member (field or property)</param>
+		/// <param name="attributeName">Name (without the namespace) of the attribute to fetch (ex: "DataMemberAttribute")</param>
+		/// <param name="inherit"><see langword="true"/> to also look into the attributes up the derived chain</param>
+		/// <param name="attribute">receives the correspond <see cref="System.Attribute"/> if found; otherwise, <see langword="null"/></param>
+		/// <returns><see langword="true"/> if the attribute was found; otherwise, <see langword="false"/>.</returns>
 		[ContractAnnotation("=> true, attribute:notnull; => false, attribute:null")]
 		public static bool TryGetCustomAttribute(this MemberInfo member, string attributeName, bool inherit, out Attribute? attribute)
 		{
@@ -512,10 +503,10 @@ namespace Doxense.Serialization
 			return attribute != null;
 		}
 
-		/// <summary>Retourne une propriété d'un attribut, par reflexion, qui doit être une string</summary>
-		/// <param name="attribute">Objet de type attribute</param>
-		/// <param name="name">Nom de la propriété de l'attribut recherchée</param>
-		/// <returns>Valeur de cette propriété, ou null</returns>
+		/// <summary>Return the value of a named <see cref="System.Attribute"/>'s property, using reflection.</summary>
+		/// <param name="attribute">Attribute to query</param>
+		/// <param name="name">Name of the property of the attribute</param>
+		/// <returns>Value of the property, or <see langword="null"/> if there is no such property</returns>
 		[Pure]
 		public static T? GetProperty<T>(
 			this Attribute attribute,
@@ -531,15 +522,15 @@ namespace Doxense.Serialization
 
 		#region Type Extension Methods..
 
-		/// <summary>Retourne la liste de tous les types d'une assembly, de manière sécurisée</summary>
-		/// <param name="assembly">Assembly source</param>
-		/// <returns>Liste des types de cette assembly</returns>
-		/// <remarks>Immunisé contrel es ReflectioTypeLoadException !</remarks>
+		/// <summary>Returns the list of all types found in an <see cref="System.Reflection.Assembly"/></summary>
+		/// <param name="assembly">Assembly to enumerate</param>
+		/// <returns>Sequence of all types found</returns>
+		/// <remarks>Should be immune from ReflectionTypeLoadException exceptions.</remarks>
 		[Pure]
 		public static IEnumerable<Type> GetLoadableTypes(this Assembly assembly)
 		{
-			// Voir http://stackoverflow.com/questions/7889228/how-to-prevent-reflectiontypeloadexception-when-calling-assembly-gettypes
-			// et http://haacked.com/archive/2012/07/23/get-all-types-in-an-assembly.aspx
+			// See http://stackoverflow.com/questions/7889228/how-to-prevent-reflectiontypeloadexception-when-calling-assembly-gettypes
+			// and http://haacked.com/archive/2012/07/23/get-all-types-in-an-assembly.aspx
 
 			Contract.NotNull(assembly);
 			try
@@ -552,9 +543,8 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Retourne la valeur par défaut (null, 0, false, ...) d'un type</summary>
-		/// <param name="type">Type à instantier</param>
-		/// <returns>null, 0, false, DateTime.MinValue, ...</returns>
+		/// <summary>Returns the default value for a type</summary>
+		/// <returns><see langword="null"/>, <see langword="0"/>, <see langword="false"/>, DateTime.MinValue, ...</returns>
 		[Pure]
 		public static object? GetDefaultValue([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] this Type type)
 		{
@@ -563,16 +553,16 @@ namespace Doxense.Serialization
 				: null; // Reference Type / Interface
 		}
 
-		/// <summary>Retourne la valeur par défaut (null, 0, false, ...) d'un paramètre d'une méthode</summary>
-		/// <param name="parameter">Paramètre d'une méthode</param>
-		/// <returns>Valeur par défaut défini sur ce paramètre (s'il en a une), ou default(T)</returns>
+		/// <summary>Returs the default value for a parameter of a method call</summary>
+		/// <param name="parameter">Parameter</param>
+		/// <returns>Default value for this paremeter if present (ex: <c>..., string foo = "hello world", ...)</c>; otherwise <see langword="null"/>, <see langword="0"/>, <see langword="false"/>, DateTime.MinValue, ...</returns>
 		[Pure]
 		public static object? GetDefaultValue(this ParameterInfo parameter)
 		{
 			return ((parameter.Attributes & ParameterAttributes.HasDefault) != 0) ? parameter.RawDefaultValue : GetDefaultValue(parameter.ParameterType);
 		}
 
-		/// <summary>Retourne le nom complet d'un type, utilisable avec Type.GetType(..)</summary>
+		/// <summary>Returns the full name of a type, that can be later passed to Type.GetType(..) to retrieve the original type</summary>
 		/// <param name="type">Type de l'objet</param>
 		/// <returns>Nom de l'objet sous la forme "Namespace.ClassName, AssemblyName"</returns>
 		[Pure]
@@ -580,22 +570,24 @@ namespace Doxense.Serialization
 		{
 			Contract.NotNull(type);
 
-			// on veut générer "Namespace.ClassName, AssemblyName"
+			// we want to generate "Namespace.ClassName, AssemblyName"
 
 			var assemblyName = type.Assembly.GetName();
 			if (assemblyName.Name == "mscorlib")
-			{ // pour les types de mscorlib, il n'est pas nécessaire de préciser l'assembly
+			{ // for mscorlib types, we don't need to specify the assembly name
 				return type.FullName!;
 			}
 
-			// note: type.AssemblyQualifiedName et type.Assembly.FullName ajoutent également le suffix ", Version=xxx, Culture=xxx, PublicKey=xxx" qu'on va devoir découper à la main
+			// note: type.AssemblyQualifiedName and type.Assembly.FullName add the suffix ", Version=xxx, Culture=xxx, PublicKey=xxx" that we need to remove
 			string displayName = assemblyName.FullName;
 			int p = displayName.IndexOf(',');
 			if (p > 0) displayName = displayName.Substring(0, p);
 			return type.FullName + ", " + displayName;
 		}
 
-		/// <summary>Retourne un nom de type "user friendly" comprenant le namespace, et les types génériques</summary>
+		/// <summary>Returns a "human readable" version of a type's name, including the generic arguments and nested types.</summary>
+		/// <returns>"string", "int", "FooBar", "FooBar.NestedBaz", "List&lt;int>", "Dictionary&lt;string, Something&lt;Foo, Bar>>"</returns>
+		/// <remarks>This name will NOT be in a format that easily allows retrieve it later, and should mostly be used in error message, logs or debug messages.</remarks>
 		[Pure]
 		public static string GetFriendlyName(this Type type)
 		{
@@ -663,28 +655,28 @@ namespace Doxense.Serialization
 				var args = type.GetGenericArguments();
 				if (outerOffset != 0)
 				{
-					var tmp = args.Length != outerOffset ? new Type[args.Length - outerOffset] : Array.Empty<Type>();
+					var tmp = args.Length != outerOffset ? new Type[args.Length - outerOffset] : [ ];
 					Array.Copy(args, outerOffset, tmp, 0, tmp.Length);
 					args = tmp;
 				}
 				string baseName;
 				if (type.IsAnonymousType())
 				{
-					// le compilateur génère "<>f__AnonymousType#<....,....,....>" où # est un compteur unique en hexa.
-					// On va plutôt remplacer par "AnonymousType<...,...,...>" qui est plus lisible, et qui est raccord avec ASP.NET MVC
+					// the compiler generates "<>f__AnonymousType#<....,....,....>" where # is a unique counter (in hex).
+					// we will replace this with "AnonymousType<...,...,...>" which is easier to read, and is similar to what is done by ASP.NET MVC
 					baseName = "AnonymousType";
 				}
 				else
 				{
 					baseName = type.GetGenericTypeDefinition().Name;
-					// Les arguments génériques sont après le backtick (`)
+					// generic argumentse are after the backtick (`)
 					int p = baseName.IndexOf('`');
 					if (p > 0) baseName = baseName.Substring(0, p);
 				}
 
-				// on va rappeler récursivement GetFriendlyName sur les types arguments (en espérant qu'une boucle est impossible :/)
+				// we will recursively call GetFriendlyName on each generic argument types
 				if (args.Length == 0) return prefix + baseName;
-				return prefix + baseName + "<" + String.Join(", ", args.Select(t => GetFriendlyName(t))) + ">";
+				return $"{prefix}{baseName}<{string.Join(", ", args.Select(GetFriendlyName))}>";
 			}
 
 			if (type.IsArray)
@@ -706,16 +698,16 @@ namespace Doxense.Serialization
 				return baseName + type.Name.Substring(type.Name.IndexOf('*'));
 			}
 
-			// cas standard
+			// standard case
 			return prefix + type.Name;
 		}
 
-		/// <summary>Retourne une version générique d'une méthode d'un type</summary>
-		/// <param name="type"></param>
-		/// <param name="name">Nom de la méthode</param>
-		/// <param name="flags"></param>
-		/// <param name="types">Types arguments de la méthode générique</param>
-		/// <returns>Methode générique prête à l'emploi</returns>
+		/// <summary>Returns the generic version of a method</summary>
+		/// <param name="type">Declaring type</param>
+		/// <param name="name">Name of the method</param>
+		/// <param name="flags">Binding flags</param>
+		/// <param name="types">Types of the generic arguments of the method</param>
+		/// <returns>Corresponding generic method</returns>
 		[Pure]
 		public static MethodInfo? MakeGenericMethod(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] this Type type,
@@ -732,21 +724,33 @@ namespace Doxense.Serialization
 			return mi.MakeGenericMethod(types);
 		}
 
-		/// <summary>Indique si un type est une instance d'une autre type ou interface</summary>
-		/// <typeparam name="T">Type parent</typeparam>
-		/// <param name="type">Type inspecté</param>
-		/// <returns>Retourne true si notre type dérive ou est un implémentation d'un autre type</returns>
-		/// <remarks>Equivalent de typeof(T).IsAssignableFrom(...)</remarks>
+		/// <summary>Tests if a type is in instance of another type, abstract class, or interface</summary>
+		/// <typeparam name="T">Expected type</typeparam>
+		/// <param name="type">Type of the instance</param>
+		/// <returns><see langword="true"/> if an instance of type <paramref name="type"/> can be assigned to a variable of type <typeparamref name="T"/></returns>
 		[Pure]
+		[Obsolete("Use either type.IsAssignableTo(typeof(T)) or type.IsAssignableTo<T>() instead.")]
 		public static bool IsInstanceOf<T>(this Type type)
 		{
-			return typeof(T).IsAssignableFrom(type);
+			// note: this method existed before IsAssignableTo was introduced in the BCL
+			return type.IsAssignableTo(typeof(T));
 		}
 
-		/// <summary>Indique si un type est une implémentation d'un type ou d'une interface générique</summary>
-		/// <param name="type">Type de l'objet inspecté (ex: List&lt;string&gt;)</param>
-		/// <param name="genericType">Type ou interface generic (ex: IList&lt;T&gt;)</param>
-		/// <returns>True si le type est une implémentation de ce type générique</returns>
+		/// <summary>Tests if a type is in instance of another type, abstract class, or interface</summary>
+		/// <typeparam name="T">Expected type</typeparam>
+		/// <param name="type">Type of the instance</param>
+		/// <returns><see langword="true"/> if an instance of type <paramref name="type"/> can be assigned to a variable of type <typeparamref name="T"/></returns>
+		[Pure]
+		public static bool IsAssignableTo<T>(this Type type)
+		{
+			return type.IsAssignableTo(typeof(T));
+		}
+
+		/// <summary>Tests if a type is implements a generic type or interface</summary>
+		/// <param name="type">Type of the inspected instance (ex: <c>List&lt;string&gt;</c>)</param>
+		/// <param name="genericType">Type of the generic interface (ex: <c>IList&lt;T&gt;</c>)</param>
+		/// <returns><see langword="true"/> if the type implements the generic interface</returns>
+		/// <remarks>This method is required because <c>new List&lt;string>().GetType().IsAssignableTo(IList&lt;>)</c> returns false (the types implements <c>IList&lt;string&gt;</c> which is not the same as <c>IList&lt;&gt;</c>)</remarks>
 		/// <example><code>
 		/// typeof(List&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == true
 		/// typeof(HashSet&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == false
@@ -757,108 +761,113 @@ namespace Doxense.Serialization
 			return FindGenericType(type, genericType) != null;
 		}
 
-		/// <summary>Retrouve la version d'un type générique implémentée par un type</summary>
-		/// <param name="type">Type à inspecter (ex: List&lt;string&gt;)</param>
-		/// <param name="genericType">Type ou interface générique recherché (ex: IList&lt;&gt;)</param>
-		/// <returns>Version du type implémentée par cet objet (ex: IList&lt;string&gt;) ou null si cet objet n'implémente pas ce type</returns>
+		/// <summary>Returns the closed version of the generic interface implemented by a type</summary>
+		/// <param name="type">Type of the inspected instance (ex: List&lt;string&gt;)</param>
+		/// <param name="genericType">Type of the generic interface (ex: IList&lt;&gt;)</param>
+		/// <returns>Closed interface (ex: IList&lt;string&gt;), or <see langword="null"/> if the type does not implement this generic interface</returns>
 		[Pure]
 		public static Type? FindGenericType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, Type genericType)
 		{
 			Contract.NotNull(genericType);
 
-			// on veut vérifier si type (ex: List<string>) implémente une interface générique (ex: IList<>)
-			// hélas, IsAssignableFrom / IsSubclassOf ne marchent pas avec les version génériques des type, sinon ca serait trop facile :)
+			// we want to return the closed version of the generic type implemented by a class
+			// ex: if type == typeof(List<string>) and genericType == typeof(IList<>), we want to return typeof(IList<string>)
 
-			// c'est peut-être directement la bonne ?
+			// is it already the exact type?
 			if (type.IsSameGenericType(genericType)) return type;
 
 			if (genericType.IsInterface)
-			{ // regarde dans les interfaces implémentées?
+			{ // we are looking for an interface...
 				foreach (var interf in type.GetInterfaces())
 				{
-					// Attention: GetInterfaces() retourne des version "closed" des types génériques, qui ne sont pas identiques aux version typeof(IFoo<>)
-					// => il faut passer par GetGenericTypeDefinition() pour les comparer
+					// warning: GetInterfaces() will return the "closed" generic types, which are not equal to typeof(IFoo<>)
+					// => we need to compare them using GetGenericTypeDefinition()
 					if (interf.IsSameGenericType(genericType)) return interf;
 				}
 				return null;
 			}
 			else
-			{ // regarde dans les classes parentes
+			{ // we are looking for an abstract class
 				Type? parent = type.BaseType;
 				while (parent != null && typeof(object) != parent)
 				{
-					if (parent.IsSameGenericType(genericType)) return parent;
+					if (parent.IsSameGenericType(genericType))
+					{
+						return parent;
+					}
 					parent = parent.BaseType;
 				}
 				return null;
 			}
 		}
 
-		/// <summary>Indique si le type est de la même famille qu'un type générique</summary>
+		/// <summary>Tests if a generic type is has the same generic definition as another type (ie: <c>Dictionary&lt;string, int> ~= Dictionary&lt;,></c></summary>
 		/// <param name="type">Type à inspecter (ex: IDictionary&lt;string, string&gt;)</param>
-		/// <param name="genericType">Type générique (ex: IDictionary&lt;,&gt;)</param>
-		/// <returns>True si les types sont équivalent, false dans le cas contraire</returns>
+		/// <param name="genericType">Generic type (ex: IDictionary&lt;,&gt;)</param>
+		/// <returns><see langword="true"/> if the types are equivalent; otherwise, <see langword="false"/>.</returns>
 		[Pure]
 		public static bool IsSameGenericType(this Type type, Type genericType)
 		{
 			return type == genericType || (genericType != null && type.IsGenericType && genericType == type.GetGenericTypeDefinition());
 		}
 
-		/// <summary>Indique si un type est "concret" c'est à dire que c'est une custom class/struct qui ne soit pas abstraite</summary>
+		/// <summary>Tests if a type is "concrete", meaning it is not a class or struct that is not abstract</summary>
 		/// <param name="type">Type à inspecter</param>
-		/// <returns>True si type n'est pas une interface, une classe abstraite ou System.Object</returns>
+		/// <returns><see langword="false"/> if the type is an interface an abstract class, or <see cref="System.Object"/>; otherwise, <see langword="true"/></returns>
+		/// <remarks>This includes both sealed class, and non-sealed but non-abstract class.</remarks>
 		[Pure]
 		public static bool IsConcrete(this Type type)
 		{
 			return typeof(object) != type && !type.IsInterface && !type.IsAbstract;
 		}
 
-		/// <summary>Indique si un type est une classe concrète (pas abstract) qui implémente une interface particulière</summary>
+		/// <summary>Tests if a type is a concrete implementation of a specific interface</summary>
+		/// <returns><see langword="false"/> if the type does not implement this interface, is an itself an interface, an abstract class, or <see cref="System.Object"/>; otherwise, <see langword="true"/></returns>
 		[Pure]
 		public static bool IsConcreteImplementationOfInterface(this Type type, Type interfaceType)
 		{
 			return type.IsConcrete() && interfaceType.IsAssignableFrom(type);
 		}
 
-		/// <summary>Détermine si le type est un Nullable&lt;T&gt; (tel que 'int?' ou 'DateTime?')</summary>
+		/// <summary>Tests if a type is nullable (ie: 'int?' or 'DateTime?')</summary>
 		[Pure]
 		public static bool IsNullableType(this Type type)
 		{
-			//note: techniquement, il faudrait faire tester si le type est générique et si sa définition générique est 'Nullable<>' mais c'est assez long au runtime.
+			//note: we should check if it is generic, and if its generic definition is 'Nullable<>' but this is too slow at runtime
 			// CORRECT but SLOW: return type.IsGenericType && type.Name == "Nullable`1" && typeof(Nullable<>) == type.GetGenericTypeDefinition();
-			// => On exploite le fait que que la property 'Name' de typeof(T?) ou typeof(Nullabe<T>) est toujours "Nullable`1", et qu'il est impossible de dériver une struct...
+			// => we exploit the fact that the 'Name' of typeof(T?) or typeof(Nullabe<T>) is always "Nullable`1", and that it is not possible to derive from a struct...
 			return type.Name == "Nullable`1";
 		}
 
-		/// <summary>Détermine si une instance de ce type peut être null (Reference Type, Nullable Type)</summary>
-		/// <param name="type"></param>
-		/// <returns></returns>
+		/// <summary>Tests if an instance of type can be null (Reference Type, Nullable Type)</summary>
 		[Pure]
 		public static bool CanAssignNull(this Type type)
 		{
 			return !type.IsValueType || IsNullableType(type);
 		}
 
+		/// <summary>Tests if an instance of type is dynamic (DLR)</summary>
 		[Pure]
 		public static bool IsDynamicType(this Type type)
 		{
-			// Tous les objets dynamiques (ExpandoObject, DynamicObject, ....) implémentent l'interface IDynamicMetaObjectProvider
+			// Allo dynamic objects (ExpandoObject, DynamicObject, ....) implement the interface IDynamicMetaObjectProvider
 			return typeof(IDynamicMetaObjectProvider).IsAssignableFrom(type);
 		}
 
+		/// <summary>Tests if a type is an anonymous type generated by the compiler (ie: <c>new { foo = ..., bar = .... }</c>)</summary>
 		[Pure]
 		public static bool IsAnonymousType(this Type type)
 		{
-			// Il n'est pas possible facilement de détecter les classes anonymes,
-			// Les seuls éléments distinctifs sont : (cf http://stackoverflow.com/questions/315146/anonymous-types-are-there-any-distingushing-characteristics )
-			// * C'est une classe
-			// * Elle a l'attribut [CompilerGeneratedAttribute]
-			// * Elle est sealed
-			// * Elle dérive de object
-			// * Elle est générique, avec autant de Type Parameters que de propriétés
-			// * Elle un seul constructeur, qui prend autant de paramètres qu'il y a de propriétés
-			// * Elle override Equals, GetHashcode et ToString(), et rien d'autre
-			// * Son nom ressemble à "<>f_AnonymousType...." en C#, et à "VB$AnonymousType..." en VB.NET
+			// There is no direct test to detect anonymous types (they are just like any other type)
+			// The only distinctive signs are: (cf http://stackoverflow.com/questions/315146/anonymous-types-are-there-any-distingushing-characteristics )
+			// * Must be a class
+			// * must have the attribute [CompilerGeneratedAttribute]
+			// * Must be sealed Elle est sealed
+			// * Must derive from System.Object
+			// * Must be generic, with has many type arguments than properties
+			// * Must have a single ctor, with the same number of parameters
+			// * Must override Equals, GetHashcode et ToString(), and nothing else
+			// * Name will be "<>f_AnonymousType...." in C#, and "VB$AnonymousType..." in VB.NET
 
 			return type.IsClass
 				&& type.IsSealed
@@ -868,15 +877,17 @@ namespace Doxense.Serialization
 				//&& type.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), false);
 		}
 
+		/// <summary>Tests if a method of a type is overriding the method from a base class</summary>
 		[Pure]
 		public static bool IsOverriding(Type type, string methodName)
 		{
 			Contract.NotNull(type);
 			var method = type.GetMethod(methodName);
-			if (method == null) throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "There is no method {0} on type {1}", methodName, type.GetFriendlyName()));
+			if (method == null) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "There is no method {0} on type {1}", methodName, type.GetFriendlyName()));
 			return IsOverriding(method);
 		}
 
+		/// <summary>Tests if a method of a type is overriding the method from a base class</summary>
 		[Pure]
 		public static bool IsOverriding(MethodInfo method)
 		{
@@ -885,7 +896,7 @@ namespace Doxense.Serialization
 			return method.DeclaringType == method.GetBaseDefinition().DeclaringType;
 		}
 
-		/// <summary>Retourne le type de résultats retourné par un 'Task-like' (Task, Task&gt;T&lt;, ValueTask&lt;T&gt;, ...), ou null si ce n'est pas un "TaskLike"</summary>
+		/// <summary>Returns the type returned by a 'Task-like' type (<c>Task</c>, <c>Task&gt;T&lt;</c>, <c>ValueTask&lt;T&gt;</c>, ...), or <see langword="null"/> if it is not a task.</summary>
 		[Pure]
 		public static Type? GetTaskLikeType(this Type taskLike)
 		{
@@ -901,11 +912,11 @@ namespace Doxense.Serialization
 			return null;
 		}
 
-		/// <summary>Indique si la propriété est un custom index (ex: "get_Item[string key]")</summary>
+		/// <summary>Tests if a property is a custom indexer (ex: "get_Item[string key]")</summary>
 		[Pure]
 		public static bool IsCustomIndexer(this PropertyInfo prop)
 		{
-			// Les indexer properties ont au moins 1 argument!
+			// indexers have at least one argument
 			return prop.GetIndexParameters().Length != 0;
 		}
 
