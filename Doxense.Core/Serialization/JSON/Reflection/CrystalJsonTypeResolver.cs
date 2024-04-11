@@ -491,6 +491,8 @@ namespace Doxense.Serialization.Json
 
 			//TODO: ducktyping! aka ctor(JsonValue)
 
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable CS0612 // Type or member is obsolete
 			if (type.IsAssignableTo<IJsonBindable>())
 			{
 				var generator = type.CompileGenerator();
@@ -501,6 +503,16 @@ namespace Doxense.Serialization.Json
 					return CreateDefaultJsonArrayBinder_Binder(type, binder);
 				}
 			}
+#pragma warning restore CS0612 // Type or member is obsolete
+#pragma warning restore CS0618 // Type or member is obsolete
+
+			// look for a method with a same name (before the introduction of static methods in interfaces)
+
+			if (type.IsGenericInstanceOf(typeof(IJsonDeserializer<>)))
+			{ // use the method defined in the interface
+				var binder = CreateStaticJsonDeserializerBinder(type);
+				return CreateDefaultJsonArrayBinder_Binder(type, binder);
+			}
 
 			staticMethod = type.GetMethod("JsonDeserialize", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 			if (staticMethod != null)
@@ -510,16 +522,20 @@ namespace Doxense.Serialization.Json
 				return CreateDefaultJsonArrayBinder_Binder(type, binder);
 			}
 
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable CS0612 // Type or member is obsolete
 			if (type.IsAssignableTo<IJsonDeserializable>())
 			{
 				var generator = type.CompileGenerator();
 				if (generator != null)
 				{
-					var binder = CreateBinderForIJsonSerializable(type, generator);
+					var binder = CreateBinderForIJsonDeserializable(type, generator);
 					Contract.Debug.Assert(binder != null);
 					return CreateDefaultJsonArrayBinder_Binder(type, binder);
 				}
 			}
+#pragma warning restore CS0612 // Type or member is obsolete
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			if (type.IsAssignableTo<IEnumerable>())
 			{
@@ -528,6 +544,20 @@ namespace Doxense.Serialization.Json
 
 			// on ne sait pas gérer ce type de collection
 			return CreateDefaultJsonArrayBinder_Invalid(type);
+		}
+
+		private static CrystalJsonTypeBinder CreateStaticJsonDeserializerBinder(Type type)
+		{
+			var m = typeof(CrystalJsonTypeResolver)
+				.GetMethod(nameof(BindJsonDeserializer), BindingFlags.Static | BindingFlags.NonPublic)!
+				.MakeGenericMethod(type);
+
+			return m.CreateDelegate<CrystalJsonTypeBinder>();
+		}
+
+		private static object? BindJsonDeserializer<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver) where TValue : IJsonDeserializer<TValue>
+		{
+			return TValue.JsonDeserialize(value ?? JsonNull.Null, resolver);
 		}
 
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_Boxed(Type type)
@@ -1021,6 +1051,8 @@ namespace Doxense.Serialization.Json
 			}
 
 			// IJsonBindable...
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable CS0612 // Type or member is obsolete
 			if (type.IsAssignableTo<IJsonBindable>())
 			{
 				generator = RequireGeneratorForType(type);
@@ -1028,6 +1060,8 @@ namespace Doxense.Serialization.Json
 				Contract.Debug.Assert(binder != null);
 				return binder;
 			}
+#pragma warning restore CS0612 // Type or member is obsolete
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			// constructeur qui prend un JsonValue en entrée?
 			var ctor = FindJsonConstructor(type);
@@ -1038,6 +1072,13 @@ namespace Doxense.Serialization.Json
 			}
 
 			// Static Serializable
+
+			if (type.IsGenericInstanceOf(typeof(IJsonDeserializer<>)))
+			{ // use the method defined in the interface
+				return CreateStaticJsonDeserializerBinder(type);
+			}
+
+			// look for a method with a same name (before the introduction of static methods in interfaces)
 			staticMethod = type.GetMethod("JsonDeserialize", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 			if (staticMethod != null)
 			{
@@ -1046,14 +1087,18 @@ namespace Doxense.Serialization.Json
 				return binder;
 			}
 
-			// IJsonSerialiable...
-			if (type.IsInstanceOf<IJsonSerializable>())
+			// IJsonDeserialiable... [OBSOLETE]
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable CS0612 // Type or member is obsolete
+			if (type.IsAssignableTo<IJsonDeserializable>())
 			{
 				generator = RequireGeneratorForType(type);
-				binder = CreateBinderForIJsonSerializable(type, generator);
+				binder = CreateBinderForIJsonDeserializable(type, generator);
 				Contract.Debug.Assert(binder != null);
 				return binder;
 			}
+#pragma warning restore CS0612 // Type or member is obsolete
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			// Dictionnary?
 			if (type.IsGenericInstanceOf(typeof(IDictionary<,>)))
@@ -1154,23 +1199,20 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		/// <summary>Génère un binder qui invoque la méthode IJsonSerializable.JsonDeserialize(...) d'un objet</summary>
-		private static CrystalJsonTypeBinder CreateBinderForIJsonSerializable(Type type, Func<object> generator)
+		/// <summary>Generates a binder that calls IJsonDeserializable.JsonDeserialize(...)</summary>
+		[Obsolete]
+		private static CrystalJsonTypeBinder CreateBinderForIJsonDeserializable(Type type, Func<object> generator)
 		{
 			Contract.Debug.Requires(type != null && typeof(IJsonSerializable).IsAssignableFrom(type));
 			Contract.NotNull(generator);
 
-			// L'instance dispose d'une méthode this.JsonDeserialize(...)
 			return (v, t, r) =>
 			{
 				if (v == null || v.IsNull) return null;
-				if (v is not JsonObject) throw FailCannotDeserializeNotJsonObject(t);
+				if (v is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(t);
 
-				// create new instance
-				var instance = (IJsonSerializable) generator();
-#pragma warning disable 618
-				instance.JsonDeserialize((JsonObject) v, t, r);
-#pragma warning restore 618
+				var instance = (IJsonDeserializable) generator();
+				instance.JsonDeserialize(obj, t, r);
 				return instance;
 			};
 		}

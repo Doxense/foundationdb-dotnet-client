@@ -42,7 +42,13 @@ namespace Doxense.Serialization.Json
 	[CannotApplyEqualityOperator]
 	[DebuggerNonUserCode]
 	[PublicAPI]
-	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonDynamic, IJsonSerializable, IJsonConvertible, IFormattable, ISliceSerializable
+	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable
+#pragma warning disable CS0618 // Type or member is obsolete
+		, IJsonDynamic
+#pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning disable CS0612 // Type or member is obsolete
+		, IJsonConvertible
+#pragma warning restore CS0612 // Type or member is obsolete
 	{
 		/// <summary>Type du token JSON</summary>
 		public abstract JsonType Type { [Pure] get; }
@@ -1214,11 +1220,6 @@ namespace Doxense.Serialization.Json
 		#region IJsonSerializable
 
 		public abstract void JsonSerialize(CrystalJsonWriter writer);
-
-		void IJsonSerializable.JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver)
-		{
-			throw new NotSupportedException("Do not calls this method!");
-		}
 
 		#endregion
 

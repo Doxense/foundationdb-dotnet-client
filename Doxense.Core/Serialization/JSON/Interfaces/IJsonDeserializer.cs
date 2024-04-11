@@ -28,10 +28,21 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 
-	[Obsolete("Will be removed soon")]
-	public interface IJsonDynamic
+	/// <summary>Types that implement this interface support deserialization directly from a <see cref="JsonValue"/></summary>
+	/// <remarks>Types that also support serializing to a <see cref="JsonValue"/> should implement <see cref="IJsonPackable"/> as well.</remarks>
+#if !NET8_0_OR_GREATER
+	[System.Runtime.Versioning.RequiresPreviewFeatures]
+#endif
+	public interface IJsonDeserializer<out TSelf>
 	{
-		JsonValue GetJsonValue();
+		/// <summary>Deserializes an instance of type <typeparamref name="TSelf"/> from parsed JSON value</summary>
+		/// <param name="value">JSON value that will be bound to the new instance</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		/// <returns>A new instance of <typeparamref name="TSelf"/> that has been initialized from the contents of <paramref name="value"/>.</returns>
+		static abstract TSelf JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
+
+		//REVIEW: maybe consider IJsonDeserializer<TInstance, TJson> ?
+		// -> able to say IJsonDeserializer<FooBar, JsonObject> so that first argument is already casted to JsonObject?
 	}
 
 }

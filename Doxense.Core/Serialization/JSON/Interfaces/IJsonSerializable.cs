@@ -29,18 +29,32 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.ComponentModel;
 
-	/// <summary>Interface indiquant qu'un objet peut gérer lui même la sérialisation en JSON</summary>
+	/// <summary>Type that can serialize itself to JSON</summary>
 	public interface IJsonSerializable
 	{
-		/// <summary>Transforme l'objet en un string JSON</summary>
-		/// <param name="writer">Context courant de la sérialisation</param>
+		/// <summary>Serializes this instance as JSON</summary>
+		/// <param name="writer">Writer that will output the content of this instance</param>
 		void JsonSerialize(CrystalJsonWriter writer);
 
-		/// <summary>Désérialise un objet JSON en remplissant l'instance</summary>
+		//note: JsonDeserialize used to be in this interface, but has been moved to IJsonDeserialize, tagged as [Obsolete]
+		// the correct way is to implement IJsonDeserializer<T> or have a ctor that takes in a JsonValue as first parameter
+
+	}
+
+	/// <summary>LEGACY: should be not implemented. Implement <see cref="IJsonDeserializer{TSelf}"/> instead.</summary>
+	[Obsolete("Implement IJsonDeserializer<T> instead")]
+	public interface IJsonDeserializable
+	{
+		// Why it's deprecated:
+		// - does not work with read-only objects (cannot write to them after the ctor)
+		// - does not support { get; init; } properties (for the same reason)
+		// - does not work well with types that have custom initialization in the ctor (runs before we have the content)
+		// - was created before the support for static methods in interfaces
+
+		/// <summary>Injects the contant of a JSON Objet into an instance of this type</summary>
 		/// <param name="value">Valeur</param>
 		/// <param name="declaredType"></param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		[Obsolete("Use IJsonBindable.JsonUnpack instead")]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		void JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver);
 

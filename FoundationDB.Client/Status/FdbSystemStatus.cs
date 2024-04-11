@@ -284,8 +284,6 @@ namespace FoundationDB.Client.Status
 
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => (m_data ?? JsonNull.Null).JsonSerialize(writer);
 
-		public void JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver) => throw new NotSupportedException();
-
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_data ?? JsonNull.Null;
 
 	}

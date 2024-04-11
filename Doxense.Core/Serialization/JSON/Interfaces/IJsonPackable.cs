@@ -28,10 +28,17 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 
-	[Obsolete("Will be removed soon")]
-	public interface IJsonDynamic
+	/// <summary>Types that implement this interface support serialization directly into a <see cref="JsonValue"/>, usually as a JSON Object or Array</summary>
+	/// <remarks>Types that also support deserializing from a <see cref="JsonValue"/> should implement <see cref="IJsonDeserializer{TSelf}"/> as well.</remarks>
+	public interface IJsonPackable
 	{
-		JsonValue GetJsonValue();
+
+		/// <summary>Converts an instance of this type into the equivalent JSON value, usually a JSON Object or Array</summary>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		/// <remarks>If the type also implements <see cref="IJsonDeserializer{TSelf}"/>, the result of <see cref="IJsonDeserializer{TSelf}.JsonDeserialize">parsing</see> the resulting JSON value should produce an object that is equivalent to the original (or as close as possible if some values loose some precision after serialization)</remarks>
+		JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver);
+
 	}
 
 }

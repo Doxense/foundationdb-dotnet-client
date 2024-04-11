@@ -1852,18 +1852,48 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_Json_Custom_Serializable_Static()
+		public void Test_Json_Custom_Serializable_Static_Legacy()
 		{
+			// LEGACY: for back compatibility with old "duck typing" static JsonSerialize method
+			// -> new code should use the IJsonDeserializer<T> interface that defines the static method
 
 			// serialize
-			var x = new DummyStaticCustomJson("foo");
+			var x = new DummyStaticLegacyJson("foo");
 			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "custom":"foo" }"""));
 
 			// deserialize
-			var y = CrystalJson.Deserialize<DummyStaticCustomJson>("""{ "custom":"bar" }""");
+			var y = CrystalJson.Deserialize<DummyStaticLegacyJson>("""{ "custom":"bar" }""");
 			Assert.That(y, Is.Not.Null);
-			Assert.That(y, Is.InstanceOf<DummyStaticCustomJson>());
+			Assert.That(y, Is.InstanceOf<DummyStaticLegacyJson>());
 			Assert.That(y.GetSecret(), Is.EqualTo("bar"));
+		}
+
+		[Test]
+		public void Test_Json_Custom_Serializable_Static()
+		{
+			// ensure we can deserialize a type using the static method "JsonDesrialize(...)"
+			// - compatible with readonly types and/or types that don't have a parameterless ctor!
+
+			// serialize
+			var foo = new DummyStaticCustomJson("foo");
+			Assert.That(CrystalJson.Serialize(foo), Is.EqualTo("""{ "custom":"foo" }"""));
+
+			// deserialize
+			var foo2 = CrystalJson.Deserialize<DummyStaticCustomJson>("""{ "custom":"bar" }""");
+			Assert.That(foo2, Is.Not.Null);
+			Assert.That(foo2, Is.InstanceOf<DummyStaticCustomJson>());
+			Assert.That(foo2.GetSecret(), Is.EqualTo("bar"));
+
+			// arrays
+
+			var arr = new [] { new DummyStaticCustomJson("foo"), new DummyStaticCustomJson("bar"), };
+			Assert.That(CrystalJson.Serialize(arr), Is.EqualTo("""[ { "custom":"foo" }, { "custom":"bar" } ]"""));
+
+			var arr2 = CrystalJson.Deserialize<DummyStaticCustomJson[]>("""[ { "custom":"foo" }, { "custom":"bar" } ]""");
+			Assert.That(arr2, Is.Not.Null);
+			Assert.That(arr2, Has.Length.EqualTo(2));
+			Assert.That(arr2[0].GetSecret(), Is.EqualTo("foo"));
+			Assert.That(arr2[1].GetSecret(), Is.EqualTo("bar"));
 		}
 
 		[Test]
@@ -8954,7 +8984,7 @@ namespace Doxense.Serialization.Json.Tests
 		public string? DoubleAgentName { get => m_doubleAgentName; set => m_doubleAgentName = value; }
 	}
 
-	class DummyJsonCustomClass : IJsonSerializable, IJsonBindable
+	public sealed class DummyJsonCustomClass : IJsonSerializable, IJsonBindable
 	{
 		public string DontCallThis => "ShouldNotSeeThat";
 
@@ -8978,11 +9008,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
 			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
 			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
-		}
-
-		void IJsonSerializable.JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver)
-		{
-			Assert.Fail("Should never be called because we are also IJsonBindable!");
 		}
 
 		#endregion
@@ -9012,15 +9037,14 @@ namespace Doxense.Serialization.Json.Tests
 
 	}
 
-
-	class DummyStaticCustomJson
+	public sealed class DummyStaticLegacyJson
 	{
 		public string DontCallThis => "ShouldNotSeeThat";
 
-		private DummyStaticCustomJson()
+		private DummyStaticLegacyJson()
 		{ }
 
-		public DummyStaticCustomJson(string secret)
+		public DummyStaticLegacyJson(string secret)
 		{
 			m_secret = secret;
 		}
@@ -9034,7 +9058,7 @@ namespace Doxense.Serialization.Json.Tests
 		/// <summary>Méthode static utilisée pour sérialiser un objet</summary>
 		/// <param name="instance"></param>
 		/// <param name="writer"></param>
-		public static void JsonSerialize(DummyStaticCustomJson instance, CrystalJsonWriter writer)
+		public static void JsonSerialize(DummyStaticLegacyJson instance, CrystalJsonWriter writer)
 		{
 			Assert.That(writer, Is.Not.Null, "writer");
 			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
@@ -9044,14 +9068,49 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Méthode statique utilisée pour désérialiser un objet</summary>
-		public static DummyStaticCustomJson JsonDeserialize(JsonObject value, ICrystalJsonTypeResolver resolver)
+		public static DummyStaticLegacyJson JsonDeserialize(JsonObject value, ICrystalJsonTypeResolver resolver)
 		{
 			Assert.That(value, Is.Not.Null, "value");
 
 			// doit contenir une string "custom"
 			var customString = value.Get<string>("custom", message: "Missing 'custom' value for DummyCustomJson");
-			return new DummyStaticCustomJson(customString);
+			return new DummyStaticLegacyJson(customString);
 
+		}
+
+		#endregion
+	}
+
+	public sealed record DummyStaticCustomJson : IJsonSerializable, IJsonDeserializer<DummyStaticCustomJson>
+	{
+		public string DontCallThis => "ShouldNotSeeThat";
+
+		public DummyStaticCustomJson(string secret)
+		{
+			m_secret = secret;
+		}
+
+		private string m_secret;
+
+		public string GetSecret() { return m_secret; }
+
+		#region IJsonSerializable Members
+
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer)
+		{
+			Assert.That(writer, Is.Not.Null, "writer");
+			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
+			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
+
+			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
+		}
+
+		static DummyStaticCustomJson IJsonDeserializer<DummyStaticCustomJson>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? _ = null)
+		{
+			Assert.That(value, Is.Not.Null, "value");
+
+			var customString = value.Get<string>("custom", message: "Missing 'custom' value for DummyCustomJson");
+			return new DummyStaticCustomJson(customString);
 		}
 
 		#endregion

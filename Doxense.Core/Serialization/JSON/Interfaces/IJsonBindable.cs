@@ -28,43 +28,14 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 
-	/// <summary>Types that implement this interface support serialization directly into a <see cref="JsonValue"/>, usually as a JSON Object or Array</summary>
-	/// <remarks>Types that also support deserializing from a <see cref="JsonValue"/> should implement <see cref="IJsonUnpackable{TSelf}"/> as well.</remarks>
-	public interface IJsonPackable
-	{
-
-		/// <summary>Convert an instance of this type into the equivalent JSON value, usually a JSON Object or Array</summary>
-		/// <param name="settings">Serialization settings</param>
-		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
-		/// <remarks>If the type also implements <see cref="IJsonUnpackable{TSelf}"/>, the result of <see cref="IJsonUnpackable{TSelf}.JsonUnpack">parsing</see> the resulting JSON value should produce an object that is equivalent to the original (or as close as possible if some values loose some precision after serialization)</remarks>
-		JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver);
-
-	}
-
-
-	/// <summary>Interface indiquant qu'un objet peut gérer lui même la sérialisation vers/depuis un DOM JSON</summary>
+	/// <summary>[LEGACY] Types that implement this interface support deserialization directly from a <see cref="JsonValue"/></summary>
 	[Obsolete("Consider implementing both IJsonPackable and IJsonUnpackable<T> instead")]
 	public interface IJsonBindable : IJsonPackable
 	{
-		/// <summary>Initialize this value by loading the contents of a previously serialize JSON value</summary>
+		/// <summary>Initializes this value by loading the contents of a previously serialize JSON value</summary>
 		/// <param name="value">JSON value that will be bound to this instance</param>
 		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
-		[Obsolete("Consider calling the static IJsonUnpackable<T>.JsonUnpack(...) overload instead")]
 		void JsonUnpack(JsonValue value, ICrystalJsonTypeResolver resolver);
-	}
-
-	/// <summary>Types that implement this interface support deserialization directly from a <see cref="JsonValue"/></summary>
-	/// <remarks>Types that also support serializing to a <see cref="JsonValue"/> should implement <see cref="IJsonPackable"/> as well.</remarks>
- #if !NET8_0_OR_GREATER
-	[System.Runtime.Versioning.RequiresPreviewFeatures]
-#endif
-	public interface IJsonUnpackable<out TSelf>
-	{
-		/// <summary>Deserialize an instance of type <typeparamref name="TSelf"/> from parsed JSON value</summary>
-		/// <param name="value">JSON value that will be bound to the new instance</param>
-		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
-		/// <returns>A new instance of <typeparamref name="TSelf"/> that has been initialized from the contents of <paramref name="value"/>.</returns>
-		static abstract TSelf JsonUnpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
 
 	}
 
