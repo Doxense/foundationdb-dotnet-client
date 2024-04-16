@@ -516,6 +516,36 @@ namespace Doxense.Serialization.Json
 			EndArray(state);
 		}
 
+		public void WritePair(int key, ReadOnlySpan<char> value)
+		{
+			var state = BeginArray();
+			WriteHeadSeparator();
+			WriteValue(key);
+			WriteTailSeparator();
+			WriteValue(value);
+			EndArray(state);
+		}
+
+		public void WritePair(int key, ReadOnlyMemory<char> value)
+		{
+			var state = BeginArray();
+			WriteHeadSeparator();
+			WriteValue(key);
+			WriteTailSeparator();
+			WriteValue(value.Span);
+			EndArray(state);
+		}
+
+		public void WritePair(int key, StringBuilder? value)
+		{
+			var state = BeginArray();
+			WriteHeadSeparator();
+			WriteValue(key);
+			WriteTailSeparator();
+			WriteValue(value);
+			EndArray(state);
+		}
+
 		public void WritePair(int key, JsonValue? value)
 		{
 			var state = BeginArray();
@@ -557,6 +587,36 @@ namespace Doxense.Serialization.Json
 		}
 
 		public void WritePair(string? key, string? value)
+		{
+			var state = BeginArray();
+			WriteHeadSeparator();
+			WriteValue(key);
+			WriteTailSeparator();
+			WriteValue(value);
+			EndArray(state);
+		}
+
+		public void WritePair(string? key, ReadOnlySpan<char> value)
+		{
+			var state = BeginArray();
+			WriteHeadSeparator();
+			WriteValue(key);
+			WriteTailSeparator();
+			WriteValue(value);
+			EndArray(state);
+		}
+
+		public void WritePair(string? key, ReadOnlyMemory<char> value)
+		{
+			var state = BeginArray();
+			WriteHeadSeparator();
+			WriteValue(key);
+			WriteTailSeparator();
+			WriteValue(value.Span);
+			EndArray(state);
+		}
+
+		public void WritePair(string? key, StringBuilder? value)
 		{
 			var state = BeginArray();
 			WriteHeadSeparator();
@@ -620,6 +680,36 @@ namespace Doxense.Serialization.Json
 			EndInlineArray(state);
 		}
 
+		public void WriteInlinePair(int key, ReadOnlySpan<char> value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			WriteValue(key);
+			WriteInlineTailSeparator();
+			WriteValue(value);
+			EndInlineArray(state);
+		}
+
+		public void WriteInlinePair(int key, ReadOnlyMemory<char> value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			WriteValue(key);
+			WriteInlineTailSeparator();
+			WriteValue(value.Span);
+			EndInlineArray(state);
+		}
+
+		public void WriteInlinePair(int key, StringBuilder? value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			WriteValue(key);
+			WriteInlineTailSeparator();
+			WriteValue(value);
+			EndInlineArray(state);
+		}
+
 		public void WriteInlinePair(int key, JsonValue? value)
 		{
 			var state = BeginInlineArray();
@@ -670,6 +760,26 @@ namespace Doxense.Serialization.Json
 			EndInlineArray(state);
 		}
 
+		public void WriteInlinePair(string? key, ReadOnlySpan<char> value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			WriteValue(key);
+			WriteInlineTailSeparator();
+			WriteValue(value);
+			EndInlineArray(state);
+		}
+
+		public void WriteInlinePair(string? key, ReadOnlyMemory<char> value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			WriteValue(key);
+			WriteInlineTailSeparator();
+			WriteValue(value.Span);
+			EndInlineArray(state);
+		}
+
 		public void WriteInlinePair(string? key, JsonValue? value)
 		{
 			var state = BeginInlineArray();
@@ -687,6 +797,16 @@ namespace Doxense.Serialization.Json
 			WriteValue(key);
 			WriteInlineTailSeparator();
 			VisitValue<TValue>(value);
+			EndInlineArray(state);
+		}
+
+		public void WriteInlinePair(string? key, StringBuilder? value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			WriteValue(key);
+			WriteInlineTailSeparator();
+			WriteValue(value);
 			EndInlineArray(state);
 		}
 
@@ -793,6 +913,15 @@ namespace Doxense.Serialization.Json
 			WritePropertyName(name);
 		}
 
+		/// <summary>Write a property name that is KNOWN to not require any escaping.</summary>
+		/// <param name="name">Name of the property that MUST NOT REQUIRED ANY ESCAPING!</param>
+		/// <remarks>Calling this with a .NET object property or field name (obtained via reflection or nameof(...)) is OK, but calling with a dictionary key or user-input is NOT safe!</remarks>
+		public void WriteName(ReadOnlySpan<char> name)
+		{
+			WriteFieldSeparator();
+			WritePropertyName(name);
+		}
+
 		internal void WritePropertyName(string name)
 		{
 			if (!m_javascript)
@@ -812,6 +941,47 @@ namespace Doxense.Serialization.Json
 		{
 			var buffer = m_buffer;
 			buffer.Write(Doxense.Web.JavaScriptEncoding.EncodePropertyName(FormatName(name)));
+			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+		}
+
+		internal void WritePropertyName(ReadOnlySpan<char> name)
+		{
+			if (m_javascript)
+			{
+				WriteJavaScriptName(name);
+				return;
+			}
+
+			var buffer = m_buffer;
+			buffer.Write('"');
+			if (!m_camelCase || (name[0] is '_' or (>= 'a' and <= 'z')))
+			{
+				buffer.Write(name);
+			}
+			else
+			{
+				buffer.Write(char.ToLowerInvariant(name[0]));
+				if (name.Length > 1) buffer.Write(name[1..]);
+			}
+
+			buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+		}
+
+		internal void WriteJavaScriptName(ReadOnlySpan<char> name)
+		{
+			var buffer = m_buffer;
+			if (!m_camelCase || (name[0] is '_' or (>= 'a' and <= 'z')))
+			{
+				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(buffer, name);
+			}
+			else
+			{
+				//TODO: REVIEW: better way for this?
+				Span<char> tmp = stackalloc char[name.Length];
+				tmp[0] = char.ToLowerInvariant(name[0]);
+				name[1..].CopyTo(tmp[1..]);
+				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(buffer, name);
+			}
 			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 		}
 
@@ -906,6 +1076,32 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(ReadOnlySpan<char> value)
+		{
+			if (!m_javascript)
+			{
+				CrystalJsonFormatter.WriteJsonString(m_buffer, value);
+			}
+			else
+			{
+				CrystalJsonFormatter.WriteJavaScriptString(m_buffer, value);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(ReadOnlyMemory<char> value)
+		{
+			if (!m_javascript)
+			{
+				CrystalJsonFormatter.WriteJsonString(m_buffer, value.Span);
+			}
+			else
+			{
+				CrystalJsonFormatter.WriteJavaScriptString(m_buffer, value.Span);
+			}
+		}
+
 		public void WriteValue(char value)
 		{
 			// replace the NUL character (\0) by 'null'
@@ -956,11 +1152,83 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write(value == null ? JsonTokens.Null : value.Value ? JsonTokens.True : JsonTokens.False);
 		}
 
+		public void WriteValue(byte value)
+		{
+			if (value < 10)
+			{ // single char
+				m_buffer.Write((char) (48 + value));
+			}
+			else
+			{
+				CrystalJsonFormatter.WriteSignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(byte? value)
+		{
+			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+		}
+
+		public void WriteValue(sbyte value)
+		{
+			if ((uint) value < 10U)
+			{ // single char
+				m_buffer.Write((char) (48 + value));
+			}
+			else
+			{
+				CrystalJsonFormatter.WriteSignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(sbyte? value)
+		{
+			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+		}
+
+		public void WriteValue(short value)
+		{
+			if ((uint) value < 10U)
+			{ // single char
+				m_buffer.Write((char) (48 + value));
+			}
+			else
+			{
+				CrystalJsonFormatter.WriteSignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(short? value)
+		{
+			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+		}
+
+		public void WriteValue(ushort value)
+		{
+			if (value < 10U)
+			{ // single char
+				m_buffer.Write((char) (48 + value));
+			}
+			else
+			{
+				CrystalJsonFormatter.WriteUnsignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(ushort? value)
+		{
+			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+		}
+
 		public void WriteValue(int value)
 		{
 			if ((uint) value < 10U)
 			{ // single char
-				m_buffer.Write((char)(48 + value));
+				m_buffer.Write((char) (48 + value));
 			}
 			else
 			{
@@ -978,7 +1246,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value < 10U)
 			{ // single char
-				m_buffer.Write((char)(48 + (int)value));
+				m_buffer.Write((char) (48 + (int) value));
 			}
 			else
 			{
@@ -1166,6 +1434,36 @@ namespace Doxense.Serialization.Json
 				WriteNull();
 			}
 		}
+
+#if NET8_0_OR_GREATER
+
+		public void WriteValue(Half value)
+		{
+			if (value == default)
+			{ // the most common for empty members
+				m_buffer.Write('0');
+			}
+			else
+			{ // direct conversion
+				m_buffer.Write(value.ToString(null, NumberFormatInfo.InvariantInfo));
+				// note: we do not add '.0' for integers, since 'decimal' could be used to represent any number (integer or floats) in dynamic or scripted languages (like javascript), and we want to be able to round-trip: "1" => (decimal) 1 => "1"
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(Half? value)
+		{
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
+		}
+
+#endif
 
 		/// <summary>Write a <c>DateTime</c>, using the configured formatting</summary>
 		public void WriteValue(DateTime value)
@@ -1859,6 +2157,27 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		public void WriteField(string name, StringBuilder? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, ReadOnlySpan<char> value)
+		{
+			WriteName(name);
+			WriteValue(value);
+		}
+
+		public void WriteField(string name, ReadOnlyMemory<char> value)
+		{
+			WriteName(name);
+			WriteValue(value.Span);
+		}
+
 		public void WriteField(string name, bool value)
 		{
 			if (value || !m_discardDefaults)
@@ -1970,6 +2289,33 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+#if NET8_0_OR_GREATER
+
+		public void WriteField(string name, Half value)
+		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (value != default || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, Half? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+#endif
 
 		public void WriteField(string name, DateTime value)
 		{

@@ -91,18 +91,27 @@ namespace Doxense.Serialization.Json
 			{ // null -> "null"
 				writer.Write(JsonTokens.Null);
 			}
-			else if (text.Length == 0)
-			{ // chaine vide -> ""
+			else
+			{
+				WriteJsonString(writer, text.AsSpan());
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		public static void WriteJsonString(TextWriter writer, ReadOnlySpan<char> text)
+		{
+			if (text.Length == 0)
+			{ // empty string -> ""
 				writer.Write(JsonTokens.EmptyString);
 			}
 			else if (!JsonEncoding.NeedsEscaping(text))
-			{ // chaine propre
+			{ // encoding not required (fast path)
 				writer.Write('"');
 				writer.Write(text);
 				writer.Write('"');
 			}
 			else
-			{ // chaine qui nécessite (a priori) un encoding
+			{ // string requires encoding (slow path)
 				writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
 			}
 		}
@@ -113,7 +122,15 @@ namespace Doxense.Serialization.Json
 			{ // "null"
 				writer.Write(JsonTokens.Null);
 			}
-			else if (text.Length == 0)
+			else
+			{
+				WriteJavaScriptString(writer, text.AsSpan());
+			}
+		}
+
+		public static void WriteJavaScriptString(TextWriter writer, ReadOnlySpan<char> text)
+		{
+			if (text.Length == 0)
 			{ // "''"
 				writer.Write(JsonTokens.DoubleQuotes);
 			}
@@ -127,7 +144,6 @@ namespace Doxense.Serialization.Json
 			{ // "'foo\'bar'"
 				writer.Write(JavaScriptEncoding.EncodeSlow(new StringBuilder(), text, includeQuotes: true).ToString());
 			}
-
 		}
 
 		/// <summary>Encode une chaîne en JavaSCript</summary>

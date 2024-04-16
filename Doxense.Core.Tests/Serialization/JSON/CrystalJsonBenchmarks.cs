@@ -501,11 +501,8 @@ namespace Doxense.Serialization.Json.Tests
 				var sb = new StringBuilder(1024);
 				Trace.WriteLine("\"" + s + "\"");
 				ts[p++] = RunBenchOnMethod("  check best  #" + i.ToString(), () => { JsonEncoding.NeedsEscaping(s); }, measure: false);
-				ts[p++] = RunBenchOnMethod("  check short #" + i.ToString(), () => { JsonEncoding.NeedsEscapingShort(s); }, measure: false);
-				ts[p++] = RunBenchOnMethod("  check long  #" + i.ToString(), () => { JsonEncoding.NeedsEscapingLong(s); }, measure: false);
 				ts[p++] = RunBenchOnMethod(" append       #" + i.ToString(), () => { sb.Clear(); sb.Append('"').Append(s).Append('"'); }, measure: false);
 				ts[p++] = RunBenchOnMethod(" append best  #" + i.ToString(), () => { sb.Clear(); JsonEncoding.Append(sb, s); }, measure: false);
-				ts[p++] = RunBenchOnMethod(" append slow  #" + i.ToString(), () => { sb.Clear(); JsonEncoding.AppendSlow(sb, s, true); }, measure: false);
 				nanos[i] = ts;
 			}
 

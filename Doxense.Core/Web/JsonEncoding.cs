@@ -30,7 +30,6 @@ namespace Doxense.Serialization.Json
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Text;
 	using JetBrains.Annotations;
 
@@ -60,14 +59,23 @@ namespace Doxense.Serialization.Json
 		public static bool NeedsEscaping(char c)
 		{
 			// Encode double-quote ("), anti-slash (\), and ASCII control codes (0..31), as well as special UNICODE characters (0xD800-0xDFFF, 0xFFFE and 0xFFFF)
-			return (c < 32 | c == '"' | c == '\\') || (c >= 0xD800 && (c < 0xE000 | c >= 0xFFFE));
+			return (c < 32 || c == '"' || c == '\\') || (c >= 0xD800 && (c < 0xE000 | c >= 0xFFFE));
 		}
 
 		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
 		/// <param name="s">Text to inspect</param>
 		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool NeedsEscaping(string s)
+		public static bool NeedsEscaping(string? s)
+		{
+			return s != null && NeedsEscaping(s.AsSpan());
+		}
+
+		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <param name="s">Text to inspect</param>
+		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool NeedsEscaping(ReadOnlySpan<char> s)
 		{
 			// A string is a collection of zero or more Unicode characters, wrapped in double quotes, using backslash escapes.
 			// A character is represented as a single character string. A string is very much like a C or Java string.
@@ -75,49 +83,74 @@ namespace Doxense.Serialization.Json
 			return s.Length <= 6
 				? NeedsEscapingShort(s)
 				: NeedsEscapingLong(s);
-		}
 
-		/// <summary>Check if a (short) string must be escaped</summary>
-		/// <remarks>This version is optimized for short strings</remarks>
-		public static bool NeedsEscapingShort(string s)
-		{
-			var lookup = EscapingLookupTable;
-			foreach (var c in s)
-			{
-				if (lookup[c]) return true;
-			}
-			return false;
-		}
-
-		/// <summary>Check if a (long) string must be escaped</summary>
-		/// <remarks>This version is optimized for longer strings</remarks>
-		public static unsafe bool NeedsEscapingLong(string s)
-		{
-			Contract.Debug.Requires(s != null);
-
-			// We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
-			// If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
-
-			fixed (char* p = s)
+			static bool NeedsEscapingShort(ReadOnlySpan<char> s)
 			{
 				var lookup = EscapingLookupTable;
-				int n = s.Length;
-				char* ptr = p;
-
-				// loop unrolling (4 chars = 8 bytes)
-				while (n >= 4)
+				foreach (var c in s)
 				{
-					if (lookup[*(ptr)] | lookup[*(ptr + 1)] | lookup[*(ptr + 2)] | lookup[*(ptr + 3)]) return true;
-					ptr += 4;
-					n -= 4;
-				}
-				// tail
-				while (n-- > 0)
-				{
-					if (lookup[*ptr++]) return true;
+					if (lookup[c]) return true;
 				}
 				return false;
 			}
+
+			static unsafe bool NeedsEscapingLong(ReadOnlySpan<char> s)
+			{
+				// We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
+				// If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
+
+				fixed (char* p = s)
+				{
+					var lookup = EscapingLookupTable;
+					int n = s.Length;
+					char* ptr = p;
+
+					// loop unrolling (4 chars = 8 bytes)
+					while (n >= 4)
+					{
+						if (lookup[*(ptr)] | lookup[*(ptr + 1)] | lookup[*(ptr + 2)] | lookup[*(ptr + 3)]) return true;
+						ptr += 4;
+						n -= 4;
+					}
+					// tail
+					while (n-- > 0)
+					{
+						if (lookup[*ptr++]) return true;
+					}
+					return false;
+				}
+			}
+
+		}
+
+		/// <summary>Encode a string of text that must be written to a JSON document</summary>
+		/// <param name="text">Text to encode</param>
+		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
+		/// <remarks>String with the correct escaping and surrounded by double-quotes (<c>"..."</c>), or <c>"null"</c> if <paramref name="text"/> is <c>null</c></remarks>
+		/// <example>EncodeJsonString("foo") => "\"foo\""</example>
+		public static string Encode(ReadOnlySpan<char> text)
+		{
+			if (text.Length == 0)
+			{ // => ""
+				return "\"\"";
+			}
+			
+			// first check if we actually need to encode anything
+			if (NeedsEscaping(text))
+			{ // yes => slow path
+				return EncodeSlow(text);
+			}
+
+			// nothing to do, except add the double quotes
+			return string.Concat("\"", text, "\"");
+		}
+
+		internal static string EncodeSlow(ReadOnlySpan<char> text)
+		{
+			// note: we assume that the typical overhead of escaping characters will be up to 6 characters if there is only one or two "invalid" characters
+			// this assumption totally breaks down for non-latin languages!
+			var sb = StringBuilderCache.Acquire(checked(text.Length + 2 + 6));
+			return StringBuilderCache.GetStringAndRelease(AppendSlow(sb, text, true));
 		}
 
 		/// <summary>Encode a string of text that must be written to a JSON document</summary>
@@ -147,7 +180,7 @@ namespace Doxense.Serialization.Json
 			return string.Concat("\"", text, "\"");
 		}
 
-		public static string EncodeSlow(string text)
+		internal static string EncodeSlow(string text)
 		{
 			// note: we assume that the typical overhead of escaping characters will be up to 6 characters if there is only one or two "invalid" characters
 			// this assumption totally breaks down for non-latin languages!
@@ -156,13 +189,18 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
-		public static unsafe StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
+		internal static StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
 		{
 			if (text == null)
 			{ // bypass
 				return sb.Append("null");
 			}
+			return AppendSlow(sb, text.AsSpan(), includeQuotes);
+		}
 
+		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
+		internal static unsafe StringBuilder AppendSlow(StringBuilder sb, ReadOnlySpan<char> text, bool includeQuotes)
+		{
 			// We check and encode in a single pass:
 			// - we have a cursor on the last changed character (initially set to 0)
 			// - as long as we see valid characters, we advance the cursor
@@ -212,7 +250,7 @@ namespace Doxense.Serialization.Json
 					{ // \ -> \\
 						goto escape_backslash;
 					}
-					else if (c >= 0xD800 && (c < 0xE000 || c >= 0xFFFE))
+					if (c >= 0xD800 && (c < 0xE000 || c >= 0xFFFE))
 					{ // warning, the Unicode range D800 - DFFF is used to escape non-BMP characters (> 0x10000), and FFFE/FFFF corresponds to BOM UTF-16 (LE/BE)
 						goto escape_unicode;
 					}
@@ -221,16 +259,16 @@ namespace Doxense.Serialization.Json
 
 					// character encoded with a single backslash => \c
 				escape_backslash:
-					if (i > last) sb.Append(text, last, i - last);
+					if (i > last) sb.Append(text.Slice(last, i - last));
 					last = i + 1;
 					sb.Append('\\').Append(c);
 					goto next;
 
 					// character encoded as Unicode using 16 bits
 				escape_unicode:
-					if (i > last) sb.Append(text, last, i - last);
+					if (i > last) sb.Append(text.Slice(last, i - last));
 					last = i + 1;
-					sb.Append(@"\u").Append(((int)c).ToString("x4", NumberFormatInfo.InvariantInfo)); //TODO: PERF: optimize this!
+					sb.Append(@"\u").Append(((int) c).ToString("x4", NumberFormatInfo.InvariantInfo)); //TODO: PERF: optimize this!
 					goto next;
 
 				next:
@@ -246,7 +284,7 @@ namespace Doxense.Serialization.Json
 			}
 			else if (last < text.Length)
 			{ // append the tail that did not need any escaping
-				sb.Append(text, last, text.Length - last);
+				sb.Append(text.Slice(last, text.Length - last));
 			}
 			return includeQuotes ? sb.Append('"') : sb;
 		}

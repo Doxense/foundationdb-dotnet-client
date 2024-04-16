@@ -75,6 +75,7 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Net;
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices.ComTypes;
 	using System.Runtime.Serialization;
 	using System.Text;
 	using System.Threading;
@@ -405,14 +406,14 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.StringEncode("üéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ"), Is.EqualTo(@"""üéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ"""), "ASCI 129-199");
 			Assert.That(CrystalJson.StringEncode("╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´­±‗¾¶§÷¸°¨·¹³²■"), Is.EqualTo(@"""╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´­±‗¾¶§÷¸°¨·¹³²■"""), "ASCI 200-254");
 			Assert.That(CrystalJson.StringEncode("\xFF"), Is.EqualTo("\"\xFF\""), "ASCI 255");
-			Assert.That(CrystalJson.StringEncode("الصفحة_الرئيسية"), Is.EqualTo(@"""الصفحة_الرئيسية""")); // Arabe
-			Assert.That(CrystalJson.StringEncode("メインページ"), Is.EqualTo(@"""メインページ""")); // Japonais
-			Assert.That(CrystalJson.StringEncode("首页"), Is.EqualTo(@"""首页""")); // Chinois
-			Assert.That(CrystalJson.StringEncode("대문"), Is.EqualTo(@"""대문""")); // Corréen
+			Assert.That(CrystalJson.StringEncode("الصفحة_الرئيسية"), Is.EqualTo(@"""الصفحة_الرئيسية""")); // Arabic
+			Assert.That(CrystalJson.StringEncode("メインページ"), Is.EqualTo(@"""メインページ""")); // Japanese
+			Assert.That(CrystalJson.StringEncode("首页"), Is.EqualTo(@"""首页""")); // Chinese
+			Assert.That(CrystalJson.StringEncode("대문"), Is.EqualTo(@"""대문""")); // Korean
 			Assert.That(CrystalJson.StringEncode("Κύρια Σελίδα"), Is.EqualTo(@"""Κύρια Σελίδα""")); // Ellenika
-			Assert.That(CrystalJson.StringEncode("\xD7FF"), Is.EqualTo("\"\xD7FF\""), "Juste avant les non-BMP (D7FF)");
+			Assert.That(CrystalJson.StringEncode("\xD7FF"), Is.EqualTo("\"\xD7FF\""), "Just before the non-BMP (D7FF)");
 			Assert.That(CrystalJson.StringEncode("\xD800\xDFFF"), Is.EqualTo(@"""\ud800\udfff"""), "non-BMP range: D800-DFFF");
-			Assert.That(CrystalJson.StringEncode("\xE000"), Is.EqualTo("\"\xE000\""), "Juste après les non-BMP (E000)");
+			Assert.That(CrystalJson.StringEncode("\xE000"), Is.EqualTo("\"\xE000\""), "Juste after the non-BMP (E000)");
 			Assert.That(CrystalJson.StringEncode("\xFFFE"), Is.EqualTo(@"""\ufffe"""), "BOM UTF-16 LE (FFFE)");
 			Assert.That(CrystalJson.StringEncode("\xFFFF"), Is.EqualTo(@"""\uffff"""), "BOM UTF-16 BE (FFFF)");
 
@@ -443,6 +444,199 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonEncoding.NeedsEscaping("aaaa\""), Is.True);
 			Assert.That(JsonEncoding.NeedsEscaping("aaaaa\""), Is.True);
 			Assert.That(JsonEncoding.NeedsEscaping("aaaaaa\""), Is.True);
+		}
+
+		[Test]
+		public void Test_CrystalJsonWriter_WriteValue()
+		{
+			static string Execute(Action<CrystalJsonWriter> handler, CrystalJsonSettings? settings = null)
+			{
+				var sb = new StringBuilder();
+				var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
+				handler(writer);
+				return sb.ToString();
+			}
+
+			#region String-like
+
+			// WriteValue(string)
+			Assert.That(Execute((w) => w.WriteValue(default(string))), Is.EqualTo(@"null"));
+			Assert.That(Execute((w) => w.WriteValue("")), Is.EqualTo(@""""""));
+			Assert.That(Execute((w) => w.WriteValue("Hello, World!")), Is.EqualTo(@"""Hello, World!"""));
+			Assert.That(Execute((w) => w.WriteValue("Hello, \"World\"!")), Is.EqualTo(@"""Hello, \""World\""!"""));
+			Assert.That(Execute((w) => w.WriteValue("\\o/")), Is.EqualTo(@"""\\o/"""));
+			// WriteValue(StringBuilder)
+			Assert.That(Execute((w) => w.WriteValue(default(StringBuilder))), Is.EqualTo(@"null"));
+			Assert.That(Execute((w) => w.WriteValue(new StringBuilder())), Is.EqualTo(@""""""));
+			Assert.That(Execute((w) => w.WriteValue(new StringBuilder().Append("Hello, ").Append("World!"))), Is.EqualTo(@"""Hello, World!"""));
+			Assert.That(Execute((w) => w.WriteValue(new StringBuilder().Append("Hello, ").Append("\"World\"!"))), Is.EqualTo(@"""Hello, \""World\""!"""));
+			// WriteValue(ReadOnlySpan<char>)
+			Assert.That(Execute((w) => w.WriteValue(default(ReadOnlySpan<char>))), Is.EqualTo(@""""""));
+			Assert.That(Execute((w) => w.WriteValue("***Hello, World!***".AsSpan(3, 13))), Is.EqualTo(@"""Hello, World!"""));
+			Assert.That(Execute((w) => w.WriteValue("***Hello, \"World\"!***".AsSpan(3, 15))), Is.EqualTo(@"""Hello, \""World\""!"""));
+			// WriteValue(ReadOnlyMemory<char>)
+			Assert.That(Execute((w) => w.WriteValue(default(ReadOnlyMemory<char>))), Is.EqualTo(@""""""));
+			Assert.That(Execute((w) => w.WriteValue("***Hello, World!***".AsMemory(3, 13))), Is.EqualTo(@"""Hello, World!"""));
+			Assert.That(Execute((w) => w.WriteValue("***Hello, \"World\"!***".AsMemory(3, 15))), Is.EqualTo(@"""Hello, \""World\""!"""));
+
+			// WriteValue(Guid)
+			Assert.That(Execute((w) => w.WriteValue(default(Guid))), Is.EqualTo(@"null")); // Guid.Empty is mapped to null/missing
+			Assert.That(Execute((w) => w.WriteValue(Guid.Parse("8d6643a7-a84d-4eab-8394-0b349798bee2"))), Is.EqualTo(@"""8d6643a7-a84d-4eab-8394-0b349798bee2"""));
+			Assert.That(Execute((w) => w.WriteValue((Guid?) Guid.Parse("8d6643a7-a84d-4eab-8394-0b349798bee2"))), Is.EqualTo(@"""8d6643a7-a84d-4eab-8394-0b349798bee2"""));
+
+			#endregion
+
+			#region Booleans...
+
+			Assert.That(Execute(w => w.WriteValue(true)), Is.EqualTo("true"));
+			Assert.That(Execute(w => w.WriteValue(false)), Is.EqualTo("false"));
+			Assert.That(Execute(w => w.WriteValue(default(bool?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((bool?) true)), Is.EqualTo("true"));
+			Assert.That(Execute(w => w.WriteValue((bool?) false)), Is.EqualTo("false"));
+
+			#endregion
+
+			#region Numbers...
+
+			Assert.That(Execute(w => w.WriteValue(0)), Is.EqualTo("0"));
+			Assert.That(Execute(w => w.WriteValue(1)), Is.EqualTo("1"));
+			Assert.That(Execute(w => w.WriteValue(42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(42U)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(42L)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(42UL)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue((byte) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue((short) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(int.MaxValue)), Is.EqualTo("2147483647"));
+			Assert.That(Execute(w => w.WriteValue(int.MinValue)), Is.EqualTo("-2147483648"));
+			Assert.That(Execute(w => w.WriteValue(uint.MaxValue)), Is.EqualTo("4294967295"));
+			Assert.That(Execute(w => w.WriteValue(long.MaxValue)), Is.EqualTo("9223372036854775807"));
+			Assert.That(Execute(w => w.WriteValue(long.MinValue)), Is.EqualTo("-9223372036854775808"));
+			Assert.That(Execute(w => w.WriteValue(Math.PI)), Is.EqualTo("3.141592653589793"));
+			Assert.That(Execute(w => w.WriteValue((float) Math.PI)), Is.EqualTo("3.1415927"));
+			Assert.That(Execute(w => w.WriteValue((Half) Math.PI)), Is.EqualTo("3.14"));
+
+			Assert.That(Execute(w => w.WriteValue(default(int?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((int?) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(default(uint?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((uint?) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(default(long?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((long?) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(default(ulong?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((ulong?) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(default(float?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((float?) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(default(double?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((double?) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(default(decimal?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((decimal?) 42)), Is.EqualTo("42"));
+			Assert.That(Execute(w => w.WriteValue(default(Half?))), Is.EqualTo("null"));
+			Assert.That(Execute(w => w.WriteValue((Half?) 42)), Is.EqualTo("42"));
+
+			#endregion
+		}
+
+		[Test]
+		public void Test_CrystalJsonWriter_WriteField()
+		{
+			static string Execute(Action<CrystalJsonWriter> handler, CrystalJsonSettings? settings = null)
+			{
+				var sb = new StringBuilder();
+				var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
+				var state = writer.BeginObject();
+				handler(writer);
+				writer.EndObject(state);
+				return sb.ToString();
+			}
+
+			#region String-like
+
+			// string
+			Assert.That(Execute((w) => w.WriteField("foo", default(string))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "")), Is.EqualTo(@"{ ""foo"": """" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "Hello, World!")), Is.EqualTo(@"{ ""foo"": ""Hello, World!"" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "Hello, \"World\"!")), Is.EqualTo(@"{ ""foo"": ""Hello, \""World\""!"" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "\\o/")), Is.EqualTo(@"{ ""foo"": ""\\o/"" }"));
+			// StringBuilder
+			Assert.That(Execute((w) => w.WriteField("foo", default(StringBuilder))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute((w) => w.WriteField("foo", new StringBuilder())), Is.EqualTo(@"{ ""foo"": """" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", new StringBuilder().Append("Hello, ").Append("World!"))), Is.EqualTo(@"{ ""foo"": ""Hello, World!"" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", new StringBuilder().Append("Hello, ").Append("\"World\"!"))), Is.EqualTo(@"{ ""foo"": ""Hello, \""World\""!"" }"));
+			// ReadOnlySpan<char>
+			Assert.That(Execute((w) => w.WriteField("foo", default(ReadOnlySpan<char>))), Is.EqualTo(@"{ ""foo"": """" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "***Hello, World!***".AsSpan(3, 13))), Is.EqualTo(@"{ ""foo"": ""Hello, World!"" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "***Hello, \"World\"!***".AsSpan(3, 15))), Is.EqualTo(@"{ ""foo"": ""Hello, \""World\""!"" }"));
+			// ReadOnlyMemory<char>
+			Assert.That(Execute((w) => w.WriteField("foo", default(ReadOnlyMemory<char>))), Is.EqualTo(@"{ ""foo"": """" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "***Hello, World!***".AsMemory(3, 13))), Is.EqualTo(@"{ ""foo"": ""Hello, World!"" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", "***Hello, \"World\"!***".AsMemory(3, 15))), Is.EqualTo(@"{ ""foo"": ""Hello, \""World\""!"" }"));
+			// Guid
+			Assert.That(Execute((w) => w.WriteField("foo", default(Guid))), Is.EqualTo(@"{ ""foo"": null }")); // Guid.Empty is mapped to null/missing
+			Assert.That(Execute((w) => w.WriteField("foo", Guid.Parse("8d6643a7-a84d-4eab-8394-0b349798bee2"))), Is.EqualTo(@"{ ""foo"": ""8d6643a7-a84d-4eab-8394-0b349798bee2"" }"));
+			Assert.That(Execute((w) => w.WriteField("foo", (Guid?) Guid.Parse("8d6643a7-a84d-4eab-8394-0b349798bee2"))), Is.EqualTo(@"{ ""foo"": ""8d6643a7-a84d-4eab-8394-0b349798bee2"" }"));
+
+			#endregion
+
+			#region Booleans...
+
+			Assert.That(Execute(w => w.WriteField("foo", true)), Is.EqualTo(@"{ ""foo"": true }"));
+			Assert.That(Execute(w => w.WriteField("foo", false)), Is.EqualTo(@"{ ""foo"": false }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(bool?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (bool?) true)), Is.EqualTo(@"{ ""foo"": true }"));
+			Assert.That(Execute(w => w.WriteField("foo", (bool?) false)), Is.EqualTo(@"{ ""foo"": false }"));
+
+			#endregion
+
+			#region Numbers...
+
+			Assert.That(Execute(w => w.WriteField("foo", 0)), Is.EqualTo(@"{ ""foo"": 0 }"));
+			Assert.That(Execute(w => w.WriteField("foo", 1)), Is.EqualTo(@"{ ""foo"": 1 }"));
+			Assert.That(Execute(w => w.WriteField("foo", 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", 42U)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", 42L)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", 42UL)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", (byte) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", (short) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", int.MaxValue)), Is.EqualTo(@"{ ""foo"": 2147483647 }"));
+			Assert.That(Execute(w => w.WriteField("foo", int.MinValue)), Is.EqualTo(@"{ ""foo"": -2147483648 }"));
+			Assert.That(Execute(w => w.WriteField("foo", uint.MaxValue)), Is.EqualTo(@"{ ""foo"": 4294967295 }"));
+			Assert.That(Execute(w => w.WriteField("foo", long.MaxValue)), Is.EqualTo(@"{ ""foo"": 9223372036854775807 }"));
+			Assert.That(Execute(w => w.WriteField("foo", long.MinValue)), Is.EqualTo(@"{ ""foo"": -9223372036854775808 }"));
+			Assert.That(Execute(w => w.WriteField("foo", Math.PI)), Is.EqualTo(@"{ ""foo"": 3.141592653589793 }"));
+			Assert.That(Execute(w => w.WriteField("foo", (float) Math.PI)), Is.EqualTo(@"{ ""foo"": 3.1415927 }"));
+			Assert.That(Execute(w => w.WriteField("foo", (Half) Math.PI)), Is.EqualTo(@"{ ""foo"": 3.14 }"));
+
+			Assert.That(Execute(w => w.WriteField("foo", default(int?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (int?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(uint?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (uint?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(long?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (long?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(ulong?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (ulong?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(float?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (float?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(double?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (double?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(decimal?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (decimal?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(Half?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", (Half?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+
+			#endregion
+
+			#region Combo...
+
+			Assert.That(Execute((w) => { }), Is.EqualTo(@"{ }"));
+
+			Assert.That(Execute((w) =>
+			{
+				w.WriteField("foo", "hello");
+				w.WriteField("bar", 123);
+				w.WriteField("baz", true);
+				w.WriteField("missing", default(string));
+			}), Is.EqualTo(@"{ ""foo"": ""hello"", ""bar"": 123, ""baz"": true }"));
+
+			#endregion
 		}
 
 		[Test]

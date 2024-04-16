@@ -27,8 +27,11 @@
 namespace Doxense.Web
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Globalization;
+	using System.IO;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 
@@ -54,7 +57,7 @@ namespace Doxense.Web
 		/// <summary>Test if a javascript string would require escaping or not</summary>
 		/// <param name="s">String to inspect</param>
 		/// <returns><c>true</c> if all characters are valid</returns>
-		public static unsafe bool IsCleanJavaScript(string s)
+		public static unsafe bool IsCleanJavaScript(ReadOnlySpan<char> s)
 		{
 			int n = s.Length;
 			fixed (char* p = s)
@@ -74,10 +77,11 @@ namespace Doxense.Web
 		}
 
 		/// <summary>Encode a Javascript string known to contain at least one invalid character</summary>
-		public static unsafe StringBuilder EncodeSlow(StringBuilder sb, string s, bool includeQuotes)
+		public static unsafe StringBuilder EncodeSlow(StringBuilder sb, ReadOnlySpan<char> s, bool includeQuotes)
 		{
 			int n = s.Length;
 			if (includeQuotes) sb.Append('\'');
+			//PERF: TODO: rewrite this to use ref byte + Unsafe.Add ?
 			fixed (char* p = s)
 			{
 				char* ptr = p;
@@ -101,6 +105,44 @@ namespace Doxense.Web
 			if (includeQuotes) sb.Append('\'');
 			return sb;
 		}
+
+		/// <summary>Writes an encoded a JavaScript string literal</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="text">Text to encode</param>
+		/// <param name="includeQuotes">Si <c>true</c>, automatically add quotes around the string (<c>'...'</c>)</param>
+		/// <returns>Encoded string</returns>
+		/// <remarks>This method will not allocate memory if the original string is printable as-is, and <paramref name="includeQuotes"/> is <c>false</c></remarks>
+		public static void EncodeTo(TextWriter output, ReadOnlySpan<char> text, bool includeQuotes)
+		{
+			if (text.Length == 0)
+			{
+				if (includeQuotes)
+				{
+					output.Write(Tokens.EmptyString);
+				}
+				return;
+			}
+
+			// first pass to check if there escaping is required...
+			if (IsCleanJavaScript(text))
+			{ // nothing to escape
+				if (includeQuotes)
+				{
+					output.Write('\'');
+					output.Write(text);
+					output.Write('\'');
+				}
+				else
+				{
+					output.Write(text);
+				}
+			}
+
+			// second pass to escape all non-printable characters
+			//PERF: TODO: optimize this use case!
+			output.Write(EncodeSlow(new StringBuilder(text.Length + 16), text, includeQuotes));
+		}
+
 
 		/// <summary>Encode a JavaScript string</summary>
 		/// <param name="text">Text to encode</param>
@@ -135,85 +177,111 @@ namespace Doxense.Web
 			return IsValidIdentifier(name) ? name : Encode(name, true);
 		}
 
-		/// <summary>Ensemble des mots clés réservés en JavaScript</summary>
-		private static readonly HashSet<string> s_reservedKeywords = new HashSet<string>(
-			new[] { "instanceof", "typeof", "break", "do", "new", "var", "case", "else", "return", "void", "catch", "finally", "continue", "for", "switch", "while", "this", "with", "debugger", "function", "throw", "default", "if", "try", "delete", "in" },
-			StringComparer.Ordinal // case-sensitive: "Typeof" is not reserved, but "typeof" is!
-		);
+		/// <summary>writes the encoded name of an object's property or field</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="name">Name of a property or field of a Javascript object</param>
+		/// <returns>If the name is "clean", it will be written as-is. Otherwise, it will be escaped</returns>
+		/// <exception cref="System.ArgumentNullException">If 'name' is null</exception>
+		/// <example>
+		/// EncodePropertyName("foo") => "foo"
+		/// EncodePropertyName("foo bar") => "'foo bar'"
+		/// EncodePropertyName("foo'bar") => "'foo\'bar'"
+		/// EncodePropertyName("") => "''"
+		/// EncodePropertyName(null) => ArgumentNullException
+		/// </example>
+		public static void EncodePropertyNameTo(TextWriter output, ReadOnlySpan<char> name)
+		{
+			if (IsValidIdentifier(name))
+			{
+				output.Write(name);
+			}
+			else
+			{
+				EncodeTo(output, name, true);
+			}
+		}
 
-		/// <summary>Détermine si un caractère est valide comme premier caractère d'un identifiant JavaScript ("identifierStart")</summary>
+#if NET8_0_OR_GREATER
+		private static readonly SearchValues<char> s_validIdentifierStartAscii = SearchValues.Create("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		private static readonly SearchValues<char> s_validIdentifierPartAscii = SearchValues.Create("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+#endif
+
+		/// <summary>Tests if a character is valid as the first character in a Javascript identifier ("identifierStart")</summary>
 		private static bool IsValidIdentifierStart(char c)
 		{
 			/* identifierStart:unicodeLetter | DOLLAR | UNDERSCORE | unicodeEscapeSequence  */
 
-			// ASCII Letter, $ or '_'
-			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '$' || c == '_')
+#if NET8_0_OR_GREATER
+			if (c < 0x80 && s_validIdentifierStartAscii.Contains(c))
+			{ // ASCII Letter, $ or '_'
 				return true;
+			}
+#else
+			if (c < 0x080 && ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '$' || c == '_'))
+			{ // ASCII Letter, $ or '_'
+				return true;
+			}
+#endif
 
 			// Otherwise, this must be a "Unicode Letter"
-			if (c >= 0x80)
-			{
-				/* any character in the unicode categories:
-				   "uppercase letter (Lu)",
-				   "lowercase letter (Li)",
-				   "titlecase letter (Lt)",
-				   "modifier letter (Lm)",
-				   "other letter (lo)",
-				   "letter number (NI)" */
-				switch (char.GetUnicodeCategory(c))
-				{
-					case UnicodeCategory.LowercaseLetter:
-					case UnicodeCategory.UppercaseLetter:
-					case UnicodeCategory.TitlecaseLetter:
-					case UnicodeCategory.ModifierLetter:
-					case UnicodeCategory.OtherLetter:
-					case UnicodeCategory.LetterNumber:
-						{
-							return true;
-						}
-				}
-			}
-			return false;
+			/* any character in the unicode categories:
+			   "uppercase letter (Lu)",
+			   "lowercase letter (Li)",
+			   "titlecase letter (Lt)",
+			   "modifier letter (Lm)",
+			   "other letter (lo)",
+			   "letter number (NI)" */
+			return char.GetUnicodeCategory(c) is (
+				   UnicodeCategory.LowercaseLetter 
+				or UnicodeCategory.UppercaseLetter
+				or UnicodeCategory.TitlecaseLetter
+				or UnicodeCategory.ModifierLetter
+				or UnicodeCategory.OtherLetter
+				or UnicodeCategory.LetterNumber
+			);
 		}
 
-		/// <summary>Test if a character (that is not the first one) is allowed in a JavaScript identifier ("identifierPart")</summary>
+		/// <summary>Tests if a character (that is not the first one) is valid as part of a JavaScript identifier ("identifierPart")</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool IsValidIdentifierPart(char c)
 		{
-			// ASCII Letter, Digit, $ or '_'
-			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '$' || c == '_')
+#if NET8_0_OR_GREATER
+			if (c < 0x80 && s_validIdentifierPartAscii.Contains(c))
+			{ // ASCII Letter, Digit, $ or '_'
 				return true;
-
-			if (c >= 0x80)
-			{
-				switch (char.GetUnicodeCategory(c))
-				{
-					// unicodeLetter
-					case UnicodeCategory.LowercaseLetter:
-					case UnicodeCategory.UppercaseLetter:
-					case UnicodeCategory.TitlecaseLetter:
-					case UnicodeCategory.ModifierLetter:
-					case UnicodeCategory.OtherLetter:
-					case UnicodeCategory.LetterNumber:
-					// unicodeDigit
-					case UnicodeCategory.DecimalDigitNumber:
-					// uniceeCombiningMark
-					case UnicodeCategory.NonSpacingMark:
-					case UnicodeCategory.SpacingCombiningMark:
-					// unicodeConnectorPunctuation
-					case UnicodeCategory.ConnectorPunctuation:
-						{
-							return true;
-						}
-				}
 			}
-			return false;
+#else
+			if (c < 0x80 && ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '$' || c == '_'))
+			{ // ASCII Letter, Digit, $ or '_'
+				return true;
+			}
+#endif
+			return IsValidIndentifierPartUnicode(c);
+
+			static bool IsValidIndentifierPartUnicode(char c) => char.GetUnicodeCategory(c) is
+			(
+				// unicodeLetter
+				UnicodeCategory.LowercaseLetter or UnicodeCategory.UppercaseLetter or UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter or UnicodeCategory.LetterNumber
+				// unicodeDigit
+				or UnicodeCategory.DecimalDigitNumber
+				// uniceeCombiningMark
+				or UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark
+				// unicodeConnectorPunctuation
+				or UnicodeCategory.ConnectorPunctuation
+			);
 		}
 
 		/// <summary>Quickly test if a name can be used as a Javascript object's property name without escaping, or if it must be escaped first</summary>
 		/// <param name="name">Name of a property or field</param>
 		/// <returns>Return <c>true</c> if this is a valid name, and that it only contains ASCII. <c>false</c> it is invalid or if it contains Unicode that requires escaping</returns>
 		/// <remarks>This can return <c>false</c> even for valid identifiers! The goal is to decide QUICKLY if escaping is required. A false negative would only use a bit more cpu but still produce a correct result.</remarks>
-		public static bool IsValidIdentifier(string name)
+		public static bool IsValidIdentifier(string? name) => name != null && IsValidIdentifier(name.AsSpan());
+
+		/// <summary>Quickly test if a name can be used as a Javascript object's property name without escaping, or if it must be escaped first</summary>
+		/// <param name="name">Name of a property or field</param>
+		/// <returns>Return <c>true</c> if this is a valid name, and that it only contains ASCII. <c>false</c> it is invalid or if it contains Unicode that requires escaping</returns>
+		/// <remarks>This can return <c>false</c> even for valid identifiers! The goal is to decide QUICKLY if escaping is required. A false negative would only use a bit more cpu but still produce a correct result.</remarks>
+		public static bool IsValidIdentifier(ReadOnlySpan<char> name)
 		{
 			/* According to ECMA-262 "ECMAScript Language Specification", section 7.6:
 
@@ -257,36 +325,54 @@ namespace Doxense.Web
 					0 1 2 3 4 5 6 7 8 9 a b c d e f A B C D E F
 			*/
 
-			if (string.IsNullOrEmpty(name)) return false;
+			if (name.Length == 0) return false;
 
 			// First character must be a letter, '$' or '_'
-			if (!IsValidIdentifierStart(name[0]))
+			char first = name[0];
+			if (!IsValidIdentifierStart(first))
+			{
 				return false;
+			}
 
 			// Remaining characters allow digits and other types of Unicode symbols
-			int n = name.Length - 1;
-			if (n > 0)
+			var tail = name[1..];
+			if (tail.Length > 0)
 			{
-				unsafe
+				foreach(var c in tail)
 				{
-					fixed (char* p = name + 1)
-					{
-						char* ptr = p;
-						while (n > 0)
-						{
-							char c = *ptr++;
-							if (!IsValidIdentifierPart(c))
-							{ // not allowed!
-								return false;
-							}
-							--n;
-						}
+					if (!IsValidIdentifierPart(c))
+					{ // not allowed!
+						return false;
 					}
 				}
 			}
 
 			// The identifier must not be a reserved keyword ("if", "delete", ...)
-			return !s_reservedKeywords.Contains(name);
+			return !IsReservedKeyword(name);
+		}
+
+		internal static bool IsReservedKeyword(ReadOnlySpan<char> name)
+		{
+			if (name.Length == 0) return false;
+
+			// we have to return false for any of the following keywords (case-sensitive):
+			// "instanceof", "typeof", "break", "do", "new", "var", "case", "else", "return", "void", "catch", "finally", "continue", "for", "switch", "while", "this", "with", "debugger", "function", "throw", "default", "if", "try", "delete", "in"
+			switch (name[0])
+			{
+				case 'b': return name is ("break");
+				case 'c': return name is ("case" or "catch" or "continue");
+				case 'd': return name is ("debugger" or "default" or "delete" or "do");
+				case 'e': return name is ("else");
+				case 'f': return name is ("finally" or "for" or "function");
+				case 'i': return name is ("if" or "in" or "instanceof");
+				case 'n': return name is ("new");
+				case 'r': return name is ("return");
+				case 's': return name is ("switch");
+				case 't': return name is ("this" or "throw" or "try" or "typeof");
+				case 'v': return name is ("var" or "void");
+				case 'w': return name is ("while" or "with");
+				default: return false;
+			}
 		}
 
 	}
