@@ -37,6 +37,7 @@ namespace Doxense.Async
 	/// <summary>Implements an async queue that asynchronously transform items, outputting them in arrival order, while throttling the producer</summary>
 	/// <typeparam name="TInput">Type of the input elements (from the inner async iterator)</typeparam>
 	/// <typeparam name="TOutput">Type of the output elements (produced by an async lambda)</typeparam>
+	[DebuggerDisplay("Count={m_queue.Count}, Done={m_done}")]
 	public class AsyncTransformQueue<TInput, TOutput> : IAsyncBuffer<TInput, TOutput>
 	{
 		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
@@ -213,10 +214,9 @@ namespace Doxense.Async
 		public async Task OnNextBatchAsync(TInput[] batch, CancellationToken ct)
 		{
 			Contract.NotNull(batch);
+			ct.ThrowIfCancellationRequested();
 
 			if (batch.Length == 0) return;
-
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			//TODO: optimized version !
 			foreach (var item in batch)
@@ -231,7 +231,7 @@ namespace Doxense.Async
 
 		public Task<Maybe<TOutput>> ReceiveAsync(CancellationToken ct)
 		{
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) return Task.FromCanceled<Maybe<TOutput>>(ct);
 
 			// if the first item in the queue is completed, we return it immediately (fast path)
 			// if the first item in the queue is not yet completed, we need to wait for it (semi-fast path)
@@ -265,78 +265,72 @@ namespace Doxense.Async
 				}
 			}
 
-
 			if (task != null)
 			{ // the next task is already started, we need to wait for it
-				return ReceiveWhenDoneAsync(task, ct);
+				return ReceiveWhenDoneAsync(this, task, ct);
 			}
 			else
 			{ // nothing schedule yet, slow code path will wait for something new to happen...
 				Contract.Debug.Assert(waiter != null);
-				return ReceiveSlowAsync(waiter, ct);
+				return ReceiveSlowAsync(this, waiter, ct);
 			}
-		}
 
-		private async Task<Maybe<TOutput>> ReceiveWhenDoneAsync(Task<Maybe<TOutput>> task, CancellationToken ct)
-		{
-			try
+			static async Task<Maybe<TOutput>> ReceiveSlowAsync(AsyncTransformQueue<TInput, TOutput> queue, Task waiter, CancellationToken ct)
 			{
+				while (!ct.IsCancellationRequested)
+				{
+					await waiter.ConfigureAwait(false);
+
+					Task<Maybe<TOutput>>? task;
+					lock (queue.m_lock)
+					{
+						if (!queue.m_queue.TryPeek(out task) && queue.m_done)
+						{ // something went wrong?
+							return Maybe.Nothing<TOutput>();
+						}
+					}
+
+					if (task != null)
+					{
+						return await ReceiveWhenDoneAsync(queue, task, ct).ConfigureAwait(false);
+					}
+
+					lock(queue.m_lock)
+					{
+						// we need to wait again
+						waiter = queue.WaitForNextItem_NeedsLocking(ct);
+						Contract.Debug.Assert(waiter != null);
+					}
+
+				}
+
 				ct.ThrowIfCancellationRequested();
-				//TODO: use the cancellation token !
-				return await task.ConfigureAwait(false);
+				return Maybe.Nothing<TOutput>();
 			}
-			catch(Exception e)
+
+			static async Task<Maybe<TOutput>> ReceiveWhenDoneAsync(AsyncTransformQueue<TInput, TOutput> queue, Task<Maybe<TOutput>> task, CancellationToken ct)
 			{
-				return Maybe.Error<TOutput>(ExceptionDispatchInfo.Capture(e));
-			}
-			finally
-			{
-				lock (m_lock)
+				try
 				{
-					if (m_queue.Count > 0)
+					ct.ThrowIfCancellationRequested();
+					//TODO: use the cancellation token !
+					return await task.ConfigureAwait(false);
+				}
+				catch(Exception e)
+				{
+					return Maybe.Error<TOutput>(ExceptionDispatchInfo.Capture(e));
+				}
+				finally
+				{
+					lock (queue.m_lock)
 					{
-						var _ = m_queue.Dequeue();
-						WakeUpProducer_NeedsLocking();
+						if (queue.m_queue.TryDequeue(out _))
+						{
+							queue.WakeUpProducer_NeedsLocking();
+						}
 					}
 				}
 			}
-		}
-
-		private async Task<Maybe<TOutput>> ReceiveSlowAsync(Task waiter, CancellationToken ct)
-		{
-			while (!ct.IsCancellationRequested)
-			{
-				await waiter.ConfigureAwait(false);
-
-				Task<Maybe<TOutput>>? task = null;
-				lock (m_lock)
-				{
-					if (m_queue.Count > 0)
-					{
-						task = m_queue.Peek();
-					}
-					else if (m_done)
-					{ // something went wrong?
-						return Maybe.Nothing<TOutput>();
-					}
-				}
-
-				if (task != null)
-				{
-					return await ReceiveWhenDoneAsync(task, ct).ConfigureAwait(false);
-				}
-
-				lock(m_lock)
-				{
-					// we need to wait again
-					waiter = WaitForNextItem_NeedsLocking(ct);
-					Contract.Debug.Assert(waiter != null);
-				}
-
-			}
-
-			ct.ThrowIfCancellationRequested();
-			return Maybe.Nothing<TOutput>();
 		}
 
 		#endregion
@@ -365,38 +359,38 @@ namespace Doxense.Async
 			}
 
 			// did not get anything, go through the slow code path
-			return ReceiveBatchSlowAsync(batch, count, ct);
-		}
+			return ReceiveBatchSlowAsync(this, batch, count, ct);
 
-		private async Task<Maybe<TOutput>[]> ReceiveBatchSlowAsync(List<Maybe<TOutput>> batch, int count, CancellationToken ct)
-		{
-			// got nothing, wait for at least one
-			while (batch.Count == 0)
+			static async Task<Maybe<TOutput>[]> ReceiveBatchSlowAsync(AsyncTransformQueue<TInput, TOutput> queue, List<Maybe<TOutput>> batch, int count, CancellationToken ct)
 			{
-				Task waiter;
-				lock(m_lock)
+				// got nothing, wait for at least one
+				while (batch.Count == 0)
 				{
-					waiter = WaitForNextItem_NeedsLocking(ct);
-					Contract.Debug.Assert(waiter != null);
-				}
-
-				await waiter.ConfigureAwait(false);
-
-				// try to get all extra values that could have been added at the same time
-				lock (m_lock)
-				{
-					if (DrainItems_NeedsLocking(batch, count))
+					Task waiter;
+					lock(queue.m_lock)
 					{
-						WakeUpProducer_NeedsLocking();
+						waiter = queue.WaitForNextItem_NeedsLocking(ct);
+						Contract.Debug.Assert(waiter != null);
 					}
 
-					if (m_done) break;
+					await waiter.ConfigureAwait(false);
+
+					// try to get all extra values that could have been added at the same time
+					lock (queue.m_lock)
+					{
+						if (queue.DrainItems_NeedsLocking(batch, count))
+						{
+							queue.WakeUpProducer_NeedsLocking();
+						}
+
+						if (queue.m_done) break;
+					}
 				}
+
+				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+				return batch.ToArray();
 			}
-
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-
-			return batch.ToArray();
 		}
 
 		#endregion

@@ -94,11 +94,13 @@ namespace Doxense.Linq.Async.Iterators
 		public override async Task ExecuteAsync(Action<TSource> handler, CancellationToken ct)
 		{
 			Contract.NotNull(handler);
-
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			var mode = m_mode;
-			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
+			if (mode == AsyncIterationHint.Head)
+			{
+				mode = AsyncIterationHint.Iterator;
+			}
 
 			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
 			{
@@ -114,18 +116,19 @@ namespace Doxense.Linq.Async.Iterators
 				}
 			}
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-
+			ct.ThrowIfCancellationRequested();
 		}
 
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
 		{
 			Contract.NotNull(asyncHandler);
-
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			var mode = m_mode;
-			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
+			if (mode == AsyncIterationHint.Head)
+			{
+				mode = AsyncIterationHint.Iterator;
+			}
 
 			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
 			{
