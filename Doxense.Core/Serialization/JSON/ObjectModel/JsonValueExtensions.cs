@@ -107,6 +107,15 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonValue RequiredField(this JsonValue? value, string field, string? message = null) => value is not (null or JsonNull) ? value : FailFieldIsNullOrMissing(field, message);
 
+		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
+		/// <param name="value">Value of the <paramref name="field"/> in the parent object.</param>
+		/// <param name="field">Name of the field in the parent object.</param>
+		/// <param name="message">Message of the exception thrown if the value is null or missing</param>
+		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
+		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
+		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static JsonValue RequiredField(this JsonValue? value, ReadOnlySpan<char> field, string? message = null) => value is not (null or JsonNull) ? value : FailFieldIsNullOrMissing(field, message);
+
 		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
 		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
 		/// <param name="path">Chemin vers le champ qui doit être présent</param>
@@ -162,11 +171,17 @@ namespace Doxense.Serialization.Json
 		[DoesNotReturn]
 		internal static JsonValue FailFieldIsNullOrMissing(string field, string? message = null) => throw ErrorFieldIsNullOrMissing(field, message);
 
+		[DoesNotReturn]
+		internal static JsonValue FailFieldIsNullOrMissing(ReadOnlySpan<char> field, string? message = null) => throw ErrorFieldIsNullOrMissing(field.ToString(), message);
+
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static JsonValue FailFieldIsEmpty(string field) => throw new JsonBindingException($"Required JSON field '{field}' was empty.");
 
+		[Pure]
+		internal static JsonBindingException ErrorPathIsNullOrMissing(string path) => new($"Required JSON path '{path}' was null or missing.");
+
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonValue FailPathIsNullOrMissing(string path) => throw new JsonBindingException($"Required JSON path '{path}' was null or missing.");
+		internal static JsonValue FailPathIsNullOrMissing(string path) => throw ErrorPathIsNullOrMissing(path);
 
 		#region ToStuff(...)
 

@@ -358,6 +358,24 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			//TODO: REVIEW: should we return false, or fail if not supported? (note: this[xxx] throws on values that do not support indexing)
+			value = null;
+			return false;
+		}
+
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			//TODO: REVIEW: should we return false, or fail if not supported? (note: this[xxx] throws on values that do not support indexing)
+			value = null;
+			return false;
+		}
+
 		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="value">When this method returns, the value located at the specified index, if the index is inside the bounds of the array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
@@ -392,6 +410,22 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValue(string key) => GetValueOrDefault(key, JsonNull.Missing).RequiredField(key);
 
+		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
+		/// <exception cref="InvalidOperationException">If the field is null or missing</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual JsonValue GetValue(ReadOnlySpan<char> key) => GetValueOrDefault(key, JsonNull.Missing).RequiredField(key);
+
+		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
+		/// <exception cref="InvalidOperationException">If the field is null or missing</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual JsonValue GetValue(ReadOnlyMemory<char> key) => GetValueOrDefault(key, JsonNull.Missing).RequiredField(key.Span);
+
 		/// <summary>Returns the value at the <b>required</b> item at the specified index.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
 		/// <returns>The value located at the specified index, or an exception if the index is outside the bounds of the array, or if the item is null or missing.</returns>
@@ -410,10 +444,34 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">Name of the field to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
 		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
-		/// <remarks>If the index is outside the bounds, and <paramref name="defaultValue"/> is not specified, then <see cref="JsonNull.Error"/> is returned.</remarks>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown. Please call <see cref="JsonValueExtensions.AsObject">obj.AsObject()</see>.</para>
+		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValueOrDefault(string key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key);
+
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
+		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown. Please call <see cref="JsonValueExtensions.AsObject">obj.AsObject()</see>.</para>
+		/// </remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key.ToString());
+
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
+		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown. Please call <see cref="JsonValueExtensions.AsObject">obj.AsObject()</see>.</para>
+		/// </remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key.ToString());
 
 		/// <summary>Returns the value at the <i>optional</i> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
@@ -496,6 +554,38 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, it it exists</summary>
+		/// <param name="key">Name of the field</param>
+		/// <param name="obj">When this method returns, contains the value of the field if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public bool TryGetObject(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonObject obj)
+		{
+			if (TryGetValue(key, out var child) && child is JsonObject j)
+			{
+				obj = j;
+				return true;
+			}
+			obj = null;
+			return false;
+		}
+
+		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, it it exists</summary>
+		/// <param name="key">Name of the field</param>
+		/// <param name="obj">When this method returns, contains the value of the field if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public bool TryGetObject(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonObject obj)
+		{
+			if (TryGetValue(key, out var child) && child is JsonObject j)
+			{
+				obj = j;
+				return true;
+			}
+			obj = null;
+			return false;
+		}
+
 		/// <summary>Gets the JSON Object that corresponds to the item at the specified location, it it exists</summary>
 		/// <param name="index">Index of the item</param>
 		/// <param name="obj">When this method returns, contains the value at this location if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
@@ -556,6 +646,58 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
 		/// <param name="key">Name of the property</param>
+		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ({ "Hello": "World"}).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ({ "Hello": "123"}).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>123"</c>
+		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ }).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>0</c>
+		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
+		/// </example>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public bool TryGet<TValue>(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		{
+			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
+			{
+				value = child.Required<TValue>();
+				return true;
+			}
+			value = default;
+			return false;
+		}
+
+		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
+		/// <param name="key">Name of the property</param>
+		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ({ "Hello": "World"}).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ({ "Hello": "123"}).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>123"</c>
+		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ }).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>0</c>
+		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
+		/// </example>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public bool TryGet<TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		{
+			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
+			{
+				value = child.Required<TValue>();
+				return true;
+			}
+			value = default;
+			return false;
+		}
+
+		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
+		/// <param name="key">Name of the property</param>
 		/// <param name="resolver"></param>
 		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
@@ -570,6 +712,58 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryGet<TValue>(string key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		{
+			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
+			{
+				value = child.Required<TValue>(resolver);
+				return true;
+			}
+			value = default;
+			return false;
+		}
+
+		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
+		/// <param name="key">Name of the property</param>
+		/// <param name="resolver"></param>
+		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ({ "Hello": "World"}).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ({ "Hello": "123"}).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>123"</c>
+		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ }).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>0</c>
+		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
+		/// </example>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public bool TryGet<TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		{
+			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
+			{
+				value = child.Required<TValue>(resolver);
+				return true;
+			}
+			value = default;
+			return false;
+		}
+
+		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
+		/// <param name="key">Name of the property</param>
+		/// <param name="resolver"></param>
+		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
+		/// <example>
+		/// ({ "Hello": "World"}).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>"World"</c>
+		/// ({ "Hello": "123"}).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="true" /> and value will be equal to <c>123"</c>
+		/// ({ }).TryGet&lt;string&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ }).TryGet&lt;int&gt;("Hello", out var value) // returns <see langword="false" />, and value will be <c>0</c>
+		/// ({ "Hello": null }).TryGet&lt;string&gt;("Hello") // returns <see langword="false" />, and value will be <see langword="null"/>
+		/// ({ "Hello": null }).TryGet&lt;int&gt;("Hello") // returns <see langword="false" />, and value will be <c>0</c>
+		/// </example>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public bool TryGet<TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -737,6 +931,38 @@ namespace Doxense.Serialization.Json
 		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryGetArray(string key, [MaybeNullWhen(false)] out JsonArray array)
+		{
+			if (TryGetValue(key, out var child) && child is JsonArray j)
+			{
+				array = j;
+				return true;
+			}
+			array = null;
+			return false;
+		}
+
+		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, it it exists</summary>
+		/// <param name="key">Name of the field</param>
+		/// <param name="array">When this method returns, contains the value of the field if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public bool TryGetArray(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonArray array)
+		{
+			if (TryGetValue(key, out var child) && child is JsonArray j)
+			{
+				array = j;
+				return true;
+			}
+			array = null;
+			return false;
+		}
+
+		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, it it exists</summary>
+		/// <param name="key">Name of the field</param>
+		/// <param name="array">When this method returns, contains the value of the field if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
+		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public bool TryGetArray(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonArray array)
 		{
 			if (TryGetValue(key, out var child) && child is JsonArray j)
 			{
@@ -966,6 +1192,22 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray GetArray(string key) => GetValue(key).AsArray();
 
+		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
+		/// <param name="key">Name of the field that is expected to be an array.</param>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonArray GetArray(ReadOnlySpan<char> key) => GetValue(key).AsArray();
+
+		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
+		/// <param name="key">Name of the field that is expected to be an array.</param>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonArray GetArray(ReadOnlyMemory<char> key) => GetValue(key).AsArray();
+
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
 		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, <see langword="null"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
@@ -974,6 +1216,22 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray? GetArrayOrDefault(string key) => GetValueOrDefault(key).AsArrayOrDefault();
 
+		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name.</summary>
+		/// <param name="key">Name of the field that is expected to be an array.</param>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, <see langword="null"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonArray? GetArrayOrDefault(ReadOnlySpan<char> key) => GetValueOrDefault(key).AsArrayOrDefault();
+
+		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name.</summary>
+		/// <param name="key">Name of the field that is expected to be an array.</param>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, <see langword="null"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonArray? GetArrayOrDefault(ReadOnlyMemory<char> key) => GetValueOrDefault(key).AsArrayOrDefault();
+
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
 		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
@@ -981,6 +1239,22 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonArray GetArrayOrEmpty(string key) => GetValueOrDefault(key).AsArrayOrEmpty();
+
+		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
+		/// <param name="key">Name of the field that is expected to be an array.</param>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonArray GetArrayOrEmpty(ReadOnlySpan<char> key) => GetValueOrDefault(key).AsArrayOrEmpty();
+
+		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
+		/// <param name="key">Name of the field that is expected to be an array.</param>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonArray GetArrayOrEmpty(ReadOnlyMemory<char> key) => GetValueOrDefault(key).AsArrayOrEmpty();
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>

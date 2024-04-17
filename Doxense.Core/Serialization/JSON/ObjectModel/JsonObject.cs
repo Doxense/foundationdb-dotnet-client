@@ -959,12 +959,106 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Always)]
+		[AllowNull]
+		public JsonValue this[ReadOnlyMemory<char> key]
+		{
+			get => TryGetValue(key, out var value) ? value : JsonNull.Missing;
+			set => Set(key, value);
+		}
+
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[AllowNull]
+		public JsonValue this[ReadOnlySpan<char> key]
+		{
+			get => TryGetValue(key, out var value) ? value : JsonNull.Missing;
+			set => Set(key, value);
+		}
+
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			return m_items.TryGetValue(key, out value);
 		}
 
+		/// <inheritdoc/>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
+		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			//HACKHACK: TODO: Once Dictionary<,> supports span lookups (via extensions methods or whatever else) we have to allocate the string :(
+			// - if the object is _small_ (1 or 2 keys?) AND uses the ordinal comparer, then simply enumerating the key/value pairs and calling SequenceEqual would be quicker (in theoriy no allocation)
+			// - for larger objects we eat the cost and allocate, hoping to be able to optimize this in the feature with span lookups
+
+			var items = m_items;
+			switch (items.Count)
+			{
+				case 0:
+				{
+					value = null;
+					return false;
+				}
+				case <= 3 when ReferenceEquals(items.Comparer, StringComparer.Ordinal):
+				{
+					foreach (var kv in items)
+					{
+						if (key.SequenceEqual(kv.Key.AsSpan()))
+						{
+							value = kv.Value;
+							return true;
+						}
+					}
+					value = null;
+					return false;
+				}
+				default:
+				{
+					//PERF: we unfortunately need to allocate the string :(
+					return items.TryGetValue(key.ToString(), out value);
+				}
+			}
+		}
+		/// <inheritdoc/>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
+		public override bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			//HACKHACK: TODO: Once Dictionary<,> supports span lookups (via extensions methods or whatever else) we have to allocate the string :(
+			// - if the object is _small_ (1 or 2 keys?) AND uses the ordinal comparer, then simply enumerating the key/value pairs and calling SequenceEqual would be quicker (in theoriy no allocation)
+			// - for larger objects we eat the cost and allocate, hoping to be able to optimize this in the feature with span lookups
+
+			var items = m_items;
+			if (items.Count == 0)
+			{
+				value = null;
+				return false;
+			}
+
+			if (MemoryMarshal.TryGetString(key, out var s, out var start, out var length) && start == 0 && length == s.Length)
+			{ // we have the whole string, we can do the standard lookup
+				return m_items.TryGetValue(s, out value);
+			}
+
+			if (items.Count <= 3 && ReferenceEquals(items.Comparer, StringComparer.Ordinal))
+			{ // not many items, enumerating will be faster than allocating
+
+				// note: foreach on Dictionary will use a struct and will not allocate
+				var k = key.Span;
+				foreach (var kv in items)
+				{
+					if (k.SequenceEqual(kv.Key.AsSpan()))
+					{
+						value = kv.Value;
+						return true;
+					}
+				}
+				value = null;
+				return false;
+			}
+
+			//PERF: we unfortunately need to allocate the string :(
+			return items.TryGetValue(key.ToString(), out value);
+		}
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Add(string key, JsonValue? value)
 		{
@@ -1809,6 +1903,37 @@ namespace Doxense.Serialization.Json
 			return m_items.Remove(key);
 		}
 
+		/// <summary>Removes the value with the specified key from this object.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public bool Remove(ReadOnlySpan<char> key)
+		{
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			//HACKHACK: PERF: TODO: .NET 9 and dictionary span lookups!
+			return m_items.Remove(key.ToString());
+		}
+
+		/// <summary>Removes the value with the specified key from this object.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public bool Remove(ReadOnlyMemory<char> key)
+		{
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			//HACKHACK: PERF: TODO: .NET 9 and dictionary span lookups!
+			if (MemoryMarshal.TryGetString(key, out var s, out var start, out var length) && start == 0 && length == s.Length)
+			{
+				return m_items.Remove(s);
+			}
+			else
+			{
+				return m_items.Remove(key.ToString());
+			}
+		}
+
 		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
 		/// <param name="key">The key of the element to remove.</param>
 		/// <param name="value">The removed element.</param>
@@ -1939,6 +2064,16 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("halt<=key:null")]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+
+		/// <inheritdoc/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+
+		/// <inheritdoc/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
 		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
 		/// <param name="path">Path vers le fils (peut inclure des '.')</param>
@@ -2341,20 +2476,59 @@ namespace Doxense.Serialization.Json
 
 		#region Setters...
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.CollectionAccess(JetBrains.Annotations.CollectionAccessType.UpdatedContent)]
 		public JsonObject Set<TValue>(string key, TValue? value)
 		{
 			m_items[key] = FromValue(value);
 			return this;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.CollectionAccess(JetBrains.Annotations.CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(string key, JsonValue? value)
 		{
+			Contract.NotNull(key);
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+
 			m_items[key] = value ?? JsonNull.Null;
 			return this;
 		}
 
+		[JetBrains.Annotations.CollectionAccess(JetBrains.Annotations.CollectionAccessType.UpdatedContent)]
+		public JsonObject Set(ReadOnlySpan<char> key, JsonValue? value)
+		{
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+
+			//HACKHACK: PERF: until we can lookup span in dictionary, we have to allocate here every time :(
+			//TODO: once available, use a method that accepts a span:
+			// - if the key does not exist, a string will still need to be allocated
+			// - if the key already exists, the previous instance will be reused!
+			m_items[key.ToString()] = value ?? JsonNull.Null;
+			return this;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonObject Set(ReadOnlyMemory<char> key, JsonValue? value)
+		{
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+
+			//HACKHACK: PERF: until we can lookup span in dictionary, we have to allocate here every time :(
+			//TODO: once available, use a method that accepts a span:
+			// - if the key does not exist, a string will still need to be allocated
+			// - if the key already exists, the previous instance will be reused!
+
+			value ??= JsonNull.Null;
+
+			// maybe we are lucky and the memory is in fact the whole string?
+			if (MemoryMarshal.TryGetString(key, out var s, out var start, out var length) && start == 0 && length == s.Length)
+			{ // no allocation
+				m_items[s] = value;
+			}
+			else
+			{ // need to allocate for now :(
+				m_items[key.ToString()] = value;
+			}
+			return this;
+		}
 
 		/// <summary>Ajoute l'attribut "_class" avec l'id résolvé du type</summary>
 		/// <typeparam name="TContainer">Type à résolver</typeparam>
