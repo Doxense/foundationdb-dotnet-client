@@ -19,7 +19,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct JsonPath : IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index)>, IJsonSerializable, IJsonPackable, IJsonDeserializer<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
+	public readonly struct JsonPath : IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>, IJsonSerializable, IJsonPackable, IJsonDeserializer<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
 	{
 		// the goal is to wrap a string with the full path, and expose each "segment" as a ReadOnlySpan<char>, in order to reduce allocations
 
@@ -49,7 +49,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Tokenizer GetEnumerator() => new(this);
 
-		IEnumerator<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index)> IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index)>.GetEnumerator() => new Tokenizer(this);
+		IEnumerator<(JsonPath, ReadOnlyMemory<char>, Index, bool)> IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>.GetEnumerator() => new Tokenizer(this);
 
 		IEnumerator IEnumerable.GetEnumerator() => new Tokenizer(this);
 
@@ -622,7 +622,7 @@ namespace Doxense.Serialization.Json
 			return new JsonPath(str.Value.AsMemory());
 		}
 
-		public struct Tokenizer : IEnumerator<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index)>
+		public struct Tokenizer : IEnumerator<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>
 		{
 
 			private JsonPath Path;
@@ -679,7 +679,7 @@ namespace Doxense.Serialization.Json
 				return true;
 			}
 
-			public (JsonPath Parent, ReadOnlyMemory<char> Key, Index Index) Current
+			public (JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last) Current
 			{
 				[MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get
@@ -689,7 +689,7 @@ namespace Doxense.Serialization.Json
 					{
 						parent = parent[..^1];
 					}
-					return (new JsonPath(parent), this.Key, this.Index);
+					return (new JsonPath(parent), this.Key, this.Index, this.Offset + this.Consumed == this.Path.Value.Length);
 				}
 			}
 

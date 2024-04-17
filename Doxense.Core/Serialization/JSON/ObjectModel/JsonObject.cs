@@ -2086,7 +2086,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNullOrEmpty(path);
 
-			return (JsonObject) SetPathInternal(path, null, JsonType.Object);
+			return (JsonObject) SetPathInternal(JsonPath.Create(path), null, JsonType.Object);
 		}
 
 		/// <summary>Retourne un objet fils, en le créant (vide) au besoin</summary>
@@ -2101,7 +2101,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNullOrEmpty(path);
 
-			return (JsonArray) SetPathInternal(path, null, JsonType.Array);
+			return (JsonArray) SetPathInternal(JsonPath.Create(path), null, JsonType.Array);
 		}
 
 		/// <summary>Retourne ou crée le fils d'un objet, qui doit lui-même être un objet</summary>
@@ -2249,126 +2249,177 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Nouvelle valeur</param>
 		public void SetPath(string path, JsonValue? value)
 		{
-			Contract.NotNullOrEmpty(path);
-
-			value ??= JsonNull.Null;
-			SetPathInternal(path, value, value.Type);
+			if (string.IsNullOrEmpty(path)) throw new ArgumentException("Path cannot be empty", nameof(path));
+			SetPathInternal(JsonPath.Create(path), value ?? JsonNull.Null);
 		}
 
-		private JsonValue SetPathInternal(string path, JsonValue? valueToSet, JsonType expectedType)
+		/// <summary>Crée ou modifie une valeur à partir de son chemin</summary>
+		/// <param name="path">Chemin vers la valeur à créer ou modifier.</param>
+		/// <param name="value">Nouvelle valeur</param>
+		public void SetPath(JsonPath path, JsonValue? value)
 		{
-			//Console.WriteLine($"SetPath({path}, {valueToSet}, {expectedType})");
+			if (path.IsEmpty()) throw new ArgumentException("Path cannot be empty", nameof(path));
+			SetPathInternal(path, value ?? JsonNull.Null);
+		}
+
+		private JsonValue SetPathInternal(JsonPath path, JsonValue? valueToSet, JsonType? expected = null)
+		{
 			JsonValue current = this;
-			var tokenizer = new JPathTokenizer(path);
-			Index? index = null;
-			string? name = null;
-			while (true)
+			JsonValue? prevNode = null;
+			ReadOnlyMemory<char> prevKey = default;
+			Index prevIndex = default;
+			foreach(var (parent, key, idx, last) in path)
 			{
-				var token = tokenizer.ReadNext();
-				//Console.WriteLine($"- {token}@{tokenizer.Offset} = '{tokenizer.GetSourceToken()}'; name={name}, index={index}, current = {current.Type} {current.ToJsonCompact()}, total = {this.ToJsonCompact()}");
-				switch (token)
-				{
-					case JPathToken.Identifier:
-					{ // "Foo"
-						name = tokenizer.GetIdentifierName();
-						index = null;
-						break;
-					}
-					case JPathToken.ArrayIndex:
+				if (key.Length > 0)
+				{ // field access
+
+					// we have foo.bar, but foo was missing, so current = missing, key = "bar"
+					// => we have to Set("foo", {}) on the parent... which itself must be an object
+
+					if (current is not JsonObject obj)
 					{
-						if (index.HasValue)
-						{ // combo d'indexer: foo[1][2]..
-							//TODO: OPTIMIZE: whenever .NET adds support for indexing Dictionary with RoS<char>, we will be able to skip this memory allocation!
-							var array = GetOrCreateChildArray(current, name, createIfMissing: true)!;
-							current = GetOrCreateEntryArray(array, index.Value.GetOffset(array.Count), createIfMissing: true)!;
-							name = null;
-						}
-						index = tokenizer.GetArrayIndex();
-						Contract.Debug.Assert(current != null);
-						break;
-					}
-					case JPathToken.ObjectAccess:
-					{
-						// "(current.)name>.<" ou
-
-						if (index.HasValue)
-						{
-							JsonArray array = name == null
-								? current.AsArray()
-								: GetOrCreateChildArray(current, name, createIfMissing: true)!;
-
-							current = GetOrCreateEntryObject(array, index.Value.GetOffset(array.Count), createIfMissing: true)!;
-						}
-						else
-						{
-							Contract.Debug.Assert(name != null);
-							current = GetOrCreateChildObject(current, name, createIfMissing: true)!;
-						}
-						Contract.Debug.Assert(current != null);
-						index = null;
-						name = null;
-						break;
-					}
-					case JPathToken.End:
-					{ // "(current).(name)" ou "(current).(name)[index]"
-						if (index.HasValue)
-						{
-							// current.name doit être une array
-							JsonArray array = name == null
-								? current.AsArray()
-								: GetOrCreateChildArray(current, name, createIfMissing: true)!;
-
-							if (valueToSet != null)
-							{ // set value
-								array.Set(index.Value, valueToSet);
-							}
-							else if (expectedType == JsonType.Array)
-							{ // empty array
-								valueToSet = GetOrCreateEntryArray(array, index.Value.GetOffset(array.Count), createIfMissing: true)!;
-							}
-							else
-							{ // empty object
-								Contract.Debug.Assert(expectedType == JsonType.Object);
-								valueToSet = GetOrCreateEntryObject(array, index.Value.GetOffset(array.Count), createIfMissing: true)!;
-							}
-							Contract.Debug.Assert(valueToSet.Type == expectedType);
-							return valueToSet;
-						}
-
-						// current doit être un objet
-						if (current is not JsonObject obj)
-						{
+						if (!current.IsNullOrMissing())
+						{ // incompatible type!
 							throw ThrowHelper.InvalidOperationException("TODO: object expected");
 						}
-						if (name == null)
+
+						if (prevNode == null)
 						{
-							throw ThrowHelper.FormatException("TODO: missing identifier at end of JPath");
+							throw ThrowHelper.InvalidOperationException("Cannot update a null root object");
 						}
 
-						// update
-						if (valueToSet != null)
+						// we need to create the parent object first
+						obj = JsonObject.Create();
+						// and assign it to it's parent
+						if (prevKey.Length > 0)
 						{
-							obj[name] = valueToSet;
-						}
-						else if (expectedType == JsonType.Array)
-						{ // empty array
-							valueToSet = GetOrCreateChildArray(obj, name, createIfMissing: true)!;
+							if (prevNode is not JsonObject prevObj)
+							{
+								throw ThrowHelper.InvalidOperationException("TODO: object expected");
+							}
+							prevObj.Set(prevKey, obj);
 						}
 						else
-						{ // empty object
-							Contract.Debug.Assert(expectedType == JsonType.Object);
-							valueToSet = GetOrCreateChildObject(obj, name, createIfMissing: true)!;
+						{
+							if (prevNode is not JsonArray prevArray)
+							{
+								throw ThrowHelper.InvalidOperationException("TODO: array expected");
+							}
+							prevArray.Set(prevIndex, obj);
 						}
-						Contract.Debug.Assert(valueToSet.Type == expectedType);
-						return valueToSet;
 					}
-					default:
-					{
-						throw ThrowHelper.FormatException($"Invalid JPath token {token} at {tokenizer.Offset}: '{path}'");
+
+					if (last)
+					{ // the last token is a field access
+						if (valueToSet == null)
+						{ // we need to return the value or create it if required
+
+							var actual = obj.GetValueOrDefault(key);
+
+							if (expected == JsonType.Null)
+							{ // means "delete"
+								obj.Remove(key);
+								return actual;
+							}
+							if (actual.IsNullOrMissing())
+							{
+								actual = expected == JsonType.Object ? JsonObject.Create() : expected == JsonType.Array ? JsonArray.Create() : throw new ArgumentException(nameof(expected));
+								obj.Set(key, actual);
+							}
+							else if (actual.Type != expected)
+							{
+								throw new InvalidOperationException($"The specified key '{key}' exists, but is of type {actual.Type} instead of expected {expected}");
+							}
+							return actual;
+						}
+						else
+						{ // we need to set the value
+							obj[key] = valueToSet;
+							return valueToSet;
+						}
 					}
+
+					// we need to continue
+					prevNode = obj;
+					current = obj.GetValueOrDefault(key);
+					prevKey = key;
+					prevIndex = default;
 				}
-				//Console.WriteLine($"  => name={name}, index={index}, current = {current.ToJsonCompact()}, total = {this.ToJsonCompact()}");
+				else
+				{ // array index
+					
+					if (current is not JsonArray arr)
+					{
+						if (!current.IsNullOrMissing())
+						{ // incompatible type!
+							throw ThrowHelper.InvalidOperationException("TODO: array expected");
+						}
+						if (prevNode == null)
+						{
+							throw ThrowHelper.InvalidOperationException("Cannot update a null root array");
+						}
+
+						// we need to create the parent array first
+						arr = JsonArray.Create();
+						// and assign it to it's parent
+						if (prevKey.Length > 0)
+						{
+							if (prevNode is not JsonObject prevObj)
+							{
+								throw ThrowHelper.InvalidOperationException("TODO: object expected");
+							}
+							prevObj.Set(prevKey, arr);
+						}
+						else
+						{
+							if (prevNode is not JsonArray prevArray)
+							{
+								throw ThrowHelper.InvalidOperationException("TODO: array expected");
+							}
+							prevArray.Set(prevIndex, arr);
+						}
+					}
+
+					if (last)
+					{ // the last token is an array index
+						if (valueToSet == null)
+						{ // we need to return the value or create it if required
+
+							var actual = arr[idx];
+
+							if (expected == JsonType.Null)
+							{ // means "delete"
+								arr.RemoveAt(idx);
+								return actual;
+							}
+
+							if (actual.IsNullOrMissing())
+							{
+								actual = expected == JsonType.Object ? JsonObject.Create() : expected == JsonType.Array ? JsonArray.Create() : throw new ArgumentException(nameof(expected));
+								arr[idx] = actual;
+							}
+							else if (actual.Type != expected)
+							{
+								throw new InvalidOperationException($"The specified index '{idx}' exists, but is of type {actual.Type} instead of expected {expected}");
+							}
+							return actual;
+						}
+						else
+						{ // we need to set the value
+							arr.Set(idx, valueToSet);
+							return valueToSet;
+						}
+					}
+
+					prevNode = arr;
+					current = arr.GetValueOrDefault(idx);
+					prevKey = default;
+					prevIndex = idx;
+				}
 			}
+
+			// we should not end up here!
+			throw new InvalidOperationException();
 		}
 
 		/// <summary>Crée ou modifie une valeur à partir de son chemin</summary>
@@ -2376,99 +2427,17 @@ namespace Doxense.Serialization.Json
 		/// <returns>True si la valeur existait. False si elle n'a pas été trouvée</returns>
 		public bool RemovePath(string path)
 		{
-			Contract.NotNullOrEmpty(path);
+			if (string.IsNullOrEmpty(path)) throw new ArgumentException("¨Path cannot be empty", nameof(path));
+			return !SetPathInternal(JsonPath.Create(path), null, JsonType.Null).IsNullOrMissing();
+		}
 
-			JsonValue? current = this;
-			var tokenizer = new JPathTokenizer(path);
-			Index? index = null;
-			string? name = null;
-			while (true)
-			{
-				var token = tokenizer.ReadNext();
-				switch (token)
-				{
-					case JPathToken.Identifier:
-					{ // "Foo"
-						name = tokenizer.GetIdentifierName();
-						index = null;
-						break;
-					}
-					case JPathToken.ArrayIndex:
-					{
-						if (index.HasValue)
-						{ // combo d'indexer: foo[1][2]..
-							var array = GetOrCreateChildArray(current, name, createIfMissing: false);
-							if (array == null) return false;
-							current = GetOrCreateEntryArray(array, index.Value.GetOffset(array.Count), createIfMissing: false);
-							if (current.IsNullOrMissing()) return false;
-							name = null;
-						}
-						index = tokenizer.GetArrayIndex();
-						break;
-					}
-					case JPathToken.ObjectAccess:
-					{
-						// "(current.)name>.<" ou
-
-						Contract.Debug.Assert(name != null);
-
-						if (index.HasValue)
-						{
-							var array = GetOrCreateChildArray(current, name, createIfMissing: false);
-							if (array == null) return false;
-							current = GetOrCreateEntryObject(array, index.Value.GetOffset(array.Count), createIfMissing: false);
-							index = null;
-						}
-						else
-						{
-							current = GetOrCreateChildObject(current, name, createIfMissing: false);
-						}
-						if (current.IsNullOrMissing()) return false;
-						name = null;
-						break;
-					}
-					case JPathToken.End:
-					{ // "(current).(name)" ou "(current).(name)[index]"
-						if (index.HasValue)
-						{
-							// current.name doit être une array
-							JsonArray? array;
-							if (name == null)
-							{
-								array = current.AsArray();
-							}
-							else
-							{
-								array = GetOrCreateChildArray(current, name, createIfMissing: false);
-								if (array == null)
-								{
-									return false;
-								}
-							}
-							//TODO: set to null? removeAt?
-							array.RemoveAt(index.Value);
-							return true;
-						}
-
-						// current doit être un objet
-						if (current is not JsonObject obj)
-						{
-							throw ThrowHelper.InvalidOperationException("TODO: object expected");
-						}
-						if (name == null)
-						{
-							throw ThrowHelper.FormatException("TODO: missing identifier at end of JPath");
-						}
-
-						// update
-						return obj.Remove(name);
-					}
-					default:
-					{
-						throw ThrowHelper.FormatException($"Invalid JPath token {token} at {tokenizer.Offset}: '{path}'");
-					}
-				}
-			}
+		/// <summary>Crée ou modifie une valeur à partir de son chemin</summary>
+		/// <param name="path">Chemin vers la valeur à supprimer.</param>
+		/// <returns>True si la valeur existait. False si elle n'a pas été trouvée</returns>
+		public bool RemovePath(JsonPath path)
+		{
+			if (path.IsEmpty()) throw new ArgumentException("Path cannot be empty", nameof(path));
+			return !SetPathInternal(path, null, JsonType.Null).IsNullOrMissing();
 		}
 
 		#endregion

@@ -30,9 +30,6 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Types that implement this interface support deserialization directly from a <see cref="JsonValue"/></summary>
 	/// <remarks>Types that also support serializing to a <see cref="JsonValue"/> should implement <see cref="IJsonPackable"/> as well.</remarks>
-#if !NET8_0_OR_GREATER
-	[System.Runtime.Versioning.RequiresPreviewFeatures]
-#endif
 	public interface IJsonDeserializer<out TSelf>
 	{
 		/// <summary>Deserializes an instance of type <typeparamref name="TSelf"/> from parsed JSON value</summary>

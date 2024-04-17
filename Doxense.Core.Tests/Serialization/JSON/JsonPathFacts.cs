@@ -381,7 +381,7 @@ namespace Doxense.Serialization.Json.Tests
 				return JsonPath.Create(path).GetEnumerator();
 			}
 
-			static void Step(ref JsonPath.Tokenizer it, string? key, Index? index, string parent)
+			static void Step(ref JsonPath.Tokenizer it, string? key, Index? index, string parent, bool last = false)
 			{
 				Assert.That(it.MoveNext(), Is.True, $"Expected Next() to be {key}/{index}/{parent}");
 				var current = it.Current;
@@ -403,8 +403,8 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					Assert.That(current.Index, Is.Default, $"Expected next token to be key '{key}' with parent '{parent}'");
 				}
-
 				Assert.That(current.Parent.ToString(), Is.EqualTo(parent));
+				Assert.That(current.Last, Is.EqualTo(last), last ? "Should be the last segment" : "Should not be the last segment");
 			}
 
 			static void End(ref JsonPath.Tokenizer it)
@@ -421,41 +421,41 @@ namespace Doxense.Serialization.Json.Tests
 
 			{
 				var it = Tokenize("foo");
-				Step(ref it, "foo", null, "");
+				Step(ref it, "foo", null, "", last: true);
 				End(ref it);
 			}
 
 			{
 				var it = Tokenize("[42]");
-				Step(ref it, null, 42, "");
+				Step(ref it, null, 42, "", last: true);
 				End(ref it);
 			}
 
 			{
 				var it = Tokenize("foo.bar");
 				Step(ref it, "foo", null, "");
-				Step(ref it, "bar", null, "foo");
+				Step(ref it, "bar", null, "foo", last: true);
 				End(ref it);
 			}
 
 			{
 				var it = Tokenize("foo[42]");
 				Step(ref it, "foo", null, "");
-				Step(ref it, null, 42, "foo");
+				Step(ref it, null, 42, "foo", last: true);
 				End(ref it);
 			}
 
 			{
 				var it = Tokenize("[42].foo");
 				Step(ref it, null, 42, "");
-				Step(ref it, "foo", null, "[42]");
+				Step(ref it, "foo", null, "[42]", last: true);
 				End(ref it);
 			}
 
 			{
 				var it = Tokenize("[42][^1]");
 				Step(ref it, null, 42, "");
-				Step(ref it, null, ^1, "[42]");
+				Step(ref it, null, ^1, "[42]", last: true);
 				End(ref it);
 			}
 
@@ -463,7 +463,7 @@ namespace Doxense.Serialization.Json.Tests
 				var it = Tokenize("foo[42].bar");
 				Step(ref it, "foo", null, "");
 				Step(ref it, null, 42, "foo");
-				Step(ref it, "bar", null, "foo[42]");
+				Step(ref it, "bar", null, "foo[42]", last: true);
 				End(ref it);
 			}
 
@@ -477,7 +477,7 @@ namespace Doxense.Serialization.Json.Tests
 				Step(ref it, null, 2, "foo.bar[42].baz[^1]");
 				Step(ref it, "jazz", null, "foo.bar[42].baz[^1][2]");
 				Step(ref it, null, 123, "foo.bar[42].baz[^1][2].jazz");
-				Step(ref it, null, 456, "foo.bar[42].baz[^1][2].jazz[123]");
+				Step(ref it, null, 456, "foo.bar[42].baz[^1][2].jazz[123]", last: true);
 				End(ref it);
 			}
 		}

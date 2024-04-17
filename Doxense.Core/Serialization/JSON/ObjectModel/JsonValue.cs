@@ -1313,7 +1313,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public JsonValue GetPathValue(string path) => GetPathCore(path, null, required: true);
+		public JsonValue GetPathValue(string path) => GetPathCore(JsonPath.Create(path), null, required: true);
 
 		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
@@ -1321,107 +1321,99 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, or <paramref name="defaultValue"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public JsonValue GetPathValueOrDefault(string path, JsonValue? defaultValue = null) => GetPathCore(path, defaultValue, required: false);
+		public JsonValue GetPathValueOrDefault(string path, JsonValue? defaultValue = null) => GetPathCore(JsonPath.Create(path), defaultValue, required: false);
 
-		private JsonValue GetPathCore(string path, JsonValue? defaultValue, bool required)
+		/// <summary>Gets the value at the specified path</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public JsonValue GetPathValue(JsonPath path) => GetPathCore(path, null, required: true);
+
+		/// <summary>Gets the value at the specified path</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <param name="defaultValue">Value that is returned if the path was not found, or the value is null or missing.</param>
+		/// <returns>the value found at this location, or <paramref name="defaultValue"/> if no match was found</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public JsonValue GetPathValueOrDefault(JsonPath path, JsonValue? defaultValue = null) => GetPathCore(path, defaultValue, required: false);
+
+		private JsonValue GetPathCore(JsonPath path, JsonValue? defaultValue, bool required)
 		{
-			Contract.NotNullOrEmpty(path);
-
-			JsonValue current = this;
-			var tokenizer = new JPathTokenizer(path);
-			string? name = null;
-
-			while (true)
+			var current = this;
+			foreach (var (parent, key, idx, last) in path)
 			{
-				var token = tokenizer.ReadNext();
-				switch (token)
-				{
-					case JPathToken.End:
+				if (key.Length > 0)
+				{ // field access
+					if (current.IsNullOrMissing())
 					{
-						if (name == null)
-						{
-							return !current.IsNullOrMissing() ? current : required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : (defaultValue ?? current);
-						}
-						if (current.IsNullOrMissing())
-						{
-							return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Missing;
-						}
-
-						if (current is not JsonObject obj)
-						{ // equivalent to null, but to notify that we tried to index into a value that is not an object
-							return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Error;
-						}
-						//TODO: OPTIMIZE: whenever .NET adds support for indexing Dictionary with RoS<char>, we will be able to skip this memory allocation!
-						return obj.GetValueOrDefault(name);
-
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Missing;
 					}
-					case JPathToken.Identifier:
+					if (current is not JsonObject obj)
+					{ // equivalent to null, but to notify that we tried to index into a value that is not an object
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Error;
+					}
+					current = obj.GetValueOrDefault(key);
+				}
+				else
+				{ // array index
+					if (current.IsNullOrMissing())
 					{
-						name = tokenizer.GetIdentifierName();
-						break;
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Missing;
 					}
-					case JPathToken.ObjectAccess:
-					case JPathToken.ArrayIndex:
-					{
-						if (current.IsNullOrMissing())
-						{
-							return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Missing;
-						}
-
-						if (name != null)
-						{
-							if (current is not JsonObject obj)
-							{ // equivalent to null, but to notify that we tried to index into a value that is not an object
-								return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Error;
-							}
-							//TODO: OPTIMIZE: whenever .NET adds support for indexing Dictionary with RoS<char>, we will be able to skip this memory allocation!
-							if (!obj.TryGetValue(name, out var child))
-							{ // property not found
-								return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Missing;
-							}
-							current = child;
-							name = null;
-						}
-						if (token == JPathToken.ArrayIndex)
-						{
-							var index = tokenizer.GetArrayIndex();
-							if (current is not JsonArray arr)
-							{ // equivalent to null, but to notify that we tried to index into a value that is not an array
-								return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Error;
-							}
-							if (!arr.TryGetValue(index, out var child))
-							{ // index out of bounds
-								return required ? JsonValueExtensions.FailPathIsNullOrMissing(path) : defaultValue ?? JsonNull.Missing;
-							}
-							current = child;
-						}
-						break;
+					if (current is not JsonArray arr)
+					{ // equivalent to null, but to notify that we tried to index into a value that is not an object
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Error;
 					}
-					default:
-					{
-						throw ThrowHelper.InvalidOperationException($"Unexpected {token} at offset {tokenizer.Offset}: '{path}'");
-					}
+					current = arr.GetValueOrDefault(idx);
 				}
 			}
+
+			if (current is JsonNull)
+			{
+				if (required) throw JsonValueExtensions.ErrorPathIsNullOrMissing(path.ToString());
+				// must keep the "type" of null so that we can distinguish between an explicit null, or a missing field in the path
+				return defaultValue ?? current;
+			}
+
+			return current;
 		}
 
 		[Pure]
-		public JsonObject GetPathObject(string path) => GetPathCore(path, null, required: true).AsObject();
+		public JsonObject GetPathObject(string path) => GetPathCore(JsonPath.Create(path), null, required: true).AsObject();
+
+		[Pure]
+		public JsonObject GetPathObject(JsonPath path) => GetPathCore(path, null, required: true).AsObject();
 
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonObject? GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: true).AsObjectOrDefault() ?? defaultValue;
-
-		[Pure]
-		public JsonObject GetPathObjectOrEmpty(string path) => GetPathCore(path, null, required: false).AsObjectOrEmpty();
-
-		[Pure]
-		public JsonArray GetPathArray(string path) => GetPathCore(path, null, required: true).AsArray();
+		public JsonObject? GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: true).AsObjectOrDefault() ?? defaultValue;
 
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonArray? GetPathArrayOrDefault(string path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false).AsArrayOrDefault() ?? defaultValue;
+		public JsonObject? GetPathObjectOrDefault(JsonPath path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: true).AsObjectOrDefault() ?? defaultValue;
 
 		[Pure]
-		public JsonArray GetPathArrayOrEmpty(string path) => GetPathCore(path, null, required: false).AsArrayOrEmpty();
+		public JsonObject GetPathObjectOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrEmpty();
+
+		[Pure]
+		public JsonObject GetPathObjectOrEmpty(JsonPath path) => GetPathCore(path, null, required: false).AsObjectOrEmpty();
+
+		[Pure]
+		public JsonArray GetPathArray(string path) => GetPathCore(JsonPath.Create(path), null, required: true).AsArray();
+
+		[Pure]
+		public JsonArray GetPathArray(JsonPath path) => GetPathCore(path, null, required: true).AsArray();
+
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public JsonArray? GetPathArrayOrDefault(string path, JsonArray? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrDefault() ?? defaultValue;
+
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public JsonArray? GetPathArrayOrDefault(JsonPath path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false).AsArrayOrDefault() ?? defaultValue;
+
+		[Pure]
+		public JsonArray GetPathArrayOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrEmpty();
+
+		[Pure]
+		public JsonArray GetPathArrayOrEmpty(JsonPath path) => GetPathCore(path, null, required: false).AsArrayOrEmpty();
 
 		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
@@ -1430,7 +1422,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public TValue GetPath<TValue>(string path) where TValue : notnull
 		{
-			return GetPathValue(path).Required<TValue>();
+			return GetPathCore(JsonPath.Create(path), null, required: true).Required<TValue>();
 		}
 
 		/// <summary>Gets the converted value at the specified path</summary>
@@ -1442,7 +1434,29 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? GetPath<TValue>(string path, TValue defaultValue)
 		{
-			return GetPathValueOrDefault(path, JsonNull.Missing).As(defaultValue);
+			return GetPathCore(JsonPath.Create(path), JsonNull.Missing, required: false).As(defaultValue);
+		}
+
+		/// <summary>Gets the converted value at the specified path</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or and exception if there was not match, or the matched value is null.</returns>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public TValue GetPath<TValue>(JsonPath path) where TValue : notnull
+		{
+			return GetPathCore(path, null, required: true).Required<TValue>();
+		}
+
+		/// <summary>Gets the converted value at the specified path</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <param name="defaultValue">The default value to return when the no match is found for the specified <paramref name="path" />, or it is null or missing.</param>
+		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if no match was found or the value is null or missing.</returns>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? GetPath<TValue>(JsonPath path, TValue defaultValue)
+		{
+			return GetPathCore(path, JsonNull.Missing, required: false).As(defaultValue);
 		}
 
 		//BLACK MAGIC!

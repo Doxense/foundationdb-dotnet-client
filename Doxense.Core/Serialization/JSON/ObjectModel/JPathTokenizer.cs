@@ -52,6 +52,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Structure utilisée pour parser un JPath (ex: "foo.bar[1].baz") en réduisant le nombre d'allocations nécessaires</summary>
 	[DebuggerDisplay("Path={Path}, Offset={Offset}, Cursor={Cursor}, IndexOrSize={IndexOrSize}")]
+	[Obsolete("Use JsonPath instead")]
 	public struct JPathTokenizer
 	{
 

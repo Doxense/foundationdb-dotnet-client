@@ -783,12 +783,8 @@ namespace Doxense.Serialization.Json
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => GetValueOrDefault(index);
-			set
-			{
-				if (m_readOnly) ThrowCannotMutateReadOnlyObject();
-				Contract.Debug.Requires(!ReferenceEquals(this, value));
-				m_items.AsSpan(0, m_size)[index] = value ?? JsonNull.Null;
-			}
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			set => Set(index, value);
 		}
 
 		/// <inheritdoc cref="JsonValue.this[Index]"/>
@@ -797,12 +793,8 @@ namespace Doxense.Serialization.Json
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => GetValueOrDefault(index);
-			set
-			{
-				if (m_readOnly) ThrowCannotMutateReadOnlyObject();
-				Contract.Debug.Requires(!ReferenceEquals(this, value));
-				m_items.AsSpan(0, m_size)[index] = value ?? JsonNull.Null;
-			}
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			set => Set(index, value);
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
