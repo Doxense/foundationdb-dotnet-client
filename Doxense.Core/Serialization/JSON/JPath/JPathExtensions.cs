@@ -29,7 +29,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using Doxense.Serialization.Json.JsonPath;
+	using Doxense.Serialization.Json.JPath;
 
 	public static class JPathExtensions
 	{
