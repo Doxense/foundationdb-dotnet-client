@@ -943,7 +943,7 @@ namespace Doxense.Serialization.Json
 		public IEqualityComparer<string> Comparer => m_items.Comparer;
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		private void ThrowCannotMutateReadOnlyArray() => throw FailCannotMutateReadOnlyValue(this);
+		private void ThrowCannotMutateReadOnlyObject() => throw FailCannotMutateReadOnlyValue(this);
 
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[AllowNull]
@@ -952,7 +952,7 @@ namespace Doxense.Serialization.Json
 			get => m_items.TryGetValue(key, out var value) ? value : JsonNull.Missing;
 			set
 			{
-				if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+				if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 				Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
 				m_items[key] = value ?? JsonNull.Null;
 			}
@@ -1059,26 +1059,30 @@ namespace Doxense.Serialization.Json
 			//PERF: we unfortunately need to allocate the string :(
 			return items.TryGetValue(key.ToString(), out value);
 		}
+
+		/// <inheritdoc/>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Add(string key, JsonValue? value)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
 			m_items.Add(key, value ?? JsonNull.Null);
 		}
 
+		/// <inheritdoc/>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryAdd(string key, JsonValue? value)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
 			return m_items.TryAdd(key, value ?? JsonNull.Null);
 		}
 
+		/// <inheritdoc/>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public void Add(KeyValuePair<string, JsonValue> item)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
 			// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
@@ -1383,7 +1387,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (items.Length == 0) return this;
 
 			var self = m_items;
@@ -1402,7 +1406,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ReadOnlySpan<(string Key, JsonValue? Value)> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (items.Length == 0) return this;
 
 			var self = m_items;
@@ -1427,7 +1431,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(JsonObject items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 
 			var other = items.m_items;
 			if (other.Count == 0) return this;
@@ -1448,7 +1452,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(Dictionary<string, JsonValue> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (items.Count == 0) return this;
 
 			var self = m_items;
@@ -1467,7 +1471,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ImmutableDictionary<string, JsonValue> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (items.Count == 0) return this;
 
 			var self = m_items;
@@ -1486,7 +1490,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 
 			switch (items)
 			{
@@ -1538,7 +1542,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (items.Length == 0) return this;
 
 			var self = m_items;
@@ -1564,7 +1568,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(JsonObject items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 
 			var other = items.m_items;
 			if (other.Count != 0)
@@ -1586,7 +1590,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(Dictionary<string, JsonValue> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (items.Count == 0) return this;
 
 			var self = m_items;
@@ -1606,7 +1610,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(ImmutableDictionary<string, JsonValue> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (items.Count == 0) return this;
 
 			var self = m_items;
@@ -1626,7 +1630,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 
 			switch (items)
 			{
@@ -1682,7 +1686,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(ReadOnlySpan<KeyValuePair<string, TValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 
 			if (items.Length == 0) return this;
 
@@ -1707,7 +1711,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(Dictionary<string, TValue> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.NotNull(items);
 
 			if (items.Count == 0) return this;
@@ -1726,7 +1730,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(List<KeyValuePair<string, TValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.NotNull(items);
 
 			if (items.Count == 0) return this;
@@ -1745,7 +1749,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(IEnumerable<KeyValuePair<string, TValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.NotNull(items);
 
 			switch (items)
@@ -1788,7 +1792,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(ReadOnlySpan<KeyValuePair<string, TValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 
 			if (items.Length == 0) return this;
 
@@ -1813,7 +1817,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(Dictionary<string, TValue> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.NotNull(items);
 
 			if (items.Count == 0) return this;
@@ -1832,7 +1836,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(List<KeyValuePair<string, TValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.NotNull(items);
 
 			if (items.Count == 0) return this;
@@ -1851,7 +1855,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(IEnumerable<KeyValuePair<string, TValue>> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.NotNull(items);
 
 			switch (items)
@@ -1898,7 +1902,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Remove(string key)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.Debug.Requires(key != null);
 			return m_items.Remove(key);
 		}
@@ -1942,7 +1946,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.Debug.Requires(key != null);
 			return m_items.Remove(key, out value);
 		}
@@ -1950,7 +1954,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(KeyValuePair<string, JsonValue> keyValuePair)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			Contract.Debug.Requires(keyValuePair.Key != null);
 			if (!m_items.TryGetValue(keyValuePair.Key, out var prev) || !prev.Equals(keyValuePair.Value))
 			{
@@ -1962,7 +1966,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Clear()
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			m_items.Clear();
 		}
 
@@ -2050,18 +2054,13 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Has(string key) => TryGetValue(key, out var value) && !value.IsNullOrMissing();
 
-		/// <summary>Returns the <b>required</b> JSON Value that corresponds to the field with the specified name.</summary>
-		/// <param name="key">Name of the field</param>
+		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue GetValue(string key) => m_items.GetValueOrDefault(key).RequiredField(key);
 
-		/// <summary>Retourne la valeur JSON d'une propriété de cet objet, ou une valeur JSON par défaut</summary>
-		/// <param name="key">Nom de la propriété recherchée</param>
-		/// <param name="missingValue">Valeur par défaut retournée si l'objet ne contient cette propriété</param>
-		/// <returns>Valeur de la propriété <paramref name="key"/> castée en JsonObject, <see cref="JsonNull.Null"/> si la propriété existe et contient null, ou <paramref name="missingValue"/> si la propriété n'existe pas.</returns>
-		/// <remarks>Si la valeur est un vrai null (ie: default(object)), alors JsonNull.Null est retourné à la place.</remarks>
-		[Pure, ContractAnnotation("halt<=key:null")]
+		/// <inheritdoc/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
@@ -2544,6 +2543,7 @@ namespace Doxense.Serialization.Json
 		public JsonObject SetClassId(Type type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(type);
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 
 			var typeDef = (resolver ?? CrystalJson.DefaultResolver).ResolveJsonType(type) ?? throw CrystalJson.Errors.Serialization_CouldNotResolveTypeDefinition(type);
 			this.ClassId = typeDef.ClassId;
@@ -3055,7 +3055,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>L'instance est modifiée si les clés n'étaient pas dans le bon ordre</remarks>
 		public void SortKeys(IComparer<string>? comparer = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyArray();
+			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			if (TrySortByKeys(m_items, comparer ?? StringComparer.Ordinal, out var items))
 			{
 				m_items.Clear();
