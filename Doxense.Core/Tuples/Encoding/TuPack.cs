@@ -174,66 +174,6 @@ namespace Doxense.Collections.Tuples
 			return TupleEncoder.Pack<TTuple>(default, tuples);
 		}
 
-		/// <summary>Pack an array of 1-tuples, all sharing the same buffer</summary>
-		/// <param name="tuples">Sequence of N-tuples to pack</param>
-		/// <returns>Array containing the buffer segment of each packed tuple</returns>
-		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples<T1>(params STuple<T1>[] tuples)
-		{
-			return TupleEncoder.Pack(default, tuples);
-		}
-
-		/// <summary>Pack an array of 2-tuples, all sharing the same buffer</summary>
-		/// <param name="tuples">Sequence of N-tuples to pack</param>
-		/// <returns>Array containing the buffer segment of each packed tuple</returns>
-		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples<T1, T2>(params STuple<T1, T2>[] tuples)
-		{
-			return TupleEncoder.Pack(default, tuples);
-		}
-
-		/// <summary>Pack an array of 3-tuples, all sharing the same buffer</summary>
-		/// <param name="tuples">Sequence of N-tuples to pack</param>
-		/// <returns>Array containing the buffer segment of each packed tuple</returns>
-		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples<T1, T2, T3>(params STuple<T1, T2, T3>[] tuples)
-		{
-			return TupleEncoder.Pack(default, tuples);
-		}
-
-		/// <summary>Pack an array of 4-tuples, all sharing the same buffer</summary>
-		/// <param name="tuples">Sequence of N-tuples to pack</param>
-		/// <returns>Array containing the buffer segment of each packed tuple</returns>
-		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples<T1, T2, T3, T4>(params STuple<T1, T2, T3, T4>[] tuples)
-		{
-			return TupleEncoder.Pack(default, tuples);
-		}
-
-		/// <summary>Pack an array of 5-tuples, all sharing the same buffer</summary>
-		/// <param name="tuples">Sequence of N-tuples to pack</param>
-		/// <returns>Array containing the buffer segment of each packed tuple</returns>
-		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples<T1, T2, T3, T4, T5>(params STuple<T1, T2, T3, T4, T5>[] tuples)
-		{
-			return TupleEncoder.Pack(default, tuples);
-		}
-
-		/// <summary>Pack an array of 6-tuples, all sharing the same buffer</summary>
-		/// <param name="tuples">Sequence of N-tuples to pack</param>
-		/// <returns>Array containing the buffer segment of each packed tuple</returns>
-		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples<T1, T2, T3, T4, T5, T6>(params STuple<T1, T2, T3, T4, T5, T6>[] tuples)
-		{
-			return TupleEncoder.Pack(default, tuples);
-		}
-
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>

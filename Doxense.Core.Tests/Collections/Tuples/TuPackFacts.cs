@@ -523,7 +523,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 				else
 				{
-					Assert.That<ulong>(() => TuplePackers.DeserializeUInt64(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt64({0})", encoded);
+					Assert.That(() => TuplePackers.DeserializeUInt64(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt64({0})", encoded);
 				}
 
 				// int32
@@ -534,7 +534,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 				else
 				{
-					Assert.That<int>(() => TuplePackers.DeserializeInt32(slice), Throws.InstanceOf<OverflowException>(), "DeserializeInt32({0})", encoded);
+					Assert.That(() => TuplePackers.DeserializeInt32(slice), Throws.InstanceOf<OverflowException>(), "DeserializeInt32({0})", encoded);
 				}
 
 				// uint32
@@ -545,7 +545,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 				else
 				{
-					Assert.That<uint>(() => TuplePackers.DeserializeUInt32(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt32({0})", encoded);
+					Assert.That(() => TuplePackers.DeserializeUInt32(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt32({0})", encoded);
 				}
 
 				// int16
@@ -556,7 +556,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 				else
 				{
-					Assert.That<short>(() => TuplePackers.DeserializeInt16(slice), Throws.InstanceOf<OverflowException>(), "DeserializeInt16({0})", encoded);
+					Assert.That(() => TuplePackers.DeserializeInt16(slice), Throws.InstanceOf<OverflowException>(), "DeserializeInt16({0})", encoded);
 				}
 
 				// uint16
@@ -567,7 +567,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 				else
 				{
-					Assert.That<ushort>(() => TuplePackers.DeserializeUInt16(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt16({0})", encoded);
+					Assert.That(() => TuplePackers.DeserializeUInt16(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt16({0})", encoded);
 				}
 
 				// sbyte
@@ -578,7 +578,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 				else
 				{
-					Assert.That<sbyte>(() => TuplePackers.DeserializeSByte(slice), Throws.InstanceOf<OverflowException>(), "DeserializeSByte({0})", encoded);
+					Assert.That(() => TuplePackers.DeserializeSByte(slice), Throws.InstanceOf<OverflowException>(), "DeserializeSByte({0})", encoded);
 				}
 
 				// byte
@@ -589,7 +589,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 				else
 				{
-					Assert.That<byte>(() => TuplePackers.DeserializeByte(slice), Throws.InstanceOf<OverflowException>(), "DeserializeByte({0})", encoded);
+					Assert.That(() => TuplePackers.DeserializeByte(slice), Throws.InstanceOf<OverflowException>(), "DeserializeByte({0})", encoded);
 				}
 			}
 
