@@ -254,6 +254,14 @@ namespace SnowBank.Testing
 			_                      => null
 		};
 
+		private static string Jsonify(JsonValue value) => value switch
+		{
+			JsonNull when ReferenceEquals(value, JsonNull.Null) => "<null>",
+			JsonNull when ReferenceEquals(value, JsonNull.Missing) => "<missing>",
+			JsonNull when ReferenceEquals(value, JsonNull.Error) => "<error>",
+			_ => value.ToJsonCompact()
+		};
+
 		public enum JsonComparisonOperator
 		{
 			Equal,
@@ -335,7 +343,7 @@ namespace SnowBank.Testing
 				};
 			}
 
-			public override string Description => this.Expected.ToJsonCompact();
+			public override string Description => Jsonify(this.Expected);
 
 			public class JsonEqualConstraintResult : ConstraintResult
 			{
@@ -361,21 +369,21 @@ namespace SnowBank.Testing
 						bool showType = value.Type != this.ExpectedValue.Type;
 
 						if (showType) writer.Write($"<{this.ExpectedValue.Type}> ");
-						writer.WriteLine(this.ExpectedValue.ToJsonCompact());
+						writer.WriteLine(Jsonify(this.ExpectedValue));
 
 						writer.Write("  But was:  ");
 						if (showType) writer.Write($"<{value.Type}> ");
-						writer.WriteLine(value.ToJsonCompact());
+						writer.WriteLine(Jsonify(value));
 					}
 					else if (this.ActualValue is null)
 					{
-						writer.WriteLine(this.ExpectedValue.ToJsonCompact());
+						writer.WriteLine(Jsonify(this.ExpectedValue));
 						writer.Write("  But was:  ");
 						writer.WriteLine("<null>");
 					}
 					else
 					{
-						writer.WriteLine(this.ExpectedValue.ToJsonCompact());
+						writer.WriteLine(Jsonify(this.ExpectedValue));
 						writer.Write("  But was:  ");
 						writer.WriteActualValue(this.ActualValue);
 					}
@@ -483,7 +491,7 @@ namespace SnowBank.Testing
 					writer.WriteLine($"<{this.ExpectedType.ToString()}>");
 					writer.Write("  But was:  ");
 					writer.Write($"<{this.ActualJsonValue.Type}> ");
-					writer.WriteLine(this.ActualJsonValue.ToJsonCompact());
+					writer.WriteLine(Jsonify(this.ActualJsonValue));
 				}
 
 			}
@@ -537,14 +545,14 @@ namespace SnowBank.Testing
 					{
 						writer.WriteMessageLine("Expected: <empty>");
 						writer.Write("  But was:  ");
-						writer.WriteActualValue(this.ActualJsonValue.ToJsonCompact());
+						writer.WriteActualValue(Jsonify(this.ActualJsonValue));
 					}
 					else
 					{
 						writer.WriteMessageLine("Expected: <empty>");
 						writer.Write("  But was:  ");
 						writer.Write($"<{this.ActualJsonValue.Type}> ");
-						writer.WriteLine(this.ActualJsonValue.ToJsonCompact());
+						writer.WriteLine(Jsonify(this.ActualJsonValue));
 					}
 				}
 			}
@@ -587,7 +595,7 @@ namespace SnowBank.Testing
 
 					writer.WriteMessageLine("Expected: <read-only>");
 					writer.Write("  But was:  <mutable>");
-					writer.WriteActualValue(this.ActualJsonValue.ToJsonCompact());
+					writer.WriteActualValue(Jsonify(this.ActualJsonValue));
 				}
 			}
 
