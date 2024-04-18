@@ -29,9 +29,12 @@ namespace SnowBank.Testing
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq.Expressions;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
 	using JetBrains.Annotations;
 	using NUnit.Framework.Constraints;
+	using NUnit.Framework.Internal;
 
 	/// <summary>JSON Assertions</summary>
 	[PublicAPI]
@@ -89,7 +92,23 @@ namespace SnowBank.Testing
 
 		/// <summary>Assert that the value is empty</summary>
 		/// <remarks>Supports Objects, Arrays and Strings.</remarks>
-		public static JsonConstraint Empty => new JsonEmptyConstraint();
+		public static JsonConstraint Empty => new JsonSizeConstraint(0, ExpressionType.Equal);
+
+		/// <summary>Assert that the value is an Array, Object or String with the specified size</summary>
+		/// <remarks>Supports Objects, Arrays and Strings.</remarks>
+		public static JsonConstraint OfSize(int expected) => new JsonSizeConstraint(expected, ExpressionType.Equal);
+
+		/// <summary>Assert that the value is an Array, Object or String with a size greater than or equal to the specified amount</summary>
+		public static JsonConstraint OfSizeAtLeast(int expected) => new JsonSizeConstraint(expected, ExpressionType.GreaterThanOrEqual);
+
+		/// <summary>Assert that the value is an Array, Object or String with a size strictly greater than the specified amount</summary>
+		public static JsonConstraint OfSizeGreaterThan(int expected) => new JsonSizeConstraint(expected, ExpressionType.GreaterThan);
+
+		/// <summary>Assert that the value is an Array, Object or String with a size less than or equal to the specified amount</summary>
+		public static JsonConstraint OfSizeAtMost(int expected) => new JsonSizeConstraint(expected, ExpressionType.LessThanOrEqual);
+
+		/// <summary>Assert that the value is an Array, Object or String with a size strictly less than the specified amount</summary>
+		public static JsonConstraint OfSizeLessThan(int expected) => new JsonSizeConstraint(expected, ExpressionType.LessThan);
 
 		/// <summary>Assert that the value is read-only.</summary>
 		public static JsonConstraint ReadOnly => new JsonReadOnlyConstraint();
@@ -259,7 +278,7 @@ namespace SnowBank.Testing
 			JsonNull when ReferenceEquals(value, JsonNull.Null) => "<null>",
 			JsonNull when ReferenceEquals(value, JsonNull.Missing) => "<missing>",
 			JsonNull when ReferenceEquals(value, JsonNull.Error) => "<error>",
-			_ => value.ToJsonCompact()
+			_ => value.ToJsonIndented().Replace("\r\n", "\r\n  "),
 		};
 
 		public enum JsonComparisonOperator
@@ -329,30 +348,30 @@ namespace SnowBank.Testing
 				var obj = CoerceToJsonValue(actual);
 				if (obj is null)
 				{ // the actual value is NOT a JsonValue
-					return new JsonEqualConstraintResult(this, actual, false);
+					return new Result(this, actual, false);
 				}
 				return this.Operator switch
 				{
-					JsonComparisonOperator.Equal => new JsonEqualConstraintResult(this, obj, obj.Equals(this.Expected)),
-					JsonComparisonOperator.SameAs => new JsonEqualConstraintResult(this, obj, ReferenceEquals(obj, this.Expected)),
-					JsonComparisonOperator.GreaterThan => new JsonEqualConstraintResult(this, obj, obj > this.Expected),
-					JsonComparisonOperator.GreaterThanOrEqual => new JsonEqualConstraintResult(this, obj, obj >= this.Expected),
-					JsonComparisonOperator.LessThan => new JsonEqualConstraintResult(this, obj, obj < this.Expected),
-					JsonComparisonOperator.LessThanOrEqual => new JsonEqualConstraintResult(this, obj, obj <= this.Expected),
+					JsonComparisonOperator.Equal => new Result(this, obj, obj.Equals(this.Expected)),
+					JsonComparisonOperator.SameAs => new Result(this, obj, ReferenceEquals(obj, this.Expected)),
+					JsonComparisonOperator.GreaterThan => new Result(this, obj, obj > this.Expected),
+					JsonComparisonOperator.GreaterThanOrEqual => new Result(this, obj, obj >= this.Expected),
+					JsonComparisonOperator.LessThan => new Result(this, obj, obj < this.Expected),
+					JsonComparisonOperator.LessThanOrEqual => new Result(this, obj, obj <= this.Expected),
 					_ => throw new NotSupportedException()
 				};
 			}
 
 			public override string Description => Jsonify(this.Expected);
 
-			public class JsonEqualConstraintResult : ConstraintResult
+			internal class Result : ConstraintResult
 			{
 
 				public JsonValue ExpectedValue { get; }
 
 				public JsonComparisonOperator Operator { get; }
 
-				public JsonEqualConstraintResult(JsonEqualConstraint constraint, object? actual, bool hasSucceeded)
+				public Result(JsonEqualConstraint constraint, object? actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
 					this.Operator = constraint.Operator;
@@ -362,7 +381,7 @@ namespace SnowBank.Testing
 				private void WriteDifferences(MessageWriter writer, string? op, string message)
 				{
 					writer.WriteMessageLine(message);
-					writer.Write("  Expected: ");
+					writer.Write(TextMessageWriter.Pfx_Expected);
 					if (op != null) writer.Write(op + " ");
 					if (this.ActualValue is JsonValue value)
 					{
@@ -371,20 +390,20 @@ namespace SnowBank.Testing
 						if (showType) writer.Write($"<{this.ExpectedValue.Type}> ");
 						writer.WriteLine(Jsonify(this.ExpectedValue));
 
-						writer.Write("  But was:  ");
+						writer.Write(TextMessageWriter.Pfx_Actual);
 						if (showType) writer.Write($"<{value.Type}> ");
 						writer.WriteLine(Jsonify(value));
 					}
 					else if (this.ActualValue is null)
 					{
 						writer.WriteLine(Jsonify(this.ExpectedValue));
-						writer.Write("  But was:  ");
+						writer.Write(TextMessageWriter.Pfx_Actual);
 						writer.WriteLine("<null>");
 					}
 					else
 					{
 						writer.WriteLine(Jsonify(this.ExpectedValue));
-						writer.Write("  But was:  ");
+						writer.Write(TextMessageWriter.Pfx_Actual);
 						writer.WriteActualValue(this.ActualValue);
 					}
 				}
@@ -435,6 +454,18 @@ namespace SnowBank.Testing
 						}
 					}
 				}
+
+				public override void WriteActualValueTo(MessageWriter writer)
+				{
+					if (this.ActualValue is JsonValue value)
+					{
+						writer.WriteLine(Jsonify(value));
+					}
+					else
+					{
+						base.WriteActualValueTo(writer);
+					}
+				}
 			}
 
 		}
@@ -451,27 +482,24 @@ namespace SnowBank.Testing
 
 			public override ConstraintResult ApplyTo<TActual>(TActual actual)
 			{
-				if (actual is not JsonValue value)
+				var value = CoerceToJsonValue(actual);
+				if (value is null)
 				{
-					if (actual is not null)
-					{
-						throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual));
-					}
-					value = JsonNull.Null;
+					throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual));
 				}
-				return new JsonTypeConstraintResult(this, value, value.Type == this.Expected);
+				return new Result(this, value, value.Type == this.Expected);
 			}
 
 			public override string Description => this.Expected.ToString();
 
-			public class JsonTypeConstraintResult : ConstraintResult
+			internal class Result : ConstraintResult
 			{
 
 				public JsonType ExpectedType { get; }
 
 				public JsonValue ActualJsonValue { get; }
 
-				public JsonTypeConstraintResult(JsonTypeConstraint constraint, JsonValue actual, bool hasSucceeded)
+				public Result(JsonTypeConstraint constraint, JsonValue actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
 					this.ExpectedType = constraint.Expected;
@@ -487,10 +515,15 @@ namespace SnowBank.Testing
 					}
 
 					writer.WriteMessageLine("JSON value is of a different type than expected.");
-					writer.Write("  Expected: ");
+					writer.Write(TextMessageWriter.Pfx_Expected);
 					writer.WriteLine($"<{this.ExpectedType.ToString()}>");
-					writer.Write("  But was:  ");
+					writer.Write(TextMessageWriter.Pfx_Actual);
 					writer.Write($"<{this.ActualJsonValue.Type}> ");
+					writer.WriteLine(Jsonify(this.ActualJsonValue));
+				}
+
+				public override void WriteActualValueTo(MessageWriter writer)
+				{
 					writer.WriteLine(Jsonify(this.ActualJsonValue));
 				}
 
@@ -498,32 +531,77 @@ namespace SnowBank.Testing
 
 		}
 
-		internal sealed class JsonEmptyConstraint : JsonConstraint
+		internal sealed class JsonSizeConstraint : JsonConstraint
 		{
+
+			public JsonSizeConstraint(int expectedSize, ExpressionType type)
+			{
+				Contract.Positive(expectedSize);
+				Contract.Debug.Requires(type is (ExpressionType.Equal or ExpressionType.NotEqual or ExpressionType.GreaterThan or ExpressionType.GreaterThanOrEqual or ExpressionType.LessThan or ExpressionType.LessThanOrEqual));
+				this.ExpectedSize = expectedSize;
+				this.Type = type;
+			}
+
+			public int ExpectedSize { get; }
+
+			public ExpressionType Type { get; }
 
 			public override ConstraintResult ApplyTo<TActual>(TActual actual)
 			{
 				var val = CoerceToJsonValue(actual);
-				return val switch
+				if (val is null) throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual));
+
+				int? count = val switch
 				{
-					null => throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual)),
-					JsonArray arr => new JsonEmptyConstraintResult(this, val, arr.Count == 0),
-					JsonObject obj => new JsonEmptyConstraintResult(this, val, obj.Count == 0),
-					JsonString str => new JsonEmptyConstraintResult(this, val, str.Length == 0),
-					_ => new JsonEmptyConstraintResult(this, val, false) // does not have the concept of length
+					JsonArray arr  => arr.Count,
+					JsonObject obj => obj.Count,
+					JsonString str => str.Length,
+					_              => null,
 				};
+				if (count == null)
+				{
+					return new Result(this, val, 0, false);
+				}
+				switch (this.Type)
+				{
+					case ExpressionType.Equal:              return new Result(this, val, count.Value, count.Value == this.ExpectedSize);
+					case ExpressionType.NotEqual:           return new Result(this, val, count.Value, count.Value != this.ExpectedSize);
+					case ExpressionType.GreaterThan:        return new Result(this, val, count.Value, count.Value > this.ExpectedSize);
+					case ExpressionType.GreaterThanOrEqual: return new Result(this, val, count.Value, count.Value >= this.ExpectedSize);
+					case ExpressionType.LessThan:           return new Result(this, val, count.Value, count.Value < this.ExpectedSize);
+					case ExpressionType.LessThanOrEqual:    return new Result(this, val, count.Value, count.Value <= this.ExpectedSize);
+					default:                                throw new InvalidOperationException();
+				}
 			}
 
-			public override string Description => "<empty>";
+			public override string Description => this.Type switch
+			{
+				ExpressionType.Equal              => this.ExpectedSize == 0 ? "<empty>" : $"of size {this.ExpectedSize}",
+				ExpressionType.NotEqual           => this.ExpectedSize == 0 ? "<not empty>" : $"of size != {this.ExpectedSize}",
+				ExpressionType.GreaterThan        => $"of size > {this.ExpectedSize}",
+				ExpressionType.GreaterThanOrEqual => $"of size >= {this.ExpectedSize}",
+				ExpressionType.LessThan           => $"of size < {this.ExpectedSize}",
+				ExpressionType.LessThanOrEqual    => $"of size <= {this.ExpectedSize}",
+				_                                 => "???",
+			};
 
-			public class JsonEmptyConstraintResult : ConstraintResult
+			internal class Result : ConstraintResult
 			{
 
-				public JsonValue? ActualJsonValue { get; }
+				public int ExpectedSize { get; }
 
-				public JsonEmptyConstraintResult(JsonEmptyConstraint constraint, JsonValue? actual, bool hasSucceeded)
+				public ExpressionType Type { get; }
+
+				public int ActualSize { get; }
+
+				public JsonValue ActualJsonValue { get; }
+
+				public Result(JsonSizeConstraint constraint, JsonValue actual, int actualSize, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
+					this.ExpectedSize = constraint.ExpectedSize;
+					this.Type = constraint.Type;
+					this.ActualSize = actualSize;
 					this.ActualJsonValue = actual;
 				}
 
@@ -535,25 +613,31 @@ namespace SnowBank.Testing
 						return;
 					}
 
-					if (this.ActualJsonValue is null)
+					if (this.ActualJsonValue is JsonArray or JsonObject or JsonString)
 					{
-						writer.WriteMessageLine("Expected: <empty>");
-						writer.Write("  But was:  ");
-						writer.WriteActualValue(this.ActualValue);
-					}
-					else if (this.ActualJsonValue is JsonArray or JsonObject or JsonString)
-					{
-						writer.WriteMessageLine("Expected: <empty>");
-						writer.Write("  But was:  ");
+						writer.Write(TextMessageWriter.Pfx_Expected);
+						writer.WriteMessageLine(this.Description);
+
+						writer.Write(TextMessageWriter.Pfx_Actual);
+						writer.WriteMessageLine(this.ActualSize == 0 ? "<empty>" : $"of size {this.ActualSize}");
+
 						writer.WriteActualValue(Jsonify(this.ActualJsonValue));
 					}
 					else
 					{
-						writer.WriteMessageLine("Expected: <empty>");
-						writer.Write("  But was:  ");
+						writer.Write(TextMessageWriter.Pfx_Expected);
+						writer.WriteMessageLine(this.Description);
+
+						writer.Write(TextMessageWriter.Pfx_Actual);
 						writer.Write($"<{this.ActualJsonValue.Type}> ");
 						writer.WriteLine(Jsonify(this.ActualJsonValue));
 					}
+				}
+
+				public override void WriteActualValueTo(MessageWriter writer)
+				{
+					writer.WriteLine($"{this.ActualJsonValue.Type} of size {this.ActualSize}");
+					writer.WriteMessageLine(Jsonify(this.ActualJsonValue));
 				}
 			}
 
@@ -566,20 +650,20 @@ namespace SnowBank.Testing
 			{
 				return ((object?) actual) switch
 				{
-					null => new JsonReadOnlyConstraintResult(this, JsonNull.Null, true),
-					JsonValue val => new JsonReadOnlyConstraintResult(this, val, val.IsReadOnly),
+					null => new Result(this, JsonNull.Null, true),
+					JsonValue val => new Result(this, val, val.IsReadOnly),
 					_ => throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual)),
 				};
 			}
 
 			public override string Description => "<read-only>";
 
-			public class JsonReadOnlyConstraintResult : ConstraintResult
+			internal class Result : ConstraintResult
 			{
 
 				public JsonValue ActualJsonValue { get; }
 
-				public JsonReadOnlyConstraintResult(JsonReadOnlyConstraint constraint, JsonValue actual, bool hasSucceeded)
+				public Result(JsonReadOnlyConstraint constraint, JsonValue actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
 					this.ActualJsonValue = actual;
@@ -593,10 +677,17 @@ namespace SnowBank.Testing
 						return;
 					}
 
-					writer.WriteMessageLine("Expected: <read-only>");
-					writer.Write("  But was:  <mutable>");
-					writer.WriteActualValue(Jsonify(this.ActualJsonValue));
+					writer.WriteLine(TextMessageWriter.Pfx_Expected + "<read-only>");
+					writer.Write(TextMessageWriter.Pfx_Actual);
+					WriteActualValueTo(writer);
 				}
+
+				public override void WriteActualValueTo(MessageWriter writer)
+				{
+					writer.WriteLine(this.ActualJsonValue.IsReadOnly ? "<read-only>" : "<mutable>");
+					writer.WriteMessageLine(Jsonify(this.ActualJsonValue));
+				}
+
 			}
 
 		}
@@ -611,7 +702,44 @@ namespace SnowBank.Testing
 			public override ConstraintResult ApplyTo<TActual>(TActual actual)
 			{
 				var constraintResult = this.BaseConstraint.ApplyTo(actual);
-				return new ConstraintResult(this, constraintResult.ActualValue, !constraintResult.IsSuccess);
+				return new Result(this, constraintResult.ActualValue, constraintResult);
+			}
+
+			internal class Result : ConstraintResult
+			{
+
+				private readonly ConstraintResult InnerResult;
+
+				public Result(JsonNotConstraint constraint, object? actual, ConstraintResult result)
+					: base(constraint, actual, !result.IsSuccess)
+				{
+					this.InnerResult = result;
+				}
+
+				public override void WriteActualValueTo(MessageWriter writer)
+				{
+					if (this.IsSuccess)
+					{
+						base.WriteActualValueTo(writer);
+					}
+					else
+					{
+						this.InnerResult.WriteActualValueTo(writer);
+					}
+				}
+
+				public override void WriteAdditionalLinesTo(MessageWriter writer)
+				{
+					if (this.IsSuccess)
+					{
+						base.WriteAdditionalLinesTo(writer);
+					}
+					else
+					{
+						this.InnerResult.WriteAdditionalLinesTo(writer);
+					}
+				}
+
 			}
 
 		}
@@ -641,15 +769,17 @@ namespace SnowBank.Testing
 			{
 				var leftResult = this.Left.ApplyTo(actual);
 				var rightResult = leftResult.IsSuccess ? this.Right.ApplyTo(actual) : new ConstraintResult(this.Right, actual);
-				return new AndConstraintResult(this, actual, leftResult, rightResult);
+				return new Result(this, actual, leftResult, rightResult);
 			}
 
-			private class AndConstraintResult : ConstraintResult
+			internal class Result : ConstraintResult
 			{
+
 				private readonly ConstraintResult LeftResult;
+
 				private readonly ConstraintResult RightResult;
 
-				public AndConstraintResult(JsonAndConstraint constraint, object? actual, ConstraintResult leftResult, ConstraintResult rightResult)
+				public Result(JsonAndConstraint constraint, object? actual, ConstraintResult leftResult, ConstraintResult rightResult)
 					: base(constraint, actual, leftResult.IsSuccess && rightResult.IsSuccess)
 				{
 					this.LeftResult = leftResult;
@@ -797,9 +927,23 @@ namespace SnowBank.Testing
 			/// <summary>Assert that the value is out of bounds of its parent array.</summary>
 			public JsonConstraintExpression Error => AddSameConstraint(JsonNull.Error);
 
-			/// <summary>Assert that the value is empty</summary>
-			/// <remarks>Supports Objects, Arrays and Strings.</remarks>
-			public JsonConstraintExpression Empty => this.Append(new JsonEmptyConstraint());
+			/// <summary>Assert that the value is an Array, Object or String that is empty</summary>
+			public JsonConstraintExpression Empty => this.Append(new JsonSizeConstraint(0, ExpressionType.Equal));
+
+			/// <summary>Assert that the value is an Array, Object or String with the specified size</summary>
+			public JsonConstraintExpression OfSize(int expected) => this.Append(new JsonSizeConstraint(expected, ExpressionType.Equal));
+
+			/// <summary>Assert that the value is an Array, Object or String with a size greater than or equal to the specified amount</summary>
+			public JsonConstraintExpression OfSizeAtLeast(int expected) => this.Append(new JsonSizeConstraint(expected, ExpressionType.GreaterThanOrEqual));
+
+			/// <summary>Assert that the value is an Array, Object or String with a size strictly greater than the specified amount</summary>
+			public JsonConstraintExpression OfSizeGreaterThan(int expected) => this.Append(new JsonSizeConstraint(expected, ExpressionType.GreaterThan));
+
+			/// <summary>Assert that the value is an Array, Object or String with a size less than or equal to the specified amount</summary>
+			public JsonConstraintExpression OfSizeAtMost(int expected) => this.Append(new JsonSizeConstraint(expected, ExpressionType.LessThanOrEqual));
+
+			/// <summary>Assert that the value is an Array, Object or String with a size strictly less than the specified amount</summary>
+			public JsonConstraintExpression OfSizeLessThan(int expected) => this.Append(new JsonSizeConstraint(expected, ExpressionType.LessThan));
 
 			/// <summary>Assert that the value is read-only.</summary>
 			public JsonConstraintExpression ReadOnly => this.Append(new JsonReadOnlyConstraint());
