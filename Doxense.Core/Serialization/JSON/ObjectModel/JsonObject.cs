@@ -1034,19 +1034,19 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			if (MemoryMarshal.TryGetString(key, out var s, out var start, out var length) && start == 0 && length == s.Length)
+			if (key.TryGetString(out var k))
 			{ // we have the whole string, we can do the standard lookup
-				return m_items.TryGetValue(s, out value);
+				return m_items.TryGetValue(k, out value);
 			}
 
 			if (items.Count <= 3 && ReferenceEquals(items.Comparer, StringComparer.Ordinal))
 			{ // not many items, enumerating will be faster than allocating
 
 				// note: foreach on Dictionary will use a struct and will not allocate
-				var k = key.Span;
+				var span = key.Span;
 				foreach (var kv in items)
 				{
-					if (k.SequenceEqual(kv.Key.AsSpan()))
+					if (span.SequenceEqual(kv.Key.AsSpan()))
 					{
 						value = kv.Value;
 						return true;
@@ -1928,14 +1928,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
 			//HACKHACK: PERF: TODO: .NET 9 and dictionary span lookups!
-			if (MemoryMarshal.TryGetString(key, out var s, out var start, out var length) && start == 0 && length == s.Length)
-			{
-				return m_items.Remove(s);
-			}
-			else
-			{
-				return m_items.Remove(key.ToString());
-			}
+			return m_items.Remove(key.GetStringOrCopy());
 		}
 
 		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
@@ -2484,17 +2477,8 @@ namespace Doxense.Serialization.Json
 			// - if the key does not exist, a string will still need to be allocated
 			// - if the key already exists, the previous instance will be reused!
 
-			value ??= JsonNull.Null;
+			m_items[key.GetStringOrCopy()] = value ?? JsonNull.Null;
 
-			// maybe we are lucky and the memory is in fact the whole string?
-			if (MemoryMarshal.TryGetString(key, out var s, out var start, out var length) && start == 0 && length == s.Length)
-			{ // no allocation
-				m_items[s] = value;
-			}
-			else
-			{ // need to allocate for now :(
-				m_items[key.ToString()] = value;
-			}
 			return this;
 		}
 

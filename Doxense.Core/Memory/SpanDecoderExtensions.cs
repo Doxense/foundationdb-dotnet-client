@@ -28,6 +28,7 @@ namespace System
 {
 	using System;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -291,6 +292,38 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns the underlying string from a <see langword="System.ReadOnlyMemory&lt;Char&gt;" /> if it spans the entire string, or a copy if it is smaller.</summary>
+		/// <param name="memory">Read-only memory containing a block of characters.</param>
+		/// <returns>Either the original string instance if the literal spans the entire string; otherwise, a newly allocated string.</returns>
+		/// <remarks>
+		/// <para>This method has some overhead and should only be used if there is a high probability that the segment is usually exposing the entire string.</para>
+		/// <para>If not, this will always end up allocating a new string anyway, and will be slower than simply calling <c>literal.ToString()</c></para>.
+		/// </remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static string GetStringOrCopy(this ReadOnlyMemory<char> memory) => TryGetString(memory, out var text) ? text : memory.ToString();
+
+		/// <summary>Attempt to return the original string, if it is the same size as the segment. </summary>
+		/// <param name="memory">Read-only memory containing a block of characters.</param>
+		/// <param name="text">When the method returns <see langword="true"/>, the original string.</param>
+		/// <returns><see langword="true"/> if the memory spans the entire string; otherwise, <see langword="false"/>.</returns>
+		[MustUseReturnValue]
+		public static bool TryGetString(this ReadOnlyMemory<char> memory, [MaybeNullWhen(false)] out string text)
+		{
+			if (memory.Length == 0)
+			{
+				text = string.Empty;
+				return true;
+			}
+
+			if (MemoryMarshal.TryGetString(memory, out text, out var start, out var length) && start == 0 && length == text.Length)
+			{
+				return true;
+			}
+
+			text = null;
+			return false;
+		}
+
 		/// <summary>Helper method that dumps the span as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for the empty span</returns>
 		[Pure]
@@ -394,6 +427,25 @@ namespace System
 			}
 		}
 
+		#region 1 bit...
+
+		/// <summary>Converts a span into a boolean.</summary>
+		/// <returns>False if the span is empty, or is equal to the byte 0; otherwise, true.</returns>
+		[Pure]
+		public static bool ToBool(this ReadOnlySpan<byte> span)
+		{
+			// Anything appart from nil/empty, or the byte 0 itself is considered truthy.
+			return span.Length > 1 || (span.Length == 1 && span[0] != 0);
+			//TODO: consider checking if the span consist of only zeroes ? (ex: Slice.FromFixed32(0) could be considered falsy ...)
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool ToBool(this Span<byte> span) => ToBool((ReadOnlySpan<byte>) span);
+
+		#endregion
+
+		#region 8 bits...
+
 		/// <summary>Converts a span into a byte</summary>
 		/// <returns>Value of the first and only byte of the span, or 0 if the span is empty.</returns>
 		/// <exception cref="System.FormatException">If the span has more than one byte</exception>
@@ -432,18 +484,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static sbyte ToSByte(this Span<byte> span) => ToSByte((ReadOnlySpan<byte>) span);
 
-		/// <summary>Converts a span into a boolean.</summary>
-		/// <returns>False if the span is empty, or is equal to the byte 0; otherwise, true.</returns>
-		[Pure]
-		public static bool ToBool(this ReadOnlySpan<byte> span)
-		{
-			// Anything appart from nil/empty, or the byte 0 itself is considered truthy.
-			return span.Length > 1 || (span.Length == 1 && span[0] != 0);
-			//TODO: consider checking if the span consist of only zeroes ? (ex: Slice.FromFixed32(0) could be considered falsy ...)
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool ToBool(this Span<byte> span) => ToBool((ReadOnlySpan<byte>) span);
+		#endregion
 
 		#region 16 bits...
 
