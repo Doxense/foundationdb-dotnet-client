@@ -1,4 +1,4 @@
-#region Copyright (c) 2023-2023 SnowBank SAS
+#region Copyright (c) 2023-2024 SnowBank SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -33,9 +33,9 @@ namespace Aspire.Hosting
 		/// <param name="root">Base subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterFile">Path to the cluster file, or <c>null</c> if the default cluster file should be used.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, the known version of the remote cluster, which can be used to infer the appropriate version of the local FDB client library that should be used to connect to this cluster.</param>
-		public static IResourceBuilder<FdbConnectionResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, string? clusterFile = null, string? clusterVersion = null)
+		public static IResourceBuilder<FdbConnectionResource> AddFoundationDbCluster(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, string? clusterFile = null, string? clusterVersion = null)
 		{
-			return AddFoundationDb(builder, name, apiVersion, FdbPath.Parse(root), clusterFile, clusterVersion);
+			return AddFoundationDbCluster(builder, name, apiVersion, FdbPath.Parse(root), clusterFile, clusterVersion);
 		}
 
 		/// <summary>Add a connection to an external FoundationDB cluster</summary>
@@ -45,7 +45,7 @@ namespace Aspire.Hosting
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterFile">Path to the cluster file, or <c>null</c> if the default cluster file should be used.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, the known version of the remote cluster, which can be used to infer the appropriate version of the local FDB client library that should be used to connect to this cluster.</param>
-		public static IResourceBuilder<FdbConnectionResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, string? clusterFile = null, string? clusterVersion = null)
+		public static IResourceBuilder<FdbConnectionResource> AddFoundationDbCluster(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, string? clusterFile = null, string? clusterVersion = null)
 		{
 			Contract.NotNull(builder);
 			Contract.NotNullOrWhiteSpace(name);
@@ -137,26 +137,26 @@ namespace Aspire.Hosting
 
 		#region Locally hosted FDB Cluster using Docker containers...
 
-		/// <summary>Add a local FoundationDB cluster to the application</summary>
+		/// <summary>Add a FoundationDB resource to the application. A container is used for local development.</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
-		public static IResourceBuilder<FdbClusterResource> AddFoundationDbContainer(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
+		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, int? port = null, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
 		{
-			return AddFoundationDbContainer(builder, name, apiVersion, FdbPath.Parse(root), clusterVersion, rollForward);
+			return AddFoundationDb(builder, name, apiVersion, FdbPath.Parse(root), port, clusterVersion, rollForward);
 		}
 
-		/// <summary>Add a local FoundationDB cluster to the application</summary>
+		/// <summary>Add a FoundationDB resource to the application. A container is used for local development.</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
-		public static IResourceBuilder<FdbClusterResource> AddFoundationDbContainer(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
+		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, int? port = null, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
 		{
 			Contract.NotNull(builder);
 			Contract.NotNullOrWhiteSpace(name);
@@ -203,82 +203,43 @@ namespace Aspire.Hosting
 				DockerTag = dockerTag, 
 			};
 
+			//note: Aspire wants to allocate random ports to ensure that there is not conflict with any local versions of the resources,
+			// but we have an issue where the fdbserver that runs in the docker image sees the "targetPort" of the container, which is 4550
+			// and will returns this as part of the address sent to any client. So if, inside the container, the port is 4550, it HAS to be 4550 also on the host!
+			// If not, if for ex Aspire allocated port 12345 externally, we will set the "connection string" to "127.0.0.1:12345",
+			// which will initially be proxied to the port 4550 inside the container (so far so good), but the fdb node will return addresses to other "agents" using "127.0.0.1:4550" because it does not know of the port 12345
+			// The application will think that we are pointed to a different node, and attempt to connect to 127.0.0.1:4550 which would not exist on the host!
+
+			//WORKAROUND: for now, we must FORCE both the "apire port" and the "container port" to be the same, so that it "just works".
+			// we will use the port 4550 which is outside the typical range of 4500+ for default fdb installations (unless there are more than 50 processes on the same box??)
+			int nodePort = port ?? 4550;
+
 			var cluster = builder
 				.AddResource(fdbCluster)
 				.WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbClusterToManifest(ctx, fdbCluster)))
-			;
-
-			// Create the first node. By convention, this will also be the coordinator for the cluster
-			var fdbCoorinator = fdbCluster.CreateContainer(fdbCluster.Name + "-node-01", coordinator: true);
-			ConfigureContainer(builder.AddResource(fdbCoorinator), null);
-
-			return cluster;
-		}
-
-		/// <summary>Add and configure a FoundationDB docker container to the cluster</summary>
-		/// <param name="container">Container resource to configure</param>
-		/// <param name="coordinator">Current cluster coordinator (or <c>null</c> if this new container will become the coordinator)</param>
-		private static IResourceBuilder<FdbContainerResource> ConfigureContainer(IResourceBuilder<FdbContainerResource> container, FdbContainerResource? coordinator)
-		{
-			return container
-				.WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbContainerToManifest(ctx, container.Resource)))
-				.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: container.Resource.Port, containerPort: 4550)) // default container port is set to 4550
-				.WithAnnotation(new ContainerImageAnnotation { Image = "foundationdb/foundationdb", Tag = container.Resource.DockerTag })
-				.WithVolumeMount("fdb_data", "/var/fdb/data", isReadOnly: false) //HACKHACK: TODO: make this configurable!
+				.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: nodePort, targetPort: nodePort)) // note: both ports MUST be the same (see above)
+				.WithAnnotation(new ContainerImageAnnotation { Image = "foundationdb/foundationdb", Tag = fdbCluster.DockerTag })
+				.WithVolume("fdb_data", "/var/fdb/data", isReadOnly: false) //HACKHACK: TODO: make this configurable!
 				.WithEnvironment((context) =>
 				{
-					// override the process class, if specified. The default is "unset"
-					if (!string.IsNullOrWhiteSpace(container.Resource.ProcessClass))
-					{
-						context.EnvironmentVariables["FDB_PROCESS_CLASS"] = container.Resource.ProcessClass;
-					}
+					// get the allocated endpoint
+					var ep = fdbCluster.GetEndpoint("tcp");
+					//note: it SHOULD be equal to 'nodePort' here!
+					Contract.Debug.Assert(ep.Port == nodePort);
 
 					// we use the "host" mode so that we can talk to the node from the host
 					context.EnvironmentVariables["FDB_NETWORKING_MODE"] = "host";
 					//REVIEW: TODO: if the "*.docker.internal" names get supported by Aspire, maybe we can switch to those?
 					// => if we have more than one fdb container, we need them to be able to talk to each other, AND to the host!
 
-					context.EnvironmentVariables["FDB_PORT"] =  container.Resource.Port.ToString(CultureInfo.InvariantCulture);
-					if (coordinator != null)
-					{ // connect to the coordinator
-						context.EnvironmentVariables["FDB_COORDINATOR"] = coordinator.Port.ToString(CultureInfo.InvariantCulture);
-						context.EnvironmentVariables["FDB_COORDINATOR_PORT"] = coordinator.Port.ToString(CultureInfo.InvariantCulture);
-					}
-					else
-					{ // we are the coordinator
-						context.EnvironmentVariables["FDB_COORDINATOR_PORT"] = container.Resource.Port.ToString(CultureInfo.InvariantCulture);
-					}
+					// the port that the fdbserver will bind
+					context.EnvironmentVariables["FDB_PORT"] =  ep.Port.ToString(CultureInfo.InvariantCulture);
+					// we are the coordinator so point it back to itself
+					context.EnvironmentVariables["FDB_COORDINATOR_PORT"] = ep.Port.ToString(CultureInfo.InvariantCulture);
 				});
-		}
+			;
 
-		/// <summary>Select the number of nodes that will compose the FoundationDB cluster</summary>
-		/// <param name="builder">FoundationDB Cluster resource builder</param>
-		/// <param name="count">Number of replicas required (must be greather than or equal to 1)</param>
-		/// <exception cref="InvalidOperationException">If the replica count is already greater than <paramref name="count"/>.</exception>
-		public static IResourceBuilder<FdbClusterResource> WithReplicas(this IResourceBuilder<FdbClusterResource> builder, int count)
-		{
-			Contract.NotNull(builder);
-			var fdbCluster = builder.Resource;
-
-			// we always include at least one container, so we only have to define the additional replicas as more container
-			if (count > fdbCluster.Containers.Count)
-			{
-				var fdbCoordinator = fdbCluster.GetCoordinator()!;
-
-				for (int i = fdbCluster.Containers.Count; i < count; i++)
-				{
-					var fdbContainer = fdbCluster.CreateContainer(fdbCluster.Name + "-node-" + i.ToString("D02"), coordinator: false);
-
-					ConfigureContainer(builder.ApplicationBuilder.AddResource(fdbContainer), fdbCoordinator);
-				}
-
-			}
-			else if (count < fdbCluster.Containers.Count)
-			{
-				throw new InvalidOperationException("Cannot reduce the number of replicas already defined on this cluster");
-			}
-
-			return builder;
+			return cluster;
 		}
 
 		/// <summary>Specifies the path to the native FoundationDB C library that should be used by the application</summary>
@@ -308,26 +269,9 @@ namespace Aspire.Hosting
 			jsonWriter.WriteString("clusterDesc", cluster.ClusterDescription);
 			jsonWriter.WriteString("version", cluster.ClusterVersion.ToString());
 			jsonWriter.WriteString("rollForward", cluster.RollForward.ToString());
-			jsonWriter.WriteNumber("portStart", cluster.PortStart);
-		}
-
-		private static void WriteFdbContainerToManifest(ManifestPublishingContext context, FdbContainerResource container)
-		{
-			var jsonWriter = context.Writer;
-			jsonWriter.WriteString("type", "fdb.container.v0");
-			jsonWriter.WriteString("parent", container.Parent.Name);
-			if (container.IsCoordinator)
+			if (!string.IsNullOrWhiteSpace(cluster.DockerTag))
 			{
-				jsonWriter.WriteBoolean("coordinator", true);
-			}
-			jsonWriter.WriteNumber("port", container.Port);
-			if (!string.IsNullOrWhiteSpace(container.DockerTag))
-			{
-				jsonWriter.WriteString("tag", container.DockerTag);
-			}
-			if (!string.IsNullOrWhiteSpace(container.ProcessClass))
-			{
-				jsonWriter.WriteString("class", container.ProcessClass);
+				jsonWriter.WriteString("tag", cluster.DockerTag);
 			}
 		}
 

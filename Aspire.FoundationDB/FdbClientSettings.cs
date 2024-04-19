@@ -38,11 +38,12 @@ namespace Microsoft.Extensions.Hosting
 
 		public string? ClusterVersion { get; set; }
 
-		/// <summary>
-		/// <para>Gets or sets the maximum number of connection retry attempts.</para>
-		/// <para>Default value is 5, set it to 0 to disable the retry mechanism.</para>
-		/// </summary>
-		public int MaxConnectRetryCount { get; set; } = 5;
+		/// <summary>Overrides the path to the native library that should be used by this instance</summary>
+		/// <remarks>
+		/// <para>If <see cref="string.Empty">empty</see>, pre-loading of the native C API library will be enabled, and the operating system will handle the binding of the library.</para>
+		/// <para>If not empty, the native C API library will be pre-loaded using the specified path. If the file does not exist, is not readable, or is corrupted, the startup will fail.</para>
+		/// </remarks>
+		public string? NativeLibraryPath { get; set; }
 
 		/// <summary>
 		/// <para>Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.</para>
@@ -55,6 +56,7 @@ namespace Microsoft.Extensions.Hosting
 		/// <para>Enabled by default.</para>
 		/// </summary>
 		public bool Tracing { get; set; } = true;
+
 	}
 
 }

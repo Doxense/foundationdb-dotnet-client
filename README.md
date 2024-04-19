@@ -153,7 +153,7 @@ private static void Main(string[] args)
 
     // Define a locally hosted FoundationDB cluster
     var fdb = builder
-        .AddFoundationDbContainer("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterVersion: "7.2.5", rollForward: FdbVersionPolicy.Exact);
+        .AddFoundationDb("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterVersion: "7.2.5", rollForward: FdbVersionPolicy.Exact);
 
     // Project that needs a reference to this cluster
     var backend = builder
@@ -175,7 +175,7 @@ private static void Main(string[] args)
 
     // Define an external FoundationDB cluster connection
     var fdb = builder
-        .AddFoundationDb("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterFile: "/SOME/PATH/TO/testing.cluster")		;
+        .AddFoundationDbCluster("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterFile: "/SOME/PATH/TO/testing.cluster")		;
 
     // Project that needs a reference to this cluster
     var backend = builder

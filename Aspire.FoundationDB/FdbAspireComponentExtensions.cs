@@ -108,6 +108,10 @@ namespace Microsoft.Extensions.Hosting
 						options.NativeLibraryPath = null;
 					}
 				}
+				else if (settings.NativeLibraryPath != null)
+				{
+					options.NativeLibraryPath = settings.NativeLibraryPath;
+				}
 
 				// Cluster File Path
 

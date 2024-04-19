@@ -1,4 +1,4 @@
-#region Copyright (c) 2023-2023 SnowBank SAS
+#region Copyright (c) 2023-2024 SnowBank SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -32,6 +32,8 @@ namespace Aspire.Hosting.ApplicationModel
 		public bool DisableNativePreloading { get; set; }
 
 		//TODO: more options? Debug? TraceId? Timeout? ....
+
+		public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{GetConnectionString()}");
 
 		public string? GetConnectionString()
 		{

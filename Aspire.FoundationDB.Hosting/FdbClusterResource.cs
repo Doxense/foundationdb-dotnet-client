@@ -1,4 +1,4 @@
-#region Copyright (c) 2023-2023 SnowBank SAS
+#region Copyright (c) 2023-2024 SnowBank SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -9,15 +9,11 @@
 namespace Aspire.Hosting.ApplicationModel
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Data.Common;
 	using System.Globalization;
-	using System.Linq;
-	using System.Net;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 
-	public class FdbClusterResource : Resource, IFdbResource
+	public class FdbClusterResource : ContainerResource, IFdbResource
 	{
 
 		public FdbClusterResource(string name) : base(name) { }
@@ -45,97 +41,26 @@ namespace Aspire.Hosting.ApplicationModel
 
 		public string? ClusterId { get; set; } = "docker";
 
-		public int PortStart { get; set; } = 4550;
-
-		internal List<FdbContainerResource> Containers { get; set; } = new();
-		//REVIEW: can we get rid of this and use the app builder to find resources of type FdbContainerResource when we need them?
-
-		internal int? LastPort { get; set; }
-
-		public int GetNextPort()
-		{
-			int port = this.LastPort == null ? this.PortStart : this.LastPort.Value + 1;
-			while (true)
-			{
-				bool conflict = false;
-				foreach (var c in this.Containers)
-				{
-					if (c.Port == port)
-					{
-						conflict = true;
-						break;
-					}
-				}
-
-				if (!conflict)
-				{
-					this.LastPort = port;
-					return port;
-				}
-
-				++port;
-			}
-		}
-
-		internal FdbContainerResource CreateContainer(string name, bool coordinator)
-		{
-			Contract.Debug.Requires(name != null);
-
-			var fdbContainer = new FdbContainerResource(name, this)
-			{
-				DockerTag = this.DockerTag,
-				Port = GetNextPort(),
-				IsCoordinator = coordinator,
-			};
-
-			this.Containers.Add(fdbContainer);
-
-			return fdbContainer;
-		}
-
-		internal FdbContainerResource? GetCoordinator()
-		{
-			return this.Containers.FirstOrDefault();
-		}
+		public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{GetConnectionString()}");
 
 		public string GetConnectionString()
 		{
-			var coordinator = GetCoordinator();
-			if (coordinator == null)
-			{
-				throw new DistributedApplicationException("There must be at least one fdb container available on the cluster!");
-			}
 
 			string clusterDesc = this.ClusterDescription ?? this.Name;
 			string clusterId = this.ClusterId ?? this.Name;
-			string coordinatorHost;
-			int coordinatorPort;
 
-			var ep = coordinator.GetEndpoint();
-			switch (ep)
-			{
-				case IPEndPoint ip:
-				{
-					coordinatorHost = ip.Address.ToString();
-					coordinatorPort = ip.Port;
-					break;
-				}
-				case DnsEndPoint dns:
-				{
-					coordinatorHost = dns.Host.ToString();
-					coordinatorPort = dns.Port;
-					break;
-				}
-				default:
-				{
-					throw new InvalidOperationException("Coordinator endpoint type not supported");
-				}
-			}
+			var ep = this.GetEndpoint("tcp");
+
+			var coordinatorHost = ep.Host;
+			if (coordinatorHost == "localhost") coordinatorHost = "127.0.0.1";
+			var coordinatorPort = ep.Port;
 
 			// Cluster File format: "<DESC>:<ID>@<HOST1>:<PORT1>[,<HOST2>:<PORT2>,...]"
 			// By default, the docker image uses "docker:docker@127.0.0.1:4550"
 
 			string contents = $"{clusterDesc}:{clusterId}@{coordinatorHost}:{coordinatorPort.ToString(CultureInfo.InvariantCulture)}";
+
+			//TODO: replace this with a proper use of ReferenceExpression?
 
 			var builder = new DbConnectionStringBuilder
 			{
