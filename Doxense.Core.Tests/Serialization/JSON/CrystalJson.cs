@@ -75,7 +75,6 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Net;
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices.ComTypes;
 	using System.Runtime.Serialization;
 	using System.Text;
 	using System.Threading;
