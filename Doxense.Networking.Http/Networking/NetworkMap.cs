@@ -41,6 +41,8 @@ namespace Doxense.Networking
 	using JetBrains.Annotations;
 	using NodaTime;
 
+	/// <summary>Implementation of an <see cref="INetworkMap"/> that interacts a real network</summary>
+	/// <remarks>This method will passthough all requests to the actual network stack of the host.</remarks>
 	[PublicAPI]
 	public class NetworkMap : INetworkMap
 	{
@@ -50,6 +52,7 @@ namespace Doxense.Networking
 			this.Clock = clock ?? SystemClock.Instance;
 		}
 
+		/// <inheritdoc />
 		public IClock Clock { get; }
 
 		[Obsolete("Use CreateBetterHttpHandler instead")]
@@ -64,6 +67,7 @@ namespace Doxense.Networking
 			return options.Configure(new BetterHttpClientHandler(this));
 		}
 
+		/// <inheritdoc />
 		public virtual HttpMessageHandler CreateBetterHttpHandler(Uri baseAddress, BetterHttpClientOptions options)
 		{
 			return CreateDefaultHttpHandler(baseAddress, options);
@@ -91,11 +95,13 @@ namespace Doxense.Networking
 			return localAddress;
 		}
 
+		/// <inheritdoc />
 		public virtual Task<IPHostEntry> DnsLookup(string hostNameOrAddress, AddressFamily? family, CancellationToken ct)
 		{
 			return Dns.GetHostEntryAsync(hostNameOrAddress, family ?? AddressFamily.Unspecified, ct);
 		}
 
+		/// <inheritdoc />
 		public virtual IReadOnlyList<NetworkAdaptorDescriptor> GetNetworkAdaptors()
 		{
 			return NetworkInterface.GetAllNetworkInterfaces().Where(IsValidNetworkInterface).Select(x =>
@@ -130,6 +136,7 @@ namespace Doxense.Networking
 
 		protected Dictionary<string, (string HostName, IPEndPoint RemoteEndPoint, IPAddress? Local, Instant Timestamp)> LastEndPointMapping { get; } = new (StringComparer.Ordinal);
 
+		/// <inheritdoc />
 		public EndPointQuality? GetEndpointQuality(IPEndPoint endpoint)
 		{
 			lock (this.Lock)
@@ -138,6 +145,7 @@ namespace Doxense.Networking
 			}
 		}
 
+		/// <inheritdoc />
 		public EndPointQuality RecordEndpointConnectionAttempt(IPEndPoint endpoint, TimeSpan duration, Exception? error, string? hostName, IPAddress? localAddress)
 		{
 			var now = this.Clock.GetCurrentInstant();
@@ -162,6 +170,7 @@ namespace Doxense.Networking
 			}
 		}
 
+		/// <inheritdoc />
 		public bool TryGetLastEndpointForHost(string hostName, out (IPEndPoint? EndPoint, IPAddress? LocalAddress, Instant Timestamp) infos)
 		{
 			lock (this.Lock)
@@ -217,29 +226,40 @@ namespace Doxense.Networking
 
 		public IPEndPoint EndPoint { get; }
 
+		/// <summary>Last computed score for this endpoint (lower == better)</summary>
 		public double Score { get; private set; }
 
+		/// <summary>Total number of connection attempts</summary>
 		public long TotalConnections { get; private set; }
 
+		/// <summary>Total number of failed connection attempts</summary>
 		public long TotalErrors { get; private set; }
 
+		/// <summary>Moving sum of the last connection attempts</summary>
 		private MovingSum<long> MovingDuration;
 
+		/// <summary>Moving sum of the last connection attempts (between 0 and 1, can be interpreted as the probability that the connection attempts fails)</summary>
 		private MovingSum<double> MovingErrors;
 
+		/// <summary>Time of the last attempt</summary>
 		public Instant LastAttempt { get; private set; }
 
+		/// <summary>Time of the end of a mandatory cooldown</summary>
+		/// <remarks>The end point will have a very high score handicap until the end of the cooldown</remarks>
 		public Instant? Cooldown { get; private set; }
 
 		/// <summary>Last known local address used to connect to this endpoint</summary>
 		public IPAddress? LastLocalAddress { get; private set; }
 
-		/// <summary>Error if the last connection failed, or <c>null</c> if it was successfull</summary>
+		/// <summary>Error if the last connection failed, or <see langword="null"/> if it was successfull</summary>
 		public Exception? LastError { get; private set; }
 
 		/// <summary>Last hostname that resolved to this endpoint</summary>
 		public string? LastHostName { get; private set; }
 
+		/// <summary>Computes a score that attempts to quantify the likelyhood that is endpoint will be available and responsive, at the given time (lower == better)</summary>
+		/// <param name="now">Time of the computation (may be in the future)</param>
+		/// <returns>Score that is lower if the host is expected to be reachable and fast, or higher if it is less likely (failed to resolve or timed out in the recent past)</returns>
 		public double ComputeScore(Instant now)
 		{
 			var score = this.Score;
@@ -269,13 +289,13 @@ namespace Doxense.Networking
 		/// <summary>Has the last connection attempt failed?</summary>
 		public bool LastFailed => this.MovingDuration.Last > 0.0;
 
-		/// <summary>Record a new connection attempt</summary>
-		/// <param name="now"></param>
+		/// <summary>Records a new connection attempt</summary>
+		/// <param name="now">Time of the attempt (usually the when the connection was established, or the timeout expired)</param>
 		/// <param name="duration">Duration of the connection attempt</param>
-		/// <param name="error">Has it failed?</param>
-		/// <param name="hostName"></param>
-		/// <param name="localAddress"></param>
-		public void Record(Instant  now, TimeSpan duration, Exception? error, string? hostName, IPAddress? localAddress)
+		/// <param name="error">Exception recorded if the attempt failed</param>
+		/// <param name="hostName">Host name or ip address used for the connection attempt</param>
+		/// <param name="localAddress">Address of the local network adapter used if known; otherwise, <see langword="null"/></param>
+		public void Record(Instant now, TimeSpan duration, Exception? error, string? hostName, IPAddress? localAddress)
 		{
 			this.LastAttempt = now;
 			this.TotalConnections++;

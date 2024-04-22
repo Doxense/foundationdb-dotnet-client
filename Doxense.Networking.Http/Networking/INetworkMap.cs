@@ -28,6 +28,8 @@ namespace Doxense.Networking
 {
 	using System;
 	using System.Collections.Generic;
+	using System.ComponentModel;
+	using System.Diagnostics;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
@@ -38,29 +40,48 @@ namespace Doxense.Networking
 	using JetBrains.Annotations;
 	using NodaTime;
 
-	/// <summary>Interface utilisée pour pouvoir gérer réel ou simulé</summary>
+	/// <summary>Provides services to interract with the real (or simulated) network</summary>
+	/// <remarks>
+	/// <para>This types is a wrapper that allows injecting virtual networks and hosts when the code under test and running inside a "virtual sandbox"</para>
+	/// </remarks>
 	[PublicAPI]
 	public interface INetworkMap
 	{
 
+		/// <summary>Clock used to generate timestamps or measure elapsed time</summary>
 		IClock Clock { get; }
 
 		[Obsolete("Use CreateBetterHttpHandler instead")]
 		HttpMessageHandler? CreateHttpHandler(string hostOrAddress, int port);
 
+		/// <summary>Creates a new <see cref="HttpMessageHandler"/> that can send queries to the specified remote host</summary>
+		/// <param name="baseAddress">Base address of the host (ex: <c>"https://api.acme.com"</c>), without any path or querystring</param>
+		/// <param name="options">Configuration options for the client</param>
+		/// <returns>Handler that will be configured for the remote host</returns>
+		/// <remarks>In a test environment, can return a virtual handler that will emulate the HTTP request "in process" to the corresponding virtual host</remarks>
 		HttpMessageHandler CreateBetterHttpHandler(Uri baseAddress, BetterHttpClientOptions options);
 
+		/// <summary>Resolves the public IP address of the specified target, as seen by the local host</summary>
+		/// <param name="hostNameOrAddress">Host name of IP address</param>
+		/// <returns>The resolved IP address of the host, the address if it is already resolved, or <see langword="null"/> if the resolution failed</returns>
+		// ReSharper disable once InconsistentNaming
 		ValueTask<IPAddress?> GetPublicIPAddressForHost(string hostNameOrAddress);
 
+		/// <summary>Performs a DNS resolution for the specified host name</summary>
+		/// <param name="hostNameOrAddress">Host name or IP address</param>
+		/// <param name="family">Type of DNS record (A, AAA, ...)</param>
+		/// <param name="ct">Cancellation token</param>
+		/// <returns>Result of the DNS resolution</returns>
 		Task<IPHostEntry> DnsLookup(string hostNameOrAddress, AddressFamily? family, CancellationToken ct);
 
+		/// <summary>Lists all network adapter present on this host</summary>
 		IReadOnlyList<NetworkAdaptorDescriptor> GetNetworkAdaptors();
 
-		/// <summary>Query metadata about the "quality" of an endpoint</summary>
+		/// <summary>Queries metadata about the <see cref="EndPointQuality">quality</see> of an endpoint</summary>
 		/// <return>Quality of the endpoint, or null if no connection attempts has been performed yet</return>
 		EndPointQuality? GetEndpointQuality(IPEndPoint endpoint);
 
-		/// <summary>Record a connection attempt to a specific endpoint</summary>
+		/// <summary>Records a connection attempt to a specific endpoint</summary>
 		/// <param name="endpoint">Target endpoint of the connection</param>
 		/// <param name="duration">Duration of the connection attempt</param>
 		/// <param name="error">Error encountered while attempting the connection, or <c>null</c> if it was a success</param>
@@ -69,29 +90,39 @@ namespace Doxense.Networking
 		/// <returns>Updated quality of the endpoint</returns>
 		EndPointQuality RecordEndpointConnectionAttempt(IPEndPoint endpoint, TimeSpan duration, Exception? error, string? hostName, IPAddress? localAddress);
 
-		/// <summary>Try to get details about which endpoint and local address was used to talk to the specific host</summary>
+		/// <summary>Tries to get details about which endpoint and local address was used to talk to the specific host</summary>
 		bool TryGetLastEndpointForHost(string hostName, out (IPEndPoint? EndPoint, IPAddress? LocalAddress, Instant Timestamp) infos);
 
 	}
 
+	/// <summary>Details about a network adapter</summary>
 	public sealed record NetworkAdaptorDescriptor
 	{
+		/// <summary>Identifier of the adapter</summary>
 		public required string Id { get; init; }
 
+		/// <summary>Index of the adapter</summary>
 		public required int Index { get; init; }
 
+		/// <summary>Type of network adapter</summary>
 		public required NetworkInterfaceType Type { get; init; }
 
+		/// <summary>Name of the adapter</summary>
 		public required string Name { get; init; }
 
+		/// <summary>Description of the adapter</summary>
 		public required string Description { get; init; }
 
+		/// <summary>MAC address of the adapter (if applicable)</summary>
 		public string? PhysicalAddress { get; init; }
 
+		/// <summary>DNS suffix for this adapter (if applicable)</summary>
 		public string? DnsSuffix { get; init; }
 
+		/// <summary>List of unicast addresses bound to this adapter (or empty if not applicable)</summary>
 		public required UnicastAddressDescriptor[] UnicastAddresses { get; init; }
 
+		/// <summary>Estimated network speed of this adapter (if known)</summary>
 		public long? Speed { get; init; }
 
 		public sealed record UnicastAddressDescriptor
@@ -99,6 +130,7 @@ namespace Doxense.Networking
 
 			public required IPAddress Address { get; init; }
 
+			// ReSharper disable once InconsistentNaming
 			public IPAddress? IPv4Mask { get; init; }
 
 			public int PrefixLength { get; init; }
@@ -107,18 +139,35 @@ namespace Doxense.Networking
 
 	}
 
+	/// <summary>Map of the global network topology</summary>
+	/// <remarks>Lists all the virtual network locations and how they are interconnected</remarks>
 	[PublicAPI]
 	public interface IVirtualNetworkTopology
 	{
 
+		/// <summary>Registers a new virtual network location</summary>
+		/// <param name="id">Unique identifier for this location</param>
+		/// <param name="name">Friendly name</param>
+		/// <param name="type">Type of network location</param>
+		/// <param name="options">Configuration options for this location</param>
+		/// <returns>Instance that represents this new location</returns>
 		IVirtualNetworkLocation RegisterLocation(string id, string name, VirtualNetworkType type, VirtualNetworkLocationOptions options);
 
+		/// <summary>Gets the network location with the specified identifier</summary>
 		IVirtualNetworkLocation GetLocation(string id);
 
+		/// <summary>Gets the host with the specified identifier</summary>
 		IVirtualNetworkHost GetHost(string id);
 
+		/// <summary>Simulates a DNS resolution request for the specified host name or address</summary>
+		/// <param name="hostNameOrAddress">Host name, or IP address</param>
+		/// <param name="sourceHost">If specified, the virtual host that is performing the request (which may influence the result if the host cannot see the target)</param>
+		/// <param name="family">Type of DNS record (A, AAA, etc...)</param>
+		/// <param name="ct">Cancellation token</param>
+		/// <returns>Simulated response from the virtual DNS server</returns>
 		Task<IPHostEntry> DnsResolve(string hostNameOrAddress, IVirtualNetworkHost? sourceHost, AddressFamily? family, CancellationToken ct);
 
+		/// <summary>Dumps a human-readable version of the network topology, for logging/troubleshooting purpose</summary>
 		string Dump();
 
 	}
@@ -127,12 +176,20 @@ namespace Doxense.Networking
 	[PublicAPI]
 	public interface IVirtualNetworkMap : INetworkMap
 	{
+		/// <summary>Network topology</summary>
 		IVirtualNetworkTopology Topology { get; }
 
+		/// <summary>Local virtual host</summary>
 		IVirtualNetworkHost Host { get; }
+
+		/// <summary>Finds a virtual host, given its host name or IP address, as understood from the current host</summary>
+		/// <param name="hostOrAddress">Host name, FQDN or IP address of the host in the virtual network</param>
+		/// <returns>Corresponding host, or <see langword="null"/> if not found (or not in the same context as the current host)</returns>
+		IVirtualNetworkHost? FindHost(string hostOrAddress);
 
 	}
 
+	/// <summary>Configuration options for a <see cref="IVirtualNetworkLocation">virtual network location</see></summary>
 	public record VirtualNetworkLocationOptions
 	{
 		public string? IpRange { get; set; }
@@ -146,6 +203,7 @@ namespace Doxense.Networking
 
 	}
 
+	/// <summary>Type of virtual test network</summary>
 	public enum VirtualNetworkType
 	{
 		Unspecified = 0,
@@ -159,6 +217,7 @@ namespace Doxense.Networking
 		Cloud,
 	}
 
+	/// <summary>Defines the identity of a virtual host in a virtual test network</summary>
 	public sealed record VirtualHostIdentity
 	{
 
@@ -185,115 +244,165 @@ namespace Doxense.Networking
 
 	}
 
-	/// <summary>Représente un "LAN" où tous les hosts se voient entre eux directement</summary>
+	/// <summary>Represents a virtual network location, such as "LAN", a Cloud DMZ, or the Loopback interface, as well as all its services (DNS, DHCP, ...).</summary>
+	/// <remarks>
+	/// <para>Hosts belonging to the same network location can talk to each other directly.</para>
+	/// <para>Hosts from different network locations may require virtual routing to be configured</para>
+	/// </remarks>
 	[PublicAPI]
 	public interface IVirtualNetworkLocation : IEquatable<IVirtualNetworkLocation>
 	{
 
+		/// <summary>Global network topology</summary>
+		/// <remarks>Describes how the different virtual network locations are interconnected</remarks>
 		IVirtualNetworkTopology Topology { get; }
 
+		/// <summary>Unique id of this network location</summary>
 		string Id { get; }
 
+		/// <summary>Friendly name of this network location</summary>
 		string Name { get; }
 
+		/// <summary>Type of network location</summary>
 		VirtualNetworkType Type { get; }
 
+		/// <summary>Configuration options for this network location</summary>
 		VirtualNetworkLocationOptions Options { get; }
 
+		/// <summary>Registers a new host to this network location</summary>
+		/// <remarks>Should only called by the test framework, during the setup phase</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		IVirtualNetworkMap RegisterHost(string id, VirtualHostIdentity identity);
 
+		/// <summary>Returns the host with the given id, from this location.</summary>
 		IVirtualNetworkHost? GetHost(string id);
 
+		/// <summary>Registers a static IP address with the virtual DHCP server of this location</summary>
+		/// <param name="address">IP address that is marked as "in use"</param>
+		/// <remarks>This address will not be assigned by the virtual DHCP</remarks>
 		void RegisterIpAddress(IPAddress address);
 
+		/// <summary>Allocates a new IP address using the virtual DHCP server of this location</summary>
+		/// <returns></returns>
 		IPAddress AllocateIpAddress();
 
-		/// <summary>Generate a new virtual MAC address</summary>
+		/// <summary>Generates a new virtual MAC address</summary>
 		/// <param name="ouiPrefix">OUI prefix of this vender (ex: <c>'12:34:56'</c>)</param>
 		/// <param name="seed">Deterministic seed, or null to generate a truly random address</param>
 		/// <returns>Completed MAC address (ex: <c>'12:34:56:A2:79:3F'</c>)</returns>
 		string AllocateMacAddress(string ouiPrefix, string? seed = null);
 
-		/// <summary>Generate a new virtual Serial Number from a pattern</summary>
+		/// <summary>Generates a new virtual Serial Number from a pattern</summary>
 		/// <param name="pattern">Pattern where '#' are replaced with digits and '?' are replaced with uppercase letters (ex: 'ABC###??#####Z')</param>
 		/// <param name="seed">Deterministic seed, or null to generate a truly random address</param>
 		/// <returns>Serial number (ex: (ex: 'ABC666XY42069Z')</returns>
 		string AllocateSerialNumber(string pattern, string? seed = null);
 
-		/// <summary>Test if this virtual network can send packets to a <paramref name="target"/> network</summary>
+		/// <summary>Tests if this virtual network can send packets to a <paramref name="target"/> network</summary>
 		bool CanSendTo(IVirtualNetworkLocation target);
 
-		/// <summary>Test if this virtual network can receive packets from a <paramref name="source"/> network</summary>
+		/// <summary>Tests if this virtual network can receive packets from a <paramref name="source"/> network</summary>
 		bool CanReceiveFrom(IVirtualNetworkLocation source);
 
-		/// <summary>Register a new service available in this virtual network</summary>
+		/// <summary>Registers a new service available in this virtual network</summary>
 		/// <param name="serviceType">Type of service (ex: "endpoint:wes")</param>
 		/// <param name="componentId">Id of the test component that handles this service (ex: "SMITH")</param>
 		/// <param name="argument">Optional argument that depends on the type of service (ex: "agents:SMITH:wes:uri")</param>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		void RegisterNetworkService(string serviceType, string componentId, string? argument);
 
-		/// <summary>Return of list of hosts that support a given service type in this virtual network</summary>
+		/// <summary>Returns of list of hosts that support a given service type in this virtual network</summary>
 		/// <param name="serviceType">Type of service (ex: "endpoint:wes")</param>
 		/// <returns>List of matching hosts, or an empty array if none were found</returns>
 		(string Id, string? Argument)[] BrowseNetworkService(string serviceType);
 
+		/// <summary>Opens a door to the real world by allowing hosts in this virtual network, to talk to a real physical host.</summary>
+		/// <param name="id"></param>
+		/// <param name="identity"></param>
+		/// <returns>
+		/// <para>This should _only_ be used to interfact with resources that <i>cannot</i> be virtualized.</para>
+		/// <para>Tests that use this feature relly on the availability of this resources and probably cannot be run in parallel or in a different environment.</para>
+		/// </returns>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		IVirtualNetworkHost AddHostPassthrough(string id, VirtualHostIdentity identity);
 
 	}
 
+	/// <summary>Represents a virtual host</summary>
 	[PublicAPI]
 	public interface IVirtualNetworkHost : IEquatable<IVirtualNetworkHost>
 	{
 
+		/// <summary>List of virtual network adapteres available to this host</summary>
 		IReadOnlyList<IVirtualNetworkAdapter> Adapters { get; }
 
+		/// <summary>List or virtual network locations that his host can reach</summary>
 		IReadOnlyList<IVirtualNetworkLocation> Locations { get; }
 
+		/// <summary>Virtual loopback network adapter</summary>
 		IVirtualNetworkLocation? Loopback { get; }
 
+		/// <summary>Unique identifier of this host</summary>
 		string Id { get; }
 
-		/// <summary>Nom de domaine complet (fqdn) du host (ex: pc123.domain.local)</summary>
+		/// <summary>Fully qualified domain name (fqdn) of this host (ex: pc123.domain.local)</summary>
+		/// <remarks>By convention, should be lowercase.</remarks>
 		string Fqdn { get; }
 
-		/// <summary>Nom principal du host, excluant le domaine (ex: PC123)</summary>
+		/// <summary>Primary host name, excluding the domain (ex: PC123)</summary>
+		/// <remarks>By convention, should be UPPERCASE.</remarks>
 		string HostName { get; }
 
-		/// <summary>Noms aditionnels optionnels du host (exclant le nom d'host et son fqdn)</summary>
+		/// <summary>Additional names for this host (exccluding the primary host name and fqdn)</summary>
 		string[] Aliases { get; }
 
-		/// <summary>Static ip address (optionnel)</summary>
-		/// <remarks>Par convention, on utilise des IP dans la range 83.73.77.0/24 pour les simulated virtual devices</remarks>
+		/// <summary>Static ip address (optionnal)</summary>
+		/// <remarks>By convention, IP addresses in the range 83.73.77.0/24 are used for simulated hosts, in order to ensure that no real packet "escapes" from the test context to a real network.</remarks>
 		IPAddress[] Addresses { get; }
 
+		/// <summary>Binds a virtual port on one of the network locations of this host</summary>
+		/// <param name="location">Location corresponding to the bound ip address</param>
+		/// <param name="port">TCP Port number</param>
+		/// <param name="handler">Handler called for any connection to this port from this network location</param>
 		void Bind(IVirtualNetworkLocation location, int port, Func<HttpMessageHandler> handler);
 
+		/// <summary>Finds an HTTP connection handler that is listening on the specified port number and network location</summary>
+		/// <param name="location">Network location from which the request is coming from</param>
+		/// <param name="port">TCP port number of the connection</param>
+		/// <returns>Handler that can respond to the HTTP request, if found; otherwise, <see langword="null"/></returns>
 		Func<HttpMessageHandler>? FindHandler(IVirtualNetworkLocation location, int port);
 
 		/// <summary>Flag that is <see langword="true"/> when this host is 'offline' and should not respond to any external request.</summary>
 		bool Offline { get; }
 
-		/// <summary>Change the <see cref="Offline">offline state</see> of this host</summary>
+		/// <summary>Changes the <see cref="Offline">offline state</see> of this host</summary>
 		/// <param name="offline">Mark the host as offline if <see langword="true"/>, or back online if <see langword="false"/>.</param>
 		/// <remarks>If the host is offline, all simulated requests will start to fail</remarks>
 		void SetOffline(bool offline);
 
 	}
 
+	/// <summary>Represents a virtual network adapter that is used by a <see cref="IVirtualNetworkHost">virtual host</see> to talk to a <see cref="IVirtualNetworkLocation"/> virtual network location</summary>
 	[PublicAPI]
 	public interface IVirtualNetworkAdapter
 	{
 
+		/// <summary>Virtual network location which is reachable by this network adapter</summary>
 		IVirtualNetworkLocation Location { get; }
 
+		/// <summary>Id of this network adapter (locally unique)</summary>
 		string Id { get; }
 
+		/// <summary>Type of network adapter</summary>
 		NetworkInterfaceType Type { get; }
 
+		/// <summary>Friendly name of this network adapter (locally unique)</summary>
 		string Name { get; }
 
+		/// <summary>Description of this network adapter</summary>
 		string Description { get; }
 
+		/// <summary>List of unicast addresses assigned to this network adapter</summary>
 		(IPAddress Address, IPAddress Mask, int PrefixLength)[] UnicastAddresses { get; }
 
 	}
@@ -302,6 +411,7 @@ namespace Doxense.Networking
 	public static class NetworkMapExtensions
 	{
 
+		/// <summary>Creates and registers a new loopback adapter for the specified virtual host</summary>
 		public static IVirtualNetworkLocation RegisterLoopbackNetwork(this IVirtualNetworkTopology topology, string id, string name)
 		{
 			return topology.RegisterLocation(

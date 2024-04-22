@@ -57,6 +57,8 @@ namespace Doxense.Networking
 		public VirtualNetworkTopology.SimulatedHost Host { get; }
 		IVirtualNetworkHost IVirtualNetworkMap.Host => this.Host;
 
+		IVirtualNetworkHost? IVirtualNetworkMap.FindHost(string hostOrAddress) => FindHost(hostOrAddress);
+
 		public VirtualNetworkTopology.SimulatedHost? FindHost(string hostOrAddress)
 		{
 			if (IPAddress.TryParse(hostOrAddress, out var ip))
