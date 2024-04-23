@@ -34,6 +34,11 @@ namespace Doxense.Serialization.Json.Binary
 	using Doxense.Text;
 	using JetBrains.Annotations;
 
+	/// <summary>Fast and compact binary JSON encoder</summary>
+	/// <remarks>
+	/// <para>Generates the smalles payload possible and intended for cases where the entire document must be decoded</para>
+	/// <para>For cases where only part of the document needs to be read (indexing, filtering), please consider using <see cref="Jsonb"/> instead.</para>
+	/// </remarks>
 	public static class JsonPack
 	{
 
@@ -273,7 +278,7 @@ namespace Doxense.Serialization.Json.Binary
 
 		#region Public Methods...
 
-		/// <summary>Parse un buffer contenant un document jsonb, en une valeur JSON équivalente</summary>
+		/// <summary>Parses JsonPack binary blob into the corresponding <see cref="JsonValue"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Decode(byte[] buffer, CrystalJsonSettings? settings = null, StringTable? table = null)
 		{
@@ -281,24 +286,33 @@ namespace Doxense.Serialization.Json.Binary
 			return Decode(buffer, 0, buffer.Length, settings, table);
 		}
 
-		/// <summary>Parse un buffer contenant un document jsonb, en une valeur JSON équivalente</summary>
+		/// <summary>Parses JsonPack binary blob into the corresponding <see cref="JsonValue"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Decode(byte[] buffer, int offset, int count, CrystalJsonSettings? settings = null, StringTable? table = null)
 		{
 			return Decode(buffer.AsSlice(offset, count), settings, table);
 		}
 
-		/// <summary>Parse une section de buffer contenant un document jsonb, en une valeur JSON équivalente</summary>
+		/// <summary>Parses JsonPack binary blob into the corresponding <see cref="JsonValue"/></summary>
 		[Pure]
 		public static JsonValue Decode(Slice buffer, CrystalJsonSettings? settings = null, StringTable? table = null)
 		{
 			settings ??= CrystalJsonSettings.JsonCompact;
 
+			if (buffer.Count == 0)
+			{
+				return JsonNull.Missing;
+			}
+
 			var reader = buffer.ToSliceReader();
 			int token = reader.ReadByte();
-			if (token < 0) return JsonNull.Missing;
 			var val = ReadValue(ref reader, token, settings);
-			if (reader.HasMore) throw new FormatException($"Found {reader.Remaining:N0} extra byte(s) at end of encoded JSONPack value.");
+
+			if (reader.HasMore)
+			{
+				throw new FormatException($"Found {reader.Remaining:N0} extra byte(s) at end of encoded JSONPack value.");
+			}
+
 			return val ?? JsonNull.Null;
 		}
 
@@ -345,8 +359,7 @@ namespace Doxense.Serialization.Json.Binary
 			return TypeTokens.Invalid;
 		}
 
-		/// <summary>Encode une valeur JSON en document jsonb</summary>
-		/// <returns>Tableau contenant le document jsonb correspondant à <paramref name="value"/></returns>
+		/// <summary>Encodes a <see cref="JsonValue"/> into a JsonPack binary blob</summary>
 		public static Slice Encode(JsonValue value, CrystalJsonSettings? settings = null)
 		{
 			Contract.NotNull(value);
@@ -361,6 +374,7 @@ namespace Doxense.Serialization.Json.Binary
 			return EncodeTo(ref writer, value, settings);
 		}
 
+		/// <summary>Encodes a <see cref="JsonValue"/> into a JsonPack binary blob</summary>
 		public static Slice EncodeTo(ref SliceWriter writer, JsonValue value, CrystalJsonSettings? settings = null)
 		{
 			settings ??= CrystalJsonSettings.JsonCompact;
@@ -483,17 +497,17 @@ namespace Doxense.Serialization.Json.Binary
 					writer.WriteByte(JENTRY_SMALL_POS_INT_BASE + (byte) (value & 0x7F));
 				}
 				//note: FixedInt1 is already covered by above case!
-				else if (value < (1 << 15))
+				else if (value < (1L << 15))
 				{ // 128..32767: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt2);
 					writer.WriteFixed16((short) value);
 				}
-				else if (value < (1 << 23))
+				else if (value < (1L << 23))
 				{ // stored as three bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt3);
 					writer.WriteFixed24((uint) value & 0x7FFFFF);
 				}
-				else if (value < (1 << 31))
+				else if (value < (1L << 31))
 				{ // stored as three bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt4);
 					writer.WriteFixed32((uint) value);
@@ -525,15 +539,15 @@ namespace Doxense.Serialization.Json.Binary
 					writer.WriteByte((byte) TypeTokens.FixedInt3);
 					writer.WriteFixed24(((uint) value) & 0xFFFFFF);
 				}
-				else if (value >= -2147483648)
+				else if (value >= -2_147_483_648)
 				{
 					writer.WriteByte((byte) TypeTokens.FixedInt4);
-					writer.WriteFixed32((uint) value);
+					writer.WriteFixed32(unchecked((uint) value));
 				}
 				else
 				{
 					writer.WriteByte((byte) TypeTokens.FixedInt8);
-					writer.WriteFixed64((ulong) value);
+					writer.WriteFixed64(unchecked((ulong) value));
 				}
 			}
 		}
@@ -783,9 +797,8 @@ namespace Doxense.Serialization.Json.Binary
 			JsonArray? arr = null;
 			while ((next = reader.ReadByte()) != (int) TypeTokens.ArrayStop)
 			{
-				if (next < 0) throw new FormatException("Unexpected end of JSONPack Array.");
 				var val = (ReadValue(ref reader, next, settings) ?? JsonNull.Null);
-				arr ??= new JsonArray();
+				arr ??= [ ];
 				arr.Add(val);
 			}
 			return arr ?? JsonArray.Create();

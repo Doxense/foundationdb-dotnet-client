@@ -35,7 +35,6 @@ namespace Doxense.Serialization.Json.Binary.Tests
 	using System.Collections.Generic;
 	using System.IO.Compression;
 	using System.Linq;
-	using Doxense.Testing;
 	using NUnit.Framework;
 	using SnowBank.Testing;
 
