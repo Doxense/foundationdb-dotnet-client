@@ -57,6 +57,9 @@ namespace Doxense.Serialization.Json
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
 	[JetBrains.Annotations.PublicAPI]
+#if NET8_0_OR_GREATER
+	[CollectionBuilder(typeof(JsonObject), nameof(JsonObject.Create))]
+#endif
 	public sealed class JsonObject : JsonValue, IDictionary<string, JsonValue>, IReadOnlyDictionary<string, JsonValue>, IEquatable<JsonObject>
 	{
 		// A JSON object can be writable (mutable), or read-only (immutable)

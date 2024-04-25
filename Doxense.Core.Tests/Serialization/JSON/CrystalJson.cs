@@ -5460,10 +5460,34 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonArray_ReadOnly()
 		{
 			// creating a readonly object with only immutable values should produce an immutable object
-			AssertIsImmutable(JsonArray.CreateReadOnly("one", 1));
-			AssertIsImmutable(JsonArray.CreateReadOnly("one", 1, "two", 2));
-			AssertIsImmutable(JsonArray.CreateReadOnly("one", 1, "two", 2, "three", 3));
+
+			// singleton
+			AssertIsImmutable(JsonArray.CreateReadOnly("one"));
+
+			// DEPRECATED: should use collection expressions instead: [ ... ]
+			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two"));
+			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three"));
+			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three", "four"));
+			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three", "four", "five"));
+
+			// collection expressions: should invoke the ReadOnlySpan<> overload
+			AssertIsImmutable(JsonArray.CreateReadOnly(["one"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two", "three"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two", "three", "four"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two", "three", "four", "five"]));
+
+			// params JsonValue[]
+			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two", "three"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two", "three", "four"]));
+			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two", "three", "four", "five"]));
+
 			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
+			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToArray()));
+			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToList()));
+			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToList()));
 
 			// creating an immutable version of a writable object with only immutable should return an immutable object
 			AssertIsImmutable(JsonArray.Create("one", 1).ToReadOnly());
@@ -5747,8 +5771,13 @@ namespace Doxense.Serialization.Json.Tests
 
 		private static void AssertIsImmutable(JsonArray? arr, [CallerArgumentExpression(nameof(arr))] string? expression = "")
 		{
-			Assert.That(arr, Is.Not.Null);
-			Assert.That(arr!.IsReadOnly, Is.True, expression);
+			if (arr == null)
+			{
+				Assert.That(arr, Is.Not.Null);
+				return;
+			}
+
+			Assert.That(arr, IsJson.ReadOnly, expression);
 			Assert.That(() => arr.Clear(), Throws.InvalidOperationException, expression);
 			Assert.That(() => arr[0] = "world", Throws.InvalidOperationException, expression);
 			Assert.That(() => arr.Set(0, "hello"), Throws.InvalidOperationException);

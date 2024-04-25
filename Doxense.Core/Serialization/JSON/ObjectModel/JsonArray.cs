@@ -60,6 +60,9 @@ namespace Doxense.Serialization.Json
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
 	[JetBrains.Annotations.PublicAPI]
+#if NET8_0_OR_GREATER
+	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
+#endif
 	public sealed class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>
 	{
 		/// <summary>Taille initiale de l'array</summary>
@@ -301,42 +304,62 @@ namespace Doxense.Serialization.Json
 			value4 ?? JsonNull.Null
 		], 4, readOnly: false);
 
-		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Create(params JsonValue?[] values)
 		{
 			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
-			Contract.NotNull(values);
-			return values.Length == 0 ? new JsonArray() : new JsonArray().AddRange(values.AsSpan()!);
+			return Create(Contract.ValueNotNull(values).AsSpan());
+		}
+
+		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
+		[Pure]
+		public static JsonArray Create(ReadOnlySpan<JsonValue?> values)
+		{
+			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
+			if (values.Length == 0)
+			{
+				return EmptyReadOnly;
+			}
+
+			var buf = new JsonValue[values.Length];
+			for (int i = 0; i < buf.Length; i++)
+			{
+				buf[i] = values[i] ?? JsonNull.Null;
+			}
+			return new JsonArray(buf, buf.Length, readOnly: true);
 		}
 
 		#endregion
 
 		#region Immutable...
 
-		/// <summary>Create a new JsonArray that will hold a single element</summary>
+		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> that will hold a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray CreateReadOnly(JsonValue? value) => new([
 			(value ?? JsonNull.Null).ToReadOnly()
 		], 1, readOnly: true);
 
-		/// <summary>Create a new JsonArray that will hold a pair of elements</summary>
+		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Prefer using collection expressions instead: JsonArray.CreateReadOnly([ value1, value2, value3, value4 ])")]
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
 			(value2 ?? JsonNull.Null).ToReadOnly()
 		], 2, readOnly: true);
 
-		/// <summary>Create a new JsonArray that will hold three elements</summary>
+		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Prefer using collection expressions instead: JsonArray.CreateReadOnly([ value1, value2, value3, value4 ])")]
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
 			(value2 ?? JsonNull.Null).ToReadOnly(),
 			(value3 ?? JsonNull.Null).ToReadOnly()
 		], 3, readOnly: true);
 
-		/// <summary>Create a new JsonArray that will hold four elements</summary>
+		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Prefer using collection expressions instead: JsonArray.CreateReadOnly([ value1, value2, value3, value4 ])")]
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
 			(value2 ?? JsonNull.Null).ToReadOnly(),
@@ -344,12 +367,30 @@ namespace Doxense.Serialization.Json
 			(value4 ?? JsonNull.Null).ToReadOnly()
 		], 4, readOnly: true);
 
-		[Pure]
-		public static JsonArray CreateReadOnly(params JsonValue?[] items)
+		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray CreateReadOnly(params JsonValue?[] values)
 		{
 			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
-			Contract.NotNull(items);
-			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items.AsSpan()!).FreezeUnsafe();
+			return CreateReadOnly(Contract.ValueNotNull(values).AsSpan());
+		}
+
+		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
+		[Pure]
+		public static JsonArray CreateReadOnly(ReadOnlySpan<JsonValue?> values)
+		{
+			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
+			if (values.Length == 0)
+			{
+				return EmptyReadOnly;
+			}
+
+			var buf = new JsonValue[values.Length];
+			for (int i = 0; i < buf.Length; i++)
+			{
+				buf[i] = (values[i] ?? JsonNull.Null).ToReadOnly();
+			}
+			return new JsonArray(buf, buf.Length, readOnly: true);
 		}
 
 		#endregion
