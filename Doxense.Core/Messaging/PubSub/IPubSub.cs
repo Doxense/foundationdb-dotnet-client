@@ -29,15 +29,16 @@ namespace Doxense.Messaging.PubSub
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Json;
 
 	public interface IPubSub : IDisposable
 	{
 
 		/// <summary>Subscribe to a channel</summary>
-		Task<IAsyncDisposable> SubscribeAsync(string channel, Func<string, string, CancellationToken, ValueTask> onMessageReceived, CancellationToken ct);
+		Task<IAsyncDisposable> SubscribeAsync(string channel, Func<string, JsonValue, CancellationToken, ValueTask> onMessageReceived, CancellationToken ct);
 
 		/// <summary>Publish a message to a channel</summary>
-		Task PublishAsync(string channel, string message, CancellationToken ct);
+		Task PublishAsync(string channel, JsonValue message, CancellationToken ct);
 
 	}
 

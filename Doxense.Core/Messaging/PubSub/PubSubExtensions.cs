@@ -32,6 +32,7 @@ namespace Doxense.Messaging.PubSub
 	using System.Threading.Channels;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization.Json;
 
 	public static class PubSubExtensions
 	{
@@ -40,7 +41,7 @@ namespace Doxense.Messaging.PubSub
 		private sealed class ChannelSubscription : IAsyncDisposable
 		{
 
-			public ChannelSubscription(string channel, ChannelWriter<string> writer, bool autoCompleteOnClose)
+			public ChannelSubscription(string channel, ChannelWriter<JsonValue> writer, bool autoCompleteOnClose)
 			{
 				this.Channel = channel;
 				this.Writer = writer;
@@ -49,15 +50,15 @@ namespace Doxense.Messaging.PubSub
 
 			public string Channel { get; }
 
-			public ChannelWriter<string> Writer { get; }
+			public ChannelWriter<JsonValue> Writer { get; }
 
 			public IAsyncDisposable? InnerSubscription { get; set; }
 
 			public bool AutoCompleteOnClose { get;}
 
-			public ValueTask Callback(string channelId, string message, CancellationToken ct)
+			public ValueTask Callback(string channelId, JsonValue message, CancellationToken ct)
 			{
-				Contract.Debug.Requires(channelId == this.Channel);
+				Contract.Debug.Requires(channelId == this.Channel && message != null && message.IsReadOnly);
 				return this.Writer.WriteAsync(message, ct);
 			}
 
@@ -71,7 +72,7 @@ namespace Doxense.Messaging.PubSub
 			}
 		}
 
-		public static async Task<IAsyncDisposable> SubscribeAsync(this IPubSub pubsub, string channel, ChannelWriter<string> writer, bool autoCompleteOnClose, CancellationToken ct)
+		public static async Task<IAsyncDisposable> SubscribeAsync(this IPubSub pubsub, string channel, ChannelWriter<JsonValue> writer, bool autoCompleteOnClose, CancellationToken ct)
 		{
 			Contract.NotNull(channel);
 			Contract.NotNull(writer);
