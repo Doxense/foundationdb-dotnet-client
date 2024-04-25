@@ -505,6 +505,10 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path[0], Is.EqualTo(new FdbPathSegment("Hello")));
 				Assert.That(path[1], Is.EqualTo(new FdbPathSegment("World")));
 			}
+			{
+				var absolute = FdbPath.Root["Hello"]["World"];
+				Assert.That(() => FdbPath.Root["Foo"]["Bar"][absolute], Throws.InstanceOf<InvalidOperationException>());
+			}
 		}
 	}
 }

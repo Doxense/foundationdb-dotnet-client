@@ -32,13 +32,13 @@ namespace FoundationDB.DependencyInjection
 	using JetBrains.Annotations;
 
 	[PublicAPI]
-	public sealed class FdbDatabaseProviderOptions
+	public record FdbDatabaseProviderOptions
 	{
 
 		/// <summary>Selected API Version</summary>
 		public int ApiVersion { get; set; }
 
-		public FdbConnectionOptions ConnectionOptions { get; set;} = new FdbConnectionOptions();
+		public FdbConnectionOptions ConnectionOptions { get; set;} = new();
 
 		/// <summary>Specifices whether we should automatically connect to the cluster, or if <see cref="IFdbDatabaseProvider.Start"/> must be called explicitly</summary>
 		/// <remarks>
