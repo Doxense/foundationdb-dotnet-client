@@ -50,10 +50,12 @@ namespace SnowBank.Testing
 	using Doxense.Serialization.Json;
 	using Doxense.Tools;
 	using JetBrains.Annotations;
+	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
 	using NUnit.Framework;
 	using NUnit.Framework.Internal;
+	using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 	/// <summary>Base class pour for simple unit tests. Provides a set of usefull services (logging, cancellation, async helpers, ...)</summary>
 	[DebuggerNonUserCode]
@@ -162,6 +164,10 @@ namespace SnowBank.Testing
 			{
 				m_testTimer?.Stop();
 				m_cts?.Cancel();
+
+				// dispose any IDisposable services that were used during the execution
+				this.CustomServices?.Dispose();
+				this.CustomServices = null;
 
 				OnAfterEachTest();
 			}
@@ -1020,7 +1026,52 @@ namespace SnowBank.Testing
 			return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
 		}
 
+		private ServiceProvider? CustomServices { get; set; }
+
+		/// <summary>Setup a <see cref="IServiceProvider">service provider</see> for use inside this test method</summary>
+		/// <param name="configure">Handler that will customize the service provider</param>
+		/// <returns>Service provider that can be used during this method</returns>
+		protected IServiceProvider CreateServices(Action<IServiceCollection> configure)
+		{
+			var services = new ServiceCollection();
+
+			services.AddSingleton(TestContext.CurrentContext);
+			services.AddSingleton(TestContext.Parameters);
+			services.AddSingleton<SimpleTest>(this);
+			services.AddSingleton<IClock>(this.Clock);
+			services.AddSingleton(this.Rnd);
+			ConfigureLogging(services);
+
+			var provider = services.BuildServiceProvider(new ServiceProviderOptions() { ValidateOnBuild = true, });
+			this.CustomServices = provider;
+			return provider;
+		}
+
+
 		protected virtual ILoggerFactory Loggers => TestLoggerFactory.Instance;
+
+		protected static void ConfigureLogging(IServiceCollection services, Action<ILoggingBuilder>? configure = null)
+		{
+			services.AddLogging(logging =>
+			{
+				logging.AddProvider(TestLoggerProvider.Instance);
+				configure?.Invoke(logging);
+			});
+		}
+
+		private class TestLoggerProvider : ILoggerProvider
+		{
+
+			public static readonly ILoggerProvider Instance = new TestLoggerProvider();
+
+			public void Dispose() { }
+
+			public ILogger CreateLogger(string categoryName)
+			{
+				return new TestLogger(categoryName);
+			}
+
+		}
 
 		private class TestLoggerFactory : ILoggerFactory
 		{
@@ -1029,7 +1080,7 @@ namespace SnowBank.Testing
 
 			public void Dispose() { }
 
-			public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
+			public ILogger CreateLogger(string categoryName)
 			{
 				return new TestLogger(categoryName);
 			}
@@ -1040,7 +1091,7 @@ namespace SnowBank.Testing
 			}
 		}
 
-		internal class TestLogger : Microsoft.Extensions.Logging.ILogger
+		internal class TestLogger : ILogger
 		{
 
 			public string Category { get; }
@@ -1075,15 +1126,10 @@ namespace SnowBank.Testing
 				}
 			}
 
-			public bool IsEnabled(LogLevel logLevel)
-			{
-				return true;
-			}
+			public bool IsEnabled(LogLevel logLevel) => true;
 
-			public IDisposable BeginScope<TState>(TState state) where TState : notnull
-			{
-				return Disposable.Create(() => {});
-			}
+			public IDisposable BeginScope<TState>(TState state) where TState : notnull => Disposable.Create(() => {});
+
 		}
 
 		#endregion
