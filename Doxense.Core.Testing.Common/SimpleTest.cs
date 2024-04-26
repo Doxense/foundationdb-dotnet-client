@@ -166,8 +166,20 @@ namespace SnowBank.Testing
 				m_cts?.Cancel();
 
 				// dispose any IDisposable services that were used during the execution
-				this.CustomServices?.Dispose();
-				this.CustomServices = null;
+				if (this.CustomServices != null)
+				{
+					try
+					{
+						foreach (var provider in this.CustomServices)
+						{
+							provider.Dispose();
+						}
+					}
+					finally
+					{
+						this.CustomServices = null;
+					}
+				}
 
 				OnAfterEachTest();
 			}
@@ -1026,7 +1038,8 @@ namespace SnowBank.Testing
 			return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
 		}
 
-		private ServiceProvider? CustomServices { get; set; }
+		/// <summary>List of any service provider that was created by the test method</summary>
+		private List<ServiceProvider>? CustomServices { get; set; }
 
 		/// <summary>Setup a <see cref="IServiceProvider">service provider</see> for use inside this test method</summary>
 		/// <param name="configure">Handler that will customize the service provider</param>
@@ -1043,7 +1056,7 @@ namespace SnowBank.Testing
 			ConfigureLogging(services);
 
 			var provider = services.BuildServiceProvider(new ServiceProviderOptions() { ValidateOnBuild = true, });
-			this.CustomServices = provider;
+			(this.CustomServices ??= []).Add(provider);
 			return provider;
 		}
 
