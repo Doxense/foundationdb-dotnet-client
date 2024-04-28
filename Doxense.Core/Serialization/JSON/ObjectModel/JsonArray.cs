@@ -3292,7 +3292,7 @@ namespace Doxense.Serialization.Json
 			{
 				return value == null || value.IsNull
 					? (required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<TValue[]>() : null)
-					: throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
+					: throw JsonBindingException.CannotBindJsonValueToArrayOfThisType(value, typeof(TValue));
 			}
 
 			return array.ToArray<TValue>(resolver);
@@ -3628,7 +3628,7 @@ namespace Doxense.Serialization.Json
 		public static List<TValue?>? BindList<TValue>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
 			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<TValue?>>() : null;
-			if (value is not JsonArray array) throw CrystalJson.Errors.Binding_CannotDeserializeJsonTypeIntoArrayOf(value, typeof(TValue));
+			if (value is not JsonArray array) throw JsonBindingException.CannotBindJsonValueToArrayOfThisType(value, typeof(TValue));
 			return array.ToList<TValue>(resolver);
 		}
 

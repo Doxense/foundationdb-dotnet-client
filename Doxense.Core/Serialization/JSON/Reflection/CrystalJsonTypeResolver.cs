@@ -99,7 +99,7 @@ namespace Doxense.Serialization.Json
 				(id, self) =>
 				{
 					var type = self.GetTypeByClassId(id);
-					if (type == null) throw CrystalJson.Errors.Binding_CouldNotResolveClassId(id);
+					if (type == null) throw JsonBindingException.CouldNotResolveClassId(id);
 					return type;
 				},
 				this
@@ -306,7 +306,7 @@ namespace Doxense.Serialization.Json
 			// some types are not object
 			if (typeof(string) == type || typeof(DateTime) == type || typeof(decimal) == type || type.IsPrimitive)
 			{
-				throw CrystalJson.Errors.Binding_CannotBindJsonObjectToThisType(value, type);
+				throw JsonBindingException.CannotBindJsonObjectToThisType(value, type);
 			}
 
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(value, type, this);
@@ -588,7 +588,7 @@ namespace Doxense.Serialization.Json
 
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_Invalid(Type type)
 		{
-			return (_, array) => throw CrystalJson.Errors.Binding_CannotBindJsonObjectToThisType(array, type);
+			return (_, array) => throw JsonBindingException.CannotBindJsonObjectToThisType(array, type);
 		}
 
 		private static object? ConvertToBoxedEnumerable(Type type, JsonArray? array, Func<Type, JsonValue?, object?> convert)

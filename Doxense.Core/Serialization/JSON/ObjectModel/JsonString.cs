@@ -631,7 +631,7 @@ namespace Doxense.Serialization.Json
 			catch (Exception e) when (!e.IsFatalError())
 			{
 				if (e is FormatException) throw new FormatException($"Failed to convert JSON string into {type.GetFriendlyName()}: {e.Message}");
-				throw CrystalJson.Errors.Binding_CannotBindJsonStringToThisType(this, type, e);
+				throw JsonBindingException.CannotBindJsonStringToThisType(this, type, e);
 			}
 
 			// check si implémente IJsonBindable
@@ -654,7 +654,7 @@ namespace Doxense.Serialization.Json
 				return def.CustomBinder(this, type, resolver);
 			}
 
-			throw CrystalJson.Errors.Binding_CannotBindJsonStringToThisType(this, type);
+			throw JsonBindingException.CannotBindJsonStringToThisType(this, type);
 		}
 
 		internal override bool IsSmallValue() => m_value.Length <= 36; // guid!

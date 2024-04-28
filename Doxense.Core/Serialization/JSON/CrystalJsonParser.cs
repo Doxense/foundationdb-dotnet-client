@@ -422,7 +422,7 @@ namespace Doxense.Serialization.Json
 						|| customClass.StartsWith("System.Resources.ResXResource", StringComparison.OrdinalIgnoreCase)) // les ressources peuvent contenir des types arbitraires!
 					)
 					{
-						throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeBadType(data, customClass);
+						throw JsonBindingException.CannotDeserializeCustomTypeBadType(data, customClass);
 					}
 
 					#endregion
@@ -434,7 +434,7 @@ namespace Doxense.Serialization.Json
 					var customType = resolver.ResolveClassId(customClass);
 					if (customType == null)
 					{
-						throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeNoConcreteClassFound(data, type, customClass);
+						throw JsonBindingException.CannotDeserializeCustomTypeNoConcreteClassFound(data, type, customClass);
 					}
 
 					if (type.IsSealed)
@@ -442,7 +442,7 @@ namespace Doxense.Serialization.Json
 						// si le type attendu est sealed, alors la seule solution est que le type spécifié match EXACTEMENT celui attendu!
 						if (type != customType)
 						{
-							throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
+							throw JsonBindingException.CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
 						}
 					}
 					
@@ -451,7 +451,7 @@ namespace Doxense.Serialization.Json
 						// si le type est donné par l'appelant, on veut vérifier que c'est compatible avec le type attendu
 						if (!type.IsAssignableFrom(customType))
 						{ // le type donnée par l'appelant n'est pas compatible... c'est peut être une erreur, ou alors une tentative de hack!
-							throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
+							throw JsonBindingException.CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
 						}
 					}
 					type = customType;
@@ -467,7 +467,7 @@ namespace Doxense.Serialization.Json
 			var typeDef = resolver.ResolveJsonType(type);
 			if (typeDef == null)
 			{ // uhoh, pas normal du tout
-				throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeNoTypeDefinition(data, type);
+				throw JsonBindingException.CannotDeserializeCustomTypeNoTypeDefinition(data, type);
 			}
 
 			if (typeDef.CustomBinder != null)
@@ -478,7 +478,7 @@ namespace Doxense.Serialization.Json
 
 			if (typeDef.Generator == null)
 			{ // sans générateur, on ne peut pas créer d'instance !
-				throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeNoBinderOrGenerator(data, type);
+				throw JsonBindingException.CannotDeserializeCustomTypeNoBinderOrGenerator(data, type);
 			}
 
 			// crée une nouvelle instance de la class/struct
@@ -489,12 +489,12 @@ namespace Doxense.Serialization.Json
 			}
 			catch (Exception e) when (!e.IsFatalError())
 			{ // problème lors de la création de l'objet? cela arrive lorsqu'on crée un objet via Reflection, et qu'il n'a pas de constructeur par défaut...
-				throw CrystalJson.Errors.Binding_FailedToConstructTypeInstanceErrorOccurred(data, type, e);
+				throw JsonBindingException.FailedToConstructTypeInstanceErrorOccurred(data, type, e);
 			}
 
 			if (instance == null)
 			{ // uhoh ? le générateur n'a rien retourné, ce qui peut arriver quand on essaye de faire un "new Interface()" ou un "new AbstractClass()"...
-				throw CrystalJson.Errors.Binding_FailedToConstructTypeInstanceReturnedNull(data, type);
+				throw JsonBindingException.FailedToConstructTypeInstanceReturnedNull(data, type);
 			}
 
 			// traiement des membres
@@ -512,7 +512,7 @@ namespace Doxense.Serialization.Json
 					continue; // valeur par défaut ?
 
 				// "Transcode" le type JSON vers le type réel du membre (JSON number => int, JSON string => Guid, ...)
-				if (member.Binder == null) throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeNoReaderForMember(child, member, type);
+				if (member.Binder == null) throw JsonBindingException.CannotDeserializeCustomTypeNoReaderForMember(child, member, type);
 				object? value;
 				try
 				{
@@ -530,7 +530,7 @@ namespace Doxense.Serialization.Json
 				}
 
 				// Ecrit la valeur dans le champ correspondant
-				if (member.Setter == null) throw CrystalJson.Errors.Binding_CannotDeserializeCustomTypeNoBinderForMember(child, member, type);
+				if (member.Setter == null) throw JsonBindingException.CannotDeserializeCustomTypeNoBinderForMember(child, member, type);
 				try
 				{
 					member.Setter(instance, value);
