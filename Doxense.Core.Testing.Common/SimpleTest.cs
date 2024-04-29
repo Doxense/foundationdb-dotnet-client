@@ -172,7 +172,8 @@ namespace SnowBank.Testing
 					{
 						foreach (var provider in this.CustomServices)
 						{
-							provider.Dispose();
+							//REVIEW: TODO: this could block the thread!
+							provider.DisposeAsync().GetAwaiter().GetResult();
 						}
 					}
 					finally
@@ -1054,6 +1055,7 @@ namespace SnowBank.Testing
 			services.AddSingleton<IClock>(this.Clock);
 			services.AddSingleton(this.Rnd);
 			ConfigureLogging(services);
+			configure(services);
 
 			var provider = services.BuildServiceProvider(new ServiceProviderOptions() { ValidateOnBuild = true, });
 			(this.CustomServices ??= []).Add(provider);
