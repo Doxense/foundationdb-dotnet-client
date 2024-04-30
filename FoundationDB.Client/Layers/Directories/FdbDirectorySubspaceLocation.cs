@@ -70,11 +70,30 @@ namespace FoundationDB.Client
 			return await Resolve(tr, directory);
 		}
 
-		/// <inheritdoc />
 		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
-			return (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			directory ??= tr.Context.Database.DirectoryLayer;
+			return directory.TryOpenCachedAsync(tr, this.Path);
+		}
+
+		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbTransaction tr, bool createIfMissing, FdbDirectoryLayer? directory = null)
+		{
+			Contract.NotNull(tr);
+
+			if (!createIfMissing) return Resolve(tr, directory);
+
+			return ResolveOrCreate(tr, directory, this.Path);
+
+			static async ValueTask<FdbDirectorySubspace?> ResolveOrCreate(IFdbTransaction tr, FdbDirectoryLayer? directory, FdbPath path)
+			{
+				directory ??= tr.Context.Database.DirectoryLayer;
+				var subspace = await directory.TryOpenCachedAsync(tr, path);
+				if (subspace != null) return subspace;
+				subspace = await directory.CreateAsync(tr, path);
+				//TODO: how to handle the cache?
+				return subspace;
+			}
 		}
 
 		public override string ToString()
