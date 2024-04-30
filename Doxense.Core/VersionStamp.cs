@@ -113,8 +113,8 @@ namespace System
 		/// <summary>Creates an incomplete 80-bit <see cref="VersionStamp"/> with no user version.</summary>
 		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF</code> (10 bytes).</returns>
 		/// <remarks>
-		/// This stamp contains a temporary marker that will be later filled by the database with the actual VersionStamp by the database at transaction commit time.
-		/// If you need to create multiple distinct stamps within the same transaction, please use <see cref="Incomplete(int)"/> instead.
+		/// <para>This stamp contains a temporary marker that will be later filled by the database with the actual VersionStamp at transaction commit time.</para>
+		/// <para>If you need to create multiple distinct stamps within the same transaction, please use <see cref="Incomplete(int)"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp Incomplete()
@@ -125,6 +125,9 @@ namespace System
 		/// <summary>Creates an incomplete 96-bit <see cref="VersionStamp"/> with the given user version.</summary>
 		/// <param name="userVersion">Value between 0 and 65535 that will be appended at the end of the VersionStamp, making it unique <i>within</i> the transaction.</param>
 		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF vv vv</code> (12 bytes) where 'vv vv' is the user version encoded in little-endian.</returns>
+		/// <remarks>
+		/// <para>This stamp contains a temporary marker that will be later filled by the database with the actual VersionStamp at transaction commit time.</para>
+		/// </remarks>
 		/// <exception cref="ArgumentException">If <paramref name="userVersion"/> is less than <c>0</c>, or greater than <c>65534</c> (0xFFFE).</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp Incomplete(int userVersion)
@@ -143,13 +146,15 @@ namespace System
 			return new VersionStamp(PLACEHOLDER_VERSION, PLACEHOLDER_ORDER, userVersion, FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION);
 		}
 
+		/// <summary>Creates a 80-bit <see cref="VersionStamp"/>.</summary>
+		/// <returns>Complete stamp, with a user version.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp Custom(ulong version, ushort order, bool incomplete)
 		{
 			return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
 		}
 
-		/// <summary>Creates a 96-bit <see cref="VersionStamp"/>.</summary>
+		/// <summary>Creates a 80-bit <see cref="VersionStamp"/>.</summary>
 		/// <returns>Complete stamp, with a user version.</returns>
 		public static VersionStamp Custom(Uuid80 uuid, bool incomplete)
 		{
@@ -163,6 +168,8 @@ namespace System
 			}
 		}
 
+		/// <summary>Creates a 96-bit <see cref="VersionStamp"/>.</summary>
+		/// <returns>Complete stamp, with a user version.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp Custom(ulong version, ushort order, int userVersion, bool incomplete)
 		{
