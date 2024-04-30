@@ -319,7 +319,7 @@ namespace Doxense.Serialization.Json
 			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
 			if (values.Length == 0)
 			{
-				return EmptyReadOnly;
+				return new();
 			}
 
 			var buf = new JsonValue[values.Length];
@@ -327,7 +327,7 @@ namespace Doxense.Serialization.Json
 			{
 				buf[i] = values[i] ?? JsonNull.Null;
 			}
-			return new JsonArray(buf, buf.Length, readOnly: true);
+			return new JsonArray(buf, buf.Length, readOnly: false);
 		}
 
 		#endregion
