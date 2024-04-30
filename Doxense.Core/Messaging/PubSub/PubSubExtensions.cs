@@ -27,16 +27,21 @@
 namespace Doxense.Messaging.PubSub
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Channels;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
 
+	/// <summary>Extensions methods for the <see cref="IPubSub"/> abstraction</summary>
+	[JetBrains.Annotations.PublicAPI]
 	public static class PubSubExtensions
 	{
 
+		/// <summary>Helper that wraps a channel subscription and forwards all received messages into a <see cref="ChannelWriter{T}"/></summary>
 		[DebuggerDisplay("Channel={Channel}")]
 		private sealed class ChannelSubscription : IAsyncDisposable
 		{
@@ -48,14 +53,19 @@ namespace Doxense.Messaging.PubSub
 				this.AutoCompleteOnClose = autoCompleteOnClose;
 			}
 
+			/// <summary>Name of the channel we are subscribed to</summary>
 			public string Channel { get; }
 
+			/// <summary>All received messages are written to this instance</summary>
 			public ChannelWriter<JsonValue> Writer { get; }
 
+			/// <summary>Token used to cancel the underlying subscription</summary>
 			public IAsyncDisposable? InnerSubscription { get; set; }
 
+			/// <summary>If true, calls TryComplete on the channel writer when we are done/aborted</summary>
 			public bool AutoCompleteOnClose { get;}
 
+			/// <summary>Callback invoked by the subscription when a new message is available</summary>
 			public ValueTask Callback(string channelId, JsonValue message, CancellationToken ct)
 			{
 				Contract.Debug.Requires(channelId == this.Channel && message != null && message.IsReadOnly);
@@ -72,6 +82,15 @@ namespace Doxense.Messaging.PubSub
 			}
 		}
 
+		/// <summary>Subscribes to a channel, and propagates all messages received to a <see cref="Channel{T}">Channel writer</see>.</summary>
+		/// <param name="pubsub">Source of messages</param>
+		/// <param name="channel">Channel to subscribe to</param>
+		/// <param name="writer">All message received will be written to this instance</param>
+		/// <param name="autoCompleteOnClose">If <see langword="true"/>, the method <see cref="ChannelWriter{T}.TryComplete"/> will be called on the writer when the subscription is disposed.</param>
+		/// <param name="ct">Token used to forcefully abort the subscription.</param>
+		/// <returns>Subscription token that must be disposed when the caller wants to cancel the subscription.</returns>
+		/// <remarks>Any new message will be pumped into the channel <param name="writer"></param>, until either <paramref name="ct"/> is triggered, or the caller invokes <see cref="IAsyncDisposable.DisposeAsync"/> on the returned token.</remarks>
+		/// 
 		public static async Task<IAsyncDisposable> SubscribeAsync(this IPubSub pubsub, string channel, ChannelWriter<JsonValue> writer, bool autoCompleteOnClose, CancellationToken ct)
 		{
 			Contract.NotNull(channel);
@@ -86,6 +105,28 @@ namespace Doxense.Messaging.PubSub
 			).ConfigureAwait(false);
 
 			return sub;
+		}
+
+		/// <summary>Returns an <see cref="IAsyncEnumerable{T}"/> that will read all messages received on a channel.</summary>
+		/// <param name="pubsub">Source of messages</param>
+		/// <param name="channel">Channel to subscribe to</param>
+		/// <param name="ct">Token used to stop reading from this channel</param>
+		/// <returns>Enumerable that will asynchronously return all messages received on this channel, in sequential order.</returns>
+		/// <remarks>
+		/// <para>The enumerator will never stop until either <paramref name="ct"/> is triggered, or the caller disposes of the async enumerator.</para>
+		/// </remarks>
+		public static async IAsyncEnumerable<JsonValue> ReadAllAsync(this IPubSub pubsub, string channel, [EnumeratorCancellation] CancellationToken ct)
+		{
+			// we use a channel to decouple the thread that receive messages from the consumer of this enumeration
+			var bus = Channel.CreateUnbounded<JsonValue>(new UnboundedChannelOptions() { SingleReader = true });
+
+			// subscribes to the channel
+			await using var sub = await SubscribeAsync(pubsub, channel, bus.Writer, autoCompleteOnClose: true, ct).ConfigureAwait(false);
+
+			await foreach (var msg in bus.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+			{
+				yield return msg;
+			}
 		}
 
 	}
