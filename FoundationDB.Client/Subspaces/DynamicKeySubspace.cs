@@ -420,6 +420,42 @@ namespace FoundationDB.Client
 			return sw.ToSlice();
 		}
 
+		/// <summary>Encodes part of a key that is intended to be used as a cursor</summary>
+		/// <typeparam name="T">Type of the cursor</typeparam>
+		/// <param name="self">Subspace</param>
+		/// <param name="cursor">Value of the cursor</param>
+		/// <returns>Slice that corresponds to only the cursor, and that can be appended as a suffix to a key generated from this subspace</returns>
+		/// <remarks>
+		/// <para>This method is the opposite of <see cref="EncodeRange{T}"/>, in the sense that it will generate the other part of the key.</para>
+		/// <para><c>suspace.Encode("Hello", "World", 123) == subspace.Encode("Hello", "World") + subspace.EncodeCursor(123)</c></para>
+		/// <para>The intended use case is in combination with methods like <see cref="KeySelectorPair.Tail"/> where we need to perform a range inside a given subspace, but resuming from a specific cursor.</para>
+		/// </remarks>
+		/// <example>This will read any new event received on a tenant since the last call:
+		/// <code>
+		/// IDynamicKeySubspace subspace = ...; // base subspace of an event log store
+		/// VersionStamp cursor = ...;   // versionstamp of the last event that was received in a previous call
+		/// 
+		/// var (begin, end) = KeySelectorPair.Tail(
+		///		prefix:  subspace.EncodeKey("Events", tenantId),
+		///		cursor:  subspace.EncodeCursor(cursor),
+		///		orEqual: false
+		/// );
+		/// await foreach(var (k, v) in tr.GetRange(begin, end))
+		/// {
+		///		// process the new event
+		///     // var stamp = subspace.DecodeLast&lt;VersionStamp>();
+		///     // ...
+		///     // advance the cursor
+		///		cursor = stamp;
+		/// }
+		/// </code></example>
+		public static Slice EncodeCursor<T>(this IDynamicKeySubspace self, T? cursor)
+		{
+			var sw = new SliceWriter(); //TODO: BufferPool ?
+			self.KeyEncoder.EncodeKey(ref sw, cursor);
+			return sw.ToSlice();
+		}
+
 		#endregion
 
 		#region Decode...
