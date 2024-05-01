@@ -73,6 +73,13 @@ namespace FoundationDB.Client
 			return Key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
 		}
 
+		public void Deconstruct(out Slice key, out bool orEqual, out int offset)
+		{
+			key = this.Key;
+			orEqual = this.OrEqual;
+			offset = this.Offset;
+		}
+
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
 		public static KeySelector LastLessThan(Slice key)
 		{
@@ -101,22 +108,38 @@ namespace FoundationDB.Client
 			return new KeySelector(key, false, 1);
 		}
 
-		/// <summary>Add a value to the selector's offset</summary>
+		/// <summary>Adds a value to the selector's offset</summary>
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <param name="offset">ex: 7</param>
-		/// <returns>fGE('abc')+7</returns>
+		/// <returns><c>fGE{'abc'} + 7</c></returns>
 		public static KeySelector operator +(KeySelector selector, int offset)
 		{
-			return new KeySelector(selector.Key, selector.OrEqual, selector.Offset + offset);
+			return new KeySelector(selector.Key, selector.OrEqual, checked(selector.Offset + offset));
 		}
 
-		/// <summary>Subtract a value from the selector's offset</summary>
+		/// <summary>Subtracts a value from the selector's offset</summary>
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <param name="offset">ex: 7</param>
-		/// <returns>fGE('abc')-7</returns>
+		/// <returns><c>fGE{'abc'} - 7</c></returns>
 		public static KeySelector operator -(KeySelector selector, int offset)
 		{
-			return new KeySelector(selector.Key, selector.OrEqual, selector.Offset - offset);
+			return new KeySelector(selector.Key, selector.OrEqual, checked(selector.Offset - offset));
+		}
+
+		/// <summary>Increments the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <returns><c>fGE{'abc'} + 1</c></returns>
+		public static KeySelector operator ++(KeySelector selector)
+		{
+			return new KeySelector(selector.Key, selector.OrEqual, checked(selector.Offset + 1));
+		}
+
+		/// <summary>Decrement the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <returns><c>fGE{'abc'} - 1</c></returns>
+		public static KeySelector operator --(KeySelector selector)
+		{
+			return new KeySelector(selector.Key, selector.OrEqual, checked(selector.Offset - 1));
 		}
 
 		public static bool operator ==(KeySelector left, KeySelector right)

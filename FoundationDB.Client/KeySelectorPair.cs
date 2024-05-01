@@ -29,6 +29,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using Doxense.Collections.Tuples;
 
 	/// <summary>Represents of pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
 	[DebuggerDisplay("[ToString()]")]
@@ -58,7 +59,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
+		/// <summary>Create a new pair of key selectors using <c>FIRST_GREATER_OR_EQUAL</c> on both keys</summary>
 		public static KeySelectorPair Create(Slice begin, Slice end)
 		{
 			return new KeySelectorPair(
@@ -67,7 +68,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
+		/// <summary>Creates a pair of key selectors using <c>FIRST_GREATER_OR_EQUAL</c> on both keys</summary>
 		public static KeySelectorPair Create(KeyRange range)
 		{
 			return new KeySelectorPair(
@@ -76,7 +77,8 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Create a new pair of key selectors that will select all the keys that start with the specified prefix</summary>
+		/// <summary>Creates a pair of key selectors that will select all the keys that start with the specified prefix</summary>
+		/// <param name="prefix">Common prefix of the keys that must be read</param>
 		public static KeySelectorPair StartsWith(Slice prefix)
 		{
 			var range = KeyRange.StartsWith(prefix);
@@ -85,6 +87,46 @@ namespace FoundationDB.Client
 				KeySelector.FirstGreaterOrEqual(range.Begin),
 				KeySelector.FirstGreaterOrEqual(range.End)
 			);
+		}
+
+		/// <summary>Returns a pair of key selectors that will select all the keys that start with the specified prefix, and after a specific cursor</summary>
+		/// <param name="prefix">Common prefix of the keys that must be read (usually the containing subspace)</param>
+		/// <param name="cursor">Value of the cursor, that is appended to <paramref name="prefix"/>. The caller has already read any keys that are before this point, and wants to resume reading past this point</param>
+		/// <param name="orEqual">If <see langword="true"/>, the key <paramref name="prefix"/> + <paramref name="cursor"/> will be included in the range (<c>FIRST_GREATER_OR_EQUAL</c>); otherwise it will be skipped (<c>FIRST_GREATER_THAN</c>)</param>
+		/// <returns>Pair of selectors that will read any keys after the cursor (included if <paramref name="orEqual"/> is <see langword="true"/>)</returns>
+		/// <remarks>
+		/// <para>This is a common usage pattern when consuming a stream of logs or records that are indexed by a <see cref="VersionStamp"/> or a counter.</para>
+		/// <para>Depending on the algorithm used, <paramref name="cursor"/> may represent the last read entry, in which case <paramref name="orEqual"/> should be <see langword="false"/>; or it could represent the next expected entry, in which case <paramref name="orEqual"/> should be <see langword="true"/>.</para>
+		/// </remarks>
+		public static KeySelectorPair Tail(Slice prefix, Slice cursor, bool orEqual)
+		{
+			// begin: FIRST_GREATER_[OR_EQUAL|THAN](prefix + cursor)
+			// end: FIRST_GREATER_OR_EQUAL(inc(prefix))
+
+			var pivot = prefix + cursor;
+			var begin = orEqual ? KeySelector.FirstGreaterOrEqual(pivot) : KeySelector.FirstGreaterThan(pivot); // start from the cursor, or from the next key
+			var end = KeySelector.FirstGreaterOrEqual(FdbKey.Increment(prefix)); // first key that follows the common prefix
+			return new(begin, end);
+		}
+
+		/// <summary>Returns a pair of key selectors that will select all the keys that start with the specified prefix, up until a specific cursor</summary>
+		/// <param name="prefix">Common prefix of the keys that must be read (usually the containing subspace)</param>
+		/// <param name="cursor">Value of the cursor, that is appended to <paramref name="prefix"/>. The caller wants to read or clear any keys that are before this point</param>
+		/// <param name="orEqual">If <see langword="true"/>, the key <paramref name="prefix"/> + <paramref name="cursor"/> will be included in the range (<c>FIRST_GREATER_THAN</c>); otherwise it will be skipped (<c>FIRST_GREATER_OR_EQUAL</c>)</param>
+		/// <returns>Pair of selectors that will read any keys after the cursor (included if <paramref name="orEqual"/> is <see langword="true"/>)</returns>
+		/// <remarks>
+		/// <para>This is a common usage pattern when consuming a stream of logs or records that are indexed by a <see cref="VersionStamp"/> or a counter.</para>
+		/// <para>For example in a CLEAR_RANGE operation, <paramref name="cursor"/> may represent the first entry to keep, in which case <paramref name="orEqual"/> should be <see langword="false"/>; or it could represent the last entry to delete, in which case <paramref name="orEqual"/> should be <see langword="true"/>.</para>
+		/// </remarks>
+		public static KeySelectorPair Head(Slice prefix, Slice cursor, bool orEqual)
+		{
+			// begin: FIRST_GREATER_OR_EQUAL(prefix)
+			// end:   FIRST_GERATER_[OR_EQUAL|THAN](prefix + cursor)
+
+			var pivot = prefix + cursor;
+			var begin = KeySelector.FirstGreaterThan(prefix); //note: the prefix itself is NOT included!
+			var end = orEqual ? KeySelector.FirstGreaterThan(pivot) : KeySelector.FirstGreaterOrEqual(pivot); // end at the cursor, or on the next key
+			return new(begin, end);
 		}
 
 		/// <summary>Returns a printable version of the pair of key selectors</summary>

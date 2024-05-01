@@ -38,9 +38,10 @@ namespace FoundationDB.Client.Tests
 	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
 	using NUnit.Framework;
+	using static System.Net.Mime.MediaTypeNames;
 
 	[TestFixture]
-	public class KeyFacts
+	public class KeyFacts : FdbTest
 	{
 
 		[Test]
@@ -499,6 +500,225 @@ namespace FoundationDB.Client.Tests
 
 			#endregion
 
+		}
+
+		[Test]
+		public void Test_KeySelector_Create()
+		{
+			{ // fGE{...}
+				var sel = KeySelector.FirstGreaterOrEqual(Key("Hello"));
+				Log(sel);
+				Assert.That(sel.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(sel.Offset, Is.EqualTo(1));
+				Assert.That(sel.OrEqual, Is.False);
+				Assert.That(sel.ToString(), Does.StartWith("fGE{").And.EndsWith("}"));
+				var (key, orEqual, offset) = sel;
+				Assert.That(key, Is.EqualTo(Key("Hello")));
+				Assert.That(offset, Is.EqualTo(1));
+				Assert.That(orEqual, Is.False);
+
+			}
+			{ // fGT{...}
+				var sel = KeySelector.FirstGreaterThan(Key("Hello"));
+				Log(sel);
+				Assert.That(sel.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(sel.Offset, Is.EqualTo(1));
+				Assert.That(sel.OrEqual, Is.True);
+				Assert.That(sel.ToString(), Does.StartWith("fGT{").And.EndsWith("}"));
+				var (key, orEqual, offset) = sel;
+				Assert.That(key, Is.EqualTo(Key("Hello")));
+				Assert.That(offset, Is.EqualTo(1));
+				Assert.That(orEqual, Is.True);
+			}
+			{ // lLE{...}
+				var sel = KeySelector.LastLessOrEqual(Key("Hello"));
+				Log(sel);
+				Assert.That(sel.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(sel.Offset, Is.EqualTo(0));
+				Assert.That(sel.OrEqual, Is.True);
+				Assert.That(sel.ToString(), Does.StartWith("lLE{").And.EndsWith("}"));
+				var (key, orEqual, offset) = sel;
+				Assert.That(key, Is.EqualTo(Key("Hello")));
+				Assert.That(offset, Is.EqualTo(0));
+				Assert.That(orEqual, Is.True);
+			}
+			{ // lLT{...}
+				var sel = KeySelector.LastLessThan(Key("Hello"));
+				Log(sel);
+				Assert.That(sel.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(sel.Offset, Is.EqualTo(0));
+				Assert.That(sel.OrEqual, Is.False);
+				Assert.That(sel.ToString(), Does.StartWith("lLT{").And.EndsWith("}"));
+				var (key, orEqual, offset) = sel;
+				Assert.That(key, Is.EqualTo(Key("Hello")));
+				Assert.That(offset, Is.EqualTo(0));
+				Assert.That(orEqual, Is.False);
+			}
+			{ // custom offset
+				var sel = new KeySelector(Key("Hello"), true, 123);
+				Log(sel);
+				Assert.That(sel.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(sel.Offset, Is.EqualTo(123));
+				Assert.That(sel.OrEqual, Is.True);
+				Assert.That(sel.ToString(), Does.StartWith("fGT{").And.EndsWith("} + 122"));
+				var (key, orEqual, offset) = sel;
+				Assert.That(key, Is.EqualTo(Key("Hello")));
+				Assert.That(offset, Is.EqualTo(123));
+				Assert.That(orEqual, Is.True);
+			}
+		}
+
+		[Test]
+		public void Test_KeySelector_Add_Offsets()
+		{
+			{ // KeySelector++
+				var sel = KeySelector.FirstGreaterOrEqual(Key("Hello"));
+				sel++;
+				Log(sel);
+				Assert.That(sel.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(sel.Offset, Is.EqualTo(2));
+				Assert.That(sel.OrEqual, Is.False);
+				Assert.That(sel.ToString(), Does.StartWith("fGE{").And.EndsWith("} + 1"));
+			}
+			{ // KeySelector--
+				var sel = KeySelector.FirstGreaterOrEqual(Key("Hello"));
+				sel--;
+				Log(sel);
+				Assert.That(sel.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(sel.Offset, Is.EqualTo(0));
+				Assert.That(sel.OrEqual, Is.False);
+				Assert.That(sel.ToString(), Does.StartWith("lLT{").And.EndsWith("}"));
+			}
+			{ // fGE{...} + offset
+				var sel = KeySelector.FirstGreaterOrEqual(Key("Hello"));
+				var next = sel + 123;
+				Log(next);
+				Assert.That(next.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(next.Offset, Is.EqualTo(124));
+				Assert.That(next.OrEqual, Is.False);
+				Assert.That(next.ToString(), Does.StartWith("fGE{").And.EndsWith("} + 123"));
+			}
+			{ // fGT{...} + offset
+				var sel = KeySelector.FirstGreaterThan(Key("Hello"));
+				var next = sel + 123;
+				Log(next);
+				Assert.That(next.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(next.Offset, Is.EqualTo(124));
+				Assert.That(next.OrEqual, Is.True);
+				Assert.That(next.ToString(), Does.StartWith("fGT{").And.EndsWith("} + 123"));
+			}
+			{ // fGE{...} - offset
+				var sel = KeySelector.FirstGreaterOrEqual(Key("Hello"));
+				var next = sel - 123;
+				Log(next);
+				Assert.That(next.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(next.Offset, Is.EqualTo(-122));
+				Assert.That(next.OrEqual, Is.False);
+				Assert.That(next.ToString(), Does.StartWith("lLT{").And.EndsWith("} - 122"));
+			}
+			{ // fGT{...} - offset
+				var sel = KeySelector.FirstGreaterThan(Key("Hello"));
+				var next = sel - 123;
+				Log(next);
+				Assert.That(next.Key, Is.EqualTo(Key("Hello")));
+				Assert.That(next.Offset, Is.EqualTo(-122));
+				Assert.That(next.OrEqual, Is.True);
+				Assert.That(next.ToString(), Does.StartWith("lLE{").And.EndsWith("} - 122"));
+			}
+
+		}
+
+		[Test]
+		public void Test_KeySelectorPair_Create()
+		{
+			{
+				// Create(KeySelector, KeySelector)
+				var begin = KeySelector.LastLessThan(Key("Hello"));
+				var end = KeySelector.FirstGreaterThan(Key("World"));
+				var pair = KeySelectorPair.Create(begin, end);
+				Log(pair);
+				// must not change the selectors
+				Assert.That(pair.Begin, Is.EqualTo(begin));
+				Assert.That(pair.End, Is.EqualTo(end));
+			}
+			{
+				// Create(KeyRange)
+				var pair = KeySelectorPair.Create(KeyRange.Create(Key("Hello"), Key("World")));
+				Log(pair);
+				// must apply FIRST_GREATER_OR_EQUAL on both bounds
+				Assert.That(pair.Begin, Is.EqualTo(KeySelector.FirstGreaterOrEqual(Key("Hello"))));
+				Assert.That(pair.End, Is.EqualTo(KeySelector.FirstGreaterOrEqual(Key("World"))));
+			}
+			{
+				// Create(Slice, Slice)
+				var pair = KeySelectorPair.Create(Key("Hello"), Key("World"));
+				Log(pair);
+				// must apply FIRST_GREATER_OR_EQUAL on both bounds
+				Assert.That(pair.Begin, Is.EqualTo(KeySelector.FirstGreaterOrEqual(Key("Hello"))));
+				Assert.That(pair.End, Is.EqualTo(KeySelector.FirstGreaterOrEqual(Key("World"))));
+			}
+		}
+
+		[Test]
+		public void Test_KeySelectorPair_Deconstruct()
+		{
+			var (begin, end) = KeySelectorPair.Create(Key("Hello"), Key("World"));
+			Assert.That(begin, Is.EqualTo(KeySelector.FirstGreaterOrEqual(Key("Hello"))));
+			Assert.That(end, Is.EqualTo(KeySelector.FirstGreaterOrEqual(Key("World"))));
+		}
+
+		[Test]
+		public void Test_KeySelectorPair_StartsWith()
+		{
+			var prefix = Pack(("Hello", "World"));
+			var pair = KeySelectorPair.StartsWith(prefix);
+			Log(pair);
+			Assert.That(pair.Begin, Is.EqualTo(KeySelector.FirstGreaterOrEqual(prefix)));
+			Assert.That(pair.End, Is.EqualTo(KeySelector.FirstGreaterOrEqual(FdbKey.Increment(prefix))));
+		}
+
+		[Test]
+		public void Test_KeySelectorPair_Tail()
+		{
+			var prefix = Key("Hello", "World");
+			var cursor = Key(123);
+			var key = Key("Hello", "World", 123);
+			Assume.That(key, Is.EqualTo(prefix + cursor));
+
+			{ // orEqual: true
+				var pair = KeySelectorPair.Tail(prefix, cursor, orEqual: true);
+				Log(pair);
+				Assert.That(pair.Begin, Is.EqualTo(KeySelector.FirstGreaterOrEqual(key)));
+				Assert.That(pair.End, Is.EqualTo(KeySelector.FirstGreaterOrEqual(FdbKey.Increment(prefix))));
+			}
+			{ // orEqual: false
+				var pair = KeySelectorPair.Tail(prefix, cursor, orEqual: false);
+				Log(pair);
+				Assert.That(pair.Begin, Is.EqualTo(KeySelector.FirstGreaterThan(key)));
+				Assert.That(pair.End, Is.EqualTo(KeySelector.FirstGreaterOrEqual(FdbKey.Increment(prefix))));
+			}
+		}
+
+		[Test]
+		public void Test_KeySelectorPair_Head()
+		{
+			var prefix = Key("Hello", "World");
+			var cursor = Key(123);
+			var key = Key("Hello", "World", 123);
+			Assume.That(key, Is.EqualTo(prefix + cursor));
+
+			{ // orEqual: true
+				var pair = KeySelectorPair.Head(prefix, cursor, orEqual: true);
+				Log(pair);
+				Assert.That(pair.Begin, Is.EqualTo(KeySelector.FirstGreaterThan(prefix)));
+				Assert.That(pair.End, Is.EqualTo(KeySelector.FirstGreaterThan(key)));
+			}
+			{ // orEqual: false
+				var pair = KeySelectorPair.Head(prefix, cursor, orEqual: false);
+				Log(pair);
+				Assert.That(pair.Begin, Is.EqualTo(KeySelector.FirstGreaterThan(prefix)));
+				Assert.That(pair.End, Is.EqualTo(KeySelector.FirstGreaterOrEqual(key)));
+			}
 		}
 
 	}
