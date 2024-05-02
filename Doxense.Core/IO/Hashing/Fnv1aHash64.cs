@@ -60,7 +60,7 @@ namespace Doxense.IO.Hashing
 			if (string.IsNullOrEmpty(text)) return 0;
 			if (ignoreCase) text = text.ToLowerInvariant();
 
-			encoding = encoding ?? Encoding.UTF8;
+			encoding ??= Encoding.UTF8;
 
 			int count = encoding.GetByteCount(text);
 			if (count <= 4096)
@@ -71,14 +71,14 @@ namespace Doxense.IO.Hashing
 					byte* tmp = stackalloc byte[count];
 					fixed (char* chars = text)
 					{
-						if (Encoding.UTF8.GetBytes(chars, text.Length, tmp, count) != count) throw new InvalidOperationException();
+						if (encoding.GetBytes(chars, text.Length, tmp, count) != count) throw new InvalidOperationException();
 						return FromBytesUnsafe(tmp, count);
 					}
 				}
 			}
 			else
 			{ // use the heap
-				byte[] bytes = Encoding.UTF8.GetBytes(text);
+				byte[] bytes = encoding.GetBytes(text);
 				return FromBytes(bytes);
 			}
 		}
