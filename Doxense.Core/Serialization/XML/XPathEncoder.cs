@@ -26,11 +26,9 @@
 
 namespace Doxense.Serialization.Xml
 {
-	using System;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	/// <summary>XPATH Codec</summary>
 	public static class XPathEncoder

@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
 	using Doxense.Serialization.Json.Binary;
 

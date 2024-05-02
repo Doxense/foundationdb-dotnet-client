@@ -26,13 +26,9 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
 	[PublicAPI]

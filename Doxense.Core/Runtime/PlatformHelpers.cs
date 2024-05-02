@@ -26,12 +26,9 @@
 
 namespace Doxense.Runtime
 {
-	using System;
 	using System.Diagnostics;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using JetBrains.Annotations;
 
 	[DebuggerNonUserCode]
 	public static class PlatformHelpers

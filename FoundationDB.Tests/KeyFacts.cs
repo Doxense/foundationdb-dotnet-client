@@ -38,7 +38,6 @@ namespace FoundationDB.Client.Tests
 	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
 	using NUnit.Framework;
-	using static System.Net.Mime.MediaTypeNames;
 
 	[TestFixture]
 	public class KeyFacts : FdbTest

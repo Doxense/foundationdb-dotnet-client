@@ -26,14 +26,11 @@
 
 namespace Doxense.Memory
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Dictionnaire capable de rechercher des tokens soit via leur représentation <typeparamref name="TLiteral"/> (ex: <c>string</c>), soit via leur représentation sous forme de <see cref="ReadOnlySpan{TRune}"/> (ex: <c>ReadOnlySpan&lt;char&gt;</c>)</summary>
 	/// <typeparam name="TValue">Type des tokens stockés</typeparam>

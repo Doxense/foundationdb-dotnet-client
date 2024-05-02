@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using Doxense.Memory;
 
 	public sealed class JsonSliceSerializer : ISliceSerializer<JsonValue>

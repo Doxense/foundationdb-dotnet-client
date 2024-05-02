@@ -26,11 +26,8 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper methods to work with bits</summary>
 	[PublicAPI]

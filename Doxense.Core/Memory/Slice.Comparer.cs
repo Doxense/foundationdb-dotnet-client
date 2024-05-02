@@ -26,8 +26,6 @@
 
 namespace System
 {
-	using System;
-	using System.Collections.Generic;
 	using Doxense.Memory;
 
 	public partial struct Slice

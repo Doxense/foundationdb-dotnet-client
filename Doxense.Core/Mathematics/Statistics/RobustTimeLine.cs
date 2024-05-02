@@ -26,10 +26,7 @@
 
 namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 
 	public class RobustTimeLine
 	{

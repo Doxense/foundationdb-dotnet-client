@@ -26,7 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>

@@ -28,18 +28,13 @@
 
 namespace Doxense.Serialization
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Collections.ObjectModel;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Dynamic;
 	using System.Globalization;
-	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime;
-	using JetBrains.Annotations;
 
 	public static class TypeHelper
 	{

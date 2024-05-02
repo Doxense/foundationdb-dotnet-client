@@ -26,10 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-	using System.Collections.Generic;
-	using Doxense.Diagnostics.Contracts;
-
 	public sealed class JsonValueComparer : IEqualityComparer<JsonValue>, IComparer<JsonValue>, System.Collections.IEqualityComparer, System.Collections.IComparer
 	{
 

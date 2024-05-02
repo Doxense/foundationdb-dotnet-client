@@ -26,10 +26,8 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.IO;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>JSON text reader that wraps an underlying TextReader instance</summary>
 	public readonly struct JsonTextReader : IJsonReader

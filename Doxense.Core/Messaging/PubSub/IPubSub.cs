@@ -26,9 +26,6 @@
 
 namespace Doxense.Messaging.PubSub
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Serialization.Json;
 
 	public interface IPubSub : IDisposable

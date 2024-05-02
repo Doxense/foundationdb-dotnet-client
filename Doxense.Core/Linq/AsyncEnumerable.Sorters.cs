@@ -26,10 +26,6 @@
 
 namespace Doxense.Linq
 {
-	using System;
-	using System.Collections.Generic;
-	using Doxense.Diagnostics.Contracts;
-
 	public static partial class AsyncEnumerable
 	{
 		// These classes contain the logic to sort items (by themselves or by keys)

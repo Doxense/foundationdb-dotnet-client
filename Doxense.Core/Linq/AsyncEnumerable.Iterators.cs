@@ -26,16 +26,10 @@
 
 namespace Doxense.Linq
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
-	using JetBrains.Annotations;
 
 	public static partial class AsyncEnumerable
 	{

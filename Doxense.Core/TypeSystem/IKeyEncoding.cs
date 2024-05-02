@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
-
 	/// <summary>Type system that handles encoding and decoding of different types of keys</summary>
 	/// <remarks>
 	/// An implementation of this interface knows to create different types of Key Encoders that will all use the same "binary format" to encode and decode keys of various shapes.

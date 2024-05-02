@@ -26,12 +26,8 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Buffer writer that writes all data into a slabs allocated from a pool (or the heap)</summary>
 	/// <remarks>This buffer will allocate new slabs of memory as needed, and keep them alive until it is disposed or cleared.</remarks>

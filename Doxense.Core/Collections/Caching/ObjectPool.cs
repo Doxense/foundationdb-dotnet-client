@@ -28,10 +28,7 @@
 
 namespace Doxense.Collections.Caching
 {
-	using System;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>
 	/// Generic implementation of object pooling pattern with predefined pool size limit. The main

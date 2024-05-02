@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.ComponentModel;
 
 	/// <summary>Type that can serialize itself to JSON</summary>

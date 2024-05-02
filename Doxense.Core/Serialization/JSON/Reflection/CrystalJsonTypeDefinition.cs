@@ -26,10 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using Doxense.Diagnostics.Contracts;
 
 	[DebuggerDisplay("Type={Type.Name}, ReqClass={RequiresClassAttribute}, IsAnonymousType={IsAnonymousType}, ClassId={ClassId}")]
 	public record CrystalJsonTypeDefinition : ICrystalTypeDefinition

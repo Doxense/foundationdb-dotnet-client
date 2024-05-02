@@ -26,15 +26,11 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using JetBrains.Annotations;
 
 	/// <summary>Tuple Binary Encoding</summary>
 	[PublicAPI]

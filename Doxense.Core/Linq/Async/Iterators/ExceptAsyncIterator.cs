@@ -26,10 +26,6 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>Returns only the values for the keys that are in the first sub query, but not in the others</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
 	/// <typeparam name="TKey">Type of the keys extracted from the source elements</typeparam>

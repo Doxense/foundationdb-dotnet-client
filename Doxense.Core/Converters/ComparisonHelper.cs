@@ -26,13 +26,9 @@
 
 namespace Doxense.Runtime.Converters
 {
-	using System;
 	using System.Collections.Concurrent;
-	using System.Collections.Generic;
 	using System.Globalization;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper classe used to compare object of "compatible" types</summary>
 	[PublicAPI]

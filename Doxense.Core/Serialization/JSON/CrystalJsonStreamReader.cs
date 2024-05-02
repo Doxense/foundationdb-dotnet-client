@@ -26,13 +26,10 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Classe capable de dé-sérialiser des fragments de JSON, en mode stream</summary>
 	[PublicAPI]

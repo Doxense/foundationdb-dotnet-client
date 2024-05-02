@@ -26,8 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
-
 	public sealed class TupleSerializer<T1> : ITupleSerializer<STuple<T1>>
 	{
 		public static TupleSerializer<T1> Default { get; } = new TupleSerializer<T1>();

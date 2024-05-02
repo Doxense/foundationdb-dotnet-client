@@ -26,13 +26,10 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	[DebuggerDisplay("Pos={Position}/{Buffer.Length}, Remaining={Remaining}")]
 	[PublicAPI]

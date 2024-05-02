@@ -26,10 +26,8 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	/// <summary>Classe helper présente uniquement en mode Paranoid, pour la vérification de pré-requis, invariants, assertions, ...</summary>
 	/// <remarks>Les méthodes de cette classes ne sont compilées que si le flag PARANOID_ANDROID est défini</remarks>
@@ -56,8 +54,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Requires([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void Requires([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)] bool condition)
 		{
 #if PARANOID_ANDROID
 			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Precondition, null);
@@ -70,8 +68,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Requires([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void Requires([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
 		{
 #if PARANOID_ANDROID
 			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Precondition, userMessage);
@@ -83,8 +81,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Assert([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void Assert([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)] bool condition)
 		{
 #if PARANOID_ANDROID
 			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Assert, null);
@@ -97,8 +95,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Assert([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void Assert([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
 		{
 #if PARANOID_ANDROID
 			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Assert, userMessage);
@@ -110,8 +108,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Ensures([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void Ensures([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)] bool condition)
 		{
 #if PARANOID_ANDROID
 			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Postcondition, null);
@@ -124,8 +122,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Ensures([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void Ensures([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
 		{
 #if PARANOID_ANDROID
 			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Postcondition, userMessage);
@@ -138,8 +136,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Invariant([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void Invariant([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
 		{
 #if PARANOID_ANDROID
 			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Invariant, userMessage);
@@ -149,8 +147,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>[PARANOID MODE] Vérifie qu'une instance n'est pas null (condition: "value != null")</summary>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void NotNull<TValue>([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] TValue value, [InvokerParameterName] string? paramName = null, string? message = null)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void NotNull<TValue>([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] TValue value, [InvokerParameterName] string? paramName = null, string? message = null)
 			where TValue : class
 		{
 #if PARANOID_ANDROID
@@ -161,8 +159,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>[PARANOID MODE] Vérifie qu'une string n'est pas null (condition: "value != null")</summary>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string value, [InvokerParameterName] string? paramName = null, string? message = null)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void NotNull([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] string value, [InvokerParameterName] string? paramName = null, string? message = null)
 		{
 #if PARANOID_ANDROID
 			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);
@@ -172,8 +170,8 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>[PARANOID MODE] Vérifie qu'un buffer n'est pas null (condition: "value != null")</summary>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] byte[] value, [InvokerParameterName] string? paramName = null, string? message = null)
+		[JetBrains.Annotations.AssertionMethod]
+		public static void NotNull([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] byte[] value, [InvokerParameterName] string? paramName = null, string? message = null)
 		{
 #if PARANOID_ANDROID
 			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);

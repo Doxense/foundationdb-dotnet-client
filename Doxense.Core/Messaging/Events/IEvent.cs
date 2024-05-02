@@ -26,8 +26,6 @@
 
 namespace Doxense.Messaging.Events
 {
-	using System;
-	using System.Collections.Generic;
 	using Doxense.Serialization.Json;
 	using NodaTime;
 

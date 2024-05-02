@@ -26,10 +26,8 @@
 
 namespace Doxense.Serialization
 {
-	using System;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Structure qui wrap un object CLR de n'importe quel type</summary>

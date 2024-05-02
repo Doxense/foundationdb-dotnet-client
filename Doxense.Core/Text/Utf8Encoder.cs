@@ -2,13 +2,9 @@
 
 namespace Doxense.Text
 {
-	using System;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	public static unsafe class Utf8Encoder
 	{

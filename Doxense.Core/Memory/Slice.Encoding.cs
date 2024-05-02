@@ -26,7 +26,6 @@
 
 namespace System
 {
-	using System;
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.ComponentModel;
@@ -34,10 +33,7 @@ namespace System
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
-	using Microsoft.Extensions.Logging;
 
 	public partial struct Slice
 	{

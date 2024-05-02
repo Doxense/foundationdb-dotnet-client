@@ -26,7 +26,6 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.ComponentModel;
@@ -35,11 +34,9 @@ namespace Doxense.Memory
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory.Text;
 	using Doxense.Serialization;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
 	/// <remarks>This struct MUST be passed by reference!</remarks>

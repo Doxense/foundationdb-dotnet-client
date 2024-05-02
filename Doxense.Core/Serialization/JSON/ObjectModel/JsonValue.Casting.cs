@@ -26,11 +26,9 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Net;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using JetBrains.Annotations;
 
 	public abstract partial class JsonValue
 	{

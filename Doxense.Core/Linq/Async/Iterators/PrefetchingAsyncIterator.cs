@@ -26,11 +26,6 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Threading.Tasks;
 
 	/// <summary>Prefetches items from the inner sequence, before outputting them down the line.</summary>

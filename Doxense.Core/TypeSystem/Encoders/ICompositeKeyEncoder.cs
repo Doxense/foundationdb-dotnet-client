@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 	

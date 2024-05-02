@@ -26,10 +26,6 @@
 
 namespace Doxense.Async
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	/// <summary>Defines a source that can produce items</summary>
 	[PublicAPI]

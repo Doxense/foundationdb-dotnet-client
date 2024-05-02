@@ -26,12 +26,9 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
 	using System.Collections;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	public static class TupleHelpers
 	{

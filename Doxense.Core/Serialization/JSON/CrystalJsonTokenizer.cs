@@ -28,13 +28,9 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper utilisé pour lire et parser un texte JSON</summary>
 	/// <remarks>Doit être alloué sur la stack de l'appelant, et passé "by ref" !</remarks>

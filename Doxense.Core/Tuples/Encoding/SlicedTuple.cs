@@ -26,18 +26,13 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Runtime.Converters;
 	using Doxense.Serialization;
-	using NodaTime;
-	using Pure = System.Diagnostics.Contracts.PureAttribute;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	public sealed class SlicedTuple : IVarTuple, ITupleSerializable, ISliceSerializable

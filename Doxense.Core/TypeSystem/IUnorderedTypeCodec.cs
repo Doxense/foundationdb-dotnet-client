@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
 	using Doxense.Memory;
 
 	/// <summary>Represents a codec that can produce keys or values without any ordering guarantees</summary>

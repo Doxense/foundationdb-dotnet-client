@@ -26,11 +26,8 @@
 
 namespace Doxense.Collections.Generic
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
 
 	public static class ColaStore
 	{

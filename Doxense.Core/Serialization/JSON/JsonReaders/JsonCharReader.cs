@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Diagnostics;
 
 	/// <summary>JSON Text reader that wraps an in-memory buffer of characters</summary>

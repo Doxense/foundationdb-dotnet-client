@@ -26,13 +26,10 @@
 
 namespace Doxense.Mathematics
 {
-	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>
 	/// This "Do It Yourself Floating Point" class implements a floating-point number

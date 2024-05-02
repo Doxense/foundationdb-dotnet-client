@@ -26,8 +26,6 @@
 
 namespace Doxense.Networking
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Net;
 
 	/// <summary>Compares two <see cref="IPEndPoint"/> instances</summary>

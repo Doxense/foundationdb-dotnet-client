@@ -30,12 +30,9 @@
 
 namespace Doxense.Serialization.Asn1
 {
-	using System;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	//TODO: cette classe était normalement utilisée par SNMP, mais est utilisée par d'autres pour gérer l'encodage ASN.1
 	// => elle devrait être "déspécialisée" pour devenir le plus générique possible!

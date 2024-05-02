@@ -26,13 +26,10 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Caching;
-	using JetBrains.Annotations;
 
 	/// <summary>JSON serialization settings</summary>
 	/// <remarks>Instances of this type are immutable and can be cached</remarks>

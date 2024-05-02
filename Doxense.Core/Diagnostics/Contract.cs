@@ -26,14 +26,10 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using SDC = System.Diagnostics.Contracts;
-	using SRC = System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	internal static class ContractMessages
 	{
@@ -108,9 +104,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Requires(
-			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 			bool condition,
 			string? userMessage = null,
@@ -125,9 +121,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Assert(
-			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 			bool condition,
 			string? userMessage = null,
@@ -141,9 +137,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Ensures(
-			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 			bool condition,
 			string? userMessage = null,
@@ -158,9 +154,9 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Invariant(
-			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 			bool condition,
 			string? userMessage = null,
@@ -174,7 +170,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="exception">Optional exception linked to the issue</param>
 		/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
-		[AssertionMethod, MethodImpl(MethodImplOptions.NoInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.NoInlining)]
 		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
 		public static void Fail(string? userMessage, Exception? exception = null)
 		{
@@ -185,9 +181,9 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
 		/// <exception cref="ArgumentNullException">if <paramref name="value"/> is null</exception>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNull(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] string? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL), NoEnumeration] string? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
@@ -197,9 +193,9 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
 		/// <exception cref="ArgumentNullException">if <paramref name="value"/> is null</exception>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNull<TValue>(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
@@ -210,9 +206,9 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
 		/// <remarks>This method allow structs (that can never be null)</remarks>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullAllowStructs<TValue>(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
@@ -222,9 +218,9 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified pointer must not be null (assert: pointer != null)</summary>
 		/// <exception cref="ArgumentNullException">if <paramref name="pointer"/> is null</exception>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void PointerNotNull(
-			[System.Diagnostics.CodeAnalysis.AllowNull, System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] void* pointer,
+			[System.Diagnostics.CodeAnalysis.AllowNull, System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] void* pointer,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(pointer))] string? paramName = null)
 		{
@@ -243,9 +239,9 @@ namespace Doxense.Diagnostics.Contracts
 		///     set => m_fooThatIsNeverNull = Contract.ValueNotNull(value, "Foo cannot be set to null");
 		/// }
 		/// </code> </example>
-		[Pure, AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T ValueNotNull<T>(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] T? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL), NoEnumeration] T? value,
 			string? message = null
 		)
 		{
@@ -265,9 +261,9 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified string must not be null or empty (assert: value != null &amp;&amp; value.Length != 0)</summary>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] string? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
@@ -283,9 +279,9 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified string must not be null, empty or contain only whitespaces (assert: value != null &amp;&amp; value.Length != 0)</summary>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrWhiteSpace(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] string? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
@@ -301,9 +297,9 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified array must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] T[]? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] T[]? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
@@ -320,9 +316,9 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified collection must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[JetBrains.Annotations.AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<T>? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] ICollection<T>? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
@@ -898,10 +894,10 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="paramBuffer"></param>
 		/// <param name="paramIndex"></param>
 		/// <param name="paramCount"></param>
-		[AssertionMethod]
+		[JetBrains.Annotations.AssertionMethod]
 		public static void DoesNotOverflow(
 			[System.Diagnostics.CodeAnalysis.NotNull]
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? buffer,
+			[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] string? buffer,
 			int index,
 			int count,
 			string? message = null,
@@ -920,7 +916,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
 		/// <param name="count">Taille (qui ne doit pas être négative)</param>
 		/// <param name="message"></param>
-		[AssertionMethod]
+		[JetBrains.Annotations.AssertionMethod]
 		public static void DoesNotOverflow(int bufferLength, int offset, int count, string? message = null)
 		{
 			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
@@ -932,7 +928,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
 		/// <param name="count">Taille (qui ne doit pas être négative)</param>
 		/// <param name="message"></param>
-		[AssertionMethod]
+		[JetBrains.Annotations.AssertionMethod]
 		public static void DoesNotOverflow(long bufferLength, long offset, long count, string? message = null)
 		{
 			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
@@ -947,10 +943,10 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="paramBuffer"></param>
 		/// <param name="paramOffset"></param>
 		/// <param name="paramCount"></param>
-		[AssertionMethod]
+		[JetBrains.Annotations.AssertionMethod]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] TElement[]? buffer,
+			[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] TElement[]? buffer,
 			int offset,
 			int count,
 			string? message = null,
@@ -994,10 +990,10 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="paramBuffer"></param>
 		/// <param name="paramOffset"></param>
 		/// <param name="paramCount"></param>
-		[AssertionMethod]
+		[JetBrains.Annotations.AssertionMethod]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
-			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<TElement>? buffer,
+			[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] ICollection<TElement>? buffer,
 			int offset,
 			int count,
 			string? message = null,
@@ -1044,7 +1040,7 @@ namespace Doxense.Diagnostics.Contracts
 				conditionTxt = string.Format(conditionTxt, paramName ?? "value");
 			}
 
-			string? str = SRC.ContractHelper.RaiseContractFailedEvent(SDC.ContractFailureKind.Precondition, userMessage ?? msg, conditionTxt, null);
+			string? str = ContractHelper.RaiseContractFailedEvent(SDC.ContractFailureKind.Precondition, userMessage ?? msg, conditionTxt, null);
 			// If this returns null, then the issue has already been handled (popup on the screen, ...)
 			// But we still need to stop the execution!
 #if DEBUG
@@ -1093,8 +1089,8 @@ namespace Doxense.Diagnostics.Contracts
 			//note: currently in .NET Core 3.x, if conditionText == null, the formatted message will not have the "kind" section!
 			// => the workaround is to pass the message itself, instead of the condition text, which will slightly change the generated string, but will still be readable!
 			string? str = conditionText == null
-				? SRC.ContractHelper.RaiseContractFailedEvent(kind, msg, null, exception)
-				: SRC.ContractHelper.RaiseContractFailedEvent(kind, msg, conditionText, exception);
+				? ContractHelper.RaiseContractFailedEvent(kind, msg, null, exception)
+				: ContractHelper.RaiseContractFailedEvent(kind, msg, conditionText, exception);
 			if (str != null)
 			{
 				if (IsUnitTesting)

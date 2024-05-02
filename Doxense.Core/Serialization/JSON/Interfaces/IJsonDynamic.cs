@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	[Obsolete("Will be removed soon")]
 	public interface IJsonDynamic
 	{

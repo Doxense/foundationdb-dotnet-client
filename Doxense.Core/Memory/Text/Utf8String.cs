@@ -2,15 +2,11 @@
 
 namespace Doxense.Memory.Text
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a string that is stored as UTF-8 bytes in managed memory</summary>
 	/// <remarks>This type can be used as a replacement for <see cref="string"/> in parsers that wants to reduce memory allocations</remarks>

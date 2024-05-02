@@ -26,12 +26,7 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
 
 	/// <summary>Base class for all async iterators</summary>

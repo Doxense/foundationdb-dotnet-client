@@ -26,19 +26,15 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Caching;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	public sealed class CrystalJsonDomWriter
 	{

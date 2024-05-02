@@ -26,19 +26,15 @@
 
 namespace System
 {
-	using System;
 	using System.Buffers.Binary;
 	using System.Buffers.Text;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents an RFC 4122 compliant 128-bit UUID</summary>
 	/// <remarks>You should use this type if you are primarily exchanging UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>

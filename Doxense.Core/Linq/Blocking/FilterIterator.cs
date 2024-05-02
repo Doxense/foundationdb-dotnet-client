@@ -26,11 +26,6 @@
 
 namespace Doxense.Linq.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-
 	public abstract class FilterIterator<TSource, TResult> : Iterator<TResult>
 	{
 		/// <summary>Source sequence (when in iterable mode)</summary>

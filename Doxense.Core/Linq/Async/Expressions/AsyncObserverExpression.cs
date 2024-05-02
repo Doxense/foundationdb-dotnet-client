@@ -26,11 +26,6 @@
 
 namespace Doxense.Linq.Async.Expressions
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Expression that execute an action on each item, but does not change the source expression in anyway</summary>
 	/// <typeparam name="TSource">Type of observed items</typeparam>

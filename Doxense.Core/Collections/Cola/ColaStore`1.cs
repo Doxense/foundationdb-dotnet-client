@@ -29,16 +29,10 @@
 
 namespace Doxense.Collections.Generic
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Store elements in a list of ordered levels</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>

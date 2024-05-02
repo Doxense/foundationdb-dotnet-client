@@ -26,12 +26,9 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public ref struct SpanWriter

@@ -26,15 +26,9 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Classe capable d'écrire des fragments de JSON, en mode stream</summary>
 	[PublicAPI]

@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
 
 	[Obsolete] // this interface does not provide any benefit and will be removed soon

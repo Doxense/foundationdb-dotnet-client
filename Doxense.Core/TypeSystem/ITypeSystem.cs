@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
-
 	/// <summary>Represents a particular encoding scheme that can convert keys and values into binary literals</summary>
 	public interface ITypeSystem : IKeyEncoding, IValueEncoding
 	{

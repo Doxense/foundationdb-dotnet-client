@@ -28,31 +28,16 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using NodaTime;
-
-	// Contract annotation mappings
-	using CollectionAccess = JetBrains.Annotations.CollectionAccessAttribute;
-	using CollectionAccessType = JetBrains.Annotations.CollectionAccessType;
-	using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
-	using ImplicitUseTargetFlags = JetBrains.Annotations.ImplicitUseTargetFlags;
-	using InstantHandle = JetBrains.Annotations.InstantHandleAttribute;
-	using MustUseReturnValue = JetBrains.Annotations.MustUseReturnValueAttribute;
-	using Pure = System.Diagnostics.Contracts.PureAttribute;
-	using UsedImplicitly = JetBrains.Annotations.UsedImplicitlyAttribute;
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]

@@ -26,11 +26,8 @@
 
 namespace Doxense.Serialization
 {
-	using System;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
-	using Diagnostics.Contracts;
-	using JetBrains.Annotations;
 	using NodaTime;
 
 	public static class StringConverters

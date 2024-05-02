@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	/// <summary>Delegate that will serialize a value into JSON</summary>
 	/// <param name="value">Value (boxed) to serialize</param>
 	/// <param name="declaringType">Type of the field or property, as declared in the parent type Type or collection, or "typeof(object)" if unknown or top-level</param>

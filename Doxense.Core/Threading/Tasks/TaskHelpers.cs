@@ -26,15 +26,8 @@
 
 namespace Doxense.Threading.Tasks
 {
-	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using Doxense.Tools;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper methods to work on tasks</summary>
 	public static class TaskHelpers

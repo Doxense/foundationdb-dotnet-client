@@ -26,8 +26,6 @@
 
 namespace Doxense.Linq
 {
-	using System;
-
 	public class QueryStatistics<TData>
 	{
 		public QueryStatistics()

@@ -26,8 +26,6 @@
 
 namespace Doxense.Messaging.Events
 {
-	using System;
-	using System.Collections.Generic;
 	using NodaTime;
 
 	public interface IEventBus : IAsyncDisposable

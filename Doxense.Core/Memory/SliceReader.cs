@@ -26,14 +26,11 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>
 	/// <remarks>This struct MUST be passed by reference!</remarks>

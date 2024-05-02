@@ -28,15 +28,12 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Globalization;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Mathematics;
 	using Doxense.Web;
-	using JetBrains.Annotations;
 
 	public static class CrystalJsonFormatter
 	{

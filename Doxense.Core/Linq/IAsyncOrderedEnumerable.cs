@@ -26,8 +26,6 @@
 
 namespace System.Collections.Generic
 {
-	using System;
-	using JetBrains.Annotations;
 
 	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
 	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff

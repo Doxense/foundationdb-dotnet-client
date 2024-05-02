@@ -26,10 +26,6 @@
 
 namespace Doxense.Linq.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-
 	/// <summary>Base class for all async iterators</summary>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	public abstract class Iterator<TResult> : IEnumerable<TResult>, IEnumerator<TResult>

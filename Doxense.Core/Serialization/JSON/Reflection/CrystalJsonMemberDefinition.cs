@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Diagnostics;
 
 	/// <summary>Structure that holds the cached serialization metadata for a field or property of a class or struct</summary>

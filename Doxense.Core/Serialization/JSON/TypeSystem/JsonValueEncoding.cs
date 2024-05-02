@@ -26,12 +26,9 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Json;
-	using JetBrains.Annotations;
 
 	public sealed class JsonValueEncoding : IValueEncoding, IDynamicKeyEncoding
 	{

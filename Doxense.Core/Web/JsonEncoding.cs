@@ -26,12 +26,10 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	public static class JsonEncoding
 	{

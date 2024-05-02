@@ -26,10 +26,8 @@
 
 namespace Doxense.Serialization.Xml
 {
-	using System;
 	using System.IO;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>XML Codec</summary>
 	public static class XmlEncoder

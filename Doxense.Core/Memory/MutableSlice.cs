@@ -26,14 +26,12 @@
 
 namespace System
 {
-	using System;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using System.Security.Cryptography;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Delimits a mutable section of a byte array</summary>
 	/// <remarks>
@@ -510,7 +508,7 @@ namespace System
 		/// <param name="nonZeroBytes">If true, produce a sequence of non-zero bytes.</param>
 		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="rng"/></returns>
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
-		public static MutableSlice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
+		public static MutableSlice Random(RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
 		{
 			Contract.NotNull(rng);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");

@@ -26,7 +26,6 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using System;
 	using System.Runtime.Serialization;
 	using System.Security;
 	using SDC = System.Diagnostics.Contracts;

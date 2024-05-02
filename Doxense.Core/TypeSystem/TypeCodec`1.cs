@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
 	using Doxense.Memory;
 
 	public abstract class TypeCodec<T> : IOrderedTypeCodec<T>, IUnorderedTypeCodec<T>

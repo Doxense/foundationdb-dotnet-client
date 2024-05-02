@@ -26,14 +26,9 @@
 
 namespace Doxense.Messaging.PubSub
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
 	using System.Threading.Channels;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
 
 	/// <summary>Extensions methods for the <see cref="IPubSub"/> abstraction</summary>

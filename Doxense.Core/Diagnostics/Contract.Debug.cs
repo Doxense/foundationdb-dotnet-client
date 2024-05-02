@@ -26,10 +26,8 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	public static partial class Contract
 	{
@@ -51,9 +49,9 @@ namespace Doxense.Diagnostics.Contracts
 			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
-			[AssertionMethod]
+			[JetBrains.Annotations.AssertionMethod]
 			public static void Requires(
-				[AssertionCondition(AssertionConditionType.IS_TRUE)]
+				[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 				bool condition,
 				string? userMessage = null,
@@ -71,9 +69,9 @@ namespace Doxense.Diagnostics.Contracts
 			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
-			[AssertionMethod]
+			[JetBrains.Annotations.AssertionMethod]
 			public static void Assert(
-				[AssertionCondition(AssertionConditionType.IS_TRUE)]
+				[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 				bool condition,
 				string? userMessage = null,
@@ -90,9 +88,9 @@ namespace Doxense.Diagnostics.Contracts
 			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
-			[AssertionMethod]
+			[JetBrains.Annotations.AssertionMethod]
 			public static void Ensures(
-				[AssertionCondition(AssertionConditionType.IS_TRUE)]
+				[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 				bool condition,
 				string? userMessage = null,
@@ -110,9 +108,9 @@ namespace Doxense.Diagnostics.Contracts
 			/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
-			[AssertionMethod]
+			[JetBrains.Annotations.AssertionMethod]
 			public static void Invariant(
-				[AssertionCondition(AssertionConditionType.IS_TRUE)]
+				[JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 				bool condition,
 				string? userMessage = null,
@@ -129,7 +127,7 @@ namespace Doxense.Diagnostics.Contracts
 			/// <param name="exception">Optional exception linked to the issue</param>
 			/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
 			[Conditional("DEBUG")]
-			[AssertionMethod]
+			[JetBrains.Annotations.AssertionMethod]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturn]
 			public static void Fail(string? userMessage, Exception? exception = null)
 			{

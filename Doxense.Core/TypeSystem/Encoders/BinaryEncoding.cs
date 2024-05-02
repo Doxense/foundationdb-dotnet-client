@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public sealed class BinaryEncoding : IValueEncoding, IKeyEncoding,

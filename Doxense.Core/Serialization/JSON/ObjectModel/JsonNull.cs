@@ -26,12 +26,10 @@
 
 namespace Doxense.Serialization.Json
 {
-	using JetBrains.Annotations;
-	using System;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
-	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Valeur JSON null</summary>
 	[DebuggerDisplay("JSON Null({m_kind})")]

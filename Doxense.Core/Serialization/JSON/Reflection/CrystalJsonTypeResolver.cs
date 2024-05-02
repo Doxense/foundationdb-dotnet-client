@@ -29,22 +29,17 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.Collections.ObjectModel;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Caching;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime;
 	using Doxense.Runtime.Converters;
-	using JetBrains.Annotations;
 
 	/// <summary>JSON resolver that uses reflection to enumerate the members of a type</summary>
 	public class CrystalJsonTypeResolver : ICrystalJsonTypeResolver

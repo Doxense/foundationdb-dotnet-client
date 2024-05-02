@@ -26,16 +26,12 @@
 
 namespace System
 {
-	using System;
 	using System.Buffers.Binary;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Security.Cryptography;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a 64-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]

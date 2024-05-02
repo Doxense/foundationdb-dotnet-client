@@ -26,13 +26,9 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
-	using System.Collections.Generic;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class to encode and decode tuples to and from binary buffers</summary>
 	/// <remarks>This class is intended for implementors of tuples, and should not be called directly by application code!</remarks>

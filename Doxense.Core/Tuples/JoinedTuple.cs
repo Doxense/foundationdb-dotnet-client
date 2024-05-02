@@ -26,13 +26,9 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using Doxense.Runtime.Converters;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString(),nq}")]

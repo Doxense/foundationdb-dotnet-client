@@ -8,14 +8,10 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using Pure = System.Diagnostics.Contracts.PureAttribute;
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
 	[DebuggerDisplay("{ToString(),nq}")]

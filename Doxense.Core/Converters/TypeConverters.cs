@@ -26,17 +26,12 @@
 
 namespace Doxense.Runtime.Converters
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class to convert object from one type to another</summary>
 	public static class TypeConverters

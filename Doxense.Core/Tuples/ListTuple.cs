@@ -26,13 +26,8 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
-	using System.Linq;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
-	using JetBrains.Annotations;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	[PublicAPI]

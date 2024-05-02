@@ -26,11 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 
 	public static class KeyEncoderExtensions

@@ -26,11 +26,6 @@
 
 namespace Doxense.Linq.Async.Expressions
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Expression that evaluate a condition on each item</summary>
 	/// <typeparam name="TSource">Type of the filtered elements</typeparam>

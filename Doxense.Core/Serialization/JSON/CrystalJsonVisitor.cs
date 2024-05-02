@@ -29,9 +29,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
@@ -41,10 +39,8 @@ namespace Doxense.Serialization.Json
 	using System.Xml;
 	using Doxense.Collections.Caching;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Internal helper to convert values into JSON strings</summary>
 	[PublicAPI]

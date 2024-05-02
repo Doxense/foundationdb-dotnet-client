@@ -26,11 +26,6 @@
 
 namespace Doxense.Linq.Async
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>

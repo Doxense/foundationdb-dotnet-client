@@ -26,10 +26,8 @@
 
 namespace Doxense.Runtime
 {
-	using System;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using Doxense.Diagnostics.Contracts;
 
 	public static class ExpressionExtensions
 	{

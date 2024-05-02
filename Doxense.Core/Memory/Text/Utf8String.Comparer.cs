@@ -2,8 +2,6 @@
 
 namespace Doxense.Memory.Text
 {
-	using System;
-	using System.Collections.Generic;
 	using Doxense.Text;
 
 	public partial struct Utf8String

@@ -26,8 +26,6 @@
 
 namespace Doxense.Reactive.Disposables
 {
-	using System;
-
 	/// <summary>Classe qui encapsule un objet, en interceptant éventuellement le Dispose()</summary>
 	/// <typeparam name="T">Type de l'objet encapsulé</typeparam>
 	public interface IDisposable<out T> : IDisposable

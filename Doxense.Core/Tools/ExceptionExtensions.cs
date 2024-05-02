@@ -28,11 +28,7 @@
 
 namespace Doxense.Tools
 {
-	using Doxense.Diagnostics.Contracts;
-	using System;
-	using System.Collections.Generic;
 	using System.Reflection;
-	using JetBrains.Annotations;
 
 	public static class ExceptionExtensions
 	{

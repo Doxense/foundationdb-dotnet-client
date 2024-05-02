@@ -26,12 +26,10 @@
 
 namespace Doxense.Memory.Text
 {
-	using System;
 	using System.Globalization;
 	using System.IO;
 	using System.Text;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	public sealed class Utf8StringWriter : TextWriter
 	{

@@ -26,8 +26,6 @@
 
 namespace Doxense.Runtime.Converters
 {
-	using System;
-	using JetBrains.Annotations;
 
 	/// <summary>Base class of all value converters</summary>
 	public interface ITypeConverter

@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	/// <summary>Types that implement this interface support deserialization directly from a <see cref="JsonValue"/></summary>
 	/// <remarks>Types that also support serializing to a <see cref="JsonValue"/> should implement <see cref="IJsonPackable"/> as well.</remarks>
 	public interface IJsonDeserializer<out TSelf>

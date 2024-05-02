@@ -26,16 +26,12 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
-	using JetBrains.Annotations;
 
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>

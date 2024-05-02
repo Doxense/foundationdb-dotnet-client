@@ -26,13 +26,10 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	[DebuggerNonUserCode, PublicAPI]
 	public static class ThrowHelper

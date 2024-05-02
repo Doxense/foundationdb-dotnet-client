@@ -26,12 +26,6 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>Filters duplicate items from an async sequence</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 	public sealed class DistinctAsyncIterator<TSource> : AsyncFilterIterator<TSource, TSource>

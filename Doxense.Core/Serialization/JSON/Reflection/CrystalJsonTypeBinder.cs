@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	/// <summary>Delegate called to bind a JSON value into a managed CLR instance</summary>
 	/// <param name="value">JSON value that must be converted</param>
 	/// <param name="bindingType">Target CLR type</param>

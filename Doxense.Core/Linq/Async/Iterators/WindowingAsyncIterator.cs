@@ -26,11 +26,6 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Threading.Tasks;
 
 	/// <summary>Merges bursts of already-completed items from a source async sequence, into a sequence of batches.</summary>

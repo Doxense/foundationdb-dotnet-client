@@ -26,13 +26,9 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
-	using JetBrains.Annotations;
 
 	/// <summary>Tuple that has a fixed arbitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString(),nq}")]

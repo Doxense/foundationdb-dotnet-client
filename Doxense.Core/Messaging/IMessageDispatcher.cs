@@ -26,10 +26,6 @@
 
 namespace Doxense.Messaging
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-
 	public interface IMessageDispatcher<TMessage> : IAsyncDisposable
 		where TMessage : class
 	{

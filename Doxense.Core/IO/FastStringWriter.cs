@@ -26,13 +26,10 @@
 
 namespace Doxense.IO
 {
-	using System;
 	using System.Globalization;
 	using System.IO;
 	using System.Runtime;
 	using System.Text;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 
 	/// <summary>"Fast" version of StringWriter, that performs less checks, but is a good fit for specific use cases (serialization, ...)</summary>

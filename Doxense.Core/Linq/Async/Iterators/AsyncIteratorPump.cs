@@ -28,14 +28,9 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Async;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Pump that repeatedly calls MoveNext on an iterator and tries to publish the values in a Producer/Consumer queue</summary>
 	/// <typeparam name="TInput"></typeparam>

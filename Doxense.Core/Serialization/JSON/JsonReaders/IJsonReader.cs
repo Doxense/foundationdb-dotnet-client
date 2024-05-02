@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	/// <summary>Source of JSON text that can be parsed</summary>
 	public interface IJsonReader
 	{

@@ -26,10 +26,6 @@
 
 namespace Doxense.Linq.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>Merge all the elements of several ordered queries into one single async sequence</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
 	/// <typeparam name="TKey">Type of the keys extracted from the source elements</typeparam>

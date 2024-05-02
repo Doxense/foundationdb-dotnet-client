@@ -26,12 +26,6 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-
 	public abstract class AsyncFilterIterator<TSource, TResult> : AsyncIterator<TResult>
 	{
 		/// <summary>Source sequence (when in iterable mode)</summary>

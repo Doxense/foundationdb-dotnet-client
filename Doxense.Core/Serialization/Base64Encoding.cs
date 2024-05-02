@@ -28,14 +28,11 @@
 
 namespace Doxense.Serialization
 {
-	using System;
 	using System.Buffers;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public static class Base64Encoding

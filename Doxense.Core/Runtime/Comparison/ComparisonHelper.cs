@@ -24,14 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
-
 namespace Doxense
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	public static class ComparisonHelper
 	{

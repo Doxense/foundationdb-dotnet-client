@@ -26,13 +26,9 @@
 
 namespace Doxense.Collections.Generic
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered set of elements, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>

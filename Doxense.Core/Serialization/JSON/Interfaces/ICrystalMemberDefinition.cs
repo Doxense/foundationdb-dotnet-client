@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	/// <summary>Structure contenant les infos sur un field ou une property d'un objet</summary>
 	public interface ICrystalMemberDefinition
 	{

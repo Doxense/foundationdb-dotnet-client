@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	/// <summary>Type d'une valeur JSON (String, Number, ...)</summary>
 	public enum JsonType
 	{

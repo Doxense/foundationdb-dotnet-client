@@ -2,14 +2,10 @@
 
 namespace Doxense.Memory.Text
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	[DebuggerDisplay("Length={Length}, Size={Buffer.Count}, HashCode=0x{HashCode,h}")]
 	public partial struct Utf8String

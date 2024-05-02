@@ -28,8 +28,6 @@
 
 namespace Doxense.Networking
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
@@ -38,9 +36,6 @@ namespace Doxense.Networking
 	using System.Net.Sockets;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 	using Doxense.Memory;
 

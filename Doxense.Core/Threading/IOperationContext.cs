@@ -26,16 +26,11 @@
 
 namespace Doxense.Threading.Operations
 {
-	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Messaging.Events;
 	using Doxense.Reactive.Disposables;
 	using Doxense.Serialization;

@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using NodaTime;
 	using NodaTime.Text;
 

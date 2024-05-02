@@ -26,9 +26,7 @@
 
 namespace Doxense.Serialization
 {
-	using System;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 
 	public static class Base32Encoding
 	{

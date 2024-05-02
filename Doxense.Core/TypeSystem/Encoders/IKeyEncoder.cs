@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
 	using Doxense.Memory;
 
 	/// <summary>Base interface for all key encoders</summary>

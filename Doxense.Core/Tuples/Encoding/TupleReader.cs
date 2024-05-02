@@ -26,12 +26,9 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	[DebuggerDisplay("{Input.Position}/{Input.Buffer.Count} @ {Depth}")]
 	public struct TupleReader

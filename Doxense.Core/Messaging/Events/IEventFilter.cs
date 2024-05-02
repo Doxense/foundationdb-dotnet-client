@@ -26,8 +26,6 @@
 
 namespace Doxense.Messaging.Events
 {
-	using System;
-
 	public interface IEventFilter
 	{
 		bool Accept(IEvent evt);

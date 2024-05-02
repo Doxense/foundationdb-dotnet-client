@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization
 {
-	using JetBrains.Annotations;
-	using System;
 	using System.Globalization;
 	using System.Text;
 

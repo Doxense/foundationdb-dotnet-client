@@ -26,11 +26,9 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>
 	[PublicAPI]

@@ -26,10 +26,7 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Allocator that stores all data into slabs allocated from the heap.</summary>
 	/// <remarks>

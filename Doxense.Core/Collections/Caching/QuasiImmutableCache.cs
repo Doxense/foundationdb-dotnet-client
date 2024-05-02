@@ -26,14 +26,8 @@
 
 namespace Doxense.Collections.Caching
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Représente un cache qui ne change pratiquement jamais</summary>
 	/// <typeparam name="TKey">Type des clés du cache</typeparam>

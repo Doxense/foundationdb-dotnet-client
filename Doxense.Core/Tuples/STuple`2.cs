@@ -26,17 +26,13 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
-	using JetBrains.Annotations;
 
 	/// <summary>Tuple that holds a pair of items</summary>
 	/// <typeparam name="T1">Type of the first item</typeparam>

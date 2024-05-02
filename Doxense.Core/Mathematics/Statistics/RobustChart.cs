@@ -26,14 +26,9 @@
 
 namespace Doxense.Mathematics.Statistics
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Linq;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Generates ASCII Art that look like plots</summary>
 	public static class RobustChart

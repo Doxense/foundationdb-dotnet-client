@@ -26,11 +26,6 @@
 
 namespace Doxense.Mathematics.Statistics
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	public static class PeirceCriterion
 	{

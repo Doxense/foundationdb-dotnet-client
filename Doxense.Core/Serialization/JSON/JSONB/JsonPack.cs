@@ -26,13 +26,9 @@
 
 namespace Doxense.Serialization.Json.Binary
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Text;
-	using JetBrains.Annotations;
 
 	/// <summary>Fast and compact binary JSON encoder</summary>
 	/// <remarks>

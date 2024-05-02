@@ -26,15 +26,10 @@
 
 namespace Doxense.Reactive.Disposables
 {
-	using System;
 	using System.Diagnostics;
 	using System.Runtime;
-	using System.Threading;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Classe qui encapsule un objet, en interceptant éventuellement le Dispose()</summary>
 	/// <typeparam name="T">Type de l'objet encapsulé</typeparam>

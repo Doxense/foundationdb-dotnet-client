@@ -28,15 +28,12 @@
 
 namespace Doxense.Text
 {
-	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using System.Threading;
 	using Doxense.Collections.Caching;
 	using Doxense.Memory.Text;
-	using JetBrains.Annotations;
 
 	// Adaptation de Roslyn.Utilities.StringTable, cf http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis/InternalUtilities/StringTable.cs
 

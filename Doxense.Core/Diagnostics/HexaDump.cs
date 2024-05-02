@@ -28,13 +28,9 @@
 
 namespace Doxense.Diagnostics
 {
-	using System;
 	using System.Globalization;
-	using System.Linq;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.IO.Hashing;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class for formatting binary blobs into hexadecimal for logging or troubleshooting</summary>
 	[PublicAPI]

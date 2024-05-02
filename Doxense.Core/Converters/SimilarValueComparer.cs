@@ -26,9 +26,7 @@
 
 namespace Doxense.Runtime.Converters
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 
 	/// <summary>Object comparer that returns true if both values are "similar"</summary>
 	/// <remarks>This comparer SHOULD NOT be used in a Dictionary, because it violates on of the conditions: Two objects could be considered equal, but have different hashcode!</remarks>

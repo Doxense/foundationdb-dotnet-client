@@ -26,15 +26,10 @@
 
 namespace Doxense.Collections.Generic
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered set of key/value pairs, stored in a Cache Oblivious Lookahead Array</summary>
 	/// <typeparam name="TKey">Type of ordered keys stored in the dictionary.</typeparam>

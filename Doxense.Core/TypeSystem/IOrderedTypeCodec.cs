@@ -26,9 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a codec that can produce keys or values that keep the original ordering</summary>
 	[PublicAPI]

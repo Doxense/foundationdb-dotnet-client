@@ -26,9 +26,6 @@
 
 namespace Doxense.Collections.Caching
 {
-	using JetBrains.Annotations;
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 
 	public interface ICache<TKey, TElement> : ICollection<KeyValuePair<TKey, TElement>>

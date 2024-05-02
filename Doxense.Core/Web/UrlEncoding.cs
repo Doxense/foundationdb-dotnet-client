@@ -26,13 +26,11 @@
 
 namespace Doxense.Web
 {
-	using System;
 	using System.Collections.Specialized;
 	using System.Globalization;
 	using System.IO;
 	using System.Text;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Classe helper pour l'encode/décodage d'URLs</summary>
 	/// <remarks>Elle a pour but de simuler HttpUtility définie dans System.Web.dll qui n'est pas accessible dans le .NET Client Profile</remarks>

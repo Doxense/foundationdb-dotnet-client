@@ -26,10 +26,8 @@
 
 namespace Doxense.Text
 {
-	using System;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using JetBrains.Annotations;
 
 	public static class StringBuilderCache
 	{

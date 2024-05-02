@@ -26,13 +26,9 @@
 
 namespace Doxense.Serialization.Json.JPath
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq.Expressions;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Base class of a node in a JPath query AST</summary>
 	public abstract class JPathExpression : IEquatable<JPathExpression>

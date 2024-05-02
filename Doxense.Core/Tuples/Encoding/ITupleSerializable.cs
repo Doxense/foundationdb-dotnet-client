@@ -26,8 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents an object that can serialize itself using the Tuple Binary Encoding format</summary>
 	[PublicAPI]

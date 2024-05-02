@@ -26,12 +26,9 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-	using System.Collections.Generic;
 	using System.IO;
 	using System.Text;
 	using Doxense.IO;
-	using JetBrains.Annotations;
 
 	/// <summary>Classe capable de générer manuellement un objet JSON simple</summary>
 	[PublicAPI]

@@ -26,9 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
-	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 

@@ -26,8 +26,6 @@
 
 namespace Doxense.Reactive.Disposables
 {
-	using System;
-
 	internal sealed class NullDisposable : IDisposable
 	{
 		public void Dispose()

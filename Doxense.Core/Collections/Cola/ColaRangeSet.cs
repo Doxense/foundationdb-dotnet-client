@@ -29,12 +29,8 @@
 
 namespace Doxense.Collections.Generic
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered list of ranges, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="TKey">Type of keys stored in the set</typeparam>

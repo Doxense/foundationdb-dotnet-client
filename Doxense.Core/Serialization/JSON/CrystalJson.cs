@@ -28,22 +28,17 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
-	using System.Linq;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.IO;
 	using Doxense.Memory;
 	using Doxense.Memory.Text;
 	using Doxense.Runtime;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class to serialize, parse or deserialize JSON documents</summary>
 	[PublicAPI]

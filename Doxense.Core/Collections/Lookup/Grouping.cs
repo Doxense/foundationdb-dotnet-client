@@ -26,15 +26,10 @@
 
 namespace Doxense.Collections.Lookup
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
 	using System.Runtime;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Implémentation d'un grouping de plusieurs éléments sous une même clé</summary>
 	/// <typeparam name="TKey">Type of keys</typeparam>

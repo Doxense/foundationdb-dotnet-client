@@ -26,15 +26,11 @@
 
 namespace System
 {
-	using System;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>VersionStamp</summary>
 	/// <remarks>A VersionStamp is unique, monotonically (but not sequentially) increasing value for each committed transaction.

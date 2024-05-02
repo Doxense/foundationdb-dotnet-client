@@ -26,13 +26,10 @@
 
 namespace Doxense.Mathematics.Statistics
 {
-	using System;
 	using System.Globalization;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Runtime;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper that will aggregate individual measurements, and output detailed distribution reports and charts.</summary>
 	[PublicAPI]

@@ -26,11 +26,8 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Buffer writer that writes all data into a single consecutive buffer allocated from the heap</summary>
 	/// <remarks>

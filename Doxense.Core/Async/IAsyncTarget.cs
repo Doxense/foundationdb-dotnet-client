@@ -26,11 +26,7 @@
 
 namespace Doxense.Async
 {
-	using System;
 	using System.Runtime.ExceptionServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	/// <summary>Defines a target that receive items and can throttle the producer</summary>
 	/// <typeparam name="T">Type of values being accepted by the target</typeparam>

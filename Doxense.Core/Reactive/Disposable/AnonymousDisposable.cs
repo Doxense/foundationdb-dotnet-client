@@ -28,10 +28,6 @@
 
 namespace Doxense.Reactive.Disposables
 {
-	using System;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>Retourne un objet exécutant une Action lorsqu'il est Dispose()</summary>
 	/// <remarks>Version simplifiée de System.Disposables.AnonymousDisposable de Rx</remarks>
 	internal sealed class AnonymousDisposable : IDisposable

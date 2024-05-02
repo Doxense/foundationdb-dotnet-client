@@ -26,12 +26,10 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Buffers;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 
 	[DebuggerDisplay("Buffered={Position}/{Current.Length}")]
 	public ref struct BufferFormatter //TODO: trouver un meilleur nom!

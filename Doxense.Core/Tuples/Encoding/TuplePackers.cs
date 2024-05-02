@@ -26,21 +26,15 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
 	using System.Collections.Frozen;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
-	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
 	public static class TuplePackers

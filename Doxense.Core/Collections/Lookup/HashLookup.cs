@@ -26,13 +26,8 @@
 
 namespace Doxense.Collections.Lookup
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Table de lookup utilisant une HashTable pour le stockage des éléments stockage (clés non ordonnées)</summary>
 	/// <typeparam name="TKey">Type des clés</typeparam>

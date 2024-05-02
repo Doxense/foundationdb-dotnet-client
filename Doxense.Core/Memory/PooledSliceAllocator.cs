@@ -28,12 +28,8 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Allocator that stores all data into slabs allocated from a pool (or the heap for large allocations)</summary>
 	/// <remarks>

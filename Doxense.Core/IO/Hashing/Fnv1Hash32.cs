@@ -24,14 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System;
-using System.Runtime.CompilerServices;
-using System.Text;
-using Doxense.Diagnostics.Contracts;
-
 namespace Doxense.IO.Hashing
 {
-	using JetBrains.Annotations;
+	using System.Runtime.CompilerServices;
+	using System.Text;
 
 	/// <summary>Calcul de hash FNV-1 sur 32 bits (FowlerNollVo)</summary>
 	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>

@@ -26,12 +26,7 @@
 
 namespace Doxense.Serialization.Json.JPath
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	[DebuggerDisplay("{{Text},nq}")]
 	public sealed class JPathQuery

@@ -36,15 +36,11 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
-	using JetBrains.Annotations;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Helper methods for dealing with unmanaged memory. HANDLE WITH CARE!</summary>
 	/// <remarks>Use of this class is unsafe. YOU HAVE BEEN WARNED!</remarks>
@@ -64,7 +60,7 @@ namespace Doxense.Memory
 		/// <param name="minCapacity">Minimum expected capacity</param>
 		/// <returns>Same buffer if it was large enough, or a new allocated buffer with length greater than or equal to <paramref name="minCapacity"/></returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte[] EnsureCapacity([System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer, int minCapacity)
+		public static byte[] EnsureCapacity([NotNull] ref byte[]? buffer, int minCapacity)
 		{
 			if (buffer == null || buffer.Length < minCapacity)
 			{
@@ -104,7 +100,7 @@ namespace Doxense.Memory
 			new Span<byte>(bytes, checked((int) count)).Fill(filler);
 		}
 
-		internal static int Unescape(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		internal static int Unescape(ReadOnlySpan<char> value, [NotNull] ref byte[]? buffer)
 		{
 			// decode size will always be less or equal to buffer size!
 			buffer = EnsureCapacity(ref buffer, value.Length);
@@ -123,7 +119,7 @@ namespace Doxense.Memory
 			return p;
 		}
 
-		internal static int FromHexa(ReadOnlySpan<char> hexaString, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		internal static int FromHexa(ReadOnlySpan<char> hexaString, [NotNull] ref byte[]? buffer)
 		{
 			int capacity = hexaString.Length >> 1;
 			buffer = EnsureCapacity(ref buffer, capacity);
@@ -2137,7 +2133,7 @@ namespace Doxense.Memory
 			if (value.Length == 0) return true;
 			unsafe
 			{
-				fixed (char* pChars = &MemoryMarshal.GetReference(value))
+				fixed (char* pChars = value)
 				{
 					return IsAsciiString(pChars, value.Length);
 				}

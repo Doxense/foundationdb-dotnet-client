@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-
 	/// <summary>Resolveur capable d'énumérer les membres d'un type</summary>
 	public interface ICrystalTypeResolver
 	{

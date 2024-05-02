@@ -26,9 +26,7 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 
 	/// <summary>Represents a Tuple of variable length and elements of different types</summary>

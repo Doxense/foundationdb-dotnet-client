@@ -26,12 +26,8 @@
 
 namespace Doxense.Mathematics.Statistics
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 	using Doxense.Runtime;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public static class RobustBenchmark

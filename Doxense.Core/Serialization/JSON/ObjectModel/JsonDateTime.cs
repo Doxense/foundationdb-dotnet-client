@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Diagnostics;
 	using Doxense.Memory;
 

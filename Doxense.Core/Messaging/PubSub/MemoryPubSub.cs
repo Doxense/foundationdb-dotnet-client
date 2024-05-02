@@ -26,11 +26,7 @@
 
 namespace Doxense.Messaging.PubSub
 {
-	using System;
 	using System.Collections.Concurrent;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
 	using Microsoft.Extensions.DependencyInjection;
 

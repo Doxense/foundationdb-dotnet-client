@@ -26,9 +26,7 @@
 
 namespace Doxense.Memory
 {
-	using System;
 	using System.Buffers;
-	using Doxense.Diagnostics.Contracts;
 
 	public interface ISliceAllocator : IDisposable
 	{

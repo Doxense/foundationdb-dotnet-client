@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization
 {
-	using System;
 	using Doxense.Memory;
 
 	[Flags]

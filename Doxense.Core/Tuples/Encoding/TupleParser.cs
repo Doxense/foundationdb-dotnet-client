@@ -26,13 +26,10 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System;
 	using System.Buffers;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
 	public static class TupleParser

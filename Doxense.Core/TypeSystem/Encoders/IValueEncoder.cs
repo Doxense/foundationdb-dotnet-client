@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System;
-
 	/// <summary>Class that know how to encode and decode values of a fixed type into a lower format</summary>
 	/// <typeparam name="TValue">Type of the values</typeparam>
 	/// <typeparam name="TStorage">Type of the encoded form of the values (Slice, string, ...)</typeparam>

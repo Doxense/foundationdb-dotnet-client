@@ -26,12 +26,6 @@
 
 namespace Doxense.Messaging.Events
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>Implementation of a Job Event Log that keeps all events in memory, mostly intended for unit testing</summary>
 	public sealed class InMemoryEventSink : IEventSink
 	{

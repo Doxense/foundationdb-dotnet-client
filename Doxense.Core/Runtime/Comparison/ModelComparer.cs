@@ -26,14 +26,9 @@
 
 namespace Doxense.Runtime.Comparison
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Defines a property of a model class that is "important"</summary>
 	/// <remarks>Primary properties are always compared first, and are also used to compute the HashCode of the instance</remarks>
@@ -1085,7 +1080,7 @@ namespace Doxense.Runtime.Comparison
 
 		private static readonly MethodInfo StringComparerOrdinalGetHashCode = typeof(StringComparer).GetMethod(
 			nameof(IEqualityComparer<string>.GetHashCode),
-			System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+			BindingFlags.Instance | BindingFlags.Public,
 			null,
 			new[] {typeof(string)},
 			null

@@ -26,10 +26,7 @@
 
 namespace Doxense.Threading
 {
-	using System;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using JetBrains.Annotations;
 
 	public static class ReaderWriterLockSlimExtensions
 	{

@@ -28,12 +28,9 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 	using Doxense.Runtime.Converters;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class for tuple comparisons</summary>
 	[PublicAPI]

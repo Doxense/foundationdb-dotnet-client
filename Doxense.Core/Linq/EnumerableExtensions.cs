@@ -26,12 +26,7 @@
 
 namespace Doxense.Linq
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Iterators;
-	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IEnumerable{T}"/>.</summary>
 	public static class EnumerableExtensions

@@ -26,10 +26,6 @@
 
 namespace Doxense.Linq
 {
-	using System;
-	using System.Threading;
-	using System.Collections.Generic;
-
 	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerable{T}"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
 	public interface IConfigurableAsyncEnumerable<out T> : IAsyncEnumerable<T>
 	{

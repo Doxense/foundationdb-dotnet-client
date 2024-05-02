@@ -26,9 +26,6 @@
 
 namespace Doxense.Async
 {
-	using System;
-	using System.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	/// <summary>Defines a producer/consumer buffer queue that can hold several items before blocking the producer</summary>
 	/// <typeparam name="TInput">Type of elements entering the buffer</typeparam>

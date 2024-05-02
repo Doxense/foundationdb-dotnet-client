@@ -26,24 +26,18 @@
 
 namespace System
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.IO.Pipelines;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
+	using System.Security.Cryptography;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Delimits a read-only section of a byte array</summary>
 	/// <remarks>
@@ -51,7 +45,7 @@ namespace System
 	/// It is considered "read-only", in a sense that <i>consumers</i> of this type should SHOULD NOT attempt to modify the content of the slice. Though, it is <b>NOT</b> guaranteed the content of a slice will not change, if the backing array is mutated directly.
 	/// This type as several advantages over <see cref="ReadOnlyMemory{T}"/> or <see cref="Span{T}"/> when working with legacy APIs that don't support spans directly, and can also be stored one the heap.
 	/// </remarks>
-	[PublicAPI, ImmutableObject(true), DebuggerDisplay("{PrettyPrint(),nq}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
+	[PublicAPI, ImmutableObject(true), DebuggerDisplay("{PrettyPrint(),nq}"), DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
 	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable, ISliceSerializable, ISpanFormattable
 	{
@@ -1792,7 +1786,7 @@ namespace System
 		/// <param name="nonZeroBytes">If true, produce a sequence of non-zero bytes.</param>
 		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="rng"/></returns>
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
-		public static Slice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
+		public static Slice Random(RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
 		{
 			Contract.NotNull(rng);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");

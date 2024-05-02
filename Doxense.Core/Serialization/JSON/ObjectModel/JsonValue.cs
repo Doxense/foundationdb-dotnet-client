@@ -26,22 +26,18 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
-	using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 
 	[Serializable]
-	[CannotApplyEqualityOperator]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[JetBrains.Annotations.CannotApplyEqualityOperator]
 	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable
 #pragma warning disable CS0618 // Type or member is obsolete
 		, IJsonDynamic

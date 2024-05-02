@@ -2,8 +2,6 @@
 
 namespace Doxense.Text
 {
-	using System;
-
 	public static class UnicodeConstants
 	{
 		public const uint Utf16HighSurrogateFirstCodePoint = 0xD800;

@@ -26,11 +26,9 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.ComponentModel;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.Serialization;
-	using Pure = JetBrains.Annotations.PureAttribute;
 
 	/// <summary>Error that occurred while deserializing a JSON value back into a CLR type</summary>
 	[Serializable]

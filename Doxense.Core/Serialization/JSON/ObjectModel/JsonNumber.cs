@@ -31,13 +31,11 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using NodaTime;
 	using PureAttribute = System.Diagnostics.Contracts.PureAttribute;

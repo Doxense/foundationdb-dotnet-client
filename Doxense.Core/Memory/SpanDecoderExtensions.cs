@@ -26,7 +26,6 @@
 
 namespace System
 {
-	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
@@ -35,7 +34,6 @@ namespace System
 	using System.Text;
 	using Doxense.Memory;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper methods to help decode the content of spans</summary>
 	[PublicAPI]

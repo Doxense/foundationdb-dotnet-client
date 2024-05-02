@@ -28,35 +28,22 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Dynamic;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-
-	// Contract annotation mappings
-	using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
-	using ImplicitUseTargetFlags = JetBrains.Annotations.ImplicitUseTargetFlags;
-	using Pure = System.Diagnostics.Contracts.PureAttribute;
-	using MustUseReturnValue = JetBrains.Annotations.MustUseReturnValueAttribute;
-	using NoEnumeration = JetBrains.Annotations.NoEnumerationAttribute;
-	using UsedImplicitly = JetBrains.Annotations.UsedImplicitlyAttribute;
 
 	/// <summary>JSON Object with fields</summary>
 	[Serializable]
 	[DebuggerDisplay("JSON Object[{Count}]{GetMutabilityDebugLiteral(),nq} {GetCompactRepresentation(0),nq}")]
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 #if NET8_0_OR_GREATER
 	[CollectionBuilder(typeof(JsonObject), nameof(JsonObject.Create))]
 #endif

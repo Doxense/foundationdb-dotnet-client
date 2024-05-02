@@ -26,11 +26,6 @@
 
 namespace Doxense.Linq
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-
 	public static partial class AsyncEnumerable
 	{
 

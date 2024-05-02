@@ -26,13 +26,10 @@
 
 namespace Doxense.Mathematics.Statistics
 {
-	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using System.Threading;
-	using JetBrains.Annotations;
 
 	/// <summary>Distributed global counter made up of individual counters</summary>
 	[DebuggerDisplay("Count={Counters.Length}, Total={GetTotal()}")]

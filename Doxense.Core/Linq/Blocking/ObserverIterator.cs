@@ -26,10 +26,6 @@
 
 namespace Doxense.Linq.Iterators
 {
-	using System;
-	using System.Collections.Generic;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>Observe the items of a sequence</summary>
 	/// <typeparam name="TSource">Type of the observed elements</typeparam>
 	public sealed class ObserverIterator<TSource> : FilterIterator<TSource, TSource>

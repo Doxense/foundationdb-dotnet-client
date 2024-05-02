@@ -2,13 +2,10 @@
 
 namespace Doxense.Text
 {
-	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory.Text;
-	using JetBrains.Annotations;
 
 	[DebuggerDisplay("{ToChar()}")]
 	public readonly struct UnicodeCodePoint
