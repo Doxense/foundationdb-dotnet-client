@@ -32,7 +32,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Represents a Tuple of variable length and elements of different types</summary>
 	[ImmutableObject(true)]
 	[JetBrains.Annotations.CannotApplyEqualityOperator]
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 	public interface IVarTuple : IEquatable<IVarTuple>, IReadOnlyList<object?>, System.Collections.IStructuralEquatable
 	{
 		// Tuples should, by default, behave as closely to Python's tuples as possible. See http://docs.python.org/2/tutorial/datastructures.html#tuples-and-sequences
@@ -66,7 +66,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
 		/// <returns>Tuple that include all items in the current tuple whose offset are greater than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
 		//TODO: REVIEW: consider marking this overload as obsolete or even removing it, since we now have Range for this use case?
-		IVarTuple this[int? fromIncluded, int? toExcluded] { [JetBrains.Annotations.Pure] get; }
+		IVarTuple this[int? fromIncluded, int? toExcluded] { [Pure] get; }
 
 		/// <summary>Return the element at the specified index</summary>
 		object? this[Index index] { get; }
@@ -87,7 +87,7 @@ namespace Doxense.Collections.Tuples
 		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"</c></para>
 		/// </example>
 		//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
-		[JetBrains.Annotations.Pure]
+		[Pure]
 		TItem? Get<TItem>(int index);
 
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
@@ -96,13 +96,13 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with the new value</returns>
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
 		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></remarks>
-		[JetBrains.Annotations.Pure]
+		[Pure]
 		IVarTuple Append<TItem>(TItem value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
 		/// <returns>New tuple with the new values, or the same instance if <paramref name="tuple"/> is empty.</returns>
-		[JetBrains.Annotations.Pure]
+		[Pure]
 		IVarTuple Concat(IVarTuple tuple);
 
 		/// <summary>Copy all items of the tuple into an array at a specific location</summary>

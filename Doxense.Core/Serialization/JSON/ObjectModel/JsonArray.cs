@@ -44,7 +44,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Array[{m_size}] {GetCompactRepresentation(0),nq}")]
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 #if NET8_0_OR_GREATER
 	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
 #endif
@@ -4308,7 +4308,7 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 	public static class JsonArrayExtensions
 	{
 

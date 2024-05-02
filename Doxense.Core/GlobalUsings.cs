@@ -13,6 +13,6 @@ global using NoEnumerationAttribute = JetBrains.Annotations.NoEnumerationAttribu
 global using PositiveAttribute = JetBrains.Annotations.PositiveAttribute;
 global using PowerOfTwoAttribute = JetBrains.Annotations.PowerOfTwoAttribute;
 global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;
-global using PureAttribute = JetBrains.Annotations.PureAttribute;
+global using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 global using UsedImplicitlyAttribute = JetBrains.Annotations.UsedImplicitlyAttribute;
 global using UsedImplUsedImplicitlyAttributeicitly = JetBrains.Annotations.UsedImplicitlyAttribute;

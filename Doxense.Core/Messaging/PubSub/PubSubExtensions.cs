@@ -32,7 +32,7 @@ namespace Doxense.Messaging.PubSub
 	using Doxense.Serialization.Json;
 
 	/// <summary>Extensions methods for the <see cref="IPubSub"/> abstraction</summary>
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 	public static class PubSubExtensions
 	{
 

@@ -2427,14 +2427,14 @@ namespace Doxense.Serialization.Json
 
 		#region Setters...
 
-		[JetBrains.Annotations.CollectionAccess(JetBrains.Annotations.CollectionAccessType.UpdatedContent)]
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set<TValue>(string key, TValue? value)
 		{
 			m_items[key] = FromValue(value);
 			return this;
 		}
 
-		[JetBrains.Annotations.CollectionAccess(JetBrains.Annotations.CollectionAccessType.UpdatedContent)]
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(string key, JsonValue? value)
 		{
 			Contract.NotNull(key);
@@ -2444,7 +2444,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		[JetBrains.Annotations.CollectionAccess(JetBrains.Annotations.CollectionAccessType.UpdatedContent)]
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(ReadOnlySpan<char> key, JsonValue? value)
 		{
 			if (m_readOnly) ThrowCannotMutateReadOnlyObject();

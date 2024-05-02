@@ -38,12 +38,11 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using Doxense.Memory;
 	using NodaTime;
-	using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 
 	/// <summary>JSON number</summary>
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
 	[DebuggerNonUserCode]
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>, IEquatable<JsonString>, IEquatable<JsonBoolean>, IEquatable<JsonDateTime>, IEquatable<int>, IEquatable<long>, IEquatable<uint>, IEquatable<ulong>, IEquatable<float>, IEquatable<double>, IEquatable<decimal>, IEquatable<TimeSpan>, IEquatable<Half>
 #if NET8_0_OR_GREATER
 		, System.Numerics.INumberBase<JsonNumber>

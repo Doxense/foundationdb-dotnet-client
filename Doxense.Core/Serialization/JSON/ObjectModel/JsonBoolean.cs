@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>JSON Boolean, that can be either <see langword="true"/> or <see langword="false"/></summary>
 	[DebuggerDisplay("JSON Boolean({m_value})")]
 	[DebuggerNonUserCode]
-	[JetBrains.Annotations.PublicAPI]
+	[PublicAPI]
 	public sealed class JsonBoolean : JsonValue, IEquatable<JsonBoolean>, IComparable<JsonBoolean>, IEquatable<JsonNumber>, IEquatable<JsonString>, IEquatable<bool>
 	{
 
