@@ -36,6 +36,7 @@ namespace Doxense.Serialization
 	using System.Reflection;
 	using Doxense.Runtime;
 
+	[PublicAPI]
 	public static class TypeHelper
 	{
 

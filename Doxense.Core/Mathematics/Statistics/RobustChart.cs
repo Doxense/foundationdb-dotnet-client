@@ -31,6 +31,7 @@ namespace Doxense.Mathematics.Statistics
 	using System.Text;
 
 	/// <summary>Generates ASCII Art that look like plots</summary>
+	[PublicAPI]
 	public static class RobustChart
 	{
 
@@ -86,6 +87,7 @@ namespace Doxense.Mathematics.Statistics
 		
 		/// <summary>Buffer permettant de dessiner sur une frame</summary>
 		[DebuggerDisplay("Size={Width}x{Height}")]
+		[PublicAPI]
 		public readonly struct FrameBuffer : IFormattable
 		{
 
@@ -346,6 +348,7 @@ namespace Doxense.Mathematics.Statistics
 
 		/// <summary>Série de valeurs</summary>
 		[DebuggerDisplay("Count={Count}; Name={Name}")]
+		[PublicAPI]
 		public readonly struct Data
 		{
 
@@ -679,6 +682,7 @@ namespace Doxense.Mathematics.Statistics
 			}
 		}
 
+		[PublicAPI]
 		public static class Axis
 		{
 			[Pure]

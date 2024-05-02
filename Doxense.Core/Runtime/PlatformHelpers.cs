@@ -31,6 +31,7 @@ namespace Doxense.Runtime
 	using System.Runtime.CompilerServices;
 
 	[DebuggerNonUserCode]
+	[PublicAPI]
 	public static class PlatformHelpers
 	{
 

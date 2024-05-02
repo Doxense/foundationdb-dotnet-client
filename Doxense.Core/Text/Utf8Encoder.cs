@@ -6,6 +6,7 @@ namespace Doxense.Text
 	using System.Text;
 	using Doxense.Memory;
 
+	[PublicAPI]
 	public static unsafe class Utf8Encoder
 	{
 

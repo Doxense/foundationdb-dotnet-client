@@ -34,6 +34,7 @@ namespace Doxense.Runtime.Converters
 	using Doxense.Serialization;
 
 	/// <summary>Helper class to convert object from one type to another</summary>
+	[PublicAPI]
 	public static class TypeConverters
 	{
 

@@ -8,6 +8,7 @@ namespace Doxense.Text
 	using Doxense.Memory.Text;
 
 	[DebuggerDisplay("{ToChar()}")]
+	[PublicAPI]
 	public readonly struct UnicodeCodePoint
 	{
 

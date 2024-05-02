@@ -30,6 +30,7 @@ namespace Doxense.Serialization
 	using System.Runtime.CompilerServices;
 	using NodaTime;
 
+	[PublicAPI]
 	public static class StringConverters
 	{
 		#region Numbers...

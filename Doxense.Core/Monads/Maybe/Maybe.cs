@@ -32,6 +32,8 @@ namespace Doxense
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 
+	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
 		/// <summary>Représente un résultat vide (no computation)</summary>

@@ -33,6 +33,7 @@ namespace Doxense.Collections.Caching
 	/// <typeparam name="TKey">Type des clés du cache</typeparam>
 	/// <typeparam name="TValue">Type des valeurs du cache</typeparam>
 	/// <remarks>Cache optimisé pour un scenario ou il y a un nombre restraint de valeurs 'statiques' qui vont être créées assez rapidement (au démarrage du processus), puis réutilisée en mode lecteur seule, avec éventuellement quelles ajouts de temps en temps</remarks>
+	[PublicAPI]
 	public sealed class QuasiImmutableCache<TKey, TValue> : ICache<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>
 		where TKey : notnull
 	{

@@ -31,6 +31,7 @@ namespace Doxense.Serialization.Xml
 	using Doxense.Text;
 
 	/// <summary>XPATH Codec</summary>
+	[PublicAPI]
 	public static class XPathEncoder
 	{
 		/// <summary>Return the empty string corresponding to the specified quote character</summary>

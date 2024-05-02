@@ -26,9 +26,6 @@
 
 namespace Doxense.Serialization
 {
-	using System;
-	using System.Collections.Generic;
-
 	/// <summary>Equality comparer spécialisé dans la comparaison de types</summary>
 	public sealed class TypeEqualityComparer : IEqualityComparer<Type>
 	{

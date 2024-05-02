@@ -32,6 +32,7 @@ namespace Doxense.Memory
 
 	/// <summary>Represents a fixed-size bit map, backed by an array of 64-bit words</summary>
 	[DebuggerDisplay("Capacity={Capacity}, Words={Words.Length")]
+	[PublicAPI]
 	public readonly struct BitMap64 : IFormattable, IReadOnlyList<bool>
 	{
 		// Maps are fixed length array of 64-bit ulongs (or words)

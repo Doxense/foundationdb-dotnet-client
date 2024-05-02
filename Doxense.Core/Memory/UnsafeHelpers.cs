@@ -45,6 +45,7 @@ namespace Doxense.Memory
 	/// <summary>Helper methods for dealing with unmanaged memory. HANDLE WITH CARE!</summary>
 	/// <remarks>Use of this class is unsafe. YOU HAVE BEEN WARNED!</remarks>
 	[DebuggerNonUserCode] // <-- remove this when debugging the class itself!
+	[PublicAPI]
 	public static class UnsafeHelpers
 	{
 

@@ -39,6 +39,7 @@ namespace Doxense.Mathematics.Statistics
 		}
 
 		[DebuggerDisplay("Index={Index}, {Rejected?\"BAD \":\"GOOD \"}, Duration={Duration}, Iterations={Iterations}, Result={Result}")]
+		[PublicAPI]
 		public sealed class RunData<TResult>
 		{
 			public int Index { get; set; }
@@ -49,6 +50,7 @@ namespace Doxense.Mathematics.Statistics
 		}
 
 		[DebuggerDisplay("R={NumberOfRuns}, ITER={IterationsPerRun}, DUR={TotalDuration}, BIPS={BestIterationsPerSecond}, NANOS={BestIterationsNanos}")]
+		[PublicAPI]
 		public sealed class Report<TResult>
 		{
 			public int NumberOfRuns { get; set; }

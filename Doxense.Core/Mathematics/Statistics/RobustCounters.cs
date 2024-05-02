@@ -33,6 +33,7 @@ namespace Doxense.Mathematics.Statistics
 
 	/// <summary>Distributed global counter made up of individual counters</summary>
 	[DebuggerDisplay("Count={Counters.Length}, Total={GetTotal()}")]
+	[PublicAPI]
 	public sealed class RobustCounters
 	{
 		public RobustCounter[] Counters { get; }
