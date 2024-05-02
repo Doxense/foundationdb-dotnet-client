@@ -32,15 +32,12 @@ namespace Doxense.Serialization
 	/// <summary>Very simple writer to dump query expressions into a statement useful for logging/debugging</summary>
 	public sealed class DebugStatementWriter
 	{
-		public DebugStatementWriter()
-		{
-			this.Buffer = new StringBuilder();
-			this.StartOfLine = true;
-		}
 
-		public StringBuilder Buffer { get; }
+		public StringBuilder Buffer { get; } = new();
+
 		public int IndentLevel { get; private set; }
-		public bool StartOfLine { get; private set; }
+
+		public bool StartOfLine { get; private set; } = true;
 
 		public DebugStatementWriter Enter()
 		{
@@ -77,13 +74,13 @@ namespace Doxense.Serialization
 			return this;
 		}
 
-		[StringFormatMethod("format")]
+		[JetBrains.Annotations.StringFormatMethod("format")]
 		public DebugStatementWriter WriteLine(string format, params object?[] args)
 		{
 			return WriteLine(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
-		[StringFormatMethod("format")]
+		[JetBrains.Annotations.StringFormatMethod("format")]
 		public DebugStatementWriter Write(string format, params object?[] args)
 		{
 			return Write(string.Format(CultureInfo.InvariantCulture, format, args));

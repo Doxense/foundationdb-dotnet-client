@@ -215,11 +215,11 @@ namespace System
 			}
 			if (value <= (1 << 16) - 1)
 			{
-				return unchecked(new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2));
+				return unchecked(new Slice([ (byte) (value >> 8), (byte) value ], 0, 2));
 			}
 			if (value <= (1 << 24) - 1)
 			{
-				return unchecked(new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3));
+				return unchecked(new Slice([ (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 3));
 			}
 			return FromFixedU32BE(value);
 		}
@@ -230,7 +230,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixedU32BE(uint value) //REVIEW: we could drop the 'U' here
 		{
-			return unchecked(new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 4));
+			return unchecked(new Slice([ (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 4));
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into 7-bit encoded unsigned int (aka 'Varint32')</summary>
@@ -239,7 +239,7 @@ namespace System
 		{
 			if (value <= 127)
 			{ // single byte slices are cached
-				return FromByte((byte)value);
+				return FromByte((byte) value);
 			}
 
 			var writer = new SliceWriter(value <= (1 << 14) - 1 ? 2 : 5);

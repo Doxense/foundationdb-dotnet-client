@@ -46,8 +46,8 @@ namespace Doxense.Serialization
 
 		private const char Base64PadChar = '=';
 
-		private static readonly char[] Base64CharMap = new char[CHARMAP_PAGE_SIZE * 2]
-		{
+		private static readonly char[] Base64CharMap =
+		[
 			// HI
 			'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'C', 'C',
 			'C', 'C', 'D', 'D', 'D', 'D', 'E', 'E', 'E', 'E',
@@ -102,7 +102,7 @@ namespace Doxense.Serialization
 			'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
 			'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5',
 			'6', '7', '8', '9', '+', '/'
-		};
+		];
 
 		#endregion
 
@@ -110,8 +110,8 @@ namespace Doxense.Serialization
 
 		private const char Base64UrlPadChar = '*';
 
-		private static readonly char[] Base64UrlCharMap = new char[CHARMAP_PAGE_SIZE * 2]
-		{
+		private static readonly char[] Base64UrlCharMap =
+		[
 			// HI
 			'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'C', 'C',
 			'C', 'C', 'D', 'D', 'D', 'D', 'E', 'E', 'E', 'E',
@@ -166,7 +166,7 @@ namespace Doxense.Serialization
 			'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
 			'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5',
 			'6', '7', '8', '9', '-', '_'
-		};
+		];
 
 		#endregion
 
@@ -615,7 +615,7 @@ namespace Doxense.Serialization
 		[Pure]
 		public static byte[] DecodeBuffer(ReadOnlySpan<char> encoded, bool padded = true, bool urlSafe = false)
 		{
-			if (encoded.Length == 0) return Array.Empty<byte>();
+			if (encoded.Length == 0) return [ ];
 
 			unsafe
 			{
@@ -764,8 +764,8 @@ namespace Doxense.Serialization
 
 		private const uint BADCHAR = 0x01FFFFFF;
 
-		private static readonly uint[] DecodeMap0 = new uint[256]
-		{
+		private static readonly uint[] DecodeMap0 =
+		[
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -809,10 +809,10 @@ namespace Doxense.Serialization
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-		};
+		];
 
-		private static readonly uint[] DecodeMap1 = new uint[256]
-		{
+		private static readonly uint[] DecodeMap1 =
+		[
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -856,11 +856,11 @@ namespace Doxense.Serialization
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-		};
+		];
 
 
-		private static readonly uint[] DecodeMap2 = new uint[256]
-		{
+		private static readonly uint[] DecodeMap2 =
+		[
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -904,10 +904,10 @@ namespace Doxense.Serialization
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-		};
+		];
 
-		private static readonly uint[] DecodeMap3 = new uint[256]
-		{
+		private static readonly uint[] DecodeMap3 =
+		[
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -951,7 +951,7 @@ namespace Doxense.Serialization
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-		};
+		];
 		#endregion
 
 	}

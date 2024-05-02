@@ -90,13 +90,13 @@ namespace System
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int Compute(string value)
+		public static int Compute(string? value)
 		{
 			return value?.GetHashCode() ?? 0;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int Compute<T>(T value)
+		public static int Compute<T>(T? value)
 			where T : class
 		{
 			return value?.GetHashCode() ?? 0;
@@ -110,7 +110,7 @@ namespace System
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int Compute<T>(T value, System.Collections.IEqualityComparer comparer)
+		public static int Compute<T>(T? value, IEqualityComparer comparer)
 			where T : IStructuralEquatable
 		{
 			return value?.GetHashCode(comparer) ?? 0;

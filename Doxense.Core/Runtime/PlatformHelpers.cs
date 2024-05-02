@@ -64,11 +64,15 @@ namespace Doxense.Runtime
 		public static void PreJit(Type type)
 		{
 			// JIT all the methods and properties
+#if FULL_DEBUG
 			int nm = 0;
+#endif
 			foreach (var m in type.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
 			{
 				PreJit(m);
+#if FULL_DEBUG
 				++nm;
+#endif
 			}
 
 #if FULL_DEBUG

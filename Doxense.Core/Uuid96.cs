@@ -236,24 +236,26 @@ namespace System
 
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
 		[Pure]
-		public static bool TryParse(string input, out Uuid96 result)
+		public static bool TryParse(string? input, out Uuid96 result)
 		{
-			Contract.NotNull(input);
+			if (input == null)
+			{
+				result = default;
+				return false;
+			}
 			return TryParse(input.AsSpan(), out result);
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static bool TryParse(string input, IFormatProvider? provider, out Uuid96 result)
+		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid96 result)
 			=> TryParse(input, out result);
 
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
 		[Pure]
 		public static bool TryParse(ReadOnlySpan<char> input, out Uuid96 result)
 		{
-			Contract.Debug.Requires(input != null);
-
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
 

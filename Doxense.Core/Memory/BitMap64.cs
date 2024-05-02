@@ -77,7 +77,7 @@ namespace Doxense.Memory
 		/// <remarks>This Bitmap will mutate the content of <paramref name="words"/>. Likewise, any change made to <paramref name="words"/> will be visible from this instance</remarks>
 		public BitMap64(ulong[]? words)
 		{
-			this.Words = words ?? Array.Empty<ulong>();
+			this.Words = words ?? [ ];
 		}
 
 		/// <summary>Initialize a Bitmap from an existing storage</summary>

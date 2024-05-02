@@ -70,7 +70,7 @@ namespace Doxense.Memory
 		{
 			Contract.Positive(capacity);
 
-			this.Buffer = capacity == 0 ? Array.Empty<byte>() : ArrayPool<byte>.Shared.Rent(capacity); //REVIEW: BUGBUG: est-ce une bonne idée d'utiliser un pool ici?
+			this.Buffer = capacity == 0 ? [ ] : ArrayPool<byte>.Shared.Rent(capacity); //REVIEW: BUGBUG: est-ce une bonne idée d'utiliser un pool ici?
 			this.Position = 0;
 			this.Pool = null;
 		}
@@ -83,7 +83,7 @@ namespace Doxense.Memory
 			Contract.Positive(capacity);
 			Contract.NotNull(pool);
 
-			this.Buffer = capacity == 0 ? Array.Empty<byte>() : pool.Rent(capacity);
+			this.Buffer = capacity == 0 ? [ ] : pool.Rent(capacity);
 			this.Position = 0;
 			this.Pool = pool;
 		}
@@ -215,7 +215,7 @@ namespace Doxense.Memory
 		/// <summary>Returns the underlying buffer holding the data</summary>
 		/// <remarks>This will never return <c>null</c>, unlike <see cref="Buffer"/> which can be <c>null</c> if the instance was never written to.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public byte[] GetBufferUnsafe() => this.Buffer ?? Array.Empty<byte>();
+		public byte[] GetBufferUnsafe() => this.Buffer ?? [ ];
 
 		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
 		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
@@ -223,7 +223,7 @@ namespace Doxense.Memory
 		public byte[] GetBytes()
 		{
 			int p = this.Position;
-			return p != 0 ? this.Buffer.AsSpan(0, p).ToArray() : Array.Empty<byte>();
+			return p != 0 ? this.Buffer.AsSpan(0, p).ToArray() : [ ];
 		}
 
 		/// <summary>Returns a buffer segment pointing to the content of the buffer</summary>
@@ -446,7 +446,7 @@ namespace Doxense.Memory
 			if (shrink && buffer.Length > 65536 && this.Position <= (buffer.Length >> 3))
 			{ // kill the buffer
 				this.Pool?.Return(buffer, zeroes);
-				this.Buffer = Array.Empty<byte>();
+				this.Buffer = [ ];
 			}
 			else if (zeroes)
 			{ // Clear it
@@ -460,7 +460,7 @@ namespace Doxense.Memory
 		public void Release(bool clear = false)
 		{
 			var buffer = this.Buffer;
-			this.Buffer = Array.Empty<byte>();
+			this.Buffer = [ ];
 			this.Position = 0;
 			if (buffer != null) this.Pool?.Return(buffer, clear);
 		}

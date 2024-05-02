@@ -544,7 +544,7 @@ namespace Doxense
 			Contract.Debug.Requires(lambda != null);
 			try
 			{
-				return Return<TResult>(lambda(value));
+				return Return(lambda(value));
 			}
 			catch (Exception e)
 			{
@@ -584,7 +584,7 @@ namespace Doxense
 			}
 			try
 			{
-				return Return<TResult>(lambda(value.Value));
+				return Return(lambda(value.Value));
 			}
 			catch (Exception e)
 			{
@@ -627,7 +627,7 @@ namespace Doxense
 			{
 				case TaskStatus.RanToCompletion:
 				{
-					return Return<T>(task.Result);
+					return Return(task.Result);
 				}
 				case TaskStatus.Faulted:
 				{
@@ -723,7 +723,7 @@ namespace Doxense
 		[Pure]
 		public static Func<Maybe<T>, Maybe<TResult>> Bind<T, TIntermediate, TResult>(Func<T, Maybe<TIntermediate>> f, Func<TIntermediate, Maybe<TResult>> g)
 		{
-			return Combine(Maybe<T>.Bind(f), Maybe<TIntermediate>.Bind<TResult>(g));
+			return Combine(Maybe<T>.Bind(f), Maybe<TIntermediate>.Bind(g));
 		}
 
 		[Pure]

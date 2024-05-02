@@ -183,14 +183,14 @@ namespace Doxense.Runtime.Converters
 
 				return (x, y) =>
 				{
-					if (object.ReferenceEquals(x, null)) return object.ReferenceEquals(y, null);
-					return object.ReferenceEquals(x, y) || x.Equals(y);
+					if (ReferenceEquals(x, null)) return ReferenceEquals(y, null);
+					return ReferenceEquals(x, y) || x.Equals(y);
 				};
 			}
 
 			if (IsStringType(t1) || IsStringType(t2))
 			{
-				return (x, y) => x == null ? y == null : y != null && (object.ReferenceEquals(x, y) || (TryAdaptToString(x) == TryAdaptToString(y)));
+				return (x, y) => x == null ? y == null : y != null && (ReferenceEquals(x, y) || (TryAdaptToString(x) == TryAdaptToString(y)));
 			}
 
 			if (IsNumericType(t1) || IsNumericType(t2))
@@ -239,7 +239,7 @@ namespace Doxense.Runtime.Converters
 		/// </example>
 		public static bool AreSimilar(object? x, object? y)
 		{
-			if (object.ReferenceEquals(x, y)) return true;
+			if (ReferenceEquals(x, y)) return true;
 			if (x == null || y == null) return false;
 
 			var comparator = GetTypeComparator(x.GetType(), y.GetType());

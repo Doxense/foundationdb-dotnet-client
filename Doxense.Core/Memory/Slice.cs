@@ -259,14 +259,10 @@ namespace System
 				return false;
 			}
 
-			if (segment.Count == 0)
-			{
-				slice = Slice.Empty;
-			}
-			else
-			{
-				slice = new Slice(segment.Array!, segment.Offset, segment.Count);
-			}
+			slice = segment.Count == 0
+				? Slice.Empty
+				: new Slice(segment.Array!, segment.Offset, segment.Count);
+
 			return true;
 		}
 
@@ -357,7 +353,7 @@ namespace System
 		[Pure]
 		public byte[]? GetBytes() //REVIEW: should be called ToArray(), like Span<byte>.ToArray() ?
 		{
-			return this.Count != 0 ? this.Span.ToArray() : this.Array != null ? System.Array.Empty<byte>() : null;
+			return this.Count != 0 ? this.Span.ToArray() : this.Array != null ? [ ] : null;
 		}
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
@@ -366,7 +362,7 @@ namespace System
 		public byte[] GetBytesOrEmpty()
 		{
 			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
-			return this.Count != 0 ? this.Span.ToArray() : System.Array.Empty<byte>();
+			return this.Count != 0 ? this.Span.ToArray() : [ ];
 		}
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
@@ -391,7 +387,7 @@ namespace System
 			var arr = this.Array;
 			if (arr == null)
 			{
-				bytes = System.Array.Empty<byte>();
+				bytes = [ ];
 				return true;
 			}
 
@@ -1032,7 +1028,7 @@ namespace System
 			this.EnsureSliceIsValid();
 
 			// special case: adjacent segments ?
-			if (object.ReferenceEquals(this.Array, tail.Array) && this.Offset + count == tail.Offset)
+			if (ReferenceEquals(this.Array, tail.Array) && this.Offset + count == tail.Offset)
 			{
 				return new Slice(this.Array, this.Offset, count + tail.Count);
 			}
@@ -1150,7 +1146,7 @@ namespace System
 		public static Slice[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
 		{
 			Contract.Debug.Requires(buffer != null && endOffsets != null);
-			if (endOffsets.Count == 0) return System.Array.Empty<Slice>();
+			if (endOffsets.Count == 0) return [ ];
 			var result = new Slice[endOffsets.Count];
 			int i = 0;
 			int p = start;
@@ -1481,8 +1477,8 @@ namespace System
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count must be a positive integer");
 			if (startIndex > values.Length - count) throw ThrowHelper.ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must fit within the array");
 
-			if (count == 0) return System.Array.Empty<byte>();
-			if (count == 1) return values[startIndex].GetBytes() ?? System.Array.Empty<byte>();
+			if (count == 0) return [ ];
+			if (count == 1) return values[startIndex].GetBytes() ?? [ ];
 
 			int size = 0;
 			for (int i = 0; i < count; i++) size = checked(size + values[startIndex + i].Count);
@@ -1540,7 +1536,7 @@ namespace System
 			bool skipEmpty = options.HasFlag(StringSplitOptions.RemoveEmptyEntries);
 			if (input.Count == 0)
 			{
-				return skipEmpty ? System.Array.Empty<Slice>() : new[] { Empty };
+				return skipEmpty ? [ ] : [ Empty ];
 			}
 
 			while (input.Count > 0)
@@ -1583,7 +1579,7 @@ namespace System
 		{
 			Contract.GreaterOrEqual(stride, 1);
 
-			if (input.IsNull) return System.Array.Empty<Slice>();
+			if (input.IsNull) return [ ];
 
 			if (input.Count <= stride)
 			{ // single element
@@ -1650,7 +1646,7 @@ namespace System
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
-			if (keys.Length == 0) return System.Array.Empty<Slice>();
+			if (keys.Length == 0) return [ ];
 
 			// we can pre-allocate exactly the buffer by computing the total size of all keys
 			int size = keys.Length * prefix.Count;
@@ -1679,7 +1675,7 @@ namespace System
 		{
 			//REVIEW: merge this code with Slice.ConcatRange!
 
-			if (keys.Length == 0) return System.Array.Empty<Slice>();
+			if (keys.Length == 0) return [ ];
 
 			// we can pre-allocate exactly the buffer by computing the total size of all keys
 			int pc = prefix.Count;
@@ -2789,7 +2785,7 @@ namespace System
 			{
 				get
 				{
-					if (m_slice.Count == 0) return m_slice.Array == null! ? null : System.Array.Empty<byte>();
+					if (m_slice.Count == 0) return m_slice.Array == null! ? null : [ ];
 					if (m_slice.Offset == 0 && m_slice.Count == m_slice.Array.Length) return m_slice.Array;
 					var tmp = new byte[m_slice.Count];
 					System.Array.Copy(m_slice.Array, m_slice.Offset, tmp, 0, m_slice.Count);
@@ -2827,6 +2823,7 @@ namespace System
 	}
 
 	/// <summary>Helper methods for Slice</summary>
+	[PublicAPI]
 	public static class SliceExtensions
 	{
 

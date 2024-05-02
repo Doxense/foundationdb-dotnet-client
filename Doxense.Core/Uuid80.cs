@@ -252,24 +252,26 @@ namespace System
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
 		[Pure]
-		public static bool TryParse(string input, out Uuid80 result)
+		public static bool TryParse(string? input, out Uuid80 result)
 		{
-			Contract.NotNull(input);
+			if (input == null)
+			{
+				result = default;
+				return false;
+			}
 			return TryParse(input.AsSpan(), out result);
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static bool TryParse(string input, IFormatProvider? provider, out Uuid80 result)
+		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid80 result)
 			=> TryParse(input, out result);
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
 		[Pure]
 		public static bool TryParse(ReadOnlySpan<char> input, out Uuid80 result)
 		{
-			Contract.Debug.Requires(input != null);
-
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
 
@@ -796,7 +798,7 @@ namespace System
 
 			/// <summary>Default instance of a random generator</summary>
 			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-			public static readonly Uuid80.RandomGenerator Default = new Uuid80.RandomGenerator();
+			public static readonly RandomGenerator Default = new();
 
 			private RandomNumberGenerator Rng { get; }
 

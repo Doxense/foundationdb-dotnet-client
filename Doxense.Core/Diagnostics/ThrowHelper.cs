@@ -313,25 +313,25 @@ namespace Doxense.Diagnostics.Contracts
 
 			if (paramName != null)
 			{ // look for a ctor that takes two strings with one of them called "paramName"
-				constructor = exceptionType.GetConstructor(new[] { typeof(string), typeof(string) });
+				constructor = exceptionType.GetConstructor([ typeof(string), typeof(string) ]);
 				if (constructor != null)
 				{
 					if (constructor.GetParameters()[0].Name == "paramName")
 					{
-						return constructor.Invoke(new object[] { paramName, message }) as Exception;
+						return constructor.Invoke([ paramName, message ]) as Exception;
 					}
 					if (constructor.GetParameters()[1].Name == "paramName")
 					{
-						return constructor.Invoke(new object[] { message, paramName }) as Exception;
+						return constructor.Invoke([ message, paramName ]) as Exception;
 					}
 				}
 			}
 
 			// look for a ctor that takes only one string
-			constructor = exceptionType.GetConstructor(new[] { typeof(string) });
+			constructor = exceptionType.GetConstructor([ typeof(string) ]);
 			if (constructor != null)
 			{
-				return constructor.Invoke(new object[] { message }) as Exception;
+				return constructor.Invoke([ message ]) as Exception;
 			}
 
 			// is this a parameterless ctor?

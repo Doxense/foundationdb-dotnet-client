@@ -116,7 +116,7 @@ namespace Doxense.IO.Hashing
 		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
 		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash32.FromBytesAlternative (pour démarrer la chaine)</remarks>
 		[Pure]
-		public static uint Continue(uint hash, byte[] bytes)
+		public static uint Continue(uint hash, byte[]? bytes)
 		{
 			if (bytes == null || bytes.Length == 0) return hash;
 
@@ -178,7 +178,7 @@ namespace Doxense.IO.Hashing
 		/// <param name="offset">Offset de départ dans le buffer</param>
 		/// <param name="count">Nombre de données du buffer à hasher</param>
 		/// <returns>Nouvelle valeur du hash</returns>
-		public static uint Continue(uint hash, byte[] buffer, int offset, int count)
+		public static uint Continue(uint hash, byte[]? buffer, int offset, int count)
 		{
 			if (count == 0 || buffer == null) return hash;
 
@@ -207,7 +207,7 @@ namespace Doxense.IO.Hashing
 
 		/// <summary>Génère le HashCode correspondant à un tableau de bytes</summary>
 		/// <returns>Hashcode calculé sur la base du hash FNV1 du buffer, et mélangé pour assurer le plus de diffusion possible des bits</returns>
-		public static int GetHashCode(byte[] buffer)
+		public static int GetHashCode(byte[]? buffer)
 		{
 			if (buffer == null) return -1;
 			if (buffer.Length == 0) return 0;

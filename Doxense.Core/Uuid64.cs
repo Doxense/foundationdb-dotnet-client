@@ -1191,7 +1191,7 @@ namespace System
 
 			/// <summary>Default instance of a random generator</summary>
 			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-			public static readonly Uuid64.RandomGenerator Default = new Uuid64.RandomGenerator();
+			public static readonly RandomGenerator Default = new();
 
 			private RandomNumberGenerator Rng { get; }
 

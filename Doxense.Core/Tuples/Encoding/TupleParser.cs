@@ -1408,11 +1408,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		#region Bits Twiddling...
 
 		/// <summary>Lookup table used to compute the index of the most significant bit</summary>
-		private static readonly int[] MultiplyDeBruijnBitPosition = new int[32]
-		{
+		private static readonly int[] MultiplyDeBruijnBitPosition =
+		[
 			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
 			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-		};
+		];
 
 		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
 		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>

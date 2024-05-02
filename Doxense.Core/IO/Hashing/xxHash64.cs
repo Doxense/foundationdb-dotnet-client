@@ -396,7 +396,7 @@ namespace Doxense.IO.Hashing
 				h64 = state.Seed + PRIME64_5;
 			}
 
-			h64 += (ulong) totalLength;
+			h64 += totalLength;
 
 			while (p <= bEnd - 8)
 			{

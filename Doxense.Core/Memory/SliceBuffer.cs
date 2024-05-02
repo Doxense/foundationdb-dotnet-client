@@ -222,7 +222,7 @@ namespace Doxense.Memory
 		{
 			if (data.Length == 0)
 			{
-				return Array.Empty<Slice>();
+				return [ ];
 			}
 
 			var res = new Slice[data.Length];
@@ -262,7 +262,7 @@ namespace Doxense.Memory
 		/// <summary>Adds a buffer to the list of allocated slices</summary>
 		private void Keep(Slice chunk)
 		{
-			if (m_chunks == null) m_chunks = new List<Slice>();
+			m_chunks ??= [ ];
 			m_chunks.Add(chunk);
 			m_allocated += chunk.Array.Length;
 			m_used += chunk.Count;

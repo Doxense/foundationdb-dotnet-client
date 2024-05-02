@@ -492,7 +492,7 @@ namespace Doxense.Collections.Tuples
 		/// <remarks>This method is equivalent of calling left.Equals(right), </remarks>
 		public static bool Equals(IVarTuple left, IVarTuple right)
 		{
-			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
+			if (ReferenceEquals(left, null)) return ReferenceEquals(right, null);
 			return left.Equals(right);
 		}
 
@@ -502,8 +502,8 @@ namespace Doxense.Collections.Tuples
 		/// <returns>True if the tuples are considered similar; otherwise, false. If both <paramref name="left"/> and <paramref name="right"/> are null, the methods returns true;</returns>
 		public static bool Equivalent(IVarTuple left, IVarTuple right)
 		{
-			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
-			return !object.ReferenceEquals(right, null) && TupleHelpers.Equals(left, right, TupleComparisons.Default);
+			if (ReferenceEquals(left, null)) return ReferenceEquals(right, null);
+			return !ReferenceEquals(right, null) && TupleHelpers.Equals(left, right, TupleComparisons.Default);
 		}
 
 		public static class Formatter
@@ -1198,5 +1198,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		#endregion
+
 	}
 }

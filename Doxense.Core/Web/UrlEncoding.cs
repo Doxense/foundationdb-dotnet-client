@@ -52,7 +52,7 @@ namespace Doxense.Web
 		/// <summary>Map qui contient la catégorie de chaque caractère d'une URL</summary>
 		private static readonly byte[] s_charMap = InitializeCharMap();
 
-		private static readonly char[] s_charHex = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+		private static readonly char[] s_charHex = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' ];
 
 		private const byte CLEAN = 0; // Jamais modifié
 		private const byte PATH = 1; // Normalement encodé en Percent, mais traitement spécial ?

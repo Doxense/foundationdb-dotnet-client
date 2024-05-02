@@ -69,7 +69,7 @@ namespace Doxense.Memory
 		{
 			Contract.Positive(capacity);
 
-			this.Buffer = Array.Empty<byte>();
+			this.Buffer = [ ];
 			EnsureBytes(capacity);
 		}
 

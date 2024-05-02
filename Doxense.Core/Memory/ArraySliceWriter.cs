@@ -63,7 +63,7 @@ namespace Doxense.Memory
 
 			if (initialCapacity == 0) initialCapacity = DefaultInitialBufferSize;
 
-			m_buffer = initialCapacity <= 0 ? Array.Empty<byte>() : new byte[initialCapacity];
+			m_buffer = initialCapacity <= 0 ? [ ] : new byte[initialCapacity];
 			m_index = 0;
 		}
 

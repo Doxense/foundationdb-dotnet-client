@@ -488,7 +488,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
 		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
-		/// <para>If <paramref name="declaredType"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// <para>If <paramref name="declaredType"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="declaredType"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
 		[Pure]
 		private static Slice ToSliceInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)

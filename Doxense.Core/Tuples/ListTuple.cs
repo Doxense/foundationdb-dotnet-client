@@ -236,7 +236,7 @@ namespace Doxense.Collections.Tuples
 
 		public bool Equals(IVarTuple? other)
 		{
-			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+			return !ReferenceEquals(other, null) && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
@@ -246,7 +246,7 @@ namespace Doxense.Collections.Tuples
 
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
-			if (object.ReferenceEquals(this, other)) return true;
+			if (ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
 			if (other is ListTuple<T> list)
@@ -260,7 +260,7 @@ namespace Doxense.Collections.Tuples
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			// the cached hashcode is only valid for the default comparer!
-			bool canUseCache = object.ReferenceEquals(comparer, SimilarValueComparer.Default);
+			bool canUseCache = ReferenceEquals(comparer, SimilarValueComparer.Default);
 			if (m_hashCode.HasValue && canUseCache)
 			{
 				return m_hashCode.Value;

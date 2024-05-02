@@ -46,7 +46,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private int? m_hashCode;
 
-		public static readonly SlicedTuple Empty = new SlicedTuple(default);
+		public static readonly SlicedTuple Empty = new(default);
 
 		public SlicedTuple(ReadOnlyMemory<Slice> slices)
 		{
@@ -69,7 +69,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuplePackers.Unpack(packedKey, embedded: false);
 		}
 
-		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SlicedTupled"/></summary>
+		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SlicedTuple"/></summary>
 		/// <remarks>This methods can be useful to examine what the result of packing a tuple would be, after a round-trip to the database.</remarks>
 		public static SlicedTuple Repack<TTuple>(TTuple? tuple) where TTuple : IVarTuple?
 		{
@@ -369,7 +369,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
-			bool canUseCache = object.ReferenceEquals(comparer, SimilarValueComparer.Default);
+			bool canUseCache = ReferenceEquals(comparer, SimilarValueComparer.Default);
 
 			if (m_hashCode.HasValue && canUseCache)
 			{

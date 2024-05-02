@@ -137,7 +137,7 @@ namespace Doxense.Runtime.Converters
 
 		/// <summary>Map of all known converters from T to R</summary>
 		/// <remarks>No locking required, because all changes will replace this instance with a new Dictionary</remarks>
-		private static Dictionary<ComparisonHelper.TypePair, ITypeConverter> Converters = new Dictionary<ComparisonHelper.TypePair, ITypeConverter>(ComparisonHelper.TypePairComparer.Default);
+		private static Dictionary<ComparisonHelper.TypePair, ITypeConverter> Converters = new(ComparisonHelper.TypePairComparer.Default);
 
 		/// <summary>Register all the default converters</summary>
 		private static void RegisterDefaultConverters()
@@ -489,7 +489,7 @@ namespace Doxense.Runtime.Converters
 		public static void Register<TInput, TOutput>(Func<TInput, TOutput> converter)
 		{
 			Contract.Debug.Requires(converter != null);
-			Register<TInput, TOutput>(new Anonymous<TInput, TOutput>(converter));
+			Register(new Anonymous<TInput, TOutput>(converter));
 		}
 
 		/// <summary>Registers a new type converter</summary>

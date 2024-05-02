@@ -155,22 +155,22 @@ namespace Doxense.Collections.Tuples
 
 		public override bool Equals(object? obj)
 		{
-			return obj != null && ((System.Collections.IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
+			return obj != null && ((System.Collections.IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(IVarTuple? other)
 		{
-			return !object.ReferenceEquals(other, null) && ((System.Collections.IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+			return !ReferenceEquals(other, null) && ((System.Collections.IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
 		{
-			return ((System.Collections.IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+			return ((System.Collections.IStructuralEquatable) this).GetHashCode(SimilarValueComparer.Default);
 		}
 
 		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
-			if (object.ReferenceEquals(this, other)) return true;
+			if (ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
 			if (other is LinkedTuple<T> linked)

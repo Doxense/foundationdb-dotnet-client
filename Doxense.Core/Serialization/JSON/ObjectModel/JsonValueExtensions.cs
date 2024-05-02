@@ -181,24 +181,24 @@ namespace Doxense.Serialization.Json
 		#region ToStuff(...)
 
 		/// <summary>Sérialise cette valeur JSON en texte le plus compact possible (pour du stockage)</summary>
-		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonBuffer(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
+		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonSlice(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
 		[Pure]
 		public static string ToJsonCompact(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
 
 		/// <summary>Sérialise cette valeur JSON en texte au format indenté (pratique pour des logs ou en mode debug)</summary>
-		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonBuffer(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
+		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonSlice(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
 		[Pure]
 		public static string ToJsonIndented(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
 
 		/// <summary>Sérialise cette valeur JSON en un tableau de bytes</summary>
 		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
-		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonBuffer(JsonValue)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
+		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonSlice(JsonValue)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value) => CrystalJson.ToBytes(value);
 
 		/// <summary>Sérialise cette valeur JSON en un tableau de bytes</summary>
 		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
-		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonBuffer(JsonValue, CrystalJsonSettings)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
+		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonSlice(JsonValue, CrystalJsonSettings)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBytes(value, settings);
 
@@ -574,7 +574,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonObject ToJsonObject([InstantHandle] this IEnumerable<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
 		{
-			return JsonObject.Create(items!, comparer);
+			return JsonObject.Create(items, comparer);
 		}
 
 		[Pure]

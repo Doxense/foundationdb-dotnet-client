@@ -53,7 +53,7 @@ namespace Doxense.Serialization.Xml
 		/// Please note that the <c>null</c> string is encoded as "null" and so required 4 characters.
 		/// </remarks>
 		[Pure]
-		public static int GetEncodedLength(string literal)
+		public static int GetEncodedLength(string? literal)
 		{
 			if (literal == null) return 4; // "null"
 			if (literal.Length == 0) return 2;
@@ -87,7 +87,7 @@ namespace Doxense.Serialization.Xml
 		/// - EncodeLiteral("A'B"C&amp;D\\E", quote: '\'') => `'A\'B\"C&amp;D\\E'`
 		/// </example>
 		[Pure]
-		public static string EncodeLiteral(string literal, char quote = '"')
+		public static string EncodeLiteral(string? literal, char quote = '"')
 		{
 			if (literal == null)
 			{ // null  string
@@ -183,7 +183,7 @@ namespace Doxense.Serialization.Xml
 		}
 
 		/// <summary>Encode a <see cref="Guid"/> into an XPATH literal</summary>
-		/// <remarks>The <see cref="Empty"/> Guid is encoded as the empty string!</remarks>
+		/// <remarks>The <see cref="Guid.Empty">empty Guid</see> is encoded as the empty string!</remarks>
 		[Pure]
 		public static string EncodeLiteral(Guid guid, char quote = '"')
 		{
@@ -198,7 +198,7 @@ namespace Doxense.Serialization.Xml
 		}
 
 		/// <summary>Append a string literal for inclusion in a XPATH query</summary>
-		public static StringBuilder AppendLiteral(StringBuilder sb, string literal, char quote = '"')
+		public static StringBuilder AppendLiteral(StringBuilder sb, string? literal, char quote = '"')
 		{
 			if (literal == null)
 			{

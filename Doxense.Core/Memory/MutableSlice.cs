@@ -39,7 +39,7 @@ namespace System
 	/// It is expected that consumers of this type will somehow mutate the content of the slice (and thus the content of the backing array).
 	/// If the buffer must become logically "read-only" after a step, it can be converted into a read-only <see cref="Slice"/> at any time, though the owner of the mutable slice SHOULD NOT mutate the content as long as someone is consuming the read-only version of it!
 	/// </remarks>
-	[/*PublicAPI,*/ ImmutableObject(true), DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(MutableSlice.DebugView))]
+	[/*PublicAPI,*/ ImmutableObject(true), DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
 	public readonly struct MutableSlice : IEquatable<MutableSlice>, IEquatable<Slice>, IEquatable<byte[]>, IComparable<MutableSlice>, IFormattable
 	{
@@ -247,7 +247,7 @@ namespace System
 		public byte[] GetBytesOrEmpty()
 		{
 			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
-			return this.Count == 0 ? System.Array.Empty<byte>() : this.Span.ToArray();
+			return this.Count == 0 ? [ ] : this.Span.ToArray();
 		}
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
@@ -713,7 +713,7 @@ namespace System
 			{
 				get
 				{
-					if (m_slice.Count == 0) return m_slice.Array == null ? null : System.Array.Empty<byte>();
+					if (m_slice.Count == 0) return m_slice.Array == null ? null : [ ];
 					if (m_slice.Offset == 0 && m_slice.Count == m_slice.Array!.Length) return m_slice.Array;
 					var tmp = new byte[m_slice.Count];
 					System.Array.Copy(m_slice.Array!, m_slice.Offset, tmp, 0, m_slice.Count);

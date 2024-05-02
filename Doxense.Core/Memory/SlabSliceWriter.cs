@@ -82,7 +82,7 @@ namespace Doxense.Memory
 			Contract.Positive(spillSize);
 			Contract.LessOrEqual(initialSize, spillSize, "Initial size cannot be greater than the spill size.");
 
-			m_current = initialSize == 0 ? Array.Empty<byte>() : new byte[initialSize];
+			m_current = initialSize == 0 ? [ ] : new byte[initialSize];
 			m_maxSlabSize = spillSize;
 		}
 
@@ -113,7 +113,7 @@ namespace Doxense.Memory
 
 			if (m_index > 0)
 			{ // the current slab was used previously, replace it with a new one
-				m_current = m_current.Length > 0 ? new byte[m_current.Length] : Array.Empty<byte>();
+				m_current = m_current.Length > 0 ? new byte[m_current.Length] : [ ];
 				m_index = 0;
 			}
 			m_slabs?.Clear();

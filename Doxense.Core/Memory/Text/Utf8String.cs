@@ -505,7 +505,7 @@ namespace Doxense.Memory.Text
 		{
 			if (this.Length == 0)
 			{
-				return Array.Empty<char>();
+				return [ ];
 			}
 
 			var res = new char[this.Length];

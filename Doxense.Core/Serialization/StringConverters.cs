@@ -40,8 +40,8 @@ namespace Doxense.Serialization
 
 		/// <summary>Table de lookup pour les nombres entre 0 et 99, afin d'éviter d'allouer une string inutilement</summary>
 		//note: vu que ce sont des literals, ils sont interned automatiquement
-		private static readonly string[] SmallNumbers = new string[100]
-		{
+		private static readonly string[] SmallNumbers =
+		[
 			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
 			"10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
 			"20", "21", "22", "23", "24", "25", "26", "27", "28", "29",
@@ -51,8 +51,8 @@ namespace Doxense.Serialization
 			"60", "61", "62", "63", "64", "65", "66", "67", "68", "69",
 			"70", "71", "72", "73", "74", "75", "76", "77", "78", "79",
 			"80", "81", "82", "83", "84", "85", "86", "87", "88", "89",
-			"90", "91", "92", "93", "94", "95", "96", "97", "98", "99",
-		};
+			"90", "91", "92", "93", "94", "95", "96", "97", "98", "99"
+		];
 
 		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
 		/// <param name="value">Valeur entière à convertir</param>
@@ -349,7 +349,7 @@ namespace Doxense.Serialization
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
 			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			if (culture == null) culture = CultureInfo.InvariantCulture;
+			culture ??= CultureInfo.InvariantCulture;
 			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
 			return double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double result) ? result : defaultValue;
 		}
@@ -373,7 +373,7 @@ namespace Doxense.Serialization
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
 			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			if (culture == null) culture = CultureInfo.InvariantCulture;
+			culture ??= CultureInfo.InvariantCulture;
 			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
 			return float.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float result) ? result : defaultValue;
 		}
@@ -397,7 +397,7 @@ namespace Doxense.Serialization
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
 			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			if (culture == null) culture = CultureInfo.InvariantCulture;
+			culture ??= CultureInfo.InvariantCulture;
 			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
 			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal result) ? result : defaultValue;
 		}
@@ -408,7 +408,7 @@ namespace Doxense.Serialization
 			if (string.IsNullOrEmpty(value)) return default;
 			char c = value[0];
 			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return default(decimal?);
-			if (culture == null) culture = CultureInfo.InvariantCulture;
+			culture ??= CultureInfo.InvariantCulture;
 			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
 			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal result) ? result : default(decimal?);
 		}

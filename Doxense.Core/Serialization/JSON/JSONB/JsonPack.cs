@@ -317,7 +317,7 @@ namespace Doxense.Serialization.Json.Binary
 			// fast path for generic values that encodes into a single value
 			switch (value)
 			{
-				case JsonNull _:    return TypeTokens.Null;
+				case JsonNull:    return TypeTokens.Null;
 				case JsonBoolean b: return b.Value ? TypeTokens.True : TypeTokens.False;
 				case JsonNumber num:
 				{
@@ -674,7 +674,7 @@ namespace Doxense.Serialization.Json.Binary
 		private static ParseTokenDelegate MakeError(string? text = null)
 		{
 			text ??= "Unexpected {0} token (0x{1:X02}) at offset {2} in JSONPack value.";
-			return (ref SliceReader reader, int token, CrystalJsonSettings settings) => throw new FormatException(String.Format(text, (TypeTokens) token, token, reader.Position));
+			return (ref SliceReader reader, int token, CrystalJsonSettings settings) => throw new FormatException(string.Format(text, (TypeTokens) token, token, reader.Position));
 		}
 
 		private static JsonValue? ReadValue(ref SliceReader reader, int token, CrystalJsonSettings settings)

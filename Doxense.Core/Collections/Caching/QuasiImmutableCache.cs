@@ -262,7 +262,7 @@ namespace Doxense.Collections.Caching
 				}
 
 #pragma warning disable 420
-				if (object.ReferenceEquals(original, Interlocked.CompareExchange(ref m_root, updated, original)))
+				if (ReferenceEquals(original, Interlocked.CompareExchange(ref m_root, updated, original)))
 #pragma warning restore 420
 				{
 					result = local;
@@ -312,7 +312,7 @@ namespace Doxense.Collections.Caching
 				}
 
 #pragma warning disable 420
-				if (object.ReferenceEquals(original, Interlocked.CompareExchange(ref m_root, updated, original)))
+				if (ReferenceEquals(original, Interlocked.CompareExchange(ref m_root, updated, original)))
 #pragma warning restore 420
 				{
 					return;
@@ -371,13 +371,13 @@ namespace Doxense.Collections.Caching
 					flag = true;
 				}
 
-				if (object.ReferenceEquals(updated, original))
+				if (ReferenceEquals(updated, original))
 				{ // Le cache contenait déjà ce couple key/value, donc ce n'est pas une addition
 					return false;
 				}
 
 #pragma warning disable 420
-				if (object.ReferenceEquals(original, Interlocked.CompareExchange(ref m_root, updated, original)))
+				if (ReferenceEquals(original, Interlocked.CompareExchange(ref m_root, updated, original)))
 #pragma warning restore 420
 				{ // on a réussi à publier la nouvelle version, on a juste besoin de vérifier si la clé existant déjà dans l'ancienne version
 					return flag;
@@ -404,7 +404,7 @@ namespace Doxense.Collections.Caching
 				}
 
 #pragma warning disable 420
-				if (object.ReferenceEquals(Interlocked.CompareExchange(ref m_root, updated, original), original))
+				if (ReferenceEquals(Interlocked.CompareExchange(ref m_root, updated, original), original))
 #pragma warning restore 420
 				{ // La nouvelle version du cache ne contient plus la clé
 					return true;
@@ -439,7 +439,7 @@ namespace Doxense.Collections.Caching
 				}
 
 #pragma warning disable 420
-				if (object.ReferenceEquals(Interlocked.CompareExchange(ref m_root, updated, original), original))
+				if (ReferenceEquals(Interlocked.CompareExchange(ref m_root, updated, original), original))
 #pragma warning restore 420
 				{ // La nouvelle version du cache ne contient plus la clé
 					return true;
@@ -468,7 +468,7 @@ namespace Doxense.Collections.Caching
 			{
 				var original = m_root;
 #pragma warning disable 420
-				if (object.ReferenceEquals(Interlocked.CompareExchange(ref m_root, empty, original), original))
+				if (ReferenceEquals(Interlocked.CompareExchange(ref m_root, empty, original), original))
 #pragma warning restore 420
 				{
 					return;

@@ -126,7 +126,7 @@ namespace Doxense.IO.Hashing
 		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
 		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash64.FromBytesAlternative (pour démarrer la chaine)</remarks>
 		[Pure]
-		public static ulong Continue(ulong hash, byte[] bytes)
+		public static ulong Continue(ulong hash, byte[]? bytes)
 		{
 			if (bytes == null || bytes.Length == 0) return hash;
 

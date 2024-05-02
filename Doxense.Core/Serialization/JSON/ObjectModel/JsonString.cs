@@ -442,7 +442,7 @@ namespace Doxense.Serialization.Json
 
 		public byte[] ToBuffer() //REVIEW: => GetBytes()? DecodeBase64() ?
 		{
-			return m_value.Length != 0 ? Convert.FromBase64String(m_value) : Array.Empty<byte>();
+			return m_value.Length != 0 ? Convert.FromBase64String(m_value) : [ ];
 		}
 
 		public override object ToObject()

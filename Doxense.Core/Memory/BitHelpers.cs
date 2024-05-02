@@ -445,14 +445,14 @@ namespace Doxense.Memory
 		// - MostSignificantBit(default(ulong)) == 64
 		// MostSignificantBitNonZeroXX(x) is a no-branch variant which is undefined for x == 0
 
-		private static readonly int[] MultiplyDeBruijnBitPosition32 = new int[32]
-		{
+		private static readonly int[] MultiplyDeBruijnBitPosition32 =
+		[
 			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
 			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-		};
+		];
 
-		private static readonly int[] MultiplyDeBruijnBitPosition64 = new int[64]
-		{
+		private static readonly int[] MultiplyDeBruijnBitPosition64 =
+		[
 			63,  0, 58,  1, 59, 47, 53,  2,
 			60, 39, 48, 27, 54, 33, 42,  3,
 			61, 51, 37, 40, 49, 18, 28, 20,
@@ -461,7 +461,7 @@ namespace Doxense.Memory
 			50, 36, 17, 19, 29, 10, 13, 21,
 			56, 45, 25, 31, 35, 16,  9, 12,
 			44, 24, 15,  8, 23,  7,  6,  5
-		};
+		];
 
 		/// <summary>Return the position of the highest bit that is set</summary>
 		/// <returns>Value between 0 and 32</returns>

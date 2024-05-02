@@ -78,7 +78,7 @@ namespace Doxense.Memory
 			Contract.Positive(initialCapacity);
 
 			m_pool = pool ?? ArrayPool<byte>.Shared;
-			m_buffer = initialCapacity <= 0 ? Array.Empty<byte>() : m_pool.Rent(initialCapacity);
+			m_buffer = initialCapacity <= 0 ? [ ] : m_pool.Rent(initialCapacity);
 			m_index = 0;
 		}
 

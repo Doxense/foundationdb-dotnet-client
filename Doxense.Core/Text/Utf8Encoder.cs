@@ -10,7 +10,7 @@ namespace Doxense.Text
 	public static unsafe class Utf8Encoder
 	{
 
-		public static readonly UTF8Encoding Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+		public static readonly UTF8Encoding Encoding = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool TryGetNumberOfEncodedBytesFromFirstByte(byte first, out int numberOfBytes)
@@ -511,7 +511,7 @@ namespace Doxense.Text
 		{
 			Contract.NotNull(text);
 			//TODO: optimize this?
-			return text.Length != 0 ? Slice.Utf8NoBomEncoding.GetBytes(text) : Array.Empty<byte>();
+			return text.Length != 0 ? Slice.Utf8NoBomEncoding.GetBytes(text) : [ ];
 		}
 	}
 }

@@ -65,7 +65,7 @@ namespace Doxense.IO.Hashing
 
 		/// <summary>Calcul le FNV-1 Hash 32-bit d'un chaîne (encodée en UTF-8 par défaut)</summary>
 		/// <returns>Code FNV-1 32 bit calculé sur la représentation UTF-8 (par défaut) de la chaîne. Attention: N'est pas garantit unique!</returns>
-		public static uint FromChars(char[] buffer, int offset, int count, Encoding? encoding = null)
+		public static uint FromChars(char[]? buffer, int offset, int count, Encoding? encoding = null)
 		{
 			if (count == 0 || buffer == null) return 0;
 			var bytes = (encoding ?? Encoding.UTF8).GetBytes(buffer, offset, count);
@@ -109,7 +109,7 @@ namespace Doxense.IO.Hashing
 		/// <param name="bytes">Nouveau bloc de données</param>
 		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
 		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash32.FromBytes (pour démarrer la chaine)</remarks>
-		public static uint Continue(uint hash, byte[] bytes)
+		public static uint Continue(uint hash, byte[]? bytes)
 		{
 			if (bytes == null || bytes.Length == 0) return hash;
 
@@ -135,9 +135,9 @@ namespace Doxense.IO.Hashing
 			if (count == 0) return hash;
 
 			// note: ces tests sont la pour convaincre le JIT de désactiver les checks et unroller la boucle plus bas !!!
-			if (offset < 0 || offset >= buffer.Length) throw ThrowHelper.ArgumentException("offset", "Offset must be within the buffer");
+			if (offset < 0 || offset >= buffer.Length) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be within the buffer");
 			int end = offset + count;
-			if (end < 0 || end > buffer.Length) throw ThrowHelper.ArgumentException("buffer", "The buffer does not have enough data for the specified byte count");
+			if (end < 0 || end > buffer.Length) throw ThrowHelper.ArgumentException(nameof(buffer), "The buffer does not have enough data for the specified byte count");
 
 			for(int i = offset; i < end; i++)
 			{

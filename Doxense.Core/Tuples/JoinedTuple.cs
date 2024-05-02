@@ -189,7 +189,7 @@ namespace Doxense.Collections.Tuples
 
 		public bool Equals(IVarTuple? other)
 		{
-			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+			return !ReferenceEquals(other, null) && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
@@ -199,7 +199,7 @@ namespace Doxense.Collections.Tuples
 
 		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
-			if (object.ReferenceEquals(this, other)) return true;
+			if (ReferenceEquals(this, other)) return true;
 			if (other is null) return false;
 
 			if (other is IVarTuple tuple)

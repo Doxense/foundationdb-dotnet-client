@@ -21,9 +21,9 @@ namespace Doxense.Text
 
 		public static explicit operator uint(UnicodeCodePoint codePoint) => codePoint.Value;
 		public static explicit operator char(UnicodeCodePoint codePoint) => (char) codePoint.Value;
-		public static explicit operator UnicodeCodePoint(uint value) => new UnicodeCodePoint(value);
-		public static explicit operator UnicodeCodePoint(int value) => new UnicodeCodePoint(unchecked((uint) value));
-		public static explicit operator UnicodeCodePoint(char value) => new UnicodeCodePoint(value);
+		public static explicit operator UnicodeCodePoint(uint value) => new(value);
+		public static explicit operator UnicodeCodePoint(int value) => new(unchecked((uint) value));
+		public static explicit operator UnicodeCodePoint(char value) => new(value);
 
 		/// <summary>Gets the equivalent character for this code point</summary>
 		/// <returns></returns>

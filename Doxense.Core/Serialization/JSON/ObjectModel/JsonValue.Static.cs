@@ -267,10 +267,10 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding immutable JSON Array. If <paramref name="jsonText"/> is empty or not an Array, an exception will be thrown instead.</returns>
 		/// <remarks>
 		/// <para>The JSON Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-		/// <para>If the JSON document can sometimes be empty of the 'null' token, you should call <see cref="Parse(string?,CrystalJsonSettings?,bool)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
+		/// <para>If the JSON document can sometimes be empty of the '<c>null</c>' token, you should call <see cref="Parse(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
-		/// <exception cref="InvalidOperationException">If the JSON document was empty, or the 'null' token, or not an Array.</exception>
+		/// <exception cref="InvalidOperationException">If the JSON document was empty, or the '<c>null</c>' token, or not an Array.</exception>
 		[Pure]
 		public static JsonArray ParseArrayReadOnly(
 #if NET8_0_OR_GREATER
@@ -326,8 +326,8 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is null or empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
-		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please use <see cref="ParseReadOnly"/> instead.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="ParseArray"/> or <see cref="ParseObject(System.ReadOnlySpan{byte},Doxense.Serialization.Json.CrystalJsonSettings?)"/>.</para>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please use <see cref="ParseReadOnly(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> or <see cref="ParseObject(System.ReadOnlySpan{byte},Doxense.Serialization.Json.CrystalJsonSettings?)"/>.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
@@ -347,7 +347,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Corresponding JSON Array. If <paramref name="jsonBytes"/> is empty or not an Array, an exception will be thrown</returns>
 		/// <remarks>
-		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please use <see cref="ParseArrayReadOnly"/> instead.</para>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please use <see cref="ParseArrayReadOnly(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document was empty, or the 'null' token, or not an Array.</exception>
@@ -363,7 +363,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON Array. If <paramref name="jsonBytes"/> is empty or not an Array, an exception will be thrown</returns>
 		/// <remarks>
 		/// <para>The resulting Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-		/// <para>If the JSON document can sometimes be empty of the 'null' token, you should call <see cref="Parse(string?,CrystalJsonSettings?,bool)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
+		/// <para>If the JSON document can sometimes be empty of the 'null' token, you should call <see cref="Parse(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document was empty, or the 'null' token, or not an Array.</exception>
@@ -409,7 +409,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is null or empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please use <see cref="ParseReadOnly(System.Slice,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="ParseArray(System.Slice,Doxense.Serialization.Json.CrystalJsonSettings?)"/> or <see cref="ParseObject"/>.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="ParseArray(System.Slice,Doxense.Serialization.Json.CrystalJsonSettings?)"/> or <see cref="ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/>.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]

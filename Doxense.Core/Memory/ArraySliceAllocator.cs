@@ -76,7 +76,7 @@ namespace Doxense.Memory
 			Contract.Positive(spillSize);
 			Contract.LessOrEqual(initialSize, spillSize, "Initial size cannot be greater than the spill size.");
 
-			m_current = initialSize == 0 ? Array.Empty<byte>() : new byte[initialSize];
+			m_current = initialSize == 0 ? [ ] : new byte[initialSize];
 			m_maxSlabSize = spillSize;
 		}
 

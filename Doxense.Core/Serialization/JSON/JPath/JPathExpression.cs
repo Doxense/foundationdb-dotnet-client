@@ -51,7 +51,7 @@ namespace Doxense.Serialization.Json.JPath
 			switch (x)
 			{
 				case null: return false;
-				case JsonNull _: return false;
+				case JsonNull: return false;
 				case JsonBoolean b: return b.Value;
 				case JsonString s: return s.Length > 0;
 				case JsonNumber n: return !n.IsDefault;
@@ -499,7 +499,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override int GetHashCode() => HashCodes.Combine(this.Node.GetHashCode(), this.Filter.GetHashCode());
 
-		public override string ToString() => this.Node.ToString() + ".Where(@ => " + this.Filter.ToString() + ")";
+		public override string ToString() => $"{this.Node}.Where(@ => {this.Filter})";
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{
@@ -569,7 +569,7 @@ namespace Doxense.Serialization.Json.JPath
 			this.Right = right;
 		}
 
-		public override bool Equals(JPathExpression? other) => other is JPathBinaryOperator op && op.Operator == this.Operator && object.Equals(op.Right, this.Right) && op.Left.Equals(this.Left);
+		public override bool Equals(JPathExpression? other) => other is JPathBinaryOperator op && op.Operator == this.Operator && Equals(op.Right, this.Right) && op.Left.Equals(this.Left);
 
 		public override int GetHashCode() => HashCodes.Combine((int) this.Operator, this.Left.GetHashCode(), 123 /*TODO: Right?*/);
 
@@ -865,7 +865,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override int GetHashCode() => HashCodes.Combine(0xC0FFEEE, this.Node.GetHashCode());
 
-		public override string ToString() => "Quote(" + this.Node.ToString() + ")";
+		public override string ToString() => $"Quote({this.Node})";
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
 		{

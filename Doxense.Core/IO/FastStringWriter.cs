@@ -45,7 +45,7 @@ namespace Doxense.IO
 
 		private readonly StringBuilder m_buffer;
 
-		private static readonly UnicodeEncoding s_encoding = new UnicodeEncoding(false, false);
+		private static readonly UnicodeEncoding s_encoding = new(bigEndian: false, byteOrderMark: false);
 
 		#region Constructors...
 

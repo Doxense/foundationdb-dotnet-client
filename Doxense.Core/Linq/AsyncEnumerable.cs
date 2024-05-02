@@ -152,10 +152,10 @@ namespace Doxense.Linq
 
 			if (source is AsyncIterator<TSource> iterator)
 			{
-				return iterator.SelectMany<TResult>(selector);
+				return iterator.SelectMany(selector);
 			}
 
-			return Flatten<TSource, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(selector));
+			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(selector));
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
@@ -165,7 +165,7 @@ namespace Doxense.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(asyncSelector);
 
-			return SelectMany<TSource, TResult>(source, TaskHelpers.WithCancellation(asyncSelector));
+			return SelectMany(source, TaskHelpers.WithCancellation(asyncSelector));
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
@@ -177,10 +177,10 @@ namespace Doxense.Linq
 
 			if (source is AsyncIterator<TSource> iterator)
 			{
-				return iterator.SelectMany<TResult>(asyncSelector);
+				return iterator.SelectMany(asyncSelector);
 			}
 
-			return Flatten<TSource, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(asyncSelector));
+			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(asyncSelector));
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
@@ -193,10 +193,10 @@ namespace Doxense.Linq
 
 			if (source is AsyncIterator<TSource> iterator)
 			{
-				return iterator.SelectMany<TCollection, TResult>(collectionSelector, resultSelector);
+				return iterator.SelectMany(collectionSelector, resultSelector);
 			}
 
-			return Flatten<TSource, TCollection, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(collectionSelector), resultSelector);
+			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(collectionSelector), resultSelector);
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
@@ -207,7 +207,7 @@ namespace Doxense.Linq
 			Contract.NotNull(asyncCollectionSelector);
 			Contract.NotNull(resultSelector);
 
-			return SelectMany<TSource, TCollection, TResult>(source, TaskHelpers.WithCancellation(asyncCollectionSelector), resultSelector);
+			return SelectMany(source, TaskHelpers.WithCancellation(asyncCollectionSelector), resultSelector);
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
@@ -220,10 +220,10 @@ namespace Doxense.Linq
 
 			if (source is AsyncIterator<TSource> iterator)
 			{
-				return iterator.SelectMany<TCollection, TResult>(asyncCollectionSelector, resultSelector);
+				return iterator.SelectMany(asyncCollectionSelector, resultSelector);
 			}
 
-			return Flatten<TSource, TCollection, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
+			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
 		}
 
 		#endregion
@@ -239,10 +239,10 @@ namespace Doxense.Linq
 
 			if (source is AsyncIterator<TSource> iterator)
 			{
-				return iterator.Select<TResult>(selector);
+				return iterator.Select(selector);
 			}
 
-			return Map<TSource, TResult>(source, new AsyncTransformExpression<TSource,TResult>(selector));
+			return Map(source, new AsyncTransformExpression<TSource,TResult>(selector));
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
@@ -252,7 +252,7 @@ namespace Doxense.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(asyncSelector);
 
-			return Select<TSource, TResult>(source, TaskHelpers.WithCancellation(asyncSelector));
+			return Select(source, TaskHelpers.WithCancellation(asyncSelector));
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
@@ -264,10 +264,10 @@ namespace Doxense.Linq
 
 			if (source is AsyncIterator<TSource> iterator)
 			{
-				return iterator.Select<TResult>(asyncSelector);
+				return iterator.Select(asyncSelector);
 			}
 
-			return Map<TSource, TResult>(source, new AsyncTransformExpression<TSource,TResult>(asyncSelector));
+			return Map(source, new AsyncTransformExpression<TSource,TResult>(asyncSelector));
 		}
 
 		#endregion
@@ -286,7 +286,7 @@ namespace Doxense.Linq
 				return iterator.Where(predicate);
 			}
 
-			return Filter<TResult>(source, new AsyncFilterExpression<TResult>(predicate));
+			return Filter(source, new AsyncFilterExpression<TResult>(predicate));
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
@@ -296,7 +296,7 @@ namespace Doxense.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(asyncPredicate);
 
-			return Where<T>(source, TaskHelpers.WithCancellation(asyncPredicate));
+			return Where(source, TaskHelpers.WithCancellation(asyncPredicate));
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
@@ -311,7 +311,7 @@ namespace Doxense.Linq
 				return iterator.Where(asyncPredicate);
 			}
 
-			return Filter<TResult>(source, new AsyncFilterExpression<TResult>(asyncPredicate));
+			return Filter(source, new AsyncFilterExpression<TResult>(asyncPredicate));
 		}
 
 		#endregion
@@ -330,7 +330,7 @@ namespace Doxense.Linq
 				return iterator.Take(count);
 			}
 
-			return Limit<TSource>(source, count);
+			return Limit(source, count);
 		}
 
 		#endregion
@@ -349,7 +349,7 @@ namespace Doxense.Linq
 				return iterator.TakeWhile(condition);
 			}
 
-			return Limit<TSource>(source, condition);
+			return Limit(source, condition);
 		}
 
 		[Pure, LinqTunnel]
@@ -388,7 +388,7 @@ namespace Doxense.Linq
 				return iterator.Skip(count);
 			}
 
-			return Offset<TSource>(source, count);
+			return Offset(source, count);
 		}
 
 		#endregion
@@ -544,7 +544,7 @@ namespace Doxense.Linq
 			{
 				return iterator.ExecuteAsync(action, ct);
 			}
-			return Run<T>(source, AsyncIterationHint.All, action, ct);
+			return Run(source, AsyncIterationHint.All, action, ct);
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
@@ -557,7 +557,7 @@ namespace Doxense.Linq
 				return iterator.ExecuteAsync(TaskHelpers.WithCancellation(asyncAction), ct);
 			}
 
-			return ForEachAsync<T>(source, TaskHelpers.WithCancellation(asyncAction), ct);
+			return ForEachAsync(source, TaskHelpers.WithCancellation(asyncAction), ct);
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
@@ -571,7 +571,7 @@ namespace Doxense.Linq
 				return iterator.ExecuteAsync(asyncAction, ct);
 			}
 
-			return Run<T>(source, AsyncIterationHint.All, asyncAction, ct);
+			return Run(source, AsyncIterationHint.All, asyncAction, ct);
 		}
 
 		#region ToList/Array/Dictionary/HashSet...
@@ -768,7 +768,7 @@ namespace Doxense.Linq
 			//var rq = source as FdbRangeQuery<T>;
 			//if (rq != null) return rq.FirstAsync();
 
-			return Head<T>(source, single: false, orDefault: false, ct: ct);
+			return Head(source, single: false, orDefault: false, ct: ct);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
@@ -783,7 +783,7 @@ namespace Doxense.Linq
 			//if (rq != null) return rq.FirstAsync();
 
 			//TODO: PERF: custom implementation for this?
-			return Head<T>(source.Where(predicate), single: false, orDefault: false, ct: ct);
+			return Head(source.Where(predicate), single: false, orDefault: false, ct: ct);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
@@ -796,7 +796,7 @@ namespace Doxense.Linq
 			//var rq = source as FdbRangeQuery<T>;
 			//if (rq != null) return rq.FirstOrDefaultAsync();
 
-			return Head<T>(source, single: false, orDefault: true, ct: ct);
+			return Head(source, single: false, orDefault: true, ct: ct);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
@@ -811,7 +811,7 @@ namespace Doxense.Linq
 			//if (rq != null) return rq.FirstOrDefaultAsync();
 
 			//TODO: PERF: custom implementation for this?
-			return Head<T>(source.Where(predicate), single: false, orDefault: true, ct: ct);
+			return Head(source.Where(predicate), single: false, orDefault: true, ct: ct);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
@@ -825,7 +825,7 @@ namespace Doxense.Linq
 			//var rq = source as FdbRangeQuery<T>;
 			//if (rq != null) return rq.SingleAsync();
 
-			return Head<T>(source, single: true, orDefault: false, ct: ct);
+			return Head(source, single: true, orDefault: false, ct: ct);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
@@ -841,7 +841,7 @@ namespace Doxense.Linq
 			//if (rq != null) return rq.SingleAsync();
 
 			//TODO: PERF: custom implementation for this?
-			return Head<T>(source.Where(predicate), single: true, orDefault: false, ct: ct);
+			return Head(source.Where(predicate), single: true, orDefault: false, ct: ct);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
@@ -855,7 +855,7 @@ namespace Doxense.Linq
 			//var rq = source as FdbRangeQuery<T>;
 			//if (rq != null) return rq.SingleOrDefaultAsync();
 
-			return Head<T>(source, single: true, orDefault: true, ct: ct);
+			return Head(source, single: true, orDefault: true, ct: ct);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
@@ -870,7 +870,7 @@ namespace Doxense.Linq
 			//var rq = source as FdbRangeQuery<T>;
 			//if (rq != null) return rq.SingleOrDefaultAsync();
 
-			return Head<T>(source.Where(predicate), single: true, orDefault: true, ct: ct);
+			return Head(source.Where(predicate), single: true, orDefault: true, ct: ct);
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
@@ -886,7 +886,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T last = default!;
 
-			await ForEachAsync<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
 			if (!found) throw new InvalidOperationException("The sequence was empty");
 			return last;
@@ -906,7 +906,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T last = default!;
 
-			await ForEachAsync<T>(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
 
 			if (!found) throw new InvalidOperationException("The sequence was empty");
 			return last;
@@ -925,7 +925,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T last = default!;
 
-			await ForEachAsync<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
 			return found ? last : default!;
 		}
@@ -944,7 +944,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T last = default!;
 
-			await ForEachAsync<T>(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
 
 			return found ? last : default!;
 		}
@@ -962,7 +962,7 @@ namespace Doxense.Linq
 
 			int counter = index;
 			T item = default!;
-			await Run<T>(
+			await Run(
 				source,
 				AsyncIterationHint.All,
 				(x) =>
@@ -992,7 +992,7 @@ namespace Doxense.Linq
 			T item = default!;
 
 			//TODO: use ExecuteAsync() if the source is an Iterator!
-			await Run<T>(
+			await Run(
 				source,
 				AsyncIterationHint.All,
 				(x) =>
@@ -1019,7 +1019,7 @@ namespace Doxense.Linq
 
 			int count = 0;
 
-			await ForEachAsync<T>(source, (_) => { ++count; }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (_) => { ++count; }, ct).ConfigureAwait(false);
 
 			return count;
 		}
@@ -1033,7 +1033,7 @@ namespace Doxense.Linq
 
 			int count = 0;
 
-			await ForEachAsync<T>(source, (x) => { if (predicate(x)) ++count; }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => { if (predicate(x)) ++count; }, ct).ConfigureAwait(false);
 
 			return count;
 		}
@@ -1171,7 +1171,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T min = default!;
 
-			await ForEachAsync<T>(
+			await ForEachAsync(
 				source,
 				(x) =>
 				{
@@ -1199,7 +1199,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T min = default!;
 
-			await ForEachAsync<T>(
+			await ForEachAsync(
 				source,
 				(x) =>
 				{
@@ -1226,7 +1226,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T max = default!;
 
-			await ForEachAsync<T>(
+			await ForEachAsync(
 				source,
 				(x) =>
 				{
@@ -1254,7 +1254,7 @@ namespace Doxense.Linq
 			bool found = false;
 			T max = default!;
 
-			await ForEachAsync<T>(
+			await ForEachAsync(
 				source,
 				(x) =>
 				{
@@ -1422,4 +1422,5 @@ namespace Doxense.Linq
 		#endregion
 
 	}
+
 }

@@ -702,7 +702,7 @@ namespace Doxense.Runtime.Comparison
 
 		private static bool CompareArray<T>(T?[]? left, T?[]? right, Func<T?, T?, bool> comparer)
 		{
-			if (object.ReferenceEquals(left, right)) return true; // same instance, or null == null
+			if (ReferenceEquals(left, right)) return true; // same instance, or null == null
 			if (left == null || right == null) return false;
 			if (right.Length != left.Length) return false;
 			for (int i = 0; i < left.Length; i++)
@@ -725,7 +725,7 @@ namespace Doxense.Runtime.Comparison
 
 		private static bool CompareList<T>(List<T?>? left, List<T?>? right, Func<T?, T?, bool> comparer)
 		{
-			if (object.ReferenceEquals(left, right)) return true; // same instance, or null == null
+			if (ReferenceEquals(left, right)) return true; // same instance, or null == null
 			if (left == null || right == null) return false;
 			if (right.Count != left.Count) return false;
 			for (int i = 0; i < left.Count; i++)
@@ -749,7 +749,7 @@ namespace Doxense.Runtime.Comparison
 		private static bool CompareDictionary<TKey, TValue>(Dictionary<TKey, TValue?>? left, Dictionary<TKey, TValue?>? right, Func<TValue?, TValue?, bool> comparer)
 			where TKey: notnull
 		{
-			if (object.ReferenceEquals(left, right)) return true; // same instance, or null == null
+			if (ReferenceEquals(left, right)) return true; // same instance, or null == null
 			if (left == null || right == null) return false;
 			if (right.Count != left.Count) return false;
 
@@ -784,7 +784,7 @@ namespace Doxense.Runtime.Comparison
 
 		private static bool CompareHashSet<T>(HashSet<T>? left, HashSet<T>? right)
 		{
-			if (object.ReferenceEquals(left, right)) return true; // same instance, or null == null
+			if (ReferenceEquals(left, right)) return true; // same instance, or null == null
 			if (left == null || right == null) return false;
 			if (right.Count != left.Count) return false;
 			return left.SetEquals(right);
@@ -1108,7 +1108,7 @@ namespace Doxense.Runtime.Comparison
 				case TypeCode.Decimal: 
 				case TypeCode.DateTime: 
 					// "item.GetHashCode()"
-					return Expression.Call(item, nameof(object.GetHashCode), Type.EmptyTypes);
+					return Expression.Call(item, nameof(GetHashCode), Type.EmptyTypes);
 
 				case TypeCode.String:
 					// "StringComparer.Ordinal.GetHashCode(item)"
@@ -1257,7 +1257,7 @@ namespace Doxense.Runtime.Comparison
 			// on préfère passer par la grande porte, ie: si le type (surtout un struct) implémente explicitement Equals(...)
 
 			// "item.GetHashCode()"
-			Expression body = Expression.Call(item, nameof(object.GetHashCode), Type.EmptyTypes);
+			Expression body = Expression.Call(item, nameof(GetHashCode), Type.EmptyTypes);
 
 			if (type.CanAssignNull())
 			{ // si c'est nullable, on doit écrire "item != null ? item.GetHashCode() : 0"
