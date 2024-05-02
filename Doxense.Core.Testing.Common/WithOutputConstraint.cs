@@ -26,7 +26,6 @@
 
 namespace Doxense
 {
-	using System;
 	using NUnit.Framework.Constraints;
 
 	internal class WithOutputConstraint : Constraint

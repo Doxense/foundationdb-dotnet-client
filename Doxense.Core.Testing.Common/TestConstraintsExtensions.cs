@@ -26,7 +26,6 @@
 
 namespace Doxense
 {
-	using System;
 	using System.Runtime.CompilerServices;
 	using NUnit.Framework.Constraints;
 

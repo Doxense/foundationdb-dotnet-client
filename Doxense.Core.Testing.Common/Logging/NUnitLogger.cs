@@ -26,12 +26,9 @@
 
 namespace Doxense
 {
-	using System;
 	using System.Globalization;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Microsoft.Extensions.Logging;
-	using NUnit.Framework;
 
 	internal class NUnitLogger : ILogger
 	{

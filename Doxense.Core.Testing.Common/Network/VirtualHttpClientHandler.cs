@@ -26,11 +26,8 @@
 
 namespace Doxense.Networking
 {
-	using System;
 	using System.Net;
 	using System.Net.Http;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Networking.Http;
 
 	/// <summary>HTTP handler that emulates requests to <see cref="IVirtualNetworkHost">virtual hosts</see> through a <see cref="IVirtualNetworkMap">virtual network</see></summary>

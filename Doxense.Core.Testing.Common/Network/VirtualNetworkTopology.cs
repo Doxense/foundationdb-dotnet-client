@@ -26,19 +26,13 @@
 
 namespace Doxense.Networking
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.IO.Hashing;
 	using Doxense.Threading;
 

@@ -27,10 +27,7 @@
 // ReSharper disable MemberHidesStaticFromOuterClass
 namespace SnowBank.Testing
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Linq.Expressions;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Json;
 	using JetBrains.Annotations;
 	using NUnit.Framework.Constraints;

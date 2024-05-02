@@ -26,13 +26,11 @@
 
 namespace Doxense
 {
-	using System;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.Sockets;
 	using System.Text;
 	using Doxense.Serialization;
-	using NUnit.Framework;
 	using NUnit.Framework.Constraints;
 
 	public sealed class Pokeball<TException> where TException : Exception

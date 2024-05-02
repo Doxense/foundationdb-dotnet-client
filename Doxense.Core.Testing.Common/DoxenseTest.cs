@@ -26,11 +26,9 @@
 
 namespace Doxense.Testing
 {
-	using System;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Reflection;
-	using Doxense.Diagnostics.Contracts;
 	using SnowBank.Testing;
 
 	/// <summary>Legacy base class.</summary>

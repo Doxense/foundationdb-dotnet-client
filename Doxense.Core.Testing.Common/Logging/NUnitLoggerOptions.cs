@@ -26,7 +26,6 @@
 
 namespace Doxense
 {
-	using System;
 	using System.IO;
 	using Microsoft.Extensions.Logging;
 

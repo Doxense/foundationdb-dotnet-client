@@ -26,16 +26,10 @@
 
 namespace Doxense.Networking
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Networking.Http;
 
 	/// <summary>Default implementation of a <see cref="IVirtualNetworkMap">virtual network map</see>, as seen from a <see cref="IVirtualNetworkHost">virtual host</see></summary>

@@ -6,6 +6,7 @@
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<LangVersion>12.0</LangVersion>
 		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
