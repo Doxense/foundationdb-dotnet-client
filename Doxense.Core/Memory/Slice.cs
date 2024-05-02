@@ -47,6 +47,9 @@ namespace System
 	/// </remarks>
 	[PublicAPI, ImmutableObject(true), DebuggerDisplay("{PrettyPrint(),nq}"), DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
+#if NET8_0_OR_GREATER
+	[CollectionBuilder(typeof(Slice), nameof(Slice.Copy))]
+#endif
 	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable, ISliceSerializable, ISpanFormattable
 	{
 		#region Static Members...
