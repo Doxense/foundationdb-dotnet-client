@@ -195,44 +195,52 @@ namespace FoundationDB.Client
 				}
 
 				//BUGBUG: mix the custom cancellation token with the transaction, if it is different !
-				var task = (this.Query.Snapshot ? this.Transaction.Snapshot : this.Transaction)
-					.GetRangeAsync(this.Begin, this.End, this.RemainingCount ?? 0, this.Query.Reversed, this.RemainingSize ?? 0, mode, this.Query.Read, this.Iteration)
-					.Then((result) =>
-					{
-						this.Chunk = result.Items;
-						this.RowCount += result.Count;
-						this.HasMore = result.HasMore;
-						// subtract number of row from the remaining allowed
-						if (this.RemainingCount.HasValue) this.RemainingCount = this.RemainingCount.Value - result.Count;
-						// subtract size of rows from the remaining allowed
-						if (this.RemainingSize.HasValue) this.RemainingSize = this.RemainingSize.Value - result.GetSize();
-
-						this.AtEnd = !result.HasMore || (this.RemainingCount.HasValue && this.RemainingCount.Value <= 0) || (this.RemainingSize.HasValue && this.RemainingSize.Value <= 0);
-
-						if (!this.AtEnd)
-						{ // update begin..end so that next call will continue from where we left...
-							if (this.Query.Reversed)
-							{
-								this.End = KeySelector.FirstGreaterOrEqual(result.Last);
-							}
-							else
-							{
-								this.Begin = KeySelector.FirstGreaterThan(result.Last);
-							}
-						}
-#if DEBUG_RANGE_PAGING
-						Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync() returned " + this.Chunk.Length + " results (" + this.RowCount + " total) " + (hasMore ? " with more to come" : " and has no more data"));
-#endif
-						if (!result.IsEmpty)
-						{
-							return Task.FromResult(Publish(result.Items));
-						}
-						return Completed().AsTask();
-					});
+				var tr = (this.Query.Snapshot ? this.Transaction.Snapshot : this.Transaction);
+				var query = tr.GetRangeAsync(this.Begin, this.End, this.RemainingCount ?? 0, this.Query.Reversed, this.RemainingSize ?? 0, mode, this.Query.Read, this.Iteration);
+				var task = ProcessResults(query);
 
 				// keep track of this operation
 				this.PendingReadTask = task;
 				return task;
+
+				async Task<bool> ProcessResults(Task<FdbRangeChunk> read)
+				{
+					var result = await read.ConfigureAwait(false); 
+
+					this.Chunk = result.Items;
+					this.RowCount += result.Count;
+					this.HasMore = result.HasMore;
+
+					// subtract number of row from the remaining allowed
+					if (this.RemainingCount.HasValue) this.RemainingCount = this.RemainingCount.Value - result.Count;
+
+					// subtract size of rows from the remaining allowed
+					if (this.RemainingSize.HasValue) this.RemainingSize = this.RemainingSize.Value - result.GetSize();
+
+					this.AtEnd = !result.HasMore || (this.RemainingCount.HasValue && this.RemainingCount.Value <= 0) || (this.RemainingSize.HasValue && this.RemainingSize.Value <= 0);
+
+					if (!this.AtEnd)
+					{
+						// update begin..end so that next call will continue from where we left...
+						if (this.Query.Reversed)
+						{
+							this.End = KeySelector.FirstGreaterOrEqual(result.Last);
+						}
+						else
+						{
+							this.Begin = KeySelector.FirstGreaterThan(result.Last);
+						}
+					}
+#if DEBUG_RANGE_PAGING
+						Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync() returned " + this.Chunk.Length + " results (" + this.RowCount + " total) " + (hasMore ? " with more to come" : " and has no more data"));
+#endif
+					if (!result.IsEmpty)
+					{
+						return Publish(result.Items);
+					}
+
+					return await Completed().ConfigureAwait(false);
+				}
 			}
 
 			#endregion
