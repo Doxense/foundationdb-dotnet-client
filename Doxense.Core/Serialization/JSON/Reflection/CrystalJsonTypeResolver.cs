@@ -664,7 +664,7 @@ namespace Doxense.Serialization.Json
 				}
 				var targetType = jbex.TargetType ?? elementType;
 				var jsonValue = jbex.Value ?? child;
-				mapped = new JsonBindingException($"Cannot bind{(jsonValue != null ? $" JSON {jsonValue.Type} to":"")} field '({elementType.GetFriendlyName()}[]){path}' of type '{targetType.GetFriendlyName()}': {reason}", reason, path, jbex.Value, targetType);
+				mapped = new JsonBindingException($"Cannot bind{(jsonValue != null ? $" JSON {jsonValue.Type} to":"")} field '({elementType.GetFriendlyName()}[]){path}' of type '{targetType.GetFriendlyName()}': {reason}", reason, path, jbex.Value, targetType, jbex.InnerException);
 				return true;
 			}
 

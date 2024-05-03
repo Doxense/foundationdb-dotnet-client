@@ -532,7 +532,7 @@ namespace Doxense.Serialization.Json
 							path = JsonPath.Combine(path, jbex.Path.Value);
 						}
 						var targetType = jbex.TargetType ?? member.Type;
-						throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': {reason}", reason, path, jbex.Value, targetType);
+						throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': {reason}", reason, path, jbex.Value, targetType, jbex.InnerException);
 					}
 
 					throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': [{e.GetType().GetFriendlyName()}] {e.Message}", path, child, member.Type, e);

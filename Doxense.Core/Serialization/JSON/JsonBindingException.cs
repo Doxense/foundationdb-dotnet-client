@@ -68,7 +68,7 @@ namespace Doxense.Serialization.Json
 			this.TargetType = targetType;
 		}
 
-		public JsonBindingException(string message, string? reason, JsonPath? path, JsonValue? value, Type? targetType, Exception? innerException = null)
+		public JsonBindingException(string message, string? reason, JsonPath? path, JsonValue? value, Type? targetType, Exception? innerException)
 			: base(message, innerException)
 		{
 			this.Path = path;
