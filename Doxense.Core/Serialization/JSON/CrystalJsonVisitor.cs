@@ -830,7 +830,7 @@ namespace Doxense.Serialization.Json
 			var prmWriter = Expression.Parameter(typeof(CrystalJsonWriter), "writer");
 			var castedValue = prmValue.CastFromObject(type);
 			var body = Expression.Call(castedValue, method, prmWriter);
-			return Expression.Lambda<CrystalJsonTypeVisitor>(body, new[] { prmValue, prmDeclaringType, prmRuntimeType, prmWriter }).Compile();
+			return Expression.Lambda<CrystalJsonTypeVisitor>(body, [ prmValue, prmDeclaringType, prmRuntimeType, prmWriter ]).Compile();
 		}
 
 
@@ -859,7 +859,7 @@ namespace Doxense.Serialization.Json
 			// body = (Type).JsonPack(instance, settings, resolver).JsonSerialize(writer)
 			body = Expression.Call(body, nameof(JsonValue.JsonSerialize), null, prmWriter);
 
-			var lambda = Expression.Lambda<CrystalJsonTypeVisitor>(body, true, new[] { prmValue, prmDeclaringType, prmRuntimeType, prmWriter });
+			var lambda = Expression.Lambda<CrystalJsonTypeVisitor>(body, true, [ prmValue, prmDeclaringType, prmRuntimeType, prmWriter ]);
 			return lambda.Compile();
 		}
 
@@ -898,7 +898,7 @@ namespace Doxense.Serialization.Json
 
 			body = Expression.Call(body, nameof(JsonValue.JsonSerialize), null, prmWriter);
 
-			var lambda = Expression.Lambda<CrystalJsonTypeVisitor>(body, new[] { prmValue, prmDeclaringType, prmRuntimeType, prmWriter });
+			var lambda = Expression.Lambda<CrystalJsonTypeVisitor>(body, [ prmValue, prmDeclaringType, prmRuntimeType, prmWriter ]);
 			return lambda.Compile();
 		}
 

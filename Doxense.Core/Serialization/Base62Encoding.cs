@@ -46,13 +46,13 @@ namespace Doxense.Serialization
 
 		private static int[] ComputeBitSizes()
 		{
-			const double Base62Log = 4.1271343850450915553463964460005;
+			const double BASE62_LOG = 4.1271343850450915553463964460005;
 
 			var sizes = new int[65]; // 0 .. 64
 			sizes[0] = 1; // "a"
 			for (int i = 1; i < sizes.Length; i++)
 			{
-				sizes[i] = (int) Math.Ceiling(Math.Log(Math.Pow(2, i)) / Base62Log);
+				sizes[i] = (int) Math.Ceiling(Math.Log(Math.Pow(2, i)) / BASE62_LOG);
 			}
 			return sizes;
 		}
@@ -97,7 +97,7 @@ namespace Doxense.Serialization
 
 		public static string Encode(int value, Base62FormattingOptions options = Base62FormattingOptions.None)
 		{
-			return Encode((ulong) ((uint) value), 32, options);
+			return Encode((uint) value, 32, options);
 		}
 
 		public static string Encode(long value, Base62FormattingOptions options = Base62FormattingOptions.None)
@@ -107,7 +107,7 @@ namespace Doxense.Serialization
 
 		public static string EncodeSortable(int value)
 		{
-			return Encode((ulong) ((uint) value), 32, Base62FormattingOptions.Padded | Base62FormattingOptions.Lexicographic);
+			return Encode((uint) value, 32, Base62FormattingOptions.Padded | Base62FormattingOptions.Lexicographic);
 		}
 
 		public static string EncodeSortable(long value)

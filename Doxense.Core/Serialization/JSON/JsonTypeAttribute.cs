@@ -67,8 +67,6 @@ namespace Doxense.Serialization.Json
 		//
 		*/
 
-		public JsonTypeAttribute() { }
-
 		/// <summary>Base type of this "type tree", usually the top interface or base class</summary>
 		/// <remarks>Should be applied on derived types to point to the "root" of this particular "type tree". In the case of an abstract class that implements and interface, if should still point to the interface has the root.</remarks>
 		/// <example><c>[JsonType(BaseType = typeof(IAnimal), ...)]</c></example>

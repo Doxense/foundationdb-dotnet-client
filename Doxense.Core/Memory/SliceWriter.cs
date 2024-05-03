@@ -131,7 +131,7 @@ namespace Doxense.Memory
 			}
 			else
 			{
-				capacity = BitHelpers.AlignPowerOfTwo(Math.Max(capacity, n), 16);
+				capacity = BitHelpers.AlignPowerOfTwo(Math.Max(capacity, n), powerOfTwo: 16);
 			}
 
 			var buffer = pool.Rent(capacity);

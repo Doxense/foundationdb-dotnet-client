@@ -26,11 +26,13 @@
 
 namespace Doxense.Web
 {
-	using System.Buffers;
 	using System.Globalization;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+#if NET8_0_OR_GREATER
+	using System.Buffers;
+#endif
 
 	public static class JavaScriptEncoding
 	{

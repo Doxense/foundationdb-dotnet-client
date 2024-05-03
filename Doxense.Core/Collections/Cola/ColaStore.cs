@@ -33,17 +33,17 @@ namespace Doxense.Collections.Generic
 	{
 		private const int NOT_FOUND = -1;
 
-		private static readonly int[] MultiplyDeBruijnLowestBitPosition = new int[32]
-		{
+		private static readonly int[] MultiplyDeBruijnLowestBitPosition =
+		[
 			0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
 			31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
-		};
+		];
 
-		private static readonly int[] MultiplyDeBruijnHighestBitPosition = new int[32]
-		{
+		private static readonly int[] MultiplyDeBruijnHighestBitPosition =
+		[
 			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
 			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-		};
+		];
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static bool IsFree(int level, int count)

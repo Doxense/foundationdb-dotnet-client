@@ -1029,7 +1029,7 @@ namespace Doxense.Serialization.Json
 				static void DivideSignedSigned(long x, long y, out Kind kind, out Number result)
 				{
 					kind = Kind.Signed;
-					result = new Number(checked(x / y));
+					result = new Number(x / y);
 				}
 
 				static void DivideSignedUnsigned(long x, ulong y, out Kind kind, out Number result)
@@ -1072,7 +1072,7 @@ namespace Doxense.Serialization.Json
 				static void DivideUnsignedUnsigned(ulong x, ulong y, out Kind rKind, out Number result)
 				{
 					rKind = Kind.Unsigned;
-					result = new Number(checked(x / y));
+					result = new Number(x / y);
 				}
 
 				[MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -845,7 +845,7 @@ namespace Doxense.Mathematics.Statistics
 		{
 			var yMin = min ?? ys.Min().GetValueOrDefault();
 			var yMax = max ?? ys.Max().GetValueOrDefault();
-			return RenderFrame(new[] {ys}, width, height, yMin, yMax, digits, new string(c, 1));
+			return RenderFrame([ ys ], width, height, yMin, yMax, digits, new string(c, 1));
 		}
 
 		/// <summary>Render un Plot à partir d'une liste de séries de données</summary>

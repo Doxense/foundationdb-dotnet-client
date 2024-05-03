@@ -350,7 +350,7 @@ namespace Doxense.Collections.Lookup
 		{
 			int count = m_count;
 			var elements = m_elements;
-			if (count == 0) return Array.Empty<TElement>();
+			if (count == 0) return [ ];
 
 			var t = new TElement[count];
 			if (count == 1)
@@ -668,7 +668,7 @@ namespace Doxense.Collections.Lookup
 			return new Grouping<TKey, TElement>
 			{
 				m_key = key,
-				m_elements = new TElement[1] { element },
+				m_elements = [ element ],
 				m_count = 1
 			};
 		}
@@ -733,7 +733,7 @@ namespace Doxense.Collections.Lookup
 			return new Grouping<TKey, TElement>
 			{
 				m_key = pair.Key,
-				m_elements = new TElement[1] { pair.Value },
+				m_elements = [ pair.Value ],
 				m_count = 1
 			};
 		}

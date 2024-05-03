@@ -74,7 +74,7 @@ namespace Doxense.Messaging.Events
 
 		public List<IEventSink> GetSinks()
 		{
-			return new List<IEventSink>(this.Sinks);
+			return [ ..this.Sinks ];
 		}
 
 		public void Dispatch(IEvent evt)

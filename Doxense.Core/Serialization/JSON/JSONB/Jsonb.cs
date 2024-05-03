@@ -42,6 +42,7 @@ namespace Doxense.Serialization.Json.Binary
 	/// <para>All items have a size prefix as well as an optional offset table that quickly allows jumping to the desired location.</para>
 	/// <para>For cases where the document is small, or will always need to be decoded completely, please consider using <see cref="JsonPack"/> instead.</para>
 	/// </remarks>
+	[PublicAPI]
 	public static class Jsonb
 	{
 		#region Format Specifications...
@@ -567,7 +568,7 @@ namespace Doxense.Serialization.Json.Binary
 			{
 				if (value == null) return this.Type == JType.Null;
 				//TODO: optimize!
-				return this.Type == JType.String && this.Value.DecodeUtf8String(null) == value;
+				return this.Type == JType.String && this.Value.DecodeUtf8String() == value;
 			}
 
 			public bool Equals(int value)
@@ -1364,7 +1365,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					if (value <= (1L << 23) - 1)
 					{
-						m_output.WriteBytes((byte) value, (byte) (value >> 8), (byte) (value >> 16));
+						m_output.WriteBytes(unchecked((byte) value), (byte) (value >> 8), (byte) (value >> 16));
 						return 3;
 					}
 					if (value <= (1L << 31) - 1)
@@ -1382,7 +1383,7 @@ namespace Doxense.Serialization.Json.Binary
 
 					if (value >= -(1L << 7))
 					{
-						m_output.WriteByte((byte) value);
+						m_output.WriteByte(unchecked((byte) value));
 						return 1;
 					}
 					if (value >= -(1L << 15))
@@ -1392,7 +1393,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					if (value >= -(1L << 23))
 					{
-						m_output.WriteBytes((byte) value, (byte) (value >> 8), (byte) (value >> 16));
+						m_output.WriteBytes(unchecked((byte) value), (byte) (value >> 8), (byte) (value >> 16));
 						return 3;
 					}
 					if (value >= -(1L << 31))

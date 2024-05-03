@@ -26,7 +26,6 @@
 
 namespace Doxense.Threading.Operations
 {
-	using System.Collections.Concurrent;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
@@ -40,6 +39,7 @@ namespace Doxense.Threading.Operations
 	using OpenTelemetry.Trace;
 
 	/// <summary>Représente le contexte d'exécution d'une opération asynchrone</summary>
+	[PublicAPI]
 	public interface IOperationContext
 	{
 
@@ -100,6 +100,7 @@ namespace Doxense.Threading.Operations
 		
 	}
 
+	[PublicAPI]
 	public interface IOperationContext<TResult> : IOperationContext
 	{
 		OperationResult<TResult> Failed(OperationError error);
@@ -110,6 +111,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public enum OperationState
 	{
 		Invalid = 0,
@@ -120,6 +122,7 @@ namespace Doxense.Threading.Operations
 
 	/// <summary>Represents the result of the execution of an operation</summary>
 	[DebuggerDisplay("Id={Context.Id}, State={Context.State}")]
+	[PublicAPI]
 	public readonly struct OperationResult<TResult>
 	{
 
@@ -223,6 +226,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public readonly struct OperationFailed
 	{
 
@@ -237,6 +241,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed record OperationError
 	{
 		public required string Code { get; init; }
@@ -248,6 +253,7 @@ namespace Doxense.Threading.Operations
 		public object? Details { get; init; }
 	}
 
+	[PublicAPI]
 	public sealed class OperationErrorException : Exception
 	{
 
@@ -271,6 +277,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public interface IStoryBook
 	{
 		string Type { get; }
@@ -278,17 +285,20 @@ namespace Doxense.Threading.Operations
 		string Recipee { get; }
 	}
 
+	[PublicAPI]
 	public interface IOperationWorflow
 	{
 
 	}
 
-	public interface IOperationWorflow<TRequest, TResult> : IOperationWorflow
+	[PublicAPI]
+	public interface IOperationWorflow<in TRequest, TResult> : IOperationWorflow
 	{
 		Task<OperationResult<TResult>> ExecuteAsync(TRequest request);
 	}
 
-	public interface IOperationWorflow<TWorkflow, TRequest, TResult> : IOperationWorflow<TRequest, TResult>
+	[PublicAPI]
+	public interface IOperationWorflow<TWorkflow, in TRequest, TResult> : IOperationWorflow<TRequest, TResult>
 		where TWorkflow: IOperationWorflow<TWorkflow, TRequest, TResult>
 	{
 		
@@ -298,6 +308,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public abstract class OperationWorflowBase<TWorkflow, TParameter, TResult> : IOperationWorflow<TWorkflow, TParameter, TResult>
 		where TWorkflow: OperationWorflowBase<TWorkflow, TParameter, TResult>
 	{
@@ -350,6 +361,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public static class OperationContextExtensions
 	{
 
@@ -558,6 +570,7 @@ namespace Doxense.Threading.Operations
 	}
 
 	[DebuggerDisplay("Type={Type}, Key={Key}, Id={Id}, State={State}")]
+	[PublicAPI]
 	public class OperationContext<TResult> : IOperationContext<TResult>
 	{
 
@@ -756,6 +769,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public interface IOperationOverlord
 	{
 
@@ -767,6 +781,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public interface IOperationScheduler
 	{
 		/// <summary>Create a new context for running an operation</summary>
@@ -840,7 +855,7 @@ namespace Doxense.Threading.Operations
 		public IOperationContext[] ListOperations()
 		{
 			//BUGBUG: TODO !
-			return Array.Empty<IOperationContext>();
+			return [ ];
 		}
 
 		public IOperationContext<TResult> Create<TResult>(string type, string? key, IOperationContext? parent = null, CancellationToken ct = default)
@@ -896,11 +911,11 @@ namespace Doxense.Threading.Operations
 		{
 			if (exception == null)
 			{
-				this.Logger.Log(level, $"{context.Id}: {message}", args ?? Array.Empty<object?>());
+				this.Logger.Log(level, $"{context.Id}: {message}", args ?? [ ]);
 			}
 			else
 			{
-				this.Logger.Log(level, exception, $"{context.Id}: {message}", args ?? Array.Empty<object?>());
+				this.Logger.Log(level, exception, $"{context.Id}: {message}", args ?? [ ]);
 			}
 		}
 
@@ -911,6 +926,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed class OperationActionAttribute : Attribute
 	{
 
@@ -922,6 +938,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed class OperationInvokerAttribute<TService> : Attribute
 	{
 
@@ -934,6 +951,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public interface IOperationInvoker<out TService>
 	{
 		IOperationScheduler GetScheduler();
@@ -941,6 +959,7 @@ namespace Doxense.Threading.Operations
 		TService GetInstance();
 	}
 
+	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0>
 	{
 		public IOperationScheduler Scheduler { get; }
@@ -969,6 +988,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1>
 	{
 
@@ -998,6 +1018,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2>
 	{
 
@@ -1027,6 +1048,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2, T3>
 	{
 
@@ -1056,6 +1078,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2, T3, T4>
 	{
 
@@ -1085,6 +1108,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2, T3, T4, T5>
 	{
 
@@ -1114,6 +1138,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	[PublicAPI]
 	public static class OperationInvokerExtensions
 	{
 

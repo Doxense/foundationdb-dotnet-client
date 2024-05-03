@@ -21,8 +21,8 @@ namespace Doxense.Text
 
 		// TODO: Make this immutable and let them be strong typed
 		// http://unicode.org/cldr/utility/list-unicodeset.jsp?a=\p{whitespace}&g=&i=
-		public static readonly uint[] SortedWhitespaceCodePoints = new uint[25]
-		{
+		public static readonly uint[] SortedWhitespaceCodePoints =
+		[
 			0x0009, 0x000A, 0x000B, 0x000C, 0x000D,
 			0x0020,
 			0x0085,
@@ -35,7 +35,7 @@ namespace Doxense.Text
 			0x202F,
 			0x205F,
 			0x3000
-		};
+		];
 	}
 
 }

@@ -190,9 +190,9 @@ namespace Doxense.Memory.Text
 			return ref this.Buffer.GetPinnableReference();
 		}
 
-		public static readonly Utf8String Nil = default(Utf8String);
+		public static readonly Utf8String Nil = default;
 
-		public static readonly Utf8String Empty = new Utf8String(Slice.Empty, 0, 0);
+		public static readonly Utf8String Empty = new(Slice.Empty, 0, 0);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator string(Utf8String s)

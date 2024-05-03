@@ -335,6 +335,7 @@
 	/// </summary>
 	[MeansImplicitUse(ImplicitUseTargetFlags.WithMembers)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
+	// ReSharper disable once InconsistentNaming
 	public sealed class PublicAPIAttribute : Attribute
 	{
 		public PublicAPIAttribute() { }

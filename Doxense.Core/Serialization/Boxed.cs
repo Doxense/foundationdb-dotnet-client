@@ -28,7 +28,6 @@ namespace Doxense.Serialization
 {
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Structure qui wrap un object CLR de n'importe quel type</summary>
 	/// <typeparam name="T">Type de l'objet wrappé</typeparam>

@@ -179,28 +179,38 @@ namespace System
 		public static string ToBase64(this Span<byte> span) => ToBase64((ReadOnlySpan<byte>) span);
 
 		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (lowercase)</summary>
+		/// <param name="span">Span to encode</param>
 		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"0123456789abcdef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToHexaString(this ReadOnlySpan<byte> span, bool lowerCase = false) => FormatHexaString(span, '\0', lowerCase);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static string? ToHexaString(this Span<byte> span, bool lowerCase = false) => FormatHexaString(span, '\0', lowerCase);
+		public static string ToHexaString(this Span<byte> span, bool lowerCase = false) => FormatHexaString(span, '\0', lowerCase);
 
 		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
+		/// <param name="span">Span to encode</param>
 		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
 		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToHexaString(this ReadOnlySpan<byte> span, char sep, bool lowerCase = false) => FormatHexaString(span, sep, lowerCase);
 
+		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
+		/// <param name="span">Span to encode</param>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
+		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToHexaString(this Span<byte> span, char sep, bool lowerCase = false) => FormatHexaString(span, sep, lowerCase);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static string FormatHexaString(ReadOnlySpan<byte> buffer, char sep, bool lower)
 		{
-			if (buffer.Length == 0) return string.Empty;
+			if (buffer.Length == 0)
+			{
+				return string.Empty;
+			}
 
 			var sb = new StringBuilder(buffer.Length * (sep == '\0' ? 2 : 3));
 			int letters = lower ? 87 : 55;
@@ -212,7 +222,11 @@ namespace System
 					byte* stop = ptr + buffer.Length;
 					while (inp < stop)
 					{
-						if ((sep != '\0') & (sb.Length > 0)) sb.Append(sep);
+						if ((sep != '\0') & (sb.Length > 0))
+						{
+							sb.Append(sep);
+						}
+
 						byte b = *inp++;
 						int h = b >> 4;
 						int l = b & 0xF;
@@ -234,7 +248,10 @@ namespace System
 
 			//TODO: allocate on heap if too large?
 			Span<char> tmp = stackalloc char[charCount];
-			if (encoding.GetChars(buffer, tmp) != buffer.Length) throw new InvalidOperationException();
+			if (encoding.GetChars(buffer, tmp) != buffer.Length)
+			{
+				throw new InvalidOperationException();
+			}
 
 			foreach (var c in tmp)
 			{
@@ -280,10 +297,10 @@ namespace System
 			switch (format ?? "D")
 			{
 				case "P": return PrettyPrint(span);
-				case "N": return span.ToHexaString('\0', false);
-				case "n": return span.ToHexaString('\0', true);
-				case "X": return span.ToHexaString(' ', false);
-				case "x": return span.ToHexaString(' ', true);
+				case "N": return span.ToHexaString('\0', lowerCase: false);
+				case "n": return span.ToHexaString('\0', lowerCase: true);
+				case "X": return span.ToHexaString(' ', lowerCase: false);
+				case "x": return span.ToHexaString(' ', lowerCase: true);
 				case "D": case "d": return Slice.Dump(span);
 				default:
 					throw new FormatException("Format is invalid or not supported");
@@ -333,12 +350,17 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string PrettyPrint(this Span<byte> span) => PrettyPrintInternal(span, 1024);
 
-		/// <summary>Helper method that dumps the span as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <summary>Formats the span as a human-friendly string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <param name="span">Span to format</param>
 		/// <param name="maxLen">Truncate the span if it exceeds this size</param>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for the empty span</returns>
 		[Pure]
 		public static string PrettyPrint(this ReadOnlySpan<byte> span, int maxLen) => PrettyPrintInternal(span, maxLen);
 
+		/// <summary>Formats the span as a human-friendly string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <param name="span">Span to format</param>
+		/// <param name="maxLen">Truncate the span if it exceeds this size</param>
+		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for the empty span</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string PrettyPrint(this Span<byte> span, int maxLen) => PrettyPrintInternal(span, maxLen);
 
@@ -374,7 +396,7 @@ namespace System
 									.ToString();
 						}
 					}
-					catch (System.Text.DecoderFallbackException)
+					catch (DecoderFallbackException)
 					{
 						// sometimes, binary data "looks" like valid JSON but is not, so we just ignore it (even if we may have done a bunch of work for nothing)
 					}

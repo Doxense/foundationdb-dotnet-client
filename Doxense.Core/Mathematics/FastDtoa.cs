@@ -43,7 +43,7 @@ namespace Doxense.Mathematics
 	{
 		public const int SignificandSize = 64;
 
-		public static DiyFp Zero => default(DiyFp);
+		public static readonly DiyFp Zero = default;
 
 		/// <summary>Significand (64-bit)</summary>
 		public ulong F;
@@ -282,18 +282,15 @@ namespace Doxense.Mathematics
 		public int Exponent
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				return this.IsDenormal
-					? DenormalExponent
-					: (int)((this.Raw & ExponentMask) >> PhysicalSignificandSize) - ExponentBias;
-			}
+			get => this.IsDenormal
+				? DenormalExponent
+				: (int)((this.Raw & ExponentMask) >> PhysicalSignificandSize) - ExponentBias;
 		}
 
 		public int Sign
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (this.Raw & SignMask) == 0 ? 1 : -1; }
+			get => (this.Raw & SignMask) == 0 ? 1 : -1;
 		}
 
 		public ulong Significand
@@ -309,21 +306,15 @@ namespace Doxense.Mathematics
 		public bool IsDenormal
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				return (this.Raw & ExponentMask) == 0;
-			}
+			get => (this.Raw & ExponentMask) == 0;
 		}
 
 		public bool IsSpecial
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				// We consider denormals not to be special.
-				// Hence only Infinity and NaN are special.
-				return (this.Raw & ExponentMask) == ExponentMask;
-			}
+			get => (this.Raw & ExponentMask) == ExponentMask;
+			// We consider denormals not to be special.
+			// Hence only Infinity and NaN are special.
 		}
 
 		public bool IsNaN
@@ -369,7 +360,7 @@ namespace Doxense.Mathematics
 		public bool IsNegative
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (this.Raw & SignMask) != 0; }
+			get => (this.Raw & SignMask) != 0;
 		}
 
 		[Pure]
@@ -432,7 +423,7 @@ namespace Doxense.Mathematics
 		{
 			if (this.IsSpecial)
 			{
-				return String.Format(
+				return string.Format(
 					CultureInfo.InvariantCulture,
 					"DiyDouble[0x{0:X16}] = {1} [SPECIAL]",
 					this.Raw,
@@ -442,7 +433,7 @@ namespace Doxense.Mathematics
 
 			if (this.IsDenormal)
 			{
-				return String.Format(
+				return string.Format(
 					CultureInfo.InvariantCulture,
 					"DiyDouble[0x{0:X16}] = {1}{2} [DENORMAL] = {3:R} {4}",
 					this.Raw,
@@ -453,7 +444,7 @@ namespace Doxense.Mathematics
 				);
 			}
 
-			return String.Format(
+			return string.Format(
 				CultureInfo.InvariantCulture,
 				"DiyDouble[0x{0:X16}] = {1}{2} x 2^{3} = {4:R} {5}",
 				this.Raw,
@@ -565,12 +556,9 @@ namespace Doxense.Mathematics
 		public int Exponent
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				return this.IsDenormal
-					? DenormalExponent
-					: (int)((this.Raw & ExponentMask) >> PhysicalSignificandSize) - ExponentBias;
-			}
+			get => this.IsDenormal
+				? DenormalExponent
+				: (int)((this.Raw & ExponentMask) >> PhysicalSignificandSize) - ExponentBias;
 		}
 
 		public int Sign
@@ -592,21 +580,15 @@ namespace Doxense.Mathematics
 		public bool IsDenormal
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				return (this.Raw & ExponentMask) == 0;
-			}
+			get => (this.Raw & ExponentMask) == 0;
 		}
 
 		public bool IsSpecial
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				// We consider denormals not to be special.
-				// Hence only Infinity and NaN are special.
-				return (this.Raw & ExponentMask) == ExponentMask;
-			}
+			get => (this.Raw & ExponentMask) == ExponentMask;
+			// We consider denormals not to be special.
+			// Hence only Infinity and NaN are special.
 		}
 
 		public bool IsNaN
@@ -652,7 +634,7 @@ namespace Doxense.Mathematics
 		public bool IsNegative
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (this.Raw & SignMask) != 0; }
+			get => (this.Raw & SignMask) != 0;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -772,7 +754,7 @@ namespace Doxense.Mathematics
 			return (2 * unit <= rest) && (rest <= unsafeInterval - 4 * unit);
 		}
 
-		private static readonly uint[] SmallPowersOfTen = new uint[] { 0, 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 };
+		private static readonly uint[] SmallPowersOfTen = [ 0, 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 ];
 
 		private static void BiggestPowerTen(uint number, int numberBits, out uint power, out int exponentPlusOne)
 		{
@@ -895,16 +877,12 @@ namespace Doxense.Mathematics
 				return HandleSpecialValues(value, output);
 			}
 
-			int decimalPoint;
-			bool sign;
-
 			// temp buffer to hold the unformatted decimal digits
 			//note: source does +1 for the \0 that we don't need
-			const int DecimalRepCapacity = Base10MaximalLength + 1;
-			char* chars = stackalloc char[DecimalRepCapacity];
+			const int DECIMAL_REP_CAPACITY = Base10MaximalLength + 1;
+			char* chars = stackalloc char[DECIMAL_REP_CAPACITY];
 
-			int decimalRepLength;
-			if (!DoubleToAscii(value, chars, DecimalRepCapacity, out sign, out decimalRepLength, out decimalPoint))
+			if (!DoubleToAscii(value, chars, DECIMAL_REP_CAPACITY, out bool sign, out int decimalRepLength, out int decimalPoint))
 			{ // fallback to BCL
 				string s = value.ToString("R", NumberFormatInfo.InvariantInfo);
 				foreach (char c in s)
@@ -1170,8 +1148,8 @@ namespace Doxense.Mathematics
 			}
 		}
 
-		private static readonly CachedPower[] CachedPowers = new[]
-		{
+		private static readonly CachedPower[] CachedPowers =
+		[
 			new CachedPower(0xfa8fd5a0081c0288ul, -1220, -348),
 			new CachedPower(0xbaaee17fa23ebf76ul, -1193, -340),
 			new CachedPower(0x8b16fb203055ac76ul, -1166, -332),
@@ -1258,8 +1236,8 @@ namespace Doxense.Mathematics
 			new CachedPower(0xd433179d9c8cb841ul, 986, 316),
 			new CachedPower(0x9e19db92b4e31ba9ul, 1013, 324),
 			new CachedPower(0xeb96bf6ebadf77d9ul, 1039, 332),
-			new CachedPower(0xaf87023b9bf0ee6bul, 1066, 340),
-		};
+			new CachedPower(0xaf87023b9bf0ee6bul, 1066, 340)
+		];
 		private const int CachedPowersOffset = 348;
 		private const double D_1_LOG2_10 = 0.30102999566398114;  //  1 / lg(10)
 		private const int DecimalExponentDistance = 8;

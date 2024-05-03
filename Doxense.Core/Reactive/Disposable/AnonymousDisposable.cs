@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
-
 namespace Doxense.Reactive.Disposables
 {
 	/// <summary>Retourne un objet exécutant une Action lorsqu'il est Dispose()</summary>

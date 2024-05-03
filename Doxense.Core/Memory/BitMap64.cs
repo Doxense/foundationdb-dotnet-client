@@ -792,7 +792,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static bool[] ToArray(ReadOnlyMemory<ulong> map)
 		{
-			if (map.Length == 0) return Array.Empty<bool>();
+			if (map.Length == 0) return [ ];
 			unsafe
 			{
 				var bits = new bool[checked(map.Length * WordSize)];

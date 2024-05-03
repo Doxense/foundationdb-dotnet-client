@@ -55,9 +55,9 @@ namespace Doxense.Collections.Tuples
 			switch (len)
 			{
 				case 1:
-					return new ListTuple<object?>(new[] { tuple[start] });
+					return new ListTuple<object?>([ tuple[start] ]);
 				case 2:
-					return new ListTuple<object?>(new[] { tuple[start], tuple[start + 1] });
+					return new ListTuple<object?>([ tuple[start], tuple[start + 1] ]);
 				default:
 				{
 					var items = new object?[len];
@@ -89,11 +89,11 @@ namespace Doxense.Collections.Tuples
 			{
 				case 1:
 				{
-					return new ListTuple<object?>(new[] { tuple[start] });
+					return new ListTuple<object?>([ tuple[start] ]);
 				}
 				case 2:
 				{
-					return new ListTuple<object?>(new[] { tuple[start], tuple[start + 1] });
+					return new ListTuple<object?>([ tuple[start], tuple[start + 1] ]);
 				}
 				default:
 				{

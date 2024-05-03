@@ -37,10 +37,10 @@ namespace Doxense
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
 		/// <summary>Représente un résultat vide (no computation)</summary>
-		public static readonly Maybe<T> Nothing = new Maybe<T>();
+		public static readonly Maybe<T> Nothing;
 
 		/// <summary>Représente un résultat correspondant à la valeur par défaut du type (0, false, null)</summary>
-		public static readonly Maybe<T> Default = new Maybe<T>(default!);
+		public static readonly Maybe<T> Default = new(default);
 
 		/// <summary>Cached completed Task that always return an empty value</summary>
 		public static readonly Task<Maybe<T>> EmptyTask = Task.FromResult(default(Maybe<T>));

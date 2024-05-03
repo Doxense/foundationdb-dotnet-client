@@ -164,8 +164,8 @@ namespace Doxense.Memory
 			}
 			else
 			{
-				this.Buckets = Array.Empty<int>();
-				this.Entries = Array.Empty<Entry>();
+				this.Buckets = [ ];
+				this.Entries = [ ];
 			}
 		}
 

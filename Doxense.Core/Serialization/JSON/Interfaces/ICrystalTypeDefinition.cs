@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	[PublicAPI]
 	public interface ICrystalTypeDefinition
 	{
 		Type Type { get; }

@@ -975,13 +975,13 @@ namespace Doxense.Collections.Generic
 					int end = ColaStore.HighestBit(m_count);
 					var segment = m_levels[level];
 					min = segment[0];
-					max = segment[segment.Length - 1];
+					max = segment[^1];
 					while (level <= end)
 					{
 						if (IsFree(level)) continue;
 						segment = m_levels[level];
 						if (m_comparer.Compare(min, segment[0]) > 0) min = segment[0];
-						if (m_comparer.Compare(max, segment[segment.Length - 1]) < 0) min = segment[segment.Length - 1];
+						if (m_comparer.Compare(max, segment[^1]) < 0) min = segment[^1];
 						++level;
 					}
 					return true;
@@ -1262,7 +1262,7 @@ namespace Doxense.Collections.Generic
 					cursors[i] = pos;
 					if (maxLevel < 0 || m_comparer.Compare(segment[pos], max) > 0)
 					{
-						max = segment[segment.Length - 1];
+						max = segment[^1];
 						maxLevel = i;
 					}
 				}

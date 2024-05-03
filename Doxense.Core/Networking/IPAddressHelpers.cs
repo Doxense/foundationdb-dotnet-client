@@ -25,6 +25,7 @@
 #endregion
 
 // ReSharper disable AccessToDisposedClosure
+// ReSharper disable InconsistentNaming
 
 namespace Doxense.Networking
 {
@@ -40,6 +41,7 @@ namespace Doxense.Networking
 	using Doxense.Memory;
 
 	/// <summary>Helpers permettant de travailler sur des adresses IP (ou MAC address)</summary>
+	[PublicAPI]
 	public static class IPAddressHelpers
 	{
 
@@ -252,7 +254,7 @@ namespace Doxense.Networking
 			}
 			catch (Exception e)
 			{
-				System.Diagnostics.Debug.WriteLine($"### Failed to get local address able to talk to remote address {remoteAddress}: {e}");
+				Debug.WriteLine($"### Failed to get local address able to talk to remote address {remoteAddress}: {e}");
 				localAddress = null;
 				return false;
 			}
@@ -359,11 +361,11 @@ namespace Doxense.Networking
 				long lval = IPToMask(rm);
 				if (range.IndexOf('.', p) > 0)
 				{ // format "192.168.1.0/255.255.255.0"
-					mask = IPToMask(range.Substring(p + 1));
+					mask = IPToMask(range[(p + 1)..]);
 				}
 				else
 				{ // format "192.168.1.0/24"
-					int offset = System.Convert.ToInt16(range.Substring(p + 1));
+					int offset = Convert.ToInt16(range[(p + 1)..]);
 					mask = (1 << (offset)) - 1;
 				}
 				return ((lip & mask) == (lval & mask));
@@ -374,10 +376,13 @@ namespace Doxense.Networking
 			if (p >= 0)
 			{ // TODO: format "192.168.1.0-255" pour IPMatchRange
 
-				string right = range.Substring(p + 1).Trim();
+				string right = range[(p + 1)..].Trim();
 				if (right.IndexOf('.') > 0)
 				{ // "1.2.3.4-5.6.7.8"
-					if (!IPAddress.TryParse(ip, out var ipAddr)) return false;
+					if (!IPAddress.TryParse(ip, out var ipAddr))
+					{
+						return false;
+					}
 					DecodeIPRange(range, out IPAddress first, out IPAddress last);
 					return IPAddressComparer.Default.Compare(ipAddr, first) >= 0
 					    && IPAddressComparer.Default.Compare(ipAddr, last) <= 0;
@@ -393,9 +398,9 @@ namespace Doxense.Networking
 				string submask = range.Substring(q + 1);
 				if (submask == "0-255") return true;
 				string[] tok = submask.Split('-');
-				int n = System.Convert.ToInt16(ip.Substring(q + 1));
-				if (n < System.Convert.ToInt16(tok[0])) return false;
-				if (n > System.Convert.ToInt16(tok[1])) return false;
+				int n = Convert.ToInt16(ip.Substring(q + 1));
+				if (n < Convert.ToInt16(tok[0])) return false;
+				if (n > Convert.ToInt16(tok[1])) return false;
 				return true;
 			}
 			// plage constitué d'une seule ip ?
@@ -667,13 +672,13 @@ namespace Doxense.Networking
 					using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
 					{
 						var delay = Task.Delay(Timeout.Infinite, cts.Token);
-						if (await Task.WhenAny(task, delay) == delay)
+						if (await Task.WhenAny(task, delay).ConfigureAwait(false) == delay)
 						{
 							ct.ThrowIfCancellationRequested(); // => throws!
 						}
 					}
 				}
-				return await task;
+				return await task.ConfigureAwait(false);
 			}
 		}
 
@@ -767,7 +772,7 @@ namespace Doxense.Networking
 			IPStatus? status = null;
 			foreach (var t in tasks)
 			{
-				var hop = await t;
+				var hop = await t.ConfigureAwait(false);
 
 				if (hop == null) continue; // skip aborted task
 

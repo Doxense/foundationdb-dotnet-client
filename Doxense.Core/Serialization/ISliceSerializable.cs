@@ -26,20 +26,27 @@
 
 namespace Doxense.Serialization
 {
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 
-	/// <summary>Représente la capacité de se sérialiser de manière binaire</summary>
+	/// <summary>Supports direct binary serialization</summary>
 	public interface ISliceSerializable
 	{
+
+		/// <summary>Serializes the current instance to the specified output buffer</summary>
 		void WriteTo(ref SliceWriter writer);
+
 	}
 
+	/// <summary>Can serialize instances of type <typeparamref name="T"/> to and from binary form</summary>
 	public interface ISliceSerializer<T>
 	{
+
+		/// <summary>Serializes an instance to the specified output buffer</summary>
 		void WriteTo(ref SliceWriter writer, T? value);
 
+		/// <summary>Attempts to deserialize an instance of type <typeparamref name="T"/> from the specified output buffer</summary>
 		bool TryReadFrom(ref SliceReader reader, out T? value);
+
 	}
 
 }

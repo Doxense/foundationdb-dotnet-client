@@ -1586,7 +1586,7 @@ namespace System
 
 			if (input.Count <= stride)
 			{ // single element
-				return new [] { input };
+				return [ input ];
 			}
 
 			// how many slices? (last one may be incomplete)
@@ -2425,8 +2425,12 @@ namespace System
 			while (r > 0)
 			{
 				int c = Math.Min(r, chunkSize);
-				int n = await source.ReadAsync(buffer, p, c, ct);
-				if (n <= 0) throw ThrowHelper.InvalidOperationException($"Unexpected end of stream at {p:N0} / {length:N0} bytes");
+				int n = await source.ReadAsync(buffer, p, c, ct).ConfigureAwait(false);
+				if (n <= 0)
+				{
+					throw ThrowHelper.InvalidOperationException($"Unexpected end of stream at {p:N0} / {length:N0} bytes");
+				}
+
 				p += n;
 				r -= n;
 			}

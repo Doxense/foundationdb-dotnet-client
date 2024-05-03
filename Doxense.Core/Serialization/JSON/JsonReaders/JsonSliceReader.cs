@@ -96,7 +96,7 @@ namespace Doxense.Serialization.Json
 		public bool? HasMore => this.Cursor < this.End;
 
 		/// <inheritdoc />
-		public int? Remaining => this.Cursor < this.End ? (int) (this.End - this.Cursor) : 0;
+		public int? Remaining => this.Cursor < this.End ? (this.End - this.Cursor) : 0;
 
 	}
 

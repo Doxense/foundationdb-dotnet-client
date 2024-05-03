@@ -148,12 +148,12 @@ namespace Doxense.Async
 
 						m_queue.Enqueue(t);
 
-						var _ = t.ContinueWith((_t) =>
+						_ = t.ContinueWith((tt) =>
 						{
 							lock (m_lock)
 							{
 								// we should only wake up the consumers if we are the fist in the queue !
-								if (m_queue.Count > 0 && m_queue.Peek() == _t)
+								if (m_queue.Count > 0 && m_queue.Peek() == tt)
 								{
 									WakeUpConsumer_NeedLocking();
 								}

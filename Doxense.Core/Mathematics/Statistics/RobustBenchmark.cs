@@ -85,6 +85,8 @@ namespace Doxense.Mathematics.Statistics
 			public TimeSpan StdDevDuration { get; set; }
 			public double StdDevIterationNanos { get; set; }
 
+			// ReSharper disable InconsistentNaming
+
 			/// <summary>Number of gen0 collection per 1 million iterations</summary>
 			public double GC0 { get; set; }
 			/// <summary>Number of gen2 collection per 1 million iterations</summary>
@@ -92,10 +94,13 @@ namespace Doxense.Mathematics.Statistics
 			/// <summary>Number of gen2 collection per 1 million iterations</summary>
 			public double GC2 { get; set; }
 
+			// ReSharper restore InconsistentNaming
+
 			public TimeSpan BestRunTotalTime { get; set; }
 
 			public RobustHistogram? Histogram { get; set; }
 		}
+
 
 		private struct RobustStopWatch
 		{
@@ -139,14 +144,6 @@ namespace Doxense.Mathematics.Statistics
 
 			public TimeSpan Elapsed => GetDuration(this.ElapsedRawTicks);
 
-			public long ElapsedTicks => (long)Math.Round(this.ElapsedRawTicks * TicksFrequency, MidpointRounding.AwayFromZero);
-
-			public double ElapsedMicroseconds => this.ElapsedRawTicks * TicksFrequency * 0.1d;
-
-			public double ElapsedMilliseconds => this.ElapsedRawTicks * TicksFrequency * 0.0001d;
-
-			public double ElapsedSeconds => this.ElapsedRawTicks * TicksFrequency * 0.0000001d;
-
 			public static TimeSpan GetDuration(long ticks) => TimeSpan.FromTicks((long)Math.Round(ticks * TicksFrequency, MidpointRounding.AwayFromZero));
 
 		}
@@ -177,9 +174,9 @@ namespace Doxense.Mathematics.Statistics
 			var iterTimePerRun = new RobustStopWatch();
 			var sw = new RobustStopWatch();
 
-			int totalGC0 = 0;
-			int totalGC1 = 0;
-			int totalGC2 = 0;
+			int totalGc0 = 0;
+			int totalGc1 = 0;
+			int totalGc2 = 0;
 
 			// note: le premier run est toujours ignoré !
 			for (int k = -1; k < runs; k++)
@@ -217,9 +214,9 @@ namespace Doxense.Mathematics.Statistics
 
 				if (k >= 0)
 				{
-					totalGC0 += GC.CollectionCount(0) - gcCount0;
-					totalGC1 += GC.CollectionCount(1) - gcCount1;
-					totalGC2 += GC.CollectionCount(2) - gcCount2;
+					totalGc0 += GC.CollectionCount(0) - gcCount0;
+					totalGc1 += GC.CollectionCount(1) - gcCount1;
+					totalGc2 += GC.CollectionCount(2) - gcCount2;
 				}
 
 				var result = cleanup(state);
@@ -246,14 +243,14 @@ namespace Doxense.Mathematics.Statistics
 				RawTotal = global.Elapsed,
 				BestRunTotalTime = bestRunTotalTime,
 				Histogram = histo,
-				GC0 = totalGC0, //(totalGC0 * 1000000.0) / (runs * iterations),
-				GC1 = totalGC1, //(totalGC1 * 1000000.0) / (runs * iterations),
-				GC2 = totalGC2, //(totalGC2 * 1000000.0) / (runs * iterations),
+				GC0 = totalGc0, //(totalGC0 * 1000000.0) / (runs * iterations),
+				GC1 = totalGc1, //(totalGC1 * 1000000.0) / (runs * iterations),
+				GC2 = totalGc2, //(totalGC2 * 1000000.0) / (runs * iterations),
 			};
 
-			var filtered = PeirceCriterion.FilterOutliers(times, x => x, out var _outliers, out var rejected).ToList();
+			var filtered = PeirceCriterion.FilterOutliers(times, x => x, out var outliers, out var rejected).ToList();
 			//var filtered = DixonTest.ComputeOutliers(times, x => (double)x, DixonTest.Confidence.CL95, DixonTest.Mode.Upper, out _outliers, out rejected).ToList();
-			var outliers = _outliers.ToArray();
+			var outliersMap = outliers.ToArray();
 
 			report.Times = filtered.Select(x => RobustStopWatch.GetDuration(x)).ToList();
 			report.RejectedRuns = rejected;
@@ -262,7 +259,7 @@ namespace Doxense.Mathematics.Statistics
 				Index = i,
 				Iterations = iterations,
 				Duration = RobustStopWatch.GetDuration(ticks),
-				Rejected = outliers.Contains(i),
+				Rejected = outliersMap.Contains(i),
 				Result = results[i],
 			}).ToList();
 
@@ -276,7 +273,7 @@ namespace Doxense.Mathematics.Statistics
 			report.AverageDuration = RobustStopWatch.GetDuration((long)sorted.Average());
 			long median = Median(sorted);
 			report.MedianDuration = RobustStopWatch.GetDuration(median);
-			report.StdDevDuration = RobustStopWatch.GetDuration(MAD(sorted, median));
+			report.StdDevDuration = RobustStopWatch.GetDuration(MeanAbsoluteDeviation(sorted, median));
 			//Console.WriteLine("Median of " + String.Join(", ", sorted) + " is " + Median(sorted));
 
 			report.MedianIterationsPerSecond = report.TotalIterations / report.TotalDuration.TotalSeconds;
@@ -298,7 +295,7 @@ namespace Doxense.Mathematics.Statistics
 			return n == 0 ? 0 : (n & 1) == 1 ? sortedData[n >> 1] : (sortedData[n >> 1] + sortedData[(n >> 1) - 1]) >> 1;
 		}
 
-		private static long MAD(long[] sortedData, long med)
+		private static long MeanAbsoluteDeviation(long[] sortedData, long med)
 		{
 			// calcule la variance
 			// NOTE: on la calcule par rpt au median, *PAS* la moyenne arithmétique !

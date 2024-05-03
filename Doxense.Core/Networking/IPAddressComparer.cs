@@ -30,6 +30,7 @@ namespace Doxense.Networking
 	using System.Net.Sockets;
 	using Doxense.Memory;
 
+	// ReSharper disable once InconsistentNaming
 	public sealed class IPAddressComparer : IComparer<IPAddress>, IEqualityComparer<IPAddress>
 	{
 		public static readonly IPAddressComparer Default = new IPAddressComparer();

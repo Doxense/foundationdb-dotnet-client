@@ -361,10 +361,10 @@ namespace Doxense.Serialization.Xml
 			sb.Append(TokenEntityDecPrefix).Append(cp).Append(';');
 		}
 
-		private static readonly string[] s_asciiControlCodes = new string[]
-		{
-			"NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US" 
-		};
+		private static readonly string[] s_asciiControlCodes =
+		[
+			"NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US"
+		];
 
 		private static void EncodeIllegal(StringBuilder sb, char c)
 		{

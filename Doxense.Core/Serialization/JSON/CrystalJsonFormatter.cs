@@ -524,7 +524,7 @@ namespace Doxense.Serialization.Json
 			if (date == DateTime.MinValue) return string.Empty;
 
 			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
-			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, '\0'));
+			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, quotes: '\0'));
 		}
 
 		public static string ToIso8601String(DateTimeOffset date)
@@ -532,7 +532,7 @@ namespace Doxense.Serialization.Json
 			if (date == DateTime.MinValue) return string.Empty;
 
 			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
-			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, '\0'));
+			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, quotes: '\0'));
 		}
 
 		private static unsafe int FormatDatePart(char* ptr, int year, int month, int day)

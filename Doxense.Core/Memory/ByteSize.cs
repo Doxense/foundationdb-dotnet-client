@@ -326,7 +326,7 @@ namespace Doxense.Memory
 
 		public static implicit operator ByteSize(int bytes) => new ByteSize(checked((ulong) bytes), SizeUnit.Byte);
 
-		public static implicit operator ByteSize(uint bytes) => new ByteSize((ulong) bytes, SizeUnit.Byte);
+		public static implicit operator ByteSize(uint bytes) => new ByteSize(bytes, SizeUnit.Byte);
 
 		public static implicit operator ByteSize(long bytes) => new ByteSize(checked((ulong) bytes), SizeUnit.Byte);
 

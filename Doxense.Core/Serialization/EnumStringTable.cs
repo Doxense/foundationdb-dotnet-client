@@ -27,7 +27,6 @@
 namespace Doxense.Serialization
 {
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Helper pour la mise en cache de conversion d'énumération en string</summary>
 	[Obsolete("Performance of enum ToString() has been fixed in .NET Core 3.0. This type may not be necessary anymore!")]
@@ -37,7 +36,7 @@ namespace Doxense.Serialization
 		// Les dernières version de .NET Core ont fortement optimisé ce cas, ce qui rend cette classe beaucoup moins indispensable
 		// REVIEW: éventuellement la supprimer, si les benchs montrent qu'il n'y a plus de raison de l'utiliser?
 
-		private static Dictionary<Type, EnumStringTable.Cache> Types = new Dictionary<Type, EnumStringTable.Cache>(TypeEqualityComparer.Default);
+		private static Dictionary<Type, Cache> TypeCache = new(TypeEqualityComparer.Default);
 
 		public class Entry
 		{
@@ -51,7 +50,7 @@ namespace Doxense.Serialization
 				this.Value = value;
 				this.Literal = literal;
 				this.Name = name;
-				this.CamelCased = EnumStringTable.CamelCase(name);
+				this.CamelCased = CamelCase(name);
 			}
 		}
 
@@ -114,9 +113,9 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Retourne le cache correspondant à une énumération spécifique</summary>
-		public static EnumStringTable.Cache GetCacheForType(Type enumType)
+		public static Cache GetCacheForType(Type enumType)
 		{
-			var types = EnumStringTable.Types;
+			var types = TypeCache;
 			if (!types.TryGetValue(enumType, out var cache))
 			{
 				cache = AddEnumToCache(enumType);
@@ -125,7 +124,7 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Retourne le cache correspondant à une énumération spécifique</summary>
-		public static EnumStringTable.Cache GetCacheForType<TEnum>()
+		public static Cache GetCacheForType<TEnum>()
 			where TEnum : struct, Enum
 		{
 			return GetCacheForType(typeof(TEnum));
@@ -141,7 +140,7 @@ namespace Doxense.Serialization
 		public static string? GetName<TEnum>(TEnum value)
 			where TEnum : struct, Enum
 		{
-			return GetName(typeof(TEnum), (Enum) value);
+			return GetName(typeof(TEnum), value);
 		}
 
 		/// <summary>Retourne le littéral (numérique) correspondant à la valeur d'une énumération</summary>
@@ -154,13 +153,13 @@ namespace Doxense.Serialization
 		public static string? GetLiteral<TEnum>(TEnum value)
 			where TEnum : struct, Enum
 		{
-			return GetLiteral(typeof(TEnum), (Enum) value);
+			return GetLiteral(typeof(TEnum), value);
 		}
 
 		/// <summary>Génère le cache correspond à un type d'énumération spécifique, et ajoute-le au cache global</summary>
 		/// <param name="enumType">Type correspond à une Enum</param>
 		/// <returns>Cache correspond à cette enum</returns>
-		private static EnumStringTable.Cache AddEnumToCache(Type enumType)
+		private static Cache AddEnumToCache(Type enumType)
 		{
 			Contract.Debug.Requires(enumType != null);
 			if (!typeof(Enum).IsAssignableFrom(enumType)) throw new InvalidOperationException($"Type {enumType.Name} is not a valid Enum type");
@@ -169,21 +168,21 @@ namespace Doxense.Serialization
 			var values = Enum.GetValues(enumType);
 			Contract.Debug.Assert(names != null && values != null && names.Length == values.Length);
 
-			var data = new Dictionary<Enum, EnumStringTable.Entry>(names.Length, EqualityComparer<Enum>.Default);
+			var data = new Dictionary<Enum, Entry>(names.Length, EqualityComparer<Enum>.Default);
 			//note: en cas de doublons de valeurs, on ne doit conserver que la toute première entrée, pour garder le même comportement que ToString()
 			// => le plus simple est donc d'itérer la liste a l'envers, en écrasant les doublons
 			for (int i = names.Length - 1; i >= 0; i--)
 			{
 				var value = (Enum) values.GetValue(i)!;
-				data[value] = new EnumStringTable.Entry(value, value.ToString("D"), names[i]);
+				data[value] = new Entry(value, value.ToString("D"), names[i]);
 			}
-			var cache = new EnumStringTable.Cache(enumType, data);
+			var cache = new Cache(enumType, data);
 
 			var sw = new SpinWait();
 			while (true)
 			{
 				// vérifie si un autre thread n'a pas déjà généré le même dico...
-				var types = EnumStringTable.Types;
+				var types = TypeCache;
 				if (types.TryGetValue(enumType, out var other)) return other;
 
 				// non, on ajoute le notre
@@ -192,7 +191,7 @@ namespace Doxense.Serialization
 					[enumType] = cache
 				};
 				// et on essaye de publier la nouvelle version du cache global
-				if (Interlocked.CompareExchange(ref EnumStringTable.Types, update, types) == types)
+				if (Interlocked.CompareExchange(ref TypeCache, update, types) == types)
 				{
 					break;
 				}

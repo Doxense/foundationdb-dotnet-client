@@ -175,7 +175,7 @@ namespace Doxense.Serialization
 		public static Func<TArg0, object> CompileGenerator<TArg0>(this Type type)
 		{
 			Contract.Debug.Requires(type != null);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(TArg0) }, null);
+			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0) ], null);
 			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking one argument of type {typeof(TArg0).GetFriendlyName()}");
 
 			var arg0 = Expression.Parameter(typeof(TArg0), "arg0");
@@ -192,7 +192,7 @@ namespace Doxense.Serialization
 		public static Func<TArg0, TInstance> CompileTypedGenerator<TInstance, TArg0>()
 		{
 			var type = typeof(TInstance);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(TArg0) }, null);
+			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0) ], null);
 			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking one argument of type {typeof(TArg0).GetFriendlyName()}");
 
 			var prms = ctor.GetParameters();
@@ -212,7 +212,7 @@ namespace Doxense.Serialization
 		public static Func<TArg0, TArg1, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1>()
 		{
 			var type = typeof(TInstance);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(TArg0), typeof(TArg1) }, null);
+			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0), typeof(TArg1) ], null);
 			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking two arguments of types ({typeof(TArg0).GetFriendlyName()}, {typeof(TArg1).GetFriendlyName()})");
 
 			var prms = ctor.GetParameters();
@@ -234,7 +234,7 @@ namespace Doxense.Serialization
 		public static Func<TArg0, TArg1, TArg2, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1, TArg2>()
 		{
 			var type = typeof(TInstance);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(TArg0), typeof(TArg1), typeof(TArg2) }, null);
+			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0), typeof(TArg1), typeof(TArg2) ], null);
 			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking three arguments of types ({typeof(TArg0).GetFriendlyName()}, {typeof(TArg1).GetFriendlyName()}, {typeof(TArg2).GetFriendlyName()})");
 
 			var prms = ctor.GetParameters();

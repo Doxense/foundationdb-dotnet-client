@@ -722,7 +722,7 @@ namespace Doxense.Serialization
 				}
 				else if (char.IsLetter(date[0]))
 				{ // on va tenter un ParseExact ("Vendredi, 37 Trumaire 1789 à 3 heures moins le quart")
-					result = DateTime.ParseExact(date, new[] { "D", "F", "f" }, culture ?? CultureInfo.InvariantCulture, DateTimeStyles.None);
+					result = DateTime.ParseExact(date, [ "D", "F", "f" ], culture ?? CultureInfo.InvariantCulture, DateTimeStyles.None);
 					return true;
 				}
 

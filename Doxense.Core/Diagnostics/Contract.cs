@@ -86,7 +86,7 @@ namespace Doxense.Diagnostics.Contracts
 			{
 				// Convert all "soft" failures into NUnit assertions
 				IsUnitTesting = true;
-				return (nUnitAssert.GetConstructor(new [] { typeof (string) }), nUnitAssert.GetConstructor(new [] { typeof (string), typeof(Exception) }));
+				return (nUnitAssert.GetConstructor([ typeof (string) ]), nUnitAssert.GetConstructor([ typeof (string), typeof(Exception) ]));
 			}
 			return (null, null);
 		}
@@ -95,8 +95,8 @@ namespace Doxense.Diagnostics.Contracts
 		{
 			// => new NUnit.Framework.AssertionException(...)
 			return exception == null
-				? (Exception?) s_constructorNUnitException.One?.Invoke(new object[] { message })
-				: (Exception?) s_constructorNUnitException.Two?.Invoke(new object[] { message, exception })
+				? (Exception?) s_constructorNUnitException.One?.Invoke([ message ])
+				: (Exception?) s_constructorNUnitException.Two?.Invoke([ message, exception ])
 				;
 		}
 

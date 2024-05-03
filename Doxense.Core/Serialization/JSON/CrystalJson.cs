@@ -285,7 +285,7 @@ namespace Doxense.Serialization.Json
 					SerializeToInternal(sw, value, declaredType, settings, resolver);
 				}
 
-				if (ms.Position == 0) return Array.Empty<byte>();
+				if (ms.Position == 0) return [ ];
 				if (ms.Position == ms.Capacity) return ms.GetBuffer();
 				return ms.ToArray();
 			}

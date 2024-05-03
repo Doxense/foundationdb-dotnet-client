@@ -632,7 +632,7 @@ namespace Doxense.Runtime.Converters
 		[Pure]
 		public static Func<TInput, object?> CreateBoxedConverter<TInput>(Type outputType)
 		{
-			var converter = (ITypeConverter) GetConverterMethod(typeof(TInput), outputType).Invoke(null, Array.Empty<object>())!;
+			var converter = (ITypeConverter) GetConverterMethod(typeof(TInput), outputType).Invoke(null, [ ])!;
 			return (x) => converter.ConvertBoxed(x);
 		}
 
@@ -687,7 +687,7 @@ namespace Doxense.Runtime.Converters
 		[return: NotNullIfNotNull("value")]
 		public static string? ToString(object? value)
 		{
-			return value is string str ? str : ConvertBoxed<string>(value);
+			return value as string ?? ConvertBoxed<string>(value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

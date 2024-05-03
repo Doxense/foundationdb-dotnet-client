@@ -523,17 +523,17 @@ namespace Doxense.Serialization.Json.Binary
 				else if (value >= -128)
 				{ // -33 .. -128: stored as single byte
 					writer.WriteByte((byte) TypeTokens.FixedInt1);
-					writer.WriteByte((byte) value);
+					writer.WriteByte(unchecked((byte) value));
 				}
 				else if (value >= -32_768)
 				{ // -129 .. -32768: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt2);
-					writer.WriteFixed16((ushort) value);
+					writer.WriteFixed16(unchecked((ushort) value));
 				}
 				else if (value >= -8_388_608)
 				{ // -129 .. -32768: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt3);
-					writer.WriteFixed24(((uint) value) & 0xFFFFFF);
+					writer.WriteFixed24(unchecked((uint) (value & 0xFFFFFF)));
 				}
 				else if (value >= -2_147_483_648)
 				{
@@ -752,33 +752,37 @@ namespace Doxense.Serialization.Json.Binary
 			return CrystalJsonParser.ParseJsonNumber(lit.ToStringAscii());
 		}
 
-		private static JsonValue? ParseInlineString(ref SliceReader reader, int token, CrystalJsonSettings settings)
+		private static JsonValue ParseInlineString(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token >= (int) TypeTokens.StringEmpty && token <= (int) TypeTokens.SmlString60);
 			int count = token - JENTRY_SMALL_STRING_BASE;
-			return reader.ReadBytes(count).ToStringUtf8();
+			var txt = reader.ReadBytes(count).ToStringUtf8();
+			return JsonString.Return(txt);
 		}
 
-		private static JsonValue? ParseString1(ref SliceReader reader, int token, CrystalJsonSettings settings)
+		private static JsonValue ParseString1(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.StringSize1);
 			int count = reader.ReadByte();
-			return reader.ReadBytes(count).ToStringUtf8();
+			var txt = reader.ReadBytes(count).ToStringUtf8();
+			return JsonString.Return(txt);
 		}
 
-		private static JsonValue? ParseString2(ref SliceReader reader, int token, CrystalJsonSettings settings)
+		private static JsonValue ParseString2(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.StringSize2);
 			int count = reader.ReadFixed16();
-			return reader.ReadBytes(count).ToStringUtf8();
+			var txt = reader.ReadBytes(count).ToStringUtf8();
+			return JsonString.Return(txt);
 		}
 
-		private static JsonValue? ParseString4(ref SliceReader reader, int token, CrystalJsonSettings settings)
+		private static JsonValue ParseString4(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.StringSize2);
 			uint count = reader.ReadFixed32();
 			if (count > int.MaxValue) throw new FormatException("String size is too large");
-			return reader.ReadBytes(count).ToStringUtf8();
+			var txt = reader.ReadBytes(count).ToStringUtf8();
+			return JsonString.Return(txt);
 		}
 
 		private static JsonArray ParseArray(ref SliceReader reader, int token, CrystalJsonSettings settings)

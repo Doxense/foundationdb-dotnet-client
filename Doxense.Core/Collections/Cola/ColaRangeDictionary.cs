@@ -134,11 +134,11 @@ namespace Doxense.Collections.Generic
 		private readonly Entry m_bounds;
 
 		public ColaRangeDictionary()
-			: this(0, null, null)
+			: this(0, null)
 		{ }
 
 		public ColaRangeDictionary(int capacity)
-			: this(capacity, null, null)
+			: this(capacity, null)
 		{ }
 
 		public ColaRangeDictionary(IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer = null)
@@ -380,16 +380,14 @@ namespace Doxense.Collections.Generic
 					// [--------[
 					else if (c2 == 0)
 					{
-						toRemove = new List<Entry>();
-						toRemove.Add(cursor);
+						toRemove = [ cursor ];
 					}
 					// end > cursor.End
 					// [+++++++[
 					// [-----------....
 					else
 					{
-						toRemove = new List<Entry>();
-						toRemove.Add(cursor);
+						toRemove = [ cursor ];
 						while (iterator.Next())
 						{
 							cursor = iterator.Current!;
@@ -494,14 +492,18 @@ namespace Doxense.Collections.Generic
 								//---------------[
 								else
 								{
-									if(toRemove == null) toRemove = new List<Entry>();
+									toRemove ??= [ ];
 									toRemove.Add(cursor);
 									if (c2 == 0) break;
 								}
 							}
 						}
 
-						if (toRemove != null) m_items.RemoveItems(toRemove);
+						if (toRemove != null)
+						{
+							m_items.RemoveItems(toRemove);
+						}
+
 						TranslateAfter(cursor, offset, applyOffset);
 						return;
 					}
@@ -574,13 +576,12 @@ namespace Doxense.Collections.Generic
 			// { [1..2,A], [2..3,B], ..., [9..10,Y] } + [0..10,Z] => { [0..10,Z] }
 
 			var entry = new Entry(begin, end, value);
-			Entry cursor;
 			var cmp = m_keyComparer;
-			int c1, c2;
 
 			try
 			{
-
+				Entry cursor;
+				int c1, c2;
 				switch (m_items.Count)
 				{
 					case 0:
@@ -1317,7 +1318,7 @@ namespace Doxense.Collections.Generic
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IEnumerable<Entry> IterateOrdered()
 		{
-			return m_items.IterateOrdered(false);
+			return m_items.IterateOrdered();
 		}
 
 		IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator()

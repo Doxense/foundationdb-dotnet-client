@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable InconsistentNaming
+
 namespace Doxense.Networking
 {
 	using System.Net;
@@ -38,7 +40,7 @@ namespace Doxense.Networking
 
 		public int Compare(IPEndPoint? x, IPEndPoint? y)
 		{
-			if (object.ReferenceEquals(x, y)) return 0;
+			if (ReferenceEquals(x, y)) return 0;
 			if (x == null) return -1;
 			if (y == null) return +1;
 
@@ -48,9 +50,9 @@ namespace Doxense.Networking
 
 		public bool Equals(IPEndPoint? x, IPEndPoint? y)
 		{
-			if (object.ReferenceEquals(x, y)) return true;
-			if (object.ReferenceEquals(x, null)) return false;
-			if (object.ReferenceEquals(y, null)) return false;
+			if (ReferenceEquals(x, y)) return true;
+			if (ReferenceEquals(x, null)) return false;
+			if (ReferenceEquals(y, null)) return false;
 			return x.Port == y.Port && x.Address.Equals(y.Address);
 		}
 

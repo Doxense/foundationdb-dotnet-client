@@ -72,7 +72,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		public string? UserMessage { get; }
 
-		public string? Failure => this.Message;
+		public string Failure => this.Message;
 
 		#endregion
 

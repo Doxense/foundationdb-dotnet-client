@@ -36,11 +36,13 @@
 
 namespace Doxense.Memory
 {
-	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Runtime.CompilerServices;
+#if NET8_0_OR_GREATER
+	using System.ComponentModel;
+#endif
 
 	/// <summary>Helper methods for dealing with unmanaged memory. HANDLE WITH CARE!</summary>
 	/// <remarks>Use of this class is unsafe. YOU HAVE BEEN WARNED!</remarks>

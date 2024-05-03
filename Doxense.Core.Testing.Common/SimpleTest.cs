@@ -576,7 +576,7 @@ namespace SnowBank.Testing
 
 				if (task.Status != TaskStatus.RanToCompletion)
 				{ // re-throw error
-					var ex = task.Exception.Unwrap()!;
+					var ex = task.Exception!.Unwrap();
 					error = ex;
 					Assert.Fail($"Task '{taskExpression}' failed with following error: {ex}");
 				}
@@ -587,7 +587,7 @@ namespace SnowBank.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted(nameof(Await), taskExpression, success, error, start, end);
+				await OnWaitOperationCompleted(nameof(Await), taskExpression, success, error, start, end).ConfigureAwait(false);
 			}
 		}
 

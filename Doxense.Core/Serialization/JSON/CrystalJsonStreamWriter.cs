@@ -152,6 +152,7 @@ namespace Doxense.Serialization.Json
 			await FlushInternalAsync(true, cancellationToken).ConfigureAwait(false);
 		}
 
+		[PublicAPI]
 		public sealed class ObjectStream : IDisposable
 		{
 			private readonly CrystalJsonStreamWriter m_parent;
@@ -275,7 +276,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Démarre manuellement un object, quelque soit le niveau de profondeur actuel</summary>
 		/// <returns>Sous-stream dans lequel écrire le fragment, et qu'il faut Dispose() lorsqu'il est terminé</returns>
 		[Pure]
-		public ObjectStream BeginObjectFragment(CancellationToken cancellationToken = default(CancellationToken))
+		public ObjectStream BeginObjectFragment(CancellationToken cancellationToken = default)
 		{
 			var state = m_writer.PushState(CrystalJsonWriter.NodeType.Object);
 			m_writer.Buffer.WriteLine("{");
@@ -398,6 +399,7 @@ namespace Doxense.Serialization.Json
 			await FlushInternalAsync(true, cancellationToken).ConfigureAwait(false);
 		}
 
+		[PublicAPI]
 		public sealed class ArrayStream : IDisposable
 		{
 			private readonly CrystalJsonStreamWriter m_parent;
@@ -411,15 +413,9 @@ namespace Doxense.Serialization.Json
 				m_state = state;
 			}
 
-			public CrystalJsonWriter Writer
-			{
-				get { return m_parent.m_writer; }
-			}
+			public CrystalJsonWriter Writer => m_parent.m_writer;
 
-			public CancellationToken Cancellation
-			{
-				get { return m_ct; }
-			}
+			public CancellationToken Cancellation => m_ct;
 
 			private void VisitValue(JsonValue value)
 			{
@@ -656,7 +652,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Démarre manuellement une array, quelque soit le niveau de profondeur actuel</summary>
 		/// <returns>Sous-stream, qu'il faut Dispose() une fois que l'array est terminée</returns>
 		[Pure]
-		public ArrayStream BeginArrayFragment(CancellationToken cancellationToken = default(CancellationToken))
+		public ArrayStream BeginArrayFragment(CancellationToken cancellationToken = default)
 		{
 			var state = m_writer.PushState(CrystalJsonWriter.NodeType.Array);
 			m_writer.Buffer.WriteLine("[");
@@ -703,16 +699,18 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Indique si le tampon mémoire dépasse la limite de taille acceptable</summary>
-		private bool ShouldFlush
-		{
-			get { return !m_disposed && m_scratch.Length >= AUTOFLUSH_THRESHOLD; }
-		}
+		private bool ShouldFlush => !m_disposed && m_scratch.Length >= AUTOFLUSH_THRESHOLD;
 
 		/// <summary>Fait en sorte que toutes les données écrites jusqu'a présent soient flushées dans le stream de destination</summary>
 		private async Task FlushInternalAsync(bool flushStream, CancellationToken cancellationToken)
 		{
 			// Flush le TextWriter pour être sûr que tous les caractères écrits arrivent dans le scratch stream!
-			m_writer.Buffer.Flush();
+#if NET8_0_OR_GREATER
+			await m_writer.Buffer.FlushAsync(cancellationToken).ConfigureAwait(false);
+#else
+			//BUGBUG: .NET 6 does not have an overload that takes a cancellation token :(
+			await m_writer.Buffer.FlushAsync().ConfigureAwait(false);
+#endif
 
 			// flush le scratch buffer dans le stream de destination si nécessaire
 			if (m_scratch.Length > 0)

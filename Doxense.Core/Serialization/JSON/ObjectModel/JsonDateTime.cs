@@ -40,11 +40,12 @@ namespace Doxense.Serialization.Json
 
 		#region Static Helpers...
 
-		public static readonly JsonDateTime MinValue = new JsonDateTime(DateTime.MinValue, NO_TIMEZONE);
-		public static readonly JsonDateTime MaxValue = new JsonDateTime(DateTime.MaxValue, NO_TIMEZONE);
+		public static readonly JsonDateTime MinValue = new(DateTime.MinValue, NO_TIMEZONE);
+		public static readonly JsonDateTime MaxValue = new(DateTime.MaxValue, NO_TIMEZONE);
 
-		public static JsonDateTime UtcNow { get { return new JsonDateTime(Truncate(DateTime.UtcNow)); } }
-		public static JsonDateTime Now { get { return new JsonDateTime(Truncate(DateTime.Now)); } }
+		public static JsonDateTime UtcNow => new(Truncate(DateTime.UtcNow));
+
+		public static JsonDateTime Now => new(Truncate(DateTime.Now));
 
 		/// <summary>Précision des dates JSON (lié à la façon dont elles sont sérialisées)</summary>
 		public static readonly long PrecisionTicks = TimeSpan.TicksPerMillisecond;
@@ -149,10 +150,7 @@ namespace Doxense.Serialization.Json
 
 		#region Public Members...
 
-		public long Ticks
-		{
-			get { return m_value.Ticks; }
-		}
+		public long Ticks => m_value.Ticks;
 
 		public long UtcTicks
 		{
@@ -203,32 +201,20 @@ namespace Doxense.Serialization.Json
 		public bool HasOffset => m_offset != NO_TIMEZONE;
 
 		/// <summary>Nombre de millisecondes écoulées depuis le 1er Janvier 1970 UTC</summary>
-		public long UnixTime
-		{
-			//note: c'est un long pour ne pas avoir de problème avec le Y2038 bug (Unix Time Epoch Bug)
-			get { return (this.UtcDateTime.Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerMillisecond; }
-		}
+		public long UnixTime => (this.UtcDateTime.Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerMillisecond;
+		//note: c'est un long pour ne pas avoir de problème avec le Y2038 bug (Unix Time Epoch Bug)
 
 		/// <summary>Nombre de jours écoulés depuis le 1er Janvier 1970 UTC</summary>
-		public double UnixTimeDays
-		{
-			//note: normalement pas affecté par le Y2038 bug
-			get { return (UtcTicks - UNIX_EPOCH_TICKS) / (double) TimeSpan.TicksPerDay; }
-		}
+		public double UnixTimeDays => (UtcTicks - UNIX_EPOCH_TICKS) / (double) TimeSpan.TicksPerDay;
+		//note: normalement pas affecté par le Y2038 bug
 
-		public bool IsLocalTime { get { return m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Local : m_offset != 0 /*TODO: comparer avec la TZ courrante ? */; } }
+		public bool IsLocalTime => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Local : m_offset != 0 /*TODO: comparer avec la TZ courrante ? */;
 
-		public bool IsUtc { get { return m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Utc : m_offset == 0; } }
+		public bool IsUtc => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Utc : m_offset == 0;
 
-		public DateTime ToUniversalTime()
-		{
-			return this.UtcDateTime;
-		}
+		public DateTime ToUniversalTime() => this.UtcDateTime;
 
-		public DateTime ToLocalTime()
-		{
-			return this.LocalDateTime;
-		}
+		public DateTime ToLocalTime() => this.LocalDateTime;
 
 		#endregion
 
@@ -253,7 +239,7 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion
 
-			return (T?) JsonValue.BindNative<JsonDateTime, long>(this, this.Ticks, typeof(T), resolver);
+			return (T?) BindNative(this, this.Ticks, typeof(T), resolver);
 		}
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
@@ -270,7 +256,7 @@ namespace Doxense.Serialization.Json
 			{
 				return NodaTime.Instant.FromDateTimeOffset(this.DateWithOffset);
 			}
-			return JsonValue.BindNative<JsonDateTime, long>(this, this.Ticks, type, resolver);
+			return BindNative(this, this.Ticks, type, resolver);
 		}
 
 		internal override bool IsSmallValue() => true;

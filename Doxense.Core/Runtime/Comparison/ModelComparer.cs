@@ -53,6 +53,7 @@ namespace Doxense.Runtime.Comparison
 	}
 
 	/// <summary>Classe helper pour la comparaison de classe modèles ("POCO")</summary>
+	[PublicAPI]
 	public static class ModelComparer
 	{
 
@@ -146,7 +147,7 @@ namespace Doxense.Runtime.Comparison
 			var t = typeof(Comparer<>).MakeGenericType(type).GetField(nameof(Comparer<int>.Default), BindingFlags.Static | BindingFlags.Public)!;
 			var x = t.GetValue(null)!;
 			var m = x.GetType().GetMethod(nameof(Comparer<int>.ComputeDifferences))!;
-			return (IEnumerable<(string MemberName, object?, object?)>) m.Invoke(x, new [] { left, right })!;
+			return (IEnumerable<(string MemberName, object?, object?)>) m.Invoke(x, [ left, right ])!;
 		}
 
 		[Pure]
@@ -521,7 +522,7 @@ namespace Doxense.Runtime.Comparison
 				body = Build(type, left, right);
 			}
 
-			return Expression.Lambda(body, tailCall: true, parameters: new[] { left, right });
+			return Expression.Lambda(body, tailCall: true, parameters: [ left, right ]);
 		}
 
 		/// <summary>Génère une lambda expression Func&lt;object, object, bool&gt; qui compare deux instances dont le type concret dérive de T (abstract ou interface)</summary>
@@ -544,14 +545,13 @@ namespace Doxense.Runtime.Comparison
 
 			var block = Expression.Block(
 				new [] { varLeft, varRight },
-				new []
-				{
+				[
 					Expression.Assign(varLeft, prmLeft.CastFromObject(type)),
 					Expression.Assign(varRight, prmRight.CastFromObject(type)),
 					body
-				}
+				]
 			);
-			return Expression.Lambda(block, tailCall: true, parameters: new[] {prmLeft, prmRight});
+			return Expression.Lambda(block, tailCall: true, parameters: [ prmLeft, prmRight ]);
 		}
 
 		private static Expression Build(Type type, Expression left, Expression right)
@@ -578,7 +578,7 @@ namespace Doxense.Runtime.Comparison
 			if (type.IsAbstract || type.IsInterface)
 			{ // dans tous les cas, il faudra passer par une query au runtime!
 				// (x, y) => DynamicCompare(x, y)
-				return Expression.Call(typeof(ModelComparerExpressionBuilder), nameof(RuntimeCompare), Type.EmptyTypes, new[] { Expression.Constant(type, typeof(Type)), left, right});
+				return Expression.Call(typeof(ModelComparerExpressionBuilder), nameof(RuntimeCompare), Type.EmptyTypes, [ Expression.Constant(type, typeof(Type)), left, right ]);
 			}
 
 			// Array-like
@@ -624,7 +624,7 @@ namespace Doxense.Runtime.Comparison
 			"Equals",
 			BindingFlags.Static | BindingFlags.Public,
 			null,
-			new[] {typeof(string), typeof(string)}, 
+			[ typeof(string), typeof(string) ], 
 			null
 		)!;
 
@@ -890,7 +890,7 @@ namespace Doxense.Runtime.Comparison
 		private static Expression MakeEquatableComparer(Type type, Type equatableOfType, Expression left, Expression right)
 		{
 			// on préfère passer par la grande porte, ie: si le type (surtout un struct) implémente explicitement Equals(...)
-			var mi = type.GetMethod("Equals", BindingFlags.Instance | BindingFlags.Public, null, new[] { type }, null);
+			var mi = type.GetMethod("Equals", BindingFlags.Instance | BindingFlags.Public, null, [ type ], null);
 			if (mi == null)
 			{ // implémentation explicite via l'interface?
 				mi = equatableOfType.GetMethod("Equals");
@@ -953,7 +953,7 @@ namespace Doxense.Runtime.Comparison
 				body = Build(type, item);
 			}
 
-			return Expression.Lambda(body, tailCall: true, parameters: new[] {item});
+			return Expression.Lambda(body, tailCall: true, parameters: [ item ]);
 		}
 
 		/// <summary>Génère une lambda expression <c>Func&lt;object, object, bool&gt;</c> qui compare deux instances dont le type concret dérive de T (abstract ou interface)</summary>
@@ -974,13 +974,12 @@ namespace Doxense.Runtime.Comparison
 
 			var block = Expression.Block(
 				new [] { varItem },
-				new []
-				{
+				[
 					Expression.Assign(varItem, prmItem.CastFromObject(type)),
 					body
-				}
+				]
 			);
-			return Expression.Lambda(block, tailCall: true, parameters: new[] {prmItem });
+			return Expression.Lambda(block, tailCall: true, parameters: [ prmItem ]);
 		}
 
 		public static Expression Build(Type type, Expression item)
@@ -1022,7 +1021,7 @@ namespace Doxense.Runtime.Comparison
 			{ // dans tous les cas, il faudra passer par une query au runtime!
 
 				// (x, y) => RuntimeHash(x, y)
-				return Expression.Call(RuntimeHashMethod, new[] { Expression.Constant(type, typeof(Type)), item});
+				return Expression.Call(RuntimeHashMethod, [ Expression.Constant(type, typeof(Type)), item ]);
 			}
 
 			return MakeCustomHashFunction(type, item);
@@ -1082,7 +1081,7 @@ namespace Doxense.Runtime.Comparison
 			nameof(IEqualityComparer<string>.GetHashCode),
 			BindingFlags.Instance | BindingFlags.Public,
 			null,
-			new[] {typeof(string)},
+			[ typeof(string) ],
 			null
 		)!;
 

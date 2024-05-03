@@ -32,7 +32,7 @@ namespace Doxense.Serialization
 	{
 		//note: c'est une copie de la classe hellper Base32 qui est internal dans la BCL ! :(
 
-		private static readonly string _base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+		private static readonly string Base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 		public static string ToBase32(byte[] input)
 		{
@@ -53,14 +53,14 @@ namespace Doxense.Serialization
 				byte a, b, c, d, e, f, g, h;
 				int numCharsToOutput = GetNextGroup(input, ref offset, out a, out b, out c, out d, out e, out f, out g, out h);
 
-				sb.Append((numCharsToOutput >= 1) ? _base32Chars[a] : '=');
-				sb.Append((numCharsToOutput >= 2) ? _base32Chars[b] : '=');
-				sb.Append((numCharsToOutput >= 3) ? _base32Chars[c] : '=');
-				sb.Append((numCharsToOutput >= 4) ? _base32Chars[d] : '=');
-				sb.Append((numCharsToOutput >= 5) ? _base32Chars[e] : '=');
-				sb.Append((numCharsToOutput >= 6) ? _base32Chars[f] : '=');
-				sb.Append((numCharsToOutput >= 7) ? _base32Chars[g] : '=');
-				sb.Append((numCharsToOutput >= 8) ? _base32Chars[h] : '=');
+				sb.Append((numCharsToOutput >= 1) ? Base32Chars[a] : '=');
+				sb.Append((numCharsToOutput >= 2) ? Base32Chars[b] : '=');
+				sb.Append((numCharsToOutput >= 3) ? Base32Chars[c] : '=');
+				sb.Append((numCharsToOutput >= 4) ? Base32Chars[d] : '=');
+				sb.Append((numCharsToOutput >= 5) ? Base32Chars[e] : '=');
+				sb.Append((numCharsToOutput >= 6) ? Base32Chars[f] : '=');
+				sb.Append((numCharsToOutput >= 7) ? Base32Chars[g] : '=');
+				sb.Append((numCharsToOutput >= 8) ? Base32Chars[h] : '=');
 			}
 
 			return sb.ToString();
@@ -77,7 +77,7 @@ namespace Doxense.Serialization
 			input = input.TrimEnd('=');
 			if (input.Length == 0)
 			{
-				return Array.Empty<byte>();
+				return [ ];
 			}
 
 			var output = new byte[input.Length * 5 / 8];
@@ -85,7 +85,7 @@ namespace Doxense.Serialization
 			var inputIndex = 0;
 			var outputBits = 0;
 			var outputIndex = 0;
-			var base32Chars = _base32Chars;
+			var base32Chars = Base32Chars;
 			while (outputIndex < output.Length)
 			{
 				var byteIndex = base32Chars.IndexOf(char.ToUpperInvariant(input[inputIndex]));

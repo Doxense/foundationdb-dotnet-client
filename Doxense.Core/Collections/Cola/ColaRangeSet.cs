@@ -338,7 +338,7 @@ namespace Doxense.Collections.Generic
 
 		public IEnumerable<Entry> IterateOrdered()
 		{
-			return m_items.IterateOrdered(false);
+			return m_items.IterateOrdered();
 		}
 
 		IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator()

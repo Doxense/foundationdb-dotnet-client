@@ -368,7 +368,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <paramref name="defaultValue"/>.</remarks>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? As<TValue>(this JsonValue? value, TValue defaultValue, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue As<TValue>(this JsonValue? value, TValue defaultValue, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value is null or JsonNull)
 			{
@@ -808,8 +808,9 @@ namespace Doxense.Serialization.Json
 
 		#region Getters...
 
-		/// <summary>Return the value of the <b>required</b> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
+		/// <summary>Returns the value of the <b>required</b> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/></returns>
 		/// <exception cref="JsonBindingException">The field is null or missing, or cannot be bound to the specified type.</exception>
@@ -824,8 +825,9 @@ namespace Doxense.Serialization.Json
 			return arr.ToArray<TValue>()!;
 		}
 
-		/// <summary>Return the value of the <b>required</b> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
+		/// <summary>Returns the value of the <b>required</b> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="resolver">Optional custom type resolver</param>
 		/// <param name="message">Optional error message if the required array is null or missing</param>
@@ -844,6 +846,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">Values returned if the field is null or missing.</param>
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the field was null or missing.</returns>
@@ -854,6 +857,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">Values returned if the field is null or missing.</param>
 		/// <param name="resolver">Optional custom type resolver</param>
@@ -883,6 +887,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">Values returned if the field is null or missing.</param>
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the field was null or missing.</returns>
@@ -892,6 +897,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">Values returned if the field is null or missing.</param>
 		/// <param name="resolver">Optional custom type resolver</param>
@@ -920,6 +926,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <b>required</b> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <returns>List of values converted into instances of type <typeparamref name="TValue"/></returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
@@ -934,6 +941,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <b>required</b> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="resolver">Optional custom type resolver</param>
 		/// <param name="message">Optional error message if the required array is null or missing</param>
@@ -950,6 +958,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">List returned if the field is null or missing.</param>
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the field was null or missing.</returns>
@@ -960,6 +969,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">List returned if the field is null or missing.</param>
 		/// <param name="resolver">Optional custom type resolver</param>
@@ -990,6 +1000,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Return the value of the <b>required</b> field with the specified name, converted into a dictionary with keys of type <typeparamref name="TKey"/> and elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TKey">Type of the keys of the dictionary</typeparam>
 		/// <typeparam name="TValue">Type of the elements of the dictionary</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="resolver">Optional custom type resolver</param>
 		/// <param name="message">Optional error message if the required array is null or missing</param>
@@ -1009,6 +1020,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a dictionary with keys of type <typeparamref name="TKey"/> and elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TKey">Type of the keys of the dictionary</typeparam>
 		/// <typeparam name="TValue">Type of the elements of the dictionary</typeparam>
+		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
 		/// <param name="defaultValue">Dictionary returned if the field is null or missing.</param>
 		/// <param name="resolver">Optional custom type resolver</param>
@@ -1036,7 +1048,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		public static Dictionary<TKey, TValue>? GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue) where TKey : notnull
-			=> GetDictionary<TKey, TValue>(self, key, defaultValue, null);
+			=> GetDictionary(self, key, defaultValue, null);
 
 		#endregion
 

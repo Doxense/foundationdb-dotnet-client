@@ -174,7 +174,7 @@ namespace Doxense.IO.Hashing
 		/// <remarks><see cref="ChooseMultiple"/>(key, 1) is equivalent to calling <see cref="Choose"/>(key), and <see cref="ChooseMultiple"/>(key, Buckets.Count) is equivalent to calling <see cref="RankBy"/>(key).ToArray()</remarks>
 		public TBucket[] ChooseMultiple(TKey key, int n)
 		{
-			if (n == 1) return new[] { Choose(key) };
+			if (n == 1) return [ Choose(key) ];
 			return RankBy(key).Take(n).ToArray();
 		}
 

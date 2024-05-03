@@ -432,7 +432,7 @@ namespace Doxense.Collections.Caching
 					return false;
 				}
 
-				if (valueComparer == null) valueComparer = EqualityComparer<TValue>.Default;
+				valueComparer ??= EqualityComparer<TValue>.Default;
 				if (!valueComparer.Equals(original[key], expectedValue))
 				{ // pas la bonne valeur !
 					return false;

@@ -73,7 +73,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			// look for well-known types that have their own (non-generic) TuplePackers.SerializeTo(...) method
-			var method = typeof(TuplePackers).GetMethod(nameof(SerializeTo), BindingFlags.Static | BindingFlags.Public, binder: null, types: new[] { typeof(TupleWriter).MakeByRefType(), type }, modifiers: null);
+			var method = typeof(TuplePackers).GetMethod(nameof(SerializeTo), BindingFlags.Static | BindingFlags.Public, binder: null, types: [ typeof(TupleWriter).MakeByRefType(), type ], modifiers: null);
 			if (method != null)
 			{ // we have a direct serializer
 				try

@@ -62,7 +62,7 @@ namespace Doxense.Messaging.PubSub
 
 		public Task<IAsyncDisposable> SubscribeAsync(string channel, Func<string, JsonValue, CancellationToken, ValueTask> onMessageReceived, CancellationToken ct)
 		{
-			if (this.disposed) throw new ObjectDisposedException(this.GetType().Name);
+			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
 			var subscription = new Subscription(this, Guid.NewGuid(), channel, onMessageReceived);
 			this.SubscribersByChannel.TryAdd(subscription.Id, subscription);
 			return Task.FromResult<IAsyncDisposable>(subscription);
@@ -78,7 +78,7 @@ namespace Doxense.Messaging.PubSub
 			Contract.NotNull(channel);
 			Contract.NotNull(message);
 			Contract.Debug.Requires(message.IsReadOnly);
-			if (this.disposed) throw new ObjectDisposedException(this.GetType().Name);
+			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
 			ct.ThrowIfCancellationRequested();
 
 			foreach (var subscribersByChannel in this.SubscribersByChannel.Values)
@@ -93,7 +93,7 @@ namespace Doxense.Messaging.PubSub
 
 		private ConcurrentDictionary<Guid, Subscription> SubscribersByChannel { get; set; } = new ConcurrentDictionary<Guid, Subscription>();
 		
-		private bool disposed;
+		private bool m_disposed;
 		public void Dispose()
 		{
 			Dispose(true);
@@ -102,8 +102,8 @@ namespace Doxense.Messaging.PubSub
 
 		protected virtual void Dispose(bool disposing)
 		{
-			if (disposed) return;
-			disposed = true;
+			if (m_disposed) return;
+			m_disposed = true;
 			if (disposing)
 			{
 				this.SubscribersByChannel.Clear();

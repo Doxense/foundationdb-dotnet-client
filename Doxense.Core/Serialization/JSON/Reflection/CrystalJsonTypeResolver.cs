@@ -641,7 +641,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private static MethodInfo MakeFillerMethod(Type resolverType, string name, Type resultType, string key)
 		{
-			var mi = resolverType.MakeGenericMethod(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy, new [] { typeof(JsonValue), resultType });
+			var mi = resolverType.MakeGenericMethod(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy, [ typeof(JsonValue), resultType ]);
 			if (mi == null) throw new ArgumentException($"No matching filler method {name} found on {resolverType.GetFriendlyName()}", nameof(name));
 
 			s_fillers.SetItem(key, mi);
@@ -1449,7 +1449,7 @@ namespace Doxense.Serialization.Json
 				prmValue;
 
 			// body == "(object) Type.JsonDeserialize((JsonObject) value, resolver)"
-			Expression body = Expression.New(ctor, prms.Length == 1 ? new [] { castedJsonObject } : new [] { castedJsonObject, prmResolver}).BoxToObject();
+			Expression body = Expression.New(ctor, prms.Length == 1 ? [ castedJsonObject ] : [ castedJsonObject, prmResolver ]).BoxToObject();
 
 			// "value.IsNullOrMissing()"
 			var isNull = Expression.Call(typeof(JsonValueExtensions).GetMethod(nameof(JsonValueExtensions.IsNullOrMissing))!, prmValue);

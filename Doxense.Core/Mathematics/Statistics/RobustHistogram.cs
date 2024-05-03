@@ -70,8 +70,8 @@ namespace Doxense.Mathematics.Statistics
 		private const int NumBuckets = 193;
 		public const double MinValue = 0;
 		public const double MaxValue = 1e200;
-		private static readonly double[] BucketLimits = new double[NumBuckets]
-		{
+		private static readonly double[] BucketLimits =
+		[
 			/*   0 */ 0.001, 0.002, 0.0025, 0.005, 0.01, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.06, 0.07, 0.08, 0.09,
 			/*  16 */ 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.60, 0.70, 0.80, 0.90,
 			/*  32 */ 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9,
@@ -85,7 +85,7 @@ namespace Doxense.Mathematics.Statistics
 			/* 160 */ 100000000, 120000000, 140000000, 160000000, 180000000, 200000000, 250000000, 300000000, 350000000, 400000000, 450000000, 500000000, 600000000, 700000000, 800000000, 900000000,
 			/* 176 */ 1000000000, 1200000000, 1400000000, 1600000000, 1800000000, 2000000000, 2500000000, 3000000000, 3500000000, 4000000000, 4500000000, 5000000000, 6000000000, 7000000000, 8000000000, 9000000000,
 			/* 192 */ 1e200
-		};
+		];
 
 		private const int INDEX_ONE = 32;
 		private const int INDEX_HUNDRED = 64;
@@ -688,7 +688,7 @@ namespace Doxense.Mathematics.Statistics
 		/// <summary>Compte the value of the given percentile <paramref name="p"/> (0..100%)</summary>
 		/// <param name="p">Value of the percentile, expressed in % from 0 to 100 (ex: 50 is equivalent to the median)</param>
 		/// <returns>Corresponding percentile value</returns>
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public double Percentile(double p)
 		{
 			if (this.Count <= 0) return double.NaN;
@@ -714,8 +714,9 @@ namespace Doxense.Mathematics.Statistics
 			return this.Max;
 		}
 
-		/// <summary>Compute the Mean Absolute Deviation</summary>
-		[Pure]
+		/// <summary>Computes the Mean Absolute Deviation</summary>
+		[MustUseReturnValue, Pure]
+		// ReSharper disable once InconsistentNaming
 		public double MAD()
 		{
 			if (this.Count == 0) return 0;
@@ -756,14 +757,14 @@ namespace Doxense.Mathematics.Statistics
 		/// <summary>Compute the arithmetic average</summary>
 		public double Average
 		{
-			[Pure]
+			[MustUseReturnValue, Pure]
 			get => this.Count == 0 ? 0 : (this.Sum / this.Count);
 		}
 
 		/// <summary>Compute the standard deviation</summary>
 		public double StandardDeviation
 		{
-			[Pure]
+			[MustUseReturnValue, Pure]
 			get
 			{
 				if (this.Count == 0) return 0;
@@ -772,10 +773,10 @@ namespace Doxense.Mathematics.Statistics
 			}
 		}
 
-		[Pure]
+		[MustUseReturnValue, Pure]
 		private static string FormatHistoBar(double value, int chars, char pad = '\0', bool sparse = false)
 		{
-			int marks = (int)Math.Round((value * chars * 10), MidpointRounding.AwayFromZero);
+			int marks = (int) Math.Round((value * chars * 10), MidpointRounding.AwayFromZero);
 
 			if (value >= 1)
 			{
@@ -829,7 +830,7 @@ namespace Doxense.Mathematics.Statistics
 
 		/// <summary>Generate an areaplot that will display the distribution of samples, by value</summary>
 		/// <returns>String that will look like this: <c>"   __xX=-___x___     "</c></returns>
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public string GetDistribution(double begin = 1.0d, double end = MaxValue, int fold = 0)
 		{
 			if (fold < 1) fold = 1;
@@ -854,7 +855,7 @@ namespace Doxense.Mathematics.Statistics
 			return new string(cs);
 		}
 
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public double[] GetDistributionData(double start = 1.0d, double end = MaxValue)
 		{
 			int offset = GetBucketIndex(start);
@@ -867,7 +868,7 @@ namespace Doxense.Mathematics.Statistics
 			return xs;
 		}
 
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public string GetDistributionAuto() => GetDistribution(this.LowThreshold, this.HighThreshold);
 
 		private static void Write(char[] buf, int offset, double p, char c, char ifEqual = '\0', char replaceWith = '\0')
@@ -892,7 +893,7 @@ namespace Doxense.Mathematics.Statistics
 		/// - 'x' = P01, P99
 		/// </code>
 		/// </returns>
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public string GetPercentile(double start = 1.0d, double end = MaxValue)
 		{
 			int offset = GetBucketIndex(start);
@@ -936,16 +937,16 @@ namespace Doxense.Mathematics.Statistics
 			return new string(cs);
 		}
 
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public string GetPercentileAuto() => GetPercentile(this.LowThreshold, this.HighThreshold);
 
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public static double GetMinThreshold(double value)
 		{
 			return Math.Pow(1000, Math.Floor(Math.Log10(value) / 3));
 		}
 
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public static double GetMaxThreshold(double value)
 		{
 			return Math.Pow(1000, Math.Ceiling(Math.Log10(value) / 3));
@@ -953,18 +954,18 @@ namespace Doxense.Mathematics.Statistics
 
 		public double LowThreshold
 		{
-			[Pure]
+			[MustUseReturnValue, Pure]
 			get => GetMinThreshold(this.Min);
 		}
 
 		public double HighThreshold
 		{
-			[Pure]
+			[MustUseReturnValue, Pure]
 			get => GetMaxThreshold(this.Max);
 		}
 
 		/// <summary>Truncate a distribution scale according to the specified range</summary>
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public static string GetDistributionScale(string scaleString, double start = 1.0d, double end = MaxValue)
 		{
 			int offset = Math.Max(GetBucketIndex(start) - 1, 0);
@@ -974,12 +975,12 @@ namespace Doxense.Mathematics.Statistics
 			return scaleString.Substring(offset, len);
 		}
 
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public string GetScaleAuto(string? scaleString = null) => GetDistributionScale(scaleString ?? HorizontalScale, this.LowThreshold, this.HighThreshold);
 
 		/// <summary>Generate a short text description of the percentiles of this distribution</summary>
 		/// <returns><c>"P5 --| P25 == [ P50 ]== P75 |-- P95"</c></returns>
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public string GetPercentiles()
 		{
 			return String.Format(
@@ -995,7 +996,7 @@ namespace Doxense.Mathematics.Statistics
 
 		/// <summary>Generate a text report of the measurements, that can be written to the console or in a log file</summary>
 		/// <param name="detailed">If <c>false</c>, generate a simple table. If <c>true</c>, output a more detailed version with bar graphs, that could exceed 80 characters per line.</param>
-		[Pure]
+		[MustUseReturnValue, Pure]
 		public string GetReport(bool detailed)
 		{
 			var r = new StringBuilder(1024);
