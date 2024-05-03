@@ -185,6 +185,7 @@ namespace Doxense.Serialization.Json
 				new CrystalJsonMemberDefinition()
 				{
 					Name = "Key",
+					OriginalName = "Key",
 					Type = keyType,
 					DefaultValue = keyType.GetDefaultValue(),
 					ReadOnly = true,
@@ -197,6 +198,7 @@ namespace Doxense.Serialization.Json
 				new CrystalJsonMemberDefinition()
 				{
 					Name = "Value",
+					OriginalName = "Value",
 					Type = valueType,
 					DefaultValue = valueType.GetDefaultValue(),
 					ReadOnly = true,
@@ -646,6 +648,30 @@ namespace Doxense.Serialization.Json
 			return mi;
 		}
 
+		internal static bool TryMapException(Exception ex, int index, Type elementType, JsonValue? child, [MaybeNullWhen(false)] out JsonBindingException mapped)
+		{
+			if (ex is TargetInvocationException tiex)
+			{
+				ex = tiex.InnerException ?? ex;
+			}
+			if (ex is JsonBindingException jbex)
+			{
+				var path = JsonPath.Create(index);
+				var reason = jbex.Reason ?? jbex.Message;
+				if (jbex.Path != null)
+				{
+					path = JsonPath.Combine(path, jbex.Path.Value);
+				}
+				var targetType = jbex.TargetType ?? elementType;
+				var jsonValue = jbex.Value ?? child;
+				mapped = new JsonBindingException($"Cannot bind{(jsonValue != null ? $" JSON {jsonValue.Type} to":"")} field '({elementType.GetFriendlyName()}[]){path}' of type '{targetType.GetFriendlyName()}': {reason}", reason, path, jbex.Value, targetType);
+				return true;
+			}
+
+			mapped = null;
+			return false;
+		}
+
 		[UsedImplicitly]
 		public static TOutput[] FillArray<TInput, TOutput>(IList<TInput> array, [InstantHandle] Func<Type, TInput, object> convert)
 		{
@@ -653,7 +679,17 @@ namespace Doxense.Serialization.Json
 			var list = new TOutput[array.Count];
 			for (int i = 0; i < list.Length; i++)
 			{
-				list[i] = (TOutput)convert(type, array[i]);
+				try
+				{
+					list[i] = (TOutput) convert(type, array[i]);
+				}
+				catch (Exception ex)
+				{
+					if (TryMapException(ex, i, typeof(TOutput), array[i] as JsonValue, out var mapped))
+					{
+						throw mapped;
+					}
+				}
 			}
 			return list;
 		}
@@ -665,7 +701,17 @@ namespace Doxense.Serialization.Json
 			var list = new List<TOutput>(array.Count);
 			foreach (var item in array)
 			{
-				list.Add((TOutput)convert(type, item));
+				try
+				{
+					list.Add((TOutput) convert(type, item));
+				}
+				catch (Exception ex)
+				{
+					if (TryMapException(ex, list.Count, typeof(TOutput), item as JsonValue, out var mapped))
+					{
+						throw mapped;
+					}
+				}
 			}
 			return list;
 		}
@@ -677,7 +723,17 @@ namespace Doxense.Serialization.Json
 			var list = new HashSet<TOutput>();
 			foreach (var item in array)
 			{
-				list.Add((TOutput)convert(type, item));
+				try
+				{
+					list.Add((TOutput) convert(type, item));
+				}
+				catch (Exception ex)
+				{
+					if (TryMapException(ex, list.Count, typeof(TOutput), item as JsonValue, out var mapped))
+					{
+						throw mapped;
+					}
+				}
 			}
 			return list;
 		}
@@ -688,7 +744,17 @@ namespace Doxense.Serialization.Json
 			var list = ImmutableList.CreateBuilder<TOutput>();
 			foreach (var item in array)
 			{
-				list.Add((TOutput) convert(type, item));
+				try
+				{
+					list.Add((TOutput) convert(type, item));
+				}
+				catch (Exception ex)
+				{
+					if (TryMapException(ex, list.Count, typeof(TOutput), item as JsonValue, out var mapped))
+					{
+						throw mapped;
+					}
+				}
 			}
 			return list.ToImmutable();
 		}
@@ -700,7 +766,17 @@ namespace Doxense.Serialization.Json
 			var hashSet = ImmutableHashSet.CreateBuilder<TOutput>();
 			foreach (var item in array)
 			{
-				hashSet.Add((TOutput) convert(type, item));
+				try
+				{
+					hashSet.Add((TOutput) convert(type, item));
+				}
+				catch (Exception ex)
+				{
+					if (TryMapException(ex, hashSet.Count, typeof(TOutput), item as JsonValue, out var mapped))
+					{
+						throw mapped;
+					}
+				}
 			}
 			return hashSet.ToImmutable();
 		}
@@ -856,6 +932,7 @@ namespace Doxense.Serialization.Json
 				members.Add(new CrystalJsonMemberDefinition()
 				{
 					Name = name,
+					OriginalName = field.Name,
 					Type = fieldType,
 					Attributes = jprop,
 					DefaultValue = defaultValue,
@@ -918,6 +995,7 @@ namespace Doxense.Serialization.Json
 				members.Add(new CrystalJsonMemberDefinition
 				{
 					Name = name,
+					OriginalName = property.Name,
 					Type = propertyType,
 					Attributes = jprop,
 					DefaultValue = defaultValue,

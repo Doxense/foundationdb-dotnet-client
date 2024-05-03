@@ -194,7 +194,7 @@ namespace Doxense.Serialization.Json
 
 		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
-		public override JsonValue GetValue(string key) => JsonValueExtensions.FailFieldIsNullOrMissing(key);
+		public override JsonValue GetValue(string key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 
 		public override JsonValue GetValue(int index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
 

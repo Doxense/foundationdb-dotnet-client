@@ -35,6 +35,10 @@ namespace Doxense.Serialization.Json
 		/// <summary>Name of the member</summary>
 		public required string Name { get; init; }
 
+		/// <summary>Name in the enclosing type</summary>
+		/// <remarks>Represent the original name in the c# code, while <see cref="Name"/> is the name in the JSON object</remarks>
+		public string? OriginalName { get; init; }
+
 		/// <summary>Declared type of the member</summary>
 		public required Type Type { get; init; }
 

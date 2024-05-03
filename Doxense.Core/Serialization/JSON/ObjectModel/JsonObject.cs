@@ -1996,7 +1996,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_items.TryGetValue(key, out var value) || value is JsonNull)
 			{ // The property does not exist in this object, or is null or missing
-				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(key);
+				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 				return null;
 			}
 			if (value.Type != expectedType)

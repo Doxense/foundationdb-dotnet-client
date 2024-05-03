@@ -33,6 +33,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
+	using System.Reflection;
 	using System.Text;
 	using Doxense.Text;
 	using Doxense.Tools;
@@ -517,12 +518,24 @@ namespace Doxense.Serialization.Json
 				catch(Exception e)
 				{
 					// Pour aider a tracker le path vers la valeur qui cause pb, on va re-wrap l'exception!
+					if (e is TargetInvocationException tiex)
+					{
+						e = tiex.InnerException ?? e;
+					}
+					var path = JsonPath.Create(member.OriginalName ?? member.Name);
 					if (e is JsonBindingException jbex)
 					{
-						string path = jbex.Path != null ? (member.Name + "." + jbex.Path) : member.Name;
-						throw new JsonBindingException($"Cannot bind member '{typeDef.Type.GetFriendlyName()}.{member.Name}': {jbex.Message}", path, jbex.Value, jbex.InnerException);
+						// we have to repeat the original reason and the original path!
+						var reason = jbex.Reason ?? jbex.Message;
+						if (jbex.Path != null)
+						{
+							path = JsonPath.Combine(path, jbex.Path.Value);
+						}
+						var targetType = jbex.TargetType ?? member.Type;
+						throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': {reason}", reason, path, jbex.Value, targetType);
 					}
-					throw new JsonBindingException($"Cannot bind member '{typeDef.Type.GetFriendlyName()}.{member.Name}' of type '{member.Type.GetFriendlyName()}': [{e.GetType().GetFriendlyName()}] {e.Message}", member.Name, child, e);
+
+					throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': [{e.GetType().GetFriendlyName()}] {e.Message}", path, child, member.Type, e);
 				}
 
 				// Ecrit la valeur dans le champ correspondant
@@ -533,7 +546,8 @@ namespace Doxense.Serialization.Json
 				}
 				catch(Exception e)
 				{
-					throw new JsonBindingException($"Cannot assign member '{instance.GetType().GetFriendlyName()}.{member.Name}' of type '{member.Type.GetFriendlyName()}' with value of type '{(value?.GetType().GetFriendlyName() ?? "<null>")}': [{e.GetType().GetFriendlyName()}] {e.Message}", member.Name, child, e);
+					var path = JsonPath.Create(member.Name);
+					throw new JsonBindingException($"Cannot assign member '{instance.GetType().GetFriendlyName()}.{member.Name}' of type '{member.Type.GetFriendlyName()}' with value of type '{(value?.GetType().GetFriendlyName() ?? "<null>")}': [{e.GetType().GetFriendlyName()}] {e.Message}", path, child, member.Type, e);
 				}
 			}
 

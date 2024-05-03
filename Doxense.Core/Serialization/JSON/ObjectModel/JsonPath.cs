@@ -39,6 +39,20 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonPath Create(string? path) => path == null ? default : new(path.AsMemory());
 
+		/// <summary>Returns a JsonPath that wraps an index</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonPath Create(int index) => index switch
+		{
+			0 => new("[0]"),
+			1 => new("[1]"),
+			2 => new("[2]"),
+			_ => new($"[{index}]"),
+		};
+
+		/// <summary>Returns a JsonPath that wraps an index</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonPath Create(Index index) => !index.IsFromEnd ? Create(index.Value) : index.Value == 1 ? new("[^1]") : new JsonPath($"[{index}]");
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator JsonPath(string? path) => path == null ? default : new(path.AsMemory());
 
@@ -128,19 +142,67 @@ namespace Doxense.Serialization.Json
 				l = checked(l + 1 + key.Length);
 				return new(string.Create(l, (Path: this.Value, Key: key), ((span, state) =>
 				{
-					// (this.Value.Span.ToString() + "." + key)
 					state.Path.Span.CopyTo(span);
 					span = span[state.Path.Length..];
 					span[0] = '.';
 					span = span[1..];
-					Contract.Debug.Assert(span.Length == key.Length);
-					key.CopyTo(span);
+					Contract.Debug.Assert(span.Length == state.Key.Length);
+					state.Key.CopyTo(span);
 				})));
 			}
 		}
 
 		/// <summary>Appends an field to this path (ex: <c>JsonPath.Return("user")["xxxidxxx".AsSpan(3, 2)]</c> => "user.id")</summary>
 		public JsonPath this[ReadOnlySpan<char> key] => new(this.Value.Length == 0 ? key.ToString() : (this.Value.Span.ToString() + "." + key.ToString()));
+
+		private static string ConcatWithIndexer(ReadOnlyMemory<char> head, ReadOnlyMemory<char> tail)
+		{
+			int l = checked(head.Length + tail.Length);
+			return string.Create(
+				l,
+				(Head: head, Tail: tail),
+				(span, state) =>
+				{
+					state.Head.Span.CopyTo(span);
+					span = span[state.Head.Length..];
+					Contract.Debug.Assert(span.Length == state.Tail.Length);
+					state.Tail.Span.CopyTo(span);
+				}
+			);
+		}
+
+		private static string ConcatWithField(ReadOnlyMemory<char> head, ReadOnlyMemory<char> tail)
+		{
+			int l = checked(head.Length + 1 + tail.Length);
+			return string.Create(
+				l,
+				(Head: head, Tail: tail),
+				(span, state) =>
+				{
+					state.Head.Span.CopyTo(span);
+					span = span[state.Head.Length..];
+					span[0] = '.';
+					span = span[1..];
+					Contract.Debug.Assert(span.Length == state.Tail.Length);
+					state.Tail.Span.CopyTo(span);
+				}
+			);
+		}
+
+		public static JsonPath Combine(JsonPath parent, JsonPath child)
+		{
+			if (parent.IsEmpty()) return child;
+			if (child.IsEmpty()) return parent;
+			if (child.Value.Span[0] == '[')
+			{
+				return new(ConcatWithIndexer(parent.Value, child.Value));
+			}
+			else
+			{
+				return new(ConcatWithField(parent.Value, child.Value));
+			}
+		}
+
 
 		/// <summary>Tests if this path is a parent of another path</summary>
 		/// <example><code>

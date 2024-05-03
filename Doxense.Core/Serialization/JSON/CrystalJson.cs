@@ -1554,27 +1554,27 @@ namespace Doxense.Serialization.Json
 			#region Parsing Errors...
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value)
 			{
-				return new JsonBindingException($"Cannot parse JSON {valueType} as an Object.");
+				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonArray(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonArray(JsonValue? value)
 			{
-				return new JsonBindingException($"Cannot parse JSON {valueType} as an Array.");
+				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Array.", value);
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonNumber(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonNumber(JsonValue? value)
 			{
-				return new JsonBindingException($"Cannot parse JSON {valueType} as a Number.");
+				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Number.", value);
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonString(JsonType valueType)
+			internal static JsonBindingException Parsing_CannotCastToJsonString(JsonValue? value)
 			{
-				return new JsonBindingException($"Cannot parse JSON {valueType} as a String.");
+				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a String.", value);
 			}
 
 			#endregion

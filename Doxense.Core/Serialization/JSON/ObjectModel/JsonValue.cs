@@ -1343,11 +1343,11 @@ namespace Doxense.Serialization.Json
 				{ // field access
 					if (current.IsNullOrMissing())
 					{
-						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Missing;
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(this, path) : defaultValue ?? JsonNull.Missing;
 					}
 					if (current is not JsonObject obj)
 					{ // equivalent to null, but to notify that we tried to index into a value that is not an object
-						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Error;
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(this, path) : defaultValue ?? JsonNull.Error;
 					}
 					current = obj.GetValueOrDefault(key);
 				}
@@ -1355,11 +1355,11 @@ namespace Doxense.Serialization.Json
 				{ // array index
 					if (current.IsNullOrMissing())
 					{
-						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Missing;
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(this, path) : defaultValue ?? JsonNull.Missing;
 					}
 					if (current is not JsonArray arr)
 					{ // equivalent to null, but to notify that we tried to index into a value that is not an object
-						return required ? JsonValueExtensions.FailPathIsNullOrMissing(path.ToString()) : defaultValue ?? JsonNull.Error;
+						return required ? JsonValueExtensions.FailPathIsNullOrMissing(this, path) : defaultValue ?? JsonNull.Error;
 					}
 					current = arr.GetValueOrDefault(idx);
 				}
@@ -1367,7 +1367,7 @@ namespace Doxense.Serialization.Json
 
 			if (current is JsonNull)
 			{
-				if (required) throw JsonValueExtensions.ErrorPathIsNullOrMissing(path.ToString());
+				if (required) throw JsonValueExtensions.ErrorPathIsNullOrMissing(this, path);
 				// must keep the "type" of null so that we can distinguish between an explicit null, or a missing field in the path
 				return defaultValue ?? current;
 			}
