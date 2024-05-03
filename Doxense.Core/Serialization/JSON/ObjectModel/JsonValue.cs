@@ -42,9 +42,6 @@ namespace Doxense.Serialization.Json
 #pragma warning disable CS0618 // Type or member is obsolete
 		, IJsonDynamic
 #pragma warning restore CS0618 // Type or member is obsolete
-#pragma warning disable CS0612 // Type or member is obsolete
-		, IJsonConvertible
-#pragma warning restore CS0612 // Type or member is obsolete
 	{
 		/// <summary>Type du token JSON</summary>
 		public abstract JsonType Type { [Pure] get; }

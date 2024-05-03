@@ -28,15 +28,10 @@ namespace Doxense.Serialization.Json
 {
 	using System.Diagnostics.CodeAnalysis;
 
-	[Obsolete] // this interface does not provide any benefit and will be removed soon
+	[Obsolete("This will be removed soon", error: true)]
 	public interface IJsonConvertible
 	{
 
-		//note: ToString() existe déjà sur System.Object
-
-		/// <summary>Retourne la représentation textuelle correspondante de cette valeur</summary>
-		/// <returns>Valeur texte pour des chaînes, nombres, booléens, dates. Retourne null pour toute instance de JsonNull. Génère une exception pour les Array ou Object</returns>
-		/// <remarks>Cette méthode permet de faire la différence entre des valeurs null/manquante et chaîne vide, deux cas où <see cref="JsonValue.ToString()"/> retourne <see cref="String.Empty"/>.</remarks>
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		string? ToStringOrDefault(string? defaultValue = default);
 
@@ -139,6 +134,7 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	[Obsolete("This will be removed soon", error: true)]
 	public interface IJsonTryConvertible
 	{
 		bool TryConvertString(out string value);
@@ -153,6 +149,5 @@ namespace Doxense.Serialization.Json
 		bool TryConvertDouble(out double value);
 		bool TryConvertDecimal(out decimal value);
 	}
-
 
 }
