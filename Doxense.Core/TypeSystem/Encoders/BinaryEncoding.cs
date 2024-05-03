@@ -73,13 +73,16 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Encodes 80-bit or 85-bits VersionStamp as 16 bytes</summary>
 		public static IValueEncoder<VersionStamp> VersionStampEncoder => BinaryEncoding.Instance;
 
-		public IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>()
+		public IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>() where TValue : notnull
 		{
-			if (typeof(TStorage) != typeof(Slice)) throw new NotSupportedException("BinaryEncoding can only use Slice as the storage type.");
+			if (typeof(TStorage) != typeof(Slice))
+			{
+				throw new NotSupportedException("BinaryEncoding can only use Slice as the storage type.");
+			}
 			return (IValueEncoder<TValue, TStorage>) GetValueEncoder<TValue>();
 		}
 
-		public IValueEncoder<TValue> GetValueEncoder<TValue>()
+		public IValueEncoder<TValue> GetValueEncoder<TValue>() where TValue : notnull
 		{
 			if (typeof(TValue) == typeof(Slice)) return (IValueEncoder<TValue>) (object) this;
 			if (typeof(TValue) == typeof(string)) return (IValueEncoder<TValue>) (object) this;

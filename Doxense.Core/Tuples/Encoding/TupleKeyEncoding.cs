@@ -83,7 +83,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return (IValueEncoder<TValue, TStorage>) GetValueEncoder<TValue>();
 		}
 
-		public IValueEncoder<TValue> GetValueEncoder<TValue>()
+		public IValueEncoder<TValue> GetValueEncoder<TValue>() where TValue : notnull
 		{
 			return TupleEncoder.Encoder<TValue>.Default;
 		}

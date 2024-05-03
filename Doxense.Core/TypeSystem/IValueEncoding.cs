@@ -32,12 +32,12 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="TValue">Type of the element to encode</typeparam>
 		/// <typeparam name="TStorage">Type of the encoded form of the values (Slice, string, ...)</typeparam>
 		/// <returns>Value encoder</returns>
-		IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>();
+		IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>() where TValue : notnull;
 
 		/// <summary>Returns an encoder which can process values of a fixed type</summary>
 		/// <typeparam name="TValue">Type of the element to encode</typeparam>
 		/// <returns>Value encoder</returns>
-		IValueEncoder<TValue> GetValueEncoder<TValue>();
+		IValueEncoder<TValue> GetValueEncoder<TValue>() where TValue : notnull;
 		//TODO: C#8: default implementation is to return GetValueEncoder<TValue, Slice>() !
 
 	}

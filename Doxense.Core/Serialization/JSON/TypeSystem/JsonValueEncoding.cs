@@ -94,7 +94,7 @@ namespace Doxense.Serialization.Encoders
 
 		IValueEncoder<TValue> IValueEncoding.GetValueEncoder<TValue>() => GetValueEncoder<TValue>();
 
-		public JsonValueEncoder<T> GetValueEncoder<T>()
+		public JsonValueEncoder<T> GetValueEncoder<T>() where T : notnull
 		{
 			if (this.Settings.Equals(CrystalJsonSettings.Json) && this.Resolver == CrystalJson.DefaultResolver)
 			{
@@ -157,16 +157,16 @@ namespace Doxense.Serialization.Encoders
 				{
 					// [1, 2, 3] => (1, 2, 3)
 					var tuple = STuple.Empty;
-					foreach (var item in (JsonArray)value)
+					foreach (var item in (JsonArray) value)
 					{
 						tuple = Append(tuple, item);
 					}
-					return prefix.Append<IVarTuple>(tuple);
+					return prefix.Append(tuple);
 				}
 				case JsonType.DateTime:
 				{
 					// note: pour des raison de round-tripping, on va encoder les dates en string
-					return prefix.Append<string>(value.ToString());
+					return prefix.Append(value.ToString());
 				}
 				default:
 				{
@@ -188,13 +188,12 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		[Pure]
-		public JsonValue DecodeToJson(object? o) =>
-			o switch
-			{
-				null => JsonNull.Null,
-				IVarTuple tuple => tuple.ToJsonArray((item) => DecodeToJson(item)),
-				_ => JsonValue.FromValue(o, this.Settings, this.Resolver)
-			};
+		public JsonValue DecodeToJson(object? o) => o switch
+		{
+			null => JsonNull.Null,
+			IVarTuple tuple => tuple.ToJsonArray((item) => DecodeToJson(item)),
+			_ => JsonValue.FromValue(o, this.Settings, this.Resolver)
+		};
 
 		/// <summary>Décode le premier élément d'un tuple contenant une valeur JSON</summary>
 		/// <param name="tuple">Tuple dont le début contient un valeur JSON</param>
@@ -217,10 +216,10 @@ namespace Doxense.Serialization.Encoders
 
 	}
 
-	public sealed class JsonValueEncoder<T> : IValueEncoder<T>, IValueEncoder<T, string>, IValueEncoder<T, JsonObject>
+	public sealed class JsonValueEncoder<T> : IValueEncoder<T>, IValueEncoder<T, string>, IValueEncoder<T, JsonObject> where T : notnull
 	{
 
-		public static JsonValueEncoder<T> Instance { get; } = new JsonValueEncoder<T>(null, null);
+		public static JsonValueEncoder<T> Instance { get; } = new(null, null);
 
 		public CrystalJsonSettings Settings { get; }
 
@@ -238,7 +237,7 @@ namespace Doxense.Serialization.Encoders
 			return CrystalJson.Serialize(value, this.Settings, this.Resolver);
 		}
 
-		T? IValueEncoder<T, string>.DecodeValue(string packed)
+		T IValueEncoder<T, string>.DecodeValue(string packed)
 		{
 			Contract.NotNull(packed);
 			return CrystalJson.Deserialize<T>(packed, this.Settings, this.Resolver);
@@ -247,7 +246,7 @@ namespace Doxense.Serialization.Encoders
 		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
 		{
 			Contract.NotNullAllowStructs(value);
-			return CrystalJson.ToSlice<T>(value, this.Settings, this.Resolver);
+			return CrystalJson.ToSlice(value, this.Settings, this.Resolver);
 		}
 
 		T? IValueEncoder<T, Slice>.DecodeValue(Slice packed)
@@ -258,7 +257,7 @@ namespace Doxense.Serialization.Encoders
 		JsonObject IValueEncoder<T, JsonObject>.EncodeValue(T? value)
 		{
 			Contract.NotNullAllowStructs(value);
-			return JsonObject.FromObject<T>(value, this.Settings, this.Resolver);
+			return JsonObject.FromObject(value, this.Settings, this.Resolver);
 		}
 
 		T? IValueEncoder<T, JsonObject>.DecodeValue(JsonObject packed)
@@ -290,7 +289,7 @@ namespace Doxense.Serialization.Encoders
 
 		public void WriteKeyTo(ref SliceWriter writer, T? value)
 		{
-			TuPack.PackTo(ref writer, this.Encoding.ToTuple<T>(value));
+			TuPack.PackTo(ref writer, this.Encoding.ToTuple(value));
 		}
 
 		public void ReadKeyFrom(ref SliceReader reader, out T? value)
@@ -364,15 +363,15 @@ namespace Doxense.Serialization.Encoders
 
 		public bool TryUnpackKey(Slice packed, out IVarTuple tuple) => throw new NotImplementedException();
 
-		public T1? DecodeKey<T1>(Slice packed) => throw new NotImplementedException();
+		public T1 DecodeKey<T1>(Slice packed) => throw new NotImplementedException();
 
-		public T1? DecodeKeyFirst<T1>(Slice packed) => throw new NotImplementedException();
+		public T1 DecodeKeyFirst<T1>(Slice packed) => throw new NotImplementedException();
 
 		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed) => throw new NotImplementedException();
 
 		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
 
-		public T1? DecodeKeyLast<T1>(Slice packed) => throw new NotImplementedException();
+		public T1 DecodeKeyLast<T1>(Slice packed) => throw new NotImplementedException();
 
 		public (T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed) => throw new NotImplementedException();
 
