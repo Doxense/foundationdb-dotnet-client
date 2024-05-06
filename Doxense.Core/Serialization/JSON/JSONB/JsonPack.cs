@@ -789,7 +789,7 @@ namespace Doxense.Serialization.Json.Binary
 		{
 			if (token == (int) TypeTokens.ArrayEmpty)
 			{
-				return JsonArray.Create();
+				return JsonArray.EmptyReadOnly;
 			}
 
 			//note: ARRAY_START has already been parsed
@@ -801,7 +801,7 @@ namespace Doxense.Serialization.Json.Binary
 				arr ??= [ ];
 				arr.Add(val);
 			}
-			return arr ?? JsonArray.Create();
+			return arr?.FreezeUnsafe() ?? JsonArray.EmptyReadOnly;
 		}
 
 		private static string? ParseSmallString(ref SliceReader reader, int token)
@@ -829,7 +829,10 @@ namespace Doxense.Serialization.Json.Binary
 
 		public static JsonObject ParseObject(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
-			if (token == (int) TypeTokens.ObjectEmpty) return JsonObject.Create(); //BGUBUG: TODO: settings.ReadOnly ?
+			if (token == (int) TypeTokens.ObjectEmpty)
+			{
+				return JsonObject.EmptyReadOnly;
+			}
 
 			//note: OBJECT_START has already been parsed
 			int next;
@@ -851,7 +854,7 @@ namespace Doxense.Serialization.Json.Binary
 				items.Add(key, val);
 			}
 			// skip the OBJECT_STOP token
-			return items != null ? new JsonObject(items, readOnly: false) : JsonObject.Create();
+			return items != null ? new JsonObject(items, readOnly: true) : JsonObject.EmptyReadOnly;
 		}
 
 		#endregion
