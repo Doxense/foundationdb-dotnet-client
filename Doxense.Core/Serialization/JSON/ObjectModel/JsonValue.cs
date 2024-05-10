@@ -1379,10 +1379,10 @@ namespace Doxense.Serialization.Json
 		public JsonObject GetPathObject(JsonPath path) => GetPathCore(path, null, required: true).AsObject();
 
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonObject? GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: true).AsObjectOrDefault() ?? defaultValue;
+		public JsonObject? GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrDefault() ?? defaultValue;
 
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public JsonObject? GetPathObjectOrDefault(JsonPath path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: true).AsObjectOrDefault() ?? defaultValue;
+		public JsonObject? GetPathObjectOrDefault(JsonPath path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: false).AsObjectOrDefault() ?? defaultValue;
 
 		[Pure]
 		public JsonObject GetPathObjectOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrEmpty();
