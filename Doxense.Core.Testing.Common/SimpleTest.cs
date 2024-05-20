@@ -289,9 +289,20 @@ namespace SnowBank.Testing
 		/// <summary>Pause l'exécution du test pendant un certain temps</summary>
 		/// <remarks>Le délai est automatiquement interrompu si le timeout d'exécution du test se déclenche</remarks>
 		[Obsolete("Warning: waiting for a fixed time delay in a test is not good practice!")]
-		public Task Wait(TimeSpan delay)
+		public async Task Wait(TimeSpan delay)
 		{
-			return Task.Delay(delay, this.Cancellation);
+			var start = this.Clock.GetCurrentInstant();
+			try
+			{
+				await Task.Delay(delay, this.Cancellation).ConfigureAwait(false);
+				var end = this.Clock.GetCurrentInstant();
+				await OnWaitOperationCompleted("Delay", delay.ToString(), success: true, null, start, end).ConfigureAwait(false);
+			}
+			catch (Exception)
+			{
+				var end = this.Clock.GetCurrentInstant();
+				await OnWaitOperationCompleted("Delay", delay.ToString(), success: false, null, start, end).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>Spin de manière asynchrone jusqu'à ce qu'une condition soit réalisée, l'expiration d'un timeout, ou l'annulation du test</summary>
