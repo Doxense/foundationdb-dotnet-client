@@ -66,7 +66,7 @@ namespace SnowBank.Testing
 		{
 #if !NETFRAMEWORK
 			//TODO: REVIEW: do we still need to do this hack in .NET 6+? It was required with early .NET Core apps
-			System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
 
 			// JIT warmup of a few common types
@@ -249,7 +249,7 @@ namespace SnowBank.Testing
 		public static async Task<TimeSpan> Time(Func<Task> handler)
 		{
 			var sw = Stopwatch.StartNew();
-			await handler();
+			await handler().ConfigureAwait(false);
 			sw.Stop();
 			return sw.Elapsed;
 		}
@@ -273,7 +273,7 @@ namespace SnowBank.Testing
 		public static async Task<(TResult Result, TimeSpan Elapsed)> Time<TResult>(Func<Task<TResult>> handler)
 		{
 			var sw = Stopwatch.StartNew();
-			var result = await handler();
+			var result = await handler().ConfigureAwait(false);
 			sw.Stop();
 			return (result, sw.Elapsed);
 		}
@@ -359,7 +359,7 @@ namespace SnowBank.Testing
 						Assert.Fail($"Operation failed will polling expression '{conditionExpression}': {e}");
 					}
 
-					await Task.Delay(delay, this.Cancellation);
+					await Task.Delay(delay, this.Cancellation).ConfigureAwait(false);
 					if (sw.Elapsed >= timeout)
 					{
 						onFail(sw.Elapsed, null);
@@ -375,7 +375,7 @@ namespace SnowBank.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end);
+				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end).ConfigureAwait(false);
 			}
 		}
 
@@ -400,7 +400,7 @@ namespace SnowBank.Testing
 				{
 					try
 					{
-						if (await condition())
+						if (await condition().ConfigureAwait(false))
 						{
 							sw.Stop();
 							break;
@@ -413,7 +413,7 @@ namespace SnowBank.Testing
 						Assert.Fail($"Operation failed will polling expression '{conditionExpression}': {e}");
 					}
 
-					await Task.Delay(delay, this.Cancellation);
+					await Task.Delay(delay, this.Cancellation).ConfigureAwait(false);
 					if (sw.Elapsed >= timeout)
 					{
 						Assert.Fail($"Operation took too lonk to execute: {message}{Environment.NewLine}Condition: {conditionExpression}{Environment.NewLine}Elapsed: {sw.Elapsed}");
@@ -430,7 +430,7 @@ namespace SnowBank.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end);
+				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end).ConfigureAwait(false);
 			}
 		}
 
@@ -458,7 +458,7 @@ namespace SnowBank.Testing
 		{
 			var ts = (tasks as Task<TResult>[]) ?? tasks.ToArray();
 			this.Cancellation.ThrowIfCancellationRequested();
-			if (ts.Length == 0) return Array.Empty<TResult>();
+			if (ts.Length == 0) return [ ];
 			await WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, $"WhenAll({tasksExpression})").ConfigureAwait(false);
 			var res = new TResult[ts.Length];
 			for (int i = 0; i < res.Length; i++)
@@ -626,7 +626,7 @@ namespace SnowBank.Testing
 				// return result or throw error
 				try
 				{
-					return await task;
+					return await task.ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{
@@ -639,7 +639,7 @@ namespace SnowBank.Testing
 			finally
 			{
 				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted(nameof(Await), taskExpression, success ?? true, error, start, end);
+				await OnWaitOperationCompleted(nameof(Await), taskExpression, success ?? true, error, start, end).ConfigureAwait(false);
 			}
 		}
 
@@ -896,7 +896,7 @@ namespace SnowBank.Testing
 		[DebuggerNonUserCode]
 		public static void LogError(string? text, Exception e)
 		{
-			WriteToErrorLog(text + Environment.NewLine + e.ToString());
+			WriteToErrorLog(text + Environment.NewLine + e);
 		}
 
 		[DebuggerNonUserCode]
@@ -1045,8 +1045,8 @@ namespace SnowBank.Testing
 
 			services.AddSingleton(TestContext.CurrentContext);
 			services.AddSingleton(TestContext.Parameters);
-			services.AddSingleton<SimpleTest>(this);
-			services.AddSingleton<IClock>(this.Clock);
+			services.AddSingleton(this);
+			services.AddSingleton(this.Clock);
 			services.AddSingleton(this.Rnd);
 			ConfigureLogging(services);
 			configure(services);
@@ -1717,7 +1717,7 @@ namespace SnowBank.Testing
 			var sw = Stopwatch.StartNew();
 			try
 			{
-				await action();
+				await action().ConfigureAwait(false);
 			}
 			catch (AssertionException) { throw; }
 			catch (Exception e)
@@ -1744,7 +1744,7 @@ namespace SnowBank.Testing
 			var sw = Stopwatch.StartNew();
 			try
 			{
-				return await action();
+				return await action().ConfigureAwait(false);
 			}
 			catch (AssertionException) { throw; }
 			catch (Exception e)
@@ -1793,13 +1793,13 @@ namespace SnowBank.Testing
 		protected Task<TResult> WaitFor<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
 
 		[Obsolete("Renamed to Await(...)")]
-		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await<TResult>(task, timeoutMs, taskExpression);
+		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
 
 		[Obsolete("Renamed to Await(...)")]
-		protected Task<TResult> WaitFor<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await<TResult>(task, timeout, taskExpression);
+		protected Task<TResult> WaitFor<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
 
 		[Obsolete("Renamed to Await(...)")]
-		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await<TResult>(task, timeout, taskExpression);
+		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
 
 		#endregion
 
