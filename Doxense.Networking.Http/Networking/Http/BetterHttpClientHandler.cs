@@ -593,30 +593,32 @@ namespace Doxense.Networking.Http
 
 		private async ValueTask<Stream> ConnectToHostNameAsync(BetterHttpClientContext? clientContext, DnsEndPoint endpoint, CancellationToken ct)
 		{
-			var entries = await this.Network.DnsLookup(endpoint.Host, endpoint.AddressFamily, ct);
+			IPHostEntry entries;
+			try
+			{
+				entries = await this.Network.DnsLookup(endpoint.Host, endpoint.AddressFamily, ct).ConfigureAwait(false);
+			}
+			catch (Exception e)
+			{
+				//?
+				throw;
+			}
 
 			var addresses = entries.AddressList;
-			////HACKHACK pour tester!
-			//addresses = new List<IPAddress>()
-			//{
-			//	IPAddress.Parse("10.10.0.174"),
-			//	IPAddress.Parse("10.10.0.175"),
-			//	IPAddress.Parse("172.23.64.1"),
-			//	IPAddress.Parse("10.10.0.1"),
-			//	IPAddress.Parse("10.10.0.2"),
-			//}.Concat(addresses).ToArray();
-
 			if (addresses.Length == 0)
 			{
 				throw new SocketException(11001); // "No such host is known"
 			}
 
 			if (addresses.Length == 1)
-			{ // une seule IP! on va passer en version simple
-				return await ConnectToSingleAsync(clientContext, new IPEndPoint(addresses[0], endpoint.Port), endpoint.Host, ct);
+			{ // only a single IP address, no need to perform any load balacing
+				return await ConnectToSingleAsync(clientContext, new IPEndPoint(addresses[0], endpoint.Port), endpoint.Host, ct).ConfigureAwait(false);
 			}
 
-			// plusieurs IP! on va les tester en //
+			// multiple candidates! we will test them in parallel, using any previous attempt as a hint for ordering
+			// - on the first call, we use the order returned by the DNS server, with IPv4 preferred over IPv6
+			// - on following calls, we use the "quality" to compute a score (hosts that responded faster before will have a better score, timeouts will have a penalty...)
+
 			var endpoints = new IPEndPoint[addresses.Length];
 			var scores = new double[endpoints.Length];
 			var now = this.Network.Clock.GetCurrentInstant();
@@ -628,8 +630,8 @@ namespace Doxense.Networking.Http
 				scores[i] = quality?.ComputeScore(now) ?? (ep.AddressFamily == AddressFamily.InterNetworkV6 ? 4d : 2d);
 			}
 			Array.Sort(scores, endpoints);
-			System.Diagnostics.Trace.WriteLine("Will try to connect (in order) to: " + string.Join(", ", endpoints.Select((x, i) => $"{i}) {x} @ {scores[i]}")));
-			return await ConnectToMultipleAsync(clientContext, endpoints, endpoint.Host, ct);
+			//System.Diagnostics.Debug.WriteLine("Will try to connect (in order) to: " + string.Join(", ", endpoints.Select((x, i) => $"{i}) {x} @ {scores[i]}")));
+			return await ConnectToMultipleAsync(clientContext, endpoints, endpoint.Host, ct).ConfigureAwait(false);
 		}
 
 		private async ValueTask<Stream> ConnectToMultipleAsync(BetterHttpClientContext? clientContext, IPEndPoint[] endpoints, string? hostName, CancellationToken ct)

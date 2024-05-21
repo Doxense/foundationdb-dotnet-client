@@ -32,6 +32,8 @@ namespace Doxense.Networking.Http
 	public interface IBetterHttpClientFactory
 	{
 
+		HttpMessageHandler CreateHttpHandler(Uri hostAddress, BetterHttpClientOptions options);
+
 		BetterHttpClient CreateClient(Uri hostAddress, BetterHttpClientOptions options, HttpMessageHandler? handler = null);
 
 	}

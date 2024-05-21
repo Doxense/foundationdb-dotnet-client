@@ -32,6 +32,7 @@ namespace Doxense.Networking.Http
 	using Microsoft.Extensions.Logging;
 	using Microsoft.Extensions.Logging.Abstractions;
 	using Microsoft.Extensions.Options;
+	using static Doxense.Networking.Http.BetterHttpClient;
 
 	public class DefaultBetterHttpClientFactory : IBetterHttpClientFactory
 	{
@@ -53,6 +54,30 @@ namespace Doxense.Networking.Http
 			this.Logger = logger ?? NullLogger<BetterHttpClient>.Instance;
 			this.Clock = clock ?? NodaTime.SystemClock.Instance;
 			this.Services = services;
+		}
+
+		public HttpMessageHandler CreateHttpHandler(Uri hostAddress, BetterHttpClientOptions options)
+		{
+			options.Filters.AddRange(this.Builder.GlobalFilters);
+			options.Handlers.AddRange(this.Builder.GlobalHandlers);
+			this.Builder.Configure?.Invoke(options);
+
+			if (this.Map == null) throw new InvalidOperationException($"You must register an implementation for {nameof(INetworkMap)} during startup, in order to use this method.");
+			var handler = this.Map.CreateBetterHttpHandler(hostAddress, options);
+
+			// add our own delegating handler that will be able to hook into the request lifecycle
+			handler = new MagicalHandler(handler);
+
+			// add any optional wrappers on top of that
+			if (options.Handlers.Count > 0)
+			{
+				foreach (var factory in options.Handlers)
+				{
+					handler = factory(handler, this.Services);
+				}
+			}
+
+			return handler;
 		}
 
 		public BetterHttpClient CreateClient(Uri hostAddress, BetterHttpClientOptions options, HttpMessageHandler? handler = null)
