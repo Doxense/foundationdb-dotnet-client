@@ -29,6 +29,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Native;
@@ -58,16 +59,61 @@ namespace FoundationDB.Client
 		/// <summary>Task that will complete when the watch fires, or is cancelled. It will return the watched key, or an exception.</summary>
 		public Task<Slice> Task => this.Future.Task;
 
-		/// <summary>Returns an awaiter for the Watch</summary>
-		public TaskAwaiter<Slice> GetAwaiter()
+		private void EnsureNotDisposed()
 		{
-			//note: this is to make "await" work directly on the FdbWatch instance, without needing to do "await watch.Task"
-
 			if (this.Future.HasFlag(FdbFuture.Flags.DISPOSED))
 			{
 				throw ThrowHelper.ObjectDisposedException("Cannot await a watch that has already been disposed");
 			}
+		}
+
+
+		/// <summary>Returns an awaiter for the Watch</summary>
+		public TaskAwaiter<Slice> GetAwaiter()
+		{
+			//note: this is to make "await" work directly on the FdbWatch instance, without needing to do "await watch.Task"
+			EnsureNotDisposed();
 			return this.Future.Task.GetAwaiter();
+		}
+
+		/// <summary>Gets a <see cref="Task{Slice}"/> that will complete when this <see cref="FdbWatch">watch</see> fires or when the specified <see cref="T:System.Threading.CancellationToken" /> has cancellation requested.</summary>
+		/// <param name="ct">The <see cref="T:System.Threading.CancellationToken" /> to monitor for a cancellation request.</param>
+		/// <returns>Task that completes successfully when the watch fires, or fails if the cancellation token is triggered, or the parent <see cref="IFdbDatabase"/> instance is disposed.</returns>
+		public async Task WaitAsync(CancellationToken ct)
+		{
+			EnsureNotDisposed();
+			try
+			{
+				await this.Future.Task.WaitAsync(ct).ConfigureAwait(false);
+			}
+			catch (Exception)
+			{
+				this.Cancel(); // does nothing if already fired/cancelled!
+				throw;
+			}
+		}
+
+		/// <summary>Gets a <see cref="Task{Slice}"/> that will complete when this <see cref="FdbWatch">watch</see> fires, when the specified timeout expires, or when the specified <see cref="T:System.Threading.CancellationToken" /> has cancellation requested.</summary>
+		/// <param name="timeout">The timeout after which the <see cref="FdbWatch" /> should be cancelled if it hasn't otherwise fired.</param>
+		/// <param name="ct">The <see cref="T:System.Threading.CancellationToken" /> to monitor for a cancellation request.</param>
+		/// <returns>Task that returns <see langword="true"/> if the watch as fired, or <see langword="false"/> if the timeout has expired.</returns>
+		public async Task<bool> WaitAsync(TimeSpan timeout, CancellationToken ct)
+		{
+			EnsureNotDisposed();
+			try
+			{
+				await this.Future.Task.WaitAsync(timeout, ct).ConfigureAwait(false);
+				return true;
+			}
+			catch (TimeoutException)
+			{
+				return false;
+			}
+			catch (Exception)
+			{
+				this.Cancel(); // does nothing if already fired/cancelled!
+				throw;
+			}
 		}
 
 		/// <summary>Cancel the watch. It will immediately stop monitoring the key. Has no effect if the watch has already fired</summary>

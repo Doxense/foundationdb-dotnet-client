@@ -36,11 +36,13 @@ namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Linq;
+	using NodaTime;
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -2398,6 +2400,109 @@ namespace FoundationDB.Client.Tests
 				{
 					await w;
 				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Cancel_Awaited_Watch_With_CancellationToken()
+		{
+			// Test that calling watch.WaitAsync(CancellationToken) will throw if the token is triggered before the watch fires
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("test", "bigbrother");
+				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+				await db.WriteAsync(async tr =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+					tr.Set(subspace.Encode("watched"), Value("some value"));
+				}, this.Cancellation);
+
+				// setup the watch
+				FdbWatch watch;
+				// we want to be able to abort this specific call
+				using var killSwitch = CancellationTokenSource.CreateLinkedTokenSource(this.Cancellation);
+
+				Log("Setup a watch on a key that will not be changed...");
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = (await location.Resolve(tr))!;
+					watch = tr.Watch(subspace.Encode("watched"), this.Cancellation);
+					Assert.That(watch, Is.Not.Null);
+
+					// note: Watches will get cancelled if the transaction is not committed !
+					await tr.CommitAsync();
+				}
+				Assert.That(watch.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "watch should still be active");
+
+				// call WaitAsync(...), but does not await it yet
+				var t = watch.WaitAsync(killSwitch.Token); // pass the token from the kill switch (that has not triggered yet)
+
+				// wait a bit, nothing should happen, the watch should still be pending
+				await Task.Delay(100, this.Cancellation);
+				Assert.That(watch.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "watch should still be active");
+
+				// trigger the kill switch
+				Log("Triggering the cancellation token...");
+				await killSwitch.CancelAsync();
+
+				// the task should before failed
+				Log("Waiting for watch to abort...");
+				Assert.That(async () => await t.WaitAsync(TimeSpan.FromSeconds(5), this.Cancellation), Throws.InstanceOf<TaskCanceledException>());
+				Log("Watch was aborted!");
+				Assert.That(watch.Task.Status, Is.EqualTo(TaskStatus.Canceled), "watch should have been cancelled");
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Cancel_Awaited_Watch_After_Timeout()
+		{
+			// Test that calling watch.WaitAsync(TimeSpan, CancellationToken) will throw if the timeout expires before the watch fires
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("test", "bigbrother");
+				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+				await db.WriteAsync(async tr =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+					tr.Set(subspace.Encode("watched"), Value("some value"));
+				}, this.Cancellation);
+
+				// setup the watch
+				FdbWatch watch;
+
+				Log("Setup a watch on a key that will not be changed...");
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = (await location.Resolve(tr))!;
+					watch = tr.Watch(subspace.Encode("watched"), this.Cancellation);
+					Assert.That(watch, Is.Not.Null);
+
+					// note: Watches will get cancelled if the transaction is not committed !
+					await tr.CommitAsync();
+				}
+				Assert.That(watch.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "watch should still be active");
+
+				// call WaitAsync(...), but does not await it yet
+				var sw = Stopwatch.StartNew();
+				var t = watch.WaitAsync(TimeSpan.FromMilliseconds(500), this.Cancellation); // pass the token from the kill switch (that has not triggered yet)
+
+				// the task should before failed
+				Log("Waiting for watch to complete...");
+				Assert.That(async () => await t.WaitAsync(TimeSpan.FromSeconds(2), this.Cancellation), Throws.Nothing, "Watch task should not have failed");
+				sw.Stop();
+
+				Log($"Task returned: {t.Result} in {sw.Elapsed.TotalMilliseconds:N1} ms");
+				Assert.That(t.Result, Is.False, "Task should have returned 'false' (for timeout)");
+				//note: since the test runner could lag, we use a rather large tolerance for the actual delay...
+				Assert.That(sw.Elapsed, Is.GreaterThan(TimeSpan.FromMicroseconds(400)).And.LessThan(TimeSpan.FromSeconds(1)), "Timeout should have been approximately ~500ms");
 			}
 		}
 
