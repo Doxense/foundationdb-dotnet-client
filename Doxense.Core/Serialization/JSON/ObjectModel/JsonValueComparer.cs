@@ -26,24 +26,22 @@
 
 namespace Doxense.Serialization.Json
 {
+
+	/// <summary>Comparer for <see cref="JsonValue"/> instances</summary>
+	/// <remarks>This comparer uses the "equivalent values" semantic</remarks>
 	public sealed class JsonValueComparer : IEqualityComparer<JsonValue>, IComparer<JsonValue>, System.Collections.IEqualityComparer, System.Collections.IComparer
 	{
 
+		/// <summary>Comparer that checks if two <see cref="JsonValue"/> instances are <i>equivalent</i>, meaning that they would both deserialize to the same or equivalent value</summary>
+		/// <remarks>For example, the JSON string <c>"123"</c> is equivalent to the JSON number <c>123</c> since both would return "123" when converted to string, or 123 when converted to Int32.</remarks>
 		public static readonly JsonValueComparer Default = new();
 
 		private JsonValueComparer()
 		{ }
 
-		public bool Equals(JsonValue? x, JsonValue? y)
-		{
-			// il y a pas mal de singletons ou de valeurs interned, donc ca vaut le coup de comparer les pointers
-			return ReferenceEquals(x, y) || (x?.Equals(y) ?? y!.IsNull);
-		}
+		public bool Equals(JsonValue? x, JsonValue? y) => ReferenceEquals(x, y) || (x?.Equals(y) ?? y!.IsNull);
 
-		public int GetHashCode(JsonValue? obj)
-		{
-			return (obj ?? JsonNull.Null).GetHashCode();
-		}
+		public int GetHashCode(JsonValue? obj) => (obj ?? JsonNull.Null).GetHashCode();
 
 		bool System.Collections.IEqualityComparer.Equals(object? x, object? y)
 		{

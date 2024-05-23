@@ -30,7 +30,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
-	/// <summary>JSON Boolean, that can be either <see langword="true"/> or <see langword="false"/></summary>
+	/// <summary>JSON Boolean (<see langword="true"/> or <see langword="false"/>)</summary>
 	[DebuggerDisplay("JSON Boolean({m_value})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]

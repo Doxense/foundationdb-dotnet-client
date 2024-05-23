@@ -35,7 +35,7 @@ namespace Microsoft.Extensions.Hosting
 		/// <param name="connectionName">Name of the FoundationDB cluster or connection resource, as defined in the Aspire AppHost.</param>
 		/// <param name="configureSettings">Optional callback used to configure the <see cref="FdbClientSettings">Aspire settings</see>.</param>
 		/// <param name="configureProvider">Optional callback used to configure the <see cref="FdbDatabaseProviderOptions"></see>.</param>
-		/// <remarks>This method is intended to be used in conjection with the Aspire SDK.</remarks>
+		/// <remarks>This method is intended to be used in conjunction with the Aspire SDK.</remarks>
 		public static IHostApplicationBuilder AddFoundationDb(this IHostApplicationBuilder builder, string connectionName, Action<FdbClientSettings>? configureSettings = null, Action<FdbDatabaseProviderOptions>? configureProvider = null)
 		{
 			return AddFoundationDb(builder, connectionName, DefaultConfigSectionName, configureSettings, configureProvider);
@@ -115,7 +115,7 @@ namespace Microsoft.Extensions.Hosting
 
 				// Cluster File Path
 
-				// either specified directly with ClusterFile=/path/to/file.cluster, or indirectly via ClusterFileContenst=desc:id@ip:port
+				// either specified directly with ClusterFile=/path/to/file.cluster, or indirectly via ClusterFileContents=desc:id@ip:port
 				string? clusterFilePath, clusterFileContents;
 				if (cnx != null && (cnx.ContainsKey("ClusterFile") || cnx.ContainsKey("ClusterFileContents")))
 				{
@@ -140,7 +140,7 @@ namespace Microsoft.Extensions.Hosting
 						options.ConnectionOptions.ConnectionString = clusterFileContents;
 					}
 					else
-					{ // unfortunately, we need to store the content of the connection stirng into a temporary cluster file
+					{ // unfortunately, we need to store the content of the connection string into a temporary cluster file
 						//HACKHACK: BUGBUG: TODO: we need to find a proper location for this file, and which will not conflict with other processes!
 						clusterFilePath = Path.GetFullPath("local-" + connectionName + ".cluster");
 						File.WriteAllText(clusterFilePath, clusterFileContents);
@@ -188,7 +188,7 @@ namespace Microsoft.Extensions.Hosting
 					//    but we would need to add support for multiversion clients to the binding!
 				}
 
-				// run additionall custom configuration
+				// run additional custom configuration
 				configureProvider?.Invoke(options);
 			});
 

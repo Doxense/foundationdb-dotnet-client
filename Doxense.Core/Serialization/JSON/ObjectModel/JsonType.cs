@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	/// <summary>Type d'une valeur JSON (String, Number, ...)</summary>
+	/// <summary>Type of JSON value (String, Number, Boolean, Object, Array, Null, ...)</summary>
 	public enum JsonType
 	{
 		//IMPORTANT: the order of these values has an impact on the ordering of JSON values when sorting (except Null which is always last)
@@ -63,15 +63,5 @@ namespace Doxense.Serialization.Json
 		Object,
 
 	}
-
-	//public enum JsonMutability
-	//{
-	//	/// <summary>The value can be mutated at any time</summary>
-	//	Mutable = 0,
-	//	/// <summary>The value is read-only, but at least of its direct or indirect childen is mutable.</summary>
-	//	ReadOnly = 1,
-	//	/// <summary>The value is read-only, and the whole sub-tree of children is also read-only.</summary>
-	//	Immutable = 2,
-	//}
 
 }

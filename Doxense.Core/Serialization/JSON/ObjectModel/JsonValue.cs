@@ -43,10 +43,11 @@ namespace Doxense.Serialization.Json
 		, IJsonDynamic
 #pragma warning restore CS0618 // Type or member is obsolete
 	{
-		/// <summary>Type du token JSON</summary>
+		/// <summary>Type of JSON value (<see cref="JsonType.Boolean">Boolean</see>, <see cref="JsonType.String">String</see>, <see cref="JsonType.Number">Number</see>, <see cref="JsonType.Object">Object</see>, <see cref="JsonType.Array">Array</see>, ...)</summary>
 		public abstract JsonType Type { [Pure] get; }
 
-		/// <summary>Conversion en object CLR (type automatique)</summary>
+		/// <summary>Converts this into a CLR object (with a type that matches the value)</summary>
+		/// <remarks>Prefer casting to a specific type, using <see cref="JsonValueExtensions.As{TValue}(Doxense.Serialization.Json.JsonValue?,Doxense.Serialization.Json.ICrystalJsonTypeResolver?)">As&lt;TValue&gt;()</see> or any equivalent method.</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public abstract object? ToObject();
@@ -65,7 +66,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Bind this value into an instance of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>An instance of the type <typeparamref name="TValue"/> that is equivalent to the original JSON value, if there exists a valid convertion path or convention. Otherwise, an exception will be thrown.</returns>
+		/// <returns>An instance of the type <typeparamref name="TValue"/> that is equivalent to the original JSON value, if there exists a valid conversion path. Otherwise, an exception will be thrown.</returns>
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target type <typeparamref name="TValue"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
 		[EditorBrowsable(EditorBrowsableState.Never)]
@@ -101,7 +102,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>Any future attempt to modify this object, or any of its children that was previously mutable, will fail.</para>
 		/// <para>If this instance is already read-only, this will be a no-op.</para>
-		/// <para>This should only be used with care, and only on objects that are entirely owned by the called, or that have not been published yet. Freezing a shared mutable object may cause issues for other threads that still were expecting a mutable isntance.</para>
+		/// <para>This should only be used with care, and only on objects that are entirely owned by the called, or that have not been published yet. Freezing a shared mutable object may cause issues for other threads that still were expecting a mutable instance.</para>
 		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
 		/// </remarks>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -129,7 +130,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns <see langword="true"/> if this value is considered as "small" and can be safely written to a debug log (without flooding).</summary>
 		/// <remarks>
 		/// <para>For example, any JSON Object or Array must have 5 children or less, all small values, to be considered "small". Likewise, a JSON String literal must have a length or 36 characters or less, to be considered "small".</para>
-		/// <para>When generating a compact representation of a JSON value, for troubleshooting purpose, an Object or Array that is not "small", may be written as <c>[ 1, 2, 3, 4, 5, ...]</c> with the rest of the value ommitted.</para>
+		/// <para>When generating a compact representation of a JSON value, for troubleshooting purpose, an Object or Array that is not "small", may be written as <c>[ 1, 2, 3, 4, 5, ...]</c> with the rest of the value omitted.</para>
 		/// </remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
@@ -167,7 +168,7 @@ namespace Doxense.Serialization.Json
 		/// <para>Note: the string that is return is not valid JSON and may not be parsable! This is only intended for quick introspection of a JSON document, by a human, using a log file or console output.</para>
 		/// </remarks>
 		[Pure]
-		internal virtual string GetCompactRepresentation(int depth) => this.ToJson();
+		internal virtual string GetCompactRepresentation(int depth) => ToJson();
 
 		/// <summary>Converts this JSON value into a printable string</summary>
 		/// <remarks>
@@ -225,7 +226,7 @@ namespace Doxense.Serialization.Json
 				case "J":
 				case "j":
 				{ // "J" is for Javascript!
-					return this.ToJson(CrystalJsonSettings.JavaScript);
+					return ToJson(CrystalJsonSettings.JavaScript);
 				}
 				case "B":
 				case "b":
@@ -328,7 +329,7 @@ namespace Doxense.Serialization.Json
 		protected static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, Index index) => new($"Cannot read value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, string key) => new($"Cannot set proprty '{key}' on a JSON {value.Type}, because it is not a JSON Object");
+		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, string key) => new($"Cannot set property '{key}' on a JSON {value.Type}, because it is not a JSON Object");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, int index) => new($"Cannot set value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");

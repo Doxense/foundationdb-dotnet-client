@@ -31,65 +31,63 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 
+	/// <summary>Extension methods for <see cref="JsonValue"/> and other derived types</summary>
 	[PublicAPI]
 	[DebuggerNonUserCode]
 	public static class JsonValueExtensions
 	{
 
-		/// <summary>Test si une valeur JSON est null, ou équivalente à null</summary>
-		/// <param name="value">Valeur JSON</param>
-		/// <returns>True si <paramref name="value"/> est null, ou une instance de type <see cref="JsonNull"/></returns>
+		/// <summary>Tests if a JSON value is <see langword="null"/>, or null-like</summary>
+		/// <param name="value">JSON Value</param>
+		/// <returns><see langword="true"/> if <paramref name="value"/> is <see langword="null"/>, or any instance of type <see cref="JsonNull"/></returns>
 		[Pure, ContractAnnotation("null=>true"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsNullOrMissing([NotNullWhen(false)] this JsonValue? value)
 		{
 			return value is (null or JsonNull);
 		}
 
-		/// <summary>Test si une valeur JSON est l'équivalent logique de 'missing'</summary>
-		/// <param name="value">Valeur JSON</param>
-		/// <returns>True si <paramref name="value"/> est null, ou égal à <see cref="JsonNull.Missing"/>.</returns>
+		/// <summary>Tests if a JSON value is <see cref="JsonNull.Missing"/></summary>
+		/// <param name="value">JSON value</param>
+		/// <returns><see langword="true"/> if <paramref name="value"/> is equal to the <see cref="JsonNull.Missing"/> singleton.</returns>
 		/// <remarks><see cref="JsonNull.Null"/> n'est pas considéré comme manquant (c'est un null explicite)</remarks>
 		[Pure, ContractAnnotation("null=>true"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsMissing([NotNullWhen(false)] this JsonValue? value)
 		{
-			//note: JsonNull.Error est un singleton, donc on peut le comparer par référence!
 			return ReferenceEquals(value, JsonNull.Missing);
 		}
 
 
-		/// <summary>Test si une valeur JSON est manquant pour cause d'une erreur de parsing</summary>
-		/// <param name="value">Valeur JSON</param>
-		/// <returns>True si <paramref name="value"/> est null, ou égal à <see cref="JsonNull.Error"/>.</returns>
-		/// <remarks><see cref="JsonNull.Null"/> n'est pas considéré comme manquant (c'est un null explicite)</remarks>
+		/// <summary>Tests if a JSON value is <see cref="JsonNull.Error"/></summary>
+		/// <param name="value">JSON value</param>
+		/// <returns><see langword="true"/> if <paramref name="value"/> is equal to the <see cref="JsonNull.Error"/> singleton.</returns>
 		[Pure, ContractAnnotation("null=>true")]
 		public static bool IsError([NotNullWhen(false)] this JsonValue? value)
 		{
-			//note: JsonNull.Error est un singleton, donc on peut le comparer par référence!
 			return ReferenceEquals(value, JsonNull.Error);
 		}
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
-		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
+		/// <summary>Ensures that a JSON value is not <see langword="null"/>> or missing</summary>
+		/// <param name="value">JSON value</param>
+		/// <returns>The same instance if the value is non-null. Throws an exception if it is null or missing</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null or missing</exception>
 		[ ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Required(this JsonValue? value) => value is not (null or JsonNull) ? value : FailValueIsNullOrMissing();
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente dans une array</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <param name="index">Index dans l'array qui doit être présent</param>
-		/// <param name="message"></param>
-		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
-		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
+		/// <summary>Ensures that a JSON value is not <see langword="null"/>> or missing</summary>
+		/// <param name="value">JSON value that must not be null, or missing</param>
+		/// <param name="index">Array index</param>
+		/// <param name="message">Error message</param>
+		/// <returns>The same instance if the value is non-null. Throws an exception if it is null or missing</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null or missing</exception>
 		[Pure, ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonValue RequiredIndex(this JsonValue? value, int index, string? message = null) => value is not (null or JsonNull) ? value : FailIndexIsNullOrMissing(index, value, message);
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente dans une array</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <param name="index">Index dans l'array qui doit être présent</param>
-		/// <param name="message"></param>
-		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
-		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
+		/// <summary>Ensures that a JSON value is not <see langword="null"/>> or missing</summary>
+		/// <param name="value">JSON value that must not be null, or missing</param>
+		/// <param name="index">Array index</param>
+		/// <param name="message">Error message</param>
+		/// <returns>The same instance if the value is non-null. Throws an exception if it is null or missing</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null or missing</exception>
 		[Pure, ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonValue RequiredIndex(this JsonValue? value, Index index, string? message = null) => value is not (null or JsonNull) ? value : FailIndexIsNullOrMissing(index, value, message);
 
@@ -111,33 +109,33 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonValue RequiredField(this JsonValue? value, ReadOnlySpan<char> field, string? message = null) => value is not (null or JsonNull) ? value : FailFieldIsNullOrMissing(value, field, message);
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <param name="path">Chemin vers le champ qui doit être présent</param>
-		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
+		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
+		/// <param name="value">Value at the specified <paramref name="path"/> in the parent object.</param>
+		/// <param name="path">Path to a field</param>
+		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
 		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonValue RequiredPath(this JsonValue? value, string path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, JsonPath.Create(path));
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <param name="path">Chemin vers le champ qui doit être présent</param>
-		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
+		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
+		/// <param name="value">Value at the specified <paramref name="path"/> in the parent object.</param>
+		/// <param name="path">Path to a field</param>
+		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
 		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonValue RequiredPath(this JsonValue? value, JsonPath path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, path);
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
-		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
+		/// <summary>Ensures that a JSON Array is not null</summary>
+		/// <param name="value">JSON Array</param>
+		/// <returns>The same instance if not null. Throws an exception if null</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null</exception>
 		[ContractAnnotation("null => halt")]
 		public static JsonArray Required(this JsonArray? value) => value ?? FailArrayIsNullOrMissing();
 
-		/// <summary>Vérifie qu'une valeur JSON est bien présente</summary>
-		/// <param name="value">Valeur JSON qui ne doit pas être null ou manquante</param>
-		/// <returns>La valeur JSON si elle existe. Ou une exception si elle est null ou manquante</returns>
-		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
+		/// <summary>Ensures that a JSON Object is not null</summary>
+		/// <param name="value">JSON Object</param>
+		/// <returns>The same instance if not null. Throws an exception if null</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null</exception>
 		[ContractAnnotation("null => halt")]
 		public static JsonObject Required(this JsonObject? value) => value ?? FailObjectIsNullOrMissing(value);
 
@@ -195,35 +193,42 @@ namespace Doxense.Serialization.Json
 
 		#region ToStuff(...)
 
-		/// <summary>Sérialise cette valeur JSON en texte le plus compact possible (pour du stockage)</summary>
-		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonSlice(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
+		/// <summary>Serializes a JSON value into the most compact text literal possible</summary>
+		/// <param name="value">JSON value to serialize</param>
+		/// <remarks>Note: if the JSON has to be sent over HTTP, or storted on disk, prefer <see cref="ToJsonSlice(JsonValue)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 		[Pure]
 		public static string ToJsonCompact(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
 
-		/// <summary>Sérialise cette valeur JSON en texte au format indenté (pratique pour des logs ou en mode debug)</summary>
-		/// <remarks>Note: si le JSON doit être envoyés en HTTP ou sauvé sur disque, préférer <see cref="ToJsonSlice(JsonValue)"/> ou <see cref="ToJsonBytes(JsonValue)"/></remarks>
+		/// <summary>Serializes a JSON value into a human-friendly identend text representation (for logging, console output, etc...)</summary>
+		/// <param name="value">JSON value to serialize</param>
 		[Pure]
 		public static string ToJsonIndented(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
 
-		/// <summary>Sérialise cette valeur JSON en un tableau de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
-		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonSlice(JsonValue)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
+		/// <summary>Serializes a JSON value into a byte array, using the default settings</summary>
+		/// <param name="value">JSON value to serialize</param>
+		/// <returns>Array of the utf-8 encoded text representation of the JSON value</returns>
+		/// <remarks>Only call this when interacting with legacy API that only accept byte[] arrays. Prefer <see cref="ToJsonSlice(JsonValue)"/> that will reduce the number of needed memory copies and allocations</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value) => CrystalJson.ToBytes(value);
 
-		/// <summary>Sérialise cette valeur JSON en un tableau de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
-		/// <remarks>A n'utiliser que si l'appelant veut absolument un tableau. Pour de l'IO, préférer <see cref="ToJsonSlice(JsonValue, CrystalJsonSettings)"/> qui permet d'éviter une copie inutile en mémoire</remarks>
+		/// <summary>Serializes a JSON value into a byte array, using custom settings</summary>
+		/// <param name="value">JSON value to serialize</param>
+		/// <param name="settings">Custom serialization settings</param>
+		/// <returns>Array of the utf-8 encoded text representation of the JSON value</returns>
+		/// <remarks>Only call this when interacting with legacy API that only accept byte[] arrays. Prefer <see cref="ToJsonSlice(JsonValue)"/> that will reduce the number of needed memory copies and allocations</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBytes(value, settings);
 
-		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
+		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using the default settings</summary>
+		/// <param name="value">JSON value to serialize</param>
+		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text represention of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonSlice(this JsonValue? value) => CrystalJson.ToSlice(value);
 
-		/// <summary>Sérialise cette valeur JSON en un buffer de bytes</summary>
-		/// <returns>Buffer contenant le texte JSON encodé en UTF-8</returns>
+		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
+		/// <param name="value">JSON value to serialize</param>
+		/// <param name="settings">Custom serialization settings</param>
+		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text represention of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonSlice(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToSlice(value, settings);
 
@@ -234,7 +239,7 @@ namespace Doxense.Serialization.Json
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static T FailRequiredValueIsNullOrMissing<T>() => throw new JsonBindingException($"Required JSON value of type {typeof(T).GetFriendlyName()} was null or missing");
 
-		/// <summary>Convert this required JSON value into an instance of the specified type.</summary>
+		/// <summary>Converts this required JSON value into an instance of the specified type.</summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
 		/// <param name="value">JSON value to be converted</param>
 		/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
@@ -287,7 +292,7 @@ namespace Doxense.Serialization.Json
 			return value.Bind<TValue>(resolver)!;
 		}
 
-		/// <summary>Convert this value into a the specified CLR type, with a fallback value if it is null or missing.</summary>
+		/// <summary>Converts this value into a the specified CLR type, with a fallback value if it is null or missing.</summary>
 		/// <typeparam name="TValue">Target CLR type</typeparam>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <see langword="default"/> for <typeparamref name="TValue"/>.</remarks>
@@ -362,7 +367,7 @@ namespace Doxense.Serialization.Json
 			return value.Bind<TValue>(resolver);
 		}
 
-		/// <summary>Convert this value into a the specified CLR type, with a fallback value if it is null or missing.</summary>
+		/// <summary>Converts this value into a the specified CLR type, with a fallback value if it is null or missing.</summary>
 		/// <typeparam name="TValue">Target CLR type</typeparam>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <paramref name="defaultValue"/>.</remarks>

@@ -31,14 +31,12 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
-	/// <summary>Valeur JSON null</summary>
+	/// <summary>JSON null</summary>
 	[DebuggerDisplay("JSON Null({m_kind})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
 	public sealed class JsonNull : JsonValue, IEquatable<JsonNull>
 	{
-		//REVIEW: il faudrait soit renommer JsonNull en JsonNil, ou alors .Null en .Nil, pour éviter l'ambiguité "JsonNull.Null" et aussi "get_IsNull" qui retourne true aussi pour missing/error
-
 		internal enum NullKind
 		{
 			Null = 0,
@@ -91,14 +89,14 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static object? ValueTypeDefault([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
 		{
-			// on ne peut retourner de singletons que pour des "structs" immutable!
+			// we can only return singletons for immutable "struct" values
 			if (type == typeof(int)) return BoxedZeroInt32;
 			if (type == typeof(long)) return BoxedZeroInt64;
 			if (type == typeof(bool)) return BoxedFalse;
 			if (type == typeof(Guid)) return BoxedEmptyGuid;
 			if (type == typeof(double)) return BoxedZeroDouble;
 			if (type == typeof(float)) return BoxedZeroSingle;
-			// dans tous les autres cas, un appelant pourrait muter par erreur la struct et impacter tout le monde!
+			// for all other cases, we have to return a new value
 			return Activator.CreateInstance(type);
 		}
 
@@ -127,14 +125,14 @@ namespace Doxense.Serialization.Json
 
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			// Si on bind vers JsonValue (ou JsonNull) on doit garder le singleton JsonNull.Null
+			// If we bind to JsonValue (or JsonNull), we must keep the same singleton (JsonNull.Null, JsonNull.Missing, ...)
 			if (type == typeof(JsonValue) || type == typeof(JsonNull))
 			{
 				return this;
 			}
 
-			// dans tous les cas, on doit retourner le default du type!
-			// - si c'est un ValueType, on doit créer une version boxée du default(T) sinon on aura une null ref si l'appelant veut le caster en (T) !
+			// In all other cases, we must return the default for this type
+			// - If this is a ValueType, we have to return a boxed default(T), or we could cause a nullref when casting to (T) !
 			if (type?.IsValueType ?? false)
 			{
 				return ValueTypeDefault(type);
@@ -221,8 +219,8 @@ namespace Doxense.Serialization.Json
 
 		public override bool Equals(object? obj)
 		{
-			// default(object) et DBNull sont considérés comme égal à JsonNull
-			if (obj == null || obj is DBNull) return true;
+			// default(object) and DBNull are both considered to be equal to a JsonNull instance
+			if (obj is null or DBNull) return true;
 
 			return base.Equals(obj);
 		}

@@ -1464,22 +1464,22 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Test si le nombre est compris entre deux bornes entières</summary>
-		/// <param name="minInclusive">Valeur minimum (incluse)</param>
-		/// <param name="maxInclusive">Valeur maximum (incluse)</param>
-		/// <returns>True si <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
+		/// <summary>Tests if the number is between the specified bounds (both included)</summary>
+		/// <param name="minInclusive">Minimum value (included)</param>
+		/// <param name="maxInclusive">Maximum value (included)</param>
+		/// <returns><see langword="true"/> if <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
 		public bool IsBetween(long minInclusive, long maxInclusive) => (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
 
-		/// <summary>Test si le nombre est compris entre deux bornes entières</summary>
-		/// <param name="minInclusive">Valeur minimum (incluse)</param>
-		/// <param name="maxInclusive">Valeur maximum (incluse)</param>
-		/// <returns>True si <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
+		/// <summary>Tests if the number is between the specified bounds (both included)</summary>
+		/// <param name="minInclusive">Minimum value (included)</param>
+		/// <param name="maxInclusive">Maximum value (included)</param>
+		/// <returns><see langword="true"/> if <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
 		public bool IsBetween(ulong minInclusive, ulong maxInclusive) => (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
 
-		/// <summary>Test si le nombre est un entier compris entre deux bornes</summary>
-		/// <param name="minInclusive">Valeur minimum (incluse)</param>
-		/// <param name="maxInclusive">Valeur maximum (incluse)</param>
-		/// <returns>True si <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
+		/// <summary>Tests if the number is between the specified bounds (both included)</summary>
+		/// <param name="minInclusive">Minimum value (included)</param>
+		/// <param name="maxInclusive">Maximum value (included)</param>
+		/// <returns><see langword="true"/> if <paramref name="minInclusive"/> &lt;= x &lt;= <paramref name="maxInclusive"/></returns>
 		public bool IsBetween(double minInclusive, double maxInclusive) => (m_value.CompareTo(m_kind, minInclusive) * -m_value.CompareTo(m_kind, maxInclusive)) >= 0;
 
 		#region JsonValue Members...
@@ -1490,9 +1490,9 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsReadOnly => true; //note: numbers are immutable
 
-		/// <summary>Retourne la valeur de l'objet en utilisant le type le plus adapté</summary>
-		/// <returns>Retourne un int/long pour des entiers, ou un decimal pour les nombres à virgules</returns>
-		/// <remarks>Pour les entiers: si la valeur est entre int.MinValue et int.MaxValue, elle sera castée en int. Sinon elle sera castée en long.</remarks>
+		/// <summary>Converts this number into a type that closely matches the value (interger or decimal)</summary>
+		/// <returns>Return either an int/long for integers, or a double/decimal for floating point numbers</returns>
+		/// <remarks>For integers: If the value is between int.MinValue and int.MaxValue, it will be casted to <see cref="Int32"/>; otherwise, it will be casted to <see cref="Int64"/>.</remarks>
 		public override object? ToObject() => m_value.ToObject(m_kind);
 
 		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default

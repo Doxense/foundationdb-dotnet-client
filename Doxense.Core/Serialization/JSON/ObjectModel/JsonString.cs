@@ -522,21 +522,20 @@ namespace Doxense.Serialization.Json
 						case TypeCode.UInt16: return ToUInt16();
 						case TypeCode.Byte: return ToByte();
 						case TypeCode.SByte: return ToSByte();
-						//note: decimal et DateTime ne sont pas IsPrimitive!
+						//note: decimal and DateTime are not 'IsPrimitive' !
 					}
 				}
 				//TODO: utiliser un dictionnaire Type => Func<...> pour speeder le test?
 				else if (typeof(DateTime) == type)
-				{ // conversion en date ?
+				{
 					return ToDateTime();
 				}
 				else if (typeof(DateTimeOffset) == type)
-				{ // conversion en DTO ?
+				{
 					return ToDateTimeOffset();
 				}
 				else if (type.IsEnum)
-				{ // Enumeration
-					//TODO: utiliser l'EnumStringTable?
+				{
 					return Enum.Parse(type, m_value, true);
 				}
 				else if (typeof(decimal) == type)
@@ -568,11 +567,11 @@ namespace Doxense.Serialization.Json
 					return ToTimeSpan();
 				}
 				else if (typeof(char[]) == type)
-				{ // tableau de chars, c'est facile..
+				{
 					return m_value.ToCharArray();
 				}
 				else if (typeof(byte[]) == type)
-				{ // par convention, la chaîne doit être Base64 encodée !
+				{ // by convention should be a Base64 encoded string
 					return ToBuffer();
 				}
 				else if (typeof(ArraySegment<byte>) == type)
@@ -584,15 +583,15 @@ namespace Doxense.Serialization.Json
 					return ToBuffer().AsSlice();
 				}
 				else if (typeof(System.Text.StringBuilder) == type)
-				{ // Buffer texte
+				{
 					return new System.Text.StringBuilder(m_value);
 				}
 				else if (typeof(System.Net.IPAddress) == type)
-				{ // Adresse IP
+				{
 					return m_value.Length != 0 ? System.Net.IPAddress.Parse(m_value) : null;
 				}
 				else if (typeof(Version) == type)
-				{ // Version
+				{
 					return m_value.Length != 0 ? Version.Parse(m_value) : null;
 				}
 				else if (typeof(Uri) == type)
@@ -619,7 +618,7 @@ namespace Doxense.Serialization.Json
 				var nullableType = Nullable.GetUnderlyingType(type);
 				if (nullableType != null)
 				{
-					//note: missing/null ou "" retourne default(T?) qui est donc null
+					//note: missing/null or "" returns default(T?), which is already null
 					if (string.IsNullOrEmpty(m_value)) return null;
 					return Bind(nullableType, resolver);
 				}
@@ -630,7 +629,7 @@ namespace Doxense.Serialization.Json
 				throw JsonBindingException.CannotBindJsonStringToThisType(this, type, e);
 			}
 
-			// check si implémente IJsonBindable
+			// check if implements IJsonBindable
 #pragma warning disable CS0618 // Type or member is obsolete
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
 			{ // HACKHACK: pour les type qui se sérialisent en string (par ex: Oid)
@@ -642,8 +641,8 @@ namespace Doxense.Serialization.Json
 			}
 #pragma warning restore CS0618 // Type or member is obsolete
 
-			// passe par un custom binder?
-			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques
+			// does it use a custom binder?
+			// => for classes with a ducktyped ctor, or static factory methods
 			var def = resolver.ResolveJsonType(type);
 			if (def?.CustomBinder != null)
 			{
@@ -659,10 +658,10 @@ namespace Doxense.Serialization.Json
 
 		internal override string GetCompactRepresentation(int depth)
 		{
-			// depth 0, chaine entière jusqu'a 128 caracs, ou avec un '[...]' au millieu si plus grand
-			// depth 1: chaine entière jusqu'a 64 caracs, ou avec un '[...]' au millieu si plus grand
-			// depth 2: chaine entière jusqu'a 36 caracs, ou avec un '[...]' au millieu si plus grand
-			// depth 3: chaine entière jusqu'a 16 caracs, ou avec un '[...]' au millieu si plus grand
+			// depth 0, complete string up to 128 chars, then truncated with '[...]' in the middle if larger
+			// depth 1: complete string up to  64 chars, then truncated with '[...]' in the middle if larger
+			// depth 2: complete string up to  36 chars, then truncated with '[...]' in the middle if larger
+			// depth 3: complete string up to  16 chars, then truncated with '[...]' in the middle if larger
 			// depth 4+: '...'
 
 			var value = m_value;
@@ -761,7 +760,7 @@ namespace Doxense.Serialization.Json
 			switch (other.Type)
 			{
 				case JsonType.String: return CompareTo(other as JsonString);
-				case JsonType.Number: return -((JsonNumber)other).CompareTo(this); //note: négatif car on inverse le sens de la comparaison!
+				case JsonType.Number: return -((JsonNumber)other).CompareTo(this);
 				default: return base.CompareTo(other);
 			}
 		}
@@ -867,7 +866,6 @@ namespace Doxense.Serialization.Json
 
 		public bool TryConvertInt16(out short value)
 		{
-			// note: NumberStyles obtenus via Reflector
 			return short.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
 
@@ -887,7 +885,6 @@ namespace Doxense.Serialization.Json
 
 		public bool TryConvertUInt16(out ushort value)
 		{
-			// note: NumberStyles obtenus via Reflector
 			return ushort.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
 
@@ -899,7 +896,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (string.IsNullOrEmpty(m_value)) return 0;
 			if (m_value.Length == 1)
-			{ // le cas le plus fréquent est un nombre de 0 à 9
+			{ // the most frequent case is a number between 0 and 9
 				char c = m_value[0];
 				if (c >= '0' & c <= '9') return c - '0';
 			}
@@ -917,11 +914,10 @@ namespace Doxense.Serialization.Json
 			var lit = m_value;
 			if (lit.Length == 0) { value = 0; return false; }
 			if (lit.Length == 1)
-			{ // le cas le plus fréquent est un nombre de 0 à 9
+			{ // the most frequent case is a number between 0 and 9
 				char c = lit[0];
 				if (c >= '0' & c <= '9') { value = c - '0'; return true; }
 			}
-			// note: NumberStyles obtenus via Reflector
 			//TODO: PERF: faster parsing ?
 			return int.TryParse(lit, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -942,7 +938,6 @@ namespace Doxense.Serialization.Json
 
 		public bool TryConvertUInt32(out uint value)
 		{
-			// note: NumberStyles obtenus via Reflector
 			return uint.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
 
@@ -954,7 +949,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (string.IsNullOrEmpty(m_value)) return 0L;
 			if (m_value.Length == 1)
-			{ // le cas le plus fréquent est un nombre de 0 à 9
+			{ // the most frequent case is a number between 0 and 9
 				char c = m_value[0];
 				if (c >= '0' & c <= '9') return c - '0';
 			}
@@ -996,7 +991,6 @@ namespace Doxense.Serialization.Json
 
 		public bool TryConvertUInt64(out ulong value)
 		{
-			// note: NumberStyles obtenus via Reflector
 			return ulong.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
 
@@ -1016,7 +1010,6 @@ namespace Doxense.Serialization.Json
 
 		public bool TryConvertSingle(out float value)
 		{
-			// note: NumberStyles obtenus via Reflector
 			return float.TryParse(m_value, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out value);
 		}
 
@@ -1042,7 +1035,6 @@ namespace Doxense.Serialization.Json
 
 		internal static bool TryConvertDouble(string literal, out double value)
 		{
-			// note: NumberStyles obtenus via Reflector
 			return double.TryParse(literal, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out value);
 		}
 
@@ -1087,7 +1079,6 @@ namespace Doxense.Serialization.Json
 
 		public bool TryConvertDecimal(out decimal value)
 		{
-			// note: NumberStyles obtenus via Reflector
 			return decimal.TryParse(m_value, NumberStyles.Number, NumberFormatInfo.InvariantInfo, out value);
 		}
 
@@ -1156,7 +1147,6 @@ namespace Doxense.Serialization.Json
 				return d;
 			}
 
-			// on tente notre chance...
 			return StringConverters.ParseDateTime(m_value);
 		}
 
@@ -1193,7 +1183,6 @@ namespace Doxense.Serialization.Json
 				return true;
 			}
 
-			// on tente notre chance...
 			return StringConverters.TryParseDateTime(literal, CultureInfo.InvariantCulture, out dt, false);
 		}
 
@@ -1219,7 +1208,6 @@ namespace Doxense.Serialization.Json
 				return new DateTimeOffset(d);
 			}
 
-			// on tente notre chance
 			return new DateTimeOffset(StringConverters.ParseDateTime(m_value));
 		}
 
@@ -1252,7 +1240,6 @@ namespace Doxense.Serialization.Json
 				return true;
 			}
 
-			// on tente notre chance
 			if (!StringConverters.TryParseDateTime(literal, CultureInfo.InvariantCulture, out dt, false))
 			{
 				dto = default;
@@ -1284,13 +1271,13 @@ namespace Doxense.Serialization.Json
 		{
 			if (string.IsNullOrEmpty(m_value)) return default(NodaTime.Instant);
 			var parseResult = CrystalJsonNodaPatterns.Instants.Parse(m_value);
-			if (parseResult.TryGetValue(default(NodaTime.Instant), out var instant)) //on est obligé de lui donner le failureValue (default(Instant)) meme si on l'utilise pas
+			if (parseResult.TryGetValue(default(NodaTime.Instant), out var instant))
 			{
 				return instant;
 			}
-			//on a pas reussi a le parser en instant
-			var dateTimeOffset = ToDateTimeOffset(); //si c'etait au format DateTimeOffset ...
-			return NodaTime.Instant.FromDateTimeOffset(dateTimeOffset); //on sait le convertir en Instant !
+			// this does not look like an "Instant", try going the DateTimeOffset route...
+			var dateTimeOffset = ToDateTimeOffset();
+			return NodaTime.Instant.FromDateTimeOffset(dateTimeOffset);
 		}
 
 		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null)
@@ -1314,11 +1301,11 @@ namespace Doxense.Serialization.Json
 		public NodaTime.LocalDateTime ToLocalDateTime()
 		{
 			string value = m_value;
-			if (string.IsNullOrEmpty(value)) return default(NodaTime.LocalDateTime);
+			if (string.IsNullOrEmpty(value)) return default;
 			if (value.EndsWith("Z", StringComparison.Ordinal))
-			{ // c'est un date UTC, probablement un Instant!
-				//HACK: c'est crado, mais on se dit que l'intention d'origine était de stocker l'heure locale, donc on la remap dans l'heure locale du système
-				// => ca ne marchera pas si c'est un autre serveur d'une autre timezone qui a généré le JSON, mais a ce moment la pourquoi il a choisi un Instant pour un LocalDateTime???
+			{ // this is a UTC date, probably an Instant
+				//HACK: not pretty, but we assume the original intention was to store a local time, so we to a local time as well
+				// => this will NOT work as intended if the server that serialized the JSON value is in a different timezone, but then the app should have used Instant, or a ZonedDateTime instead!
 				return NodaTime.LocalDateTime.FromDateTime(ToInstant().ToDateTimeUtc().ToLocalTime());
 			}
 			return CrystalJsonNodaPatterns.LocalDateTimes.Parse(value).Value;
@@ -1327,42 +1314,31 @@ namespace Doxense.Serialization.Json
 		public NodaTime.ZonedDateTime ToZonedDateTime()
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value)
-				? default(NodaTime.ZonedDateTime)
-				: CrystalJsonNodaPatterns.ZonedDateTimes.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.ZonedDateTimes.Parse(value).Value;
 		}
 
 		public NodaTime.OffsetDateTime ToOffsetDateTime()
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value)
-				? default(NodaTime.OffsetDateTime)
-				: CrystalJsonNodaPatterns.OffsetDateTimes.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.OffsetDateTimes.Parse(value).Value;
 		}
 
 		public NodaTime.DateTimeZone? ToDateTimeZone()
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value)
-				? default(NodaTime.DateTimeZone)
-				//note: on utilise toujours tzdb en premier
-				: (NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(value));
+			return string.IsNullOrEmpty(value) ? default : (NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(value));
 		}
 
 		public NodaTime.Offset ToOffset()
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value)
-				? default(NodaTime.Offset)
-				: CrystalJsonNodaPatterns.Offsets.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.Offsets.Parse(value).Value;
 		}
 
 		public NodaTime.LocalDate ToLocalDate()
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value)
-				? default(NodaTime.LocalDate)
-				: CrystalJsonNodaPatterns.LocalDates.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.LocalDates.Parse(value).Value;
 		}
 
 		#endregion
@@ -1371,12 +1347,12 @@ namespace Doxense.Serialization.Json
 
 		public override TEnum ToEnum<TEnum>()
 		{
-			return string.IsNullOrEmpty(m_value) ? default(TEnum) : (TEnum) Enum.Parse(typeof (TEnum), m_value, true);
+			return string.IsNullOrEmpty(m_value) ? default : Enum.Parse<TEnum>(m_value, ignoreCase: true);
 		}
 
 		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null)
 		{
-			return string.IsNullOrEmpty(m_value) ? defaultValue : (TEnum) Enum.Parse(typeof(TEnum), m_value, true);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : Enum.Parse<TEnum>(m_value, ignoreCase: true);
 		}
 
 		#endregion
@@ -1385,8 +1361,8 @@ namespace Doxense.Serialization.Json
 
 		public Uri? ToUri()
 		{
-			//note: new Uri("") n'est pas valid, donc on retourne null si c'est le cas...
-			return string.IsNullOrEmpty(m_value) ? default(Uri) : new Uri(m_value);
+			//note: new Uri("") is not valid, so we return null if this is the case
+			return string.IsNullOrEmpty(m_value) ? null : new Uri(m_value);
 		}
 
 		#endregion

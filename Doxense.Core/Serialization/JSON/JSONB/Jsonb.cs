@@ -980,7 +980,7 @@ namespace Doxense.Serialization.Json.Binary
 
 				Contract.NotNull(value);
 
-				if (JsonValue.IsJsonMissing(value))
+				if (ReferenceEquals(value, JsonNull.Missing))
 				{ // missing => empty
 					return 0;
 				}

@@ -29,7 +29,7 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics;
 	using Doxense.Memory;
 
-	/// <summary>Date JSON</summary>
+	/// <summary>JSON DateTime</summary>
 	[DebuggerDisplay("JSON DateTime({m_value}, {m_value}+{m_offset})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
@@ -200,13 +200,13 @@ namespace Doxense.Serialization.Json
 
 		public bool HasOffset => m_offset != NO_TIMEZONE;
 
-		/// <summary>Nombre de millisecondes écoulées depuis le 1er Janvier 1970 UTC</summary>
+		/// <summary>Number of milliseconds since Unix Epoch  (1970-01-01 00:00:00.000 UTC)</summary>
 		public long UnixTime => (this.UtcDateTime.Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerMillisecond;
 		//note: c'est un long pour ne pas avoir de problème avec le Y2038 bug (Unix Time Epoch Bug)
 
-		/// <summary>Nombre de jours écoulés depuis le 1er Janvier 1970 UTC</summary>
-		public double UnixTimeDays => (UtcTicks - UNIX_EPOCH_TICKS) / (double) TimeSpan.TicksPerDay;
-		//note: normalement pas affecté par le Y2038 bug
+		/// <summary>Number of days since Unix Epoch (1970-01-01 00:00:00.000 UTC)</summary>
+		public double UnixTimeDays => (this.UtcTicks - UNIX_EPOCH_TICKS) / (double) TimeSpan.TicksPerDay;
+		//note: this should be safe from the Y2038 bug
 
 		public bool IsLocalTime => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Local : m_offset != 0 /*TODO: comparer avec la TZ courrante ? */;
 
@@ -224,7 +224,7 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsDefault => m_value == DateTime.MinValue;
 
-		public override bool IsReadOnly => true; //note: datres are immutable
+		public override bool IsReadOnly => true; //note: dates are immutable
 
 		public override object ToObject() => m_value;
 
@@ -368,44 +368,49 @@ namespace Doxense.Serialization.Json
 			return m_value != DateTime.MinValue;
 		}
 
-		/// <summary>Retourne le temps Unix (ms depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Returns the number of milliseconds elapsed since Unix Epoch (1970-01-01 00:00:00.000 UTC)</summary>
+		/// <remarks>Note: will throw after 2038 instead of returning a negative number. Please use <see cref="UnixTime"/> instead, wich returns a <see langword="long"/>.</remarks>
 		public override int ToInt32()
 		{
-			//BUGBUG: va throw en 2038 (cf Y2038 bug) !
+			//BUGBUG: will throw in 2038 (cf Y2038 bug) !
 			return checked((int)this.UnixTime);
 		}
 
-		/// <summary>Retourne le temps Unix (ms depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Returns the number of milliseconds elapsed since Unix Epoch (1970-01-01 00:00:00.000 UTC)</summary>
+		/// <remarks>Note: will throw for years after 2100, for reasons similar to the Y2038 bug</remarks>
 		public override uint ToUInt32()
 		{
-			//BUGBUG: ne va pas throw en 2038, mais en 2100 et quelques (cf Y2038 bug) !
-			return checked((uint)this.UnixTime);
+			//BUGBUG: will not throw in 2038 since it is unsigned, but will still throw in ~2100 for similar reasons!
+			return checked((uint) this.UnixTime);
 		}
 
-		/// <summary>Retourne le nombre ticks UTC (DateTime.Ticks)</summary>
+		/// <summary>Returns the number of ticks</summary>
+		/// <remarks>Similar to <see cref="DateTime.Ticks"/></remarks>
 		public override long ToInt64()
 		{
 			return this.UtcTicks;
 		}
 
+		/// <summary>Returns the number of ticks</summary>
+		/// <remarks>Similar to <see cref="DateTime.Ticks"/></remarks>
 		public override ulong ToUInt64()
 		{
 			return (ulong) this.UtcTicks;
 		}
 
-		/// <summary>Retourne le nombre de jours écoulés depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
 		public override float ToSingle()
 		{
-			return (float)this.UnixTimeDays;
+			return (float) this.UnixTimeDays;
 		}
 
-		/// <summary>Retourne le nombre de jours écoulés depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
 		public override double ToDouble()
 		{
 			return this.UnixTimeDays;
 		}
 
-		/// <summary>Retourne le nombre de jours écoulés depuis le 1er Janvier 1970 UTC)</summary>
+		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
 		public override decimal ToDecimal()
 		{
 			return (decimal) this.UnixTimeDays;
@@ -431,15 +436,13 @@ namespace Doxense.Serialization.Json
 			return NodaTime.LocalDate.FromDateTime(this.Date);
 		}
 
-		/// <summary>Retourne le temps écoulé depuis le 1er Janvier 1970 UTC</summary>
-		/// <returns></returns>
+		/// <summary>Returns the elapsed time since January 1st 1970 UTC</summary>
 		public override TimeSpan ToTimeSpan()
 		{
 			return new TimeSpan(this.UtcTicks - UNIX_EPOCH_TICKS);
 		}
 
-		/// <summary>Retourne le temps écoulé depuis le 1er Janvier 1970 UTC</summary>
-		/// <returns></returns>
+		/// <summary>Returns the elapsed time since January 1st 1970 UTC</summary>
 		public override NodaTime.Duration ToDuration()
 		{
 			return NodaTime.Duration.FromTicks(this.UtcTicks - UNIX_EPOCH_TICKS);

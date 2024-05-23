@@ -163,16 +163,16 @@ namespace Doxense.Serialization.Json
 			_ => StringComparer.Ordinal
 		}), readOnly: false);
 
-		/// <summary>Essayes d'extraire le KeyComparer d'un dictionnaire existant</summary>
+		/// <summary>Capture the KeyComparer used by an existing dictionary</summary>
 		internal static IEqualityComparer<string>? ExtractKeyComparer<TValue>([NoEnumeration] IEnumerable<KeyValuePair<string, TValue>> items)
 		{
-			//note: pour le cas où T == JsonValue, on check quand même si c'est un JsonObject!
+			// if T == JsonOject or T == Dictionary<K,V>, we need to use the same key comparer as the original
 			// ReSharper disable once SuspiciousTypeConversion.Global
 			// ReSharper disable once ConstantNullCoalescingCondition
 			return (items as JsonObject)?.Comparer ?? (items as Dictionary<string, TValue>)?.Comparer;
 		}
 
-		/// <summary>Freeze this object, once it has been initialized, by switching it to read-only mode.</summary>
+		/// <summary>Freezes this object, once it has been initialized, by switching it to read-only mode.</summary>
 		/// <remarks>Once "frozen", the operation cannot be reverted, and if additional mutation is required, a new copy of the object must be used.</remarks>
 		public override JsonObject Freeze()
 		{
@@ -198,7 +198,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Return a new immutable read-only version of this JSON object (and all of its children)</summary>
+		/// <summary>Returns a new immutable read-only version of this JSON object (and all of its children)</summary>
 		/// <returns>The same object, if it is already immutable; otherwise, a deep copy marked as read-only.</returns>
 		/// <remarks>A JSON object that is immutable is truly safe against any modification, including of any of its direct or indirect children.</remarks>
 		public override JsonObject ToReadOnly()
@@ -223,7 +223,7 @@ namespace Doxense.Serialization.Json
 		}
 
 
-		/// <summary>Convert this JSON Object so that it, or any of its children that were previously read-only, can be mutated.</summary>
+		/// <summary>Converts this JSON Object so that it, or any of its children that were previously read-only, can be mutated.</summary>
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
 		/// <remarks>
 		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
@@ -255,7 +255,7 @@ namespace Doxense.Serialization.Json
 			return new(copy, readOnly: false);
 		}
 
-		/// <summary>Return a new mutable copy of this JSON array (and all of its children)</summary>
+		/// <summary>Returns a new mutable copy of this JSON array (and all of its children)</summary>
 		/// <returns>A deep copy of this array and its children.</returns>
 		/// <remarks>
 		/// <para>This will recursively copy all JSON objects or arrays present in the array, even if they are already mutable.</para>
@@ -276,14 +276,14 @@ namespace Doxense.Serialization.Json
 			return new JsonObject(map, readOnly: false);
 		}
 
-		/// <summary>Create a copy of this object</summary>
+		/// <summary>Creates a copy of this object</summary>
 		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
 		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
 		/// <returns>Copy of the object, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
 		/// <remarks>Performing a deep copy will protect against any change, but will induce a lot of memory allocations. For example, any child array will be cloned even if they will not be modified later on.</remarks>
 		protected internal override JsonObject Copy(bool deep, bool readOnly) => Copy(this, deep, readOnly);
 
-		/// <summary>Create a copy of a JSON object</summary>
+		/// <summary>Creates a copy of a JSON object</summary>
 		/// <param name="obj">Object to copy</param>
 		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
 		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
@@ -458,12 +458,12 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
-		/// <summary>Create a new empty read-only JSON object</summary>
+		/// <summary>Creates a new empty read-only JSON object</summary>
 		/// <returns>JSON object of size 0, that cannot be modified.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonObject CreateReadOnly() => EmptyReadOnly;
 
-		/// <summary>Create a new empty read-only JSON object</summary>
+		/// <summary>Creates a new empty read-only JSON object</summary>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>JSON object of size 0, that cannot be modified.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -473,7 +473,7 @@ namespace Doxense.Serialization.Json
 			return ReferenceEquals(comparer, StringComparer.Ordinal) ? EmptyReadOnly : new(new(0, comparer), readOnly: true);
 		}
 
-		/// <summary>Create a new immutable JSON object with a single field</summary>
+		/// <summary>Creates a new immutable JSON object with a single field</summary>
 		/// <param name="key0">Name of the field</param>
 		/// <param name="value0">Value of the field</param>
 		/// <returns>JSON object of size 1, that cannot be modified.</returns>
@@ -483,7 +483,7 @@ namespace Doxense.Serialization.Json
 			[key0] = (value0 ?? JsonNull.Null).ToReadOnly()
 		}, readOnly: true);
 
-		/// <summary>Create a new immutable JSON object with 2 fields</summary>
+		/// <summary>Creates a new immutable JSON object with 2 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
 		/// <param name="key1">Name of the second field</param>
@@ -496,7 +496,7 @@ namespace Doxense.Serialization.Json
 			{ key1, (value1 ?? JsonNull.Null).ToReadOnly() },
 		}, readOnly: true);
 
-		/// <summary>Create a new immutable JSON object with 3 fields</summary>
+		/// <summary>Creates a new immutable JSON object with 3 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
 		/// <param name="key1">Name of the second field</param>
@@ -512,7 +512,7 @@ namespace Doxense.Serialization.Json
 			{ key2, (value2 ?? JsonNull.Null).ToReadOnly() },
 		}, readOnly: true);
 
-		/// <summary>Create a immutable new JSON object with 4 fields</summary>
+		/// <summary>Creates a immutable new JSON object with 4 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
 		/// <param name="key1">Name of the second field</param>
@@ -531,7 +531,7 @@ namespace Doxense.Serialization.Json
 			{ key3, (value3 ?? JsonNull.Null).ToReadOnly() },
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -540,7 +540,7 @@ namespace Doxense.Serialization.Json
 			return CreateEmptyWithComparer(null, items).AddRangeReadOnly(items).FreezeUnsafe();
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -550,7 +550,7 @@ namespace Doxense.Serialization.Json
 			return CreateEmptyWithComparer(null, items).AddRangeReadOnly(items).FreezeUnsafe();
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -560,7 +560,7 @@ namespace Doxense.Serialization.Json
 			return CreateEmptyWithComparer(null, items).AddRangeReadOnly(items).FreezeUnsafe();
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
@@ -570,7 +570,7 @@ namespace Doxense.Serialization.Json
 			return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items).FreezeUnsafe();
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
@@ -581,7 +581,7 @@ namespace Doxense.Serialization.Json
 			return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items.AsSpan()).FreezeUnsafe();
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
@@ -2782,18 +2782,15 @@ namespace Doxense.Serialization.Json
 
 		#region Filtering...
 
-		/// <summary>Retourne un nouvel objet qui ne contient que les champs d'un objet source qui passent le filtre</summary>
-		/// <param name="value">Objet source à filtrer</param>
-		/// <param name="filter">Test appliqué sur le nom de chaque champ de <paramref name="value"/>. Les champs qui passent le filtre ne sont pas copiés dans le résultat.</param>
-		/// <param name="deepCopy">Si true, fait une copie complète des champs conservés. Si false, copie la référence.</param>
-		/// <returns>Nouvel objet filtré</returns>
-		/// <remarks>Si aucun champ ne passe le filtre, un nouvel objet vide est retourné.</remarks>
+		/// <summary>Returns a new object that only includes the fields of the original that passed a given filter</summary>
+		/// <param name="value">Original object</param>
+		/// <param name="filter">Filter that is called for each field of the original. If the filter returns <see langword="false"/>, for a field, it will not be copied into the result.</param>
+		/// <param name="deepCopy">If <see langword="true"/>, performs a deep copy of the fields that pass the filter. If <see langword="false"/>, copy them by reference. Has no effect for fields that are already read-only.</param>
+		/// <returns>New object with only the fields that passed the filter.</returns>
+		/// <remarks>If all fields are discarded, the returned object will be empty.</remarks>
 		internal static JsonObject Without(JsonObject value, Func<string, bool> filter, bool deepCopy)
 		{
 			Contract.Debug.Requires(value != null && filter != null);
-
-			// comme on ne peut pas savoir a l'avance combien de champs vont matcher, on fait quand même une copie de l'objet, qu'on drop si aucun champ n'a été modifié (le GC s'en occupera)
-			// on espère que si quelqu'un appelle cette méthode, c'est que la probabilité d'au moins un match est élevée (et donc si ça match, on aurait du allouer l'objet de toute manière)
 
 			var obj = new JsonObject(value.Count, value.Comparer);
 			foreach(var item in value)
@@ -2806,18 +2803,15 @@ namespace Doxense.Serialization.Json
 			return obj;
 		}
 
-		/// <summary>Retourne un nouvel objet qui ne contient que les champs d'un objet source qui passent le filtre</summary>
-		/// <param name="value">Objet source à filtrer</param>
-		/// <param name="filtered">Test appliqué sur le nom de chaque champ de <paramref name="value"/>. Les champs qui passent le filtre ne sont pas copiés dans le résultat.</param>
-		/// <param name="deepCopy">Si true, fait une copie complète des champs conservés. Si false, copie la référence.</param>
-		/// <returns>Nouvel objet filtré</returns>
-		/// <remarks>Si aucun champ ne passe le filtre, un nouvel objet vide est retourné.</remarks>
+		/// <summary>Returns a new object with only the fields of the original whose names are present in a given list</summary>
+		/// <param name="value">Original object</param>
+		/// <param name="filtered">List of names of fields that must be copied. Any field not present in this set will be discarded.</param>
+		/// <param name="deepCopy">If <see langword="true"/>, performs a deep copy of the fields that pass the filter. If <see langword="false"/>, copy them by reference. Has no effect for fields that are already read-only.</param>
+		/// <returns>New object with only the fields that passed the filter.</returns>
+		/// <remarks>If all fields are discarded, the returned object will be empty.</remarks>
 		internal static JsonObject Without(JsonObject value, HashSet<string> filtered, bool deepCopy)
 		{
 			Contract.Debug.Requires(value != null && filtered != null);
-
-			// comme on ne peut pas savoir a l'avance combien de champs vont matcher, on fait quand même une copie de l'objet, qu'on drop si aucun champ n'a été modifié (le GC s'en occupera)
-			// on espère que si quelqu'un appelle cette méthode, c'est que la probabilité d'au moins un match est élevée (et donc si ça match, on aurait du allouer l'objet de toute manière)
 
 			var obj = new JsonObject(value.Count, value.Comparer);
 			foreach (var item in value)
@@ -2830,45 +2824,45 @@ namespace Doxense.Serialization.Json
 			return obj;
 		}
 
-		/// <summary>Retourne une copie d'un objet sans un champ spécifique, s'il existe dans la source</summary>
-		/// <param name="value">Objet qui contient éventuellement le champ <paramref name="field"/></param>
-		/// <param name="field">Nom du champ à supprimer s'il existe</param>
-		/// <param name="deepCopy">Si true, copie également les fils de cet objet</param>
-		/// <returns>Nouvel objet sans le champ <paramref name="field"/>.</returns>
+		/// <summary>Returns a new object without the specified field from the original</summary>
+		/// <param name="value">Original object</param>
+		/// <param name="field">Name of the field that must be ommited.</param>
+		/// <param name="deepCopy">If <see langword="true"/>, performs a deep copy of the fields that pass the filter. If <see langword="false"/>, copy them by reference. Has no effect for fields that are already read-only.</param>
+		/// <returns>New object with all the fields of the original, except the one with the same name as <paramref name="field"/>.</returns>
+		/// <remarks>If all fields are discarded, the returned object will be empty.</remarks>
 		internal static JsonObject Without(JsonObject value, string field, bool deepCopy)
 		{
 			Contract.Debug.Requires(value != null && field != null);
 
-			//TODO: actuellement, on risque de faire une deepCopy du champ qui sera supprimé ensuite!
-			var obj = JsonObject.Copy(value, deepCopy, readOnly: false);
+			var obj = Copy(value, deepCopy, readOnly: false);
 			obj.Remove(field);
 			return obj;
 		}
 
-		/// <summary>Retourne une copie de cet objet, à l'exception du champ spécifié</summary>
-		/// <param name="filter">Nom du champ</param>
-		/// <param name="deepCopy">Si true, effectue une copie complète de l'objet et de ses fils (récursivement). Sinon, ne copie que l'objet top-level.</param>
-		/// <returns>Nouvel objet contenant les mêmes champs que, sauf <paramref name="filter"/>.</returns>
+		/// <summary>Returns a new object that only includes the fields of the original that passed a given filter</summary>
+		/// <param name="filter">Filter that is called for each field of the object. If the filter returns <see langword="false"/>, for a field, it will not be copied into the result.</param>
+		/// <param name="deepCopy">If <see langword="true"/>, performs a deep copy of the fields that pass the filter. If <see langword="false"/>, copy them by reference. Has no effect for fields that are already read-only.</param>
+		/// <returns>New object with only the fields that passed the filter.</returns>
 		public JsonObject Without(Func<string, bool> filter, bool deepCopy = false)
 		{
 			Contract.NotNull(filter);
 			return Without(this, filter, deepCopy);
 		}
 
-		/// <summary>Retourne une copie de cet objet, à l'exception du champ spécifié</summary>
-		/// <param name="fieldToRemove">Nom du champ</param>
-		/// <param name="deepCopy">Si true, effectue une copie complète de l'objet et de ses fils (récursivement). Sinon, ne copie que l'objet top-level.</param>
-		/// <returns>Nouvel objet contenant les mêmes champs que, sauf <paramref name="fieldToRemove"/>.</returns>
+		/// <summary>Returns a new object, without the specified field</summary>
+		/// <param name="fieldToRemove">Name of the field that should be omitted, if present.</param>
+		/// <param name="deepCopy">If <see langword="true"/>, performs a deep copy of the fields that pass the filter. If <see langword="false"/>, copy them by reference. Has no effect for fields that are already read-only.</param>
+		/// <returns>New object that does not exclude the specified field.</returns>
 		public JsonObject Without(string fieldToRemove, bool deepCopy = false)
 		{
 			Contract.NotNullOrEmpty(fieldToRemove);
 			return Without(this, fieldToRemove, deepCopy);
 		}
 
-		/// <summary>Supprime un champ de l'objet</summary>
-		/// <param name="fieldToRemove">Nom du champ</param>
-		/// <returns>Le même objet (éventuellement modifié)</returns>
-		/// <remarks>Cette méthode est un alias sur <see cref="Remove(string)"/>, utilisable en mode Fluent</remarks>
+		/// <summary>Remove a field from this object</summary>
+		/// <param name="fieldToRemove">Name of the field to remove</param>
+		/// <returns>The same object, but with the field removed (if it was present)</returns>
+		/// <remarks>This method is identical to <see cref="Remove(string)"/>, be can be chained with another call</remarks>
 		public JsonObject Erase(string fieldToRemove)
 		{
 			Contract.NotNullOrEmpty(fieldToRemove);
@@ -2923,20 +2917,19 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Tri les clés d'un dictionnaire, en utilisant un comparer spécifique</summary>
-		/// <param name="items">Dictionnaire contenant les items à trier</param>
-		/// <param name="comparer">Comparer à utiliser</param>
-		/// <param name="result">Dictionnaire dont les clés ont été insérées dans le bon ordre</param>
+		/// <summary>Order the keys of a dictionary, using the specified comparer</summary>
+		/// <returns><see langword="false"/> if the object was already ordered, or <see langword="true"/> if the object has been changed to re-order the keys.</returns>
+		/// <remarks>This is used to guarantee that serializing a JSON object produces the same text or bytes, preserving equality and checksum.</remarks>
 		private static bool TrySortByKeys(Dictionary<string, JsonValue> items, IComparer<string> comparer, [MaybeNullWhen(false)] out Dictionary<string, JsonValue> result)
 		{
-			//ATTENTION: cet algo se base sur le fait qu'actuellement (.NET 4.0 / 4.5) un Dictionary<K,V> conserve l'ordre d'insertion des clés, tant que personne ne supprime de clés.
-			// => si jamais cela n'est plus vrai dans une nouvelle version de .NET, il faudra trouver une nouvelle méthode!
+			//ATTENTION: this assumes that currently (as of .NET 8) a Dictionary<TKey,TValue> preserves the insertion order of keys, as long as there are no deletions, meaning that enumerating the Dictionary will yield the same order.
+			// => it is unlikely that this will ever change, because it would break a lot of code. But if this happens, we will need to find a different solution!
 
 			Contract.Debug.Requires(items != null && comparer != null);
 			result = null!;
 
 			if (items.Count == 0)
-			{ // pas besoin de trier
+			{ // nothing to do
 				return false;
 			}
 
@@ -2944,13 +2937,12 @@ namespace Doxense.Serialization.Json
 
 			bool changed = false;
 
-			// capture l'état de l'objet
 			var keys = new string[items.Count];
 			var values = new JsonValue[items.Count];
 			items.Keys.CopyTo(keys, 0);
 			items.Values.CopyTo(values, 0);
 
-			// il faut aussi trier les sous-éléments de cet objet
+			// each values needs to be sorted recursively
 			for (int i = 0; i < values.Length; i++)
 			{
 				if (TrySortValue(values[i], comparer, out var val))
@@ -2960,20 +2952,19 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// tri des clés
-
+			// order by the keys
 			var indexes = new int[keys.Length];
 			for (int i = 0; i < indexes.Length; i++) indexes[i] = i;
 			Array.Sort(keys, indexes, comparer);
 
 			if (!changed)
 			{
-				// Si toutes les clés étaient déjà dans le bon ordre, indexes var rester trié [0, 1, 2, ..., N-1].
-				// Dans ce cas, on peut éviter de modifier cette objet.
+				// If all keys where already ordered, the array of indexes will stay ordered as well [0, 1, 2, ..., N-1].
+				// => in this case, we don't have to create a copy, and simply need to return the same instance
 				for (int i = 0; i < indexes.Length; i++)
 				{
 					if (indexes[i] != i)
-					{ // il y a eu au moins une modification!
+					{ // there was at least one swap!
 						changed = true;
 						break;
 					}
@@ -2981,8 +2972,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (changed)
-			{ // aucune modification n'a été faite dans la sous-branche correspondant à cet objet
-				// génère la nouvelle version de cet objet
+			{ // order was changed, need to create a new object
 				result = new Dictionary<string, JsonValue>(keys.Length, items.Comparer);
 				for (int i = 0; i < keys.Length; i++)
 				{
@@ -2994,8 +2984,8 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Tri les clés de ce dictionnaire dans un ordre spécifique</summary>
-		/// <remarks>L'instance est modifiée si les clés n'étaient pas dans le bon ordre</remarks>
+		/// <summary>Order the keys of this object</summary>
+		/// <param name="comparer">Optional key comparer, or <see cref="StringComparer.Ordinal"/> if omitted.</param>
 		public void SortKeys(IComparer<string>? comparer = null)
 		{
 			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
@@ -3009,10 +2999,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Retourne un nouveau document JSON, identique au premier, mais avec les clés triées suivant un ordre spécifique</summary>
-		/// <param name="map">Object JSON source. Cet objet n'est pas modifié.</param>
-		/// <param name="comparer">Comparer à utiliser (Ordinal par défaut)</param>
-		/// <returns>Copie (non deep) de <paramref name="map"/> dont les clés sont triées selon <paramref name="comparer"/></returns>
+		/// <summary>Returns a new JSON Object, with the same content as the original, but with the keys sorted</summary>
+		/// <param name="map">Original JSON Object. This object will not be modified.</param>
+		/// <param name="comparer">Optional key comparer, or <see cref="StringComparer.Ordinal"/> if omitted.</param>
+		/// <returns>Shallow copy of the object, with the keys sorted using the specified key comparer</returns>
 		public static JsonObject OrderedByKeys(JsonObject map, IComparer<string>? comparer = null)
 		{
 			Contract.NotNull(map);
@@ -3026,7 +3016,7 @@ namespace Doxense.Serialization.Json
 			return map;
 		}
 
-		/// <summary>Retourne un nouvel objet, identique à celui-ci, mais avec les clés dans un ordre spécifique</summary>
+		/// <summary>Returns a copy of this JSON Object, with the same content as the original, but with the keys sorted</summary>
 		public JsonObject OrderedByKeys(IComparer<string>? comparer = null)
 		{
 			return OrderedByKeys(this, comparer);
@@ -3065,8 +3055,8 @@ namespace Doxense.Serialization.Json
 
 			if (m_items.Count == 0) return "{ }"; // empty
 
-			// On va dumper jusqu'à 4 champs (ce qui couvre la majorité des "petits" objets
-			// Si la valeur d'un field est "small" elle est dumpée intégralement, sinon elle est remplacer par des '...'
+			// We will output up to 4 fields.
+			// If the value of a field is "small" it is written entierly. If not, it will be replaced with '...'
 
 			var sb = new StringBuilder("{ ");
 			int i = 0;
@@ -3236,7 +3226,7 @@ namespace Doxense.Serialization.Json
 			bool first = true;
 			foreach (var kv in this)
 			{
-				// par défaut, on ne sérialise pas les "Missing"
+				// by default, we don't serialize "Missing" values
 				if (kv.Value.IsMissing()) break;
 
 				if (first)

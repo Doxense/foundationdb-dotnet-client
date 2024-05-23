@@ -35,16 +35,14 @@ namespace Doxense.Serialization.Json
 
 		#region String...
 
-		//REVIEW: est-ce qu'on ne devrait pas caster en JsonString, plutot que JsonValue?
-
 		[Pure]
 		public static implicit operator JsonValue(string? value) => JsonString.Return(value);
 
 		[Pure]
 		public static explicit operator string?(JsonValue? value)
 		{
-			//note: JsonNull.Null.ToString() retourne String.Empty, ce qui ne va pas dans notre cas!
-			// on est donc obligé d'utiliser ToStringOrDefault() qui peut retourner null
+			//note: JsonNull.Null.ToString() returns String.Empty which is not what we want
+			// => we need to call ToStringOrDefault() that will return "null" as expected
 			return (value ?? JsonNull.Null).ToStringOrDefault();
 		}
 
@@ -58,8 +56,6 @@ namespace Doxense.Serialization.Json
 		}
 
 		public static implicit operator JsonValue(ReadOnlySpan<char> value) => JsonString.Return(value);
-
-		//TODO: ajouter aussi Utf8String et AsciiString?
 
 		#endregion
 
@@ -301,9 +297,6 @@ namespace Doxense.Serialization.Json
 		#endregion
 
 		#region Int32
-
-		//REVIEW: est-ce qu'on ne devrait pas caster en JsonNumber, plutot que JsonValue?
-		// même remarque pour les autres types integers/float
 
 		[Pure]
 		public static implicit operator JsonValue(int value)
@@ -793,7 +786,6 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.Instant value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -806,7 +798,6 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static implicit operator JsonValue(NodaTime.Instant? value)
 		{
-			//TODO: type dédié pour Noda?
 			return JsonString.Return(value);
 		}
 
@@ -931,8 +922,6 @@ namespace Doxense.Serialization.Json
 
 		#region Common Array Types
 		
-		//REVIEW: bouger les implicit cast de T[] dans JsonArray pour retourner directement une array??
-
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(string?[]? values)
 		{
