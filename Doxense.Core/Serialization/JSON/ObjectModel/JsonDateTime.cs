@@ -370,6 +370,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the number of milliseconds elapsed since Unix Epoch (1970-01-01 00:00:00.000 UTC)</summary>
 		/// <remarks>Note: will throw after 2038 instead of returning a negative number. Please use <see cref="UnixTime"/> instead, wich returns a <see langword="long"/>.</remarks>
+		[Obsolete("This method is subject to the Y2038 bug, and will throw for dates that are after 2^31 milliseconds since Unix Epoch.")]
 		public override int ToInt32()
 		{
 			//BUGBUG: will throw in 2038 (cf Y2038 bug) !
