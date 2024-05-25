@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#define FULL_DEBUG // enable to diagnose allocations of this type
+//#define FULL_DEBUG // enable to diagnose allocations of this type
 
 namespace Doxense.Memory
 {
