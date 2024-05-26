@@ -250,6 +250,9 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Tests if this path is a child of another path</summary>
+		/// <param name="parent">Path to the parent</param>
+		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
 		/// <example><code>
 		/// "foo".IsChildOf("foo") => false
 		/// "foo.bar".IsChildOf("foo") => true
@@ -263,6 +266,26 @@ namespace Doxense.Serialization.Json
 		public bool IsChildOf(JsonPath parent) => IsChildOf(parent.Value.Span);
 
 		/// <summary>Tests if this path is a child of another path</summary>
+		/// <param name="parent">Path to the parent</param>
+		/// <param name="relative">If the method returns <see langword="true"/>, receives the relative path from <paramref name="parent"/> to the current path</param>
+		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
+		/// <example><code>
+		/// "foo".IsChildOf("foo", out ...) => false, relative: ""
+		/// "foo.bar".IsChildOf("foo", out ...) => true, relative: "bar"
+		/// "foo[42]".IsChildOf("foo", out ...) => true, relative: "[42]
+		/// "[42].foo".IsChildOf("[42]", out ...) => true, relative: "foo"
+		/// "foo".IsChildOf("foo.bar", out ...) => false, relative: ""
+		/// "foo[42].bar".IsChildOf("foo[42]", out ...) => true, relative: "bar"
+		/// "foo[42][^1]".IsChildOf("foo[42]", out ...) => true, relative: "[^1]"
+		/// </code></example>
+		[Pure]
+		public bool IsChildOf(JsonPath parent, out JsonPath relative) => IsChildOf(parent.Value.Span, out relative);
+
+		/// <summary>Tests if this path is a child of another path</summary>
+		/// <param name="parent">Path to the parent</param>
+		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
 		/// <example><code>
 		/// "foo".IsChildOf("foo") => false
 		/// "foo.bar".IsChildOf("foo") => true
@@ -291,6 +314,58 @@ namespace Doxense.Serialization.Json
 				return tail[0] is '.' or '[';
 			}
 
+			return true;
+		}
+
+		/// <summary>Tests if this path is a child of another path</summary>
+		/// <param name="parent">Path to the parent</param>
+		/// <param name="relative">If the method returns <see langword="true"/>, receives the relative path from <paramref name="parent"/> to the current path</param>
+		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
+		/// <example><code>
+		/// "foo".IsChildOf("foo", out ...) => false, relative: ""
+		/// "foo.bar".IsChildOf("foo", out ...) => true, relative: "bar"
+		/// "foo[42]".IsChildOf("foo", out ...) => true, relative: "[42]
+		/// "[42].foo".IsChildOf("[42]", out ...) => true, relative: "foo"
+		/// "foo".IsChildOf("foo.bar", out ...) => false, relative: ""
+		/// "foo[42].bar".IsChildOf("foo[42]", out ...) => true, relative: "bar"
+		/// "foo[42][^1]".IsChildOf("foo[42]", out ...) => true, relative: "[^1]"
+		/// </code></example>
+		public bool IsChildOf(ReadOnlySpan<char> parent, out JsonPath relative)
+		{
+			relative = default;
+			var path = this.Value.Span;
+			if (parent.Length == 0)
+			{ // from the root
+				if (path.Length == 0)
+				{
+					return false;
+				}
+				relative = this;
+				return true;
+			}
+
+			if (path.Length <= parent.Length) return false;
+			if (!path.StartsWith(parent)) return false;
+
+			var tail = path[parent.Length ..];
+			if (tail[0] is not ('.' or '['))
+			{ // parent: "foos", child: "foo.bar"
+				return false;
+			}
+
+			if (parent[^1] == ']')
+			{ // parent: "foo[42]", child: "foo[42][^1] or "foo[42].bar"
+				if (tail[0] is '.' or '[')
+				{
+					relative = new(this.Value[(parent.Length + (tail[0] == '.' ? 1 : 0))..]);
+					return true;
+				}
+				return false;
+			}
+
+			// parent: "foo", child: "foo.bar"
+			relative = new (this.Value[(parent.Length + (tail[0] == '.' ? 1 : 0))..]);
 			return true;
 		}
 

@@ -264,28 +264,41 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonPath_IsChildOf()
 		{
 
-			static void ShouldBeChild(string child, string parent)
+			static void ShouldBeChild(string child, string parent, string relative)
 			{
-				Log($"# '{child}'.IsChildOf('{parent}') => true");
-				Assert.That(JsonPath.Create(child).IsChildOf(JsonPath.Create(parent)), Is.True, $"Path '{child}' should be a child of '{parent}'");
-				Assert.That(JsonPath.Create(child).IsChildOf(parent.AsSpan()), Is.True, $"Path '{child}' should be a child of '{parent}'");
+				var childPath = JsonPath.Create(child);
+				var parentPath = JsonPath.Create(parent);
+
+				Log($"# '{child}'.IsChildOf('{parent}') => (true, '{relative}')");
+				Assert.That(childPath.IsChildOf(parentPath), Is.True, $"Path '{child}' should be a child of '{parent}'");
+				Assert.That(childPath.IsChildOf(parent.AsSpan()), Is.True, $"Path '{child}' should be a child of '{parent}'");
+
+				Assert.That(childPath.IsChildOf(parentPath, out var rp), Is.True, $"Path '{child}' should be a child of '{parent}'");
+				Assert.That(rp.ToString(), Is.EqualTo(relative), $"Relative path from '{child}' to '{parent}' should be '{relative}'");
+
+				Assert.That(childPath.IsChildOf(parent.AsSpan(), out rp), Is.True, $"Path '{child}' should be a child of '{parent}'");
+				Assert.That(rp.ToString(), Is.EqualTo(relative), $"Relative path from '{child}' to '{parent}' should be '{relative}'");
 			}
 
 			static void ShouldNotBeChild(string child, string parent)
 			{
+				var childPath = JsonPath.Create(child);
+				var parentPath = JsonPath.Create(parent);
+
 				Log($"# '{child}'.IsChildOf('{parent}') => false");
-				Assert.That(JsonPath.Create(child).IsChildOf(JsonPath.Create(parent)), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
-				Assert.That(JsonPath.Create(child).IsChildOf(parent.AsSpan()), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
+				Assert.That(childPath.IsChildOf(parentPath), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
+				Assert.That(childPath.IsChildOf(parent.AsSpan()), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
+				Assert.That(childPath.IsChildOf(parentPath, out var rp), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
 			}
 
 			// PARENT
-			ShouldBeChild("foo", "");
-			ShouldBeChild("[42]", "");
-			ShouldBeChild("foo.bar", "foo");
-			ShouldBeChild("foo[42]", "foo");
-			ShouldBeChild("foo[42].bar", "foo[42]");
-			ShouldBeChild("foo[42][^1]", "foo[42]");
-			ShouldBeChild("a.b.c.d.e.f.g.h.i", "a.b.c.d.e.f");
+			ShouldBeChild("foo", "", "foo");
+			ShouldBeChild("[42]", "", "[42]");
+			ShouldBeChild("foo.bar", "foo", "bar");
+			ShouldBeChild("foo[42]", "foo", "[42]");
+			ShouldBeChild("foo[42].bar", "foo[42]", "bar");
+			ShouldBeChild("foo[42][^1]", "foo[42]", "[^1]");
+			ShouldBeChild("a.b.c.d.e.f.g.h.i", "a.b.c.d.e.f", "g.h.i");
 
 			// NOT PARENT
 			ShouldNotBeChild("bar", "foo");
