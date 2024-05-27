@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json.Tests
 {
 	using System;
+	using System.Linq;
 	using JetBrains.Annotations;
 	using NUnit.Framework;
 	using SnowBank.Testing;
@@ -64,51 +65,69 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonPath_Basics()
 		{
-			var foo = JsonPath.Create("foo");
-			Assert.That(foo.IsEmpty(), Is.False);
-			Assert.That(foo.ToString(), Is.EqualTo("foo"));
-			Assert.That(foo, Is.EqualTo(foo));
-			Assert.That(foo, Is.Not.EqualTo(JsonPath.Empty));
-			Assert.That(foo.Equals("foo"), Is.True);
-			Assert.That(foo.GetKey().ToString(), Is.EqualTo("foo"));
-			Assert.That(foo.GetIndex(), Is.Null);
-			Assert.That(foo.GetParent(), Is.EqualTo(JsonPath.Empty));
-
-			var fooBar = JsonPath.Create("foo.bar");
-			Assert.That(fooBar.IsEmpty(), Is.False);
-			Assert.That(fooBar.ToString(), Is.EqualTo("foo.bar"));
-			Assert.That(fooBar, Is.EqualTo(fooBar));
-			Assert.That(fooBar, Is.Not.EqualTo(foo));
-			Assert.That(fooBar, Is.Not.EqualTo(JsonPath.Empty));
-			Assert.That(fooBar.Equals("foo.bar"), Is.True);
-			Assert.That(fooBar.GetKey().ToString(), Is.EqualTo("bar"));
-			Assert.That(fooBar.GetIndex(), Is.Null);
-			Assert.That(fooBar.GetParent(), Is.EqualTo("foo"));
-
-			var foo42 = JsonPath.Create("foo[42]");
-			Assert.That(foo42.IsEmpty(), Is.False);
-			Assert.That(foo42.ToString(), Is.EqualTo("foo[42]"));
-			Assert.That(foo42, Is.EqualTo(foo42));
-			Assert.That(foo42, Is.Not.EqualTo(fooBar));
-			Assert.That(foo42, Is.Not.EqualTo(foo));
-			Assert.That(foo42, Is.Not.EqualTo(JsonPath.Empty));
-			Assert.That(foo42.Equals("foo[42]"), Is.True);
-			Assert.That(foo42.GetKey().ToString(), Is.EqualTo(""));
-			Assert.That(foo42.GetIndex(), Is.EqualTo((Index) 42));
-			Assert.That(foo42.GetParent(), Is.EqualTo("foo"));
-
-			var foo42Bar = JsonPath.Create("foo[42].bar");
-			Assert.That(foo42Bar.IsEmpty(), Is.False);
-			Assert.That(foo42Bar.ToString(), Is.EqualTo("foo[42].bar"));
-			Assert.That(foo42Bar, Is.EqualTo(foo42Bar));
-			Assert.That(foo42Bar, Is.Not.EqualTo(foo42));
-			Assert.That(foo42Bar, Is.Not.EqualTo(fooBar));
-			Assert.That(foo42Bar, Is.Not.EqualTo(foo));
-			Assert.That(foo42Bar, Is.Not.EqualTo(JsonPath.Empty));
-			Assert.That(foo42Bar.Equals("foo[42].bar"), Is.True);
-			Assert.That(foo42Bar.GetKey().ToString(), Is.EqualTo("bar"));
-			Assert.That(foo42Bar.GetIndex(), Is.Null);
-			Assert.That(foo42Bar.GetParent(), Is.EqualTo("foo[42]"));
+			{
+				var path = JsonPath.Create("foo");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("foo"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
+				Assert.That(path.Equals("foo"), Is.True);
+				Assert.That(path.GetKey().ToString(), Is.EqualTo("foo"));
+				Assert.That(path.GetIndex(), Is.Null);
+				Assert.That(path.GetParent(), Is.EqualTo(JsonPath.Empty));
+			}
+			{
+				var path = JsonPath.Create("foo.bar");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("foo.bar"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("foo")));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
+				Assert.That(path.Equals("foo.bar"), Is.True);
+				Assert.That(path.GetKey().ToString(), Is.EqualTo("bar"));
+				Assert.That(path.GetIndex(), Is.Null);
+				Assert.That(path.GetParent(), Is.EqualTo("foo"));
+			}
+			{
+				var path = JsonPath.Create("foo[42]");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("foo[42]"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("foo.bar")));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("foo")));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
+				Assert.That(path.Equals("foo[42]"), Is.True);
+				Assert.That(path.GetKey().ToString(), Is.EqualTo(""));
+				Assert.That(path.GetIndex(), Is.EqualTo((Index) 42));
+				Assert.That(path.GetParent(), Is.EqualTo("foo"));
+			}
+			{
+				var path = JsonPath.Create("foo[42].bar");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("foo[42].bar"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
+				Assert.That(path.Equals("foo[42].bar"), Is.True);
+				Assert.That(path.GetKey().ToString(), Is.EqualTo("bar"));
+				Assert.That(path.GetIndex(), Is.Null);
+				Assert.That(path.GetParent(), Is.EqualTo("foo[42]"));
+			}
+			{ // spaces are not special...
+				var path = JsonPath.Create("foo bar.baz");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("foo bar.baz"));
+				Assert.That(path.Equals("foo bar.baz"), Is.True);
+				Assert.That(path.GetKey().ToString(), Is.EqualTo("baz"));
+				Assert.That(path.GetIndex(), Is.Null);
+				Assert.That(path.GetParent(), Is.EqualTo("foo bar"));
+				Assert.That(path.GetParent().GetKey().ToString(), Is.EqualTo("foo bar"));
+				Assert.That(path.GetParent().GetIndex(), Is.Null);
+				Assert.That(path.GetParent().GetParent(), Is.EqualTo(JsonPath.Empty));
+			}
+			{ // escaping of '.'
+				var path = JsonPath.Create("foo\\.bar.baz");
+				Assert.That(path.GetParts(), Is.EqualTo((new[] { "foo.bar", "baz" })));
+			}
 
 		}
 
@@ -125,6 +144,18 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(root[42], Is.EqualTo((JsonPath) "[42]"));
 			Assert.That(root[42]["foo"], Is.EqualTo((JsonPath) "[42].foo"));
 			Assert.That(root[42][^1], Is.EqualTo((JsonPath) "[42][^1]"));
+
+			// test that we can index an object with weird keys like "foo bar" or "foo.bar" or "foo\bar" are escaped properly
+			// We use a similar encoding as json string where '\' is escape as '\\', and '.' or ' ' is encoded as '\.' and '\ ' respectively.
+
+			Assert.That(root["foo"]["bar.baz"].ToString(), Is.EqualTo(@"foo.bar\.baz"));
+			Assert.That(root["foo"]["bar[baz"].ToString(), Is.EqualTo(@"foo.bar\[baz"));
+			Assert.That(root["foo"]["bar]baz"].ToString(), Is.EqualTo(@"foo.bar\]baz"));
+			Assert.That(root["foo"]["bar\\baz"].ToString(), Is.EqualTo(@"foo.bar\\baz"));
+			Assert.That(root["foo"]["[42]"].ToString(), Is.EqualTo(@"foo.\[42\]"));
+
+			Assert.That(root["foo"]["bar baz"].ToString(), Is.EqualTo("foo.bar baz")); // space should NOT be escaped
+			Assert.That(root["foo"]["bar/baz"].ToString(), Is.EqualTo("foo.bar/baz")); // '/' should NOT be escaped
 		}
 
 		[Test]
@@ -151,14 +182,18 @@ namespace Doxense.Serialization.Json.Tests
 
 			Verify("foo", "foo");
 			Verify("foo.bar", "bar");
+			Verify("foo\\.bar", "foo.bar");
 			Verify("foo.bar.baz", "baz");
 			Verify("foo[42].bar", "bar");
 			Verify("[42].bar", "bar");
+			Verify("foo.bar\\.baz", "bar.baz");
+			Verify("foo.\\[42\\]", "[42]");
 
 			Verify("", "");
 			Verify("[42]", "");
 			Verify("foo[42]", "");
 			Verify("foo.bar[42]", "");
+			Verify("foo\\.bar[42]", "");
 		}
 
 		[Test]
@@ -197,6 +232,7 @@ namespace Doxense.Serialization.Json.Tests
 			Verify("foo.bar.baz", null);
 			Verify("foo[42].bar", null);
 			Verify("[42].bar", null);
+			Verify("foo\\[123\\]", null);
 
 		}
 
@@ -220,20 +256,23 @@ namespace Doxense.Serialization.Json.Tests
 			Verify("foo.bar[42]", "foo.bar");
 			Verify("foo[42].baz", "foo[42]");
 			Verify("[42].bar.baz", "[42].bar");
+			Verify("foo.bar\\.baz", "foo");
+			Verify("foo\\.bar.baz", "foo\\.bar");
+			Verify("foo.bar\\[42\\]", "foo");
 		}
 
 		[Test]
 		public void Test_JsonPath_IsParentOf()
 		{
 
-			static void SouldBeParent(string parent, string child)
+			static void ShouldBeParent(string parent, string child)
 			{
 				Log($"# '{parent}'.IsParentOf('{child}') => true");
 				Assert.That(JsonPath.Create(parent).IsParentOf(JsonPath.Create(child)), Is.True, $"Path '{parent}' should be a parent of '{child}'");
 				Assert.That(JsonPath.Create(parent).IsParentOf(child.AsSpan()), Is.True, $"Path '{parent}' should be a parent of '{child}'");
 			}
 
-			static void SouldNotBeParent(string parent, string child)
+			static void ShouldNotBeParent(string parent, string child)
 			{
 				Log($"# '{parent}'.IsParentOf('{child}') => false");
 				Assert.That(JsonPath.Create(parent).IsParentOf(JsonPath.Create(child)), Is.False, $"Path '{parent}' should NOT be a parent of '{child}'");
@@ -241,23 +280,26 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			// PARENT
-			SouldBeParent("", "foo");
-			SouldBeParent("", "[42]");
-			SouldBeParent("foo", "foo.bar");
-			SouldBeParent("foo", "foo[42]");
-			SouldBeParent("foo[42]", "foo[42].bar");
-			SouldBeParent("foo[42]", "foo[42][^1]");
-			SouldBeParent("a.b.c.d.e.f", "a.b.c.d.e.f.g.h.i");
+			ShouldBeParent("", "foo");
+			ShouldBeParent("", "[42]");
+			ShouldBeParent("foo", "foo.bar");
+			ShouldBeParent("foo", "foo[42]");
+			ShouldBeParent("foo[42]", "foo[42].bar");
+			ShouldBeParent("foo[42]", "foo[42][^1]");
+			ShouldBeParent("a.b.c.d.e.f", "a.b.c.d.e.f.g.h.i");
+			ShouldBeParent("foo", "foo.bar\\.baz");
+			ShouldBeParent("foo\\.bar", "foo\\.bar.baz");
 
 			// NOT PARENT
-			SouldNotBeParent("foo", "bar");
-			SouldNotBeParent("foo.bar", "foo");
-			SouldNotBeParent("foo[42]", "foo");
-			SouldNotBeParent("foos", "foo.bar");
-			SouldNotBeParent("foos", "foo[42]");
-			SouldNotBeParent("foo", "foos.bar");
-			SouldNotBeParent("foo", "foos[42]");
-			SouldNotBeParent("a.a.a.a.a.a", "a.a.a.A.a.a.a");
+			ShouldNotBeParent("foo", "bar");
+			ShouldNotBeParent("foo.bar", "foo");
+			ShouldNotBeParent("foo[42]", "foo");
+			ShouldNotBeParent("foos", "foo.bar");
+			ShouldNotBeParent("foos", "foo[42]");
+			ShouldNotBeParent("foo", "foos.bar");
+			ShouldNotBeParent("foo", "foos[42]");
+			ShouldNotBeParent("a.a.a.a.a.a", "a.a.a.A.a.a.a");
+			ShouldNotBeParent("foo", "foo\\.bar.baz");
 		}
 
 		[Test]
@@ -299,6 +341,8 @@ namespace Doxense.Serialization.Json.Tests
 			ShouldBeChild("foo[42].bar", "foo[42]", "bar");
 			ShouldBeChild("foo[42][^1]", "foo[42]", "[^1]");
 			ShouldBeChild("a.b.c.d.e.f.g.h.i", "a.b.c.d.e.f", "g.h.i");
+			ShouldBeChild("foo.bar\\.baz", "foo", "bar\\.baz");
+			ShouldBeChild("foo\\.bar.baz", "foo\\.bar", "baz");
 
 			// NOT PARENT
 			ShouldNotBeChild("bar", "foo");
@@ -309,6 +353,7 @@ namespace Doxense.Serialization.Json.Tests
 			ShouldNotBeChild("foos.bar", "foo");
 			ShouldNotBeChild("foos[42]", "foo");
 			ShouldNotBeChild("a.a.a.A.a.a.a", "a.a.a.a.a.a");
+			ShouldNotBeChild("foo\\.bar.baz", "foo");
 		}
 
 		[Test]
@@ -477,6 +522,21 @@ namespace Doxense.Serialization.Json.Tests
 				Step(ref it, "foo", null, "");
 				Step(ref it, null, 42, "foo");
 				Step(ref it, "bar", null, "foo[42]", last: true);
+				End(ref it);
+			}
+
+			{
+				var it = Tokenize(@"images.x\.y\.z.id");
+				Step(ref it, "images", null, "");
+				Step(ref it, "x.y.z", null, "images");
+				Step(ref it, "id", null, @"images.x\.y\.z", last: true);
+				End(ref it);
+			}
+			{
+				var it = Tokenize(@"images.\[42\].id");
+				Step(ref it, "images", null, "");
+				Step(ref it, "[42]", null, "images");
+				Step(ref it, "id", null, @"images.\[42\]", last: true);
 				End(ref it);
 			}
 

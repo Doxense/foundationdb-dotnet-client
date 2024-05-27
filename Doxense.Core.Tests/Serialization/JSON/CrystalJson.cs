@@ -6247,6 +6247,22 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(() => obj.GetPath<Guid>(JsonPath.Create("Y")), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(() => obj.GetPath<string>(JsonPath.Create("Z")), Throws.InstanceOf<JsonBindingException>());
 			Assert.That(() => obj.GetPath<string>(JsonPath.Create("間")), Throws.InstanceOf<JsonBindingException>());
+
+			// test that we can access field names that require espacing
+			obj = new JsonObject
+			{
+				["foo.bar"] = "baz",
+				["[42]"] = 42,
+				[@"\o/"] = "Hello, there!",
+			};
+			// incorrectly escaped in the path
+			Assert.That(obj.GetPathValueOrDefault("foo.bar"), IsJson.Null);
+			Assert.That(obj.GetPathValueOrDefault("[42]"), IsJson.Null);
+			Assert.That(obj.GetPathValueOrDefault(@"\o/"), IsJson.Null);
+			// properly escaped in the path
+			Assert.That(obj.GetPathValueOrDefault(@"foo\.bar"), IsJson.EqualTo("baz"));
+			Assert.That(obj.GetPathValueOrDefault(@"\[42\]"), IsJson.EqualTo(42));
+			Assert.That(obj.GetPathValueOrDefault(@"\\o/"), IsJson.EqualTo("Hello, there!"));
 		}
 
 		[Test]
