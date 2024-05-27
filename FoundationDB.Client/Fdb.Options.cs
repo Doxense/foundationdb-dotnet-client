@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{ // path is not found
-					throw new ArgumentException($"The path must reference either a file with name '{expectedFileName}', or a folder that contains a file named '{expectedFileName}'.");
+					throw new ArgumentException($"The path '{path}' must reference either a file with name '{expectedFileName}', or a folder that contains a file named '{expectedFileName}'.");
 				}
 
 				//TODO: throw if native library has already been loaded
