@@ -350,7 +350,6 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-
 		/// <summary>Tests if this path is a parent of another path</summary>
 		/// <example><code>
 		/// "foo".IsParentOf("foo") => false
@@ -1029,6 +1028,50 @@ namespace Doxense.Serialization.Json
 				this.Index = default;
 			}
 
+		}
+
+		public static void WriteTo(StringBuilder sb, string key) => WriteTo(sb, key.AsSpan());
+
+		public static void WriteTo(StringBuilder sb, ReadOnlySpan<char> key)
+		{
+			if (!RequiresEscaping(key))
+			{
+				sb.Append(key);
+			}
+			else
+			{
+				AppendEscaped(sb, key);
+			}
+
+			static void AppendEscaped(StringBuilder sb, ReadOnlySpan<char> key)
+			{
+				foreach (var c in key)
+				{
+					if (c is '.' or '\\' or '[' or ']')
+					{
+						sb.Append('\\');
+					}
+
+					sb.Append(c);
+				}
+			}
+		}
+
+		public static void WriteTo(StringBuilder sb, Index index)
+		{
+			sb.Append('[').Append(index).Append(']');
+		}
+
+		public static void WriteTo(StringBuilder sb, int index)
+		{
+			if (index is >= 0 and <= 9)
+			{
+				sb.Append('[').Append('0' + index).Append(']');
+			}
+			else
+			{
+				sb.Append(CultureInfo.InvariantCulture, $"[{index}]");
+			}
 		}
 
 	}
