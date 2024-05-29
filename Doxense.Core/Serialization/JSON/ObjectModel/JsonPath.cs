@@ -627,7 +627,7 @@ namespace Doxense.Serialization.Json
 			{
 				literal = literal[(p + 1)..];
 				offset += p + 1;
-				p = literal.LastIndexOf(token);
+				p = literal.IndexOf(token);
 				if (p < 0) return -1;
 			}
 			return offset + p;

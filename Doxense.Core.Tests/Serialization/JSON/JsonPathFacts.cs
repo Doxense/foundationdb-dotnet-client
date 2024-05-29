@@ -27,7 +27,6 @@
 namespace Doxense.Serialization.Json.Tests
 {
 	using System;
-	using System.Linq;
 	using JetBrains.Annotations;
 	using NUnit.Framework;
 	using SnowBank.Testing;
@@ -124,9 +123,13 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(path.GetParent().GetIndex(), Is.Null);
 				Assert.That(path.GetParent().GetParent(), Is.EqualTo(JsonPath.Empty));
 			}
-			{ // escaping of '.'
-				var path = JsonPath.Create("foo\\.bar.baz");
-				Assert.That(path.GetParts(), Is.EqualTo((new[] { "foo.bar", "baz" })));
+			{ // escaping
+				Assert.That(JsonPath.Create(@"foo\.bar.baz").GetParts(), Is.EqualTo((new[] { "foo.bar", "baz" })));
+				Assert.That(JsonPath.Create(@"hosts.192\.168\.1\.23.name").GetParts(), Is.EqualTo((new[] { "hosts", "192.168.1.23", "name" })));
+				Assert.That(JsonPath.Create(@"users.DOMACME\\j\.smith.groups").GetParts(), Is.EqualTo((new[] { "users", @"DOMACME\j.smith", "groups" })));
+				Assert.That(JsonPath.Create(@"domains.\[::1\].allowed").GetParts(), Is.EqualTo((new[] { "domains", "[::1]", "allowed" })));
+				Assert.That(JsonPath.Create(@"foos.foo\.0.bars.bar\.1\.2.baz").GetParts(), Is.EqualTo((new[] { "foos", "foo.0", "bars", "bar.1.2", "baz" })));
+				Assert.That(JsonPath.Create(@"foos.foo\[0\].bars.bar\[1\]\[2\].baz").GetParts(), Is.EqualTo((new[] { "foos", "foo[0]", "bars", "bar[1][2]", "baz" })));
 			}
 
 		}
@@ -443,7 +446,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				Assert.That(it.MoveNext(), Is.True, $"Expected Next() to be {key}/{index}/{parent}");
 				var current = it.Current;
-				Log($"- Current: key={(current.Key.IsEmpty ? "<null>" : $"'{current.Key.ToString()}'")} / idx={current.Index.ToString()} / patyh='{current.Parent}'");
+				Log($"- Current: key={(current.Key.IsEmpty ? "<null>" : $"'{current.Key.ToString()}'")} / idx={current.Index.ToString()} / path='{current.Parent}'");
 				if (key != null)
 				{
 					Assert.That(current.Key.ToString(), Is.EqualTo(key), $"Expected next token to be key '{key}' with parent '{parent}'");
@@ -551,6 +554,17 @@ namespace Doxense.Serialization.Json.Tests
 				Step(ref it, "jazz", null, "foo.bar[42].baz[^1][2]");
 				Step(ref it, null, 123, "foo.bar[42].baz[^1][2].jazz");
 				Step(ref it, null, 456, "foo.bar[42].baz[^1][2].jazz[123]", last: true);
+				End(ref it);
+			}
+
+			{
+				
+				var it = Tokenize(@"foos.foo\.0.bars.bar\.1\.2.baz");
+				Step(ref it, "foos", null, "");
+				Step(ref it, "foo.0", null, "foos");
+				Step(ref it, "bars", null, @"foos.foo\.0");
+				Step(ref it, "bar.1.2", null, @"foos.foo\.0.bars");
+				Step(ref it, "baz", null, @"foos.foo\.0.bars.bar\.1\.2", last: true);
 				End(ref it);
 			}
 		}
