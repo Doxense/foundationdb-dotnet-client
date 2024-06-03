@@ -45,6 +45,7 @@ namespace Doxense.Serialization.Json
 		private readonly CrystalJsonSettings m_settings;
 		private readonly ICrystalJsonTypeResolver m_resolver;
 		//REVIEW: => convertir tout ces bools en bitflags!
+		private readonly bool m_readOnly;
 		private readonly bool m_discardDefaults; //REVIEW: implement!
 		private readonly bool m_discardNulls;
 		private readonly bool m_discardClass;
@@ -115,6 +116,7 @@ namespace Doxense.Serialization.Json
 			m_settings = settings ?? CrystalJsonSettings.Json;
 			m_resolver = resolver ?? CrystalJson.DefaultResolver;
 
+			m_readOnly = m_settings.ReadOnly;
 			m_discardDefaults = m_settings.HideDefaultValues;
 			m_discardNulls = m_discardDefaults || !m_settings.ShowNullMembers;
 			m_discardClass = m_settings.HideClassId;
@@ -328,22 +330,12 @@ namespace Doxense.Serialization.Json
 
 		#region DOM Helpers...
 
-		public JsonObject BeginObject()
-		{
-			return new JsonObject(m_keyComparer);
-		}
-
-		public JsonObject BeginObject(int capacity)
+		public JsonObject BeginObject(int capacity = 0)
 		{
 			return new JsonObject(capacity, m_keyComparer);
 		}
 
-		public JsonArray BeginArray()
-		{
-			return new JsonArray();
-		}
-
-		public JsonArray BeginArray(int capacity)
+		public JsonArray BeginArray(int capacity = 0)
 		{
 			return new JsonArray(capacity);
 		}
@@ -653,6 +645,12 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(value != null && type != null);
 
+			if (value.Count == 0)
+			{
+				result = m_readOnly ? JsonObject.EmptyReadOnly : new JsonObject();
+				return true;
+			}
+
 			MarkVisited(ref context, value, type);
 			var obj = BeginObject(value.Count);
 			foreach (var kvp in value)
@@ -684,6 +682,12 @@ namespace Doxense.Serialization.Json
 		internal bool TryConvertDictionaryObject(ref VisitingContext context, IDictionary value, Type type, out JsonValue result)
 		{
 			Contract.Debug.Requires(value != null && type != null);
+
+			if (value.Count == 0)
+			{
+				result = m_readOnly ? JsonObject.EmptyReadOnly : new JsonObject();
+				return true;
+			}
 
 			bool stringKeys;
 			Type elementType;
@@ -740,6 +744,12 @@ namespace Doxense.Serialization.Json
 				elemType = genType.GetGenericArguments()[0];
 			}
 
+			if (values.Count == 0)
+			{
+				result = m_readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+				return true;
+			}
+
 			MarkVisited(ref context, values);
 			var array = BeginArray(values.Count);
 			foreach (var item in values)
@@ -747,6 +757,10 @@ namespace Doxense.Serialization.Json
 				array.Add(item != null ? ParseObjectInternal(ref context, item, elemType, null) : JsonNull.Null);
 			}
 			Leave(ref context, values);
+			if (m_readOnly)
+			{
+				array.Freeze();
+			}
 			result = array;
 			return true;
 		}
@@ -756,10 +770,18 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(values != null && sequenceType != null);
 
+			// try to pre-allocate the array if we know the number of elements in advance
+			int? l = values is ICollection coll ? coll.Count : null;
+			if (l == 0)
+			{ // this is empty!
+				result = m_readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+				return true;
+			}
+
 			MarkVisited(ref context, values);
 
-			// on va esayer de terminée la taille de la collection pour pre-size l'array
-			var array = values is ICollection coll ? BeginArray(coll.Count) : BeginArray();
+			var array = BeginArray(l ?? 0);
+
 
 			foreach (var item in values)
 			{
@@ -767,6 +789,11 @@ namespace Doxense.Serialization.Json
 			}
 
 			Leave(ref context, values);
+
+			if (m_readOnly)
+			{
+				array.Freeze();
+			}
 
 			result = array;
 			return true;
@@ -819,6 +846,12 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			Leave(ref context, value);
+
+			if (m_readOnly)
+			{ //REVIEW: PERF: TODO: find a more efficient way?
+				obj.Freeze();
+			}
+
 			result = obj;
 			return true;
 		}

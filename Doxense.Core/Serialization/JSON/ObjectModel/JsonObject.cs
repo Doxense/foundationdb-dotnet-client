@@ -2619,8 +2619,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
 		public static Func<JsonObject, JsonObject> CreatePicker(ReadOnlySpan<string> fields, bool removeFromSource = false)
 		{
-			var projections = CheckProjectionFields(fields, removeFromSource);
-			return (obj) => Project(obj, projections);
+			var projections = CheckProjectionFields(fields, keepMissing: false);
+			return (obj) => Project(obj, projections, removeFromSource);
 		}
 
 		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
@@ -2755,9 +2755,14 @@ namespace Doxense.Serialization.Json
 		/// <param name="removeFromSource">Si true, retire les champs sélectionnés de <paramref name="item"/>. Si false, ils sont copiés dans le résultat</param>
 		/// <returns>Nouvel objet qui ne contient que les champs de <paramref name="item"/> présents dans <paramref name="defaults"/></returns>
 		/// <remarks>{ A: 1, C: false }.Project({ A: 0, B: 42, C: true}) => { A: 1, B: 42, C: false }</remarks>
-		internal static JsonObject Project(JsonObject item, KeyValuePair<string, JsonValue?>[] defaults, bool removeFromSource = false)
+		internal static JsonObject Project(JsonObject item, KeyValuePair<string, JsonValue?>[] defaults, bool removeFromSource = false, bool keepMutable = false)
 		{
 			Contract.Debug.Requires(item != null && defaults != null);
+
+			if (removeFromSource && item.IsReadOnly)
+			{
+				throw new InvalidOperationException("Cannot remove picked fields from a read-only source");
+			}
 
 			var obj = new JsonObject(defaults.Length, item.Comparer);
 			foreach (var prop in defaults)
@@ -2775,6 +2780,13 @@ namespace Doxense.Serialization.Json
 					obj[prop.Key] = prop.Value;
 				}
 			}
+
+			// keep the "readonly-ness" of the original, unless specified otherwise
+			if (item.IsReadOnly && !keepMutable)
+			{
+				item.FreezeUnsafe();
+			}
+
 			return obj;
 		}
 
