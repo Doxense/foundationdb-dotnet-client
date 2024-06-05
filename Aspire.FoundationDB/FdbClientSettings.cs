@@ -6,7 +6,7 @@
 //
 #endregion
 
-namespace Microsoft.Extensions.Hosting
+namespace Aspire.FoundationDb.Client
 {
 	using System;
 	using FoundationDB.Client;

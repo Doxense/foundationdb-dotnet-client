@@ -14,6 +14,7 @@ namespace Microsoft.Extensions.Hosting
 	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Aspire.FoundationDb.Client;
 	using FoundationDB.Client;
 	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;

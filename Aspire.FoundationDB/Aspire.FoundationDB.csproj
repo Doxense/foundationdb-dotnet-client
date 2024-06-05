@@ -33,6 +33,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<JsonSchemaSegment Include=".\ConfigurationSchema.json" FilePathPattern="appsettings\..*json" />
+	</ItemGroup>
+	
+	<ItemGroup>
 		<None Include="../README.md" Pack="true" Visible="false" PackagePath="/" />
 	</ItemGroup>
 

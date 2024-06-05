@@ -1,0 +1,33 @@
+{
+	"definitions": {
+	},
+	"properties": {
+		"Aspire": {
+			"type": "object",
+			"properties": {
+				"FoundationDb": {
+					"type": "object",
+					"properties": {
+						"Client": {
+							"type": "object",
+							"properties": {
+								"ApiVersion": {
+									"type": "integer",
+									"description": "API level selected by the process (ex: 710, 730, ...). Must be supported by the native library that is deployed alongside the application."
+								},
+								"Root": {
+									"type": "string",
+									"description": "Path to the Subspace or Partition that will be the root of all keys accessible to the application. Ex: '/Staging/MyAwesomeApp'"
+								},
+								"NativeLibraryPath": {
+									"type": "string",
+									"description": "Path to the native client library that will be used to connect to the cluster. Must be accessible from the process."
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
