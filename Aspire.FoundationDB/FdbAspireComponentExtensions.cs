@@ -188,6 +188,42 @@ namespace Microsoft.Extensions.Hosting
 					//    but we would need to add support for multiversion clients to the binding!
 				}
 
+				// DefaultTimeout=(seconds)
+				if (cnx != null && cnx.ContainsKey("DefaultTimeout"))
+				{
+					if (!double.TryParse((string) cnx["DefaultTimeout"], out var seconds))
+					{
+						throw new InvalidOperationException("Malformed default timeout");
+					}
+					if (seconds < 0)
+					{
+						throw new InvalidOperationException("Default timeout must be a positive value");
+					}
+					options.ConnectionOptions.DefaultTimeout = TimeSpan.FromSeconds(seconds);
+				}
+				else if (settings.DefaultTimeout != null)
+				{
+					options.ConnectionOptions.DefaultTimeout = settings.DefaultTimeout.Value;
+				}
+
+				// DefaultRetryLimit=(number)
+				if (cnx != null && cnx.ContainsKey("DefaultRetryLimit"))
+				{
+					if (!int.TryParse((string) cnx["DefaultRetryLimit"], out var count))
+					{
+						throw new InvalidOperationException("Malformed default retry limit");
+					}
+					if (count < 0)
+					{
+						throw new InvalidOperationException("Default retry limit must be a positive value");
+					}
+					options.ConnectionOptions.DefaultRetryLimit = count;
+				}
+				else if (settings.DefaultRetryLimit != null)
+				{
+					options.ConnectionOptions.DefaultRetryLimit = settings.DefaultRetryLimit.Value;
+				}
+
 				// run additional custom configuration
 				configureProvider?.Invoke(options);
 			});

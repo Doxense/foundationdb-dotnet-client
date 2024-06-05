@@ -257,6 +257,22 @@ namespace Aspire.Hosting
 			return builder;
 		}
 
+		/// <summary>Sets various default configuration options (timeouts, max retry limits, ...) that will be applied to all processes using this resource.</summary>
+		/// <param name="builder">FDB cluster builder</param>
+		/// <param name="timeout">Default transaction timeout (or TimeSpan.Zero for infinite timeout)</param>
+		/// <param name="retryLimit">Default transaction max retry limit (or 0 for infinite retries)</param>
+		/// <param name="readOnly">If true, the process will only have read-only access to the FoundationDB cluster.</param>
+		/// <remarks>These settings will be applied to the default <see cref="FdbConnectionOptions">connection options</see>, and can be overriden per transaction, or during the program startup.</remarks>
+		public static IResourceBuilder<FdbClusterResource> WithDefaults(this IResourceBuilder<FdbClusterResource> builder, TimeSpan? timeout = null, int? retryLimit = null, bool? readOnly = null)
+		{
+			Contract.NotNull(builder);
+			var fdbCluster = builder.Resource;
+			if (timeout != null) fdbCluster.DefaultTimeout = timeout;
+			if (retryLimit != null) fdbCluster.DefaultRetryLimit = retryLimit;
+			if (readOnly != null) fdbCluster.ReadOnly = readOnly;
+			return builder;
+		}
+
 		#endregion
 
 		private static void WriteFdbClusterToManifest(ManifestPublishingContext context, FdbClusterResource cluster)
