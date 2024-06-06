@@ -212,8 +212,33 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
 		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
-		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
+		/// <returns>Tuple containing six elements, or an exception if the data is invalid, or the tuples has less or more than six elements</returns>
 		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed);
+
+		/// <summary>Decode a binary slice containing exactly seven elements</summary>
+		/// <typeparam name="T1">Expected type of the first element</typeparam>
+		/// <typeparam name="T2">Expected type of the second element</typeparam>
+		/// <typeparam name="T3">Expected type of the third element</typeparam>
+		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
+		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
+		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
+		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
+		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/></param>
+		/// <returns>Tuple containing seven elements, or an exception if the data is invalid, or the tuples has less or more than seven elements</returns>
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed);
+
+		/// <summary>Decode a binary slice containing exactly seven elements</summary>
+		/// <typeparam name="T1">Expected type of the first element</typeparam>
+		/// <typeparam name="T2">Expected type of the second element</typeparam>
+		/// <typeparam name="T3">Expected type of the third element</typeparam>
+		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
+		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
+		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
+		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
+		/// <typeparam name="T8">Expected type of the eight element</typeparam>
+		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/></param>
+		/// <returns>Tuple containing eight elements, or an exception if the data is invalid, or the tuples has less or more than eight elements</returns>
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed);
 
 		/// <summary>Decode the first element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>

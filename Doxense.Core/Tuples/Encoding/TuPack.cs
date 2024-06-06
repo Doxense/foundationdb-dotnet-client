@@ -1147,7 +1147,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than two elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeKey<T1, T2>(Slice packedKey)
 		{
@@ -1157,7 +1157,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a key containing three elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than three elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packedKey)
 		{
@@ -1167,7 +1167,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a key containing four elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than four elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packedKey)
 		{
@@ -1177,7 +1177,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a key containing five elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than five elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey)
 		{
@@ -1187,11 +1187,31 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a key containing six elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than six elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey)
 		{
 			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?) tuple);
+			return tuple;
+		}
+
+		/// <summary>Unpack a key containing seven elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than seven elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packedKey)
+		{
+			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple);
+			return tuple;
+		}
+
+		/// <summary>Unpack a key containing eight elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packedKey)
+		{
+			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple);
 			return tuple;
 		}
 

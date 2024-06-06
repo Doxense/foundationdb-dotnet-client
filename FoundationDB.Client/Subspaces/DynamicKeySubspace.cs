@@ -420,6 +420,24 @@ namespace FoundationDB.Client
 			return sw.ToSlice();
 		}
 
+		/// <summary>Encode a key which is composed of seven elements</summary>
+		[Pure]
+		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
+		{
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6, item7);
+			return sw.ToSlice();
+		}
+
+		/// <summary>Encode a key which is composed of eight elements</summary>
+		[Pure]
+		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
+		{
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6, item7, item8);
+			return sw.ToSlice();
+		}
+
 		/// <summary>Encodes part of a key that is intended to be used as a cursor</summary>
 		/// <typeparam name="T">Type of the cursor</typeparam>
 		/// <param name="self">Subspace</param>
@@ -494,6 +512,12 @@ namespace FoundationDB.Client
 		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, Slice packedKey)
+		{
+			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>

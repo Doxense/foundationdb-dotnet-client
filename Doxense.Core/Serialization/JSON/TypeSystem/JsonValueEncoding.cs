@@ -387,6 +387,10 @@ namespace Doxense.Serialization.Encoders
 
 		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed) => throw new NotImplementedException();
 
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed) => throw new NotImplementedException();
+
 		public (Slice Begin, Slice End) ToRange(Slice prefix = default) => throw new NotImplementedException();
 
 		public (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple items) where TTuple : IVarTuple => throw new NotImplementedException();

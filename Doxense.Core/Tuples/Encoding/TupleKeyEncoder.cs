@@ -187,6 +187,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(packed);
+
+		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(packed);
+
+		/// <inheritdoc />
 		public (Slice Begin, Slice End) ToRange(Slice prefix) => TuPack.ToRange(prefix);
 
 		/// <inheritdoc />

@@ -968,6 +968,55 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than six items");
 		}
 
+		/// <summary>Unpack a key containing six elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="tuple">Receives the decoded tuple</param>
+		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			var reader = new TupleReader(packedKey);
+			DecodeKey(ref reader, out tuple);
+		}
+
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple)
+		{
+			if (!DecodeNext(ref reader, out tuple.Item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
+			if (!DecodeNext(ref reader, out tuple.Item3)) throw new FormatException("Failed to decode third item");
+			if (!DecodeNext(ref reader, out tuple.Item4)) throw new FormatException("Failed to decode fourth item");
+			if (!DecodeNext(ref reader, out tuple.Item5)) throw new FormatException("Failed to decode fifth item");
+			if (!DecodeNext(ref reader, out tuple.Item6)) throw new FormatException("Failed to decode sixth item");
+			if (!DecodeNext(ref reader, out tuple.Item7)) throw new FormatException("Failed to decode seventh item");
+			if (reader.Input.HasMore) throw new FormatException("The key contains more than seven items");
+		}
+
+		/// <summary>Unpack a key containing six elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="tuple">Receives the decoded tuple</param>
+		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			var reader = new TupleReader(packedKey);
+			DecodeKey(ref reader, out tuple);
+		}
+
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple)
+		{
+			if (!DecodeNext(ref reader, out tuple.Item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
+			if (!DecodeNext(ref reader, out tuple.Item3)) throw new FormatException("Failed to decode third item");
+			if (!DecodeNext(ref reader, out tuple.Item4)) throw new FormatException("Failed to decode fourth item");
+			if (!DecodeNext(ref reader, out tuple.Item5)) throw new FormatException("Failed to decode fifth item");
+			if (!DecodeNext(ref reader, out tuple.Item6)) throw new FormatException("Failed to decode sixth item");
+			if (!DecodeNext(ref reader, out tuple.Item7)) throw new FormatException("Failed to decode seventh item");
+			if (!DecodeNext(ref reader, out tuple.Item8)) throw new FormatException("Failed to decode eight item");
+			if (reader.Input.HasMore) throw new FormatException("The key contains more than eight items");
+		}
+
 		/// <summary>Unpack the next item in the tuple, and advance the cursor</summary>
 		/// <typeparam name="T">Type of the next value in the tuple</typeparam>
 		/// <param name="input">Reader positioned at the start of the next item to read</param>
