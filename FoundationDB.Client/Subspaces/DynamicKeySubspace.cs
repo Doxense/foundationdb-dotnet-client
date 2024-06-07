@@ -479,42 +479,49 @@ namespace FoundationDB.Client
 		#region Decode...
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? Decode<T1>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1?, T2?> Decode<T1, T2>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
@@ -522,6 +529,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TFirst? DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyFirst<TFirst>(self.ExtractKey(packedKey));
@@ -529,9 +537,26 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TLast? DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyLast<TLast>(self.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode a key of this subspace, and return only the last two elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeLast<T1, T2>(this IDynamicKeySubspace self, Slice packedKey)
+		{
+			return self.KeyEncoder.DecodeKeyLast<T1, T2>(self.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(this IDynamicKeySubspace self, Slice packedKey)
+		{
+			return self.KeyEncoder.DecodeKeyLast<T1, T2, T3>(self.ExtractKey(packedKey));
 		}
 
 		#endregion
