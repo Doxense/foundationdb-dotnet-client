@@ -235,7 +235,7 @@ namespace FoundationDB.Client
 		private async ValueTask<IDynamicKeySubspace?> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
 			// located inside a directory subspace!
-			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
 			if (folder == null) return null;
 			return this.Prefix.Count == 0 ? folder : new DynamicKeySubspace(folder.GetPrefix() + this.Prefix, folder.KeyEncoder, folder.Context);
 		}
@@ -307,7 +307,7 @@ namespace FoundationDB.Client
 		{
 			Contract.Debug.Requires(this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
 			if (folder == null) return null;
 			return new TypedKeySubspace<T1>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
@@ -361,7 +361,7 @@ namespace FoundationDB.Client
 		{
 			Contract.Debug.Requires(this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
 			if (folder == null) return null;
 			return new TypedKeySubspace<T1, T2>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
@@ -415,7 +415,7 @@ namespace FoundationDB.Client
 		{
 			Contract.Debug.Requires(tr != null && this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
 			if (folder == null) return null;
 			return new TypedKeySubspace<T1, T2, T3>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
@@ -472,7 +472,7 @@ namespace FoundationDB.Client
 		{
 			Contract.Debug.Requires(tr != null && this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
 			if (folder == null) return null;
 			return new TypedKeySubspace<T1, T2, T3, T4>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}

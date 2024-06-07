@@ -55,7 +55,7 @@ namespace FoundationDB.Layers.Allocators
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			var subspace = await this.Location.Resolve(tr);
+			var subspace = await this.Location.Resolve(tr).ConfigureAwait(false);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by this high contention allocator was not found.");
 			return new State(subspace, m_rnd);
 		}
@@ -95,7 +95,8 @@ namespace FoundationDB.Layers.Allocators
 			var kv = await trans
 				.Snapshot
 				.GetRange(subspace.EncodePartialRange(COUNTERS))
-				.LastOrDefaultAsync();
+				.LastOrDefaultAsync()
+				.ConfigureAwait(false);
 
 			if (kv.Key.Count != 0)
 			{
