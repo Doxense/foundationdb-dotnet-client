@@ -28,6 +28,7 @@
 namespace SnowBank.Testing
 {
 	using System.Linq.Expressions;
+	using Doxense.Serialization;
 	using Doxense.Serialization.Json;
 	using JetBrains.Annotations;
 	using NUnit.Framework.Constraints;
@@ -399,8 +400,10 @@ namespace SnowBank.Testing
 					}
 					else
 					{
+						writer.Write($"<{this.ExpectedValue.Type}> ");
 						writer.WriteLine(Jsonify(this.ExpectedValue));
 						writer.Write(TextMessageWriter.Pfx_Actual);
+						writer.Write($"<{this.ActualValue.GetType().GetFriendlyName()}> ");
 						writer.WriteActualValue(this.ActualValue);
 					}
 				}
