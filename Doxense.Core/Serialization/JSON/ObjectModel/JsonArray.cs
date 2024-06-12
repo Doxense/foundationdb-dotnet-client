@@ -799,9 +799,6 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		internal void ThrowCannotMutateReadOnlyObject() => throw FailCannotMutateReadOnlyValue(this);
-
 		/// <inheritdoc cref="JsonValue.this[int]"/>
 		[AllowNull] // only for the setter
 		[EditorBrowsable(EditorBrowsableState.Always)]
@@ -826,7 +823,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Add(JsonValue? value)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.Debug.Requires(!ReferenceEquals(this, value));
 			// invariant: adding 'null' will add JsonNull.Null
 			int size = m_size;
@@ -841,14 +838,14 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddNull()
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Add(JsonNull.Null);
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddValue<TValue>(TValue value)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Add(FromValue<TValue>(value));
 		}
 
@@ -863,7 +860,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(ReadOnlySpan<JsonValue?> array)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (array.Length > 0)
 			{
 				int size = m_size;
@@ -900,7 +897,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonValue?> array)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (array.Length > 0)
 			{
 				// resize
@@ -924,7 +921,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(IEnumerable<JsonValue?> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
 			// JsonArray
@@ -975,7 +972,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRangeReadOnly(IEnumerable<JsonValue?> items)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
 			// JsonArray
@@ -1032,7 +1029,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (items.Length == 0) return this;
 
 			// pré-alloue si on connait à l'avance la taille
@@ -1122,7 +1119,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TValue>(IEnumerable<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
 			if (items is TValue[] arr)
@@ -1221,7 +1218,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TSource, TValue>(ReadOnlySpan<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(transform);
 			if (items.Length == 0) return this;
 
@@ -1322,7 +1319,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TSource, TValue>(IEnumerable<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 			Contract.NotNull(transform);
 
@@ -1415,7 +1412,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (items.Length == 0) return this;
 
 			// pré-alloue si on connait à l'avance la taille
@@ -1508,7 +1505,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TValue>(IEnumerable<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
 			if (items is TValue[] arr)
@@ -1606,7 +1603,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TSource, TValue>(ReadOnlySpan<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(transform);
 			if (items.Length == 0) return this;
 
@@ -1707,7 +1704,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TSource, TValue>(IEnumerable<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 			Contract.NotNull(transform);
 
@@ -1803,7 +1800,7 @@ namespace Doxense.Serialization.Json
 		internal JsonArray AddRangeBoxed(IEnumerable<object?> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			//note: internal pour éviter que ce soit trop facile de passer par 'object' au lieu de 'T'
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
 			// si c'est déjà une collection de JsonValue, on n'a pas besoin de les convertir
@@ -1835,7 +1832,7 @@ namespace Doxense.Serialization.Json
 		internal JsonArray AddRangeBoxedReadOnly(IEnumerable<object?> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			//note: internal pour éviter que ce soit trop facile de passer par 'object' au lieu de 'T'
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
 			// si c'est déjà une collection de JsonValue, on n'a pas besoin de les convertir
@@ -2392,7 +2389,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void Clear()
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
 			int size = m_size;
 			if (size > 0 && size <= MAX_KEEP_CAPACITY)
@@ -2502,7 +2499,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Set(int index, JsonValue? item)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (index < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
 
 			if (index < m_size)
@@ -2543,7 +2540,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Insert(int index, JsonValue? item)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			var size = m_size;
 			if ((uint) index > size) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
 
@@ -2582,7 +2579,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public bool Remove(JsonValue item)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
 			int index = IndexOf(item);
 			if (index >= 0)
@@ -2600,7 +2597,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void RemoveAt(int index)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			var size = m_size;
 			if ((uint) index >= size) ThrowHelper.ThrowArgumentOutOfRangeException();
 
@@ -2677,7 +2674,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public int KeepOnly([InstantHandle] Func<JsonValue, bool> predicate)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(predicate);
 
 			// if already empty, nothing much to do
@@ -2708,7 +2705,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public int RemoveAll([InstantHandle] Func<JsonValue, bool> predicate)
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(predicate);
 
 			// if already empty, nothing much to do
@@ -2738,7 +2735,7 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public void RemoveDuplicates()
 		{
-			if (m_readOnly) ThrowCannotMutateReadOnlyObject();
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (m_size <= 1)
 			{ // no duplicates possible
 				return;
