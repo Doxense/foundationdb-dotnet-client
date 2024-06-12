@@ -4743,6 +4743,17 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
+		public void Test_JsonArray_Truncate()
+		{
+			Assert.That(new JsonArray().Truncate(0), IsJson.Empty);
+			Assert.That(new JsonArray().Truncate(3), IsJson.EqualTo(JsonArray.Create([ null, null, null ])));
+			Assert.That(JsonArray.Create([ 1, 2, 3 ]).Truncate(3), IsJson.EqualTo(JsonArray.Create([ 1, 2, 3 ])));
+			Assert.That(JsonArray.Create([ 1, 2, 3 ]).Truncate(5), IsJson.EqualTo(JsonArray.Create([ 1, 2, 3, null, null ])));
+			Assert.That(JsonArray.Create([ 1, 2, 3, 4, 5 ]).Truncate(3), IsJson.EqualTo(JsonArray.Create([ 1, 2, 3 ])));
+			Assert.That(JsonArray.Create([ 1, 2, 3 ]).Truncate(0), IsJson.Empty);
+		}
+
+		[Test]
 		public void Test_JsonArray_AddRange_Of_JsonValues()
 		{
 			var array = new JsonArray();

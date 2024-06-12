@@ -2393,11 +2393,11 @@ namespace Doxense.Serialization.Json
 
 			int size = m_size;
 			if (size > 0 && size <= MAX_KEEP_CAPACITY)
-			{ // pas trop grand, on garde le buffer
-				Array.Clear(m_items, 0, size);
+			{ // reuse the buffer
+				m_items.AsSpan(0, size).Clear();
 			}
 			else
-			{ // clear
+			{ // drop the buffer
 				m_items = [];
 			}
 			m_size = 0;
@@ -2588,6 +2588,44 @@ namespace Doxense.Serialization.Json
 				return true;
 			}
 			return false;
+		}
+
+		/// <summary>Set the new size of the array, adding or removing elements if necessary</summary>
+		/// <param name="size">New size of the array</param>
+		/// <param name="padding">Value that is used to fill the end of the array, if it needs to be enlarged</param>
+		/// <returns>The same instance</returns>
+		/// <remarks>
+		/// <para>If the array was already the correct size, there is no changes to the array.</para>
+		/// <para>If the array was smaller, new padding elements are added until the length is equal to <paramref name="size"/></para>
+		/// <para>If the array was larger, all the extra elements are removed (<paramref name="padding"/> is ignored in this case)</para>
+		/// </remarks>
+		/// <exception cref="InvalidOperationException">If the array is read-only</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="size"/> is negative</exception>
+		public JsonArray Truncate(int size, JsonValue? padding = null)
+		{
+			Contract.Positive(size);
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
+			if (size == 0)
+			{ // clear the buffer
+				Clear();
+			}
+			else if (size < m_size)
+			{ // remove elements from the end
+				m_items.AsSpan(size).Clear();
+				m_size = size;
+			}
+			else if (size > m_size)
+			{ // enlarge the array and fill with the padding values
+				if (size > m_items.Length)
+				{ // current buffer is too small
+					ResizeBuffer(size);
+				}
+				// fill the tail with the padding value
+				m_items.AsSpan(m_size, size - m_size).Fill(padding ?? JsonNull.Null);
+				m_size = size;
+			}
+			return this;
 		}
 
 		/// <summary>Removes the item at the specified index.</summary>
