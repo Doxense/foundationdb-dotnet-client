@@ -394,42 +394,43 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotGreaterThan(string valueExpression, string thresholdExpression, bool zero, string? message = null)
 		{
-			return ReportFailure(typeof(ArgumentException), zero ? ContractMessages.AboveZeroNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} > " + thresholdExpression);
+			return ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.AboveZeroNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} > " + thresholdExpression);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotGreaterOrEqual(string valueExpression, string thresholdExpression, bool zero, string? message = null)
 		{
-			return ReportFailure(typeof(ArgumentException), zero ? ContractMessages.PositiveNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} >= " + thresholdExpression);
+			return ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.PositiveNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} >= " + thresholdExpression);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotLessThan(string valueExpression, string thresholdExpression, string? message = null)
 		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} < " + thresholdExpression);
+			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} < " + thresholdExpression);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotLessOrEqual(string valueExpression, string thresholdExpression, string? message = null)
 		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} <= " + thresholdExpression);
+			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} <= " + thresholdExpression);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentOutOfBounds(string paramName, string? message = null)
 		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueMustBeBetween, message, paramName, ContractMessages.ConditionArgBetween);
+			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueMustBeBetween, message, paramName, ContractMessages.ConditionArgBetween);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentOutOfBounds(string valueExpression, string minExpression, string maxExpression, string? message = null)
 		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueMustBeBetween, message, valueExpression, minExpression + " <= {0} <= " + maxExpression);
+			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueMustBeBetween, message, valueExpression, minExpression + " <= {0} <= " + maxExpression);
 		}
 
 		#region Positive...
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
+		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Positive(int value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
@@ -437,6 +438,7 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
+		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Positive(long value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
@@ -444,6 +446,7 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
+		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Positive(double value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
@@ -451,6 +454,7 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
+		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Positive(float value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
@@ -808,6 +812,7 @@ namespace Doxense.Diagnostics.Contracts
 		#region Between...
 
 		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <exception cref="System.ArgumentException">If the value is outside the specified bounds</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(int value, int minimumInclusive, int maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
@@ -815,6 +820,7 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
+		/// <exception cref="System.ArgumentException">If the value is outside the specified bounds</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Between(uint value, uint minimumInclusive, uint maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 		{
