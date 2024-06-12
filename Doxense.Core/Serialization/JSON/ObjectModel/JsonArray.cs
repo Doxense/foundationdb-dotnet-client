@@ -4051,57 +4051,242 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Merges the content of an array into the current array</summary>
 		/// <param name="other">Source array that should be copied into the current array.</param>
-		/// <param name="deepCopy">If <see langword="true"/>, clone all the elements of <paramref name="other"/> before adding them. If <see langword="false"/>, the same instance will be present in both arrays.</param>
-		public void MergeWith(JsonArray other, bool deepCopy = false)
+		/// <param name="deepCopy">If <see langword="false"/> (default), copy the content of <paramref name="other"/> as-is; otherwise, clone all the elements before merging them.</param>
+		/// <param name="keepNull">If <see langword="false"/> (default), fields set to null in <paramref name="other"/> will be removed; otherwise, they will be kept as null entries in the merged result.</param>
+		public void MergeWith(JsonArray other, bool deepCopy = false, bool keepNull = false)
 		{
-			Merge(this, other, deepCopy);
+			Merge(this, other, deepCopy, keepNull);
 		}
 
 		/// <summary>Merges the content of an array into the current array</summary>
 		/// <param name="parent">Parent array that will be modified</param>
 		/// <param name="other">Source array that should be copied into the <paramref name="parent"/>.</param>
-		/// <param name="deepCopy">If <see langword="true"/>, clone all the elements of <paramref name="other"/> before adding them. If <see langword="false"/>, the same instance will be present in both arrays.</param>
-		public static JsonArray Merge(JsonArray parent, JsonArray other, bool deepCopy = false)
+		/// <param name="deepCopy">If <see langword="false"/> (default), copy the content of <paramref name="other"/> as-is; otherwise, clone all the elements before merging them.</param>
+		/// <param name="keepNull">If <see langword="false"/> (default), fields set to null in <paramref name="other"/> will be removed; otherwise, they will be kept as null entries in the merged result.</param>
+		public static JsonArray Merge(JsonArray parent, JsonArray other, bool deepCopy = false, bool keepNull = false)
 		{
-			// we know how to handle:
-			// - one or the other is empty
-			// - both have same size
+			if (parent.IsReadOnly) throw FailCannotMutateReadOnlyValue(parent);
 
-			int n = parent.Count;
-			if (n == 0) return JsonArray.Copy(other, deepCopy, readOnly: false);
+			if (parent.Count == 0) return JsonArray.Copy(other, deepCopy, readOnly: false);
 			if (other.Count == 0) return JsonArray.Copy(parent, deepCopy, readOnly: false);
 
-			if (n == other.Count)
+			// only the elements that are shared between both arrays are merged
+			// if the new array is smaller, the original is not resized
+			// if the new array is larger, any extra element is copied as-is
+
+			// merge all elements in common
+			int n = Math.Min(parent.Count, other.Count);
+			int lastNonNull = -1;
+			for (int i = 0; i < n; i++)
 			{
-				if (deepCopy) parent = parent.Copy();
-				for (int i = 0; i < n; i++)
+				var left = parent[i];
+				var right = other[i];
+				switch(left, right)
 				{
-					var left = parent[i];
-					var right = other[i];
-					switch (left.Type)
-					{
-						case JsonType.Object:
+					case (JsonObject a, JsonObject b):
+					{ // merge two objects
+						parent[i] = JsonObject.Merge(a, b, deepCopy, keepNull);
+						lastNonNull = i;
+						break;
+					}
+					case (JsonArray a, JsonArray b):
+					{ // merge two arrays
+						parent[i] = Merge(a, b, deepCopy, keepNull);
+						lastNonNull = i;
+						break;
+					}
+					case (_, JsonNull):
+					{ // set to null
+						parent[i] = JsonNull.Null;
+						if (keepNull && ReferenceEquals(right, JsonNull.Null))
 						{
-							parent[i] = JsonObject.Merge((JsonObject) left, right.AsObject(), deepCopy);
-							break;
+							lastNonNull = i;
 						}
-						case JsonType.Array:
-						{
-							parent[i] = Merge((JsonArray) left, right.AsArray(), deepCopy);
-							break;
-						}
-						default:
-						{
-							parent[i] = deepCopy ? right.Copy() : right[i];
-							break;
-						}
+						break;
+					}
+					default:
+					{ // overwrite
+						parent[i] = deepCopy ? right.Copy() : right;
+						lastNonNull = i;
+						break;
 					}
 				}
-				return parent;
 			}
 
-			//TODO: union?
-			throw new NotSupportedException("Merging of JSON arrays of different sizes is not yet supported");
+			//PERF: TODO: if the tail is only nulls, we may add them, just to remove them again in the next step!
+			// => maybe pre-scan the tail to look for the last non-null value?
+
+			// copy over any extra elements
+			for (int i = n; i < other.Count; i++)
+			{
+				var right = other[i];
+				if (right is JsonNull)
+				{
+					parent[i] = JsonNull.Null;
+					if (keepNull && ReferenceEquals(right, JsonNull.Null))
+					{
+						lastNonNull = i;
+					}
+				}
+				else
+				{
+					parent[i] = deepCopy ? other[i].Copy() : other[i];
+					lastNonNull = i;
+				}
+			}
+
+			if (!keepNull)
+			{ // test if we need to truncate the original to remove the trailing nulls?
+
+				if (lastNonNull == -1)
+				{ // all items were removed!
+					return new JsonArray();
+				}
+
+				if (lastNonNull < parent.Count - 1)
+				{ // truncate extra nulls that must be removed!
+					parent.Truncate(lastNonNull + 1);
+				}
+			}
+
+			return parent;
+		}
+
+		/// <summary>Compute the delta between this array and a different version, in order to produce a patch that contains the instruction to go from this instance to the new version</summary>
+		/// <param name="after">New version of the array</param>
+		/// <param name="deepCopy">If <see langword="true"/>, create a copy of all mutable elements before adding them to the resulting patch.</param>
+		/// <returns>Value that can be passed to <see cref="ApplyPatch"/> in order to transform this array into <paramref name="after"/>.</returns>
+		/// <remarks>The patch produced is not marked as immutable. The caller should call <see cref="Freeze"/> on the result if immutability is required.</remarks>
+		public JsonValue ComputePatch(JsonArray after, bool deepCopy = false)
+		{
+			if (this.Count == 0)
+			{ // all items added
+				return deepCopy ? after.Copy() : after;
+			}
+			if (after.Count == 0)
+			{ // all items removed
+				return EmptyReadOnly;
+			}
+
+			var patch = new JsonObject()
+			{
+				["__patch"] = after.Count, // new size of the array
+			};
+
+			var size = m_size;
+			var items = m_items;
+			for (int i = 0; i < after.Count; i++)
+			{
+				var left = i < size ? items[i] : JsonNull.Missing;
+				var right = after[i];
+
+				// skip items that are identical
+				if (left.Equals(right)) continue;
+
+				// changed value
+				switch (left, right)
+				{
+					case (JsonObject a, JsonObject b):
+					{ // compute object patch
+						var diff = a.ComputePatch(b, deepCopy);
+						patch[StringConverters.ToString(i)] = diff;
+						break;
+					}
+					case (JsonArray a, JsonArray b):
+					{ // compute array patch
+						var diff = a.ComputePatch(b, deepCopy);
+						patch[StringConverters.ToString(i)] = diff;
+						break;
+					}
+					case (JsonNull, JsonNull):
+					{ // ignore
+						break;
+					}
+					case (_, JsonNull):
+					{ // mark for deletion
+						patch[StringConverters.ToString(i)] = JsonNull.Null;
+						break;
+					}
+					default:
+					{ // overwrite with new value
+						patch[StringConverters.ToString(i)] = deepCopy ? right.Copy() : right;
+						break;
+					}
+				}
+			}
+
+			return patch;
+		}
+
+		/// <summary>Applies a patch to this array, by modifying it in-place</summary>
+		/// <param name="patch">Patch containing the changes to apply to this instance (previously computed by a call to <see cref="ComputePatch"/>)</param>
+		/// <param name="deepCopy">If <see langword="false"/> (default), copy the content of <paramref name="patch"/> as-is; otherwise, clone all the elements before merging them.</param>
+		/// <remarks>If this array was equal to 'before', and <paramref name="patch"/> is the result of calling <see cref="ComputePatch">ComputePatch(before, after)</see>, then the array will now be equal to 'after'</remarks>
+		public void ApplyPatch(JsonObject patch, bool deepCopy = false)
+		{
+			Contract.NotNull(patch);
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
+			int newSize = patch.Get<int?>("__patch", null) ?? throw new ArgumentException("Object is not a valid patch for an array: required '__patch' field is missing");
+			if (newSize == 0)
+			{ // clear all items
+				Clear();
+				return;
+			}
+
+			var size = m_size;
+			if (newSize > size)
+			{
+				ResizeBuffer(newSize);
+			}
+			var items = m_items;
+
+			// patch all changed items
+			foreach (var (k, v) in patch)
+			{
+				if (k == "__patch") continue;
+				if (!int.TryParse(k, out var idx)) throw new ArgumentException($"Object is not a valid patch for an array: unexpected '{k}' field");
+				if (idx >= newSize) throw new ArgumentException($"Object is not a valid patch for an array: key '{k}' is greater than the final size");
+
+				var prev = idx < size ? items[idx] : JsonNull.Missing;
+				switch (prev, v)
+				{
+					case (JsonObject a, JsonObject b):
+					{
+						if (a.IsReadOnly)
+						{
+							a = a.ToMutable();
+							items[idx] = a;
+						}
+						a.ApplyPatch(b, deepCopy);
+						break;
+					}
+					case (JsonArray a, JsonObject b) when (b.ContainsKey("__patch")):
+					{
+						if (a.IsReadOnly)
+						{
+							a = a.ToMutable();
+							items[idx] = a;
+						}
+						a.ApplyPatch(b, deepCopy);
+						break;
+					}
+					case (_, JsonNull):
+					{
+						items[idx] = JsonNull.Null;
+						break;
+					}
+					default:
+					{
+						items[idx] = deepCopy ? v.Copy() : v;
+						break;
+					}
+				}
+			}
+
+			// clear the tail
+			items.AsSpan(newSize).Clear();
+			m_size = newSize;
 		}
 
 		[CollectionAccess(CollectionAccessType.Read)]

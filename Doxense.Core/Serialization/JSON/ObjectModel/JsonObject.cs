@@ -2509,103 +2509,194 @@ namespace Doxense.Serialization.Json
 
 		#region Merging...
 
-		/// <summary>Copie les champs d'un autre objet dans l'objet courrant</summary>
-		/// <param name="other">Autre objet JSON dont les champs vont être copié dans l'objet courrant. Tout champ déjà existant sera écrasé.</param>
-		/// <param name="deepCopy">Si true, clone tous les champs de <paramref name="other"/> avant de le copier. Sinon, ils sont copiés par référence.</param>
-		public void MergeWith(JsonObject other, bool deepCopy = false)
+		/// <summary>Copy the fields of an object onto the current object</summary>
+		/// <param name="other">Object that will be merged with the current instance.</param>
+		/// <param name="deepCopy">If <see langword="false"/> (default), copy the content of <paramref name="other"/> as-is; otherwise, clone all the elements before merging them.</param>
+		/// <param name="keepNull">If <see langword="false"/> (default), fields set to null in <paramref name="other"/> will be removed; otherwise, they will be kept as null entries in the merged result.</param>
+		public void MergeWith(JsonObject other, bool deepCopy = false, bool keepNull = false)
 		{
-			Merge(this, other, deepCopy);
+			Merge(this, other, deepCopy, keepNull);
 		}
 
-		public static JsonObject Merge(JsonObject parent, JsonObject? other, bool deepCopy = false)
+		/// <summary>Copy the fields of an object onto the another object</summary>
+		/// <param name="parent">Object that will be modified</param>
+		/// <param name="other">Object that will be copied to the parent.</param>
+		/// <param name="deepCopy">If <see langword="false"/> (default), copy the content of <paramref name="other"/> as-is; otherwise, clone all the elements before merging them.</param>
+		/// <param name="keepNull">If <see langword="false"/> (default), fields set to null in <paramref name="other"/> will be removed; otherwise, they will be kept as null entries in the merged result.</param>
+		public static JsonObject Merge(JsonObject parent, JsonObject? other, bool deepCopy = false, bool keepNull = false)
 		{
 			Contract.NotNull(parent);
+
+			// cannot mutate a read-only object!
+			if (parent.IsReadOnly) throw FailCannotMutateReadOnlyValue(parent);
 
 			if (other is not null && other.Count > 0)
 			{
 				// recursively merge all properties:
-				// - copy the items from 'other', optionally merging them if they already exist in 'parent'
-				// - Mergin properties will:
-				//   - Overwrite for "immutable types" (string, bool, int, ...)
-				//   - Merge for Object
-				//   - Union for Array (?)
+				// - Copy the items from 'other', optionally merging them if they already exist in 'parent'
+				// - If the new value is null or missing:
+				//   - it will be set to null iif keepNull is true and the new value is an explicit null
+				//   - otherwise, it will be be removed (keepNull is false, or the new value is JsonNull.Missing)
+				// - Merging is only supported between two objects or two arrays
+				// - In all other cases, the value in 'other' will overwrite the previous value
 
-				foreach (var kvp in other)
+				foreach (var (k, v) in other)
 				{
-					if (!parent.TryGetValue(kvp.Key, out var mine))
+					if (!parent.TryGetValue(k, out var mine))
 					{
-						// note: ignore "Missing", but not explicit "Null"
-						if (!kvp.Value.IsMissing())
-						{
-							parent[kvp.Key] = deepCopy ? kvp.Value.Copy() : kvp.Value;
-						}
-						continue;
+						mine = JsonNull.Missing;
 					}
 
-					// Any "Missing" values will be treated as if the property has been removed
-					if (kvp.Value.IsMissing())
+					switch ((mine, v))
 					{
-						parent.Remove(kvp.Key);
-						continue;
-					}
-
-					switch (mine.Type)
-					{
-						case JsonType.String:
-						case JsonType.Number:
-						case JsonType.Boolean:
-						case JsonType.DateTime:
-						{ // overwrite
-							parent[kvp.Key] = deepCopy ? kvp.Value.Copy() : kvp.Value;
+						case (JsonObject a, JsonObject b):
+						{ // merge two objects together
+							Merge((JsonObject) a, b, deepCopy, keepNull);
 							break;
 						}
-
-
-						case JsonType.Object:
-						{ // merge
-							if (kvp.Value.IsNull)
+						case (JsonArray a, JsonArray b):
+						{ // merge two arrays together
+							JsonArray.Merge(a, b, deepCopy, keepNull);
+							break;
+						}
+						case (_, JsonNull n):
+						{ // remove value (or set to null)
+							if (!keepNull || !ReferenceEquals(n, JsonNull.Null))
 							{
-								parent[kvp.Key] = JsonNull.Null;
-								break;
+								parent.Remove(k);
 							}
-
-							if (kvp.Value is not JsonObject obj)
-							{ // we only support merging between two objects
-								throw ThrowHelper.InvalidOperationException($"Cannot merge a JSON '{kvp.Value.Type}' into an Object for key '{kvp.Key}'");
-							}
-
-							((JsonObject) mine).MergeWith(obj, deepCopy);
-							break;
-						}
-
-						case JsonType.Null:
-						{
-							break;
-						}
-
-						case JsonType.Array:
-						{ // union
-							if (kvp.Value.IsNull)
+							else
 							{
-								parent[kvp.Key] = JsonNull.Null;
-								break;
+								parent[k] = JsonNull.Null;
 							}
-							if (kvp.Value is not JsonArray arr)
-							{ // we only support merging between two arrays
-								throw ThrowHelper.InvalidOperationException($"Cannot merge a JSON '{kvp.Value.Type}' into an Array for key '{kvp.Key}'");
-							}
-							((JsonArray) mine).MergeWith(arr, deepCopy);
 							break;
 						}
-
 						default:
-						{
-							throw ThrowHelper.InvalidOperationException($"Doesn't know how to merge JSON values of type {mine.Type} with type {kvp.Value.Type} for key '{kvp.Key}'");
+						{ // overwrite previous value
+							parent[k] = deepCopy ? v.Copy() : v;
+							break;
 						}
 					}
 				}
 			}
 			return parent;
+		}
+
+		public JsonObject ComputePatch(JsonObject after, bool deepCopy = false)
+		{
+			//note: we already know that there is a difference
+			var patch = new JsonObject();
+
+			var items = m_items;
+
+			// mark for deletion any keys that are missing from 'after'
+			foreach (var k in items.Keys)
+			{
+				if (!after.ContainsKey(k))
+				{ // use explicit null to trigger a deletion when the patch is applied later
+					patch[k] = JsonNull.Null;
+				}
+			}
+
+			// add/update any new  keys
+			foreach (var (k, v) in after)
+			{
+				if (!items.TryGetValue(k, out var p))
+				{
+					// add
+					if (!v.IsNullOrMissing())
+					{
+						patch[k] = deepCopy ? v.Copy() : v;
+					}
+				}
+				else if (!p.Equals(v))
+				{ // update
+					switch (p, v)
+					{
+						case (JsonObject a, JsonObject b):
+						{
+							patch[k] = a.ComputePatch(b, deepCopy);
+							break;
+						}
+						case (JsonArray a, JsonArray b):
+						{
+							patch[k] = a.ComputePatch(b, deepCopy);
+							break;
+						}
+						case (_, JsonNull):
+						{ // use explicit null to trigger a deletion when the patch is applied later
+							patch[k] = JsonNull.Null;
+							break;
+						}
+						default:
+						{
+							patch[k] = deepCopy ? v.Copy() : v;
+							break;
+						}
+					}
+				}
+			}
+
+			return patch;
+		}
+
+		/// <summary>Apply a patch to the object (in place)</summary>
+		/// <param name="patch">Object that will be copied to the parent.</param>
+		public void ApplyPatch(JsonObject patch, bool deepCopy = false)
+		{
+			if (m_readOnly) throw FailCannotMutateImmutableValue(this);
+
+			// recursively merge all properties:
+			// - Copy the items from 'other', optionally merging them if they already exist in 'parent'
+			// - If the new value is null or missing:
+			//   - it will be set to null iif keepNull is true and the new value is an explicit null
+			//   - otherwise, it will be be removed (keepNull is false, or the new value is JsonNull.Missing)
+			// - Merging is only supported between two objects or two arrays
+			// - In all other cases, the value in 'other' will overwrite the previous value
+
+			var items = m_items;
+
+			foreach (var (k, v) in patch)
+			{
+				if (!items.TryGetValue(k, out var mine))
+				{
+					mine = JsonNull.Missing;
+				}
+
+				switch ((mine, v))
+				{
+					case (JsonObject a, JsonObject b):
+					{ // merge two objects together
+						if (a.IsReadOnly)
+						{
+							a = a.ToMutable();
+							items[k] = a;
+						}
+						a.ApplyPatch(b, deepCopy);
+						break;
+					}
+					case (JsonArray a, JsonObject b) when (b.ContainsKey("__patch")):
+					{ // merge two arrays (using the patch-object "form")
+						if (a.IsReadOnly)
+						{
+							a = a.ToMutable();
+							items[k] = a;
+						}
+						a.ApplyPatch(b, deepCopy);
+						break;
+					}
+					case (_, JsonNull):
+					{ // remove value (or set to null)
+						items.Remove(k);
+						break;
+					}
+					default:
+					{ // overwrite previous value
+						items[k] = deepCopy ? v.Copy() : v;
+						break;
+					}
+				}
+			}
 		}
 
 		#endregion

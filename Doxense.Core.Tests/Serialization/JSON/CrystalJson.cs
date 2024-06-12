@@ -6489,38 +6489,311 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonObject_MergeWith()
 		{
+			static void Merge(JsonObject root, JsonObject obj)
+			{
+				Log("  " + root.ToString());
+				Log("+ " + obj.ToString());
+				root.MergeWith(obj);
+				Log("= " + root.ToString());
+				Log();
+			}
 
-			// Différents fields sans conflit
-			// { Foo: 123 } u { Bar: 456 } => { Foo: 123, Bar: 456 }
-			var root = new JsonObject { ["Foo"] = 123 };
-			var obj = new JsonObject { ["Bar"] = 456 };
+			{ // Add a new field
+				// { Foo: 123 } u { Bar: 456 } => { Foo: 123, Bar: 456 }
+				var root = new JsonObject { ["Foo"] = 123 };
+				var obj = new JsonObject { ["Bar"] = 456 };
+				Merge(root, obj);
+				Assert.That(root.ToJsonCompact(), Is.EqualTo(@"{""Foo"":123,""Bar"":456}"));
+			}
 
-			root.MergeWith(obj);
-			Assert.That(root.ToJsonCompact(), Is.EqualTo(@"{""Foo"":123,""Bar"":456}"));
+			{ // Overwrite an existing field
+				// { Foo: 123 } u { Foo: 456 } => { Foo: 456 }
+				var root = new JsonObject { ["Foo"] = 123 };
+				var obj = new JsonObject { ["Foo"] = 456 };
+				Merge(root, obj);
+				Assert.That(root.ToJsonCompact(), Is.EqualTo(@"{""Foo"":456}"));
+			}
 
-			// Ecrase un value type par un autre
-			// { Foo: 123 } u { Foo: 456 } => { Foo: 456 }
-			root = new JsonObject { ["Foo"] = 123 };
-			obj = new JsonObject { ["Foo"] = 456 };
+			{ // Merging a field with Null will remove it, if keepNull == false
+				// { Foo: { Bar: 42 } } u { Foo: null } => { }
+				var root = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 42 } };
+				var obj = new JsonObject { ["Foo"] = JsonNull.Null };
+				Merge(root, obj);
+				Assert.That(root, IsJson.Empty);
+			}
+			{ // Merging a field with Null will set it to null, if keepNull == true
+				// { Foo: { Bar: 42 } } u { Foo: null } => { Foo: null }
+				var root = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 42 } };
+				var obj = new JsonObject { ["Foo"] = JsonNull.Null };
+				root.MergeWith(obj, keepNull: true);
+				Assert.That(root.ToJsonCompact(), Is.EqualTo(@"{""Foo"":null}"));
+			}
+			{ // Merging a field with Missing will remove it, even if keepNull == true
+				// { Foo: { Bar: 42 } } u { Foo: missing } => { }
+				var root = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 42 } };
+				var obj = new JsonObject { ["Foo"] = JsonNull.Missing };
+				root.MergeWith(obj, keepNull: true); // should have no effect!
+				Assert.That(root, IsJson.Empty);
+			}
 
-			root.MergeWith(obj);
-			Assert.That(root.ToJsonCompact(), Is.EqualTo(@"{""Foo"":456}"));
+			{ // Merge the contents of a child object
+				// { Foo: { Bar: 123 } } u  { Foo: { Baz: 456 } } => { Foo: { Bar: 123, Baz: 456 } }
+				var root = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 123 } };
+				var obj = new JsonObject { ["Foo"] = new JsonObject { ["Baz"] = 456 } };
+				Merge(root, obj);
+				Assert.That(root, IsJson.EqualTo(new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 123, ["Baz"] = 456 } }));
+			}
+			{
+				var root = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 123, ["Baz"] = 456 } };
+				var obj = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = null, ["Jazz"] = 789 } };
+				Merge(root, obj);
+				Assert.That(root, IsJson.EqualTo(new JsonObject { ["Foo"] = new JsonObject { ["Baz"] = 456, ["Jazz"] = 789 } }));
+			}
 
-			// Null overwrite un objet
-			// { Foo: { Bar: 42 } } u { Foo: null } => { Foo: null }
-			root = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 42 } };
-			obj = new JsonObject { ["Foo"] = JsonNull.Null };
+			{ // Merge the contents of two child arrays
+				var root = new JsonObject { ["Foos"] = JsonArray.Create([
+					new JsonObject() { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
+					new JsonObject() { ["x"] = 0, ["y"] = 1, ["z"] = 0 },
+				])};
+				var obj = new JsonObject { ["Foos"] = JsonArray.Create([
+					JsonObject.EmptyReadOnly, // do no change
+					new JsonObject() { ["y"] = -1, ["z"] = 1 }, // set y to -1, add z
+					new JsonObject() { ["x"] = 0, ["y"] = 1, ["z"] = 0 }, // add new point
+				]) };
+				Merge(root, obj);
+				Assert.That(root, IsJson.EqualTo(new JsonObject { ["Foos"] = JsonArray.Create([
+					new JsonObject() { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
+					new JsonObject() { ["x"] = 0, ["y"] = -1, ["z"] = 1 },
+					new JsonObject() { ["x"] = 0, ["y"] = 1, ["z"] = 0 },
+				]) }));
+			}
 
-			root.MergeWith(obj);
-			Assert.That(root.ToJsonCompact(), Is.EqualTo(@"{""Foo"":null}"));
+			{ // truncate the last elements of a child array
+				var root = new JsonObject { ["Foos"] = JsonArray.Create(1, 2, 3, 4, 5) };
+				var obj = new JsonObject { ["Foos"] = JsonArray.Create(1, null, -3, null, null) };
+				Merge(root, obj);
+				Assert.That(root, IsJson.EqualTo(new JsonObject { ["Foos"] = JsonArray.Create(1, null, -3) }));
+			}
+		}
 
-			// Merge le contenu d'un même sous objet
-			// { Narf: { Zort: 42 } } u  { Narf: { Poit: 666 } } => { Narf: { Zort: 42, Poit: 666 } }
-			root = new JsonObject { ["Narf"] = new JsonObject { ["Zort"] = 42 } };
-			obj = new JsonObject { ["Narf"] = new JsonObject { ["Poit"] = 666 } };
+		[Test]
+		public void Test_JsonObject_Diff()
+		{
+			static void Verify(JsonObject a, JsonObject b, JsonObject expected)
+			{
+				Log("before: " + a.ToString());
+				Log("after : " + b.ToString());
+				var patch = a.ComputePatch(b);
+				Log("patch : " + patch.ToString());
 
-			root.MergeWith(obj);
-			Assert.That(root.ToJsonCompact(), Is.EqualTo(@"{""Narf"":{""Zort"":42,""Poit"":666}}"));
+				Assert.That(patch, Is.EqualTo(expected), "Patch does not match expected value");
+
+				// applying the diff on 'a' should produce 'b'!
+				var b2 = a.Copy();
+				b2.ApplyPatch(patch);
+				Log("merged: " + b2.ToString());
+				Assert.That(b2, IsJson.EqualTo(b));
+
+				Log();
+			}
+
+			{ // no differences
+				var a = new JsonObject()
+				{
+					["Foo"] = 123,
+					["Bar"] = 456
+				};
+				var b = new JsonObject()
+				{
+					["Foo"] = 123,
+					["Bar"] = 456
+				};
+				Verify(a, b, JsonObject.EmptyReadOnly);
+			}
+			{ // field added
+				var a = new JsonObject()
+				{
+					["Foo"] = 123
+				};
+				var b = new JsonObject()
+				{
+					["Foo"] = 123,
+					["Bar"] = 456
+				};
+				Verify(a, b, new JsonObject { ["Bar"] = 456 });
+			}
+			{ // field changed
+				var a = new JsonObject()
+				{
+					["Foo"] = 123
+				};
+				var b = new JsonObject()
+				{
+					["Foo"] = 456
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = 456
+				});
+			}
+			{ // field removed
+				var a = new JsonObject()
+				{
+					["Foo"] = 123,
+					["Bar"] = 456
+				};
+				var b = new JsonObject()
+				{
+					["Bar"] = 456
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = null
+				});
+			}
+			{ // child objects changed
+				var a = new JsonObject()
+				{
+					["A"] = new JsonObject() { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
+					["B"] = new JsonObject() { ["x"] = 0, ["y"] = 1, ["z"] = 0 },
+					["C"] = new JsonObject() { ["x"] = 0, ["y"] = 0, ["z"] = 1 },
+				};
+				var b = new JsonObject()
+				{
+					["A"] = new JsonObject() { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
+					["B"] = new JsonObject() { ["x"] = 0, ["y"] = -1, ["z"] = 0 },
+					["D"] = new JsonObject() { ["x"] = -1, ["y"] = -1, ["z"] = -1 },
+				};
+				Verify(a, b, new JsonObject
+				{
+					["B"] = new JsonObject() { ["y"] = -1 },
+					["C"] = null,
+					["D"] = new JsonObject() { ["x"] = -1, ["y"] = -1, ["z"] = -1 },
+				});
+			}
+			{ // child arrays added
+				var a = new JsonObject { };
+				var b = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
+				});
+			}
+			{ // child arrays added (was empty before)
+				var a = new JsonObject
+				{
+					["Foo"] = JsonArray.EmptyReadOnly
+				};
+				var b = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
+				});
+			}
+			{ // child arrays cleared
+				var a = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
+				};
+				var b = new JsonObject
+				{
+					["Foo"] = JsonArray.EmptyReadOnly
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = JsonArray.EmptyReadOnly
+				});
+			}
+			{ // child arrays changed (only literals, with items added)
+				var a = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3)
+				};
+				var b = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, -2, 3, 4, 5)
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = new JsonObject
+					{
+						["__patch"] = 5,
+						["1"] = -2,
+						["3"] = 4,
+						["4"] = 5,
+					}
+				});
+			}
+			{ // child arrays changed (only literals, same size, same tail)
+				var a = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
+				};
+				var b = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, -2, 3, 4, 5)
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = new JsonObject()
+					{
+						["__patch"] = 5,
+						["1"] = -2,
+					}
+				});
+			}
+			{ // child arrays changed (only literals, items removed at the end)
+				var a = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
+				};
+				var b = new JsonObject
+				{
+					["Foo"] = JsonArray.Create(1, 2, 3)
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = new JsonObject()
+					{
+						["__patch"] = 3,
+					}
+				});
+			}
+			{ // child arrays changed (with sub-objects)
+				var a = new JsonObject
+				{
+					["Foo"] = JsonArray.Create([
+						new JsonObject { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
+						new JsonObject { ["x"] = 0, ["y"] = 1, ["z"] = 0 },
+						new JsonObject { ["x"] = 0, ["y"] = 0, ["z"] = 1 },
+					])
+				};
+				var b = new JsonObject
+				{ 
+					["Foo"] = JsonArray.Create([
+						new JsonObject { ["x"] = 1, ["y"] = 0, ["z"] = 0 }, // unchanged
+						new JsonObject { ["x"] = 0, ["y"] = -1, ["z"] = 0 }, // y changed
+						new JsonObject { ["x"] = 0, ["y"] = 0  }, // z removed
+						new JsonObject { ["x"] = -1, ["y"] = -1, ["z"] = -1 }, // added
+					])
+				};
+				Verify(a, b, new JsonObject
+				{
+					["Foo"] = new JsonObject()
+					{
+						["__patch"] = 4,
+						["1"] = new JsonObject { ["y"] = -1 }, // y changed
+						["2"] = new JsonObject { ["z"] = null }, // z removed
+						["3"] = new JsonObject { ["x"] = -1, ["y"] = -1, ["z"] = -1 }, // added
+					}
+				});
+			}
 		}
 
 		[Test]
@@ -9440,7 +9713,7 @@ namespace Doxense.Serialization.Json.Tests
 			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
 		}
 
-		static DummyStaticCustomJson IJsonDeserializer<DummyStaticCustomJson>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? _ = null)
+		static DummyStaticCustomJson IJsonDeserializer<DummyStaticCustomJson>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? _)
 		{
 			Assert.That(value, Is.Not.Null, "value");
 
