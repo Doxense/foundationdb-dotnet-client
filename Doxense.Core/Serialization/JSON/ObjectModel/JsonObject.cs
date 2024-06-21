@@ -946,22 +946,6 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		[AllowNull]
-		public JsonValue this[ReadOnlyMemory<char> key]
-		{
-			get => TryGetValue(key, out var value) ? value : JsonNull.Missing;
-			set => Set(key, value);
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		[AllowNull]
-		public JsonValue this[ReadOnlySpan<char> key]
-		{
-			get => TryGetValue(key, out var value) ? value : JsonNull.Missing;
-			set => Set(key, value);
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -2313,7 +2297,7 @@ namespace Doxense.Serialization.Json
 						}
 						else
 						{ // we need to set the value
-							obj[key] = valueToSet;
+							obj.Set(key, valueToSet);
 							return valueToSet;
 						}
 					}
