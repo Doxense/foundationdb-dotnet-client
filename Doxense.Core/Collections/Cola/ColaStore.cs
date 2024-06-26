@@ -276,18 +276,14 @@ namespace Doxense.Collections.Generic
 
 			// Find the spot where the new value should be inserted
 			int p = BinarySearch(segment, 0, segment.Length, value, comparer);
-			if (p >= 0)
-			{ // this is not supposed to happen!
-				throw ErrorDuplicateKey(value);
-			}
+			int index = p < 0 ? (~p) : p;
+			Contract.Debug.Assert(index <= segment.Length);
 
-			int index = (~p);
-			Contract.Debug.Assert(index >= 0 && index <= segment.Length);
 			if (index == offset)
 			{ // merge in place
 
 				//                _______ offset == index
-				//				 V
+				//               V
 				// before: [...] X [...] 
 				// after:  [...] O [...]
 
@@ -299,7 +295,7 @@ namespace Doxense.Collections.Generic
 
 				//                 ____________ index
 				//                /     _______ offset
-				//				 V     V
+				//               V     V
 				// before: [...] # # # X [...] 
 				// after:  [...] O # # # [...]
 
@@ -313,7 +309,7 @@ namespace Doxense.Collections.Generic
 
 				//                 ____________ offset
 				//                /     _______ index
-				//				 V     V
+				//               V     V
 				// before: [...] X # # # [...] 
 				// after:  [...] # # # O [...]
 

@@ -33,6 +33,7 @@ namespace Doxense.Collections.Generic
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
+	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered list of ranges, each associated with a specific value, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="TKey">Type of the keys stored in the set</typeparam>
@@ -207,20 +208,24 @@ namespace Doxense.Collections.Generic
 #endif
 		}
 
+		/// <summary>Number of distinct ranges in this instance</summary>
 		public int Count => m_items.Count;
 
+		/// <summary>Allocated capacity of this instance</summary>
 		public int Capacity => m_items.Capacity;
 
+		/// <summary>Helper used to compare and sort keys of this instance</summary>
 		public IComparer<TKey> KeyComparer => m_keyComparer;
 
+		/// <summary>Helper used to check values of this instance for equality</summary>
 		public IEqualityComparer<TValue> ValueComparer => m_valueComparer;
 
+		/// <summary>Current bounds of this instance (minimum and maximum value)</summary>
 		public Entry Bounds => m_bounds;
 
+		/// <summary>Looks for the first existing range that is intersected by the start of the new range</summary>
 		private Entry? GetBeginRangeIntersecting(Entry range)
 		{
-			// look for the first existing range that is intersected by the start of the new range
-
 			int level = m_items.FindPrevious(range, true, out _, out var cursor);
 			if (level < 0)
 			{
@@ -229,10 +234,9 @@ namespace Doxense.Collections.Generic
 			return cursor;
 		}
 
+		/// <summary>Looks for the last existing range that is intersected by the end of the new range</summary>
 		private Entry? GetEndRangeIntersecting(Entry range)
 		{
-			// look for the last existing range that is intersected by the end of the new range
-
 			int level = m_items.FindPrevious(range, true, out _, out var cursor);
 			if (level < 0)
 			{
@@ -241,18 +245,22 @@ namespace Doxense.Collections.Generic
 			return cursor;
 		}
 
+		/// <summary>Returns the smaller key of the two</summary>
 		private TKey Min(TKey? a, TKey? b)
 		{
 			Contract.Debug.Requires(a != null && b != null);
 			return m_keyComparer.Compare(a, b) <= 0 ? a : b;
 		}
 
+		/// <summary>Returns the greater key of the two</summary>
 		private TKey Max(TKey? a, TKey? b)
 		{
 			Contract.Debug.Requires(a != null && b != null);
 			return m_keyComparer.Compare(a, b) >= 0 ? a : b;
 		}
 
+		/// <summary>Removes all ranges from this instance</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Clear()
 		{
 			m_items.Clear();
@@ -262,11 +270,12 @@ namespace Doxense.Collections.Generic
 			CheckInvariants();
 		}
 
-		/// <summary>Removes everything between begin and end then translates everything</summary>
+		/// <summary>Removes everything between <paramref name="begin"/> and <paramref name="end"/> then translates everything</summary>
 		/// <param name="begin">begin key</param>
 		/// <param name="end">end key</param>
 		/// <param name="offset">offset to apply</param>
 		/// <param name="applyOffset">func to apply offset to a key</param>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Remove(TKey begin, TKey end, TKey offset, Func<TKey?, TKey, TKey> applyOffset)
 		{
 			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
@@ -558,6 +567,7 @@ namespace Doxense.Collections.Generic
 			if (iterator.SeekLast()) m_bounds.End = iterator.Current!.End;
 		}
 
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Mark(TKey begin, TKey end, TValue value)
 		{
 			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
@@ -1049,6 +1059,11 @@ namespace Doxense.Collections.Generic
 			}
 		}
 
+		/// <summary>Returns the value of the range that contains the specified key, if there is one.</summary>
+		/// <param name="key">Key that is beeing looked up</param>
+		/// <param name="value">If the key intersects a range, receives the value of this range.</param>
+		/// <returns><see langword="true"/> if there is a range that contains <see cref="key"/>; otherwise, <see langword="false"/> (outside the bounds, or between two ranges)</returns>
+		[CollectionAccess(CollectionAccessType.Read)]
 		public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
 			value = default;
@@ -1088,11 +1103,19 @@ namespace Doxense.Collections.Generic
 			return false;
 		}
 
+		/// <summary>Returns the value of the range that contains the specified key, or a default value if there is none.</summary>
+		/// <param name="key">Key that is beeing looked up</param>
+		/// <param name="defaultValue">Value that will be returned if the key is outside the bounds, or falls between two ranges.</param>
+		/// <returns>Value of the range that contains <see cref="key"/>; otherwise, <paramref name="defaultValue"/></returns>
+		[CollectionAccess(CollectionAccessType.Read)]
+		public TValue GetValueOrDefault(TKey key, TValue defaultValue) => TryGetValue(key, out var value) ? value : defaultValue;
+
 		/// <summary>Checks if there is at least one range in the dictionary that intersects with the specified range, and matches the predicate</summary>
 		/// <param name="begin">Lower bound of the intersection</param>
 		/// <param name="end">Higher bound (excluded) of the intersection</param>
 		/// <param name="value">Receives the value of the first matched segment in the range</param>
-		/// <returns>True if there was at least one intersecting range, and <paramref name="value"/> received the corresponding value.</returns>
+		/// <returns><see langword="true"/> if there was at least one intersecting range, and <paramref name="value"/> received the corresponding value.</returns>
+		[CollectionAccess(CollectionAccessType.Read)]
 		public bool FindFirst(TKey begin, TKey end, [MaybeNullWhen(false)] out TValue value)
 		{
 			value = default;
@@ -1136,7 +1159,8 @@ namespace Doxense.Collections.Generic
 		/// <param name="begin">Lower bound of the intersection</param>
 		/// <param name="end">Higher bound (excluded) of the intersection</param>
 		/// <param name="match"></param>
-		/// <returns>True if there was at least one intersecting range.</returns>
+		/// <returns><see langword="true"/> if there was at least one intersecting range.</returns>
+		[CollectionAccess(CollectionAccessType.Read)]
 		public bool Intersect(TKey begin, TKey end, [MaybeNullWhen(false)] out Entry match)
 		{
 			match = null;
@@ -1181,7 +1205,8 @@ namespace Doxense.Collections.Generic
 		/// <param name="end">Higher bound (excluded) of the intersection</param>
 		/// <param name="predicate">Predicate called for each intersected range.</param>
 		/// <param name="match">Receives the first matching entry, if there is one.</param>
-		/// <returns>True if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
+		/// <returns><see langword="true"/> if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
+		[CollectionAccess(CollectionAccessType.Read)]
 		public bool Intersect(TKey begin, TKey end, Func<TValue?, bool> predicate, [MaybeNullWhen(false)] out Entry match)
 		{
 			match = null;
@@ -1227,7 +1252,8 @@ namespace Doxense.Collections.Generic
 		/// <param name="arg">Value that is passed as the second argument to <paramref name="predicate"/></param>
 		/// <param name="predicate">Predicate called for each intersected range.</param>
 		/// <param name="match">Receives the first matching entry, if there is one.</param>
-		/// <returns>True if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
+		/// <returns><see langword="true"/> if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
+		[CollectionAccess(CollectionAccessType.Read)]
 		public bool Intersect<TArg>(TKey begin, TKey end, TArg arg, Func<TValue?, TArg, bool> predicate, [MaybeNullWhen(false)] out Entry match)
 		{
 			match = null;
@@ -1272,6 +1298,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="end">End of the range</param>
 		/// <returns>Sequence of the all the ranges in the dictionary that intersect the specified range.</returns>
 		/// <remarks>The dictionary should not be modified while iterating over the sequence.</remarks>
+		[CollectionAccess(CollectionAccessType.Read)]
 		public IEnumerable<(TKey Begin, TKey End, TValue Value)> Scan(TKey begin, TKey end)
 		{
 			// return the unordered list of all the keys that are between the begin/end pair.
@@ -1304,39 +1331,36 @@ namespace Doxense.Collections.Generic
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MustDisposeResource]
 		public ColaStore<Entry>.Iterator GetIterator()
 		{
 			return m_items.GetIterator();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MustDisposeResource]
 		public ColaStore.Enumerator<Entry> GetEnumerator()
 		{
 			return new ColaStore.Enumerator<Entry>(m_items, reverse: false);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IEnumerable<Entry> IterateOrdered()
-		{
-			return m_items.IterateOrdered();
-		}
+		[CollectionAccess(CollectionAccessType.Read)]
+		public IEnumerable<Entry> IterateOrdered() => m_items.IterateOrdered();
 
-		IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		[MustDisposeResource]
+		IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator() => this.GetEnumerator();
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		[MustDisposeResource]
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		[Conditional("DEBUG")]
+		[CollectionAccess(CollectionAccessType.Read)]
 		//TODO: remove or set to internal !
 		public void Debug_Dump()
 		{
 #if DEBUG
-			Debug.WriteLine("Dumping ColaRangeDictionary<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
+			Debug.WriteLine("Dumping ColaRangeDictionary<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / m_items.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
 #endif
 		}
