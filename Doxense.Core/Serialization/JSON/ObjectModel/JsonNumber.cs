@@ -1656,18 +1656,42 @@ namespace Doxense.Serialization.Json
 
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
+			// We want to keep the original literal intact, in order to maximize the chances of "perfect" round-tripping.
+			// -> for example, if the original JSON contained either '42', '42.0', '4.2E1' etc... we should try to output the same token (as long as it was legal JSON)
+
 			if (m_literal != null)
-			{
-				writer.WriteRaw(m_literal);
-			}
-			else
-			{
-				switch (m_kind)
+			{ // we will output the original literal unless we need to do some special formatting...
+
+				if (m_kind == Kind.Double)
 				{
-					case Kind.Signed: writer.WriteValue(m_value.Signed); break;
-					case Kind.Unsigned: writer.WriteValue(m_value.Unsigned); break;
-					case Kind.Double: writer.WriteValue(m_value.Double); break;
-					case Kind.Decimal: writer.WriteValue(m_value.Decimal); break;
+					var d = m_value.Double;
+					if (double.IsNaN(d) || double.IsInfinity(d))
+					{ // delegate the actual formating to the writer
+						writer.WriteValue(d);
+						return;
+					}
+				}
+				writer.WriteRaw(m_literal);
+				return;
+			}
+
+			switch (m_kind)
+			{
+				case Kind.Signed:
+				{
+					writer.WriteValue(m_value.Signed); break;
+				}
+				case Kind.Unsigned:
+				{
+					writer.WriteValue(m_value.Unsigned); break;
+				}
+				case Kind.Double:
+				{
+					writer.WriteValue(m_value.Double); break;
+				}
+				case Kind.Decimal:
+				{
+					writer.WriteValue(m_value.Decimal); break;
 				}
 			}
 		}
