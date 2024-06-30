@@ -46,6 +46,7 @@ namespace FoundationDB.Client
 	public static partial class Fdb
 	{
 
+		[PublicAPI]
 		public static class Tenants
 		{
 
@@ -61,7 +62,7 @@ namespace FoundationDB.Client
 			public static async Task<FdbTenantMode> GetTenantMode(IFdbReadOnlyTransaction tr)
 			{
 				tr.Options.WithReadAccessToSystemKeys();
-				var val = await tr.GetAsync(TenantModeKey);
+				var val = await tr.GetAsync(TenantModeKey).ConfigureAwait(false);
 				if (val.IsNullOrEmpty) return FdbTenantMode.Disabled;
 				// this is a number represented as a decimal string
 				// so "0" is Disabled, "1" is Optional, etc..
@@ -84,7 +85,7 @@ namespace FoundationDB.Client
 
 			public static async Task<bool> HasTenant(IFdbReadOnlyTransaction tr, FdbTenantName name)
 			{
-				var value = await tr.GetAsync(TenantMapPrefix + name.Value);
+				var value = await tr.GetAsync(TenantMapPrefix + name.Value).ConfigureAwait(false);
 				return value.HasValue;
 			}
 
@@ -127,7 +128,7 @@ namespace FoundationDB.Client
 
 			public static async Task<FdbTenantMetadata?> GetTenantMetadata(IFdbReadOnlyTransaction tr, FdbTenantName name)
 			{
-				var data = await tr.GetAsync(TenantMapPrefix + name.Value);
+				var data = await tr.GetAsync(TenantMapPrefix + name.Value).ConfigureAwait(false);
 				return data.HasValue ? ParseTenantMetadata(name, data) : null;
 			}
 

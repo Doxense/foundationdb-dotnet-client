@@ -67,7 +67,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		async ValueTask<IKeySubspace?> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			return await Resolve(tr, directory);
+			return await Resolve(tr, directory).ConfigureAwait(false);
 		}
 
 		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
@@ -88,9 +88,9 @@ namespace FoundationDB.Client
 			static async ValueTask<FdbDirectorySubspace?> ResolveOrCreate(IFdbTransaction tr, FdbDirectoryLayer? directory, FdbPath path)
 			{
 				directory ??= tr.Context.Database.DirectoryLayer;
-				var subspace = await directory.TryOpenCachedAsync(tr, path);
+				var subspace = await directory.TryOpenCachedAsync(tr, path).ConfigureAwait(false);
 				if (subspace != null) return subspace;
-				subspace = await directory.CreateAsync(tr, path);
+				subspace = await directory.CreateAsync(tr, path).ConfigureAwait(false);
 				//TODO: how to handle the cache?
 				return subspace;
 			}
@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Append a segment to the current path</summary>
-		public FdbDirectorySubspaceLocation this[FdbPathSegment segment] => new FdbDirectorySubspaceLocation(this.Path.Add(segment));
+		public FdbDirectorySubspaceLocation this[FdbPathSegment segment] => new(this.Path.Add(segment));
 
 		/// <summary>Append one or more segments to the current path</summary>
 		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => segments.Length != 0 ? new FdbDirectorySubspaceLocation(this.Path.Add(segments)) : this;
@@ -131,12 +131,12 @@ namespace FoundationDB.Client
 		/// <summary>Append a segment to the current path</summary>
 		/// <param name="name">Name of the segment</param>
 		/// <remarks>The new segment will not have a layer id.</remarks>
-		public FdbDirectorySubspaceLocation this[string name] => new FdbDirectorySubspaceLocation(this.Path.Add(FdbPathSegment.Create(name)));
+		public FdbDirectorySubspaceLocation this[string name] => new(this.Path.Add(FdbPathSegment.Create(name)));
 
 		/// <summary>Append a segment - composed of a name and layer id - to the current path</summary>
 		/// <param name="name">Name of the segment</param>
 		/// <param name="layerId">Layer Id of the segment</param>
-		public FdbDirectorySubspaceLocation this[string name, string layerId] => new FdbDirectorySubspaceLocation(this.Path.Add(new FdbPathSegment(name, layerId)));
+		public FdbDirectorySubspaceLocation this[string name, string layerId] => new(this.Path.Add(new FdbPathSegment(name, layerId)));
 
 		/// <summary>Append a relative path to the current path</summary>
 		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => !relativePath.IsEmpty ? new FdbDirectorySubspaceLocation(this.Path.Add(relativePath)) : this;
@@ -145,7 +145,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T1">Type of the key</typeparam>
 		/// <param name="item1">Key that will be appended to the current location's binary prefix</param>
 		/// <returns>A new subspace location with an additional binary suffix</returns>
-		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new DynamicKeySubspaceLocation(GetSafePath(), TuPack.EncodeKey<T1>(item1), TuPack.Encoding.GetDynamicKeyEncoder());
+		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new(GetSafePath(), TuPack.EncodeKey(item1), TuPack.Encoding.GetDynamicKeyEncoder());
 
 		/// <summary>Append a pair encoded keys to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the first key</typeparam>
@@ -153,7 +153,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">Key that will be appended first to the current location's binary prefix</param>
 		/// <param name="item2">Key that will be appended last to the current location's binary prefix</param>
 		/// <returns>A new subspace location with an additional binary suffix</returns>
-		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new DynamicKeySubspaceLocation(GetSafePath(), TuPack.EncodeKey<T1, T2>(item1, item2), TuPack.Encoding.GetDynamicKeyEncoder());
+		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new(GetSafePath(), TuPack.EncodeKey(item1, item2), TuPack.Encoding.GetDynamicKeyEncoder());
 
 		#region IFdbDirectory...
 

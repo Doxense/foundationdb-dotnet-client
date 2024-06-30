@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 		public FdbError PreviousError { get; private set; }
 
 		/// <summary>Stopwatch that is started at the creation of the transaction, and stopped when it commits or gets disposed</summary>
-		private ValueStopwatch Clock; //REVIEW: must be a field!
+		private ValueStopwatch Clock; // must be a field!
 
 		/// <summary>Duration of all the previous attempts before the current one (starts at 0, and gets updated at each reset/retry)</summary>
 		internal TimeSpan BaseDuration { get; private set; }
@@ -1062,7 +1062,7 @@ namespace FoundationDB.Client
 									}
 								}
 
-								if (!await context.ValidateValueChecksSlow(valueChecks, ignoreFailedTasks: false))
+								if (!await context.ValidateValueChecksSlow(valueChecks, ignoreFailedTasks: false).ConfigureAwait(false))
 								{
 									if (currentActivity != null)
 									{
@@ -1145,26 +1145,26 @@ namespace FoundationDB.Client
 
 									case Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> f:
 									{
-										result = await f(trans, intermediate!);
+										result = await f(trans, intermediate!).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, TIntermediate, ValueTask<TResult>> f:
 									{
-										result = await f(trans, intermediate!);
+										result = await f(trans, intermediate!).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, TResult, Task> f:
 									{
 										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
-										await f(trans, result);
+										await f(trans, result).ConfigureAwait(false);
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, TResult, ValueTask> f:
 									{
 										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
-										await f(trans, result);
+										await f(trans, result).ConfigureAwait(false);
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, TIntermediate, TResult> f:
@@ -1175,26 +1175,26 @@ namespace FoundationDB.Client
 									}
 									case Func<IFdbReadOnlyTransaction, Task<TResult>> f:
 									{
-										result = await f(trans);
+										result = await f(trans).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, ValueTask<TResult>> f:
 									{
-										result = await f(trans);
+										result = await f(trans).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, Task> f:
 									{
-										await f(trans);
+										await f(trans).ConfigureAwait(false);
 										result = default!;
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, ValueTask> f:
 									{
-										await f(trans);
+										await f(trans).ConfigureAwait(false);
 										result = default!;
 										hasResult = true;
 										break;
@@ -1223,26 +1223,26 @@ namespace FoundationDB.Client
 
 									case Func<IFdbTransaction, TIntermediate, Task<TResult>> f:
 									{
-										result = await f(trans, intermediate!);
+										result = await f(trans, intermediate!).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbTransaction, TIntermediate, ValueTask<TResult>> f:
 									{
-										result = await f(trans, intermediate!);
+										result = await f(trans, intermediate!).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbTransaction, TResult, Task> f:
 									{
 										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
-										await f(trans, result);
+										await f(trans, result).ConfigureAwait(false);
 										break;
 									}
 									case Func<IFdbTransaction, TResult, ValueTask> f:
 									{
 										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
-										await f(trans, result);
+										await f(trans, result).ConfigureAwait(false);
 										break;
 									}
 									case Func<IFdbTransaction, TIntermediate, TResult> f:
@@ -1253,26 +1253,26 @@ namespace FoundationDB.Client
 									}
 									case Func<IFdbTransaction, Task<TResult>> f:
 									{
-										result = await f(trans);
+										result = await f(trans).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbTransaction, ValueTask<TResult>> f:
 									{
-										result = await f(trans);
+										result = await f(trans).ConfigureAwait(false);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbTransaction, Task> f:
 									{
-										await f(trans);
+										await f(trans).ConfigureAwait(false);
 										result = default!;
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbTransaction, ValueTask> f:
 									{
-										await f(trans);
+										await f(trans).ConfigureAwait(false);
 										result = default!;
 										hasResult = true;
 										break;
@@ -1344,7 +1344,7 @@ namespace FoundationDB.Client
 							{ // we need to resolve any check that would still have passed before the error
 
 								context.FailedValueCheckTags?.Clear();
-								if (!await context.ValidateValueChecks(ignoreFailedTasks: true))
+								if (!await context.ValidateValueChecks(ignoreFailedTasks: true).ConfigureAwait(false))
 								{
 									// we don't override the original error, though!
 								}
@@ -1398,7 +1398,7 @@ namespace FoundationDB.Client
 							if (!hasRunValueChecks)
 							{
 								context.FailedValueCheckTags?.Clear();
-								if (!await context.ValidateValueChecks(ignoreFailedTasks: false))
+								if (!await context.ValidateValueChecks(ignoreFailedTasks: false).ConfigureAwait(false))
 								{
 									try
 									{
@@ -1530,6 +1530,5 @@ namespace FoundationDB.Client
 		/// <summary>At least one value-check performed with this tag failed in the previous attempt.</summary>
 		Failed = 2,
 	}
-
 
 }

@@ -591,7 +591,7 @@ namespace FoundationDB.Client
 
 				if (hasPartition)
 				{ // open the partition, and switch the root of the db
-					await Fdb.Directory.SwitchToNamedPartitionAsync(db, root.Path, ct);
+					await Fdb.Directory.SwitchToNamedPartitionAsync(db, root.Path, ct).ConfigureAwait(false);
 				}
 
 				success = true;

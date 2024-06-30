@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 		internal FdbDirectorySubspace(FdbDirectoryLayer.DirectoryDescriptor descriptor, IDynamicKeyEncoder encoder, ISubspaceContext? context, bool cached)
 			: base(descriptor.Prefix, encoder, context ?? SubspaceContext.Default)
 		{
-			Contract.Debug.Requires(descriptor?.Partition != null);
+			Contract.Debug.Requires(descriptor != null && descriptor.Partition != null);
 			this.Descriptor = descriptor;
 			this.Cached = cached;
 		}
@@ -146,7 +146,7 @@ namespace FoundationDB.Client
 			EnsureIsValid();
 
 			// set the layer to the new value
-			var metadata = await this.DirectoryLayer.Resolve(trans);
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
 			await metadata.ChangeLayerInternalAsync(trans, descriptor.Path, newLayer).ConfigureAwait(false);
 
 			// and return the new version of the subspace
@@ -168,8 +168,8 @@ namespace FoundationDB.Client
 
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(null, trans, ToAbsolutePath(path), Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true))!;
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return (await metadata.CreateOrOpenInternalAsync(null, trans, ToAbsolutePath(path), Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
@@ -177,7 +177,6 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the sub-directory to open</param>
-		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
 		public async Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
@@ -185,8 +184,8 @@ namespace FoundationDB.Client
 
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(trans, null, ToAbsolutePath(path), prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true))!;
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return (await metadata.CreateOrOpenInternalAsync(trans, null, ToAbsolutePath(path), prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
@@ -194,7 +193,6 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the sub-directory to open</param>
-		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public async Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
@@ -203,8 +201,8 @@ namespace FoundationDB.Client
 
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.CreateOrOpenInternalAsync(trans, null, ToAbsolutePath(path), prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.CreateOrOpenInternalAsync(trans, null, ToAbsolutePath(path), prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false).ConfigureAwait(false);
 		}
 
 		public async ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbPath path)
@@ -214,8 +212,8 @@ namespace FoundationDB.Client
 
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.OpenCachedInternalAsync(trans, ToAbsolutePath(path), throwOnError: false);
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.OpenCachedInternalAsync(trans, ToAbsolutePath(path), throwOnError: false).ConfigureAwait(false);
 		}
 
 		public async ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbPath> paths)
@@ -227,8 +225,8 @@ namespace FoundationDB.Client
 
 			var items = (paths as FdbPath[]) ?? paths.ToArray();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.OpenCachedInternalAsync(trans, items, throwOnError: false);
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.OpenCachedInternalAsync(trans, items, throwOnError: false).ConfigureAwait(false);
 		}
 
 		/// <summary>Creates a sub-directory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
@@ -271,8 +269,8 @@ namespace FoundationDB.Client
 			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(null, trans, ToAbsolutePath(path), prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true))!;
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return (await metadata.CreateOrOpenInternalAsync(null, trans, ToAbsolutePath(path), prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Moves the current directory to <paramref name="newAbsolutePath"/>.
@@ -294,8 +292,8 @@ namespace FoundationDB.Client
 			var location = this.DirectoryLayer.VerifyPath(newAbsolutePath, "newAbsolutePath");
 			if (!location.StartsWith(partition.Path)) throw new InvalidOperationException($"Cannot move between partitions ['{location}' is outside '{partition.Path}']");
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return (await metadata.MoveInternalAsync(trans, this.Descriptor.Path, location, throwOnError: true))!;
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return (await metadata.MoveInternalAsync(trans, this.Descriptor.Path, location, throwOnError: true).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Moves the specified sub-directory to <paramref name="newPath"/>.
@@ -312,8 +310,8 @@ namespace FoundationDB.Client
 			if (newPath.IsEmpty) throw new ArgumentNullException(nameof(newPath));
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return (await metadata.MoveInternalAsync(trans, ToAbsolutePath(oldPath), ToAbsolutePath(newPath), throwOnError: true))!;
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return (await metadata.MoveInternalAsync(trans, ToAbsolutePath(oldPath), ToAbsolutePath(newPath), throwOnError: true).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
@@ -366,8 +364,8 @@ namespace FoundationDB.Client
 
 			var descriptor = this.Descriptor;
 
-			var metadata = await descriptor.DirectoryLayer.Resolve(trans);
-			await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: true);
+			var metadata = await descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: true).ConfigureAwait(false);
 		}
 
 		/// <summary>Removes a sub-directory, its contents, and all subdirectories.
@@ -404,8 +402,8 @@ namespace FoundationDB.Client
 
 			var descriptor = this.Descriptor;
 
-			var metadata = await descriptor.DirectoryLayer.Resolve(trans);
-			return await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: false);
+			var metadata = await descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: false).ConfigureAwait(false);
 		}
 
 		/// <summary>Attempts to remove a sub-directory, its contents, and all subdirectories.
@@ -422,11 +420,11 @@ namespace FoundationDB.Client
 			var location = this.DirectoryLayer.VerifyPath(path, nameof(path));
 			if (location.Count == 0)
 			{
-				return await TryRemoveAsync(trans);
+				return await TryRemoveAsync(trans).ConfigureAwait(false);
 			}
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.RemoveInternalAsync(trans, ToAbsolutePath(location), throwIfMissing: false);
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.RemoveInternalAsync(trans, ToAbsolutePath(location), throwIfMissing: false).ConfigureAwait(false);
 		}
 
 		/// <summary>Checks if this directory exists</summary>
@@ -438,8 +436,8 @@ namespace FoundationDB.Client
 
 			var descriptor = this.Descriptor;
 
-			var metadata = await descriptor.DirectoryLayer.Resolve(trans);
-			return await metadata.ExistsInternalAsync(trans, descriptor.Path);
+			var metadata = await descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.ExistsInternalAsync(trans, descriptor.Path).ConfigureAwait(false);
 		}
 
 		/// <summary>Checks if a sub-directory exists</summary>
@@ -453,11 +451,11 @@ namespace FoundationDB.Client
 			var location = this.DirectoryLayer.VerifyPath(path, nameof(path));
 			if (location.Count == 0)
 			{
-				return await ExistsAsync(trans);
+				return await ExistsAsync(trans).ConfigureAwait(false);
 			}
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.ExistsInternalAsync(trans, ToAbsolutePath(location));
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.ExistsInternalAsync(trans, ToAbsolutePath(location)).ConfigureAwait(false);
 		}
 
 		/// <summary>Returns the list of all the subdirectories of a sub-directory.</summary>
@@ -466,8 +464,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return (await metadata.ListInternalAsync(trans, ToAbsolutePath(path), throwIfMissing: true))!;
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return (await metadata.ListInternalAsync(trans, ToAbsolutePath(path), throwIfMissing: true).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
@@ -476,13 +474,13 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			EnsureIsValid();
 
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.ListInternalAsync(trans, ToAbsolutePath(path), throwIfMissing: false);
+			var metadata = await this.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.ListInternalAsync(trans, ToAbsolutePath(path), throwIfMissing: false).ConfigureAwait(false);
 		}
 
 		public override string DumpKey(Slice key, bool absolute = false)
 		{
-			return absolute ? $"[/{this.FullName}]:{base.DumpKey(key, false)}" : base.DumpKey(key, false);
+			return absolute ? $"[/{this.FullName}]:{base.DumpKey(key, absolute: false)}" : base.DumpKey(key, absolute: false);
 		}
 
 		/// <summary>Returns a user-friendly description of this directory</summary>

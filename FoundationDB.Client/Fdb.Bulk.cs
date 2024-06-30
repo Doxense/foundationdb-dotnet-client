@@ -446,7 +446,7 @@ namespace FoundationDB.Client
 
 						if (bodyAsync != null)
 						{
-							await bodyAsync(item, trans);
+							await bodyAsync(item, trans).ConfigureAwait(false);
 						}
 						else
 						{
@@ -771,7 +771,7 @@ namespace FoundationDB.Client
 							chunk.CopyTo(offset, batch, 0, batch.Length);
 							if (bodyAsync != null)
 							{
-								await bodyAsync(batch, trans);
+								await bodyAsync(batch, trans).ConfigureAwait(false);
 							}
 							else
 							{
@@ -800,7 +800,7 @@ namespace FoundationDB.Client
 						chunk.CopyTo(offset, batch, 0, batch.Length);
 						if (bodyAsync != null)
 						{
-							await bodyAsync(batch, trans);
+							await bodyAsync(batch, trans).ConfigureAwait(false);
 						}
 						else
 						{
@@ -1218,7 +1218,7 @@ namespace FoundationDB.Client
 										var sw = Stopwatch.StartNew();
 										if (bodyAsyncWithContextAndState != null)
 										{
-											localValue = await bodyAsyncWithContextAndState(items, ctx, localValue);
+											localValue = await bodyAsyncWithContextAndState(items, ctx, localValue).ConfigureAwait(false);
 										}
 										else if (bodyWithContextAndState != null)
 										{
@@ -1226,7 +1226,7 @@ namespace FoundationDB.Client
 										}
 										else if (bodyAsyncWithContext != null)
 										{
-											await bodyAsyncWithContext(items, ctx);
+											await bodyAsyncWithContext(items, ctx).ConfigureAwait(false);
 										}
 										else
 										{
@@ -1280,7 +1280,7 @@ namespace FoundationDB.Client
 										}
 										else
 										{ // the error may be retry-able...
-											await trans.OnErrorAsync(error.Code);
+											await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
 											ctx.GenerationTimer.Restart();
 											ctx.Generation++;
 											//REVIEW: magical number!
@@ -1412,7 +1412,7 @@ namespace FoundationDB.Client
 
 				using (var tr = db.BeginReadOnlyTransaction(ct))
 				{
-					await reset(tr);
+					await reset(tr).ConfigureAwait(false);
 
 					//TODO: make options configurable!
 					var options = new FdbRangeOptions
@@ -1426,7 +1426,7 @@ namespace FoundationDB.Client
 					long waitForFetch = 0;
 
 					// read the first batch
-					var page = await FetchNextBatchAsync(tr, begin, end, options, reset);
+					var page = await FetchNextBatchAsync(tr, begin, end, options, reset).ConfigureAwait(false);
 					++waitForFetch;
 
 					while (page.HasMore)
@@ -1438,20 +1438,20 @@ namespace FoundationDB.Client
 						if (page.Count > 0)
 						{
 							ct.ThrowIfCancellationRequested();
-							await handler(page.Items, count, ct);
+							await handler(page.Items, count, ct).ConfigureAwait(false);
 							++chunks;
 							count += page.Count;
 						}
 
 						if (next.Status != TaskStatus.RanToCompletion) ++waitForFetch;
-						page = await next;
+						page = await next.ConfigureAwait(false);
 					}
 
 					// process the last page, if any
 					if (page.Count > 0)
 					{
 						ct.ThrowIfCancellationRequested();
-						await handler(page.Items, count, ct);
+						await handler(page.Items, count, ct).ConfigureAwait(false);
 						++chunks;
 						count += page.Count;
 					}
@@ -1542,7 +1542,7 @@ namespace FoundationDB.Client
 					// should export be lower priority? TODO: make if configurable!
 					tr.Options.WithPriorityBatch();
 
-					var folder = await path.Resolve(tr);
+					var folder = await path.Resolve(tr).ConfigureAwait(false);
 					if (previous.IsNull)
 					{
 						if (folder == null) throw new InvalidOperationException($"Failed to export the content of subspace {path} because it was not found.");
@@ -1565,7 +1565,7 @@ namespace FoundationDB.Client
 
 				using (var tr = db.BeginReadOnlyTransaction(ct))
 				{
-					await reset(tr);
+					await reset(tr).ConfigureAwait(false);
 
 					//TODO: make options configurable!
 					var options = new FdbRangeOptions
@@ -1579,7 +1579,7 @@ namespace FoundationDB.Client
 					long waitForFetch = 0;
 
 					// read the first batch
-					var page = await FetchNextBatchAsync(tr, begin, end, options, reset);
+					var page = await FetchNextBatchAsync(tr, begin, end, options, reset).ConfigureAwait(false);
 					++waitForFetch;
 
 					while (page.HasMore)
@@ -1591,20 +1591,20 @@ namespace FoundationDB.Client
 						if (page.Count > 0)
 						{
 							ct.ThrowIfCancellationRequested();
-							await handler(page.Items, location, count, ct);
+							await handler(page.Items, location, count, ct).ConfigureAwait(false);
 							++chunks;
 							count += page.Count;
 						}
 
 						if (next.Status != TaskStatus.RanToCompletion) ++waitForFetch;
-						page = await next;
+						page = await next.ConfigureAwait(false);
 					}
 
 					// process the last page, if any
 					if (page.Count > 0)
 					{
 						ct.ThrowIfCancellationRequested();
-						await handler(page.Items, location, count, ct);
+						await handler(page.Items, location, count, ct).ConfigureAwait(false);
 						++chunks;
 						count += page.Count;
 					}

@@ -119,7 +119,7 @@ namespace FoundationDB.Client
 
 		async ValueTask<IKeySubspace?> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			return await Resolve(tr, directory);
+			return await Resolve(tr, directory).ConfigureAwait(false);
 		}
 
 		public abstract ValueTask<TSubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
@@ -150,7 +150,7 @@ namespace FoundationDB.Client
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12345678);
 
 		public override bool Equals(ISubspaceLocation? other) =>
-			object.ReferenceEquals(other, this)
+			ReferenceEquals(other, this)
 			|| (other is BinaryKeySubspaceLocation bin && bin.Path == this.Path && bin.Prefix == other.Prefix);
 
 		public override ValueTask<IBinaryKeySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
@@ -165,7 +165,7 @@ namespace FoundationDB.Client
 		private async ValueTask<IBinaryKeySubspace?> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
 			// located inside a directory subspace!
-			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
 			if (folder == null) return null;
 			if (this.Prefix.Count == 0) return folder;
 			return new BinaryKeySubspace(folder.GetPrefix() + this.Prefix, folder.Context);
@@ -217,7 +217,7 @@ namespace FoundationDB.Client
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12344321);
 
 		public override bool Equals(ISubspaceLocation? other) =>
-			object.ReferenceEquals(other, this)
+			ReferenceEquals(other, this)
 			|| (other is DynamicKeySubspaceLocation dyn && dyn.Encoding == this.Encoding && dyn.Path == this.Path && dyn.Prefix == other.Prefix);
 
 		public override ValueTask<IDynamicKeySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
@@ -286,7 +286,7 @@ namespace FoundationDB.Client
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x1111);
 
 		public override bool Equals(ISubspaceLocation? other) =>
-			object.ReferenceEquals(other, this)
+			ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 		
 		/// <inheritdoc/>
@@ -340,7 +340,7 @@ namespace FoundationDB.Client
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x2222);
 
 		public override bool Equals(ISubspaceLocation? other) =>
-			object.ReferenceEquals(other, this)
+			ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
 		/// <inheritdoc/>
@@ -397,7 +397,7 @@ namespace FoundationDB.Client
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x3333);
 
 		public override bool Equals(ISubspaceLocation? other) =>
-			object.ReferenceEquals(other, this)
+			ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
 		public override ValueTask<ITypedKeySubspace<T1, T2, T3>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
@@ -454,7 +454,7 @@ namespace FoundationDB.Client
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x4444);
 
 		public override bool Equals(ISubspaceLocation? other) =>
-			object.ReferenceEquals(other, this)
+			ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3, T4> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
 		public override ValueTask<ITypedKeySubspace<T1, T2, T3, T4>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)

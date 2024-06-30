@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 				long rv = 0;
 				if (doc.ContainsKey("cluster"))
 				{
-					rv = await trans.GetReadVersionAsync();
+					rv = await trans.GetReadVersionAsync().ConfigureAwait(false);
 				}
 
 				return new FdbSystemStatus(doc, rv, data);
@@ -407,7 +407,7 @@ namespace FoundationDB.Client
 					//TODO: we may need to also copy options like RetryLimit and Timeout ?
 
 					return GetBoundaryKeysInternalAsync(shadow, beginInclusive, endExclusive);
-				}, trans.Cancellation);
+				}, trans.Cancellation).ConfigureAwait(false);
 			}
 
 			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>

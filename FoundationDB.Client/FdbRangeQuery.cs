@@ -495,10 +495,9 @@ namespace FoundationDB.Client
 			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
 				// ReSharper disable InvokeAsExtensionMethod
-				if (any)
-					return await AsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation);
-				else
-					return await AsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation);
+				return any
+					? await AsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation).ConfigureAwait(false)
+					: await AsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation).ConfigureAwait(false);
 				// ReSharper restore InvokeAsExtensionMethod
 			}
 
@@ -521,6 +520,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Extension methods for <see cref="FdbRangeQuery{T}"/></summary>
+	[PublicAPI]
 	public static class FdbRangeQueryExtensions
 	{
 

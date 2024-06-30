@@ -57,6 +57,7 @@ namespace FoundationDB.Client
 
 
 	/// <summary>Set of helper methods for working with <see cref="IFdbLayer{TState}"/> instances</summary>
+	[PublicAPI]
 	public static class FdbLayerExtensions
 	{
 
@@ -81,8 +82,8 @@ namespace FoundationDB.Client
 				(layer, handler),
 				async (tr, s) =>
 				{
-					var state = await (s.layer).Resolve(tr);
-					return await s.handler(tr, state);
+					var state = await (s.layer).Resolve(tr).ConfigureAwait(false);
+					return await s.handler(tr, state).ConfigureAwait(false);
 				},
 				ct);
 		}
@@ -109,8 +110,8 @@ namespace FoundationDB.Client
 				(layer, handler),
 				async (tr, s) =>
 				{
-					var state = await (s.layer).Resolve(tr);
-					await s.handler(tr, state);
+					var state = await (s.layer).Resolve(tr).ConfigureAwait(false);
+					await s.handler(tr, state).ConfigureAwait(false);
 				},
 				ct);
 		}
@@ -136,8 +137,8 @@ namespace FoundationDB.Client
 				(layer, handler),
 				async (tr, s) =>
 				{
-					var state = await (s.layer).Resolve(tr);
-					return await s.handler(tr, state);
+					var state = await (s.layer).Resolve(tr).ConfigureAwait(false);
+					return await s.handler(tr, state).ConfigureAwait(false);
 				},
 				ct);
 		}
@@ -162,7 +163,7 @@ namespace FoundationDB.Client
 				(layer, handler),
 				async (tr, s) =>
 				{
-					var state = await (s.layer).Resolve(tr);
+					var state = await (s.layer).Resolve(tr).ConfigureAwait(false);
 					s.handler(tr, state);
 				},
 				ct);
@@ -188,8 +189,8 @@ namespace FoundationDB.Client
 				(layer, handler),
 				async (tr, s) =>
 				{
-					var state = await (s.layer).Resolve(tr);
-					await s.handler(tr, state);
+					var state = await (s.layer).Resolve(tr).ConfigureAwait(false);
+					await s.handler(tr, state).ConfigureAwait(false);
 				},
 				ct);
 		}

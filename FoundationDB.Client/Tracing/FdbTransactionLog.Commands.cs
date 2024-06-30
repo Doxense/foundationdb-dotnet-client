@@ -297,12 +297,12 @@ namespace FoundationDB.Filters.Logging
 			/// <returns>Resolver that replace each directory prefix by its name</returns>
 			public static async Task<DirectoryKeyResolver> BuildFromDirectoryLayer(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 			{
-				var metadata = await directory.Resolve(tr);
+				var metadata = await directory.Resolve(tr).ConfigureAwait(false);
 				var location = metadata.Partition.Nodes;
 
 				//HACKHACK: for now, we will simply poke inside the node subspace of the directory layer, which is brittle (if the structure changes in future versions!)
 				// Entries that correspond to subfolders have the form: NodeSubspace.Pack( (parent_prefix, 0, "child_name") ) = child_prefix
-				var keys = await tr.GetRange(location.ToRange()).ToListAsync();
+				var keys = await tr.GetRange(location.ToRange()).ToListAsync().ConfigureAwait(false);
 
 				var map = new Dictionary<Slice, string>(Slice.Comparer.Default);
 

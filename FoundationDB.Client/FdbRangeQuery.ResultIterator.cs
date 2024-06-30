@@ -85,10 +85,7 @@ namespace FoundationDB.Client
 			protected override ValueTask<bool> OnFirstAsync()
 			{
 				// on first call, setup the page iterator
-				if (m_chunkIterator == null)
-				{
-					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetAsyncEnumerator(m_ct, m_mode);
-				}
+				m_chunkIterator ??= new PagingIterator(m_query, m_transaction).GetAsyncEnumerator(m_ct, m_mode);
 				return new ValueTask<bool>(true);
 			}
 
@@ -151,7 +148,7 @@ namespace FoundationDB.Client
 				Debug.WriteLine("No more chunks from page iterator");
 #endif
 				m_outOfChunks = true;
-				return await Completed();
+				return await Completed().ConfigureAwait(false);
 			}
 
 			private bool ProcessNextItem()
@@ -191,7 +188,10 @@ namespace FoundationDB.Client
 			{
 				try
 				{
-					if (m_chunkIterator != null) await m_chunkIterator.DisposeAsync();
+					if (m_chunkIterator != null)
+					{
+						await m_chunkIterator.DisposeAsync().ConfigureAwait(false);
+					}
 				}
 				finally
 				{

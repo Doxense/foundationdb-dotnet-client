@@ -75,7 +75,8 @@ namespace FoundationDB.Client
 				var folders = await children
 					.ToAsyncEnumerable()
 					.SelectAsync((child, _) => parent.OpenAsync(tr, FdbPath.Relative(child.Name)))
-					.ToListAsync();
+					.ToListAsync()
+					.ConfigureAwait(false);
 
 				// map the result
 				return folders.ToDictionary(ds => ds.Name);

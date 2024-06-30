@@ -1959,6 +1959,7 @@ namespace FoundationDB.Client
 			return db.ReadAsync((tr) =>
 			{
 				var query = handler(tr) ?? throw new InvalidOperationException("The query handler returned a null sequence");
+				// ReSharper disable once MethodSupportsCancellation
 				return query.ToListAsync();
 			}, ct);
 		}
@@ -1976,7 +1977,8 @@ namespace FoundationDB.Client
 			return db.ReadAsync(async (tr) =>
 			{
 				var query = (await handler(tr).ConfigureAwait(false)) ?? throw new InvalidOperationException("The query handler returned a null sequence");
-				return await query.ToListAsync();
+				// ReSharper disable once MethodSupportsCancellation
+				return await query.ToListAsync().ConfigureAwait(false);
 			}, ct);
 		}
 
