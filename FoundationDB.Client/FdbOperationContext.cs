@@ -719,7 +719,7 @@ namespace FoundationDB.Client
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
-			using var mainActivity = ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite");
+			using var mainActivity = ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite", kind: ActivityKind.Client);
 			context.Activity = mainActivity;
 
 			try
