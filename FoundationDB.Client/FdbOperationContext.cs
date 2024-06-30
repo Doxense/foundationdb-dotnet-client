@@ -37,6 +37,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization;
 	using FoundationDB.Client.Core;
 	using JetBrains.Annotations;
 
@@ -49,7 +50,7 @@ namespace FoundationDB.Client
 	{
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
 
-		private static readonly ActivitySource ActivitySource = new ActivitySource("FoundationDB.Client");
+		private static readonly ActivitySource ActivitySource = new("FoundationDB.Client");
 
 		/// <summary>The database used by the operation</summary>
 		public IFdbDatabase Database => m_db;
@@ -772,6 +773,8 @@ namespace FoundationDB.Client
 									currentActivity.SetTag("db.fdb.trans.id", trans.Id);
 									if (context.Retries > 0) currentActivity.SetTag("db.fdb.error.retry_count", context.Retries);
 									if (context.PreviousError != FdbError.Success) currentActivity.SetTag("db.fdb.error.previous", context.PreviousError);
+									currentActivity.SetTag("db.fdb.handler.target", (handler.Target?.GetType() ?? handler.Method.DeclaringType)?.GetFriendlyName());
+									currentActivity.SetTag("db.fdb.handler.method", handler.Method.Name);
 								}
 							}
 

@@ -27,7 +27,7 @@ namespace Microsoft.Extensions.Hosting
 	public static class FdbAspireComponentExtensions
 	{
 
-		private const string ActivitySourceName = "Aspire.FoundationDb.Client";
+		private const string ActivitySourceName = "FoundationDb.Client";
 
 		private const string DefaultConfigSectionName = "Aspire:FoundationDb:Client";
 
