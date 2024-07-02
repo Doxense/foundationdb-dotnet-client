@@ -264,7 +264,7 @@ namespace FoundationDB.Client.Status
 
 		protected int? GetInt32(string field1, string field2) => m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<int>(field2, out var v2) ? v2 : null;
 
-		protected long? GetInt64(string field) => m_data?.Get<int?>(field, null);
+		protected long? GetInt64(string field) => m_data?.Get<long?>(field, null);
 
 		protected long? GetInt64(string field1, string field2) => m_data != null && m_data.TryGetObject(field1, out var v1) && v1.TryGet<long>(field2, out var v2) ? v2 : null;
 
