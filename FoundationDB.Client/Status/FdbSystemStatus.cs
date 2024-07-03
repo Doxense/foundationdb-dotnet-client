@@ -42,8 +42,8 @@ namespace FoundationDB.Client.Status
 		internal FdbSystemStatus(JsonObject doc, long readVersion, Slice raw)
 			: base(doc)
 		{
-			this.Client = new ClientStatus(doc["client"].AsObjectOrDefault());
-			this.Cluster = new ClusterStatus(doc["cluster"].AsObjectOrDefault());
+			this.Client = new ClientStatus(doc.GetObjectOrDefault("client"));
+			this.Cluster = new ClusterStatus(doc.GetObjectOrDefault("cluster"));
 			this.ReadVersion = readVersion;
 			this.RawData = raw;
 		}
@@ -82,22 +82,27 @@ namespace FoundationDB.Client.Status
 		/// <summary>User friendly description of this message</summary>
 		public readonly string Description;
 
-		internal Message(string name, string description)
+		/// <summary>If specified, an unique ID representing this message</summary>
+		public readonly int? ReasonId;
+
+		internal Message(string name, string description, int? reasonId)
 		{
 			this.Name = name;
 			this.Description = description;
+			this.ReasonId = reasonId;
 		}
 
 		internal static Message From(JsonObject? data, string field)
 		{
 			if (data == null || !data.TryGetObject(field, out var obj))
 			{
-				return new Message("", "");
+				return new Message("", "", null);
 			}
 
 			var key = obj.Get<string>("name", "");
 			var value = obj.Get<string>("description", "");
-			return new Message(key, value);
+			var reasonId = obj.Get<int?>("reasonId", null);
+			return new Message(key, value, reasonId);
 		}
 
 		internal static Message[] FromArray(JsonObject? data, string field)
@@ -114,11 +119,12 @@ namespace FoundationDB.Client.Status
 				{
 					var key = obj.Get<string>("name", "");
 					var value = obj.Get<string>("description", "");
-					res[i] = new Message(key, value);
+					var reasonId = obj.Get<int?>("reasonId", null);
+					res[i] = new Message(key, value, reasonId);
 				}
 				else
 				{
-					res[i] = new Message("", "");
+					res[i] = new Message("", "", null);
 				}
 			}
 			return res;
@@ -377,6 +383,12 @@ namespace FoundationDB.Client.Status
 		/// <summary><c>protocol_version</c></summary>
 		public string ProtocolVersion => GetString("protocol_version") ?? string.Empty;
 
+		/// <summary><c>newest_protocol_version</c></summary>
+		public string NewestProtocolVersion => GetString("newest_protocol_version") ?? string.Empty;
+
+		/// <summary><c>lowest_compatible_protocol_version</c></summary>
+		public string LowestCompatibleProtocolVersion => GetString("lowest_compatible_protocol_version") ?? string.Empty;
+
 		/// <summary><c>full_replication</c></summary>
 		public bool FullReplication => GetBoolean("full_replication") ?? false;
 
@@ -474,18 +486,50 @@ namespace FoundationDB.Client.Status
 	{
 		internal ClusterConfiguration(JsonObject? data) : base(data)
 		{
-			this.CoordinatorsCount = (int)(GetInt64("coordinators_count") ?? 0);
-			this.StorageEngine = GetString("storage_engine") ?? string.Empty;
-			this.RedundancyFactor = GetString("redundancy", "factor") ?? string.Empty;
 		}
 
 		private string[]? m_excludedServers;
 
-		public int CoordinatorsCount { get; }
+		public int CoordinatorsCount => GetInt32("coordinators_count") ?? 0;
 
-		public string StorageEngine { get; }
+		public int? Resolvers => GetInt32("resolvers");
 
-		public string RedundancyFactor { get; }
+		public int? Proxies => GetInt32("proxies");
+
+		public int? Logs => GetInt32("logs");
+
+		public int? CommitProxies => GetInt32("commit_proxies");
+
+		public int? GrvProxies => GetInt32("grv_proxies");
+
+		public int? UsableRegions => GetInt32("usable_regions");
+
+		public int? LogSpill => GetInt32("log_spill");
+
+		public string? LogEngine => GetString("log_engine");
+
+		public string? StorageEngine => GetString("storage_engine");
+
+		[Obsolete("Deprecated, use RedundancyMode instead")]
+		public string? RedundancyFactor => GetString("redundancy", "factor") ?? string.Empty;
+
+		public string? RedundancyMode => GetString("redundancy_mode");
+
+		public string? StorageMigrationType => GetString("storage_migration_type");
+
+		public int? PerpetualStorageWiggle => GetInt32("perpetual_storage_wiggle");
+
+		public string? PerpetualStorageWiggleEngine => GetString("perpetual_storage_wiggle_engine");
+
+		public string? PerpetualStorageWiggleLocality => GetString("perpetual_storage_wiggle_locality");
+
+		public string? TenantMode => GetString("tenant_mode");
+
+		public string? EncryptionAtRestMode => GetString("encryption_at_rest_mode");
+
+		public int? BackupWorkerEnabled => GetInt32("backup_worker_enabled");
+
+		public int? BlobGranulesEnabled => GetInt32("blob_granules_enabled");
 
 		public IReadOnlyList<string> ExcludedServers
 		{
@@ -541,15 +585,24 @@ namespace FoundationDB.Client.Status
 
 		public long MovingDataInQueueBytes => GetInt64("moving_data", "in_queue_bytes") ?? 0;
 
+		public long MovingDataHighestPriority => GetInt64("moving_data", "highest_priority") ?? 0;
+
+		public long MovingDataTotalWrittenBytes => GetInt64("moving_data", "total_written_bytes") ?? 0;
+
 		public long PartitionsCount => GetInt64("partitions_count") ?? 0;
 
 		public long TotalDiskUsedBytes => GetInt64("total_disk_used_bytes") ?? 0;
 
 		public long TotalKVUsedBytes => GetInt64("total_kv_size_bytes") ?? 0;
 
+		public long SystemKVSizeBytes => GetInt64("system_kv_size_bytes") ?? 0;
+
 		public bool StateHealthy => GetBoolean("state", "healthy") ?? false;
 
-		public string StateName => GetString("state", "name")!;
+		public string StateName => GetString("state", "name") ?? "";
+
+		public int? StateMinReplicasRemaining => GetInt32("state", "min_replicas_remaining");
+
 	}
 
 	/// <summary>Details about the quality of service offered by the cluster</summary>
@@ -560,11 +613,16 @@ namespace FoundationDB.Client.Status
 		/// <summary>Current limiting factor for the performance of the cluster</summary>
 		public Message PerformanceLimitedBy => Message.From(m_data, "performance_limited_by");
 
-		//REVIEW: what is this?
+		public Message BatchPerformanceLimitedBy => Message.From(m_data, "batch_performance_limited_by");
+
 		public long WorstQueueBytesLogServer => GetInt64("worst_queue_bytes_log_server") ?? 0;
 
-		//REVIEW: what is this?
 		public long WorstQueueBytesStorageServer => GetInt64("worst_queue_bytes_storage_server") ?? 0;
+
+		public int? TransactionsPerSecondLimit => GetInt32("transactions_per_second_limit");
+
+		public int? BatchTransactionsPerSecondLimit => GetInt32("batch_transactions_per_second_limit");
+
 	}
 
 	/// <summary>Details about the current wokrload of the cluster</summary>
