@@ -1400,7 +1400,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static Exception FailLegacyTupleNotSupported()
 		{
-			throw new FormatException("Old style embedded tuples (0x03) are not supported anymore.");
+			return new FormatException("Old style embedded tuples (0x03) are not supported anymore.");
 		}
 
 		#endregion
