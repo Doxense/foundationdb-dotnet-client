@@ -8,6 +8,7 @@
 
 namespace Doxense.Threading
 {
+	using NodaTime;
 
 	/// <summary>Provides a state machine that can be used to retry operations after a randomized delay with built-in exponential backoff</summary>
 	public sealed class ExponentialRandomizedBackoff
@@ -107,6 +108,73 @@ namespace Doxense.Threading
 		{
 			return GetNext(out _);
 		}
+
+		/// <summary>Computes the earliest instant when the next operation should be attempted again</summary>
+		/// <param name="now">Current time</param>
+		/// <param name="iterations">Number of calls to this method since the last <see cref="Reset"/></param>
+		/// <returns>Instant in the future with a randomized delay</returns>
+		public Instant AdvanceBy(Instant now, out int iterations)
+		{
+			var delay = GetNext(out iterations);
+			return now.Plus(Duration.FromTimeSpan(delay));
+		}
+
+		/// <summary>Computes the earliest instant when the next operation should be attempted again</summary>
+		/// <param name="now">Current time</param>
+		/// <returns>Instant in the future with a randomized delay</returns>
+		public Instant AdvanceBy(Instant now)
+		{
+			var delay = GetNext();
+			return now.Plus(Duration.FromTimeSpan(delay));
+		}
+
+		/// <summary>Computes the earliest instant when the next operation should be attempted again</summary>
+		/// <param name="now">Current time</param>
+		/// <param name="iterations">Number of calls to this method since the last <see cref="Reset"/></param>
+		/// <returns>Instant in the future with a randomized delay</returns>
+		public DateTimeOffset AdvanceBy(DateTimeOffset now, out int iterations)
+		{
+			var delay = GetNext(out iterations);
+			return now + delay;
+		}
+
+		/// <summary>Computes the earliest instant when the next operation should be attempted again</summary>
+		/// <param name="now">Current time</param>
+		/// <returns>Instant in the future with a randomized delay</returns>
+		public DateTimeOffset AdvanceBy(DateTimeOffset now)
+		{
+			var delay = GetNext();
+			return now + delay;
+		}
+
+		/// <summary>Computes the earliest instant when the next operation should be attempted again</summary>
+		/// <param name="now">Current time</param>
+		/// <param name="iterations">Number of calls to this method since the last <see cref="Reset"/></param>
+		/// <returns>Instant in the future with a randomized delay</returns>
+		public DateTimeOffset AdvanceBy(DateTime now, out int iterations)
+		{
+			var delay = GetNext(out iterations);
+			return now + delay;
+		}
+
+		/// <summary>Computes the earliest instant when the next operation should be attempted again</summary>
+		/// <param name="now">Current time</param>
+		/// <returns>Instant in the future with a randomized delay</returns>
+		public DateTimeOffset AdvanceBy(DateTime now)
+		{
+			var delay = GetNext();
+			return now + delay;
+		}
+
+		/// <summary>Computes the next instant after a randomized delay</summary>
+		/// <param name="now">Current time</param>
+		/// <param name="baseDelay">Base delay (before randomization)</param>
+		/// <param name="low">Minimum randomized factor applied to the base delay (must be greater than 0, defaults to 1)</param>
+		/// <param name="high">Maximum randomzed factor applied to the base delay (must be greater or eqaul to <paramref name="low"/>, defaults to 1.5)</param>
+		/// <param name="rng">Pseudo-random number generator used to compute the delay</param>
+		/// <returns>Instant in the future that is after <paramref name="now"/> by a randomized delay 'd' that is equal to the <paramref name="baseDelay">base delay</paramref>, multiplied by a random factor between <paramref name="low"/> and <paramref name="high"/></returns>
+		public static Instant AdvanceBy(Instant now, TimeSpan baseDelay, double low = 1.0d, double high = 1.5d, Random? rng = null)
+			=> now.Plus(Duration.FromTimeSpan(GetNext(baseDelay, low, high, rng)));
 
 		/// <summary>Reset the delay to the initial value, following a successfull operation.</summary>
 		/// <remarks>
