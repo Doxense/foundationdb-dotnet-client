@@ -5979,7 +5979,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456, \"Bar\": true }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456,\"Bar\":true}")));
 
-			// case sensitive! ('Bar' != 'BAR'
+			// case sensitive! ('Bar' != 'BAR')
 			var sub = JsonObject.Create("Alpha", 111, "Omega", 999);
 			obj.Add("BAR", sub);
 			Assert.That(obj.Count, Is.EqualTo(4));
@@ -5988,6 +5988,21 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.GetValue("BAR"), Is.SameAs(sub));
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456, \"Bar\": true, \"BAR\": { \"Alpha\": 111, \"Omega\": 999 } }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456,\"Bar\":true,\"BAR\":{\"Alpha\":111,\"Omega\":999}}")));
+
+			// property names that require escaping ("..\.." => "..\\..", "\\?\..." => "\\\\?\\....")
+			obj = new JsonObject();
+			obj["""Hello\World"""] = 123;
+			obj["""Hello"World"""] = 456;
+			obj["""\\?\GLOBALROOT\Device\Foo\Bar"""] = 789;
+			Assert.That(obj.Count, Is.EqualTo(3));
+			Assert.That(obj.ContainsKey("""Hello\World"""), Is.True);
+			Assert.That(obj.ContainsKey("""Hello"World"""), Is.True);
+			Assert.That(obj.ContainsKey("""\\?\GLOBALROOT\Device\Foo\Bar"""), Is.True);
+			Assert.That(obj.Get<int>("""Hello\World"""), Is.EqualTo(123));
+			Assert.That(obj.Get<int>("""Hello"World"""), Is.EqualTo(456));
+			Assert.That(obj.Get<int>("""\\?\GLOBALROOT\Device\Foo\Bar"""), Is.EqualTo(789));
+			Assert.That(obj.ToJson(), Is.EqualTo("""{ "Hello\\World": 123, "Hello\"World": 456, "\\\\?\\GLOBALROOT\\Device\\Foo\\Bar": 789 }"""));
+			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("""{"Hello\\World":123,"Hello\"World":456,"\\\\?\\GLOBALROOT\\Device\\Foo\\Bar":789}""")));
 
 			//note: on ne sérialise pas les JsonNull "Missing"/"Error" par défaut!
 			obj = JsonObject.Create("Foo", JsonNull.Null, "Bar", JsonNull.Missing, "Baz", JsonNull.Error);

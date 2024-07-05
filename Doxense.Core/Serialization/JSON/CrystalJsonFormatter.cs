@@ -88,9 +88,19 @@ namespace Doxense.Serialization.Json
 			{ // null -> "null"
 				writer.Write(JsonTokens.Null);
 			}
+			else if (text.Length == 0)
+			{ // empty string -> ""
+				writer.Write(JsonTokens.EmptyString);
+			}
+			else if (!JsonEncoding.NeedsEscaping(text))
+			{
+				writer.Write('"');
+				writer.Write(text);
+				writer.Write('"');
+			}
 			else
 			{
-				WriteJsonString(writer, text.AsSpan());
+				WriteJsonStringSlow(writer, text.AsSpan());
 			}
 		}
 
@@ -109,8 +119,14 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{ // string requires encoding (slow path)
-				writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
+				WriteJsonStringSlow(writer, text);
 			}
+		}
+
+		internal static void WriteJsonStringSlow(TextWriter writer, ReadOnlySpan<char> text)
+		{
+			//TODO: PERF: OPTIMIZE: optimize this!
+			writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
 		}
 
 		public static void WriteJavaScriptString(TextWriter writer, string? text)

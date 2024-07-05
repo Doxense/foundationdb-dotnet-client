@@ -181,7 +181,7 @@ namespace Doxense.Serialization.Json
 				{
 					writer.Buffer.Write(' ');
 				}
-				writer.WritePropertyName(name);
+				writer.WritePropertyName(name, knownSafe: true);
 
 				if (item == null || visitor == null)
 				{
@@ -233,7 +233,7 @@ namespace Doxense.Serialization.Json
 				{
 					writer.Buffer.Write(' ');
 				}
-				writer.WritePropertyName(name);
+				writer.WritePropertyName(name, knownSafe: false);
 
 				return m_parent.BeginArrayFragment(m_ct);
 			}
@@ -252,7 +252,7 @@ namespace Doxense.Serialization.Json
 				{
 					writer.Buffer.Write(' ');
 				}
-				writer.WritePropertyName(name);
+				writer.WritePropertyName(name, knownSafe: false);
 
 				return m_parent.BeginObjectFragment(m_ct);
 			}

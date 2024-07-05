@@ -906,7 +906,7 @@ namespace Doxense.Serialization.Json
 		public void WriteName(string name)
 		{
 			WriteFieldSeparator();
-			WritePropertyName(name);
+			WritePropertyName(name, knownSafe: true);
 		}
 
 		/// <summary>Write a property name that is KNOWN to not require any escaping.</summary>
@@ -915,17 +915,48 @@ namespace Doxense.Serialization.Json
 		public void WriteName(ReadOnlySpan<char> name)
 		{
 			WriteFieldSeparator();
-			WritePropertyName(name);
+			WritePropertyName(name, knownSafe: true);
 		}
 
-		internal void WritePropertyName(string name)
+		/// <summary>Write a property name that MAY require escaping.</summary>
+		/// <param name="name">Name of the property that will be escaped if necessary</param>
+		/// <remarks>
+		/// <para>This method should be used whenever the origin of key is not controlled, and may contains any character that would required escaping ('\', '"', ...).</para>
+		/// </remarks>
+		public void WriteNameEscaped(string name)
+		{
+			WriteFieldSeparator();
+			WritePropertyName(name, knownSafe: false);
+		}
+
+		/// <summary>Write a property name that MAY require escaping.</summary>
+		/// <param name="name">Name of the property that will be escaped if necessary</param>
+		/// <remarks>
+		/// <para>This method should be used whenever the origin of key is not controlled, and may contains any character that would required escaping ('\', '"', ...).</para>
+		/// </remarks>
+		public void WriteNameEscaped(ReadOnlySpan<char> name)
+		{
+			WriteFieldSeparator();
+			WritePropertyName(name, knownSafe: false);
+		}
+
+		internal void WritePropertyName(string name, bool knownSafe)
 		{
 			if (!m_javascript)
 			{
 				var buffer = m_buffer;
-				buffer.Write('"');
-				buffer.Write(FormatName(name));
-				buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				string formattedName = FormatName(name);
+				if (knownSafe || !JsonEncoding.NeedsEscaping(formattedName))
+				{
+					buffer.Write('"');
+					buffer.Write(formattedName);
+					buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				}
+				else
+				{
+					CrystalJsonFormatter.WriteJsonStringSlow(buffer, name);
+					buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+				}
 			}
 			else
 			{
@@ -940,7 +971,7 @@ namespace Doxense.Serialization.Json
 			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 		}
 
-		internal void WritePropertyName(ReadOnlySpan<char> name)
+		internal void WritePropertyName(ReadOnlySpan<char> name, bool knownSafe)
 		{
 			if (m_javascript)
 			{
@@ -949,18 +980,28 @@ namespace Doxense.Serialization.Json
 			}
 
 			var buffer = m_buffer;
-			buffer.Write('"');
-			if (!m_camelCase || (name[0] is '_' or (>= 'a' and <= 'z')))
+			if (knownSafe || !JsonEncoding.NeedsEscaping(name))
 			{
-				buffer.Write(name);
+				buffer.Write('"');
+				if (!m_camelCase || (name[0] is '_' or (>= 'a' and <= 'z')))
+				{
+					buffer.Write(name);
+				}
+				else
+				{
+					buffer.Write(char.ToLowerInvariant(name[0]));
+					if (name.Length > 1)
+					{
+						buffer.Write(name[1..]);
+					}
+				}
+				buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
 			}
 			else
 			{
-				buffer.Write(char.ToLowerInvariant(name[0]));
-				if (name.Length > 1) buffer.Write(name[1..]);
+				CrystalJsonFormatter.WriteJsonStringSlow(buffer, name);
+				buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 			}
-
-			buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
 		}
 
 		internal void WriteJavaScriptName(ReadOnlySpan<char> name)
@@ -2626,19 +2667,50 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		public void WriteField(string name, JsonValue value)
+		/// <summary>Tests if the specified value would have been discarded when calling <see cref="WriteField(string,JsonValue)"/></summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool WillBeDiscarded(JsonValue? value) => value switch
 		{
-			//note: on écrit JsonNull.Null, mais pas JsonNull.Missing!
-			if (!value.IsNullOrMissing() || !m_discardNulls || object.ReferenceEquals(value, JsonNull.Null))
+			null => m_discardNulls,
+			JsonNull => !ReferenceEquals(value, JsonNull.Null) && m_discardNulls, // note: JsonNull.Null is NEVER discarded
+			JsonBoolean b => m_discardDefaults && !b.Value,
+			JsonString or JsonNumber or JsonDateTime => m_discardDefaults && value.IsDefault,
+			_ => false // arrays and objects are NEVER discarded
+		};
+
+		public void WriteField(string name, JsonValue? value)
+		{
+			value ??= JsonNull.Null;
+			if (!WillBeDiscarded(value))
 			{
 				WriteName(name);
 				value.JsonSerialize(this);
 			}
 		}
 
+		public void WriteField(ReadOnlySpan<char> name, JsonValue? value)
+		{
+			value ??= JsonNull.Null;
+			if (!WillBeDiscarded(value))
+			{
+				WriteName(name);
+				value.JsonSerialize(this);
+			}
+		}
+
+		//note: these overloads only exist to prevent "WriteField(..., new JsonObject())" to call WriteField<JsonObject>(..., ...), instead of WriteField(..., JsonValue)
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteField(string name, JsonNull? value) => WriteField(name, (JsonValue?) value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteField(string name, JsonObject? value) => WriteField(name, (JsonValue?) value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteField(string name, JsonArray? value) => WriteField(name, (JsonValue?) value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteField(string name, JsonString? value) => WriteField(name, (JsonValue?) value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteField(string name, JsonNumber? value) => WriteField(name, (JsonValue?) value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteField(string name, JsonBoolean? value) => WriteField(name, (JsonValue?) value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void WriteField(string name, JsonDateTime? value) => WriteField(name, (JsonValue?) value);
+
 		public void WriteField(string name, object? value, Type declaredType)
 		{
-			if (value != null || !m_discardNulls)
+			if (value is not null || !m_discardNulls)
 			{
 				WriteName(name);
 				CrystalJsonVisitor.VisitValue(value, declaredType, this);
@@ -2647,8 +2719,16 @@ namespace Doxense.Serialization.Json
 
 		public void WriteField<T>(string name, T value)
 		{
-			WriteName(name);
-			VisitValue(value);
+			if (value is not null)
+			{
+				WriteName(name);
+				VisitValue(value);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
 		}
 
 		public void WriteField<T>(string name, T? value)

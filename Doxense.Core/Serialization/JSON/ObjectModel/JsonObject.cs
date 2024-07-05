@@ -3197,7 +3197,13 @@ namespace Doxense.Serialization.Json
 			var state = writer.BeginObject();
 			foreach (var item in this)
 			{
-				writer.WriteField(item.Key, item.Value);
+				// first check if the value is not a discarded null or default
+				if (!writer.WillBeDiscarded(item.Value))
+				{
+					//note: the key may require escaping!
+					writer.WriteNameEscaped(item.Key);
+					item.Value.JsonSerialize(writer);
+				}
 			}
 			writer.EndObject(state);
 		}
