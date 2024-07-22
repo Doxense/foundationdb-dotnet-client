@@ -957,8 +957,9 @@ namespace Doxense.Serialization.Json
 				int i = 0;
 				foreach (var item in items)
 				{
-					tail[i] = item ?? JsonNull.Null;
+					tail[i++] = item ?? JsonNull.Null;
 				}
+				Contract.Debug.Assert(i == count);
 				m_size = newSize;
 			}
 			else
@@ -1009,8 +1010,9 @@ namespace Doxense.Serialization.Json
 				int i = 0;
 				foreach (var item in items)
 				{
-					tail[i] = (item ?? JsonNull.Null).ToReadOnly();
+					tail[i++] = (item ?? JsonNull.Null).ToReadOnly();
 				}
+				Contract.Debug.Assert(i == count);
 				m_size = newSize;
 			}
 			else
