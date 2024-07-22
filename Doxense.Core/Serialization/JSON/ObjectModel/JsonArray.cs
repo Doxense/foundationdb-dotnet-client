@@ -856,68 +856,72 @@ namespace Doxense.Serialization.Json
 
 		#region AddRange [JsonValue] ...
 
-		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
+		/// <summary>Appends all the elements of a read-only span to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(ReadOnlySpan<JsonValue?> array)
+		public JsonArray AddRange(ReadOnlySpan<JsonValue?> values)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (array.Length > 0)
+			if (values.Length > 0)
 			{
 				int size = m_size;
-				EnsureCapacity(size + array.Length);
+				EnsureCapacity(size + values.Length);
 
 				var items = m_items;
-				Contract.Debug.Assert(items != null && size + array.Length <= items.Length);
+				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
 
-				var tail = items.AsSpan(size, array.Length);
-				array.CopyTo(tail!);
+				var tail = items.AsSpan(size, values.Length);
+				values.CopyTo(tail!);
 				FillNullValues(tail!);
-				m_size = size + array.Length;
+				m_size = size + values.Length;
 			}
 			return this;
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
+		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(JsonValue[] items)
+		public JsonArray AddRange(JsonValue[] values)
 		{
-			Contract.NotNull(items);
-			return AddRange(items.AsSpan()!);
+			Contract.NotNull(values);
+			return AddRange(values.AsSpan()!);
 		}
 
-		/// <summary>Append une autre array en copiant ses éléments à la fin</summary>
+		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly(JsonValue[] items)
+		public JsonArray AddRangeReadOnly(JsonValue[] values)
 		{
-			Contract.NotNull(items);
-			return AddRangeReadOnly(items.AsSpan()!);
+			Contract.NotNull(values);
+			return AddRangeReadOnly(values.AsSpan()!);
 		}
 
-		/// <summary>Append une autre array en copiant ou clonant ses éléments à la fin</summary>
+		/// <summary>Appends all the elements of a read-only span to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonValue?> array)
+		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonValue?> values)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (array.Length > 0)
+			if (values.Length > 0)
 			{
 				// resize
 				int size = m_size;
-				EnsureCapacity(size + array.Length);
+				EnsureCapacity(size + values.Length);
 				var items = m_items;
-				Contract.Debug.Assert(items != null && size + array.Length <= items.Length);
+				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
 
 				// append
-				var tail = items.AsSpan(size, array.Length);
+				var tail = items.AsSpan(size, values.Length);
 				for (int i = 0; i < tail.Length; i++)
 				{
-					tail[i] = (array[i] ?? JsonNull.Null).ToReadOnly();
+					tail[i] = (values[i] ?? JsonNull.Null).ToReadOnly();
 				}
-				m_size = size + array.Length;
+				m_size = size + values.Length;
 			}
 			return this;
 		}
 
-		/// <summary>Append une séquence d'éléments en copiant ou clonant ses éléments à la fin</summary>
+		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="items"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange(IEnumerable<JsonValue?> items)
 		{
@@ -968,7 +972,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Append une séquence d'éléments en copiant ou clonant ses éléments à la fin</summary>
+		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="items"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRangeReadOnly(IEnumerable<JsonValue?> items)
 		{
@@ -1026,6 +1031,7 @@ namespace Doxense.Serialization.Json
 
 		#region Mutable...
 
+		/// <summary>Appends all the elements of a read-only span to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1109,6 +1115,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TValue>(TValue[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1116,6 +1123,7 @@ namespace Doxense.Serialization.Json
 			return AddValues<TValue>(items.AsSpan(), settings, resolver);
 		}
 
+		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TValue>(IEnumerable<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1208,13 +1216,13 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TSource">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TValue">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
-		/// <param name="settings"></param>
-		/// <param name="resolver"></param>
+		/// <summary>Transforms the elements of a read-only span into a new <see cref="JsonArray"/></summary>
+		/// <typeparam name="TSource">Type of the elements of <paramref name="items"/></typeparam>
+		/// <typeparam name="TValue">Type of the transformed elements</typeparam>
+		/// <param name="items">Input read-only span of elements to transform</param>
+		/// <param name="transform">Transformation applied to each input element</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TSource, TValue>(ReadOnlySpan<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1295,13 +1303,13 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TSource">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TValue">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
-		/// <param name="settings"></param>
-		/// <param name="resolver"></param>
+		/// <summary>Transforms the elements of an array into a new <see cref="JsonArray"/></summary>
+		/// <typeparam name="TSource">Type of the elements of <paramref name="items"/></typeparam>
+		/// <typeparam name="TValue">Type of the transformed elements</typeparam>
+		/// <param name="items">Input array of elements to transform</param>
+		/// <param name="transform">Transformation applied to each input element</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TSource, TValue>(TSource[] items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1309,13 +1317,13 @@ namespace Doxense.Serialization.Json
 			return AddValues(items.AsSpan(), transform, settings, resolver);
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TSource">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TValue">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
-		/// <param name="settings"></param>
-		/// <param name="resolver"></param>
+		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new <see cref="JsonArray"/></summary>
+		/// <typeparam name="TSource">Type of the elements of <paramref name="items"/></typeparam>
+		/// <typeparam name="TValue">Type of the transformed elements</typeparam>
+		/// <param name="items">Input sequence of elements to transform</param>
+		/// <param name="transform">Transformation applied to each input element</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValues<TSource, TValue>(IEnumerable<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1409,6 +1417,7 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
+		/// <summary>Appends all the elements of a read-only span to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1495,6 +1504,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TValue>(TValue[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1502,6 +1512,7 @@ namespace Doxense.Serialization.Json
 			return AddValuesReadOnly<TValue>(items.AsSpan(), settings, resolver);
 		}
 
+		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TValue>(IEnumerable<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1593,13 +1604,13 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TSource">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TValue">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
-		/// <param name="settings"></param>
-		/// <param name="resolver"></param>
+		/// <summary>Transforms the elements of a read-only span into a new <see cref="JsonArray"/></summary>
+		/// <typeparam name="TSource">Type of the elements of <paramref name="items"/></typeparam>
+		/// <typeparam name="TValue">Type of the transformed elements</typeparam>
+		/// <param name="items">Input read-only span of elements to transform</param>
+		/// <param name="transform">Transformation applied to each input element</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TSource, TValue>(ReadOnlySpan<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1680,13 +1691,13 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TSource">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TValue">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
-		/// <param name="settings"></param>
-		/// <param name="resolver"></param>
+		/// <summary>Transforms the elements of an array into a new <see cref="JsonArray"/></summary>
+		/// <typeparam name="TSource">Type of the elements of <paramref name="items"/></typeparam>
+		/// <typeparam name="TValue">Type of the transformed elements</typeparam>
+		/// <param name="items">Input array of elements to transform</param>
+		/// <param name="transform">Transformation applied to each input element</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TSource, TValue>(TSource[] items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1694,13 +1705,13 @@ namespace Doxense.Serialization.Json
 			return AddValuesReadOnly(items.AsSpan(), transform, settings, resolver);
 		}
 
-		/// <summary>Ajout le résultat de la transformation des éléments d'une séquence</summary>
-		/// <typeparam name="TSource">Type des éléments de <paramref name="items"/></typeparam>
-		/// <typeparam name="TValue">Type du résultat transformé</typeparam>
-		/// <param name="items">Séquence d'éléments d'origine</param>
-		/// <param name="transform">Transformation appliquée à chaque élément</param>
-		/// <param name="settings"></param>
-		/// <param name="resolver"></param>
+		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new <see cref="JsonArray"/></summary>
+		/// <typeparam name="TSource">Type of the elements of <paramref name="items"/></typeparam>
+		/// <typeparam name="TValue">Type of the transformed elements</typeparam>
+		/// <param name="items">Input sequence of elements to transform</param>
+		/// <param name="transform">Transformation applied to each input element</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddValuesReadOnly<TSource, TValue>(IEnumerable<TSource> items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -4563,46 +4574,72 @@ namespace Doxense.Serialization.Json
 
 		#region Mutable...
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a <see cref="JsonArray"/> from a read-only span.</summary>
+		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this ReadOnlySpan<JsonValue> source)
 			=> new JsonArray().AddRange(source!);
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a <see cref="JsonArray"/> from a span.</summary>
+		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this Span<JsonValue> source)
 			=> new JsonArray().AddRange(source!);
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a <see cref="JsonArray"/> from an array.</summary>
+		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this JsonValue[] source)
 			=> new JsonArray().AddRange(source);
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a <see cref="JsonArray"/> from an <see cref="IEnumerable{JsonValue}"/>.</summary>
+		/// <param name="source">The <see cref="T:System.Collections.Generic.IEnumerable`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this IEnumerable<JsonValue?> source)
 			=> new JsonArray().AddRange(source);
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a <see cref="JsonArray"/> from an <see cref="IEnumerable{JsonValue}"/>.</summary>
+		/// <param name="source">The <see cref="T:System.Collections.Generic.IEnumerable`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray<TElement>([InstantHandle] this IEnumerable<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValues<TElement>(source, settings, resolver);
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a <see cref="JsonArray"/> from a read-only span.</summary>
+		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray<TElement>(this ReadOnlySpan<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValues<TElement>(source, settings, resolver);
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a <see cref="JsonArray"/> from an array.</summary>
+		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray<TElement>(this TElement[] source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValues<TElement>(source, settings, resolver);
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new <see cref="JsonArray"/></summary>
+		/// <returns>A <see cref="JsonArray" /> that contains values transformed from the elements of the input sequence.</returns>
 		public static JsonArray ToJsonArray<TSource>(this IEnumerable<TSource> source, [InstantHandle] Func<TSource, JsonValue?> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValues(source, selector, settings, resolver);
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new <see cref="JsonArray"/></summary>
+		/// <returns>A <see cref="JsonArray" /> that contains values transformed from the elements of the input sequence.</returns>
 		public static JsonArray ToJsonArray<TSource, TValue>(this IEnumerable<TSource> source, [InstantHandle] Func<TSource, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValues(source, selector, settings, resolver);
 
@@ -4610,46 +4647,72 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a read-only <see cref="JsonArray"/> from a read-only span.</summary>
+		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this ReadOnlySpan<JsonValue> source)
 			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a read-only <see cref="JsonArray"/> from a span.</summary>
+		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this Span<JsonValue> source)
 			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a read-only <see cref="JsonArray"/> from an array.</summary>
+		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this JsonValue[] source)
 			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a read-only <see cref="JsonArray"/> from an <see cref="IEnumerable{JsonValue}"/>.</summary>
+		/// <param name="source">The <see cref="T:System.Collections.Generic.IEnumerable`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this IEnumerable<JsonValue?> source)
 			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a read-only <see cref="JsonArray"/> from an <see cref="IEnumerable{JsonValue}"/>.</summary>
+		/// <param name="source">The <see cref="T:System.Collections.Generic.IEnumerable`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly<TElement>(this IEnumerable<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValuesReadOnly<TElement>(source, settings, resolver).FreezeUnsafe();
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a read-only <see cref="JsonArray"/> from a read-only span.</summary>
+		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly<TElement>(this ReadOnlySpan<TElement> source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValuesReadOnly<TElement>(source, settings, resolver).FreezeUnsafe();
 
-		/// <summary>Copie les éléments de la séquence source dans une nouvelle JsonArray</summary>
+		/// <summary>Creates a read-only <see cref="JsonArray"/> from an array.</summary>
+		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <exception cref="T:System.ArgumentNullException"> <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly<TElement>(this TElement[] source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValuesReadOnly<TElement>(source, settings, resolver).FreezeUnsafe();
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new read-only <see cref="JsonArray"/></summary>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains values transformed from the elements of the input sequence.</returns>
 		public static JsonArray ToJsonArrayReadOnly<TSource>(this IEnumerable<TSource> source, [InstantHandle] Func<TSource, JsonValue?> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValuesReadOnly(source, selector, settings, resolver).FreezeUnsafe();
 
-		/// <summary>Transforme les éléments de la séquence source en une nouvelle JsonArray</summary>
+		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new read-only <see cref="JsonArray"/></summary>
+		/// <returns>A read-only <see cref="JsonArray" /> that contains values transformed from the elements of the input sequence.</returns>
 		public static JsonArray ToJsonArrayReadOnly<TSource, TValue>(this IEnumerable<TSource> source, [InstantHandle] Func<TSource, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new JsonArray().AddValuesReadOnly(source, selector, settings, resolver).FreezeUnsafe();
 
