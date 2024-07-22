@@ -875,31 +875,6 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Appends all the elements of a read-only span to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(ReadOnlySpan<JsonObject?> values)
-		{
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (values.Length > 0)
-			{
-				// resize
-				int size = m_size;
-				EnsureCapacity(size + values.Length);
-				var items = m_items;
-				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
-
-				// append
-				var tail = items.AsSpan(size, values.Length);
-				for (int i = 0; i < tail.Length; i++)
-				{
-					tail[i] = (values[i] ?? JsonNull.Null);
-				}
-				m_size = size + values.Length;
-			}
-			return this;
-		}
-
-		/// <summary>Appends all the elements of a read-only span to the end of this <see cref="JsonArray"/></summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<TSource>(ReadOnlySpan<TSource> values, Func<TSource, JsonValue?> selector)
 		{
@@ -926,31 +901,6 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonValue?> values)
-		{
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (values.Length > 0)
-			{
-				// resize
-				int size = m_size;
-				EnsureCapacity(size + values.Length);
-				var items = m_items;
-				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
-
-				// append
-				var tail = items.AsSpan(size, values.Length);
-				for (int i = 0; i < tail.Length; i++)
-				{
-					tail[i] = (values[i] ?? JsonNull.Null).ToReadOnly();
-				}
-				m_size = size + values.Length;
-			}
-			return this;
-		}
-
-		/// <summary>Appends all the elements of a read-only span to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly(ReadOnlySpan<JsonObject?> values)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (values.Length > 0)
@@ -1009,15 +959,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
 		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(JsonObject[] values)
-		{
-			Contract.NotNull(values);
-			return AddRange(values.AsSpan()!);
-		}
-
-		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRange<TSource>(TSource[] values, Func<TSource, JsonValue?> selector)
 		{
 			Contract.NotNull(values);
@@ -1028,15 +969,6 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonArray AddRangeReadOnly(JsonValue[] values)
-		{
-			Contract.NotNull(values);
-			return AddRangeReadOnly(values.AsSpan()!);
-		}
-
-		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly(JsonObject[] values)
 		{
 			Contract.NotNull(values);
 			return AddRangeReadOnly(values.AsSpan()!);
@@ -1103,11 +1035,6 @@ namespace Doxense.Serialization.Json
 
 			return this;
 		}
-
-		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRange(IEnumerable<JsonObject?> values) => AddRange((IEnumerable<JsonValue?>) values);
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
 		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
@@ -1234,11 +1161,6 @@ namespace Doxense.Serialization.Json
 
 			return this;
 		}
-
-		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public JsonArray AddRangeReadOnly(IEnumerable<JsonObject?> values) => AddRangeReadOnly((IEnumerable<JsonValue?>) values);
 
 		#endregion
 
@@ -4785,6 +4707,32 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
+		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public static JsonArray AddRange(this JsonArray self, IEnumerable<JsonObject?> values)
+			=> self.AddRange((IEnumerable<JsonValue?>) values);
+
+		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public static JsonArray AddRangeReadOnly(this JsonArray self, IEnumerable<JsonObject?> values)
+			=> self.AddRangeReadOnly((IEnumerable<JsonValue?>) values);
+
+		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public static JsonArray AddRange(this JsonArray self, JsonObject[] values) =>
+			// ReSharper disable once CoVariantArrayConversion
+			self.AddRange((JsonValue[]) values);
+
+		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
+		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public static JsonArray AddRangeReadOnly(this JsonArray self, JsonObject[] values) =>
+			// ReSharper disable once CoVariantArrayConversion
+			self.AddRangeReadOnly((JsonValue[]) values);
+
 		#region ToJsonArray...
 
 		#region Mutable...
@@ -4796,25 +4744,11 @@ namespace Doxense.Serialization.Json
 		public static JsonArray ToJsonArray([InstantHandle] this ReadOnlySpan<JsonValue> source)
 			=> new JsonArray().AddRange(source!);
 
-		/// <summary>Creates a <see cref="JsonArray"/> from a read-only span.</summary>
-		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
-		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray([InstantHandle] this ReadOnlySpan<JsonObject> source)
-			=> new JsonArray().AddRange(source!);
-
 		/// <summary>Creates a <see cref="JsonArray"/> from a span.</summary>
 		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
 		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this Span<JsonValue> source)
-			=> new JsonArray().AddRange(source!);
-
-		/// <summary>Creates a <see cref="JsonArray"/> from a span.</summary>
-		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
-		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArray([InstantHandle] this Span<JsonObject> source)
 			=> new JsonArray().AddRange(source!);
 
 		/// <summary>Creates a <see cref="JsonArray"/> from an array.</summary>
@@ -4831,7 +4765,8 @@ namespace Doxense.Serialization.Json
 		/// <returns>A <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this JsonObject[] source)
-			=> new JsonArray().AddRange(source);
+		// ReSharper disable once CoVariantArrayConversion
+			=> new JsonArray().AddRange((JsonValue[]) source);
 
 		/// <summary>Creates a <see cref="JsonArray"/> from an <see cref="IEnumerable{JsonValue}"/>.</summary>
 		/// <param name="source">The <see cref="T:System.Collections.Generic.IEnumerable`1" /> to create a <see cref="JsonArray" /> from.</param>
@@ -4914,25 +4849,11 @@ namespace Doxense.Serialization.Json
 		public static JsonArray ToJsonArrayReadOnly(this ReadOnlySpan<JsonValue> source)
 			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
 
-		/// <summary>Creates a read-only <see cref="JsonArray"/> from a read-only span.</summary>
-		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
-		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArrayReadOnly(this ReadOnlySpan<JsonObject> source)
-			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
-
 		/// <summary>Creates a read-only <see cref="JsonArray"/> from a span.</summary>
 		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
 		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this Span<JsonValue> source)
-			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
-
-		/// <summary>Creates a read-only <see cref="JsonArray"/> from a span.</summary>
-		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
-		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray ToJsonArrayReadOnly(this Span<JsonObject> source)
 			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
 
 		/// <summary>Creates a read-only <see cref="JsonArray"/> from an array.</summary>
@@ -4949,7 +4870,8 @@ namespace Doxense.Serialization.Json
 		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input sequence.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this JsonObject[] source)
-			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
+			// ReSharper disable once CoVariantArrayConversion
+			=> new JsonArray().AddRangeReadOnly((JsonValue[]) source).FreezeUnsafe();
 
 		/// <summary>Creates a read-only <see cref="JsonArray"/> from an <see cref="IEnumerable{JsonValue}"/>.</summary>
 		/// <param name="source">The <see cref="T:System.Collections.Generic.IEnumerable`1" /> to create a <see cref="JsonArray" /> from.</param>
