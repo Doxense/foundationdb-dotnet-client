@@ -54,13 +54,13 @@ namespace Aspire.FoundationDb.Client
 		/// <remarks>See <see cref="IFdbTransactionOptions.RetryLimit"/> for more information.</remarks>
 		public int? DefaultRetryLimit { get; set; }
 
-		/// <summary>Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.</summary>
-		/// <remarks><para>Enabled by default.</para> </remarks>
-		public bool HealthChecks { get; set; } = true;
-
-		/// <summary>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</summary>
+		/// <summary>Gets or sets a boolean value that indicates whether the FoundationDB health check is disabled or not.</summary>
 		/// <remarks><para>Enabled by default.</para></remarks>
-		public bool Tracing { get; set; } = true;
+		public bool DisableHealthChecks { get; set; }
+
+		/// <summary>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.</summary>
+		/// <remarks><para>Enabled by default.</para></remarks>
+		public bool DisableTracing { get; set; }
 
 	}
 

@@ -229,13 +229,13 @@ namespace Microsoft.Extensions.Hosting
 				configureProvider?.Invoke(options);
 			});
 
-			if (settings.Tracing)
+			if (!settings.DisableTracing)
 			{
 				builder.Services.AddOpenTelemetry()
 					.WithTracing(traceBuilder => traceBuilder.AddSource(ActivitySourceName));
 			}
 
-			if (settings.HealthChecks)
+			if (!settings.DisableHealthChecks)
 			{
 				var check = new HealthCheckRegistration(
 					"FoundationDb.Client",
