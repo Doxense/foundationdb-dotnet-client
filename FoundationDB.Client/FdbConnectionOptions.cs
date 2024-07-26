@@ -41,18 +41,26 @@ namespace FoundationDB.Client
 		public const string DefaultDbName = "DB";
 
 		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
+		/// <remarks>
+		/// <para>This should be a valid path, accessible with read and write permissions by the process.</para>
+		/// <para>This property and <see cref="ConnectionString"/> are mutually exclusive.</para>
+		/// </remarks>
 		public string? ClusterFile { get; set; }
 
-		//TODO: documentation!
+		/// <summary>Connection string to the cluster</summary>
+		/// <remarks>
+		/// <para>The format of this string is the same as the content of a <c>.cluster</c> file.</para>
+		/// <para>This property and <see cref="ClusterFile"/> are mutually exclusive.</para>
+		/// </remarks>
 		public string? ConnectionString { get; set; }
 
 		/// <summary>Default database name</summary>
 		/// <remarks>Only "DB" is supported for now</remarks>
-		[Obsolete("This property should not be used anymore, and its value will be ignored.")]
+		[Obsolete("This property should not be used anymore, and its value will be ignored.", error: true)]
 		public string DbName { get; set; } = DefaultDbName;
 
-		/// <summary>If true, opens a read-only view of the database</summary>
-		/// <remarks>If set to true, only read-only transactions will be allowed on the database instance</remarks>
+		/// <summary>If <see langword="true"/>, opens a read-only view of the database</summary>
+		/// <remarks>If set to <see langword="true"/>, only read-only transactions will be allowed on the database instance</remarks>
 		public bool ReadOnly { get; set; }
 
 		/// <summary>Default timeout for all transactions, in milliseconds precision (or infinite if 0)</summary>

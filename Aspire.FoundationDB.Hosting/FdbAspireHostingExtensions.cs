@@ -26,7 +26,7 @@ namespace Aspire.Hosting
 
 		#region Fdb Cluster Connections...
 
-		/// <summary>Add a connection to an external FoundationDB cluster</summary>
+		/// <summary>Adds a connection to an external FoundationDB cluster</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
@@ -38,7 +38,7 @@ namespace Aspire.Hosting
 			return AddFoundationDbCluster(builder, name, apiVersion, FdbPath.Parse(root), clusterFile, clusterVersion);
 		}
 
-		/// <summary>Add a connection to an external FoundationDB cluster</summary>
+		/// <summary>Adds a connection to an external FoundationDB cluster</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
@@ -73,6 +73,7 @@ namespace Aspire.Hosting
 			;
 		}
 
+		/// <summary>Configures the FoundationDB client to use the cluster file at the default location</summary>
 		public static IResourceBuilder<FdbConnectionResource> WithDefaultClusterFile(this IResourceBuilder<FdbConnectionResource> builder)
 		{
 			builder.Resource.ClusterFile = null;
@@ -80,6 +81,7 @@ namespace Aspire.Hosting
 			return builder;
 		}
 
+		/// <summary>Configures the FoundationDB client to use a cluster file at a specific location</summary>
 		public static IResourceBuilder<FdbConnectionResource> WithClusterFile(this IResourceBuilder<FdbConnectionResource> builder, string clusterFile)
 		{
 			builder.Resource.ClusterFile = clusterFile;
@@ -87,6 +89,7 @@ namespace Aspire.Hosting
 			return builder;
 		}
 
+		/// <summary>Configures the FoundationDB client to use a hardcoded cluster file content</summary>
 		public static IResourceBuilder<FdbConnectionResource> WithClusterContents(this IResourceBuilder<FdbConnectionResource> builder, string clusterContents)
 		{
 			builder.Resource.ClusterFile = null;
@@ -94,6 +97,7 @@ namespace Aspire.Hosting
 			return builder;
 		}
 
+		/// <summary>Configures the FoundationDB client to use a hardcoded cluster file content</summary>
 		public static IResourceBuilder<FdbConnectionResource> WithClusterContents(this IResourceBuilder<FdbConnectionResource> builder, string description, string id, params EndPoint[] coordinators)
 		{
 			// "<DESC>:<ID>@<HOST1>:<PORT1>[,<HOST2>:<PORT2>,....]"
@@ -127,6 +131,7 @@ namespace Aspire.Hosting
 			return builder;
 		}
 
+		/// <summary>Configures the FoundationDB client to use a specific library version</summary>
 		public static IResourceBuilder<FdbConnectionResource> WithClusterVersion(this IResourceBuilder<FdbConnectionResource> builder, string version)
 		{
 			builder.Resource.ClusterVersion = Version.Parse(version);
@@ -321,7 +326,7 @@ namespace Aspire.Hosting
 
 		}
 
-		public static string ComputeDockerTagFromVersion(Version version, FdbVersionPolicy rollForward)
+		private static string ComputeDockerTagFromVersion(Version version, FdbVersionPolicy rollForward)
 		{
 			//TODO: maybe query the docker hub API, but use a local cache?
 			// => https://registry.hub.docker.com/v2/repositories/foundationdb/foundationdb/tags?name=X.Y&ordering=last_updated
@@ -408,20 +413,17 @@ namespace Aspire.Hosting
 			}
 		}
 
+		[MustUseReturnValue]
 		private static Exception ErrorVersionIsTooOldMajor(Version version)
-		{
-			return new InvalidOperationException($"There are no docker images available for version {version}. The first docker images available start from 7.1.0. Please use the 'latestMajor' policy, or select a version of 7.1 or greater.");
-		}
+			=> new InvalidOperationException($"There are no docker images available for version {version}. The first docker images available start from 7.1.0. Please use the 'latestMajor' policy, or select a version of 7.1 or greater.");
 
+		[MustUseReturnValue]
 		private static Exception ErrorVersionIsTooOldMinor(Version version)
-		{
-			return new InvalidOperationException($"There are no docker images available for version {version}. The first docker images available start from 7.1.0. Please use the 'latestMinor' policy, or select a version of 7.1 or greater.");
-		}
+			=> new InvalidOperationException($"There are no docker images available for version {version}. The first docker images available start from 7.1.0. Please use the 'latestMinor' policy, or select a version of 7.1 or greater.");
 
+		[MustUseReturnValue]
 		private static Exception ErrorVersionIsGreaterThanSupportedByThisPackage(Version version)
-		{
-			return new NotImplementedException($"The selected version {version} is too recent and is not supported by this NuGet package. Please update the NuGet package or select an older version.");
-		}
+			=> new NotImplementedException($"The selected version {version} is too recent and is not supported by this NuGet package. Please update the NuGet package or select an older version.");
 
 	}
 

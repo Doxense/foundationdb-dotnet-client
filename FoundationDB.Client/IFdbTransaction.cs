@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 		void TouchMetadataVersionKey(Slice key = default);
 
 		//TODO: better message!
-		/// <summary>Return the approximate size of the mutation list that this transaction will sent to the server.</summary>
+		/// <summary>Return the approximate size of the mutation list that this transaction will send to the server.</summary>
 		Task<long> GetApproximateSizeAsync();
 
 		/// <summary>Returns the <see cref="VersionStamp"/> which was used by VersionStamped operations in this transaction.</summary>

@@ -47,11 +47,11 @@ namespace Aspire.FoundationDb.Client
 		public string? NativeLibraryPath { get; set; }
 
 		/// <summary>Overrides the default transaction timeout that should be used by this instance</summary>
-		/// <remarks>See <see cref="IFdbTransactionOptions.Timeout"/></remarks>
+		/// <remarks>See <see cref="IFdbTransactionOptions.Timeout"/> for more information.</remarks>
 		public TimeSpan? DefaultTimeout { get; set; }
 
 		/// <summary>Overrides the default transaction retry limit that should be used by this instance</summary>
-		/// <remarks>See <see cref="IFdbTransactionOptions.RetryLimit"/></remarks>
+		/// <remarks>See <see cref="IFdbTransactionOptions.RetryLimit"/> for more information.</remarks>
 		public int? DefaultRetryLimit { get; set; }
 
 		/// <summary>Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.</summary>

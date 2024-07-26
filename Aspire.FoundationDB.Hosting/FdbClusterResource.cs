@@ -13,7 +13,8 @@ namespace Aspire.Hosting.ApplicationModel
 	using System.Globalization;
 	using FoundationDB.Client;
 
-	/// <summary>A resource that represents a FoundationDB cluster</summary>
+	/// <summary>Represents a FoundationDB cluster resource in a distributed application.</summary>
+	/// <remarks>During local developement, a local docker image is used to run a single-node cluster.</remarks>
 	public class FdbClusterResource : ContainerResource, IFdbResource
 	{
 
@@ -23,10 +24,11 @@ namespace Aspire.Hosting.ApplicationModel
 		public FdbClusterResource(string name, string? entrypoint = null) : base(name, entrypoint) { }
 
 		/// <summary>The minimum API version that must be supported by the cluster</summary>
+		/// <remarks>See <see cref="Fdb.Start(int)"/> for more information.</remarks>
 		public required int ApiVersion { get; set; }
 
 		/// <summary>If specified, the minimum version of the cluster to be deployed.</summary>
-		/// <remarks>If <c>null</c>, the best version compatible with <see cref="ApiVersion"/> will be selected</remarks>
+		/// <remarks>If <see langword="null"/>, the best version compatible with <see cref="ApiVersion"/> will be selected</remarks>
 		public required Version ClusterVersion { get; set; }
 
 		/// <summary>Strategy used to select the actual runtime version of the deployed cluster.</summary>
@@ -37,29 +39,47 @@ namespace Aspire.Hosting.ApplicationModel
 		public required string DockerTag { get; set; }
 
 		/// <summary>Path to the local native client library ('fdb_c.dll' or 'libfdb_c.so')</summary>
+		/// <remarks>
+		/// <para>This value if ignored if <see cref="DisableNativePreloading"/> is set to <see langword="true"/>.</para>
+		/// <para>See <see cref="Fdb.Options.SetNativeLibPath"/> for more information.</para>
+		/// </remarks>
 		public string? NativeLibraryPath { get; set; }
 
 		/// <summary>Specifies if native pre-loading should be enabled or disabled</summary>
+		/// <remarks>
+		/// <para>If <see langword="true"/>, the value of <see cref="NativeLibraryPath"/> will be ignored.</para>
+		/// <para>See <see cref="Fdb.Options.DisableNativeLibraryPreloading"/> for more information.</para>
+		/// </remarks>
 		public bool DisableNativePreloading { get; set; }
 
 		/// <summary>Default transaction timeout</summary>
-		/// <remarks>See <see cref="IFdbTransactionOptions.Timeout"/></remarks>
+		/// <remarks>See <see cref="IFdbTransactionOptions.Timeout"/> for more information.</remarks>
 		public TimeSpan? DefaultTimeout { get; set; }
 
 		/// <summary>Default transaction retry limit</summary>
-		/// <remarks>See <see cref="IFdbTransactionOptions.RetryLimit"/></remarks>
+		/// <remarks>See <see cref="IFdbTransactionOptions.RetryLimit"/> for more information.</remarks>
 		public int? DefaultRetryLimit { get; set; }
 
 		/// <summary>Specifies if the FoundationDB cluster is mounted in read-only mode by default.</summary>
+		/// <remarks>See <see cref="FdbConnectionOptions.ReadOnly"/> for more information.</remarks>
 		public bool? ReadOnly { get; set; }
 
 		/// <summary>Specifies the default root path of the partition used by all processes.</summary>
+		/// <remarks>See <see cref="FdbConnectionOptions.Root"/> for more information.</remarks>
 		public FdbPath Root { get; set; } = FdbPath.Root;
 
-		/// <summary>Specifies the 'description' part of the locally generated 'fdb.cluster' file.</summary>
+		/// <summary>Specifies the description field in the cluster connection string.</summary>
+		/// <remarks>
+		/// <para>This corresponds to the 'description' part of the equivalent 'fdb.cluster' file.</para>
+		/// <para>This value is for humans only, and is not significant for the connection itself.</para>
+		/// </remarks>
 		public string? ClusterDescription { get; set; } = "docker";
 
 		/// <summary>Specified the 'id' part of the locally generated 'fdb.cluster' file.</summary>
+		/// <remarks>
+		/// <para>This corresponds to the 'id' part of the equivalent 'fdb.cluster' file.</para>
+		/// <para>This value <b>must</b> match the id of the cluster, and if incorrect or changed, may prevent the process from connecting successfully.</para>
+		/// </remarks>
 		public string? ClusterId { get; set; } = "docker";
 
 		/// <inheritdoc />
