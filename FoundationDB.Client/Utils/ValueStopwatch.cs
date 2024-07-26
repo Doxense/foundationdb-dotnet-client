@@ -38,7 +38,8 @@ namespace FoundationDB.Client
 	/// <remarks>This watch cannot be stopped or restarted</remarks>
 	internal readonly struct ValueStopwatch
 	{
-		private static readonly double Frequency = Stopwatch.Frequency;
+		/// <summary>Ratio to convert "stopwatch ticks" (as returned by StopWatch.GetTimestamp) into "Timespan tick"</summary>
+		private static readonly double StopwatchTicksToTimeSpanTicks = ((double) TimeSpan.TicksPerSecond) / Stopwatch.Frequency;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ValueStopwatch StartNew()
@@ -60,13 +61,14 @@ namespace FoundationDB.Client
 			return Stopwatch.GetTimestamp() - this.Start;
 		}
 
+		[Pure]
 		public long GetElapsedDateTimeTicks()
 		{
 			long rawTicks = GetRawElapsedTicks();
 			if (Stopwatch.IsHighResolution)
 			{
 				// convert high resolution perf counter to DateTime ticks
-				return unchecked((long) (rawTicks * ValueStopwatch.Frequency));
+				return unchecked((long) (rawTicks * StopwatchTicksToTimeSpanTicks));
 			}
 			else
 			{
@@ -77,7 +79,11 @@ namespace FoundationDB.Client
 		public TimeSpan Elapsed
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET8_0_OR_GREATER
+			get => Stopwatch.GetElapsedTime(this.Start);
+#else
 			get => new TimeSpan(GetElapsedDateTimeTicks());
+#endif
 		}
 
 	}
