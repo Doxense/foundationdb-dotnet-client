@@ -31,12 +31,14 @@ namespace Aspire.FoundationDb.Client
 
 		public FdbHealthCheckOptions Options { get; set; }
 
-		public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = new CancellationToken())
+		public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 			try
 			{
-				var rv = await this.Options.Provider.ReadAsync(tr => tr.GetReadVersionAsync(), cancellationToken);
+				//TODO: change this to get the "status json" ?
+
+				var rv = await this.Options.Provider.ReadAsync(tr => tr.GetReadVersionAsync(), ct);
 				return HealthCheckResult.Healthy(data: new Dictionary<string, object>()
 				{
 					["readVersion"] = rv,

@@ -62,6 +62,10 @@ namespace Aspire.FoundationDb.Client
 		/// <remarks><para>Enabled by default.</para></remarks>
 		public bool DisableTracing { get; set; }
 
+		/// <summary>Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.</summary>
+		/// <remarks><para>Enabled by default.</para></remarks>
+		public bool DisableMetrics { get; set; }
+
 	}
 
 }

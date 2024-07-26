@@ -21,6 +21,7 @@ namespace Microsoft.Extensions.Hosting
 	using Microsoft.Extensions.Configuration;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Diagnostics.HealthChecks;
+	using OpenTelemetry.Metrics;
 
 	/// <summary>Provides extension methods for adding FoundationDB to the local DI container.</summary>
 	[PublicAPI]
@@ -265,6 +266,23 @@ namespace Microsoft.Extensions.Hosting
 					builder.Services.AddHealthChecks().Add(check);
 				}
 			}
+
+			if (!settings.DisableMetrics)
+			{
+				builder.Services.AddOpenTelemetry()
+					.WithMetrics((meterProviderBuilder) =>
+					{
+						meterProviderBuilder
+							.AddMeter("FdbClient")
+							.AddView("db.client.operation.duration",
+								new ExplicitBucketHistogramConfiguration
+								{
+									Boundaries = [0, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10],
+								})
+							;
+					});
+			}
+
 			return builder;
 		}
 
@@ -284,5 +302,4 @@ namespace Microsoft.Extensions.Hosting
 		}
 
 	}
-
 }
