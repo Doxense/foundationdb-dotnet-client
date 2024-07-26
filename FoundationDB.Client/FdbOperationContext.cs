@@ -722,9 +722,10 @@ namespace FoundationDB.Client
 			using var mainActivity = ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite", kind: ActivityKind.Client);
 			context.Activity = mainActivity;
 
+			FdbMetricsReporter.ReportOperationStarted(context);
+
 			try
 			{
-
 				// make sure to reset everything (in case a context is reused multiple times)
 				context.Committed = false;
 				context.Retries = 0;
@@ -1115,6 +1116,9 @@ namespace FoundationDB.Client
 									currentActivity = null;
 									context.Activity = mainActivity;
 								}
+
+								FdbMetricsReporter.ReportTransactionCommitted(context);
+
 							}
 
 							// we are done
@@ -1331,6 +1335,7 @@ namespace FoundationDB.Client
 							}
 
 							context.PreviousError = e.Code;
+							FdbMetricsReporter.ReportTransactionFailed(context, e.Code);
 
 							// execute any state callbacks, if there are any
 							if (context.StateCallbacks != null)
@@ -1400,6 +1405,7 @@ namespace FoundationDB.Client
 								context.FailedValueCheckTags?.Clear();
 								if (!await context.ValidateValueChecks(ignoreFailedTasks: false).ConfigureAwait(false))
 								{
+									FdbMetricsReporter.ReportTransactionFailed(context, FdbError.NotCommitted);
 									try
 									{
 										await trans.OnErrorAsync(FdbError.NotCommitted).ConfigureAwait(false);
@@ -1443,6 +1449,8 @@ namespace FoundationDB.Client
 					throw new OperationCanceledException(context.Cancellation);
 				}
 
+				FdbMetricsReporter.ReportTransactionSuccess(context);
+
 				return result!;
 
 			}
@@ -1454,6 +1462,7 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
+				FdbMetricsReporter.ReportOperationDuration(context);
 				if (context.BaseDuration.TotalSeconds >= 10)
 				{
 					//REVIEW: this may not be a good idea to spam the logs with long running transactions??

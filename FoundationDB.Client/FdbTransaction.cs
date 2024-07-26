@@ -113,6 +113,7 @@ namespace FoundationDB.Client
 
 			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
 			m_handler = handler;
+			FdbMetricsReporter.ReportTransactionStart(this);
 		}
 
 		#endregion
@@ -203,7 +204,7 @@ namespace FoundationDB.Client
 		public IFdbTransactionOptions Options => this;
 
 		/// <inheritdoc/>
-		int IFdbTransactionOptions.ApiVersion => Database.GetApiVersion();
+		int IFdbTransactionOptions.ApiVersion => this.Database.GetApiVersion();
 
 		/// <inheritdoc/>
 		public IFdbTransactionOptions SetOption(FdbTransactionOption option)
@@ -1691,6 +1692,7 @@ namespace FoundationDB.Client
 			{
 				try
 				{
+					FdbMetricsReporter.ReportTransactionStop(this);
 					this.Database.UnregisterTransaction(this);
 					using (m_cts)
 					{
