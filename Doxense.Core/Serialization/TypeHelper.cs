@@ -642,6 +642,11 @@ namespace Doxense.Serialization
 					outerOffset = outerArgs.Length;
 				}
 
+				if (type.Name.StartsWith("<>"))
+				{
+					return GetFriendlyName(outer);
+				}
+
 				prefix = GetFriendlyName(outer) + ".";
 			}
 
