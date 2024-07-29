@@ -706,6 +706,29 @@ namespace FoundationDB.Client
 			return new FdbException(FdbError.NotCommitted, "The value of the a key in the database did not match the expected value.");
 		}
 
+		private static string? PrettifyMethodName(string? name)
+		{
+			// we want to cleanup things like "<SomeType.SomeMethod>b__0"
+			if (name != null && name.Length >= 6 && name[0] == '<')
+			{
+				int p = name.LastIndexOf('>');
+				if (p > 1)
+				{
+					return name.Substring(1, p - 1);
+				}
+			}
+			return name;
+		}
+
+		private static string? PrettifyTargetName(string? name)
+		{
+			if (name != null && name.IndexOf(".<>c__DisplayClass", StringComparison.Ordinal) > 0)
+			{
+
+			}
+			return name;
+		}
+
 		#endregion
 
 		/// <summary>Execute a retry loop on this context</summary>
@@ -774,8 +797,8 @@ namespace FoundationDB.Client
 									currentActivity.SetTag("db.fdb.trans.id", trans.Id);
 									if (context.Retries > 0) currentActivity.SetTag("db.fdb.error.retry_count", context.Retries);
 									if (context.PreviousError != FdbError.Success) currentActivity.SetTag("db.fdb.error.previous", context.PreviousError);
-									currentActivity.SetTag("db.fdb.handler.target", (handler.Target?.GetType() ?? handler.Method.DeclaringType)?.GetFriendlyName());
-									currentActivity.SetTag("db.fdb.handler.method", handler.Method.Name);
+									currentActivity.SetTag("db.fdb.handler.target", PrettifyTargetName((handler.Target?.GetType() ?? handler.Method.DeclaringType)?.GetFriendlyName()));
+									currentActivity.SetTag("db.fdb.handler.method", PrettifyMethodName(handler.Method.Name));
 								}
 							}
 
