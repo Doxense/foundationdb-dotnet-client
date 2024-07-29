@@ -67,6 +67,12 @@ namespace FoundationDB.Client
 			description: "The duration of fdb transactions, in seconds."
 		);
 
+		private static Histogram<int> OperationSize { get; } = Meter.CreateHistogram<int>(
+			"db.client.operation.size",
+			unit: "By",
+			description: "The estimated size of an fdb operation, in bytes."
+		);
+
 		internal static void ReportTransactionStart(IFdbTransaction tr)
 		{
 			TransactionsExecuting.Add(1);
@@ -94,22 +100,30 @@ namespace FoundationDB.Client
 			}
 		}
 
-		internal static void ReportTransactionSuccess(FdbOperationContext context)
+		internal static void ReportOperationSuccess(FdbOperationContext context)
 		{
 			OperationsSucceeded.Add(1, new KeyValuePair<string, object?>("operation.retries", context.Retries));
 		}
 
-		internal static void ReportTransactionCommitted(FdbOperationContext context)
+		internal static void ReportOperationCommitted(IFdbTransaction trans, FdbOperationContext context)
 		{
 			OperationsCommitted.Add(1);
+			if (OperationSize.Enabled)
+			{
+				OperationSize.Record(trans.Size);
+			}
 		}
 
-		internal static void ReportTransactionFailed(FdbOperationContext context, FdbError error)
+		internal static void ReportOperationFailed(IFdbTransaction trans, FdbOperationContext context, FdbError error)
 		{
 			OperationsFailed.Add(1, new KeyValuePair<string, object?>("error.type", error.ToString()));
 			if (error == FdbError.NotCommitted)
 			{
 				OperationsConflicted.Add(1);
+			}
+			if (OperationSize.Enabled)
+			{
+				OperationSize.Record(trans.Size);
 			}
 		}
 

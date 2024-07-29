@@ -1117,7 +1117,7 @@ namespace FoundationDB.Client
 									context.Activity = mainActivity;
 								}
 
-								FdbMetricsReporter.ReportTransactionCommitted(context);
+								FdbMetricsReporter.ReportOperationCommitted(trans, context);
 
 							}
 
@@ -1335,7 +1335,7 @@ namespace FoundationDB.Client
 							}
 
 							context.PreviousError = e.Code;
-							FdbMetricsReporter.ReportTransactionFailed(context, e.Code);
+							FdbMetricsReporter.ReportOperationFailed(trans, context, e.Code);
 
 							// execute any state callbacks, if there are any
 							if (context.StateCallbacks != null)
@@ -1405,7 +1405,7 @@ namespace FoundationDB.Client
 								context.FailedValueCheckTags?.Clear();
 								if (!await context.ValidateValueChecks(ignoreFailedTasks: false).ConfigureAwait(false))
 								{
-									FdbMetricsReporter.ReportTransactionFailed(context, FdbError.NotCommitted);
+									FdbMetricsReporter.ReportOperationFailed(trans, context, FdbError.NotCommitted);
 									try
 									{
 										await trans.OnErrorAsync(FdbError.NotCommitted).ConfigureAwait(false);
@@ -1449,7 +1449,7 @@ namespace FoundationDB.Client
 					throw new OperationCanceledException(context.Cancellation);
 				}
 
-				FdbMetricsReporter.ReportTransactionSuccess(context);
+				FdbMetricsReporter.ReportOperationSuccess(context);
 
 				return result!;
 
