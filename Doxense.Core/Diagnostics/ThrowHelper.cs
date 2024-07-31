@@ -31,7 +31,7 @@ namespace Doxense.Diagnostics.Contracts
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 
-	[DebuggerNonUserCode, PublicAPI]
+	[DebuggerNonUserCode, PublicAPI, StackTraceHidden]
 	public static class ThrowHelper
 	{
 

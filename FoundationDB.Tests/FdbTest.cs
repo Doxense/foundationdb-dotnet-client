@@ -518,6 +518,7 @@ namespace FoundationDB.Client.Tests
 				: WaitForInternal(task.AsTask(), timeout, taskExpression!);
 		}
 
+		[StackTraceHidden]
 		private async Task<bool> WaitForInternal(Task task, TimeSpan delay, bool throwIfExpired, string taskExpression)
 		{
 			if (!task.IsCompleted)
@@ -544,7 +545,12 @@ namespace FoundationDB.Client.Tests
 			if (task.Status != TaskStatus.RanToCompletion)
 			{ // re-throw error
 				var ex = task.Exception!.Unwrap();
-				Assert.Fail($"Task '{taskExpression}' failed with following error: {ex}");
+				if (ex is AggregateException { InnerExceptions.Count: 1 } aggEx)
+				{
+					ex = aggEx.InnerExceptions[0];
+				}
+				//Assert.Fail($"Task '{taskExpression}' failed with following error: {ex}");
+				throw ex;
 			}
 
 			return true;

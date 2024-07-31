@@ -27,6 +27,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.ComponentModel;
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 
@@ -271,7 +272,7 @@ namespace Doxense.Collections.Tuples
 			return tuple != null && tuple.Count <= size ? tuple : ThrowInvalidTupleSize(tuple, size, 1);
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn, ContractAnnotation("=> halt")]
+		[MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn, ContractAnnotation("=> halt")][StackTraceHidden]
 		internal static TTuple ThrowInvalidTupleSize<TTuple>(TTuple? tuple, int expected, int test) where TTuple : IVarTuple
 		{
 			Contract.NotNullAllowStructs(tuple);

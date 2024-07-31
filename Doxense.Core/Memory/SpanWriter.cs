@@ -26,6 +26,7 @@
 
 namespace Doxense.Memory
 {
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Text;
@@ -69,7 +70,7 @@ namespace Doxense.Memory
 			return this.Buffer.Slice(pos, count);
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)][StackTraceHidden]
 		private static Span<byte> ThrowBufferTooSmall(string paramName)
 		{
 			throw new ArgumentException("Buffer is too small", paramName);

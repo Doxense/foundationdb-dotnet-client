@@ -143,7 +143,7 @@ namespace Doxense.Serialization.Json
 		internal static JsonBindingException ErrorValueIsNullOrMissing()
 			=> new("Required JSON value was null or missing.");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonValue FailValueIsNullOrMissing()
 			=> throw ErrorValueIsNullOrMissing();
 
@@ -151,27 +151,27 @@ namespace Doxense.Serialization.Json
 		internal static IndexOutOfRangeException ErrorValueIsOutOfBounds()
 			=> new("Index is outside the bounds of the array.");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonArray FailArrayIsOutOfBounds()
 			=> throw ErrorValueIsOutOfBounds();
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonObject FailObjectIsOutOfBounds()
 			=> throw ErrorValueIsOutOfBounds();
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonArray FailArrayIsNullOrMissing()
 			=> throw new JsonBindingException("Required JSON array was null or missing.");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonArray FailValueIsNotAnArray(JsonValue value)
 			=> throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonValue FailIndexIsNullOrMissing(int index, JsonValue? value, string? message = null)
 			=> throw new JsonBindingException(message ?? (ReferenceEquals(value, JsonNull.Error) ? $"Index {index} is outside the bounds of the JSON Array." : $"Required JSON field at index {index} was null or missing."), JsonPath.Create(index), null, null);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonValue FailIndexIsNullOrMissing(Index index, JsonValue? value, string? message = null)
 			=> throw new JsonBindingException(message ?? (ReferenceEquals(value, JsonNull.Error) ? $"Index {index} is outside the bounds of the JSON Array." : $"Required JSON field at index {index} was null or missing."), JsonPath.Create(index), null, null);
 
@@ -179,16 +179,16 @@ namespace Doxense.Serialization.Json
 		internal static JsonBindingException ErrorFieldIsNullOrMissing(JsonValue? parent, string field, string? message)
 			=> new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonValue FailFieldIsNullOrMissing(JsonValue? parent, string field, string? message = null) => throw ErrorFieldIsNullOrMissing(parent, field, message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonValue FailFieldIsNullOrMissing(JsonValue? parent, ReadOnlySpan<char> field, string? message = null) => throw ErrorFieldIsNullOrMissing(parent, field.ToString(), message);
 
 		[Pure]
 		internal static JsonBindingException ErrorPathIsNullOrMissing(JsonValue? parent, JsonPath path) => new($"Required JSON path '{path}' was null or missing.", path, parent, null);
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		internal static JsonValue FailPathIsNullOrMissing(JsonValue? parent, JsonPath path) => throw ErrorPathIsNullOrMissing(parent, path);
 
 		#region ToStuff(...)
@@ -236,7 +236,7 @@ namespace Doxense.Serialization.Json
 
 		#region As<T>...
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		internal static T FailRequiredValueIsNullOrMissing<T>() => throw new JsonBindingException($"Required JSON value of type {typeof(T).GetFriendlyName()} was null or missing");
 
 		/// <summary>Converts this required JSON value into an instance of the specified type.</summary>
@@ -599,11 +599,11 @@ namespace Doxense.Serialization.Json
 		};
 
 		/// <exception cref="JsonBindingException"/>
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		internal static JsonObject FailObjectIsNullOrMissing(JsonValue? value) => throw new JsonBindingException("Required JSON object was null or missing.", value);
 
 		/// <exception cref="JsonBindingException"/>
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		internal static JsonObject FailValueIsNotAnObject(JsonValue? value) => throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value);
 
 		[Pure]
@@ -753,7 +753,7 @@ namespace Doxense.Serialization.Json
 			return value.IsNullOrMissing() ? null : value as JsonNumber ?? FailValueIsNotANumber(value);
 		}
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		private static JsonNumber FailValueIsNotANumber(JsonValue? value)
 		{
 			if (value.IsNullOrMissing())
@@ -796,7 +796,7 @@ namespace Doxense.Serialization.Json
 			return (JsonString)value;
 		}
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		private static JsonString FailValueIsNotAString(JsonValue? value)
 		{
 			if (value.IsNullOrMissing())

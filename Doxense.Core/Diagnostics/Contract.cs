@@ -1093,6 +1093,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Si un debugger est attaché, un breakpoint est déclenché. Sinon, une ContractException est générée</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.NoInlining)]
+		[StackTraceHidden]
 		internal static Exception RaiseContractFailure(SDC.ContractFailureKind kind, string? msg, string? conditionText = null, Exception? exception = null)
 		{
 			//note: currently in .NET Core 3.x, if conditionText == null, the formatted message will not have the "kind" section!

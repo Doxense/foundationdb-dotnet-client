@@ -2448,7 +2448,7 @@ namespace Doxense.Memory
 
 		#endregion
 
-		[DebuggerNonUserCode]
+		[DebuggerNonUserCode][StackTraceHidden]
 		internal static class Errors
 		{
 

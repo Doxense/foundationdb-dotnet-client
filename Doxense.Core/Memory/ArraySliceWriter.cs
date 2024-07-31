@@ -26,6 +26,7 @@
 
 namespace Doxense.Memory
 {
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 
@@ -243,13 +244,13 @@ namespace Doxense.Memory
 			return buffer.AsSpan(m_index).TryCopyTo(output);
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)][StackTraceHidden]
 		private static void ThrowInvalidOperationException_AdvancedTooFar()
 		{
 			throw new InvalidOperationException("Buffer writer advanced too far");
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)][StackTraceHidden]
 		private static byte[] ThrowObjectDisposedException()
 		{
 			throw new ObjectDisposedException("Buffer writer has already been disposed, or the buffer has already been acquired by someone else.");

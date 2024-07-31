@@ -493,7 +493,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		private static void FailCannotExecuteOnNetworkThread()
 		{
 #if DEBUG_THREADS

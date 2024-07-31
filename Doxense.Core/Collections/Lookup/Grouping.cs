@@ -26,6 +26,7 @@
 
 namespace Doxense.Collections.Lookup
 {
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime;
 	using System.Runtime.CompilerServices;
@@ -473,7 +474,7 @@ namespace Doxense.Collections.Lookup
 				}
 			}
 
-			[DoesNotReturn, ContractAnnotation("=> halt")]
+			[DoesNotReturn, ContractAnnotation("=> halt"), StackTraceHidden]
 			private static void ThrowEnumOpCantHappen()
 			{
 				throw new InvalidOperationException("Enumeration has either not started or has already finished.");

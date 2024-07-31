@@ -27,6 +27,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 
@@ -203,13 +204,13 @@ namespace Doxense.Collections.Tuples
 			return Math.Max(Math.Min(index, count), 0);
 		}
 
-		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		public static T FailIndexOutOfRange<T>(int index, int count)
 		{
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
 
-		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		public static T FailIndexOutOfRange<T>(Index index, int count)
 		{
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
