@@ -54,16 +54,23 @@ namespace Aspire.FoundationDb.Client
 		/// <remarks>See <see cref="IFdbTransactionOptions.RetryLimit"/> for more information.</remarks>
 		public int? DefaultRetryLimit { get; set; }
 
+		/// <summary>Overrides the default tracing options that should be used by this instance</summary>
+		/// <remarks>
+		/// <para>See <see cref="IFdbTransactionOptions.Tracing"/> for more information.</para>
+		/// <para>The default tracing options are <see cref="FdbTracingOptions.RecordTransactions"/> and <see cref="FdbTracingOptions.RecordOperations"/></para>
+		/// </remarks>
+		public int? DefaultTracing { get; set; }
+
 		/// <summary>Gets or sets a boolean value that indicates whether the FoundationDB health check is disabled or not.</summary>
 		/// <remarks><para>Enabled by default.</para></remarks>
 		public bool DisableHealthChecks { get; set; }
 
 		/// <summary>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.</summary>
-		/// <remarks><para>Enabled by default.</para></remarks>
+		/// <remarks><para>Tracing is enabled by default.</para></remarks>
 		public bool DisableTracing { get; set; }
 
 		/// <summary>Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.</summary>
-		/// <remarks><para>Enabled by default.</para></remarks>
+		/// <remarks><para>Metrics are enabled by default.</para></remarks>
 		public bool DisableMetrics { get; set; }
 
 	}

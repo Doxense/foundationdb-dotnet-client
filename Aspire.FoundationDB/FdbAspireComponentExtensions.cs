@@ -226,6 +226,24 @@ namespace Microsoft.Extensions.Hosting
 					options.ConnectionOptions.DefaultRetryLimit = settings.DefaultRetryLimit.Value;
 				}
 
+				// DefaultTracing=(flags)
+				if (cnx != null && cnx.ContainsKey("DefaultTracing"))
+				{
+					if (!int.TryParse((string) cnx["DefaultTracing"], out var count))
+					{
+						throw new InvalidOperationException("Malformed default tracing options");
+					}
+					if (count < 0)
+					{
+						throw new InvalidOperationException("Default tracing options must be a positive value");
+					}
+					options.ConnectionOptions.DefaultTracing = (FdbTracingOptions) count;
+				}
+				else if (settings.DefaultTracing != null)
+				{
+					options.ConnectionOptions.DefaultTracing = (FdbTracingOptions) settings.DefaultTracing.Value;
+				}
+
 				// run additional custom configuration
 				configureProvider?.Invoke(options);
 			});

@@ -60,6 +60,10 @@ namespace Aspire.Hosting.ApplicationModel
 		/// <remarks>See <see cref="IFdbTransactionOptions.RetryLimit"/> for more information.</remarks>
 		public int? DefaultRetryLimit { get; set; }
 
+		/// <summary>Default tracing options</summary>
+		/// <remarks>See <see cref="IFdbTransactionOptions.Tracing"/> for more information.</remarks>
+		public FdbTracingOptions? DefaultTracing { get; set; }
+
 		/// <summary>Specifies if the FoundationDB cluster is mounted in read-only mode by default.</summary>
 		/// <remarks>See <see cref="FdbConnectionOptions.ReadOnly"/> for more information.</remarks>
 		public bool? ReadOnly { get; set; }
@@ -130,6 +134,11 @@ namespace Aspire.Hosting.ApplicationModel
 			{
 				if (this.DefaultRetryLimit.Value < 0) throw new InvalidOperationException("Default retry limit must be a positive value");
 				builder["DefaultRetryLimit"] = this.DefaultRetryLimit.Value.ToString(CultureInfo.InvariantCulture);
+			}
+
+			if (this.DefaultTracing.HasValue)
+			{
+				builder["DefaultTracing"] = ((int) this.DefaultTracing.Value).ToString(CultureInfo.InvariantCulture);
 			}
 
 			if (this.ReadOnly == true)
