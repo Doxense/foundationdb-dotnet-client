@@ -31,8 +31,8 @@ namespace FdbShell
 		}
 
 		const int NumBuckets = 154 + 25;
-		private static readonly double[] BucketLimits = new double[NumBuckets]
-		{
+		private static readonly double[] BucketLimits =
+		[
 			0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09,
 			0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.60, 0.70, 0.80, 0.90,
 			1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -46,7 +46,7 @@ namespace FdbShell
 			100000000, 120000000, 140000000, 160000000, 180000000, 200000000, 250000000, 300000000, 350000000, 400000000, 450000000, 500000000, 600000000, 700000000, 800000000, 900000000,
 			1000000000, 1200000000, 1400000000, 1600000000, 1800000000, 2000000000, 2500000000, 3000000000, 3500000000, 4000000000, 4500000000, 5000000000, 6000000000, 7000000000, 8000000000, 9000000000,
 			1e200
-		};
+		];
 		private static readonly double SUM_RATIO = (1d / BucketLimits[0]);
 		private static readonly double SUM_SQUARES_RATIO = SUM_RATIO * SUM_RATIO;
 

@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 		public FdbPath Path { get; }
 
 		/// <inheritdoc />
-		public string Layer => this.Path.LayerId ?? string.Empty;
+		public string Layer => this.Path.LayerId;
 
 		/// <inheritdoc />
 		Slice ISubspaceLocation.Prefix => Slice.Nil;

@@ -43,13 +43,13 @@ namespace FoundationDB.Client.Native
 
 		protected override bool ReleaseHandle()
 		{
-			if (handle != IntPtr.Zero)
+			if (this.handle != IntPtr.Zero)
 			{
 				try
 				{
-					Destroy(handle);
+					Destroy(this.handle);
 #if DEBUG_HANDLES
-					Debug.WriteLine("> [Destroyed " + this.GetType().Name + " 0x" + handle.ToString("x") + "]");
+					Debug.WriteLine("> [Destroyed " + this.GetType().Name + " 0x" + this.handle.ToString("x") + "]");
 #endif
 				}
 				catch

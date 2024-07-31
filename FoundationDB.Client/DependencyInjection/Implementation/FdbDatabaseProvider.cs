@@ -41,6 +41,7 @@ namespace FoundationDB.DependencyInjection
 
 		private IFdbDatabase? Db { get; set; }
 
+		/// <inheritdoc cref="IFdbDatabaseScopeProvider.IsAvailable"/>
 		public bool IsAvailable { get; private set; }
 
 		public FdbDatabaseProviderOptions Options { get; }
@@ -53,6 +54,7 @@ namespace FoundationDB.DependencyInjection
 
 		private Exception? Error { get; set;}
 
+		/// <inheritdoc cref="IFdbDatabaseScopeProvider.Root"/>
 		public FdbDirectorySubspaceLocation Root { get; }
 
 		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
@@ -69,6 +71,7 @@ namespace FoundationDB.DependencyInjection
 			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
 		}
 
+		/// <inheritdoc cref="IFdbDatabaseProvider.Start"/>
 		public void Start()
 		{
 			if (this.InitTask == null)
@@ -133,6 +136,7 @@ namespace FoundationDB.DependencyInjection
 			}, this.LifeTime.Token);
 		}
 
+		/// <inheritdoc cref="IFdbDatabaseProvider.Stop"/>
 		public void Stop()
 		{
 			this.LifeTime.Cancel();

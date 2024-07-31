@@ -730,7 +730,7 @@ namespace FdbShell
 			}
 			else
 			{
-				sb.Append($"{(folder.LayerId.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name)}{(string.IsNullOrEmpty(folder.LayerId) ? string.Empty : (" [" + folder.LayerId + "]"))}");
+				sb.Append($"{(folder.LayerId == "partition" ? ("<" + folder.Name + ">") : folder.Name)}{(string.IsNullOrEmpty(folder.LayerId) ? string.Empty : (" [" + folder.LayerId + "]"))}");
 			}
 			stream.WriteLine(sb.ToString());
 

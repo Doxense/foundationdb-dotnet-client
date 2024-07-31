@@ -69,7 +69,6 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the sub-directory to open</param>
-		/// <param name="layer">Expected layer id for the sub-directory (optional)</param>
 		Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbPath path);
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
@@ -77,7 +76,6 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the sub-directory to open</param>
-		/// <param name="layer">Expected layer id for the sub-directory (optional)</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path);
 

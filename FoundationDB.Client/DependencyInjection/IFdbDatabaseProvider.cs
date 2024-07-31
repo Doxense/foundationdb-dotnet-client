@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using JetBrains.Annotations;
 
 	/// <summary>Provides access to a FoundationDB database instance</summary>

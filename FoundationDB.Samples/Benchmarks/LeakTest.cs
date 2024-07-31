@@ -120,7 +120,7 @@ namespace FoundationDB.Samples.Benchmarks
 			long workingSet = Environment.WorkingSet;
 			long totalMemory = GC.GetTotalMemory(false);
 
-			TimerCallback timerHandler = (_) =>
+			void TimerHandler(object? _)
 			{
 				var now = DateTime.Now;
 				long ws = Environment.WorkingSet;
@@ -133,6 +133,7 @@ namespace FoundationDB.Samples.Benchmarks
 				{
 					sb.AppendLine("  cpu: " + PerfCounters.ProcessorTime!.NextValue().ToString("N1") + "%, private: " + PerfCounters.PrivateBytes!.NextValue().ToString("N0") + ", gen0: " + PerfCounters.ClrGen0Collections!.NextValue() + ", gen1: " + PerfCounters.ClrGen1Collections!.NextValue() + ", gen2: " + PerfCounters.ClrGen2Collections!.NextValue());
 				}
+
 				Console.Write(sb.ToString());
 				workingSet = ws;
 				totalMemory = tm;
@@ -147,17 +148,17 @@ namespace FoundationDB.Samples.Benchmarks
 					last = now;
 				}
 				 */
-			};
+			}
 
-			timerHandler(null);
+			TimerHandler(null);
 
-			using (var timer = new Timer(timerHandler, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5)))
+			using (new Timer(TimerHandler, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5)))
 			{
 				for (int k = 0; k < this.N; k++)
 				{
 					// run multiple students
 					var elapsed = await Program.RunConcurrentWorkersAsync(
-						K,
+						this.K,
 						(i, _ct) => RunWorker(db, i, _ct),
 						ct
 					);
@@ -165,12 +166,11 @@ namespace FoundationDB.Samples.Benchmarks
 					Console.WriteLine();
 					Console.WriteLine("# Ran {0} workers in {1:0.0##} sec", this.K, elapsed.TotalSeconds);
 
-					await Task.Delay(this.Delay);
+					await Task.Delay(this.Delay, ct);
 				}
-
 			}
 
-			timerHandler(null);
+			TimerHandler(null);
 		}
 
 #endregion

@@ -542,7 +542,7 @@ namespace FoundationDB.Client
 			/// <returns>Node if it was found, or null</returns>
 			private static async Task<Node> FindAsync(IFdbReadOnlyTransaction tr, PartitionDescriptor partition, FdbPath path)
 			{
-				Contract.Debug.Requires(tr != null);
+				Contract.Debug.Requires(tr != null && partition != null);
 
 				// look for the node by traversing from the root down. jumping over when crossing a partition...
 
@@ -551,9 +551,9 @@ namespace FoundationDB.Client
 				var chain = new List<KeyValuePair<Slice, Slice>>();
 
 				int i = 0;
-				string layer = FdbDirectoryPartition.LayerId; // the root is by convention a "partition"
-				PartitionDescriptor parent = partition;
-				Slice prefixInParentPartition  = current;
+				var layer = FdbDirectoryPartition.LayerId; // the root is by convention a "partition"
+				var parent = partition;
+				var prefixInParentPartition  = current;
 				while (i < path.Count)
 				{
 					if (AnnotateTransactions) tr.Annotate("Looking for child {0} under node {1}...", path[i], FdbKey.Dump(current));
@@ -629,7 +629,7 @@ namespace FoundationDB.Client
 					{
 						throw new InvalidOperationException($"The directory {path} was created with incompatible layer '{layer}' instead of expected '{existingNode.Layer}'.");
 					}
-					subspace = ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer!, existingNode.ValidationChain, existingNode.Partition, existingNode.ParentPartition, context);
+					subspace = ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer, existingNode.ValidationChain, existingNode.Partition, existingNode.ParentPartition, context);
 				}
 				else
 				{
@@ -752,9 +752,9 @@ namespace FoundationDB.Client
 				var chain = existingNode.ValidationChain;
 				if (path.Count > 1)
 				{
-					var parentSubspace = await CreateOrOpenInternalAsync(readTrans, trans, path.GetParent(), Slice.Nil, true, true, true).ConfigureAwait(false);
+					var parentSubspace = await CreateOrOpenInternalAsync(readTrans, trans, path.GetParent(), prefix: Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true).ConfigureAwait(false);
 					Contract.Debug.Assert(parentSubspace != null);
-					//HACKHACK: idéalement, CreateOrOpenInternalAsync devrait retourner toutes les informations en une seule fois!
+
 					var parentNode = await FindAsync(readTrans, this.Partition, path.GetParent()).ConfigureAwait(false);
 					partition = parentNode.Partition;
 					parentPrefix = parentNode.Prefix;
@@ -816,7 +816,7 @@ namespace FoundationDB.Client
 					InitializePartition(trans, existingNode.Partition);
 				}
 
-				return ContentsOfNode(path, prefix, layer, chain, existingNode.Partition, existingNode.ParentPartition ?? existingNode.Partition, null);
+				return ContentsOfNode(path, prefix, layer, chain, existingNode.Partition, existingNode.ParentPartition, null);
 			}
 
 			internal async Task<FdbDirectorySubspace?> MoveInternalAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath, bool throwOnError)
@@ -1358,7 +1358,7 @@ namespace FoundationDB.Client
 			public FdbDirectoryLayer DirectoryLayer { get; }
 
 			/// <summary>Read version at which this context was last used successfully</summary>
-			public long ReadVersion { get; private set; }
+			public long ReadVersion { get; }
 
 			/// <summary>Version of the Directory Layer in the database</summary>
 			public Slice LayerVersion { get; set; }

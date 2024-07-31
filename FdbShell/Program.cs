@@ -282,8 +282,8 @@ namespace FdbShell
 
 				var le = new LineEditor("FDBShell");
 
-				string[] cmds = new string[]
-				{
+				string[] cmds =
+				[
 					"cd",
 					"clear",
 					"coordinators",
@@ -311,7 +311,7 @@ namespace FdbShell
 					"tree",
 					"version",
 					"wide",
-				};
+				];
 
 				le.AutoCompleteEvent = (txt, _) =>
 				{
@@ -319,10 +319,10 @@ namespace FdbShell
 					int p = txt.IndexOf(' ');
 					if (p > 0)
 					{
-						string cmd = txt.Substring(0, p);
-						string arg = txt.Substring(p + 1).Trim();
+						string cmd = txt[..p];
+						string arg = txt[(p + 1)..].Trim();
 
-						if (cmd == "cd" || cmd == "rmdir")
+						if (cmd is "cd" or "rmdir")
 						{ // handle completion for directories
 
 							// txt: "cd foo" => prefix = "foo"
@@ -349,7 +349,7 @@ namespace FdbShell
 							{ // someone was at "cd /Foo/Bar", pressed TAB again, and there is no other match
 								// => we interpret it as "want to go in the sub-folder
 
-								res = new[] { "/" }; // add a "slash"
+								res = [ "/" ]; // add a "slash"
 							}
 
 							return new LineEditor.Completion(txt, res);

@@ -26,6 +26,7 @@
 
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ReplaceAsyncWithTaskReturn
+// ReSharper disable VariableLengthStringHexEscapeSequence
 
 namespace FoundationDB.Client.Tests
 {
@@ -36,7 +37,6 @@ namespace FoundationDB.Client.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Json;
 	using FoundationDB.Client;
 	using NUnit.Framework;
 
@@ -105,7 +105,6 @@ namespace FoundationDB.Client.Tests
 			{
 				System.IO.File.Delete(path);
 			}
-
 		}
 
 		[Test]

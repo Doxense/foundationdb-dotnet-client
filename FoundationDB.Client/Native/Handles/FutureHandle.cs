@@ -40,9 +40,9 @@ namespace FoundationDB.Client.Native
 			Interlocked.Increment(ref DebugCounters.FutureHandles);
 		}
 
-		protected override void Destroy(IntPtr handle)
+		protected override void Destroy(IntPtr h)
 		{
-			FdbNative.FutureDestroy(handle);
+			FdbNative.FutureDestroy(h);
 			Interlocked.Decrement(ref DebugCounters.FutureHandles);
 		}
 

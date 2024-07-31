@@ -254,7 +254,7 @@
 						new { Op = "MAX", Left = vH1, Right = vH2 },
 					};
 
-					Action<IFdbTransaction, string, Slice, Slice> apply = (t, op, k, v) =>
+					void Apply(IFdbTransaction t, string op, Slice k, Slice v)
 					{
 						switch (op)
 						{
@@ -283,7 +283,7 @@
 								Assert.Fail();
 								break;
 						}
-					};
+					}
 
 					for (int i = 0; i < cmds.Length; i++)
 					{
@@ -291,8 +291,8 @@
 						{
 							var key = subspace.Encode(cmds[i].Op + "_" + cmds[j].Op);
 							Log($"{i};{j} = {key}");
-							apply(tr, cmds[i].Op, key, cmds[i].Left);
-							apply(tr, cmds[j].Op, key, cmds[j].Right);
+							Apply(tr, cmds[i].Op, key, cmds[i].Left);
+							Apply(tr, cmds[j].Op, key, cmds[j].Right);
 						}
 					}
 
@@ -357,14 +357,14 @@
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					await tr.GetValuesAsync(subspace.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
+					await tr.GetValuesAsync(subspace.EncodeMany([ "K0123", "K0234", "K0456", "K0567", "K0789" ]));
 				}
 
 				// once more with feelings
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					await tr.GetValuesAsync(subspace.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
+					await tr.GetValuesAsync(subspace.EncodeMany([ "K0123", "K0234", "K0456", "K0567", "K0789" ]));
 				}
 			}
 		}

@@ -54,7 +54,7 @@ namespace FdbShell
 
 				CategoryNetClrMemory = new PerformanceCounterCategory(".NET CLR Memory");
 				ClrBytesInAllHeaps = new PerformanceCounter(".NET CLR Memory", "# Bytes in all Heaps", ProcessName);
-				ClrTimeInGC = new PerformanceCounter(".NET CLR Memory", "% Time in GC", ProcessName);
+				PerfCounters.ClrTimeInGc = new PerformanceCounter(".NET CLR Memory", "% Time in GC", ProcessName);
 				ClrGen0Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 0 Collections", p.ProcessName, true);
 				ClrGen1Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
 				ClrGen2Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
@@ -76,7 +76,7 @@ namespace FdbShell
 
 		public static readonly PerformanceCounterCategory? CategoryNetClrMemory;
 		public static readonly PerformanceCounter? ClrBytesInAllHeaps;
-		public static readonly PerformanceCounter? ClrTimeInGC;
+		public static readonly PerformanceCounter? ClrTimeInGc;
 		public static readonly PerformanceCounter? ClrGen0Collections;
 		public static readonly PerformanceCounter? ClrGen1Collections;
 		public static readonly PerformanceCounter? ClrGen2Collections;
