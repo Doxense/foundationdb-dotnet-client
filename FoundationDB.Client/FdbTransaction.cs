@@ -80,6 +80,9 @@ namespace FoundationDB.Client
 		/// <summary>Max Retry Delay (in ms) of this transaction</summary>
 		private int m_maxRetryDelay;
 
+		/// <summary>Tracing options of this transaction</summary>
+		private FdbTracingOptions m_tracingOptions;
+
 		/// <summary>Cancellation source specific to this instance.</summary>
 		private readonly CancellationTokenSource m_cts;
 
@@ -113,7 +116,6 @@ namespace FoundationDB.Client
 
 			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
 			m_handler = handler;
-			FdbMetricsReporter.ReportTransactionStart(this);
 		}
 
 		#endregion
@@ -196,6 +198,13 @@ namespace FoundationDB.Client
 				SetOption(FdbTransactionOption.MaxRetryDelay, value);
 				m_maxRetryDelay = value;
 			}
+		}
+
+		/// <inheritdoc/>
+		public FdbTracingOptions Tracing
+		{
+			get => m_tracingOptions;
+			set => m_tracingOptions = value;
 		}
 
 		#endregion
@@ -621,7 +630,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice> PerformGetOperation(ReadOnlySpan<byte> key, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet();
+			FdbMetricsReporter.ReportGet(this);
 
 			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot);
 
@@ -635,7 +644,7 @@ namespace FoundationDB.Client
 
 		private Task<bool> PerformGetOperation(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter,  bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet();
+			FdbMetricsReporter.ReportGet(this);
 
 			return m_log == null ? m_handler.TryGetAsync(key, valueWriter, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot, valueWriter);
 
@@ -663,7 +672,7 @@ namespace FoundationDB.Client
 
 		private Task<(FdbValueCheckResult Result, Slice Actual)> PerformValueCheckOperation(ReadOnlySpan<byte> key, Slice expected, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet(); //REVIEW: use a specific operation type for this?
+			FdbMetricsReporter.ReportGet(this); //REVIEW: use a specific operation type for this?
 
 			return m_log == null ? m_handler.CheckValueAsync(key, expected, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, expected, snapshot);
 
@@ -695,7 +704,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice[]> PerformGetValuesOperation(ReadOnlySpan<Slice> keys, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet(keys.Length);
+			FdbMetricsReporter.ReportGet(this, keys.Length);
 
 			return m_log == null ? m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, snapshot);
 
@@ -746,7 +755,7 @@ namespace FoundationDB.Client
 			FdbReadMode read,
 			int iteration)
 		{
-			FdbMetricsReporter.ReportGetRange();
+			FdbMetricsReporter.ReportGetRange(this);
 
 			return m_log == null
 				? m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot, m_cancellation)
@@ -834,7 +843,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice> PerformGetKeyOperation(KeySelector selector, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGetKey();
+			FdbMetricsReporter.ReportGetKey(this);
 
 			return m_log == null ? m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selector, snapshot);
 
@@ -870,7 +879,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice[]> PerformGetKeysOperation(ReadOnlySpan<KeySelector> selectors, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGetKey(selectors.Length);
+			FdbMetricsReporter.ReportGetKey(this, selectors.Length);
 
 			return m_log == null ? m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selectors, snapshot);
 
@@ -902,7 +911,7 @@ namespace FoundationDB.Client
 
 		private void PerformSetOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
-			FdbMetricsReporter.ReportSet();
+			FdbMetricsReporter.ReportSet(this);
 
 			if (m_log == null)
 			{
@@ -1062,7 +1071,7 @@ namespace FoundationDB.Client
 
 		private void PerformAtomicOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType type)
 		{
-			FdbMetricsReporter.ReportAtomicOp(type);
+			FdbMetricsReporter.ReportAtomicOp(this, type);
 
 			if (m_log == null)
 			{
@@ -1101,7 +1110,7 @@ namespace FoundationDB.Client
 
 		private void PerformClearOperation(ReadOnlySpan<byte> key)
 		{
-			FdbMetricsReporter.ReportClear();
+			FdbMetricsReporter.ReportClear(this);
 
 			if (m_log == null)
 			{
@@ -1141,7 +1150,7 @@ namespace FoundationDB.Client
 
 		private void PerformClearRangeOperation(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
-			FdbMetricsReporter.ReportClearRange();
+			FdbMetricsReporter.ReportClearRange(this);
 
 			if (m_log == null)
 			{
@@ -1481,26 +1490,27 @@ namespace FoundationDB.Client
 
 		#region Reset/Rollback/Cancel...
 
+		internal void UseSettings(IFdbDatabaseOptions options)
+		{
+			m_timeout = 0;
+			m_retryLimit = 0;
+			m_maxRetryDelay = 0;
+			m_tracingOptions = options.DefaultTracing;
+
+			var timeout = Math.Max(0, options.DefaultTimeout);
+			var retryLimit = Math.Max(0, options.DefaultRetryLimit);
+			var maxRetryDelay = Math.Max(0, options.DefaultMaxRetryDelay);
+
+			if (timeout > 0) this.Timeout = timeout;
+			if (retryLimit > 0) this.RetryLimit = retryLimit;
+			if (maxRetryDelay > 0) this.MaxRetryDelay = maxRetryDelay;
+		}
+
 		private void RestoreDefaultSettings()
 		{
 			// resetting the state of a transaction automatically clears the RetryLimit and Timeout settings
 			// => we need to set the again!
-			m_timeout = 0;
-			m_retryLimit = 0;
-			m_maxRetryDelay = 0;
-
-			if (this.Database.DefaultRetryLimit > 0)
-			{
-				this.RetryLimit = this.Database.DefaultRetryLimit;
-			}
-			if (this.Database.DefaultMaxRetryDelay > 0)
-			{
-				this.MaxRetryDelay = this.Database.DefaultMaxRetryDelay;
-			}
-			if (this.Database.DefaultTimeout > 0)
-			{
-				this.Timeout = this.Database.DefaultTimeout;
-			}
+			UseSettings(this.Database.Options);
 
 			// if we have used a random token for VersionStamps, we need to clear it (and generate a new one)
 			// => this ensure that if the error was due to a collision between the token and another part of the key,
@@ -1683,7 +1693,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[DoesNotReturn]
+		[DoesNotReturn][StackTraceHidden]
 		internal static void ThrowOnInvalidState(FdbTransaction trans)
 		{
 			switch (trans.State)
@@ -1714,7 +1724,6 @@ namespace FoundationDB.Client
 			{
 				try
 				{
-					FdbMetricsReporter.ReportTransactionStop(this);
 					this.Database.UnregisterTransaction(this);
 					using (m_cts)
 					{

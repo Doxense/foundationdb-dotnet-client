@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -83,6 +84,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Default Max Retry Delay value for all transactions</summary>
 		private int m_defaultMaxRetryDelay;
+
+		/// <summary>Default Tracing options for all transactions</summary>
+		private FdbTracingOptions m_defaultTracing = FdbTracingOptions.Default;
 
 		#endregion
 
@@ -216,9 +220,7 @@ namespace FoundationDB.Client
 		internal void ConfigureTransactionDefaults(FdbTransaction trans)
 		{
 			// set default options..
-			if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
-			if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
-			if (m_defaultMaxRetryDelay != 0) trans.MaxRetryDelay = m_defaultMaxRetryDelay;
+			trans.UseSettings(this.Options);
 			if (this.DefaultLogHandler != null)
 			{
 				trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions);
@@ -685,8 +687,7 @@ namespace FoundationDB.Client
 
 		#region Default Transaction Settings...
 
-		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
+		/// <inheritdoc />
 		public int DefaultTimeout
 		{
 			get => m_defaultTimeout;
@@ -697,8 +698,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Default Retry Limit value for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
+		/// <inheritdoc />
 		public int DefaultRetryLimit
 		{
 			get => m_defaultRetryLimit;
@@ -709,8 +709,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Default Max Retry Delay value for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
+		/// <inheritdoc />
 		public int DefaultMaxRetryDelay
 		{
 			get => m_defaultMaxRetryDelay;
@@ -721,13 +720,23 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <inheritdoc />
+		public FdbTracingOptions DefaultTracing
+		{
+			get => m_defaultTracing;
+			set => m_defaultTracing = value;
+		}
+
 		#endregion
 
 		#region IDisposable...
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		private void ThrowIfDisposed()
 		{
-			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
+			if (!m_disposed) return;
+			ThrowHelper.ThrowObjectDisposedException(this);
 		}
 
 		/// <summary>Close this database instance, aborting any pending transaction that was created by this instance.</summary>

@@ -53,9 +53,13 @@ namespace FoundationDB.Client.Native
 		/// <summary>FDB_TRANSACTION* handle</summary>
 		private readonly TransactionHandle m_handle;
 
-		/// <summary>Estimated current size of the transaction</summary>
+		/// <summary>Estimated current size of the transaction mutations</summary>
 		private int m_payloadBytes;
 		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or get remove it?
+
+		/// <summary>Estimed current size of the number of bytes read from the cluster</summary>
+		/// <remarks>Includes the size of the both keys and values</remarks>
+		private int m_readBytes;
 
 #if CAPTURE_STACKTRACES
 		private StackTrace m_stackTrace;

@@ -259,6 +259,16 @@ namespace FoundationDB.Client
 			return options.SetOption(FdbDatabaseOption.DataCenterId, hexId);
 		}
 
+		/// <summary>Specify the default tracing options for all transactions created from this database</summary>
+		/// <param name="options">Database instance</param>
+		/// <param name="tracing">Tracing options</param>
+		/// <returns></returns>
+		public static IFdbDatabaseOptions WithTracing(this IFdbDatabaseOptions options, FdbTracingOptions tracing)
+		{
+			options.DefaultTracing = tracing;
+			return options;
+		}
+
 		#endregion
 
 		#region Standard Operations

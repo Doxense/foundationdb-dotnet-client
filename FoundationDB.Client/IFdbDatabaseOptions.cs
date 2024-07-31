@@ -37,16 +37,20 @@ namespace FoundationDB.Client
 		int ApiVersion { get; }
 
 		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
+		/// <remarks>If changed, will only be effective for future transactions</remarks>
 		int DefaultTimeout { get; set; }
 
 		/// <summary>Default Retry Limit value for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
+		/// <remarks>If changed, will only be effective for future transactions</remarks>
 		int DefaultRetryLimit { get; set; }
 
 		/// <summary>Default Maximum Retry Delay value (in milliseconds) for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
+		/// <remarks>If changed, will only be effective for future transactions</remarks>
 		int DefaultMaxRetryDelay { get; set; }
+
+		/// <summary>Default tracing options for all transactions created from this database instance.</summary>
+		/// <remarks>If changed, will only be effective for future transactions</remarks>
+		FdbTracingOptions DefaultTracing { get; set; }
 
 		/// <summary>Set an option on this database that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>

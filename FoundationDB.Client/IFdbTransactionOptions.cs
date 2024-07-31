@@ -58,21 +58,24 @@ namespace FoundationDB.Client
 		/// </summary>
 		int MaxRetryDelay { get; set; }
 
-		/// <summary>Set an option on this transaction that does not take any parameter</summary>
+		/// <summary>Tracing options for this transaction.</summary>
+		FdbTracingOptions Tracing { get; set; }
+
+		/// <summary>Sets an option on this transaction that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>
 		IFdbTransactionOptions SetOption(FdbTransactionOption option);
 
-		/// <summary>Set an option on this transaction that takes an integer value</summary>
+		/// <summary>Sets an option on this transaction that takes an integer value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter</param>
 		IFdbTransactionOptions SetOption(FdbTransactionOption option, long value);
 
-		/// <summary>Set an option on this transaction that takes a string value</summary>
+		/// <summary>Sets an option on this transaction that takes a string value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter (can be null)</param>
 		IFdbTransactionOptions SetOption(FdbTransactionOption option, ReadOnlySpan<char> value);
 
-		/// <summary>Set an option on this transaction that takes a byte array value</summary>
+		/// <summary>Sets an option on this transaction that takes a byte array value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter (can be null)</param>
 		IFdbTransactionOptions SetOption(FdbTransactionOption option, ReadOnlySpan<byte> value);

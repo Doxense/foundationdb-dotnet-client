@@ -742,14 +742,15 @@ namespace FoundationDB.Client
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
+			var tracingOptions = db.Options.DefaultTracing;
 			var targetName = PrettifyTargetName((handler.Target?.GetType() ?? handler.Method.DeclaringType)?.GetFriendlyName());
 			var methodName = PrettifyMethodName(handler.Method.Name);
 
-			using var mainActivity = ActivitySource.StartActivity(targetName + "::" + methodName, kind: ActivityKind.Client);
+			using var mainActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordTransactions) ? ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite", kind: ActivityKind.Client) : null;
 			context.Activity = mainActivity;
 
 			bool reportTransStarted = false;
-			int reportOpStarted = 0;
+			bool reportOpStarted = false;
 
 			try
 			{
@@ -789,7 +790,7 @@ namespace FoundationDB.Client
 						bool hasRunValueChecks = false;
 						result = default!;
 
-						using var attemptActivity = ActivitySource.StartActivity("FDB Operation");
+						using var attemptActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordOperations) ? ActivitySource.StartActivity(targetName + "::" + methodName, kind: ActivityKind.Client) : null;
 						if (attemptActivity?.IsAllDataRequested == true)
 						{
 							attemptActivity.SetTag("db.system", "fdb");
@@ -804,7 +805,7 @@ namespace FoundationDB.Client
 						{
 							TIntermediate intermediate;
 
-							currentActivity = ActivitySource.StartActivity("FDB Handler");
+							currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? ActivitySource.StartActivity("FDB Handler") : null;
 							if (currentActivity != null)
 							{
 								context.Activity = currentActivity;
@@ -819,9 +820,9 @@ namespace FoundationDB.Client
 								}
 							}
 
-							Contract.Debug.Assert(reportOpStarted == 0);
+							Contract.Debug.Assert(!reportOpStarted);
 							FdbMetricsReporter.ReportOperationStarted(context, trans);
-							++reportOpStarted;
+							reportOpStarted = true;
 
 							// call the user provided lambda
 							switch (handler)
@@ -1093,7 +1094,7 @@ namespace FoundationDB.Client
 							hasRunValueChecks = true;
 							if (context.HasPendingValueChecks(out var valueChecks))
 							{
-								currentActivity = ActivitySource.StartActivity("FDB Value Checks");
+								currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? ActivitySource.StartActivity("FDB Value Checks") : null;
 								if (currentActivity != null)
 								{
 									context.Activity = currentActivity;
@@ -1132,7 +1133,7 @@ namespace FoundationDB.Client
 							if (!trans.IsReadOnly)
 							{ // commit the transaction
 
-								currentActivity = ActivitySource.StartActivity("FDB Commit");
+								currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? ActivitySource.StartActivity("FDB Commit") : null;
 								if (currentActivity != null)
 								{
 									context.Activity = currentActivity;
@@ -1361,7 +1362,6 @@ namespace FoundationDB.Client
 								else
 								{
 									throw new ArgumentException($"Success handler is required to convert intermediate type {typeof(TIntermediate).Name} into result type {typeof(TResult).Name}.");
-
 								}
 							}
 
@@ -1376,6 +1376,11 @@ namespace FoundationDB.Client
 									currentActivity.SetTag("db.fdb.error.code", e.Code);
 								}
 								context.Activity = mainActivity;
+							}
+							if (attemptActivity != null)
+							{
+								attemptActivity.SetStatus(ActivityStatusCode.Error, e.Message);
+								attemptActivity.SetTag("db.fdb.error.code", e.Code);
 							}
 
 							context.PreviousError = e.Code;
@@ -1409,9 +1414,9 @@ namespace FoundationDB.Client
 								// if the code is the same, we prefer re-throwing the original exception to keep the stacktrace intact!
 								if (e2.Code != e.Code)
 								{
-									Contract.Debug.Assert(reportOpStarted == 1);
+									Contract.Debug.Assert(reportOpStarted);
+									reportOpStarted = false;
 									FdbMetricsReporter.ReportOperationCompleted(context, trans, e2.Code);
-									--reportOpStarted;
 									throw;
 								}
 								shouldRethrow = true;
@@ -1420,9 +1425,9 @@ namespace FoundationDB.Client
 							// re-throw original exception because it is not retryable.
 							if (shouldRethrow)
 							{
-								Contract.Debug.Assert(reportOpStarted == 1);
+								Contract.Debug.Assert(reportOpStarted);
+								reportOpStarted = false;
 								FdbMetricsReporter.ReportOperationCompleted(context, trans, context.PreviousError);
-								--reportOpStarted;
 								throw;
 							}
 
@@ -1438,6 +1443,11 @@ namespace FoundationDB.Client
 									currentActivity.SetTag("db.fdb.error.code", FdbError.UnknownError);
 								}
 								context.Activity = mainActivity;
+							}
+							if (attemptActivity != null)
+							{
+								attemptActivity.SetStatus(ActivityStatusCode.Error, e.Message);
+								attemptActivity.SetTag("db.fdb.error.code", FdbError.UnknownError);
 							}
 
 							context.PreviousError = FdbError.UnknownError;
@@ -1470,9 +1480,9 @@ namespace FoundationDB.Client
 										if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate("Handler failure MAY be due to a failed value-check, but no more attempt is possible!");
 										if (e2.Code != FdbError.NotCommitted)
 										{
-											Contract.Debug.Assert(reportOpStarted == 1);
+											Contract.Debug.Assert(reportOpStarted);
+											reportOpStarted = false;
 											FdbMetricsReporter.ReportOperationCompleted(context, trans, e2.Code);
-											--reportOpStarted;
 											throw;
 										}
 									}
@@ -1488,16 +1498,16 @@ namespace FoundationDB.Client
 
 							if (shouldThrow)
 							{
-								Contract.Debug.Assert(reportOpStarted == 1);
+								Contract.Debug.Assert(reportOpStarted);
+								reportOpStarted = false;
 								FdbMetricsReporter.ReportOperationCompleted(context, trans, context.PreviousError);
-								--reportOpStarted;
 								throw;
 							}
 						}
 
-						Contract.Debug.Assert(reportOpStarted == 1);
+						Contract.Debug.Assert(reportOpStarted);
+						reportOpStarted = false;
 						FdbMetricsReporter.ReportOperationCompleted(context, trans, context.PreviousError);
-						--reportOpStarted;
 
 						// update the base time for the next attempt
 						context.BaseDuration = context.ElapsedTotal;
@@ -1534,7 +1544,7 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-				Contract.Debug.Assert(reportOpStarted == 0);
+				Contract.Debug.Assert(!reportOpStarted);
 
 				if (reportTransStarted)
 				{

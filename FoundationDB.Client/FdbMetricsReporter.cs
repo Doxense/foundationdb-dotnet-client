@@ -154,8 +154,8 @@ namespace FoundationDB.Client
 				new KeyValuePair<string, object?>("operation.status", error)
 			);
 
-			if (OperationSize.Enabled)
-			{
+			if (error != FdbError.Success && OperationSize.Enabled)
+			{ // we need to record the size for failed attempts
 				int size = trans.Size;
 				if (size > 0)
 				{
@@ -202,39 +202,60 @@ namespace FoundationDB.Client
 		private static readonly KeyValuePair<string, object?> CachedCallClearRange = new("operation.type", "clear_range");
 		private static readonly KeyValuePair<string, object?> CachedCallAtomic = new("operation.type", "atomic");
 
-		internal static void ReportGet(int count = 1)
+		internal static void ReportGet(FdbTransaction trans, int count = 1)
 		{
-			ApiCalls.Add(count, CachedCallGet);
+			if (trans.Tracing.HasFlag(FdbTracingOptions.RecordApiCalls))
+			{
+				ApiCalls.Add(count, CachedCallGet);
+			}
 		}
 
-		internal static void ReportGetKey(int count = 1)
+		internal static void ReportGetKey(FdbTransaction trans, int count = 1)
 		{
-			ApiCalls.Add(count, CachedCallGetKey);
+			if (trans.Tracing.HasFlag(FdbTracingOptions.RecordApiCalls))
+			{
+				ApiCalls.Add(count, CachedCallGetKey);
+			}
 		}
 
-		internal static void ReportGetRange()
+		internal static void ReportGetRange(FdbTransaction trans)
 		{
-			ApiCalls.Add(1, CachedCallGetRange);
+			if (trans.Tracing.HasFlag(FdbTracingOptions.RecordApiCalls))
+			{
+				ApiCalls.Add(1, CachedCallGetRange);
+			}
 		}
 
-		internal static void ReportSet()
+		internal static void ReportSet(FdbTransaction trans)
 		{
-			ApiCalls.Add(1, CachedCallSet);
+			if (trans.Tracing.HasFlag(FdbTracingOptions.RecordApiCalls))
+			{
+				ApiCalls.Add(1, CachedCallSet);
+			}
 		}
 
-		internal static void ReportClear()
+		internal static void ReportClear(FdbTransaction trans)
 		{
-			ApiCalls.Add(1, CachedCallClear);
+			if (trans.Tracing.HasFlag(FdbTracingOptions.RecordApiCalls))
+			{
+				ApiCalls.Add(1, CachedCallClear);
+			}
 		}
 
-		internal static void ReportClearRange()
+		internal static void ReportClearRange(FdbTransaction trans)
 		{
-			ApiCalls.Add(1, CachedCallClearRange);
+			if (trans.Tracing.HasFlag(FdbTracingOptions.RecordApiCalls))
+			{
+				ApiCalls.Add(1, CachedCallClearRange);
+			}
 		}
 
-		internal static void ReportAtomicOp(FdbMutationType op)
+		internal static void ReportAtomicOp(FdbTransaction trans, FdbMutationType op)
 		{
-			ApiCalls.Add(1, CachedCallAtomic);
+			if (trans.Tracing.HasFlag(FdbTracingOptions.RecordApiCalls))
+			{
+				ApiCalls.Add(1, CachedCallAtomic);
+			}
 		}
 
 	}

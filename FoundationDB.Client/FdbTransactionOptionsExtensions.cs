@@ -170,6 +170,15 @@ namespace FoundationDB.Client
 			return options;
 		}
 
+		/// <summary>Set the transaction tracing options.</summary>
+		/// <param name="options">Transaction that will be configured for the current attempt.</param>
+		/// <param name="tracing">Tracing options</param>
+		public static IFdbTransactionOptions WithTracing(this IFdbTransactionOptions options, FdbTracingOptions tracing)
+		{
+			options.Tracing = tracing;
+			return options;
+		}
+
 		/// <summary>Set the transaction size limit in bytes.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
 		/// <param name="limit">Value in bytes. This value must be at least 32 and cannot be set to higher than 10,000,000, the default transaction size limit.</param>

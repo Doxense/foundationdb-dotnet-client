@@ -2015,69 +2015,86 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_Set_Timeout_And_RetryLimit()
+		public async Task Test_Can_Set_Transaction_Options()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					Assert.That(tr.Options.Timeout, Is.EqualTo(15000), "Timeout (default)");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(15_000), "Timeout (default)");
 					Assert.That(tr.Options.RetryLimit, Is.Zero, "RetryLimit (default)");
 					Assert.That(tr.Options.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
+					Assert.That(tr.Options.Tracing, Is.Default, "Tracing (default)");
 
-					tr.Options.Timeout = 1000; // 1 sec max
+					tr.Options.Timeout = 1_000; // 1 sec max
 					tr.Options.RetryLimit = 5; // 5 retries max
 					tr.Options.MaxRetryDelay = 500; // .5 sec max
+					tr.Options.Tracing = FdbTracingOptions.TraceTransactions | FdbTracingOptions.TraceOperations | FdbTracingOptions.TraceApiCalls;
 
-					Assert.That(tr.Options.Timeout, Is.EqualTo(1000), "Timeout");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(1_000), "Timeout");
 					Assert.That(tr.Options.RetryLimit, Is.EqualTo(5), "RetryLimit");
 					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(500), "MaxRetryDelay");
+					Assert.That(tr.Options.Tracing, Is.EqualTo(FdbTracingOptions.TraceTransactions | FdbTracingOptions.TraceOperations | FdbTracingOptions.TraceApiCalls), "Tracing");
 				}
 			}
 		}
 
 		[Test]
-		public async Task Test_Timeout_And_RetryLimit_Inherits_Default_From_Database()
+		public async Task Test_Transaction_Options_Inherit_Default_From_Database()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
+				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(15_000), "db.DefaultTimeout (default)");
 				Assert.That(db.Options.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 				Assert.That(db.Options.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
+				Assert.That(db.Options.DefaultTracing, Is.Default, "db.DefaultTracing (default)");
 
 				db.Options.DefaultTimeout = 500;
 				db.Options.DefaultRetryLimit = 3;
 				db.Options.DefaultMaxRetryDelay = 600;
+				db.Options.DefaultTracing = FdbTracingOptions.TraceTransactions | FdbTracingOptions.TraceOperations;
 
 				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
 				Assert.That(db.Options.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
 				Assert.That(db.Options.DefaultMaxRetryDelay, Is.EqualTo(600), "db.DefaultMaxRetryDelay");
+				Assert.That(db.Options.DefaultTracing, Is.EqualTo(FdbTracingOptions.TraceTransactions | FdbTracingOptions.TraceOperations), "db.DefaultTracing");
 
 				// transaction should be already configured with the default options
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
-					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
-					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.Options.MaxRetryDelay");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Timeout");
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
+					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
+					Assert.That(tr.Options.Tracing, Is.EqualTo(FdbTracingOptions.TraceTransactions | FdbTracingOptions.TraceOperations), "tr.Tracing");
 
 					// changing the default on the db should only affect new transactions
 
 					db.Options.DefaultTimeout = 600;
 					db.Options.DefaultRetryLimit = 4;
 					db.Options.DefaultMaxRetryDelay = 700;
+					db.Options.DefaultTracing = FdbTracingOptions.TraceApiCalls | FdbTracingOptions.TraceSteps;
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						Assert.That(tr2.Options.Timeout, Is.EqualTo(600), "tr2.Options.Timeout");
 						Assert.That(tr2.Options.RetryLimit, Is.EqualTo(4), "tr2.Options.RetryLimit");
 						Assert.That(tr2.Options.MaxRetryDelay, Is.EqualTo(700), "tr2.Options.MaxRetryDelay");
+						Assert.That(tr2.Options.Tracing, Is.EqualTo(FdbTracingOptions.TraceApiCalls | FdbTracingOptions.TraceSteps), "tr2.Options.Tracing");
 
 						// original tr should not be affected
 						Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
 						Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
 						Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.Options.MaxRetryDelay");
+						Assert.That(tr.Options.Tracing, Is.EqualTo(FdbTracingOptions.TraceTransactions | FdbTracingOptions.TraceOperations), "tr.Options.Tracing");
 					}
+
+					// resetting tr should use the new database settings
+					tr.Reset();
+					Assert.That(tr.Options.Timeout, Is.EqualTo(600), "tr.Options.Timeout (after reset)");
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(4), "tr.Options.RetryLimit (after reset)");
+					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(700), "tr.Options.MaxRetryDelay (after reset)");
+					Assert.That(tr.Options.Tracing, Is.EqualTo(FdbTracingOptions.TraceApiCalls | FdbTracingOptions.TraceSteps), "tr.Options.Tracing (after reset)");
 				}
 			}
 		}

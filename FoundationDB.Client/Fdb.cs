@@ -588,6 +588,7 @@ namespace FoundationDB.Client
 				if (options.DefaultMaxRetryDelay != 0) db.Options.WithDefaultMaxRetryDelay(options.DefaultMaxRetryDelay);
 				if (options.DataCenterId != null) db.Options.WithDataCenterId(options.DataCenterId);
 				if (options.MachineId != null) db.Options.WithMachineId(options.MachineId);
+				db.Options.WithTracing(options.DefaultTracing);
 
 				if (hasPartition)
 				{ // open the partition, and switch the root of the db

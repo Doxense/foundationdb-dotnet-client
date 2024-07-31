@@ -72,6 +72,10 @@ namespace FoundationDB.Client
 		/// <summary>Default maximum retry delay for all transactions (or infinite if 0)</summary>
 		public int DefaultMaxRetryDelay { get; set; }
 
+		/// <summary>Default Tracing options for all transactions</summary>
+		/// <remarks><see cref="FdbTracingOptions.Default"/> by default</remarks>
+		public FdbTracingOptions DefaultTracing { get; set; } = FdbTracingOptions.Default;
+
 		/// <summary>Default root location used by the database (empty prefix by default)</summary>
 		/// <remarks>If specified, all started transactions will be automatically rooted to this location.</remarks>
 		public FdbPath? Root { get; set; }
@@ -91,6 +95,7 @@ namespace FoundationDB.Client
 			if (this.DefaultTimeout > TimeSpan.Zero) AddKeyValue(sb, "timeout", this.DefaultTimeout.TotalSeconds);
 			if (this.DefaultRetryLimit > 0) AddKeyValue(sb, "retry_limit", this.DefaultRetryLimit);
 			if (this.DefaultMaxRetryDelay > 0) AddKeyValue(sb, "retry_delay", this.DefaultMaxRetryDelay);
+			if (this.DefaultTracing != FdbTracingOptions.Default) AddKeyValue(sb, "tracing", (int) this.DefaultTracing);
 			AddKeyValue(sb, "dc_id", this.DataCenterId);
 			AddKeyValue(sb, "machine_id", this.MachineId);
 			return sb.ToString();
