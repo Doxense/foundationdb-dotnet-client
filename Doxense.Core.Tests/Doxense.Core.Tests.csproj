@@ -21,7 +21,7 @@
 		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.10.0" />
 		<PackageReference Include="NodaTime.Testing" Version="3.1.11" />
 		<PackageReference Include="NUnit" Version="4.1.0" />
-		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0">
+		<PackageReference Include="NUnit3TestAdapter" Version="4.6.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
