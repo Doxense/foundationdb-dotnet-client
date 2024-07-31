@@ -358,6 +358,19 @@ namespace Doxense.Serialization.Encoders
 		#region Batched...
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<T> values)
+		{
+			Contract.NotNull(encoder);
+
+			var slices = new Slice[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				slices[i] = encoder.EncodeKey(values[i]);
+			}
+			return slices;
+		}
+
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, params T[] values)
 		{
 			Contract.NotNull(encoder);
@@ -367,6 +380,23 @@ namespace Doxense.Serialization.Encoders
 			for (int i = 0; i < values.Length; i++)
 			{
 				slices[i] = encoder.EncodeKey(values[i]);
+			}
+			return slices;
+		}
+
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, ReadOnlySpan<T> values)
+		{
+			Contract.NotNull(encoder);
+
+			var writer = new SliceWriter(checked((17 + prefix.Count) * values.Length));
+			var slices = new Slice[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				int p = writer.Position;
+				writer.WriteBytes(prefix);
+				encoder.WriteKeyTo(ref writer, values[i]);
+				slices[i] = writer.Substring(p);
 			}
 			return slices;
 		}

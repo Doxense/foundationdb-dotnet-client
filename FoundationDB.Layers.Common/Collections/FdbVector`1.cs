@@ -193,7 +193,7 @@ namespace FoundationDB.Layers.Collections
 
 				if (index1 >= currentSize || index2 >= currentSize) throw new IndexOutOfRangeException($"Indices ({index1}, {index2}) are out of range");
 
-				var vs = await tr.GetValuesAsync(new[] { k1, k2 }).ConfigureAwait(false);
+				var vs = await tr.GetValuesAsync([k1, k2]).ConfigureAwait(false);
 				var v1 = vs[0];
 				var v2 = vs[1];
 

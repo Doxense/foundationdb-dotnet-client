@@ -4,7 +4,7 @@
 		<TargetFrameworks>net8.0</TargetFrameworks>
 		<RootNamespace>FoundationDB.Tests</RootNamespace>
 		<AssemblyName>FoundationDB.Tests</AssemblyName>
-		<LangVersion>11.0</LangVersion>
+		<LangVersion>12.0</LangVersion>
 		<Nullable>enable</Nullable>
 		<ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
 		<SignAssembly>true</SignAssembly>

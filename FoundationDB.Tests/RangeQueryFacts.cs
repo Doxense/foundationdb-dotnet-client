@@ -1292,7 +1292,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(processed, Is.Not.Null);
 
 					var query = tr.Except(
-						new[] { items.ToRange(), processed.ToRange() },
+						[ items.ToRange(), processed.ToRange() ],
 						(kv) => TuPack.Unpack(kv.Key)[^2..], // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
 						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);

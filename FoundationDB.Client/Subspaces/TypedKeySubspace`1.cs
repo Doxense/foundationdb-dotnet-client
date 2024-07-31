@@ -189,14 +189,21 @@ namespace FoundationDB.Client
 
 		#region Encode()
 
-		/// <summary>Encode an array of items into an array of keys</summary>
+		/// <summary>Encodes an array of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, params T1[] items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}
 
-		/// <summary>Encode an array of items into an array of keys</summary>
+		/// <summary>Encodes a span of items into an array of keys</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, ReadOnlySpan<T1> items)
+		{
+			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
+		}
+
+		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IEnumerable<Slice> Encode<T1>(this ITypedKeySubspace<T1> self, IEnumerable<T1> items)
 		{

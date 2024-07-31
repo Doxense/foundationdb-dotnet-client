@@ -316,10 +316,11 @@ namespace FoundationDB.Layers.Messaging
 								tr.Annotate("Fetching body for task {0:P}", msg.Id);
 								var prefix = this.TaskStore.Partition.ByKey(msg.Id);
 								//TODO: replace this with a get_range ?
-								var data = await tr.GetValuesAsync(new [] {
+								var data = await tr.GetValuesAsync(
+								[
 									prefix.GetPrefix(),
 									prefix.Encode(TASK_META_SCHEDULED)
-								}).ConfigureAwait(false);
+								]).ConfigureAwait(false);
 
 								msg.Body = data[0];
 								msg.Scheduled = new DateTime(data[1].ToInt64(), DateTimeKind.Utc);

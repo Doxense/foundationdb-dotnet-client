@@ -28,6 +28,7 @@ namespace FoundationDB
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 
@@ -36,9 +37,49 @@ namespace FoundationDB
 
 		public delegate void Handler(ref SliceWriter writer, TValue item, TState state);
 
+		public static Slice[] Convert(SliceWriter writer, ReadOnlySpan<TValue> values, Handler handler, TState state)
+		{
+			Contract.Debug.Requires(handler != null);
+
+			//Note on performance:
+			// - we will reuse the same buffer for each temp key, and copy them into a slice buffer
+			// - doing it this way adds a memory copy (writer => buffer) but reduce the number of byte[] allocations (and reduce the GC overhead)
+
+			int start = writer.Position;
+
+			var buffer = new SliceBuffer();
+
+			// pre-allocate the final array with the correct size
+			var res = new Slice[values.Length];
+			for(int i = 0; i < values.Length; i++)
+			{
+				// reset position to just after the subspace prefix
+				writer.Position = start;
+
+				handler(ref writer, values[i], state);
+
+				// copy full key in the buffer
+				res[i] = buffer.Intern(writer.ToSlice());
+			}
+			return res;
+		}
+
 		public static Slice[] Convert(SliceWriter writer, IEnumerable<TValue> values, Handler handler, TState state)
 		{
 			Contract.Debug.Requires(values != null && handler != null);
+
+			// if we can extract a span, we can use a faster method!
+			switch (values)
+			{
+				case TValue[] arr:
+				{
+					return Convert(writer, arr.AsSpan(), handler, state);
+				}
+				case List<TValue> list:
+				{
+					return Convert(writer, CollectionsMarshal.AsSpan(list), handler, state);
+				}
+			}
 
 			//Note on performance:
 			// - we will reuse the same buffer for each temp key, and copy them into a slice buffer
@@ -81,6 +122,7 @@ namespace FoundationDB
 				return res.ToArray();
 			}
 		}
+
 	}
 
 }

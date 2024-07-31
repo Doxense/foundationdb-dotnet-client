@@ -165,6 +165,32 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples</summary>
 		[Pure]
+		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, ReadOnlySpan<TTuple> items)
+			where TTuple : IVarTuple
+		{
+			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items,
+				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of tuples</summary>
+		[Pure]
+		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, TTuple[] items)
+			where TTuple : IVarTuple
+		{
+			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items.AsSpan(),
+				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of tuples</summary>
+		[Pure]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, IEnumerable<TTuple> items)
 			where TTuple : IVarTuple
 		{
@@ -172,6 +198,32 @@ namespace FoundationDB.Client
 				self.OpenWriter(),
 				items,
 				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of tuples extracted from each elements</summary>
+		[Pure]
+		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, ReadOnlySpan<TSource> items, Func<TSource, TTuple> selector)
+			where TTuple : IVarTuple
+		{
+			return Batched<TSource, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items,
+				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of tuples extracted from each elements</summary>
+		[Pure]
+		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, TSource[] items, Func<TSource, TTuple> selector)
+			where TTuple : IVarTuple
+		{
+			return Batched<TSource, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items.AsSpan(),
+				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}
@@ -353,12 +405,60 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure]
+		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, ReadOnlySpan<T> items)
+		{
+			return Batched<T, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items,
+				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
+		[Pure]
+		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, T[] items)
+		{
+			return Batched<T, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items.AsSpan(),
+				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
+		[Pure]
 		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, IEnumerable<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
 				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each elements</summary>
+		[Pure]
+		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, ReadOnlySpan<TSource> items, Func<TSource, T> selector)
+		{
+			return Batched<TSource, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items,
+				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each elements</summary>
+		[Pure]
+		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, TSource[] items, Func<TSource, T> selector)
+		{
+			return Batched<TSource, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items.AsSpan(),
+				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}

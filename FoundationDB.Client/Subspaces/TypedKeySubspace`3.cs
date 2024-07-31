@@ -239,14 +239,21 @@ namespace FoundationDB.Client
 			return self.Encode(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
 		}
 
-		/// <summary>Encode an array of items into an array of keys</summary>
+		/// <summary>Encodes an array of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] Pack<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, params (T1?, T2?, T3?)[] items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}
 
-		/// <summary>Encode an array of items into an array of keys</summary>
+		/// <summary>Encodes a span of items into an array of keys</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] Pack<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, ReadOnlySpan<(T1?, T2?, T3?)> items)
+		{
+			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
+		}
+
+		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IEnumerable<Slice> Pack<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, IEnumerable<(T1?, T2?, T3?)> items)
 		{

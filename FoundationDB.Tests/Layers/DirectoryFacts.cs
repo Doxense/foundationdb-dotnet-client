@@ -1157,8 +1157,10 @@ namespace FoundationDB.Client.Tests
 					ShouldFail(() => partition.Encode(123, "hello", false, "world"));
 					ShouldFail(() => partition.Encode<object>(123));
 
+					ShouldFail(() => partition.EncodeMany<int>([ 123, 456, 789 ]));
 					ShouldFail(() => partition.EncodeMany<int>(new[] { 123, 456, 789 }));
 					ShouldFail(() => partition.EncodeMany<int>((IEnumerable<int>) new[] { 123, 456, 789 }));
+					ShouldFail(() => partition.EncodeMany<object>([ 123, "hello", true ]));
 					ShouldFail(() => partition.EncodeMany<object>(new object[] { 123, "hello", true }));
 					ShouldFail(() => partition.EncodeMany<object>((IEnumerable<object>) new object[] { 123, "hello", true }));
 
