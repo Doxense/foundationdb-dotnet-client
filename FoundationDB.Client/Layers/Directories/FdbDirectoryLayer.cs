@@ -1383,8 +1383,8 @@ namespace FoundationDB.Client
 			/// <param name="tr">Parent transaction</param>
 			/// <param name="state"></param>
 			/// <param name="path">Absolute path to the subspace</param>
-			/// <param name="subspace">If the method returns <c>true</c>, receives the cached subspace instance (or null if the cache knows that the subspace does not exist).</param>
-			/// <param name="validationCain">If the method returns <c>true</c>, receives the validation chain</param>
+			/// <param name="subspace">If the method returns <see langword="true"/>, receives the cached subspace instance (or null if the cache knows that the subspace does not exist).</param>
+			/// <param name="validationCain">If the method returns <see langword="true"/>, receives the validation chain</param>
 			/// <returns>True if the cache contains information about the subspace.</returns>
 			public bool TryGetSubspace(IFdbReadOnlyTransaction tr, State state, FdbPath path, out FdbDirectorySubspace? subspace, [MaybeNullWhen(false)] out IReadOnlyList<KeyValuePair<Slice, Slice>> validationCain)
 			{

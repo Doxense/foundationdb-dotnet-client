@@ -254,8 +254,8 @@ namespace FoundationDB.Client.Status
 			m_data = data;
 		}
 
-		/// <summary>Returns <c>true</c> if this section was present in the parent</summary>
-		/// <remarks>If <c>false</c>, the content of this instance should be discarded</remarks>
+		/// <summary>Returns <see langword="true"/> if this section was present in the parent</summary>
+		/// <remarks>If <see langword="false"/>, the content of this instance should be discarded</remarks>
 		public bool Exists() => m_data != null;
 
 		protected JsonObject? GetObject(string field) => m_data?.GetObjectOrDefault(field);

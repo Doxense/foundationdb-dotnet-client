@@ -35,13 +35,11 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public interface IFdbTransaction : IFdbReadOnlyTransaction
 	{
-		/// <summary>Returns <c>true</c> if this transaction instance only allows read operations</summary>
+		/// <summary>Returns <see langword="true"/> if this transaction instance only allows read operations</summary>
 		/// <remarks>Attempting to call a write method on a read-only transaction will immediately throw an exception</remarks>
 		bool IsReadOnly { get; }
 
-		/// <summary>
-		/// Ensure that the transaction is in a valid state for issuing write operations.
-		/// </summary>
+		/// <summary>Ensures that the transaction is in a valid state for issuing write operations.</summary>
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>

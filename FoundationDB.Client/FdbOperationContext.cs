@@ -334,7 +334,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="TState">Type of the instance</typeparam>
 		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
 		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
-		/// <returns>Returns <c>true</c> if the value was found and removed; otherwise, false.</returns>
+		/// <returns>Returns <see langword="true"/> if the value was found and removed; otherwise, false.</returns>
 		public bool RemoveLocalData<TState, TToken>(TToken key)
 			where TState : class
 			where TToken : notnull
@@ -357,7 +357,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
 		/// <param name="key">Value of the key. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
 		/// <param name="state">Receive the value if it was found; otherwise, <c>default(<typeparamref name="TState"/>)</c></param>
-		/// <returns>Returns <c>true</c> if the value was found; otherwise, <c>false</c>.</returns>
+		/// <returns>Returns <see langword="true"/> if the value was found; otherwise, <see langword="false"/>.</returns>
 		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
 		public bool TryGetLocalData<TState, TToken>(TToken key, [NotNullWhen(true)] out TState? state)
 			where TState : class

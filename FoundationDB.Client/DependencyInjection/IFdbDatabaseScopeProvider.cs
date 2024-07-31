@@ -60,7 +60,7 @@ namespace FoundationDB.Client
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
 		IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default);
 
-		/// <summary>If <c>true</c>, the database instance is ready. If <c>false</c>, the provider is either not started, or the connection is still pending.</summary>
+		/// <summary>If <see langword="true"/>, the database instance is ready. If <see langword="false"/>, the provider is either not started, or the connection is still pending.</summary>
 		bool IsAvailable { get; }
 
 		/// <summary>Cancellation token that is tied to the lifetime of this scope</summary>

@@ -266,7 +266,7 @@ namespace FoundationDB.Client
 		/// <summary>Log of all operations performed on this transaction (if logging was enabled on the database or transaction)</summary>
 		public FdbTransactionLog? Log => m_log;
 
-		/// <summary>Return <c>true</c> if logging is enabled on this transaction</summary>
+		/// <summary>Return <see langword="true"/> if logging is enabled on this transaction</summary>
 		/// <remarks>
 		/// If logging is enabled, the transaction will track all the operations performed by this transaction until it completes.
 		/// The log can be accessed via the <see cref="Log"/> property.
@@ -328,7 +328,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the observed read version, if it was requested at some point</summary>
-		/// <param name="readVersion">If the methods returns <c>true</c>, receives the read version that a call to <see cref="GetReadVersionAsync"/> produced</param>
+		/// <param name="readVersion">If the methods returns <see langword="true"/>, receives the read version that a call to <see cref="GetReadVersionAsync"/> produced</param>
 		internal bool TryGetCachedReadVersion(out long readVersion)
 		{
 			lock (this)

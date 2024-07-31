@@ -50,7 +50,7 @@ namespace FoundationDB.Client
 
 		IKeyEncoding ISubspaceLocation.Encoding => TuPack.Encoding;
 
-		/// <summary>Returns <c>true</c> if this location points to a directory partition.</summary>
+		/// <summary>Returns <see langword="true"/> if this location points to a directory partition.</summary>
 		public bool IsPartition { get; }
 
 		FdbDirectorySubspaceLocation IFdbDirectory.Location => this;

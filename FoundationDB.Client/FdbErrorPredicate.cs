@@ -35,13 +35,13 @@ namespace FoundationDB.Client
 
 		None = 0,
 
-		/// <summary>Returns <c>true</c> if the error indicates the operations in the transactions should be retried because of transient error.</summary>
+		/// <summary>Returns <see langword="true"/> if the error indicates the operations in the transactions should be retried because of transient error.</summary>
 		Retryable = 50000,
 
-		/// <summary>Returns <c>true</c> if the error indicates the transaction may have succeeded, though not in a way the system can verify.</summary>
+		/// <summary>Returns <see langword="true"/> if the error indicates the transaction may have succeeded, though not in a way the system can verify.</summary>
 		MaybeCommitted = 50001,
 
-		/// <summary>Returns <c>true</c> if the error indicates the transaction has not committed, though in a way that can be retried.</summary>
+		/// <summary>Returns <see langword="true"/> if the error indicates the transaction has not committed, though in a way that can be retried.</summary>
 		RetryableNotCommited = 50002,
 
 	}

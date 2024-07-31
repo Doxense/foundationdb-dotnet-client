@@ -52,7 +52,7 @@ namespace FoundationDB.Client
 		/// <summary>Context of this transaction.</summary>
 		FdbOperationContext Context { get; }
 
-		/// <summary>If <c>true</c>, the transaction is operating in Snapshot mode</summary>
+		/// <summary>If <see langword="true"/>, the transaction is operating in Snapshot mode</summary>
 		bool IsSnapshot { get; }
 
 		/// <summary>Return a Snapshot version of this transaction, or the transaction itself it is already operating in Snapshot mode.</summary>
@@ -225,7 +225,7 @@ namespace FoundationDB.Client
 		/// <summary>Log of all operations performed on this transaction (if logging was enabled on the database or transaction)</summary>
 		FdbTransactionLog? Log { get; }
 
-		/// <summary>Return <c>true</c> if logging is enabled on this transaction</summary>
+		/// <summary>Return <see langword="true"/> if logging is enabled on this transaction</summary>
 		/// <remarks>
 		/// If logging is enabled, the transaction will track all the operations performed by this transaction until it completes.
 		/// The log can be accessed via the <see cref="Log"/> property.

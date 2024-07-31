@@ -631,7 +631,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
+		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement32(this IFdbTransaction trans, Slice key, bool clearIfZero)
 		{
@@ -645,7 +645,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
+		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
 		{
@@ -691,7 +691,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
+		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement64(this IFdbTransaction trans, Slice key, bool clearIfZero)
 		{
@@ -705,7 +705,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
+		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
 		{

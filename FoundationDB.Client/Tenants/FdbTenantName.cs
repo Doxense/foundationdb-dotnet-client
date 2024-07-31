@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Test if this name is a valid tenant name</summary>
-		/// <returns><c>true</c> if the name is not empty and does not start with <c>\xFF</c></returns>
+		/// <returns><see langword="true"/> if the name is not empty and does not start with <c>\xFF</c></returns>
 		public bool IsValid => IsValidName(this.Value.Span);
 
 		public static Slice EnsureIsValidName(ReadOnlySpan<byte> name, string? paramName = null)
@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Test if a tenant name is valid</summary>
-		/// <returns><c>true</c> if the name is not empty and does not start with <c>\xFF</c></returns>
+		/// <returns><see langword="true"/> if the name is not empty and does not start with <c>\xFF</c></returns>
 		public static bool IsValidName(ReadOnlySpan<byte> name)
 		{
 			// cannot be empty
@@ -101,8 +101,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Try decoding the name as a Tuple</summary>
-		/// <param name="tuple">Receives the decoded tuple, if the method returns <c>true</c></param>
-		/// <returns>Returns <c>true</c> if the name is a valid tuple encoding; otherwise, <c>false</c></returns>
+		/// <param name="tuple">Receives the decoded tuple, if the method returns <see langword="true"/></param>
+		/// <returns>Returns <see langword="true"/> if the name is a valid tuple encoding; otherwise, <see langword="false"/></returns>
 		public bool TryGetTuple([MaybeNullWhen(false)] out IVarTuple tuple)
 		{
 			// if we already know the tuple, return it as-is

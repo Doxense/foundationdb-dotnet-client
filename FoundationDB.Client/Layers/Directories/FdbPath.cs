@@ -53,7 +53,7 @@ namespace FoundationDB.Client
 		/// <summary>Segments of this path</summary>
 		public readonly ReadOnlyMemory<FdbPathSegment> Segments;
 
-		/// <summary>If <c>true</c>, this is an absolute path (ex: "/Foo/Bar"); otherwise, this a relative path ("Foo/Bar")</summary>
+		/// <summary>If <see langword="true"/>, this is an absolute path (ex: "/Foo/Bar"); otherwise, this a relative path ("Foo/Bar")</summary>
 		public readonly bool IsAbsolute;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -152,8 +152,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the relative path that, if added to <paramref name="parent"/>, would be equal to the current path.</summary>
 		/// <param name="parent">Parent path. Must be of the same type (absolute/relative) as the current path.</param>
-		/// <param name="relative">If the method returns <c>true</c>, receives the relative path from <paramref name="parent"/> to the current path.</param>
-		/// <returns>Returns <c>true</c> if <paramref name="parent"/> is an ancestor or equal to the current path; otherwise, returns <c>false</c>.</returns>
+		/// <param name="relative">If the method returns <see langword="true"/>, receives the relative path from <paramref name="parent"/> to the current path.</param>
+		/// <returns>Returns <see langword="true"/> if <paramref name="parent"/> is an ancestor or equal to the current path; otherwise, returns <see langword="false"/>.</returns>
 		public bool TryGetRelative(FdbPath parent, out FdbPath relative)
 		{
 			if (this.IsAbsolute)
@@ -195,7 +195,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Get the parent path of the current path, if it is not empty.</summary>
 		/// <param name="parent">Receive the path of the parent, if there is one.</param>
-		/// <returns>If <c>true</c>, <paramref name="parent"/> contains the parent path. If <c>false</c>, the current path was <see cref="Empty"/> or the <see cref="Root"/>, and does not have a parent.</returns>>
+		/// <returns>If <see langword="true"/>, <paramref name="parent"/> contains the parent path. If <see langword="false"/>, the current path was <see cref="Empty"/> or the <see cref="Root"/>, and does not have a parent.</returns>>
 		/// <example>"/Foo/Bar/Baz".TryGetParent() => (true, "/Foo/Bar")</example>
 		public bool TryGetParent(out FdbPath parent)
 		{
@@ -392,7 +392,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the relative part of this path inside its <paramref name="parent"/></summary>
 		/// <param name="parent">Parent of this path</param>
 		/// <param name="relativePath">If this path is equal to, or a child or <paramref name="parent"/>, receives the relative path; otherwise, <see cref="Empty"/>.</param>
-		/// <returns>Returns <c>true</c> if path is equal to, or a child of <paramref name="parent"/>; otherwise, false.</returns>
+		/// <returns>Returns <see langword="true"/> if path is equal to, or a child of <paramref name="parent"/>; otherwise, false.</returns>
 		/// <remarks>If this path is equal to <paramref name="parent"/>, still returns true but <paramref name="relativePath"/> will be empty.</remarks>
 		/// <example>"/Foo/Bar/Baz".TryGetRelativePath("/Foo") => (true, "Bar/Baz")</example>
 		public bool TryGetRelativePath(FdbPath parent, out FdbPath relativePath)
@@ -425,9 +425,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a path into a string representation</summary>
 		/// <param name="path">Path to encode</param>
-		/// <param name="namesOnly">If <c>true</c>, ommit the layer ids in the resulting string.</param>
+		/// <param name="namesOnly">If <see langword="true"/>, ommit the layer ids in the resulting string.</param>
 		/// <returns>String representation of the path (with or without the layer id)</returns>
-		/// <remarks>If <paramref name="namesOnly"/> is <c>true</c>, the result will not <see cref="Parse(string)">round-trip</see> into the original path (layer ids will be lost).</remarks>
+		/// <remarks>If <paramref name="namesOnly"/> is <see langword="true"/>, the result will not <see cref="Parse(string)">round-trip</see> into the original path (layer ids will be lost).</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string Encode(FdbPath path, bool namesOnly = false)
 			=> FormatPath(path.Segments.Span, path.IsAbsolute, namesOnly);

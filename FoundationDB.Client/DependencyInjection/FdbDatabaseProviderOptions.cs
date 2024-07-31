@@ -42,16 +42,16 @@ namespace FoundationDB.DependencyInjection
 
 		/// <summary>Specifices whether we should automatically connect to the cluster, or if <see cref="IFdbDatabaseProvider.Start"/> must be called explicitly</summary>
 		/// <remarks>
-		/// <para>If <c>true</c> (by default), the first attempt to get the database instance will start the connection, if it is not already connected.</para>
-		/// <para>If <c>false</c>, the application must call <see cref="IFdbDatabaseProvider.Start"/> explicitely sometimes during startup</para>
+		/// <para>If <see langword="true"/> (by default), the first attempt to get the database instance will start the connection, if it is not already connected.</para>
+		/// <para>If <see langword="false"/>, the application must call <see cref="IFdbDatabaseProvider.Start"/> explicitely sometimes during startup</para>
 		/// <para>Note that if autostart is enabled, the availability of the cluster will not be observed until the first transaction is started which could hide connectivity issues until later during the process lifetime.</para>
 		/// </remarks>
 		public bool AutoStart { get; set; } = true;
 
 		/// <summary>Specifies whether the network loop should be automatically stopped when the database provider is disposed.</summary>
 		/// <remarks>
-		/// <para>If <c>true</c>, disposing the database provider singleton will also stop the Network thread of the FoundationDB client and ensure any pending work is aborted safely.</para>
-		/// <para>If <c>false</c> (default), disposing the database provider singleton will let the Network thread running (if it has been started).</para>
+		/// <para>If <see langword="true"/>, disposing the database provider singleton will also stop the Network thread of the FoundationDB client and ensure any pending work is aborted safely.</para>
+		/// <para>If <see langword="false"/> (default), disposing the database provider singleton will let the Network thread running (if it has been started).</para>
 		/// <para>Please note that, once stopped, it is impossible to restart the Network thread. This is not a concern for traditionnal web host or API process, but prevents any other use cases where the provider must be restarted multiple times, like during unit testing.</para>
 		/// </remarks>
 		public bool AutoStop { get; set; }
