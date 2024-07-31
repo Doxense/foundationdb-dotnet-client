@@ -76,13 +76,13 @@ namespace FoundationDB.Client.Tests
 			// Missing/Invalid cluster files should fail with "NoClusterFileFound"
 
 			// file not found
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @".\file_not_found.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @".\file_not_found.cluster", Root = FdbPath.Root["Tests"] }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
 
 			// unreachable path
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"C:\..\..\fdb.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"C:\..\..\fdb.cluster", Root = FdbPath.Root["Tests"] }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 
 			// malformed path
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"FOO:\invalid$path!/fdb.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"FOO:\invalid$path!/fdb.cluster", Root = FdbPath.Root["Tests"] }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 		}
 
 		[Test]
@@ -91,15 +91,22 @@ namespace FoundationDB.Client.Tests
 			// Using a corrupted cluster file should fail with "ConnectionStringInvalid"
 
 			// write some random bytes into a cluster file
+			var rnd = new Random();
+			var bytes = new byte[128];
+			rnd.NextBytes(bytes);
 			string path = System.IO.Path.GetTempFileName();
 			try
 			{
-				var rnd = new Random();
-				var bytes = new byte[128];
-				rnd.NextBytes(bytes);
 				await System.IO.File.WriteAllBytesAsync(path, bytes, this.Cancellation);
 
-				await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = path }, this.Cancellation), FdbError.ConnectionStringInvalid, "Should fail if file is corrupted");
+				//note: we have to perform at least one read operation, before the client actually attempts to connect to the cluster,
+				// so we have to open with a custom Root path (the directory layer will have to read from the cluster to find the prefix!)
+
+				await TestHelpers.AssertThrowsFdbErrorAsync(
+					() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = path, Root = FdbPath.Root["Tests"] }, this.Cancellation),
+					FdbError.ConnectionStringInvalid,
+					"Should fail if file is corrupted"
+				);
 			}
 			finally
 			{
