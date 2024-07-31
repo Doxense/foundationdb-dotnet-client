@@ -128,6 +128,16 @@ namespace FoundationDB.DependencyInjection
 				//TODO: check if the file exists?
 			}
 
+			if (!string.IsNullOrEmpty(options.ConnectionOptions.ConnectionString))
+			{
+				//TODO: check that it is a valid connection string!
+
+				if (!string.IsNullOrEmpty(options.ConnectionOptions.ClusterFile))
+				{
+					res.AddError($"Both {nameof(FdbConnectionOptions.ConnectionString)} and {nameof(FdbConnectionOptions.ClusterFile)} cannot be set at the same time", nameof(options.ConnectionOptions.ConnectionString));
+				}
+			}
+
 			if (!string.IsNullOrEmpty(options.NativeLibraryPath))
 			{
 				//note: at the moment I don't know of any method in the BCL that checks a path for validity (!= existence), but calling the ctor of FileInfo will throw if there is something is wrong with it!
