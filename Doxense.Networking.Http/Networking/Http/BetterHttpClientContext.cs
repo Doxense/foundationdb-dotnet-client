@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
@@ -37,9 +36,6 @@ namespace Doxense.Networking.Http
 	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
-	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization.Json;
-	using JetBrains.Annotations;
 	using Microsoft.IO;
 	using OpenTelemetry.Trace;
 

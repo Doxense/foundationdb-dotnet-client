@@ -8,9 +8,7 @@
 
 namespace Aspire.Hosting.ApplicationModel
 {
-	using System;
 	using System.Data.Common;
-	using FoundationDB.Client;
 
 	/// <summary>Represents an externally hosted FoundationDB Cluster in a distributed application.</summary>
 	public class FdbConnectionResource : Resource, IFdbResource

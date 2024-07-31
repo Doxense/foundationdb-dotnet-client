@@ -26,13 +26,10 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 	using System.Net.Http;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Json;
-	using JetBrains.Annotations;
 
 	/// <summary>Generic HTTP protocol that exposes all HTTP verbes without any custom processing</summary>
 	[PublicAPI]

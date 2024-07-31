@@ -2,11 +2,9 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
-	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Net;
 	using System.Net.Http;
@@ -19,8 +17,6 @@ namespace Doxense.Networking.Http
 	using System.Security.Cryptography.X509Certificates;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Version non-"protected" de <see cref="System.Net.Http.HttpClientHandler"/></summary>
 	[PublicAPI]

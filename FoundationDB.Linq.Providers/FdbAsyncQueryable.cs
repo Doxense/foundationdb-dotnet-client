@@ -31,13 +31,11 @@ namespace FoundationDB.Linq
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Expressions;
 	using FoundationDB.Linq.Providers;
-	using JetBrains.Annotations;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>
 	[PublicAPI]

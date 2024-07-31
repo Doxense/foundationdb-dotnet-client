@@ -28,7 +28,6 @@ namespace FoundationDB.Linq.Expressions
 {
 	using System;
 	using System.Collections.Generic;
-	using Doxense.Diagnostics.Contracts;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;

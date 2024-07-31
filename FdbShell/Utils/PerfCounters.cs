@@ -26,7 +26,6 @@
 
 namespace FdbShell
 {
-	using System;
 	using System.Diagnostics;
 
 	public static class PerfCounters

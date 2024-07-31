@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 	using System.Threading.Tasks;
 
 	public interface IBetterHttpFilter

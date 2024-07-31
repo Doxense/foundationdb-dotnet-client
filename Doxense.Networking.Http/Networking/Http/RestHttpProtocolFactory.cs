@@ -26,8 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
 	[PublicAPI]

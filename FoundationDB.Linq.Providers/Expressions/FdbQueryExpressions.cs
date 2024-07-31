@@ -32,7 +32,6 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 
 	/// <summary>Helper class to construct Query Expressions</summary>

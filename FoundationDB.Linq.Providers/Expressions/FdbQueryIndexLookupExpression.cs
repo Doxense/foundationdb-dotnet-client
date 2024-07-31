@@ -30,7 +30,6 @@ namespace FoundationDB.Linq.Expressions
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq.Expressions;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 

@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Layers.Indexing;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Collections.ObjectModel;

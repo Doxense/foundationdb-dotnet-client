@@ -30,7 +30,6 @@
 
 namespace FdbShell
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
@@ -39,8 +38,6 @@ namespace FdbShell
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
 	using Mono.Options;
 	using Mono.Terminal;
 

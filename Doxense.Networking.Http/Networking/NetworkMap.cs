@@ -36,9 +36,7 @@ namespace Doxense.Networking
 	using System.Net.Sockets;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Networking.Http;
-	using JetBrains.Annotations;
 	using NodaTime;
 
 	/// <summary>Implementation of an <see cref="INetworkMap"/> that interacts a real network</summary>

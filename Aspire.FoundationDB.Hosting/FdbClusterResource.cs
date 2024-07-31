@@ -8,10 +8,8 @@
 
 namespace Aspire.Hosting.ApplicationModel
 {
-	using System;
 	using System.Data.Common;
 	using System.Globalization;
-	using FoundationDB.Client;
 
 	/// <summary>Represents a FoundationDB cluster resource in a distributed application.</summary>
 	/// <remarks>During local developement, a local docker image is used to run a single-node cluster.</remarks>

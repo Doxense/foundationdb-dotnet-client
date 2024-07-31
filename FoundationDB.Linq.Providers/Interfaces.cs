@@ -32,7 +32,6 @@ namespace FoundationDB.Linq
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Expressions;
-	using JetBrains.Annotations;
 
 	/// <summary>Base interface of all queryable objects</summary>
 	public interface IFdbAsyncQueryable

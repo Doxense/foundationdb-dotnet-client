@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System;
 	using System.Buffers;
 	using System.Diagnostics;
 	using System.IO;
@@ -35,9 +34,7 @@ namespace Doxense.Serialization.Json
 	using System.Net.Http.Headers;
 	using System.Text;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
-	using JetBrains.Annotations;
 	using OpenTelemetry.Trace;
 
 	/// <summary><see cref="HttpContent"/> that uses <see cref="CrystalJson"/> to serialize JSON payloads</summary>

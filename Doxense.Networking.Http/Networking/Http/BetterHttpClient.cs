@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Net;
@@ -36,7 +35,6 @@ namespace Doxense.Networking.Http
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
 

@@ -26,13 +26,10 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 	using System.Net.Http;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization.Json;
 
 	public static class CrystalJsonContentExtensions
 	{
@@ -53,7 +50,7 @@ namespace Doxense.Networking.Http
 			return ReadFromJsonObjectAsyncCore(content, sourceEncoding, settings, ct);
 		}
 
-		private static async Task<JsonObject> ReadFromJsonObjectAsyncCore(HttpContent content, Encoding? sourceEncoding, CrystalJsonSettings? settings, CancellationToken ct)
+		private static async Task<JsonObject?> ReadFromJsonObjectAsyncCore(HttpContent content, Encoding? sourceEncoding, CrystalJsonSettings? settings, CancellationToken ct)
 		{
 			var bytes  = await content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
 

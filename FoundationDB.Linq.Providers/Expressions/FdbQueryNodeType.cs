@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
 
 	/// <summary>Shape of a LINQ query (single result, list of results, ...)</summary>
 	public enum FdbQueryShape

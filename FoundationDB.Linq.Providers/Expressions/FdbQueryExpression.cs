@@ -30,7 +30,6 @@ namespace FoundationDB.Linq.Expressions
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 
 	/// <summary>Base class of all query expression extensions</summary>

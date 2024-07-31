@@ -29,7 +29,6 @@
 
 namespace FdbShell
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
@@ -39,8 +38,6 @@ namespace FdbShell
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
 
 	public static class BasicCommands
 	{

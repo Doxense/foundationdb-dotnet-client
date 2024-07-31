@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 
 	public record RestHttpClientOptions : BetterHttpClientOptions
 	{

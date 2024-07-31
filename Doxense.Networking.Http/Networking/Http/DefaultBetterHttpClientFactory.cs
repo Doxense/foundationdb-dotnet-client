@@ -26,13 +26,10 @@
 
 namespace Doxense.Networking.Http
 {
-	using System;
 	using System.Net.Http;
-	using Doxense.Diagnostics.Contracts;
 	using Microsoft.Extensions.Logging;
 	using Microsoft.Extensions.Logging.Abstractions;
 	using Microsoft.Extensions.Options;
-	using static Doxense.Networking.Http.BetterHttpClient;
 
 	public class DefaultBetterHttpClientFactory : IBetterHttpClientFactory
 	{
@@ -66,7 +63,7 @@ namespace Doxense.Networking.Http
 			var handler = this.Map.CreateBetterHttpHandler(hostAddress, options);
 
 			// add our own delegating handler that will be able to hook into the request lifecycle
-			handler = new MagicalHandler(handler);
+			handler = new BetterHttpClient.MagicalHandler(handler);
 
 			// add any optional wrappers on top of that
 			if (options.Handlers.Count > 0)

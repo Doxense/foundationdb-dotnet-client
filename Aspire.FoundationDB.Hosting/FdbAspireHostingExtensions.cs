@@ -8,16 +8,12 @@
 
 namespace Aspire.Hosting
 {
-	using System;
 	using System.Globalization;
 	using System.Net;
 	using System.Net.Sockets;
 	using System.Text;
 	using Aspire.Hosting.ApplicationModel;
 	using Aspire.Hosting.Publishing;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Provides extension methods for adding FoundationDB resources to an <see cref="IDistributedApplicationBuilder"/>.</summary>
 	[PublicAPI]
@@ -147,6 +143,7 @@ namespace Aspire.Hosting
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
+		/// <param name="port">Custom port for the docker container</param>
 		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
 		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, int? port = null, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
@@ -242,7 +239,6 @@ namespace Aspire.Hosting
 					// we are the coordinator so point it back to itself
 					context.EnvironmentVariables["FDB_COORDINATOR_PORT"] = ep.Port.ToString(CultureInfo.InvariantCulture);
 				});
-			;
 
 			return cluster;
 		}

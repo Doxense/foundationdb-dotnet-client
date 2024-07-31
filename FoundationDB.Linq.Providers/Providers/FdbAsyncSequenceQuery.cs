@@ -24,14 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-
 namespace FoundationDB.Linq.Providers
 {
-	using FoundationDB.Client;
-	using FoundationDB.Linq.Expressions;
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Linq;
+	using FoundationDB.Client;
+	using FoundationDB.Linq.Expressions;
 
 	/// <summary>Async LINQ query that returns an async sequence of items</summary>
 	/// <typeparam name="T">Type of the items in the sequence</typeparam>

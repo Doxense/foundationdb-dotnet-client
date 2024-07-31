@@ -29,7 +29,6 @@ namespace FoundationDB.Linq.Expressions
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 
 	/// <summary>Mode of execution of a merge operation</summary>

@@ -28,7 +28,6 @@ namespace FoundationDB.Linq.Providers
 {
 	using FoundationDB.Client;
 	using FoundationDB.Linq.Expressions;
-	using System;
 
 	/// <summary>Query that returns a single element</summary>
 	/// <typeparam name="T">Type of the element returned</typeparam>
