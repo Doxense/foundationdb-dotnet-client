@@ -12,14 +12,20 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.Metrics;
+	using OpenTelemetry.Metrics;
 
-	public static class FdbMetricsReporter
+	public static class FdbClientInstrumentation
 	{
 
-		private const string METER_NAME = "FdbClient";
-		private const string VERSION = "0.1.0"; //TODO: which version?
+		public const string ActivityName = "FoundationDB.Client";
+		public const string ActivityVersion = "0.1.0"; //TODO: which version?
+		public const string MeterName = "FoundationDB.Client";
+		public const string MeterVersion = "0.1.0"; //TODO: which version?
+		public const string HealthCheckName = "FoundationDB.Client";
 
-		private static Meter Meter { get; } = new(METER_NAME, VERSION); //TODO: version?
+		internal static readonly ActivitySource ActivitySource = new(ActivityName, ActivityVersion);
+
+		private static Meter Meter { get; } = new(MeterName, MeterVersion); //TODO: version?
 
 		private static UpDownCounter<int> TransactionsExecuting { get; } = Meter.CreateUpDownCounter<int>(
 			"db.fdb.client.transactions.executing",

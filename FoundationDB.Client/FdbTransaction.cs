@@ -630,7 +630,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice> PerformGetOperation(ReadOnlySpan<byte> key, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet(this);
+			FdbClientInstrumentation.ReportGet(this);
 
 			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot);
 
@@ -644,7 +644,7 @@ namespace FoundationDB.Client
 
 		private Task<bool> PerformGetOperation(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter,  bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet(this);
+			FdbClientInstrumentation.ReportGet(this);
 
 			return m_log == null ? m_handler.TryGetAsync(key, valueWriter, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot, valueWriter);
 
@@ -672,7 +672,7 @@ namespace FoundationDB.Client
 
 		private Task<(FdbValueCheckResult Result, Slice Actual)> PerformValueCheckOperation(ReadOnlySpan<byte> key, Slice expected, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet(this); //REVIEW: use a specific operation type for this?
+			FdbClientInstrumentation.ReportGet(this); //REVIEW: use a specific operation type for this?
 
 			return m_log == null ? m_handler.CheckValueAsync(key, expected, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, expected, snapshot);
 
@@ -704,7 +704,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice[]> PerformGetValuesOperation(ReadOnlySpan<Slice> keys, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGet(this, keys.Length);
+			FdbClientInstrumentation.ReportGet(this, keys.Length);
 
 			return m_log == null ? m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, snapshot);
 
@@ -755,7 +755,7 @@ namespace FoundationDB.Client
 			FdbReadMode read,
 			int iteration)
 		{
-			FdbMetricsReporter.ReportGetRange(this);
+			FdbClientInstrumentation.ReportGetRange(this);
 
 			return m_log == null
 				? m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot, m_cancellation)
@@ -843,7 +843,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice> PerformGetKeyOperation(KeySelector selector, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGetKey(this);
+			FdbClientInstrumentation.ReportGetKey(this);
 
 			return m_log == null ? m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selector, snapshot);
 
@@ -879,7 +879,7 @@ namespace FoundationDB.Client
 
 		private Task<Slice[]> PerformGetKeysOperation(ReadOnlySpan<KeySelector> selectors, bool snapshot)
 		{
-			FdbMetricsReporter.ReportGetKey(this, selectors.Length);
+			FdbClientInstrumentation.ReportGetKey(this, selectors.Length);
 
 			return m_log == null ? m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selectors, snapshot);
 
@@ -911,7 +911,7 @@ namespace FoundationDB.Client
 
 		private void PerformSetOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
-			FdbMetricsReporter.ReportSet(this);
+			FdbClientInstrumentation.ReportSet(this);
 
 			if (m_log == null)
 			{
@@ -1071,7 +1071,7 @@ namespace FoundationDB.Client
 
 		private void PerformAtomicOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType type)
 		{
-			FdbMetricsReporter.ReportAtomicOp(this, type);
+			FdbClientInstrumentation.ReportAtomicOp(this, type);
 
 			if (m_log == null)
 			{
@@ -1110,7 +1110,7 @@ namespace FoundationDB.Client
 
 		private void PerformClearOperation(ReadOnlySpan<byte> key)
 		{
-			FdbMetricsReporter.ReportClear(this);
+			FdbClientInstrumentation.ReportClear(this);
 
 			if (m_log == null)
 			{
@@ -1150,7 +1150,7 @@ namespace FoundationDB.Client
 
 		private void PerformClearRangeOperation(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
-			FdbMetricsReporter.ReportClearRange(this);
+			FdbClientInstrumentation.ReportClearRange(this);
 
 			if (m_log == null)
 			{

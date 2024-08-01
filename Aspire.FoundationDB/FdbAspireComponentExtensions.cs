@@ -21,14 +21,12 @@ namespace Microsoft.Extensions.Hosting
 	using Microsoft.Extensions.Configuration;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Diagnostics.HealthChecks;
-	using OpenTelemetry.Metrics;
+	using OpenTelemetry.Trace;
 
 	/// <summary>Provides extension methods for adding FoundationDB to the local DI container.</summary>
 	[PublicAPI]
 	public static class FdbAspireComponentExtensions
 	{
-
-		private const string ActivitySourceName = "FoundationDb.Client";
 
 		private const string DefaultConfigSectionName = "Aspire:FoundationDb:Client";
 
@@ -251,13 +249,13 @@ namespace Microsoft.Extensions.Hosting
 			if (!settings.DisableTracing)
 			{
 				builder.Services.AddOpenTelemetry()
-					.WithTracing(traceBuilder => traceBuilder.AddSource(ActivitySourceName));
+					.WithTracing(traceBuilder => traceBuilder.AddFoundationDbInstrumentation());
 			}
 
 			if (!settings.DisableHealthChecks)
 			{
 				var check = new HealthCheckRegistration(
-					"FoundationDb.Client",
+					FdbClientInstrumentation.HealthCheckName,
 					sp =>
 					{
 						try
@@ -288,27 +286,7 @@ namespace Microsoft.Extensions.Hosting
 			if (!settings.DisableMetrics)
 			{
 				builder.Services.AddOpenTelemetry()
-					.WithMetrics((meterProviderBuilder) =>
-					{
-						meterProviderBuilder
-							.AddMeter("FdbClient")
-							.AddView("db.fdb.client.transactions.duration",
-								new ExplicitBucketHistogramConfiguration
-								{
-									Boundaries = [ 0, 0.001, 0.0025, 0.005, 0.0075, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10 ],
-								})
-							.AddView("db.fdb.client.operations.duration",
-								new ExplicitBucketHistogramConfiguration
-								{
-									Boundaries = [ 0, 0.001, 0.0025, 0.005, 0.0075, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10 ],
-								})
-							.AddView("db.fdb.client.operations.size",
-								new ExplicitBucketHistogramConfiguration
-								{
-									Boundaries = [ 0, 10, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000, 5_000_000, 10_000_000 ]
-								})
-							;
-					});
+					.WithMetrics((meterBuilder) => meterBuilder.AddFoundationDbInstrumentation());
 			}
 
 			return builder;

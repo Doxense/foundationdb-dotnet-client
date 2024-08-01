@@ -48,9 +48,6 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public sealed class FdbOperationContext : IDisposable
 	{
-		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
-
-		private static readonly ActivitySource ActivitySource = new("FoundationDB.Client");
 
 		/// <summary>The database used by the operation</summary>
 		public IFdbDatabase Database => m_db;
@@ -746,7 +743,7 @@ namespace FoundationDB.Client
 			var targetName = PrettifyTargetName((handler.Target?.GetType() ?? handler.Method.DeclaringType)?.GetFriendlyName());
 			var methodName = PrettifyMethodName(handler.Method.Name);
 
-			using var mainActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordTransactions) ? ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite", kind: ActivityKind.Client) : null;
+			using var mainActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordTransactions) ? FdbClientInstrumentation.ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite", kind: ActivityKind.Client) : null;
 			context.Activity = mainActivity;
 
 			bool reportTransStarted = false;
@@ -781,7 +778,7 @@ namespace FoundationDB.Client
 						if (trans.IsSnapshot) mainActivity.SetTag("db.fdb.trans.snapshot", true);
 					}
 
-					FdbMetricsReporter.ReportTransactionStart(context, trans);
+					FdbClientInstrumentation.ReportTransactionStart(context, trans);
 					reportTransStarted = true;
 
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
@@ -790,7 +787,7 @@ namespace FoundationDB.Client
 						bool hasRunValueChecks = false;
 						result = default!;
 
-						using var attemptActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordOperations) ? ActivitySource.StartActivity(targetName + "::" + methodName, kind: ActivityKind.Client) : null;
+						using var attemptActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordOperations) ? FdbClientInstrumentation.ActivitySource.StartActivity(targetName + "::" + methodName, kind: ActivityKind.Client) : null;
 						if (attemptActivity?.IsAllDataRequested == true)
 						{
 							attemptActivity.SetTag("db.system", "fdb");
@@ -805,7 +802,7 @@ namespace FoundationDB.Client
 						{
 							TIntermediate intermediate;
 
-							currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? ActivitySource.StartActivity("FDB Handler") : null;
+							currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? FdbClientInstrumentation.ActivitySource.StartActivity("FDB Handler") : null;
 							if (currentActivity != null)
 							{
 								context.Activity = currentActivity;
@@ -821,7 +818,7 @@ namespace FoundationDB.Client
 							}
 
 							Contract.Debug.Assert(!reportOpStarted);
-							FdbMetricsReporter.ReportOperationStarted(context, trans);
+							FdbClientInstrumentation.ReportOperationStarted(context, trans);
 							reportOpStarted = true;
 
 							// call the user provided lambda
@@ -1094,7 +1091,7 @@ namespace FoundationDB.Client
 							hasRunValueChecks = true;
 							if (context.HasPendingValueChecks(out var valueChecks))
 							{
-								currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? ActivitySource.StartActivity("FDB Value Checks") : null;
+								currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? FdbClientInstrumentation.ActivitySource.StartActivity("FDB Value Checks") : null;
 								if (currentActivity != null)
 								{
 									context.Activity = currentActivity;
@@ -1133,7 +1130,7 @@ namespace FoundationDB.Client
 							if (!trans.IsReadOnly)
 							{ // commit the transaction
 
-								currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? ActivitySource.StartActivity("FDB Commit") : null;
+								currentActivity = tracingOptions.HasFlag(FdbTracingOptions.RecordSteps) ? FdbClientInstrumentation.ActivitySource.StartActivity("FDB Commit") : null;
 								if (currentActivity != null)
 								{
 									context.Activity = currentActivity;
@@ -1163,7 +1160,7 @@ namespace FoundationDB.Client
 									context.Activity = mainActivity;
 								}
 
-								FdbMetricsReporter.ReportOperationCommitted(trans, context);
+								FdbClientInstrumentation.ReportOperationCommitted(trans, context);
 							}
 
 							// we are done
@@ -1416,7 +1413,7 @@ namespace FoundationDB.Client
 								{
 									Contract.Debug.Assert(reportOpStarted);
 									reportOpStarted = false;
-									FdbMetricsReporter.ReportOperationCompleted(context, trans, e2.Code);
+									FdbClientInstrumentation.ReportOperationCompleted(context, trans, e2.Code);
 									throw;
 								}
 								shouldRethrow = true;
@@ -1427,7 +1424,7 @@ namespace FoundationDB.Client
 							{
 								Contract.Debug.Assert(reportOpStarted);
 								reportOpStarted = false;
-								FdbMetricsReporter.ReportOperationCompleted(context, trans, context.PreviousError);
+								FdbClientInstrumentation.ReportOperationCompleted(context, trans, context.PreviousError);
 								throw;
 							}
 
@@ -1482,7 +1479,7 @@ namespace FoundationDB.Client
 										{
 											Contract.Debug.Assert(reportOpStarted);
 											reportOpStarted = false;
-											FdbMetricsReporter.ReportOperationCompleted(context, trans, e2.Code);
+											FdbClientInstrumentation.ReportOperationCompleted(context, trans, e2.Code);
 											throw;
 										}
 									}
@@ -1500,14 +1497,14 @@ namespace FoundationDB.Client
 							{
 								Contract.Debug.Assert(reportOpStarted);
 								reportOpStarted = false;
-								FdbMetricsReporter.ReportOperationCompleted(context, trans, context.PreviousError);
+								FdbClientInstrumentation.ReportOperationCompleted(context, trans, context.PreviousError);
 								throw;
 							}
 						}
 
 						Contract.Debug.Assert(reportOpStarted);
 						reportOpStarted = false;
-						FdbMetricsReporter.ReportOperationCompleted(context, trans, context.PreviousError);
+						FdbClientInstrumentation.ReportOperationCompleted(context, trans, context.PreviousError);
 
 						// update the base time for the next attempt
 						context.BaseDuration = context.ElapsedTotal;
@@ -1548,7 +1545,7 @@ namespace FoundationDB.Client
 
 				if (reportTransStarted)
 				{
-					FdbMetricsReporter.ReportTransactionStop(context);
+					FdbClientInstrumentation.ReportTransactionStop(context);
 				}
 
 				if (context.BaseDuration.TotalSeconds >= 10)
