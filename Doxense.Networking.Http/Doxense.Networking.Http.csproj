@@ -4,7 +4,7 @@
 		<OutputType>Library</OutputType>
 		<TargetFrameworks>net8.0</TargetFrameworks>
 		<CopyLocalLocFileAssemblies>true</CopyLocalLocFileAssemblies>
-		<LangVersion>11.0</LangVersion>
+		<LangVersion>12.0</LangVersion>
 		<Nullable>enable</Nullable>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>

@@ -45,7 +45,6 @@ namespace Doxense.Networking.Http
 	public class BetterHttpClientContext
 	{
 
-		private static readonly ActivitySource ActivitySource = new("Doxense.Networking.Http");
 
 		/// <summary>Instance of the <see cref="BetterHttpClient">client</see> executing this request</summary>
 		public required BetterHttpClient Client { get; init; }
@@ -164,14 +163,14 @@ namespace Doxense.Networking.Http
 		public async Task<JsonValue> ReadAsJsonAsync(CrystalJsonSettings? settings = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
-			using var activity = ActivitySource.StartActivity("JSON Parse");
+			using var activity = BetterHttpInstrumentation.ActivitySource.StartActivity("JSON Parse");
 
 			try
 			{
 				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
 				using (var ms = DefaultPool.GetStream())
 				{
-					await this.CopyToAsync(ms);
+					await this.CopyToAsync(ms).ConfigureAwait(false);
 					return CrystalJson.Parse(ms.ToSlice(), settings);
 				}
 			}
@@ -186,14 +185,14 @@ namespace Doxense.Networking.Http
 		public async Task<JsonObject?> ReadAsJsonObjectAsync(CrystalJsonSettings? settings = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
-			using var activity = ActivitySource.StartActivity("JSON Parse");
+			using var activity = BetterHttpInstrumentation.ActivitySource.StartActivity("JSON Parse");
 
 			try
 			{
 				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
 				using (var ms = DefaultPool.GetStream())
 				{
-					await CopyToAsync(ms);
+					await CopyToAsync(ms).ConfigureAwait(false);
 					activity?.SetTag("json.length", ms.Length);
 					return CrystalJson.Parse(ms.ToSlice(), settings).AsObjectOrDefault();
 				}
@@ -209,14 +208,14 @@ namespace Doxense.Networking.Http
 		public async Task<JsonArray?> ReadAsJsonArrayAsync(CrystalJsonSettings? settings = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
-			using var activity = ActivitySource.StartActivity("JSON Parse");
+			using var activity = BetterHttpInstrumentation.ActivitySource.StartActivity("JSON Parse");
 
 			try
 			{
 				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
 				using (var ms = DefaultPool.GetStream())
 				{
-					await CopyToAsync(ms);
+					await CopyToAsync(ms).ConfigureAwait(false);
 					return CrystalJson.Parse(ms.ToSlice(), settings).AsArrayOrDefault();
 				}
 			}
@@ -231,14 +230,14 @@ namespace Doxense.Networking.Http
 		public async Task<TResult?> ReadAsJsonAsync<TResult>(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
-			using var activity = ActivitySource.StartActivity("JSON Parse");
+			using var activity = BetterHttpInstrumentation.ActivitySource.StartActivity("JSON Parse");
 
 			try
 			{
 				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
 				using (var ms = DefaultPool.GetStream())
 				{
-					await CopyToAsync(ms);
+					await CopyToAsync(ms).ConfigureAwait(false);
 					return CrystalJson.Deserialize<TResult?>(ms.ToSlice(), default, settings, resolver);
 				}
 			}
@@ -268,14 +267,14 @@ namespace Doxense.Networking.Http
 		public async Task<XDocument?> ReadAsXmlAsync(LoadOptions options = LoadOptions.None)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
-			using var activity = ActivitySource.StartActivity("XML Parse");
+			using var activity = BetterHttpInstrumentation.ActivitySource.StartActivity("XML Parse");
 
 			try
 			{
-				var stream = await this.Response.Content.ReadAsStreamAsync(this.Cancellation);
+				var stream = await this.Response.Content.ReadAsStreamAsync(this.Cancellation).ConfigureAwait(false);
 				//note: do NOT dispose this stream here!
 
-				return await XDocument.LoadAsync(stream, options, this.Cancellation);
+				return await XDocument.LoadAsync(stream, options, this.Cancellation).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
