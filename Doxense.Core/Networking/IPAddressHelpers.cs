@@ -701,10 +701,13 @@ namespace Doxense.Networking
 			var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 			var delay = Task.Delay(Timeout.Infinite, cts.Token);
 
+			// we add a random token to more easily identify all the packets of the same traceroute run
+			var token = Guid.NewGuid().GetHashCode().ToString("X08");
+
 			async Task<TracerouteHop?> RunHop(int i)
 			{
 				var options = new PingOptions(i + 1, dontFragment: false);
-				var buffer = Encoding.ASCII.GetBytes($"Doxense-Traceroute-TTL{i + 1:D03}");
+				var buffer = Encoding.ASCII.GetBytes($"Doxense-Traceroute-{token}-TTL{i + 1:D03}");
 
 				using (var ping = new Ping())
 				{
@@ -719,12 +722,13 @@ namespace Doxense.Networking
 					sw.Stop();
 					var reply = await task.ConfigureAwait(false);
 
-					if (reply.Status == IPStatus.Success || reply.Status == IPStatus.DestinationHostUnreachable)
+					if (reply.Status is IPStatus.Success or IPStatus.DestinationHostUnreachable)
 					{ // ca ne sert a rien de continuer plus!
 						lock (cts)
 						{
 							if (!abortScan)
 							{
+								abortScan = true;
 								// cancel all remaining requests without waiting for the full timeout
 								try { cts.CancelAfter(100); } catch { }
 							}
@@ -809,12 +813,16 @@ namespace Doxense.Networking
 	[DebuggerDisplay("Status={Status}, MaxTtl={MaxTtl}, Hops={Hops.Count}")]
 	public sealed record TracerouteReply
 	{
+		/// <summary>Result of the traceroute</summary>
 		public required IPStatus Status { get; init; }
 
+		/// <summary>Maximum TTL</summary>
 		public required int MaxTtl { get; init; }
 
+		/// <summary>Timeout</summary>
 		public required TimeSpan Timeout { get; init; }
 
+		/// <summary>List of hops that have replied</summary>
 		public required List<TracerouteHop> Hops { get; init; }
 
 	}
