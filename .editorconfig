@@ -33,6 +33,8 @@ dotnet_sort_system_directives_first = true:suggestion
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_explicit_tuple_names = true:warning
 dotnet_style_null_propagation = true:suggestion
+dotnet_style_qualification_for_field = true:silent
+dotnet_style_qualification_for_property = true:warning
+dotnet_style_qualification_for_event = true:warning
 dotnet_style_qualification_for_method = false:suggestion
-
 csharp_style_inlined_variable_declaration = true:suggestion
