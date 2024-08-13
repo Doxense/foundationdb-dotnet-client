@@ -38,8 +38,8 @@
 		<Prefer32Bit>false</Prefer32Bit>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'!='net472'">
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+	<ItemGroup>
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
 	</ItemGroup>
 
 	<ItemGroup>

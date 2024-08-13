@@ -15,15 +15,15 @@
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="8.0.0" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
-		<PackageReference Include="NodaTime.Testing" Version="3.1.11" />
-		<PackageReference Include="NUnit" Version="4.1.0" />
-		<PackageReference Include="NUnit.Console" Version="3.18.1" />
-		<PackageReference Include="NUnit.ConsoleRunner" Version="3.18.1" />
-		<PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+		<PackageReference Include="Microsoft.CSharp" />
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="NodaTime.Testing" />
+		<PackageReference Include="NUnit" />
+		<PackageReference Include="NUnit.Console" />
+		<PackageReference Include="NUnit.ConsoleRunner" />
+		<PackageReference Include="System.Text.Encoding.CodePages" />
 	</ItemGroup>
 
 	<ItemGroup>

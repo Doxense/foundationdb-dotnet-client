@@ -41,7 +41,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
 	</ItemGroup>
 	
 	<ItemGroup>

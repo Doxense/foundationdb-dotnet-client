@@ -15,17 +15,17 @@
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<ItemGroup>
-		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
-		<PackageReference Include="System.Threading.Channels" Version="8.0.0" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
-		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.10.0" />
-		<PackageReference Include="NodaTime.Testing" Version="3.1.11" />
-		<PackageReference Include="NUnit" Version="4.1.0" />
-		<PackageReference Include="NUnit3TestAdapter" Version="4.6.0">
+		<PackageReference Include="System.Collections.Immutable" />
+		<PackageReference Include="System.Threading.Channels" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="Microsoft.TestPlatform.TestHost" />
+		<PackageReference Include="NodaTime.Testing" />
+		<PackageReference Include="NUnit" />
+		<PackageReference Include="NUnit3TestAdapter">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="ZstdSharp.Port" Version="0.8.1" />
+		<PackageReference Include="ZstdSharp.Port" />
 	</ItemGroup>
 
 	<ItemGroup>
