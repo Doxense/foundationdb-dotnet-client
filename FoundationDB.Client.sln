@@ -55,6 +55,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.FoundationDB", "Aspi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.FoundationDB.Hosting", "Aspire.FoundationDB.Hosting\Aspire.FoundationDB.Hosting.csproj", "{0957AC74-8650-444C-AEF7-3C579578BBD1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Actions", "{F98174E6-7402-42CF-997E-C3DD77E17AAB}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\dotnetcore.yml = .github\workflows\dotnetcore.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -151,6 +156,7 @@ Global
 		{950E351C-B756-4985-BEF2-33E6917C6616} = {E899F094-1A78-4652-862C-9FF6356AC738}
 		{47BAC7E5-2197-4EC2-8671-A654D210DC70} = {E899F094-1A78-4652-862C-9FF6356AC738}
 		{0957AC74-8650-444C-AEF7-3C579578BBD1} = {E899F094-1A78-4652-862C-9FF6356AC738}
+		{F98174E6-7402-42CF-997E-C3DD77E17AAB} = {A7D90DEE-38B0-449C-93B5-32D7B845D990}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07944E4B-042C-4338-8E28-99FB373F52AA}

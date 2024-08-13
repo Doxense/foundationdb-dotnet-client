@@ -1,4 +1,4 @@
-name: .NET Core
+name: .NET Build
 
 on: [push]
 
@@ -12,7 +12,7 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Build with dotnet (net8.0)
       run: dotnet build --configuration Release -f net8.0
     - name: Build NuGet Packages
