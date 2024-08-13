@@ -28,6 +28,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
 	using System.Diagnostics;
@@ -957,7 +958,10 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
 		{
-			//HACKHACK: TODO: Once Dictionary<,> supports span lookups (via extensions methods or whatever else) we have to allocate the string :(
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryGetValue(key, out value);
+#else
+			// We cannot use span lookups so we may need to allocate the string in order to find it :(
 			// - if the object is _small_ (1 or 2 keys?) AND uses the ordinal comparer, then simply enumerating the key/value pairs and calling SequenceEqual would be quicker (in theoriy no allocation)
 			// - for larger objects we eat the cost and allocate, hoping to be able to optimize this in the feature with span lookups
 
@@ -988,47 +992,23 @@ namespace Doxense.Serialization.Json
 					return items.TryGetValue(key.ToString(), out value);
 				}
 			}
+#endif
 		}
+
 		/// <inheritdoc/>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
 		{
-			//HACKHACK: TODO: Once Dictionary<,> supports span lookups (via extensions methods or whatever else) we have to allocate the string :(
-			// - if the object is _small_ (1 or 2 keys?) AND uses the ordinal comparer, then simply enumerating the key/value pairs and calling SequenceEqual would be quicker (in theoriy no allocation)
-			// - for larger objects we eat the cost and allocate, hoping to be able to optimize this in the feature with span lookups
-
-			var items = m_items;
-			if (items.Count == 0)
-			{
-				value = null;
-				return false;
-			}
-
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryGetValue(key.Span, out value);
+#else
 			if (key.TryGetString(out var k))
 			{ // we have the whole string, we can do the standard lookup
 				return m_items.TryGetValue(k, out value);
 			}
-
-			if (items.Count <= 3 && ReferenceEquals(items.Comparer, StringComparer.Ordinal))
-			{ // not many items, enumerating will be faster than allocating
-
-				// note: foreach on Dictionary will use a struct and will not allocate
-				var span = key.Span;
-				foreach (var kv in items)
-				{
-					if (span.SequenceEqual(kv.Key.AsSpan()))
-					{
-						value = kv.Value;
-						return true;
-					}
-				}
-				value = null;
-				return false;
-			}
-
-			//PERF: we unfortunately need to allocate the string :(
-			return items.TryGetValue(key.ToString(), out value);
+			return TryGetValue(key.Span, out value);
+#endif
 		}
 
 		/// <inheritdoc/>
@@ -1040,12 +1020,29 @@ namespace Doxense.Serialization.Json
 			m_items.Add(key, value ?? JsonNull.Null);
 		}
 
+		public void Add(ReadOnlySpan<char> key, JsonValue? value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(!ReferenceEquals(this, value));
+			m_items.Add(key.ToString(), value ?? JsonNull.Null);
+		}
+
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryAdd(string key, JsonValue? value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
 			return m_items.TryAdd(key, value ?? JsonNull.Null);
+		}
+
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public bool TryAdd(ReadOnlySpan<char> key, JsonValue? value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryAdd(key, value ?? JsonNull.Null);
+#else
+			return m_items.TryAdd(key.ToString(), value ?? JsonNull.Null);
+#endif
 		}
 
 		/// <inheritdoc/>
@@ -1053,7 +1050,6 @@ namespace Doxense.Serialization.Json
 		public void Add(KeyValuePair<string, JsonValue> item)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
 			// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
 		}
@@ -1885,8 +1881,13 @@ namespace Doxense.Serialization.Json
 		public bool Remove(ReadOnlySpan<char> key)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			//HACKHACK: PERF: TODO: .NET 9 and dictionary span lookups!
+
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key);
+#else
+			// we have to allocate the string here :(
 			return m_items.Remove(key.ToString());
+#endif
 		}
 
 		/// <summary>Removes the value with the specified key from this object.</summary>
@@ -1897,8 +1898,13 @@ namespace Doxense.Serialization.Json
 		public bool Remove(ReadOnlyMemory<char> key)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			//HACKHACK: PERF: TODO: .NET 9 and dictionary span lookups!
+
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key.Span);
+#else
+			// we may have to allocate the string here :(
 			return m_items.Remove(key.GetStringOrCopy());
+#endif
 		}
 
 		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
@@ -1910,9 +1916,55 @@ namespace Doxense.Serialization.Json
 		public bool Remove(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.Debug.Requires(key != null);
 			return m_items.Remove(key, out value);
 		}
+
+		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <param name="value">The removed element.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public bool Remove(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key, out _, out value);
+#else
+			// we have to allocate the string here :(
+			return m_items.Remove(key.ToString(), out value);
+#endif
+		}
+
+#if NET9_0_OR_GREATER
+
+		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <param name="actualKey">The removed key.</param>
+		/// <param name="value">The removed element.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public bool Remove(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key, out actualKey, out value);
+		}
+
+		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <param name="actualKey">The removed key.</param>
+		/// <param name="value">The removed element.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public bool Remove(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key.Span, out actualKey, out value);
+		}
+
+#endif
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(KeyValuePair<string, JsonValue> keyValuePair)
@@ -2415,9 +2467,41 @@ namespace Doxense.Serialization.Json
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonObject Set<TValue>(ReadOnlySpan<char> key, TValue? value)
+		{
+#if NET9_0_OR_GREATER
+			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			items[key] = FromValue(value);
+#else
+			m_items[key.ToString()] = FromValue(value);
+#endif
+			return this;
+		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public JsonObject Set<TValue>(ReadOnlyMemory<char> key, TValue? value)
+		{
+			// if we can get the original string, we won't need to allocate
+			if (key.TryGetString(out var k))
+			{
+				m_items[k] = FromValue(value);
+				return this;
+			}
+
+#if NET9_0_OR_GREATER
+			// won't allocate if the key already exists
+			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			items[key.Span] = FromValue(value);
+#else
+			// we need to allocate in all cases, even if the key already exists
+			m_items[key.ToString()] = FromValue(value);
+#endif
+			return this;
+		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(string key, JsonValue? value)
 		{
-			Contract.NotNull(key);
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
 			m_items[key] = value ?? JsonNull.Null;
@@ -2429,39 +2513,46 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
-			//HACKHACK: PERF: until we can lookup span in dictionary, we have to allocate here every time :(
-			//TODO: once available, use a method that accepts a span:
-			// - if the key does not exist, a string will still need to be allocated
-			// - if the key already exists, the previous instance will be reused!
+#if NET9_0_OR_GREATER
+			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			//note: this will not allocate if the key already exists
+			items[key] = value ?? JsonNull.Null;
+#else
 			m_items[key.ToString()] = value ?? JsonNull.Null;
+#endif
 			return this;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(ReadOnlyMemory<char> key, JsonValue? value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
-			//HACKHACK: PERF: until we can lookup span in dictionary, we have to allocate here every time :(
-			//TODO: once available, use a method that accepts a span:
-			// - if the key does not exist, a string will still need to be allocated
-			// - if the key already exists, the previous instance will be reused!
-
-			m_items[key.GetStringOrCopy()] = value ?? JsonNull.Null;
-
+			if (key.TryGetString(out var k))
+			{
+				m_items[k] = value ?? JsonNull.Null;
+				return this;
+			}
+#if NET9_0_OR_GREATER
+			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			//note: this will not allocate if the key already exists
+			items[key.Span] = value ?? JsonNull.Null;
+#else
+			m_items[key.Span.ToString()] = value ?? JsonNull.Null;
+#endif
 			return this;
 		}
 
-		/// <summary>Ajoute l'attribut "_class" avec l'id résolvé du type</summary>
-		/// <typeparam name="TContainer">Type à résolver</typeparam>
+		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
+		/// <typeparam name="TContainer">Type that must be resolved</typeparam>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		public JsonObject SetClassId<TContainer>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			return SetClassId(typeof(TContainer), resolver);
 		}
 
-		/// <summary>Ajoute l'attribut "_class" avec l'id résolvé du type</summary>
-		/// <param name="type">Type à résolver</param>
+		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
+		/// <param name="type">Type that must be resolved</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		public JsonObject SetClassId(Type type, ICrystalJsonTypeResolver? resolver = null)
 		{

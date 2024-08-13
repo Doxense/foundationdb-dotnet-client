@@ -253,6 +253,23 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+#if NET9_0_OR_GREATER
+		/// <summary>Holds a pair of <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;char&gt;</see></summary>
+		/// <remarks>We need this to be able to pass a pair of spans to <see cref="string.Create{TState}"/></remarks>
+		private readonly ref struct SpanPair
+		{
+			public SpanPair(ReadOnlySpan<char> key, ReadOnlySpan<char> value)
+			{
+				this.Key = key;
+				this.Value = value;
+			}
+
+			public readonly ReadOnlySpan<char> Key;
+
+			public readonly ReadOnlySpan<char> Value;
+		}
+#endif
+
 		/// <summary>Appends an field to this path (ex: <c>JsonPath.Return("user")["xxxidxxx".AsSpan(3, 2)]</c> => "user.id")</summary>
 		public JsonPath this[ReadOnlySpan<char> key]
 		{
@@ -260,6 +277,7 @@ namespace Doxense.Serialization.Json
 			{
 				int l = this.Value.Length;
 
+				// we may need to encode the key if it contains any of '\', '.' or '['
 				if (RequiresEscaping(key))
 				{
 					if (l == 0)
@@ -268,24 +286,41 @@ namespace Doxense.Serialization.Json
 					}
 					key = Escape(key);
 				}
-				// we may need to encode the key if it contains any of '\', '.' or '['
-				if (l == 0) return new (key.ToString());
-				l = checked(l + 1 + key.Length);
-				//TODO: PERF: we cannot use string.Create(..) here because ReadOnlySpan<char> is not allowed as generic type argument for SpanAction
-				// => we will create an emty string and MUTABLE it in place (yes, it's bad, but there's not really another way at the moment
 
-#if NET8_0_OR_GREATER
-				//HACKHACK: TODO: Future C#: we can't use string.Create(..) because we cannot pass a ReadOnlySpan<char> to te SpanAction<T> yet (as of .NET 8)
-				// => we revert to the good old hack of creating a new array, and mutating the content directly in memory, before returning it.
+				if (l == 0)
+				{
+					return new (key.ToString());
+				}
+
+				l = checked(l + 1 + key.Length);
+
+#if NET9_0_OR_GREATER
+
+				var path = string.Create(
+					l,
+					new SpanPair(key, this.Value.Span),
+					(span, state) =>
+					{
+						state.Value.CopyTo(span);
+						span = span[l..];
+						span[0] = '.';
+						span = span[1..];
+						Contract.Debug.Assert(span.Length == state.Key.Length);
+						state.Key.CopyTo(span);
+
+					}
+				);
+
+				return new (path);
+
+#elif NET8_0_OR_GREATER
+
+				//TODO: PERF: we cannot use string.Create(..) here because ReadOnlySpan<char> is not allowed as generic type argument for SpanAction
+				// => we will create an empty string and MUTATE it in place (yes, it's bad, but there's not really another way)
 				var path = new string('\0', l);
 
 				// DON'T TRY THIS AT HOME: force cast the ReadOnlySpan<char> to a Span<char>
 				var span = new Span<char>(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(path.AsSpan()));
-#else
-				// we could use unsafe pointers, but we'll just bite the bullet and allocate a char[]
-				var path = new char[l];
-				var span = path.AsSpan();
-#endif
 
 				this.Value.Span.CopyTo(span);
 				span = span[l..];
@@ -294,10 +329,23 @@ namespace Doxense.Serialization.Json
 				Contract.Debug.Assert(span.Length == key.Length);
 				key.CopyTo(span);
 
-#if NET8_0_OR_GREATER
 				return new (path);
+
 #else
+
+				// we could use unsafe pointers, but we'll just bite the bullet and allocate a char[]
+				var path = new char[l];
+				var span = path.AsSpan();
+
+				this.Value.Span.CopyTo(span);
+				span = span[l..];
+				span[0] = '.';
+				span = span[1..];
+				Contract.Debug.Assert(span.Length == key.Length);
+				key.CopyTo(span);
+
 				return new (path.AsMemory());
+
 #endif
 			}
 		}
