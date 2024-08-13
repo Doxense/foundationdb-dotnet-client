@@ -69,6 +69,8 @@ namespace Doxense.Core.Tests
 
 			Assert.That(Uuid96.Parse("89abcdef-badc0ffe-e0ddf00d"), Is.EqualTo(new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL)));
 			Assert.That(Uuid96.Parse("89ABCDEF-BADC0FFE-E0DDF00D"), Is.EqualTo(new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL)), "Should be case-insensitive");
+			Assert.That(Uuid96.Parse(" 89abcdef-badc0ffe-e0ddf00d"), Is.EqualTo(new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL)), "Leading spaces are allowed");
+			Assert.That(Uuid96.Parse("89abcdef-badc0ffe-e0ddf00d "), Is.EqualTo(new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL)), "Trailing spaces are allowed");
 
 			Assert.That(Uuid96.Parse("89abcdefbadc0ffee0ddf00d"), Is.EqualTo(new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL)));
 			Assert.That(Uuid96.Parse("89ABCDEFBADC0FFEE0DDF00D"), Is.EqualTo(new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL)), "Should be case-insensitive");
@@ -92,8 +94,6 @@ namespace Doxense.Core.Tests
 			Assert.That(() => Uuid96.Parse("89abcdefbaadc0ffe-e0ddf00"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
 			Assert.That(() => Uuid96.Parse("89abcdef-badc0fe-ee0ddf00d"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
 			Assert.That(() => Uuid96.Parse("89abcdefb-adc0ffe-e0ddf00d"), Throws.InstanceOf<FormatException>(), "'-' at invalid position");
-			Assert.That(() => Uuid96.Parse("89abcdef-badc0ffe-e0ddf00d "), Throws.InstanceOf<FormatException>(), "Extra space at the end");
-			Assert.That(() => Uuid96.Parse(" 89abcdef-badc0ffe-e0ddf00d"), Throws.InstanceOf<FormatException>(), "Extra space at the start");
 
 			// span from string
 
