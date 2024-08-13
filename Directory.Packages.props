@@ -36,6 +36,7 @@
 		<PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
 		<PackageVersion Include="System.Memory" Version="4.5.5" />
 		<PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" />
+		<PackageVersion Include="System.Text.Json" Version="8.0.4" /><!-- required temporarily because previous 8.0.x version are vulnerable -->
 		<PackageVersion Include="System.Threading.Channels" Version="8.0.0" />
 		<PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.0-preview.18571.3" />
 		<PackageVersion Include="System.Text.Encoding.CodePages" Version="8.0.0" />
