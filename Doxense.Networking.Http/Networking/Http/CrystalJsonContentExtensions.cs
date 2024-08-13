@@ -76,7 +76,7 @@ namespace Doxense.Networking.Http
 		{
 			var bytes  = await content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
 
-			return CrystalJson.Deserialize<T>(bytes.AsSlice(), settings, resolver);
+			return CrystalJson.Deserialize(bytes.AsSlice(), default(T), settings, resolver);
 		}
 
 		#endregion

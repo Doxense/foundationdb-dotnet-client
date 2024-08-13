@@ -2048,8 +2048,6 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(int count)
 		{
-			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
-
 			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
 			if (buffer == null || this.Position + count > buffer.Length)
@@ -2136,8 +2134,6 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(int count, ArrayPool<byte> pool)
 		{
-			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
-
 			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
 			if (buffer == null || this.Position + count > buffer.Length)

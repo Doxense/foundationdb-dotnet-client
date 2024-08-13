@@ -63,7 +63,7 @@ namespace Doxense.Networking.Http
 					body,
 					"SocketsHttpHandler_Send",
 					tailCall: true,
-					new[] { prmHandler, prmMessage, prmCancellationToken }
+					[ prmHandler, prmMessage, prmCancellationToken ]
 				);
 				return lambda.Compile();
 			}
@@ -90,7 +90,7 @@ namespace Doxense.Networking.Http
 					body,
 					"SocketsHttpHandler_SendAsync",
 					tailCall: true,
-					new[] { prmHandler, prmMessage, prmCancellationToken }
+					[ prmHandler, prmMessage, prmCancellationToken ]
 				);
 				return lambda.Compile();
 			}
@@ -107,7 +107,7 @@ namespace Doxense.Networking.Http
 					throw new NotSupportedException("Could not find System.Net.Http.ConnectHelper+CertificateCallbackMapper. This may be caused by a new version of the .NET Framework that is not supported by this library!");
 				}
 
-				var ctor = t.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new[] { typeof(Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>) }, null);
+				var ctor = t.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, [ typeof(Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>) ], null);
 				if (ctor == null)
 				{
 #if DEBUG
@@ -127,7 +127,7 @@ namespace Doxense.Networking.Http
 					body,
 					"ConnectHelper_CertificateCallbackMapper",
 					tailCall: true,
-					new [] { prmHandler }
+					[ prmHandler ]
 				).Compile();
 
 			}
@@ -589,16 +589,7 @@ namespace Doxense.Networking.Http
 
 		private async ValueTask<Stream> ConnectToHostNameAsync(BetterHttpClientContext? clientContext, DnsEndPoint endpoint, CancellationToken ct)
 		{
-			IPHostEntry entries;
-			try
-			{
-				entries = await this.Network.DnsLookup(endpoint.Host, endpoint.AddressFamily, ct).ConfigureAwait(false);
-			}
-			catch (Exception e)
-			{
-				//?
-				throw;
-			}
+			var entries = await this.Network.DnsLookup(endpoint.Host, endpoint.AddressFamily, ct).ConfigureAwait(false);
 
 			var addresses = entries.AddressList;
 			if (addresses.Length == 0)
@@ -693,7 +684,7 @@ namespace Doxense.Networking.Http
 						}
 
 						{ // attente de la prochaine activité (timeout ou task socket qui se termine...)
-							var t = await Task.WhenAny(tasks);
+							var t = await Task.WhenAny(tasks).ConfigureAwait(false);
 							if (t == timeout)
 							{ // not yet, start another one!
 								System.Diagnostics.Trace.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] No response yet? maybe start another one!");

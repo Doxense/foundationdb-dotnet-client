@@ -107,7 +107,7 @@ namespace Doxense.Linq
 		public static IAsyncEnumerable<T> FromTask<T>(Func<Task<T>> asyncLambda)
 		{
 			//TODO: create a custom iterator for this ?
-			return ToAsyncEnumerable(new [] { asyncLambda }).Select(x => x());
+			return ToAsyncEnumerable([ asyncLambda ]).Select(x => x());
 		}
 
 		/// <summary>Split a sequence of items into several batches</summary>
@@ -1167,25 +1167,19 @@ namespace Doxense.Linq
 			Contract.NotNull(source);
 			comparer ??= Comparer<T>.Default;
 
-			//REVIEW: use C#7 tuples
 			bool found = false;
 			T min = default!;
 
-			await ForEachAsync(
-				source,
-				(x) =>
+			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			{
+				if (!found || comparer.Compare(x, min) < 0)
 				{
-					if (!found || comparer.Compare(x, min) < 0)
-					{
-						min = x;
-						found = true;
-					}
-				},
-				ct
-			).ConfigureAwait(false);
+					min = x;
+					found = true;
+				}
+			};
 
-			if (!found) throw ThrowHelper.InvalidOperationException("The sequence was empty");
-			return min;
+			return found ? min : throw new InvalidOperationException("The sequence was empty");
 		}
 
 		/// <summary>Returns the smallest value in the specified async sequence</summary>
@@ -1195,25 +1189,19 @@ namespace Doxense.Linq
 			Contract.NotNull(predicate);
 			comparer ??= Comparer<T>.Default;
 
-			//REVIEW: use C#7 tuples
 			bool found = false;
 			T min = default!;
 
-			await ForEachAsync(
-				source,
-				(x) =>
+			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			{
+				if (predicate(x) && (!found || comparer.Compare(x, min) < 0))
 				{
-					if (predicate(x) && (!found || comparer.Compare(x, min) < 0))
-					{
-						min = x;
-						found = true;
-					}
-				},
-				ct
-			).ConfigureAwait(false);
+					min = x;
+					found = true;
+				}
+			}
 
-			if (!found) throw ThrowHelper.InvalidOperationException("The sequence was empty");
-			return min;
+			return found ? min : throw new InvalidOperationException("The sequence was empty");
 		}
 
 		/// <summary>Returns the largest value in the specified async sequence</summary>
@@ -1222,25 +1210,19 @@ namespace Doxense.Linq
 			Contract.NotNull(source);
 			comparer ??= Comparer<T>.Default;
 
-			//REVIEW: use C#7 tuples
 			bool found = false;
 			T max = default!;
 
-			await ForEachAsync(
-				source,
-				(x) =>
+			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			{
+				if (!found || comparer.Compare(x, max) > 0)
 				{
-					if (!found || comparer.Compare(x, max) > 0)
-					{
-						max = x;
-						found = true;
-					}
-				},
-				ct
-			).ConfigureAwait(false);
+					max = x;
+					found = true;
+				}
+			}
 
-			if (!found) throw ThrowHelper.InvalidOperationException("The sequence was empty");
-			return max;
+			return found ? max : throw new InvalidOperationException("The sequence was empty");
 		}
 
 		/// <summary>Returns the largest value in the specified async sequence</summary>
@@ -1250,25 +1232,19 @@ namespace Doxense.Linq
 			Contract.NotNull(predicate);
 			comparer ??= Comparer<T>.Default;
 
-			//REVIEW: use C#7 tuples
 			bool found = false;
 			T max = default!;
 
-			await ForEachAsync(
-				source,
-				(x) =>
+			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			{
+				if (predicate(x) && (!found || comparer.Compare(x, max) > 0))
 				{
-					if (predicate(x) && (!found || comparer.Compare(x, max) > 0))
-					{
-						max = x;
-						found = true;
-					}
-				},
-				ct
-			).ConfigureAwait(false);
+					max = x;
+					found = true;
+				}
+			}
 
-			if (!found) throw ThrowHelper.InvalidOperationException("The sequence was empty");
-			return max;
+			return found ? max : throw new InvalidOperationException("The sequence was empty");
 		}
 
 		#endregion
