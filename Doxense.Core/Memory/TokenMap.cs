@@ -34,6 +34,9 @@ namespace Doxense.Memory
 	/// <typeparam name="TToken">Type du token</typeparam>
 	/// <typeparam name="TLiteral">Type de la représentation litérale du token.</typeparam>
 	/// <typeparam name="TRune">Element de la réprésentation binaire du token.</typeparam>
+#if NET9_0_OR_GREATER
+	[Obsolete("Please consider replacing with regular Dictionary<TKey, TValue>.AlternateLookup<TSpan> available since .NET 9")]
+#endif
 	public abstract class TokenMap<TToken, TLiteral, TRune> : IEnumerable<KeyValuePair<TLiteral, TToken>>
 		where TLiteral : IEquatable<TLiteral>
 		where TRune : struct, IEquatable<TRune>
@@ -99,6 +102,9 @@ namespace Doxense.Memory
 
 	/// <summary>Table de mapping bi-directionnelle entre représentation en mémoire (<see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;<see cref="char"/>&gt;</see>) et litérale (<see cref="string"/>) d'un <typeparamref name="TToken">token</typeparamref></summary>
 	/// <typeparam name="TToken">Type du token</typeparam>
+#if NET9_0_OR_GREATER
+	[Obsolete("Please consider replacing with regular Dictionary<TKey, TValue>.AlternateLookup<TSpan> available since .NET 9")]
+#endif
 	public class ByteStringTokenMap<TToken> : TokenMap<TToken, string, byte>
 	{
 
@@ -148,6 +154,9 @@ namespace Doxense.Memory
 
 	/// <summary>Table de mapping bi-directionnelle entre représentation encodée (<see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;<see cref="byte"/>&gt;</see>) et litérale (<see cref="string"/>) d'un <typeparamref name="TToken">token</typeparamref></summary>
 	/// <typeparam name="TToken">Type du token</typeparam>
+#if NET9_0_OR_GREATER
+	[Obsolete("Please consider replacing with regular Dictionary<TKey, TValue>.AlternateLookup<TSpan> available since .NET 9")]
+#endif
 	public class CharStringTokenMap<TToken> : TokenMap<TToken, string, char>
 	{
 

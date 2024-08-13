@@ -37,6 +37,9 @@ namespace Doxense.Memory
 	/// <typeparam name="TLiteral">Type de présentation "managée" (ex: string)</typeparam>
 	/// <typeparam name="TRune">Type des éléments constituants du literal (ex: char)</typeparam>
 	[DebuggerDisplay("Count={Size}")]
+#if NET9_0_OR_GREATER
+	[Obsolete("Please consider replacing with regular Dictionary<TKey, TValue>.AlternateLookup<TSpan> available since .NET 9")]
+#endif
 	public abstract class TokenDictionary<TValue, TLiteral, TRune>
 		where TLiteral : IEquatable<TLiteral>
 		where TRune : struct, IEquatable<TRune>
@@ -366,6 +369,9 @@ namespace Doxense.Memory
 
 	/// <summary>Dictionary of tokens with string literals addressable via <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;char&gt;</see> keys</summary>
 	/// <typeparam name="TValue">Type of tokens stored in the dictionary</typeparam>
+#if NET9_0_OR_GREATER
+	[Obsolete("Please consider replacing with regular Dictionary<TKey, TValue>.AlternateLookup<TSpan> available since .NET 9")]
+#endif
 	public sealed class CharStringTokenDictionary<TValue> : TokenDictionary<TValue, string, char>
 	{
 
@@ -408,6 +414,9 @@ namespace Doxense.Memory
 
 	/// <summary>Dictionary of tokens with string literals addressable via their encoded byte representation (ex: UTF-8)</summary>
 	/// <typeparam name="TValue">Type of tokens stored in the dictionary</typeparam>
+#if NET9_0_OR_GREATER
+	[Obsolete("Please consider replacing with regular Dictionary<TKey, TValue>.AlternateLookup<TSpan> available since .NET 9")]
+#endif
 	public sealed class ByteStringTokenDictionary<TValue> : TokenDictionary<TValue, string, byte>
 	{
 
