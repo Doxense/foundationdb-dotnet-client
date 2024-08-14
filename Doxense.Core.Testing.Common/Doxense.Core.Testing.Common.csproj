@@ -29,7 +29,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
 		<ProjectReference Include="..\Doxense.Networking.Http\Doxense.Networking.Http.csproj" />
-		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
 	</ItemGroup>
 
 </Project>

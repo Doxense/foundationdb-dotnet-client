@@ -12,7 +12,6 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.Metrics;
-	using OpenTelemetry.Metrics;
 
 	public static class FdbClientInstrumentation
 	{

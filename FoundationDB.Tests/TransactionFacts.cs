@@ -42,7 +42,6 @@ namespace FoundationDB.Client.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Linq;
-	using NodaTime;
 	using NUnit.Framework;
 
 	[TestFixture]
