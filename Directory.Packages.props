@@ -6,16 +6,6 @@
 		<PackageVersion Include="Aspire.Hosting" Version="8.1.0" />
 		<PackageVersion Include="MathNet.Numerics.Signed" Version="5.0.0" />
 		<PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0-preview.7.24406.2" />
-		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="9.0.0-preview.7.24406.2" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.0-preview.7.24405.7" />
 		<PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
 		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
 		<PackageVersion Include="Microsoft.TestPlatform.TestHost" Version="17.10.0" />
@@ -29,25 +19,69 @@
 		<PackageVersion Include="OpenTelemetry.Api" Version="1.9.0" />
 		<PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
 		<PackageVersion Include="protobuf-net" Version="3.2.30" />
-		<PackageVersion Include="System.Collections.Immutable" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="System.IO.Pipelines" Version="9.0.0-preview.7.24405.7" />
 		<PackageVersion Include="System.Memory" Version="4.5.5" />
-		<PackageVersion Include="System.Reflection.Metadata" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="System.Text.Json" Version="9.0.0-preview.7.24405.7" />
-		<PackageVersion Include="System.Threading.Channels" Version="9.0.0-preview.7.24405.7" />
 		<PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.0-preview.18571.3" />
-		<PackageVersion Include="System.Text.Encoding.CodePages" Version="9.0.0-preview.7.24405.7" />
 		<PackageVersion Include="ZstdSharp.Port" Version="0.8.1" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+		<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.7" />
+		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="8.0.7" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
 		<PackageVersion Include="Microsoft.Net.Http.Headers" Version="8.0.8" />
+		<PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
+		<PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+		<PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
+		<PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" />
 		<PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+		<PackageVersion Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+		<PackageVersion Include="System.Text.Json" Version="8.0.4" />
+		<PackageVersion Include="System.Threading.Channels" Version="8.0.0" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
+		<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.7" />
+		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="8.0.7" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="8.0.0" />
+		<PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
 		<PackageVersion Include="Microsoft.Net.Http.Headers" Version="8.0.8" />
+		<PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
+		<PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+		<PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
+		<PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" />
+		<PackageVersion Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+		<PackageVersion Include="System.Text.Json" Version="8.0.4" />
+		<PackageVersion Include="System.Threading.Channels" Version="8.0.0" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(TargetFramework)'=='net9.0'">
+		<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0-preview.7.24406.2" />
+		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="9.0.0-preview.7.24406.2" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.0-preview.7.24405.7" />
 		<PackageVersion Include="Microsoft.Net.Http.Headers" Version="9.0.0-preview.7.24406.2" />
+		<PackageVersion Include="System.Collections.Immutable" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="System.IO.Pipelines" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="System.Reflection.Metadata" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="System.Text.Encoding.CodePages" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="System.Text.Json" Version="9.0.0-preview.7.24405.7" />
+		<PackageVersion Include="System.Threading.Channels" Version="9.0.0-preview.7.24405.7" />
 	</ItemGroup>
 </Project>
