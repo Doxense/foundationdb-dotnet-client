@@ -96,7 +96,11 @@ namespace FoundationDB.Filters.Logging
 		
 		private byte[] m_buffer = new byte[1024];
 		private int m_offset;
-		private readonly object m_lock = new object();
+#if NET9_0_OR_GREATER
+		private readonly Lock m_lock = new();
+#else
+		private readonly object m_lock = new();
+#endif
 
 		internal Slice Grab(Slice slice)
 		{

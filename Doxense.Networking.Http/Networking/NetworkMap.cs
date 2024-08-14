@@ -122,7 +122,11 @@ namespace Doxense.Networking
 
 		}
 
+#if NET9_0_OR_GREATER
+		private readonly Lock Lock = new();
+#else
 		private readonly object Lock = new();
+#endif
 
 		protected Dictionary<IPEndPoint, EndPointQuality> HeatMap { get; } = new(IPEndPointComparer.Default);
 

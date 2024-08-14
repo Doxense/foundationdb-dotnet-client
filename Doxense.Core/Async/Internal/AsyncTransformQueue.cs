@@ -37,7 +37,11 @@ namespace Doxense.Async
 	{
 		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
 		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new();
+#if NET9_0_OR_GREATER
+		private readonly Lock m_lock = new();
+#else
 		private readonly object m_lock = new();
+#endif
 		private readonly int m_capacity;
 		private AsyncCancelableMutex? m_blockedProducer;
 		private AsyncCancelableMutex? m_blockedConsumer;
@@ -190,7 +194,7 @@ namespace Doxense.Async
 
 		public void OnError(ExceptionDispatchInfo error)
 		{
-			lock(m_lock)
+			lock (m_lock)
 			{
 				if (m_done) throw new InvalidOperationException("OnCompleted() and OnError() can only be called once");
 				m_done = true;
@@ -235,7 +239,7 @@ namespace Doxense.Async
 			Task<Maybe<TOutput>>? task = null;
 			Task? waiter = null;
 
-			lock(m_lock)
+			lock (m_lock)
 			{
 				if (m_queue.Count > 0)
 				{
@@ -290,7 +294,7 @@ namespace Doxense.Async
 						return await ReceiveWhenDoneAsync(queue, task, ct).ConfigureAwait(false);
 					}
 
-					lock(queue.m_lock)
+					lock (queue.m_lock)
 					{
 						// we need to wait again
 						waiter = queue.WaitForNextItem_NeedsLocking(ct);
@@ -339,7 +343,7 @@ namespace Doxense.Async
 			var batch = new List<Maybe<TOutput>>();
 
 			// consume everything that is already in the buffer
-			lock(m_lock)
+			lock (m_lock)
 			{
 				if (DrainItems_NeedsLocking(batch, count))
 				{ // got some stuff, we need to wake up any locked writer on the way out !
@@ -362,7 +366,7 @@ namespace Doxense.Async
 				while (batch.Count == 0)
 				{
 					Task waiter;
-					lock(queue.m_lock)
+					lock (queue.m_lock)
 					{
 						waiter = queue.WaitForNextItem_NeedsLocking(ct);
 						Contract.Debug.Assert(waiter != null);

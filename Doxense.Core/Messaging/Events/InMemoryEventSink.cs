@@ -52,12 +52,18 @@ namespace Doxense.Messaging.Events
 
 		private List<IEvent> Events { get; } = [ ];
 
+#if NET9_0_OR_GREATER
+		private Lock Lock { get; } = new();
+#else
+		private object Lock { get; } = new();
+#endif
+
 		public bool Async => false;
 		//note: in truth, this is a "lie" because we lock(), but this is not really an issue here!
 
 		public Task Dispatch(IEvent evt, CancellationToken ct)
 		{
-			lock(this.Events)
+			lock (this.Lock)
 			{
 				this.Events.Add(evt);
 			}
@@ -66,7 +72,7 @@ namespace Doxense.Messaging.Events
 
 		public Task Dispatch(ReadOnlyMemory<IEvent> batch, CancellationToken ct)
 		{
-			lock(this.Events)
+			lock (this.Lock)
 			{
 				foreach(var evt in batch.Span)
 				{
@@ -78,7 +84,7 @@ namespace Doxense.Messaging.Events
 
 		public IReadOnlyList<IEvent> GetAllEvents()
 		{
-			lock(this.Events)
+			lock (this.Lock)
 			{
 				//note: we return a copy!
 				return new List<IEvent>(this.Events);
@@ -87,7 +93,7 @@ namespace Doxense.Messaging.Events
 
 		public InMemoryEventSink Copy()
 		{
-			lock (this.Events)
+			lock (this.Lock)
 			{
 				return new InMemoryEventSink(this.Filter, this.Events);
 			}

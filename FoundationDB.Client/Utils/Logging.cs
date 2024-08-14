@@ -36,7 +36,11 @@ namespace FoundationDB.Client
 	{
 		#region Private Fields...
 
-		private static readonly object s_lock = new object();
+#if NET9_0_OR_GREATER
+		private static readonly System.Threading.Lock s_lock = new();
+#else
+		private static readonly object s_lock = new();
+#endif
 
 		private static bool s_initialized;
 
