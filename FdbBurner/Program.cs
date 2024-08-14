@@ -62,10 +62,10 @@ namespace FdbBurner
 		const int N = 1000;
 
 		private static int CurrentSize = 3;
-		private static readonly int[] VALUE_SIZES = new[] { 0, 4, 32, 100, 1000, 4000 };
+		private static readonly int[] VALUE_SIZES = [ 0, 4, 32, 100, 1000, 4000 ];
 
-		private static Random Rnd = new Random();
-		private static string Suffix = Guid.NewGuid().ToString();
+		private static readonly Random Rnd = new();
+		private static readonly string Suffix = Guid.NewGuid().ToString();
 		private static Slice Value = Slice.Random(Rnd, VALUE_SIZES[CurrentSize]);
 		private static bool Randomized;
 
@@ -86,7 +86,7 @@ namespace FdbBurner
 			long pos = 0;
 
 			Random rnd;
-			lock(Rnd)
+			lock (Rnd)
 			{
 				rnd = new Random(Rnd.Next());
 			}
@@ -358,8 +358,8 @@ namespace FdbBurner
 		#region ASCII Arts
 
 		// note: taken from "Banner3" font
-		static readonly string[] Font = new string[]
-		{
+		private static readonly string[] Font =
+		[
 		//   ==========----------==========----------==========----------==========----------==========----------==========----------==========----------
 			"  #####       ##     #######   #######  ##        ########   #######  ########   #######   #######                                ##     ## ",
 			" ##   ##    ####    ##     ## ##     ## ##    ##  ##        ##     ## ##    ##  ##     ## ##     ##                                ##   ##  ",
@@ -368,7 +368,7 @@ namespace FdbBurner
 			"##     ##     ##    ##               ## #########       ##  ##     ##   ##      ##     ##        ##                        ####     ## ##   ",
 			" ##   ##      ##    ##        ##     ##       ##  ##    ##  ##     ##   ##      ##     ## ##     ##              ###        ##     ##   ##  ",
 			"  #####     ######  #########  #######        ##   ######    #######    ##       #######   #######               ###       ##     ##     ## "
-		};
+		];
 
 		const int CHAR_SPACE = 10;
 		const int CHAR_DOT   = 11;

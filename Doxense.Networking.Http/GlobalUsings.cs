@@ -1,6 +1,12 @@
 global using System;
+global using System.Collections.Generic;
+global using System.Diagnostics;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;
 global using Doxense.Diagnostics.Contracts;
 global using Doxense.Serialization.Json;
+global using NodaTime;
 
 // JetBrains Annotations
 global using CollectionAccessAttribute = JetBrains.Annotations.CollectionAccessAttribute;

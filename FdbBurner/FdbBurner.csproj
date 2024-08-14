@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFrameworks>net9.0;net8.0</TargetFrameworks>
-		<LangVersion>11.0</LangVersion>
+		<LangVersion>preview</LangVersion>
 		<ProjectGuid>{60049BA1-A95F-4127-BAC5-74AF023D3082}</ProjectGuid>
 		<RestorePackages>true</RestorePackages>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

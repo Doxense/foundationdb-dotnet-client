@@ -27,17 +27,11 @@
 namespace Doxense.Networking
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Networking.Http;
-	using NodaTime;
 
 	/// <summary>Implementation of an <see cref="INetworkMap"/> that interacts a real network</summary>
 	/// <remarks>This method will passthough all requests to the actual network stack of the host.</remarks>
@@ -130,7 +124,7 @@ namespace Doxense.Networking
 
 		private readonly object Lock = new();
 
-		protected Dictionary<IPEndPoint, EndPointQuality> HeatMap { get; } = new Dictionary<IPEndPoint, EndPointQuality>(IPEndPointComparer.Default);
+		protected Dictionary<IPEndPoint, EndPointQuality> HeatMap { get; } = new(IPEndPointComparer.Default);
 
 		protected Dictionary<string, (string HostName, IPEndPoint RemoteEndPoint, IPAddress? Local, Instant Timestamp)> LastEndPointMapping { get; } = new (StringComparer.Ordinal);
 

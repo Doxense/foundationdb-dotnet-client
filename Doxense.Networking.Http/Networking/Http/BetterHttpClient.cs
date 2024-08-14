@@ -26,17 +26,12 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.Http.Headers;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Microsoft.Extensions.Logging;
-	using NodaTime;
 
 	[DebuggerDisplay("Id={Id}, BaseAddress={HostAddress}")]
 	public sealed class BetterHttpClient : IDisposable

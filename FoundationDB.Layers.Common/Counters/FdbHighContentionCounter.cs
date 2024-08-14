@@ -95,7 +95,7 @@ namespace FoundationDB.Layers.Counters
 				var loc = subspace.Encode(RandomId());
 
 				bool right;
-				lock(this.Rng) { right = this.Rng.NextDouble() < 0.5; }
+				lock (this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 				var query = right
 					? tr.Snapshot.GetRange(loc, subspace.ToRange().End, new FdbRangeOptions { Limit = N })
 					: tr.Snapshot.GetRange(subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true });

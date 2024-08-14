@@ -143,7 +143,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private Slice GetRandomId()
 		{
-			lock(m_rng)
+			lock (m_rng)
 			{
 				return Slice.Random(m_rng, RANDOM_ID_BYTES, nonZeroBytes: false);
 			}

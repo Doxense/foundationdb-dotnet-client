@@ -32,6 +32,7 @@ namespace Doxense.Runtime.Comparison
 
 	/// <summary>Defines a property of a model class that is "important"</summary>
 	/// <remarks>Primary properties are always compared first, and are also used to compute the HashCode of the instance</remarks>
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 	public class PrimaryAttribute : Attribute
 	{
 		public PrimaryAttribute()
@@ -47,6 +48,7 @@ namespace Doxense.Runtime.Comparison
 
 	/// <summary>Marks a property or field as non-important</summary>
 	/// <remarks>Can be used by serialization or reflection tool to skip this field</remarks>
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 	public class IgnoreAttribute : Attribute
 	{
 		// Nothing
@@ -57,9 +59,9 @@ namespace Doxense.Runtime.Comparison
 	public static class ModelComparer
 	{
 
-		private static readonly Dictionary<Type, (Delegate Comparer, Delegate HashFunction, MemberInfo[]? Members)> TypedCache = new Dictionary<Type, (Delegate, Delegate, MemberInfo[]?)>(TypeEqualityComparer.Default);
+		private static readonly Dictionary<Type, (Delegate Comparer, Delegate HashFunction, MemberInfo[]? Members)> TypedCache = new(TypeEqualityComparer.Default);
 
-		private static readonly Dictionary<Type, (Func<object?, object?, bool> Comparer, Func<object, int> HashFunction, MemberInfo[]? Members)> BoxedCache = new Dictionary<Type, (Func<object?, object?, bool> Comparer, Func<object, int> HashFunction, MemberInfo[]? Members)>(TypeEqualityComparer.Default);
+		private static readonly Dictionary<Type, (Func<object?, object?, bool> Comparer, Func<object, int> HashFunction, MemberInfo[]? Members)> BoxedCache = new(TypeEqualityComparer.Default);
 
 		public sealed class Comparer<T> : IEqualityComparer<T>
 		{
@@ -516,11 +518,7 @@ namespace Doxense.Runtime.Comparison
 			var left = Expression.Parameter(type, "left");
 			var right = Expression.Parameter(type, "right");
 
-			var body = TryGetComparerForSimpleType(type, left, right);
-			if (body == null)
-			{
-				body = Build(type, left, right);
-			}
+			var body = TryGetComparerForSimpleType(type, left, right) ?? Build(type, left, right);
 
 			return Expression.Lambda(body, tailCall: true, parameters: [ left, right ]);
 		}
@@ -537,14 +535,10 @@ namespace Doxense.Runtime.Comparison
 			var varLeft = Expression.Variable(type, "l");
 			var varRight = Expression.Variable(type, "r");
 
-			var body = TryGetComparerForSimpleType(type, varLeft, varRight);
-			if (body == null)
-			{
-				body = Build(type, varLeft, varRight);
-			}
+			var body = TryGetComparerForSimpleType(type, varLeft, varRight) ?? Build(type, varLeft, varRight);
 
 			var block = Expression.Block(
-				new [] { varLeft, varRight },
+				[ varLeft, varRight ],
 				[
 					Expression.Assign(varLeft, prmLeft.CastFromObject(type)),
 					Expression.Assign(varRight, prmRight.CastFromObject(type)),
@@ -947,11 +941,7 @@ namespace Doxense.Runtime.Comparison
 
 			var item = Expression.Parameter(type, "item");
 
-			var body = TryGetHashFunctionForSimpleType(type, item);
-			if (body == null)
-			{
-				body = Build(type, item);
-			}
+			var body = TryGetHashFunctionForSimpleType(type, item) ?? Build(type, item);
 
 			return Expression.Lambda(body, tailCall: true, parameters: [ item ]);
 		}
@@ -966,14 +956,10 @@ namespace Doxense.Runtime.Comparison
 
 			var varItem = Expression.Variable(type, "item");
 
-			var body = TryGetHashFunctionForSimpleType(type, varItem);
-			if (body == null)
-			{
-				body = Build(type, varItem);
-			}
+			var body = TryGetHashFunctionForSimpleType(type, varItem) ?? Build(type, varItem);
 
 			var block = Expression.Block(
-				new [] { varItem },
+				[ varItem ],
 				[
 					Expression.Assign(varItem, prmItem.CastFromObject(type)),
 					body
@@ -1232,7 +1218,7 @@ namespace Doxense.Runtime.Comparison
 			// "h = h & int.MaxValue";
 			body.Add(Expression.Label(returnTarget, TruncateHash(varHash)));
 
-			return Expression.Block(new [] { varHash}, body);
+			return Expression.Block([ varHash ], body);
 		}
 
 		private static Expression MakeNullableHashFunction(Type underlyingType, Expression item)

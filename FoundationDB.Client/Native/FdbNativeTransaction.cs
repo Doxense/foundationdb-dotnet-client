@@ -223,7 +223,6 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct)
 		{
-			Contract.Debug.Requires(keys != null);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice[]>(ct);
 
 			if (keys.Length == 0)
@@ -385,7 +384,6 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice[]> GetKeysAsync(ReadOnlySpan<KeySelector> selectors, bool snapshot, CancellationToken ct)
 		{
-			Contract.Debug.Requires(selectors != null);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice[]>(ct);
 
 			if (selectors.Length == 0)

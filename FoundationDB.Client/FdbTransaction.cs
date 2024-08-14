@@ -408,7 +408,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCacheSlow()
 		{
-			lock(this)
+			lock (this)
 			{
 				return this.MetadataVersionKeysCache ??= new Dictionary<Slice, (Task<VersionStamp?>, bool)>(Slice.Comparer.Default);
 			}

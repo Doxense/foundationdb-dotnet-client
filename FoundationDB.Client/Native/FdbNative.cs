@@ -764,7 +764,6 @@ namespace FoundationDB.Client.Native
 		/// <returns>Byte array with the ANSI-encoded string with an optional NUL terminator, or null if <paramref name="value"/> was null</returns>
 		public static Slice ToNativeString(ReadOnlySpan<char> value, bool nullTerminated)
 		{
-			if (value == null) return Slice.Nil;
 			if (value.Length == 0) return Slice.Empty;
 
 			byte[] result;

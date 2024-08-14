@@ -27,13 +27,11 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
-	using System.Diagnostics;
 	using System.IO;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.Http.Headers;
 	using System.Text;
-	using System.Threading.Tasks;
 	using Doxense.Serialization;
 	using OpenTelemetry.Trace;
 
@@ -44,7 +42,7 @@ namespace Doxense.Serialization.Json
 
 		private static readonly ActivitySource ActivitySource = new("Snowbank.Sdk.Serialization.Json");
 
-		private static readonly MediaTypeHeaderValue DefaultMediaType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
+		private static readonly MediaTypeHeaderValue DefaultMediaType = new("application/json") { CharSet = "utf-8" };
 		//REVIEW: c'est un peu dangereux d'utiliser un singleton: le type est mutable, et est exposé via le "content.Headers.ContentType"...
 		// A priori on est entre gens de culture, donc on va pas aller muter les content type, mais c'est quand meme un risque!
 		// L'implémentation de JsonHttpContent recrée une instance a chaque content par sécurité, ce qui consomme plus de mémoire.
@@ -133,7 +131,7 @@ namespace Doxense.Serialization.Json
 			try
 			{
 				//REVIEW: where can we get a valid cancellation token??
-				await stream.WriteAsync(cached.Bytes.Memory);
+				await stream.WriteAsync(cached.Bytes.Memory).ConfigureAwait(false);
 			}
 			finally
 			{

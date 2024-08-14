@@ -26,8 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Diagnostics;
-
 	internal static class BetterHttpInstrumentation
 	{
 

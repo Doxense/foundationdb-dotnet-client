@@ -50,7 +50,7 @@ namespace Doxense.Messaging.Events
 
 		private IEventFilter Filter { get; }
 
-		private List<IEvent> Events { get; } = new ();
+		private List<IEvent> Events { get; } = [ ];
 
 		public bool Async => false;
 		//note: in truth, this is a "lie" because we lock(), but this is not really an issue here!

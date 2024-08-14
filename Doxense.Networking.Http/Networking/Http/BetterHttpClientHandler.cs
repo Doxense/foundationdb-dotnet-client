@@ -1,9 +1,9 @@
 ﻿// copy/paste de System.Net.Http.HttpClientHandler, hackée pour être accessible publiquement
 
+#define FULL_DEBUG
+
 namespace Doxense.Networking.Http
 {
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.IO;
 	using System.Linq.Expressions;
 	using System.Net;
@@ -15,7 +15,6 @@ namespace Doxense.Networking.Http
 	using System.Security.Authentication;
 	using System.Security.Cryptography;
 	using System.Security.Cryptography.X509Certificates;
-	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Version non-"protected" de <see cref="System.Net.Http.HttpClientHandler"/></summary>
@@ -49,7 +48,7 @@ namespace Doxense.Networking.Http
 				if (method == null)
 				{
 #if DEBUG
-					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+					if (Debugger.IsAttached) Debugger.Break();
 #endif
 					throw new NotSupportedException("Could not find SocketsHttpHandler.Send(). This may be caused by a new version of the .NET Framework that is not supported by this library!");
 				}
@@ -74,7 +73,7 @@ namespace Doxense.Networking.Http
 				if (method == null)
 				{
 #if DEBUG
-					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+					if (Debugger.IsAttached) Debugger.Break();
 #endif
 					throw new NotSupportedException("Could not find SocketsHttpHandler.SendAsync(). This may be caused by a new version of the .NET Framework that is not supported by this library!");
 				}
@@ -102,7 +101,7 @@ namespace Doxense.Networking.Http
 				if (t == null)
 				{
 #if DEBUG
-					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+					if (Debugger.IsAttached) Debugger.Break();
 #endif
 					throw new NotSupportedException("Could not find System.Net.Http.ConnectHelper+CertificateCallbackMapper. This may be caused by a new version of the .NET Framework that is not supported by this library!");
 				}
@@ -111,7 +110,7 @@ namespace Doxense.Networking.Http
 				if (ctor == null)
 				{
 #if DEBUG
-					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+					if (Debugger.IsAttached) Debugger.Break();
 #endif
 					throw new NotSupportedException($"Could not find {t.FullName}.ctor(...). This may be caused by a new version of the .NET Framework that is not supported by this library!");
 				}
@@ -153,7 +152,7 @@ namespace Doxense.Networking.Http
 			{
 #if DEBUG
 				// Si vous breakez ici, on est dans la mouise! Il faut regarder ce qu'ils ont changé dans la façon dont la classe interne "ConnectHelper.CertificateCallbackMapper" a été modifiée!
-				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+				if (Debugger.IsAttached) Debugger.Break();
 #endif
 				return false;
 			}
@@ -293,10 +292,8 @@ namespace Doxense.Networking.Http
 			// in the request content to determine its length and then would choose 'Content-Length' semantics when
 			// POST'ing. In .NET Core, the handler will resolve the ambiguity by always choosing
 			// 'Transfer-Encoding: chunked'. The handler will never automatically buffer in the request content.
-			get
-			{
-				return 0; // Returning zero is appropriate since in .NET Framework it means no limit.
-			}
+
+			get => 0; // Returning zero is appropriate since in .NET Framework it means no limit.
 
 			set
 			{
@@ -617,7 +614,9 @@ namespace Doxense.Networking.Http
 				scores[i] = quality?.ComputeScore(now) ?? (ep.AddressFamily == AddressFamily.InterNetworkV6 ? 4d : 2d);
 			}
 			Array.Sort(scores, endpoints);
-			//System.Diagnostics.Debug.WriteLine("Will try to connect (in order) to: " + string.Join(", ", endpoints.Select((x, i) => $"{i}) {x} @ {scores[i]}")));
+#if FULL_DEBUG
+			Debug.WriteLine("Will try to connect (in order) to: " + string.Join(", ", endpoints.Select((x, i) => $"{i}) {x} @ {scores[i]}")));
+#endif
 			return await ConnectToMultipleAsync(clientContext, endpoints, endpoint.Host, ct).ConfigureAwait(false);
 		}
 
@@ -653,7 +652,9 @@ namespace Doxense.Networking.Http
 						if (index < endpoints.Length)
 						{ // we can spin another one!
 							var ep = endpoints[index];
-							Trace.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] Attempting connection to {ep}...");
+#if FULL_DEBUG
+							Debug.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] Attempting connection to {ep}...");
+#endif
 
 							var now = sw.Elapsed;
 							var attempt = AttemptConnectAsync(ep, go);
@@ -687,7 +688,9 @@ namespace Doxense.Networking.Http
 							var t = await Task.WhenAny(tasks).ConfigureAwait(false);
 							if (t == timeout)
 							{ // not yet, start another one!
-								System.Diagnostics.Trace.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] No response yet? maybe start another one!");
+#if FULL_DEBUG
+								Debug.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] No response yet? maybe start another one!");
+#endif
 								continue;
 							}
 						}
@@ -705,7 +708,9 @@ namespace Doxense.Networking.Http
 									theOneTrueSocket = await ts.ConfigureAwait(false);
 									var completed = sw.Elapsed;
 									this.Network.RecordEndpointConnectionAttempt(attempts[i].Endpoint!, completed - attempts[i].Started, null, hostName, GetLocalEndpointAddress(theOneTrueSocket));
-									System.Diagnostics.Trace.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] {attempts[i].Endpoint} connected succesffully after {(completed - attempts[i].Started).TotalMilliseconds:N1} ms !");
+#if FULL_DEBUG
+									Debug.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] {attempts[i].Endpoint} connected succesffully after {(completed - attempts[i].Started).TotalMilliseconds:N1} ms !");
+#endif
 									// exit early
 									break;
 								}
@@ -713,7 +718,9 @@ namespace Doxense.Networking.Http
 								{
 									var completed = sw.Elapsed;
 									this.Network.RecordEndpointConnectionAttempt(attempts[i].Endpoint!, completed - attempts[i].Started, e, hostName, null);
-									System.Diagnostics.Trace.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] {attempts[i].Endpoint} has failed after {(completed - attempts[i].Started).TotalMilliseconds:N1} ms: [{e.GetType().Name}] {e.Message}");
+#if FULL_DEBUG
+									Debug.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] {attempts[i].Endpoint} has failed after {(completed - attempts[i].Started).TotalMilliseconds:N1} ms: [{e.GetType().Name}] {e.Message}");
+#endif
 									if (error == null && e is not OperationCanceledException)
 									{
 										error = ExceptionDispatchInfo.Capture(e);
@@ -724,7 +731,7 @@ namespace Doxense.Networking.Http
 						}
 					}
 
-					cts.Cancel();
+					await cts.CancelAsync().ConfigureAwait(false);
 				}
 			}
 			catch (Exception e)
@@ -757,13 +764,17 @@ namespace Doxense.Networking.Http
 						this.Network.RecordEndpointConnectionAttempt(attempt.Endpoint, completed - attempt.Started, null, hostName, GetLocalEndpointAddress(socket));
 						// get rid of it!
 						socket.Dispose();
-						System.Diagnostics.Trace.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] draining {attempt.Endpoint} started at {attempt.Started.TotalMilliseconds:N1} ms");
+#if FULL_DEBUG
+						Debug.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] draining {attempt.Endpoint} started at {attempt.Started.TotalMilliseconds:N1} ms");
+#endif
 					}
 					catch (Exception e)
 					{
 						var completed = sw.Elapsed;
 						this.Network.RecordEndpointConnectionAttempt(attempt.Endpoint, completed - attempt.Started, e, hostName, null);
-						System.Diagnostics.Trace.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] drained {attempt.Endpoint} started at {attempt.Started.TotalMilliseconds:N1} ms: [{e.GetType().Name}] {e.Message}");
+#if FULL_DEBUG
+						Debug.WriteLine($"[{sw.Elapsed.TotalMilliseconds:N1} ms] drained {attempt.Endpoint} started at {attempt.Started.TotalMilliseconds:N1} ms: [{e.GetType().Name}] {e.Message}");
+#endif
 						if (error == null && e is not OperationCanceledException)
 						{
 							error = ExceptionDispatchInfo.Capture(e);
