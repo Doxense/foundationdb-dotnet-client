@@ -164,7 +164,28 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples(params ReadOnlySpan<IVarTuple> tuples)
+		{
+			return TupleEncoder.Pack(default, tuples);
+		}
+
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<TTuple>(params TTuple[] tuples)
+			where TTuple : IVarTuple?
+		{
+			return TupleEncoder.Pack<TTuple>(default, tuples);
+		}
+
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples<TTuple>(params ReadOnlySpan<TTuple> tuples)
 			where TTuple : IVarTuple?
 		{
 			return TupleEncoder.Pack<TTuple>(default, tuples);
@@ -264,6 +285,17 @@ namespace Doxense.Collections.Tuples
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples(Slice prefix, params IVarTuple[] tuples)
+		{
+			return TupleEncoder.Pack(prefix, tuples);
+		}
+
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples(Slice prefix, params ReadOnlySpan<IVarTuple> tuples)
 		{
 			return TupleEncoder.Pack(prefix, tuples);
 		}
@@ -391,6 +423,24 @@ namespace Doxense.Collections.Tuples
 			return TupleEncoder.EncodeKeys(prefix, keys);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodeKeys<T>(params ReadOnlySpan<T?> keys)
+		{
+			var empty = default(Slice);
+			return TupleEncoder.EncodeKeys(empty, keys);
+		}
+
+		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, params ReadOnlySpan<T?> keys)
+		{
+			return TupleEncoder.EncodeKeys(prefix, keys);
+		}
+
 		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
 		/// <typeparam name="TElement">Type of the elements</typeparam>
 		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
@@ -437,6 +487,19 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, params T?[] keys)
+		{
+			Contract.NotNull(prefix);
+
+			return EncodePrefixedKeys(Pack(prefix), keys);
+		}
+
+		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, params ReadOnlySpan<T?> keys)
 		{
 			Contract.NotNull(prefix);
 

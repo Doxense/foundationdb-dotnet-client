@@ -293,15 +293,17 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Create(params JsonValue?[] values)
 		{
-			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
 			return Create(Contract.ValueNotNull(values).AsSpan());
 		}
 
 		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure]
+#if NET9_0_OR_GREATER
+		public static JsonArray Create(params ReadOnlySpan<JsonValue?> values)
+#else
 		public static JsonArray Create(ReadOnlySpan<JsonValue?> values)
+#endif
 		{
-			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
 			if (values.Length == 0)
 			{
 				return new();
@@ -352,19 +354,25 @@ namespace Doxense.Serialization.Json
 			(value4 ?? JsonNull.Null).ToReadOnly()
 		], 4, readOnly: true);
 
+		/// <summary>Create a new read-only empty array, that cannot be modified</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray CreateReadOnly() => JsonArray.EmptyReadOnly;
+
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray CreateReadOnly(params JsonValue?[] values)
 		{
-			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
 			return CreateReadOnly(Contract.ValueNotNull(values).AsSpan());
 		}
 
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure]
+#if NET9_0_OR_GREATER
+		public static JsonArray CreateReadOnly(params ReadOnlySpan<JsonValue?> values)
+#else
 		public static JsonArray CreateReadOnly(ReadOnlySpan<JsonValue?> values)
+#endif
 		{
-			//REVIEW: TODO: when C# supports "params Span<T>" we should switch so that we have Create(params ReadOnlySpan<JsonValue?>) and Create(JsonValue?[])
 			if (values.Length == 0)
 			{
 				return EmptyReadOnly;

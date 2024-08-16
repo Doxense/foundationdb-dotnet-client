@@ -1168,6 +1168,28 @@ namespace System
 			return a.Concat(b);
 		}
 
+		/// <summary>Concatenate two spans together</summary>
+		public static Slice Concat(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
+		{
+			int count = checked(a.Length + b.Length);
+			if (count == 0) return Empty;
+
+			var tmp = new byte[count];
+
+			Span<byte> buf = tmp;
+			if (a.Length != 0)
+			{
+				a.CopyTo(buf);
+				buf = buf[a.Length..];
+			}
+			if (b.Length != 0)
+			{
+				b.CopyTo(buf);
+			}
+
+			return new Slice(tmp, 0, count);
+		}
+
 		/// <summary>Concatenate three slices together</summary>
 		public static Slice Concat(Slice a, Slice b, Slice c)
 		{
@@ -1194,6 +1216,32 @@ namespace System
 			return new Slice(tmp, 0, count);
 		}
 
+		/// <summary>Concatenate three spans together</summary>
+		public static Slice Concat(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b, ReadOnlySpan<byte> c)
+		{
+			int count = checked(a.Length + b.Length + c.Length);
+			if (count == 0) return Empty;
+
+			var tmp = new byte[count];
+
+			Span<byte> buf = tmp;
+			if (a.Length != 0)
+			{
+				a.CopyTo(buf);
+				buf = buf[a.Length..];
+			}
+			if (b.Length != 0)
+			{
+				b.CopyTo(buf);
+				buf = buf[b.Length..];
+			}
+			if (c.Length != 0)
+			{
+				c.CopyTo(buf);
+			}
+			return new Slice(tmp, 0, count);
+		}
+
 		/// <summary>Concatenate an array of slices into a single slice</summary>
 		public static Slice Concat(params Slice[] args)
 		{
@@ -1216,7 +1264,11 @@ namespace System
 		}
 
 		/// <summary>Concatenate a sequence of slices into a single slice</summary>
+#if NET9_0_OR_GREATER
+		public static Slice Concat(params ReadOnlySpan<Slice> args)
+#else
 		public static Slice Concat(ReadOnlySpan<Slice> args)
+#endif
 		{
 			long capacity = 0;
 			for (int i = 0; i < args.Length; i++) capacity = checked(capacity + args[i].Count);
@@ -1843,7 +1895,11 @@ namespace System
 			}
 		}
 
+#if NET9_0_OR_GREATER
+		public static Slice Min(params ReadOnlySpan<Slice> values)
+#else
 		public static Slice Min(ReadOnlySpan<Slice> values)
+#endif
 		{
 			switch (values.Length)
 			{
@@ -1906,7 +1962,11 @@ namespace System
 			}
 		}
 
+#if NET9_0_OR_GREATER
+		public static Slice Max(params ReadOnlySpan<Slice> values)
+#else
 		public static Slice Max(ReadOnlySpan<Slice> values)
+#endif
 		{
 			switch (values.Length)
 			{

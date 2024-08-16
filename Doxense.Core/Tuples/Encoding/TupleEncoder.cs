@@ -96,6 +96,17 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Pack(empty, tuples);
 		}
 
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
+		public static Slice[] Pack<TTuple>(params ReadOnlySpan<TTuple> tuples) //REVIEW: change name to PackRange or PackBatch?
+			where TTuple : IVarTuple?
+		{
+			var empty = default(Slice);
+			return Pack(empty, tuples);
+		}
+
 		public static void PackTo<TTuple>(ref SliceWriter writer, TTuple? tuple)
 			where TTuple : IVarTuple?
 		{
@@ -140,6 +151,30 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			Contract.NotNull(tuples);
 
+			// pre-allocate by supposing that each tuple will take at least 16 bytes
+			var writer = new TupleWriter(tuples.Length * (16 + prefix.Count));
+			var next = new List<int>(tuples.Length);
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var tuple in tuples)
+			{
+				writer.Output.WriteBytes(prefix);
+				WriteTo(ref writer, tuple);
+				next.Add(writer.Output.Position);
+			}
+
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+		}
+
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		public static Slice[] Pack<TTuple>(Slice prefix, params ReadOnlySpan<TTuple> tuples)
+			where TTuple : IVarTuple?
+		{
 			// pre-allocate by supposing that each tuple will take at least 16 bytes
 			var writer = new TupleWriter(tuples.Length * (16 + prefix.Count));
 			var next = new List<int>(tuples.Length);
@@ -640,6 +675,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return EncodeKeys(empty, keys);
 		}
 
+		public static Slice[] EncodeKeys<T>(params ReadOnlySpan<T?> keys)
+		{
+			var empty = default(Slice);
+			return EncodeKeys(empty, keys);
+		}
+
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
@@ -649,6 +690,30 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			Contract.NotNull(keys);
 
+			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
+			var writer = new TupleWriter(keys.Length * (prefix.Count + 8));
+			var next = new List<int>(keys.Length);
+			var packer = TuplePacker<T>.Encoder;
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				if (prefix.Count > 0) writer.Output.WriteBytes(prefix);
+				packer(ref writer, key);
+				next.Add(writer.Output.Position);
+			}
+
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+		}
+
+		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] EncodeKeys<T>(Slice prefix, params ReadOnlySpan<T?> keys)
+		{
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var writer = new TupleWriter(keys.Length * (prefix.Count + 8));
 			var next = new List<int>(keys.Length);
@@ -728,6 +793,21 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, params T1?[] keys)
+			where TTuple : IVarTuple?
+		{
+			Contract.NotNullAllowStructs(prefix);
+
+			var head = Pack(prefix);
+			return EncodeKeys<T1>(head, keys);
+		}
+
+		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="TTuple">Type of the prefix tuple</typeparam>
+		/// <typeparam name="T1">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, params ReadOnlySpan<T1?> keys)
 			where TTuple : IVarTuple?
 		{
 			Contract.NotNullAllowStructs(prefix);

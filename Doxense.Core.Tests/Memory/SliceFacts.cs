@@ -2557,7 +2557,18 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var bc = Value("bc");
 			var abc = Value("abc");
 
-			// Concat2
+			#region Concat1...
+
+			Assert.That(a.Concat(a), Is.EqualTo(Value("aa")));
+			Assert.That(a.Concat(b), Is.EqualTo(Value("ab")));
+			Assert.That(a.Concat(bc), Is.EqualTo(Value("abc")));
+
+			Assert.That(a.Concat("bc"u8), Is.EqualTo(Value("abc")));
+			Assert.That(ab.Concat("c"u8), Is.EqualTo(Value("abc")));
+
+			#endregion
+
+			#region Concat2...
 
 			Assert.That(Slice.Concat(a, a).ToUnicode(), Is.EqualTo("aa"));
 			Assert.That(Slice.Concat(a, b).ToUnicode(), Is.EqualTo("ab"));
@@ -2582,7 +2593,9 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(Slice.Concat(Slice.Empty, abc), Is.EqualTo(abc));
 			Assert.That(Slice.Concat(Slice.Nil, abc), Is.EqualTo(abc));
 
-			// Concat3
+			#endregion
+
+			#region Concat3...
 
 			Assert.That(Slice.Concat(Slice.Empty, b, c), Is.EqualTo(bc));
 			Assert.That(Slice.Concat(ab, Slice.Empty, c), Is.EqualTo(abc));
@@ -2594,7 +2607,26 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(Slice.Concat(Slice.Nil, Slice.Nil, Slice.Nil), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Concat(Slice.Empty, Slice.Empty, Slice.Empty), Is.EqualTo(Slice.Empty));
 
-			// Slice + Slice
+			#endregion
+
+			#region ConcatN...
+
+			Assert.That(Slice.Concat(Array.Empty<Slice>()), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat([]), Is.EqualTo(Slice.Empty));
+
+			Assert.That(Slice.Concat(a, b, c, ab, bc, abc), Is.EqualTo(Value("abcabbcabc")));
+			Assert.That(Slice.Concat([ a, b, c, ab, bc, abc ]), Is.EqualTo(Value("abcabbcabc")));
+
+			Slice[] arr = [ a, b, c, ab, bc, abc ];
+			Assert.That(Slice.Concat(arr), Is.EqualTo(Value("abcabbcabc")));
+			Assert.That(Slice.Concat(arr.AsSpan()), Is.EqualTo(Value("abcabbcabc")));
+			Assert.That(Slice.Concat(new List<Slice>(arr)), Is.EqualTo(Value("abcabbcabc")));
+			Assert.That(Slice.Concat((IEnumerable<Slice>) arr), Is.EqualTo(Value("abcabbcabc")));
+
+			#endregion
+
+			#region Slice + Slice...
+
 			Assert.That(a + a, Is.EqualTo(Value("aa")));
 			Assert.That(a + b, Is.EqualTo(Value("ab")));
 			Assert.That(b + c, Is.EqualTo(Value("bc")));
@@ -2602,11 +2634,16 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(ab + c, Is.EqualTo(Value("abc")));
 			Assert.That(a + bc, Is.EqualTo(Value("abc")));
 
-			// Slice + byte
+			#endregion
+
+			#region Slice + byte
+
 			Assert.That(a + 0, Is.EqualTo(Key("a\x00")));
 			Assert.That(a + 1, Is.EqualTo(Key("a\x01")));
 			Assert.That(b + (byte)'A', Is.EqualTo(Key("bA")));
 			Assert.That(abc + 255, Is.EqualTo(Key("abc\xff")));
+
+			#endregion
 		}
 
 		[Test]
