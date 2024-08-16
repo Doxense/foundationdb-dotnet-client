@@ -41,6 +41,7 @@ namespace FoundationDB.Layers.Collections
 	[DebuggerDisplay("Location={Location}, Default={DefaultValue}")]
 	[PublicAPI]
 	public class FdbVector<T> : IFdbLayer<FdbVector<T>.State>
+		where T : notnull
 	{
 		// from https://apple.github.io/foundationdb/vector.html
 
@@ -110,7 +111,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
 			public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				return ComputeSizeAsync(tr);
 			}
@@ -118,7 +119,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Push a single item onto the end of the Vector.</summary>
 			public async Task PushAsync(IFdbTransaction tr, T value)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				var size = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
@@ -129,7 +130,7 @@ namespace FoundationDB.Layers.Collections
 			public Task<T> BackAsync(IFdbReadOnlyTransaction tr)
 			{
 				//REVIEW: rename this to "PeekLast" ?
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				return tr
 					.GetRange(this.Subspace.ToRange())
@@ -147,7 +148,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Get and pops the last item off the Vector.</summary>
 			public async Task<(T? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				var keyRange = this.Subspace.ToRange();
 
@@ -182,7 +183,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Swap the items at positions i1 and i2.</summary>
 			public async Task SwapAsync(IFdbTransaction tr, long index1, long index2)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				if (index1 < 0 || index2 < 0) throw new IndexOutOfRangeException($"Indices ({index1}, {index2}) must be positive");
 
@@ -219,8 +220,8 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Get the item at the specified index.</summary>
 			public async Task<T?> GetAsync(IFdbReadOnlyTransaction tr, long index)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
-				if (index < 0) throw new IndexOutOfRangeException($"Index {index} must be positive");
+				Contract.NotNull(tr);
+				Contract.Positive(index);
 
 				var start = GetKeyAt(index);
 				var end = this.Subspace.ToRange().End;
@@ -248,7 +249,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
 			public IAsyncEnumerable<T?> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				//BUGBUG: implement FdbVector.GetRangeAsync() !
 
@@ -258,7 +259,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Set the value at a particular index in the Vector.</summary>
 			public void Set(IFdbTransaction tr, long index, T value)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				tr.Set(GetKeyAt(index), this.Encoder.EncodeValue(value));
 			}
@@ -266,7 +267,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Test whether the Vector is empty.</summary>
 			public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				return (await ComputeSizeAsync(tr).ConfigureAwait(false)) == 0;
 			}
@@ -274,7 +275,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Grow or shrink the size of the Vector.</summary>
 			public async Task ResizeAsync(IFdbTransaction tr, long length)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				long currentSize = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
@@ -297,7 +298,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Remove all items from the Vector.</summary>
 			public void Clear(IFdbTransaction tr)
 			{
-				if (tr == null) throw new ArgumentNullException(nameof(tr));
+				Contract.NotNull(tr);
 
 				tr.ClearRange(this.Subspace);
 			}

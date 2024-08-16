@@ -201,7 +201,7 @@ namespace FdbTop
 
 								case ConsoleKey.F:
 								{ // [F]ast (on/off)
-									if (speed == FAST) speed = SLOW; else speed = FAST;
+									speed = speed == FAST ? SLOW : FAST;
 									break;
 								}
 
@@ -263,16 +263,13 @@ namespace FdbTop
 							}
 						}
 
-						if (taskStatus == null)
-						{
-							taskStatus = Fdb.System.GetStatusAsync(db, cancel);
-						}
+						taskStatus ??= Fdb.System.GetStatusAsync(db, cancel);
 
 						if (saveNext)
 						{
 							using (var fs = System.IO.File.Create(@".\\status.json"))
 							{
-								await fs.WriteAsync(status.RawData.Array, status.RawData.Offset, status.RawData.Count, cancel);
+								await fs.WriteAsync(status.RawData.Memory, cancel);
 								await fs.FlushAsync(cancel);
 							}
 							saveNext = false;
@@ -398,43 +395,43 @@ namespace FdbTop
 			}
 		}
 
-		private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+		private static readonly DateTime Epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
 		private const int MAX_HISTORY_CAPACITY = 100;
-		private static readonly RingBuffer<HistoryMetric> History = new RingBuffer<HistoryMetric>(MAX_HISTORY_CAPACITY);
+		private static readonly RingBuffer<HistoryMetric> History = new(MAX_HISTORY_CAPACITY);
 
 		private const int MAX_RW_WIDTH = 40;
 		private const int MAX_WS_WIDTH = 20;
 
 		private class HistoryMetric
 		{
-			public bool Available { get; set; }
+			public bool Available { get; init; }
 
-			public TimeSpan LocalTime { get; set; }
-			public long ReadVersion { get; set; }
+			public TimeSpan LocalTime { get; init; }
+			public long ReadVersion { get; init; }
 
-			public long Timestamp { get; set; }
+			public long Timestamp { get; init; }
 
-			public double ReadsPerSecond { get; set; }
-			public double WritesPerSecond { get; set; }
-			public double WrittenBytesPerSecond { get; set; }
+			public double ReadsPerSecond { get; init; }
+			public double WritesPerSecond { get; init; }
+			public double WrittenBytesPerSecond { get; init; }
 
-			public double TransStarted { get; set; }
-			public double TransCommitted { get; set; }
-			public double TransConflicted { get; set; }
+			public double TransStarted { get; init; }
+			public double TransCommitted { get; init; }
+			public double TransConflicted { get; init; }
 
-			public double LatencyCommit { get; set; }
-			public double LatencyRead { get; set; }
-			public double LatencyStart { get; set; }
+			public double LatencyCommit { get; init; }
+			public double LatencyRead { get; init; }
+			public double LatencyStart { get; init; }
 		}
 
-		private static char GetBarChar(double scale)
+		private static char GetBarChar(double scale) => scale switch
 		{
-			if (scale >= 1000000) return '@';
-			if (scale >= 100000) return '#';
-			if (scale >= 10000) return '|';
-			return ':';
-		}
+			>= 1000000 => '@',
+			>= 100000 => '#',
+			>= 10000 => '|',
+			_ => ':'
+		};
 
 		private static int Bar(double hz, double scale, int width)
 		{
@@ -488,19 +485,19 @@ namespace FdbTop
 		{
 			public int Value;
 
-			public char Text
+			public readonly char Text
 			{
 				[MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get => (char) (this.Value & 0xFFFF);
 			}
 
-			public ConsoleColor ForegrounColor
+			public readonly ConsoleColor ForegroundColor
 			{
 				[MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get => (ConsoleColor) ((this.Value >> 16) & 0xFF);
 			}
 
-			public ConsoleColor BackgroundColor
+			public readonly ConsoleColor BackgroundColor
 			{
 				[MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get => (ConsoleColor) ((this.Value >> 24) & 0xFF);
@@ -512,9 +509,9 @@ namespace FdbTop
 				this.Value = text | (((int) foreground) << 16) | (((int) background) << 24);
 			}
 
-			public override string ToString()
+			public readonly override string ToString()
 			{
-				return $"'{this.Text}' [{this.ForegrounColor}]";
+				return $"'{this.Text}' [{this.ForegroundColor}]";
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -526,15 +523,15 @@ namespace FdbTop
 
 		private sealed class FrameBuffer
 		{
-			public int Width { get; private set; }
+			public int Width { get; }
 
-			public int Height { get; private set; }
+			public int Height { get; }
 
-			public int Stride { get; private set; }
+			public int Stride { get; }
 
-			public Texel[] Visible { get; private set; }
+			public Texel[] Visible { get; }
 
-			public Texel[] Current { get; private set; }
+			public Texel[] Current { get; }
 
 			public FrameBuffer(int width, int height)
 			{
@@ -671,7 +668,7 @@ namespace FdbTop
 									Console.SetCursorPosition(x, y);
 									prev = false;
 								}
-								var newCol = rowCurrent[x].ForegrounColor;
+								var newCol = rowCurrent[x].ForegroundColor;
 								if (col != newCol)
 								{ // new color
 									Console.ForegroundColor = newCol;
@@ -756,7 +753,7 @@ namespace FdbTop
 			return Math.Pow(10, Math.Ceiling(Math.Log10(max)));
 		}
 
-		private static ConsoleColor FrenquencyColor(double hz)
+		private static ConsoleColor FrequencyColor(double hz)
 		{
 			return hz >= 100 ? ConsoleColor.White : hz >= 10 ? ConsoleColor.Gray : ConsoleColor.DarkCyan;
 		}
@@ -851,7 +848,7 @@ namespace FdbTop
 			SetColor(ConsoleColor.White);
 			WriteAt(TOP_COL3 + 12, TOP_ROW0, "{0,-10}", status.Cluster.Configuration.CoordinatorsCount);
 			WriteAt(TOP_COL3 + 12, TOP_ROW1, "{0,-10}", status.Cluster.Configuration.StorageEngine);
-			WriteAt(TOP_COL3 + 12, TOP_ROW2, "{0,-10}", status.Cluster.Configuration.RedundancyFactor);
+			WriteAt(TOP_COL3 + 12, TOP_ROW2, "{0,-10}", status.Cluster.Configuration.RedundancyMode);
 
 			if (!status.Client.DatabaseAvailable)
 			{
@@ -959,9 +956,9 @@ namespace FdbTop
 						bool isMaxWrite = maxWrite > 0 && metric.WritesPerSecond == maxWrite;
 						bool isMaxSpeed = maxSpeed > 0 && metric.WrittenBytesPerSecond == maxSpeed;
 
-						SetColor(isMaxRead ? ConsoleColor.Cyan : FrenquencyColor(metric.ReadsPerSecond));
+						SetColor(isMaxRead ? ConsoleColor.Cyan : FrequencyColor(metric.ReadsPerSecond));
 						WriteAt(COL1, y, "{0,8:N0}", metric.ReadsPerSecond);
-						SetColor(isMaxWrite ? ConsoleColor.Cyan : FrenquencyColor(metric.WritesPerSecond));
+						SetColor(isMaxWrite ? ConsoleColor.Cyan : FrequencyColor(metric.WritesPerSecond));
 						WriteAt(COL2, y, "{0,8:N0}", metric.WritesPerSecond);
 						SetColor(isMaxSpeed ? ConsoleColor.Cyan : DiskSpeedColor(metric.WrittenBytesPerSecond));
 						WriteAt(COL3, y, "{0,10:N3}", MegaBytes(metric.WrittenBytesPerSecond));
@@ -1120,11 +1117,11 @@ namespace FdbTop
 						bool isMaxWrite = maxCommitted > 0 && metric.LatencyRead == maxCommitted;
 						bool isMaxSpeed = maxConflicted > 0 && metric.LatencyStart == maxConflicted;
 
-						SetColor(isMaxRead ? ConsoleColor.Cyan : FrenquencyColor(metric.TransStarted));
+						SetColor(isMaxRead ? ConsoleColor.Cyan : FrequencyColor(metric.TransStarted));
 						WriteAt(COL1, y, "{0,8:N0}", metric.TransStarted);
-						SetColor(isMaxWrite ? ConsoleColor.Cyan : FrenquencyColor(metric.TransCommitted));
+						SetColor(isMaxWrite ? ConsoleColor.Cyan : FrequencyColor(metric.TransCommitted));
 						WriteAt(COL2, y, "{0,8:N0}", metric.TransCommitted);
-						SetColor(isMaxSpeed ? ConsoleColor.Cyan : FrenquencyColor(metric.TransConflicted));
+						SetColor(isMaxSpeed ? ConsoleColor.Cyan : FrequencyColor(metric.TransConflicted));
 						WriteAt(COL3, y, "{0,8:N1}", metric.TransConflicted);
 
 						SetColor(metric.TransStarted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen);
@@ -1196,7 +1193,7 @@ namespace FdbTop
 				this.DataDistributor = false;
 			}
 
-			public override string ToString()
+			public readonly override string ToString()
 			{
 				var sb = new StringBuilder(11);
 				sb.Append(this.Master ? "M" : "-");
@@ -1843,4 +1840,5 @@ namespace FdbTop
 		}
 
 	}
+
 }

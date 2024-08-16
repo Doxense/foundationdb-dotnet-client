@@ -436,7 +436,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, params T[] keys)
+		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, params T?[] keys)
 		{
 			Contract.NotNull(prefix);
 
@@ -1011,7 +1011,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		[Pure]
 		public static T1? DecodeFirst<T1>(Slice packedKey)
@@ -1027,7 +1027,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Unpack a tuple and only return its first 2 elements</summary>
 		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 2 elements</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
 		[Pure]
 		public static (T1?, T2?) DecodeFirst<T1, T2>(Slice packedKey)
@@ -1046,7 +1046,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 3 elements</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
 		[Pure]
 		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(Slice packedKey)
@@ -1063,7 +1063,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least one element</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure]
 		public static T? DecodeLast<T>(Slice packedKey)
@@ -1081,7 +1081,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
 		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 2 elements</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
 		[Pure]
 		public static (T1?, T2?) DecodeLast<T1, T2>(Slice packedKey)
@@ -1100,7 +1100,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple of at least 3 elements</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
 		[Pure]
 		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(Slice packedKey)
@@ -1143,7 +1143,6 @@ namespace Doxense.Collections.Tuples
 			item = default;
 			return false;
 		}
-
 
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>

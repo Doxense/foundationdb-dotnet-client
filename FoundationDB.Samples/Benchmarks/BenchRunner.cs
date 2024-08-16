@@ -1,4 +1,30 @@
-﻿//TODO: License for samples/tutorials ???
+﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#endregion
+
+// ReSharper disable MethodHasAsyncOverload
 
 namespace FoundationDB.Samples.Benchmarks
 {
@@ -40,10 +66,9 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public BenchMode Mode { get; }
 
-		public IDynamicKeySubspace Subspace { get; private set; }
+		public IDynamicKeySubspace? Subspace { get; private set; }
 
 		public RobustHistogram Histo { get; }
-
 
 		/// <summary>
 		/// Setup the initial state of the database
@@ -77,9 +102,7 @@ namespace FoundationDB.Samples.Benchmarks
 				}
 			);
 
-			var duration = Stopwatch.StartNew();
-
-			var foo = this.Subspace.Encode("foo");
+			var foo = this.Subspace!.Encode("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 
@@ -88,7 +111,7 @@ namespace FoundationDB.Samples.Benchmarks
 			timeline.Start();
 			var elapsed = await Program.RunConcurrentWorkersAsync(
 				WORKERS,
-				async (i, _ct) =>
+				async (_, _) =>
 				{
 					var dur = Stopwatch.StartNew();
 					int k = 0;
@@ -122,7 +145,7 @@ namespace FoundationDB.Samples.Benchmarks
 							}
 							case BenchMode.Watch:
 							{
-								(var v, var w) = await db.ReadWriteAsync(async tr => (await tr.GetAsync(foo), tr.Watch(foo, ct)), ct);
+								var (v, w) = await db.ReadWriteAsync(async tr => (await tr.GetAsync(foo), tr.Watch(foo, ct)), ct);
 
 								// swap
 								v = (v == bar) ? barf : bar;

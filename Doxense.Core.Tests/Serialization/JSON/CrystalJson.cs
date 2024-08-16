@@ -1397,7 +1397,7 @@ namespace Doxense.Serialization.Json.Tests
 			//TODO: DateTimeOffset ?
 		}
 
-		private string ToUtcOffset(TimeSpan offset)
+		private static string ToUtcOffset(TimeSpan offset)
 		{
 			// note: can be negative! Hours and Minutes will be both negative in this case
 			return (offset < TimeSpan.Zero ? "-" : "+") + Math.Abs(offset.Hours).ToString("D2") + ":" + Math.Abs(offset.Minutes).ToString("D2");
@@ -2283,14 +2283,14 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_Jagged_Arrays()
 		{
-			Assert.That(CrystalJson.Serialize<int[][]>(new int[][] { [ ], [ ] }), Is.EqualTo("[ [ ], [ ] ]"));
-			Assert.That(CrystalJson.Serialize<int[][]>(new int[][] { [ ], [ ] }, CrystalJsonSettings.JsonCompact), Is.EqualTo("[[],[]]"));
+			Assert.That(CrystalJson.Serialize<int[][]>([ [ ], [ ] ]), Is.EqualTo("[ [ ], [ ] ]"));
+			Assert.That(CrystalJson.Serialize<int[][]>([ [ ], [ ] ], CrystalJsonSettings.JsonCompact), Is.EqualTo("[[],[]]"));
 
-			Assert.That(CrystalJson.Serialize<int[][]>(new int[][] { [ 1, 2, 3 ], [ 4, 5, 6 ] }), Is.EqualTo("[ [ 1, 2, 3 ], [ 4, 5, 6 ] ]"));
-			Assert.That(CrystalJson.Serialize<int[][]>(new int[][] { [ 1, 2, 3 ], [ 4, 5, 6 ] }, CrystalJsonSettings.JsonCompact), Is.EqualTo("[[1,2,3],[4,5,6]]"));
+			Assert.That(CrystalJson.Serialize<int[][]>([ [ 1, 2, 3 ], [ 4, 5, 6 ] ]), Is.EqualTo("[ [ 1, 2, 3 ], [ 4, 5, 6 ] ]"));
+			Assert.That(CrystalJson.Serialize<int[][]>([ [ 1, 2, 3 ], [ 4, 5, 6 ] ], CrystalJsonSettings.JsonCompact), Is.EqualTo("[[1,2,3],[4,5,6]]"));
 
 			// INCEPTION !
-			Assert.That(CrystalJson.Serialize(new [] { new [] { new [] { new [] { "INCEPTION" } } } }), Is.EqualTo("[ [ [ [ \"INCEPTION\" ] ] ] ]"));
+			Assert.That(CrystalJson.Serialize<string[][][][]>([ [ [ [ "INCEPTION" ] ] ] ]), Is.EqualTo("""[ [ [ [ "INCEPTION" ] ] ] ]"""));
 		}
 
 		[Test]
@@ -2798,11 +2798,10 @@ namespace Doxense.Serialization.Json.Tests
 			long rawSize = new FileInfo(path).Length;
 			Log($"RAW    : Saved {rawSize,9:N0} bytes in {sw.Elapsed.TotalMilliseconds:N1} ms");
 
-
-			// relit le fichier
+			// read the file back
 			string text = File.ReadAllText(path);
 			Assert.That(text, Is.Not.Null.Or.Empty, "File should contain stuff");
-			// désérialise
+			// deserialize
 			var reloaded = CrystalJson.Deserialize<string[]>(text);
 			Assert.That(reloaded, Is.Not.Null);
 			Assert.That(reloaded.Count, Is.EqualTo(list.Count));
@@ -3347,7 +3346,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(jval.ToStringOrDefault(), Is.EqualTo("Hello, World!"));
 				Assert.That(jval.ToObject(), Is.EqualTo("Hello, World!"));
 				Assert.That(jval.ToString(), Is.EqualTo("Hello, World!"));
-				sb.Append("?");
+				sb.Append('?');
 				Assert.That(jval.ToStringOrDefault(), Is.EqualTo("Hello, World!"), "Mutating the original StringBuilder should not have any impact on the string");
 			}
 
@@ -4728,7 +4727,7 @@ namespace Doxense.Serialization.Json.Tests
 			EnsureDeepImmutabilityInvariant(array);
 
 			// ICollection<int>
-			array = new List<int>(new[] {1, 2, 3}).ToJsonArrayReadOnly();
+			array = new List<int>([1, 2, 3]).ToJsonArrayReadOnly();
 			Assert.That(array, Is.Not.Null);
 			Assert.That(array.Count, Is.EqualTo(3));
 			Assert.That(array.ToArray<int>(), Is.EqualTo(new[] {1, 2, 3}));
@@ -5727,8 +5726,8 @@ namespace Doxense.Serialization.Json.Tests
 				JsonArray actual,
 				IResolveConstraint expression,
 				NUnitString message = default(NUnitString),
-				[CallerArgumentExpression("actual")] string actualExpression = "",
-				[CallerArgumentExpression("expression")]
+				[CallerArgumentExpression(nameof(actual))] string actualExpression = "",
+				[CallerArgumentExpression(nameof(expression))]
 				string constraintExpression = "")
 			{
 				Dump(actualExpression, actual);
@@ -7010,7 +7009,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonObject.EmptyReadOnly.IsReadOnly, Is.True);
 			//note: we don't want to attempt to modify the empty readonly singleton, because if the test fails, it will completely break ALL the reamining tests!
 
-			static void CheckEmptyReadOnly(JsonObject obj, [CallerArgumentExpression("obj")] string? expression = null)
+			static void CheckEmptyReadOnly(JsonObject obj, [CallerArgumentExpression(nameof(obj))] string? expression = null)
 			{
 				Assert.That(obj, Has.Count.Zero, expression);
 				AssertIsImmutable(obj, expression);
@@ -9564,7 +9563,7 @@ namespace Doxense.Serialization.Json.Tests
 		public DateTime? Modified { get; set; }
 		public DummyJsonEnum State { get; set; }
 
-		public double RatioOfStuff => Amount * Size;
+		public double RatioOfStuff => this.Amount * this.Size;
 
 		// ReSharper disable once UnusedMember.Local
 		private string Invisible => m_invisible;
@@ -9574,14 +9573,14 @@ namespace Doxense.Serialization.Json.Tests
 		public override bool Equals(object? obj)
 		{
 			if (obj is not DummyJsonClass other) return false;
-			return Index == other.Index
-				&& m_name == other.m_name
-				&& Size == other.Size
-				&& Height == other.Height
-				&& Amount == other.Amount
-				&& Created == other.Created
-				&& Modified == other.Modified
-				&& State == other.State;
+			return this.Index == other.Index
+			       && m_name == other.m_name
+			       && this.Size == other.Size
+			       && this.Height == other.Height
+			       && this.Amount == other.Amount
+			       && this.Created == other.Created
+			       && this.Modified == other.Modified
+			       && this.State == other.State;
 		}
 
 		public override int GetHashCode()

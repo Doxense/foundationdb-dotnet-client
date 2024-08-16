@@ -40,19 +40,19 @@ namespace Doxense.Serialization
 	public static class TypeHelper
 	{
 
-		/// <summary>Converts an arbirtrary dictionary key as a string literal, that can be used as a key in a string-only map (such as the field name in a JSON Object)</summary>
+		/// <summary>Converts an arbitrary dictionary key to a string literal, that can be used as a key in a string-only map (such as the field name in a JSON Object)</summary>
 		/// <param name="key">Instance that represents a key</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure, ContractAnnotation("key:notnull => notnull")]
-		[return: NotNullIfNotNull("key")]
+		[return: NotNullIfNotNull(nameof(key))]
 		public static string? ConvertKeyToString(object? key)
 		{
 			return key switch
 			{
 				null => null,
 				string name => name, // already a string
-				double d => d.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundript) so as not to loose the last digit
-				float f => f.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundript) so as not to loose the last digit
+				double d => d.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundtrip) so as not to loose the last digit
+				float f => f.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundtrip) so as not to loose the last digit
 				DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture), // use ISO format
 				DateTimeOffset dto => dto.ToString("O", CultureInfo.InvariantCulture), // use ISO format
 				NodaTime.Instant t => NodaTime.Text.InstantPattern.ExtendedIso.Format(t), // use Extended ISO format
@@ -89,7 +89,7 @@ namespace Doxense.Serialization
 
 		/// <summary>Generates a factory method that will instantiate an object of the specified type, or equivalent, if possible</summary>
 		/// <param name="type">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</param>
-		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract aclass, type without a parameterless ctor, ...)</returns>
+		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract class, type without a parameterless ctor, ...)</returns>
 		[Pure]
 		public static Func<object>? CompileGenerator([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]this Type type)
 		{
@@ -128,7 +128,7 @@ namespace Doxense.Serialization
 
 		/// <summary>Generates a factory method that will instantiate an object of the specified type, or equivalent, if possible</summary>
 		/// <typeparam name="TInstance">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</typeparam>
-		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract aclass, type without a parameterless ctor, ...)</returns>
+		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract class, type without a parameterless ctor, ...)</returns>
 		[Pure]
 		public static Func<TInstance>? CompileTypedGenerator<TInstance>()
 		{
@@ -168,8 +168,8 @@ namespace Doxense.Serialization
 
 		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes one parameter</summary>
 		/// <typeparam name="TArg0">Type of the ctor parameter</typeparam>
-		/// <param name="type">Type of the object to instantiate, which must have a ctor with one paramter (can be private or public)</param>
-		/// <returns>Function that takes in a parameter and instantiante a instance of the type</returns>
+		/// <param name="type">Type of the object to instantiate, which must have a ctor with one parameter (can be private or public)</param>
+		/// <returns>Function that takes in a parameter and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
 		[Pure]
 		public static Func<TArg0, object> CompileGenerator<TArg0>(this Type type)
@@ -186,7 +186,7 @@ namespace Doxense.Serialization
 		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes one parameter</summary>
 		/// <typeparam name="TArg0">Type of the ctor parameter</typeparam>
 		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with one parameter (can be private or public)</typeparam>
-		/// <returns>Function that takes in a parameter and instantiante a instance of the type</returns>
+		/// <returns>Function that takes in a parameter and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
 		[Pure]
 		public static Func<TArg0, TInstance> CompileTypedGenerator<TInstance, TArg0>()
@@ -206,7 +206,7 @@ namespace Doxense.Serialization
 		/// <typeparam name="TArg0">Type of the first parameter</typeparam>
 		/// <typeparam name="TArg1">Type of the second parameter</typeparam>
 		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with two parameters (can be private or public)</typeparam>
-		/// <returns>Function that takes in two parameters and instantiante a instance of the type</returns>
+		/// <returns>Function that takes in two parameters and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes two parameters of type <typeparamref name="TArg0"/> and <typeparamref name="TArg1"/></exception>
 		[Pure]
 		public static Func<TArg0, TArg1, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1>()
@@ -228,7 +228,7 @@ namespace Doxense.Serialization
 		/// <typeparam name="TArg1">Type of the second parameter</typeparam>
 		/// <typeparam name="TArg2">Type of the third parameter</typeparam>
 		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with three parameters (can be private or public)</typeparam>
-		/// <returns>Function that takes in three parameters and instantiante a instance of the type</returns>
+		/// <returns>Function that takes in three parameters and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes three parameters of type <typeparamref name="TArg0"/>, <typeparamref name="TArg1"/> and <typeparamref name="TArg2"/></exception>
 		[Pure]
 		public static Func<TArg0, TArg1, TArg2, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1, TArg2>()
@@ -266,7 +266,7 @@ namespace Doxense.Serialization
 
 		#region Getters / Setters...
 
-		/// <summary>Génère une Lambda '(object instance) => (object) (((TYPE) instance).MEMBER)'</summary>
+		/// <summary>Generates a getter Lambda <c>(object instance) => (object) (((TYPE) instance).MEMBER)</c></summary>
 		[Pure]
 		public static Func<object, object> CompileGetter(MemberInfo member)
 		{
@@ -288,7 +288,7 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Génère une Lambda '(object instance, obj value) => (TInstance) instance).MEMBER = (TValue) value'</summary>
+		/// <summary>Generates a setter Lambda <c>(object instance, obj value) => (TInstance) instance).MEMBER = (TValue) value</c></summary>
 		[Pure]
 		public static Action<object, object>? CompileSetter(MemberInfo member)
 		{
@@ -310,7 +310,7 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance) => instance.MEMBER'</summary>
+		/// <summary>Generates a getter Lambda <c>(TInstance instance) => instance.MEMBER</c></summary>
 		[Pure]
 		public static Func<TInstance, object> CompileGetter<TInstance>(MemberInfo member)
 		{
@@ -332,7 +332,7 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance, object value) => instance.MEMBER = (TVALUE) value'</summary>
+		/// <summary>Generates a setter Lambda <c>(TInstance instance, object value) => instance.MEMBER = (TVALUE) value</c></summary>
 		[Pure]
 		public static Action<TInstance, object?>? CompileSetter<TInstance>(MemberInfo member)
 		{
@@ -355,7 +355,7 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Génère une Lambda '(object instance) => (object) ((TInstance) instance).FIELD)'</summary>
+		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).FIELD)</c></summary>
 		[Pure]
 		public static Func<object, object> CompileGetter(this FieldInfo field)
 		{
@@ -366,7 +366,7 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<object, object>>(body, prmInstance).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance) => (object) (instance.FIELD)'</summary>
+		/// <summary>Generates a getter Lambda <c>(TInstance instance) => (object) (instance.FIELD)</c></summary>
 		[Pure]
 		public static Func<TInstance, object> CompileGetter<TInstance>(this FieldInfo field)
 		{
@@ -377,7 +377,7 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<TInstance, object>>(body, prmInstance).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance) => instance.FIELD'</summary>
+		/// <summary>Generates a getter Lambda <c>(TInstance instance) => instance.FIELD</c></summary>
 		public static Func<TInstance, TValue> CompileGetter<TInstance, TValue>(FieldInfo field)
 		{
 			Contract.NotNull(field);
@@ -388,8 +388,8 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<TInstance, TValue>>(body, prmInstance).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(object instance, object value) => ((TInstance) instance).FIELD = (TValue) value', si c'est possible</summary>
-		/// <returns>Attention, retourne null si la propriété est readonly !</returns>
+		/// <summary>Generates a setter Lambda <c>(object instance, object value) => ((TInstance) instance).FIELD = (TValue) value</c></summary>
+		/// <returns>Returns <c>null</c> if the field is read-only</returns>
 		[Pure]
 		public static Action<object, object?>? CompileSetter(this FieldInfo field)
 		{
@@ -404,7 +404,8 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Action<object, object?>>(body, prmInstance, prmValue).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance, object value) => instance.FIELD = (TValue) value', si c'est possible</summary>
+		/// <summary>Generates a setter Lambda <c>(TInstance instance, object value) => instance.FIELD = (TValue) value</c></summary>
+		/// <returns>Returns <c>null</c> if the field is read-only</returns>
 		[Pure]
 		public static Action<TInstance, object?>? CompileSetter<TInstance>(this FieldInfo field)
 		{
@@ -419,7 +420,7 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Action<TInstance, object?>>(body, prmInstance, prmValue).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(object instance) => (object) ((TInstance) instance).PROPERTY)'</summary>
+		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).PROPERTY)</c></summary>
 		[Pure]
 		public static Func<object, object> CompileGetter(this PropertyInfo property)
 		{
@@ -430,7 +431,7 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<object, object>>(body, prmInstance).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance) => (object) (instance.PROPERTY)'</summary>
+		/// <summary>Generates a getter Lambda <c>(TInstance instance) => (object) (instance.PROPERTY)</c></summary>
 		[Pure]
 		public static Func<TInstance, object> CompileGetter<TInstance>(this PropertyInfo property)
 		{
@@ -441,7 +442,7 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<TInstance, object>>(body, prmInstance).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance) => instance.PROPERTY'</summary>
+		/// <summary>Generates a getter Lambda <c>(TInstance instance) => instance.PROPERTY</c></summary>
 		[Pure]
 		public static Func<TInstance, TValue> CompileGetter<TInstance, TValue>(PropertyInfo property)
 		{
@@ -453,8 +454,8 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<TInstance, TValue>>(body, prmInstance).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(object instance, object value) => ((TInstance) instance).PROPERTY = (TValue) value', si c'est possible</summary>
-		/// <returns>Attention, retourne null si la propriété est readonly !</returns>
+		/// <summary>Generates a setter Lambda <c>(object instance, object value) => ((TInstance) instance).PROPERTY = (TValue) value</c></summary>
+		/// <returns>Returns <c>null</c> if the property is read-only</returns>
 		[Pure]
 		public static Action<object, object?>? CompileSetter(this PropertyInfo property)
 		{
@@ -468,14 +469,14 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Action<object, object?>>(body, prmInstance, prmValue).Compile();
 		}
 
-		/// <summary>Génère une Lambda '(TInstance instance, object value) => instance.PROPERTY = (TValue) value', si c'est possible</summary>
-		/// <returns>Attention, retourne null si la propriété est readonly !</returns>
+		/// <summary>Generates a setter Lambda <c>(TInstance instance, object value) => instance.PROPERTY = (TValue) value</c></summary>
+		/// <returns>Returns <c>null</c> if the property is readonly</returns>
 		[Pure]
 		public static Action<TInstance, object?>? CompileSetter<TInstance>(this PropertyInfo property)
 		{
 			Contract.NotNull(property);
 			var setMethod = property.GetSetMethod();
-			if (setMethod == null) return null; // non modifiable !?
+			if (setMethod == null) return null; // read-only !?
 			// "void func(instance.TYPE target, object value) { instance.set_Property((value.TYPE)value)); }"
 			var prmInstance = Expression.Parameter(typeof(TInstance), "instance");
 			var prmValue = Expression.Parameter(typeof(object), "value");
@@ -499,7 +500,7 @@ namespace Doxense.Serialization
 			return attribute != null;
 		}
 
-		/// <summary>Return the value of a named <see cref="System.Attribute"/>'s property, using reflection.</summary>
+		/// <summary>Returns the value of a named <see cref="System.Attribute"/>'s property, using reflection.</summary>
 		/// <param name="attribute">Attribute to query</param>
 		/// <param name="name">Name of the property of the attribute</param>
 		/// <returns>Value of the property, or <see langword="null"/> if there is no such property</returns>
@@ -549,9 +550,9 @@ namespace Doxense.Serialization
 				: null; // Reference Type / Interface
 		}
 
-		/// <summary>Returs the default value for a parameter of a method call</summary>
+		/// <summary>Returns the default value for a parameter of a method call</summary>
 		/// <param name="parameter">Parameter</param>
-		/// <returns>Default value for this paremeter if present (ex: <c>..., string foo = "hello world", ...)</c>; otherwise <see langword="null"/>, <see langword="0"/>, <see langword="false"/>, DateTime.MinValue, ...</returns>
+		/// <returns>Default value for this parameter if present (ex: <c>..., string foo = "hello world", ...)</c>; otherwise <see langword="null"/>, <see langword="0"/>, <see langword="false"/>, DateTime.MinValue, ...</returns>
 		[Pure]
 		public static object? GetDefaultValue(this ParameterInfo parameter)
 		{
@@ -559,8 +560,8 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Returns the full name of a type, that can be later passed to Type.GetType(..) to retrieve the original type</summary>
-		/// <param name="type">Type de l'objet</param>
-		/// <returns>Nom de l'objet sous la forme "Namespace.ClassName, AssemblyName"</returns>
+		/// <param name="type">Type</param>
+		/// <returns>Name of the type, with the form <c>"Namespace.ClassName, AssemblyName"</c></returns>
 		[Pure]
 		public static string GetAssemblyName(this Type type)
 		{
@@ -577,7 +578,7 @@ namespace Doxense.Serialization
 			// note: type.AssemblyQualifiedName and type.Assembly.FullName add the suffix ", Version=xxx, Culture=xxx, PublicKey=xxx" that we need to remove
 			string displayName = assemblyName.FullName;
 			int p = displayName.IndexOf(',');
-			if (p > 0) displayName = displayName.Substring(0, p);
+			if (p > 0) displayName = displayName[..p];
 			return type.FullName + ", " + displayName;
 		}
 
@@ -670,13 +671,16 @@ namespace Doxense.Serialization
 				else
 				{
 					baseName = type.GetGenericTypeDefinition().Name;
-					// generic argumentse are after the backtick (`)
+					// generic arguments are after the backtick (`)
 					int p = baseName.IndexOf('`');
-					if (p > 0) baseName = baseName.Substring(0, p);
+					if (p > 0) baseName = baseName[..p];
 				}
 
 				// we will recursively call GetFriendlyName on each generic argument types
-				if (args.Length == 0) return prefix + baseName;
+				if (args.Length == 0)
+				{
+					return prefix + baseName;
+				}
 				return $"{prefix}{baseName}<{string.Join(", ", args.Select(GetFriendlyName))}>";
 			}
 
@@ -685,18 +689,18 @@ namespace Doxense.Serialization
 
 				string baseName = prefix + GetFriendlyName(type.GetElementType()!);
 				int rank = type.GetArrayRank();
-				switch(rank)
+				return rank switch
 				{
-					case 1: return baseName + "[]";
-					case 2: return baseName + "[,]";
-					default: return baseName + type.Name.Substring(type.Name.IndexOf('['));
-				}
+					1 => baseName + "[]",
+					2 => baseName + "[,]",
+					_ => baseName + type.Name[type.Name.IndexOf('[')..]
+				};
 			}
 
 			if (type.IsPointer)
 			{ // => "Acme*"
 				string baseName = prefix + GetFriendlyName(type.GetElementType()!);
-				return baseName + type.Name.Substring(type.Name.IndexOf('*'));
+				return baseName + type.Name[type.Name.IndexOf('*')..];
 			}
 
 			// standard case
@@ -803,17 +807,17 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Tests if a generic type is has the same generic definition as another type (ie: <c>Dictionary&lt;string, int> ~= Dictionary&lt;,></c></summary>
-		/// <param name="type">Type à inspecter (ex: IDictionary&lt;string, string&gt;)</param>
+		/// <param name="type">Type to inspect (ex: IDictionary&lt;string, string&gt;)</param>
 		/// <param name="genericType">Generic type (ex: IDictionary&lt;,&gt;)</param>
 		/// <returns><see langword="true"/> if the types are equivalent; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public static bool IsSameGenericType(this Type type, Type genericType)
+		public static bool IsSameGenericType(this Type type, Type? genericType)
 		{
 			return type == genericType || (genericType != null && type.IsGenericType && genericType == type.GetGenericTypeDefinition());
 		}
 
 		/// <summary>Tests if a type is "concrete", meaning it is not a class or struct that is not abstract</summary>
-		/// <param name="type">Type à inspecter</param>
+		/// <param name="type">Type to inspect</param>
 		/// <returns><see langword="false"/> if the type is an interface an abstract class, or <see cref="System.Object"/>; otherwise, <see langword="true"/></returns>
 		/// <remarks>This includes both sealed class, and non-sealed but non-abstract class.</remarks>
 		[Pure]
@@ -836,7 +840,7 @@ namespace Doxense.Serialization
 		{
 			//note: we should check if it is generic, and if its generic definition is 'Nullable<>' but this is too slow at runtime
 			// CORRECT but SLOW: return type.IsGenericType && type.Name == "Nullable`1" && typeof(Nullable<>) == type.GetGenericTypeDefinition();
-			// => we exploit the fact that the 'Name' of typeof(T?) or typeof(Nullabe<T>) is always "Nullable`1", and that it is not possible to derive from a struct...
+			// => we exploit the fact that the 'Name' of typeof(T?) or typeof(Nullable<T>) is always "Nullable`1", and that it is not possible to derive from a struct...
 			return type.Name == "Nullable`1";
 		}
 
@@ -851,7 +855,7 @@ namespace Doxense.Serialization
 		[Pure]
 		public static bool IsDynamicType(this Type type)
 		{
-			// Allo dynamic objects (ExpandoObject, DynamicObject, ....) implement the interface IDynamicMetaObjectProvider
+			// All dynamic objects (ExpandoObject, DynamicObject, ....) implement the interface IDynamicMetaObjectProvider
 			return typeof(IDynamicMetaObjectProvider).IsAssignableFrom(type);
 		}
 

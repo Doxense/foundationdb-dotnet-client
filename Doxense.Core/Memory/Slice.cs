@@ -59,7 +59,7 @@ namespace System
 
 		/// <summary>Empty slice ("segment of 0 bytes")</summary>
 		//note: we allocate a 1-byte array so that we can get a pointer to &slice.Array[slice.Offset] even for the empty slice
-		public static readonly Slice Empty = new Slice(new byte[1], 0, 0);
+		public static readonly Slice Empty = new(new byte[1], 0, 0);
 
 		/// <summary>Cached array of bytes from 0 to 255</summary>
 		internal static readonly byte[] ByteSprite = CreateByteSprite();
@@ -288,7 +288,7 @@ namespace System
 		public ReadOnlySpan<byte> Span
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new ReadOnlySpan<byte>(this.Array, this.Offset, this.Count);
+			get => new(this.Array, this.Offset, this.Count);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -302,7 +302,7 @@ namespace System
 		public ReadOnlyMemory<byte> Memory
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new ReadOnlyMemory<byte>(this.Array, this.Offset, this.Count);
+			get => new(this.Array, this.Offset, this.Count);
 		}
 
 		/// <summary>Returns true is the slice is not null</summary>
@@ -479,7 +479,7 @@ namespace System
 			return ref this.Array[MapToOffset(index)];
 		}
 
-		/// <summary>Returns a substring of the current slice that fits withing the specified index range</summary>
+		/// <summary>Returns a substring of the current slice that fits within the specified index range</summary>
 		/// <param name="start">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
 		/// <param name="end">The end position (excluded) of the substring. Positive values means from the start, negative values means from the end</param>
 		/// <returns>Slice that only contain the specified range, but shares the same underlying buffer.</returns>
@@ -501,7 +501,6 @@ namespace System
 			}
 		}
 
-
 		/// <summary>Returns the value of the byte at the specified index in the slice</summary>
 		/// <param name="index">Offset of the byte</param>
 		public byte this[Index index]
@@ -510,7 +509,7 @@ namespace System
 			get => this.Array[MapToOffset(index)];
 		}
 
-		/// <summary>Returns a substring of the current slice that fits withing the specified index range</summary>
+		/// <summary>Returns a substring of the current slice that fits within the specified index range</summary>
 		/// <param name="range">The begin and end position of the substring.</param>
 		/// <returns>Slice that only contain the specified range, but shares the same underlying buffer.</returns>
 		public Slice this[Range range]
@@ -767,7 +766,7 @@ namespace System
 			return Split(this, stride);
 		}
 
-		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance.</summary>
+		/// <summary>Reports the zero-based index of the first occurrence of the specified slice in this instance.</summary>
 		/// <param name="value">The slice to seek</param>
 		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -776,7 +775,7 @@ namespace System
 			return this.Span.IndexOf(value.Span);
 		}
 
-		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance.</summary>
+		/// <summary>Reports the zero-based index of the first occurrence of the specified slice in this instance.</summary>
 		/// <param name="value">The slice to seek</param>
 		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -785,7 +784,7 @@ namespace System
 			return this.Span.IndexOf(value);
 		}
 
-		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance. The search starts at a specified position.</summary>
+		/// <summary>Reports the zero-based index of the first occurrence of the specified slice in this instance. The search starts at a specified position.</summary>
 		/// <param name="value">The slice to seek</param>
 		/// <param name="startIndex">The search starting position</param>
 		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is startIndex</returns>
@@ -796,7 +795,7 @@ namespace System
 			return idx >= 0 ? checked(startIndex + idx) : - 1;
 		}
 
-		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance. The search starts at a specified position.</summary>
+		/// <summary>Reports the zero-based index of the first occurrence of the specified slice in this instance. The search starts at a specified position.</summary>
 		/// <param name="value">The slice to seek</param>
 		/// <param name="startIndex">The search starting position</param>
 		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is startIndex</returns>
@@ -816,7 +815,7 @@ namespace System
 			return this.Span.IndexOf(value);
 		}
 
-		/// <summary>Reports the zero-based index of the first occurence of the specified byte in this instance. The search starts at a specified position.</summary>
+		/// <summary>Reports the zero-based index of the first occurrence of the specified byte in this instance. The search starts at a specified position.</summary>
 		/// <param name="value">The byte to seek</param>
 		/// <param name="startIndex">The search starting position</param>
 		/// <returns>The zero-based index of <paramref name="value"/> if that byte is found, or -1 if it is not.</returns>
@@ -976,7 +975,7 @@ namespace System
 		}
 
 		/// <summary>Determines whether the slice is equal to the specified ASCII keyword</summary>
-		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intendeed</param>
+		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
 		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, represents the same bytes as this slice; otherwise, <b>false</b></returns>
 		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
 		public bool Equals(ReadOnlySpan<char> asciiString)
@@ -996,7 +995,7 @@ namespace System
 		}
 
 		/// <summary>Determines whether the beginning of this slice instance matches a specified ASCII keyword</summary>
-		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intendeed</param>
+		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
 		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, matches the beginning of this slice; otherwise, <b>false</b></returns>
 		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
 		public bool StartsWith(ReadOnlySpan<char> asciiString)
@@ -1007,7 +1006,7 @@ namespace System
 		}
 
 		/// <summary>Determines whether the end of this slice instance matches a specified ASCII keyword</summary>
-		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intendeed</param>
+		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
 		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, matches the end of this slice; otherwise, <b>false</b></returns>
 		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
 		public bool EndsWith(ReadOnlySpan<char> asciiString)
@@ -1181,18 +1180,18 @@ namespace System
 			if (a.Count > 0)
 			{
 				a.Span.CopyTo(buf);
-				buf = buf.Slice(a.Count);
+				buf = buf[a.Count..];
 			}
 			if (b.Count > 0)
 			{
 				b.Span.CopyTo(buf);
-				buf = buf.Slice(b.Count);
+				buf = buf[b.Count..];
 			}
 			if (c.Count > 0)
 			{
 				c.Span.CopyTo(buf);
 			}
-			return new Slice(tmp);
+			return new Slice(tmp, 0, count);
 		}
 
 		/// <summary>Concatenate an array of slices into a single slice</summary>
@@ -1341,7 +1340,7 @@ namespace System
 		/// <summary>Reports the zero-based index of the first occurrence of the specified slice in this source.</summary>
 		/// <param name="source">The slice Input slice</param>
 		/// <param name="value">The slice to seek</param>
-		/// <returns>Offset of the match if positive, or no occurence was found if negative</returns>
+		/// <returns>Offset of the match if positive, or no occurrence was found if negative</returns>
 		[Pure]
 		public static int Find(Slice source, Slice value)
 		{
@@ -2425,7 +2424,7 @@ namespace System
 			while (r > 0)
 			{
 				int c = Math.Min(r, chunkSize);
-				int n = await source.ReadAsync(buffer, p, c, ct).ConfigureAwait(false);
+				int n = await source.ReadAsync(buffer.AsMemory(p, c), ct).ConfigureAwait(false);
 				if (n <= 0)
 				{
 					throw ThrowHelper.InvalidOperationException($"Unexpected end of stream at {p:N0} / {length:N0} bytes");
@@ -2446,18 +2445,15 @@ namespace System
 		/// <summary>Checks if an object is equal to the current slice</summary>
 		/// <param name="obj">Object that can be either another slice, a byte array, or a byte array segment.</param>
 		/// <returns>true if the object represents a sequence of bytes that has the same size and same content as the current slice.</returns>
-		public override bool Equals(object? obj)
+		public override bool Equals(object? obj) => obj switch
 		{
-			switch (obj)
-			{
-				case null: return this.Array == null;
-				case Slice slice: return Equals(slice);
-				case MutableSlice slice: return Equals(slice);
-				case ArraySegment<byte> segment: return Equals(segment);
-				case byte[] bytes: return Equals(bytes);
-			}
-			return false;
-		}
+			null => this.Array == null,
+			Slice slice => Equals(slice),
+			MutableSlice slice => Equals(slice),
+			ArraySegment<byte> segment => Equals(segment),
+			byte[] bytes => Equals(bytes),
+			_ => false
+		};
 
 		/// <summary>Gets the hash code for this slice</summary>
 		/// <returns>A 32-bit signed hash code calculated from all the bytes in the slice.</returns>
@@ -2803,7 +2799,7 @@ namespace System
 			public string Content => Slice.Dump(m_slice, maxSize: DefaultPrettyPrintSize);
 
 			/// <summary>Encoding using only for display purpose: we don't want to throw in the 'Text' property if the input is not text!</summary>
-			private static readonly UTF8Encoding Utf8NoBomEncodingNoThrow = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
+			private static readonly UTF8Encoding Utf8NoBomEncodingNoThrow = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
 			public string? Text
 			{
@@ -2846,7 +2842,7 @@ namespace System
 		private static Slice EmptyOrNil(byte[]? array, int count)
 		{
 			//note: we consider the "empty" or "nil" case less frequent, so we handle it in a non-inlined method
-			if (array == null) return count == 0 ? default(Slice) : throw UnsafeHelpers.Errors.BufferArrayNotNull();
+			if (array == null) return count == 0 ? default : throw UnsafeHelpers.Errors.BufferArrayNotNull();
 			return Slice.Empty;
 		}
 
@@ -2998,9 +2994,9 @@ namespace System
 			return new MemoryStream(slice.Array, slice.Offset, slice.Count, writable: false, publiclyVisible: true);
 		}
 
-		/// <summary>Retourne un array segment contenant les donn�es du stream, si possible en évitant de copier des donn�es</summary>
-		/// <param name="stream">Stream contenant des donn�es</param>
-		/// <returns>Segment qui r�utilise le buffer interne du stream, ou si ce n'est pas possible, un autre buffer qui contient une copie</returns>
+		/// <summary>Retourne un array segment contenant les données du stream, si possible en évitant de copier des données</summary>
+		/// <param name="stream">Stream contenant des données</param>
+		/// <returns>Segment qui réutilise le buffer interne du stream, ou si ce n'est pas possible, un autre buffer qui contient une copie</returns>
 		public static Slice ToSlice(this MemoryStream stream)
 		{
 			Contract.Debug.Requires(stream != null);
@@ -3050,10 +3046,10 @@ namespace System
 			}
 		}
 
-		/// <summary>Read exacly <paramref name="count"/> bytes from the specified stream.</summary>
+		/// <summary>Read exactly <paramref name="count"/> bytes from the specified stream.</summary>
 		/// <param name="input">Input stream</param>
 		/// <param name="count">Number of bytes to read from the current position in the <paramref name="input">stream</paramref></param>
-		/// <returns>Slice that contains exaclty <paramref name="count"/> bytes.</returns>
+		/// <returns>Slice that contains exactly <paramref name="count"/> bytes.</returns>
 		/// <remarks>This method implements the classical read loop, to handle for situations where a read for N bytes from the stream returns less than requested (ex: sockets, pipes, ...)</remarks>
 		public static Slice ReadSliceExactly(this Stream input, int count)
 		{
@@ -3101,11 +3097,11 @@ namespace System
 			throw new IOException("The stream does not contain enough data to satisfy the read operation exactly.");
 		}
 
-		/// <summary>Read exacly <paramref name="count"/> bytes from the specified stream.</summary>
+		/// <summary>Read exactly <paramref name="count"/> bytes from the specified stream.</summary>
 		/// <param name="input">Input stream</param>
 		/// <param name="count">Number of bytes to read from the current position in the <paramref name="input">stream</paramref></param>
 		/// <param name="ct">Token used to cancel the read operation</param>
-		/// <returns>Slice that contains exaclty <paramref name="count"/> bytes.</returns>
+		/// <returns>Slice that contains exactly <paramref name="count"/> bytes.</returns>
 		/// <remarks>This method implements the classical read loop, to handle for situations where a read for N bytes from the stream returns less than requested (ex: sockets, pipes, ...)</remarks>
 		public static async Task<Slice> ReadSliceExactlyAsync(this Stream input, int count, CancellationToken ct)
 		{
@@ -3118,16 +3114,26 @@ namespace System
 				return ReadSliceExactly(ms, count);
 			}
 
-			if (!input.CanRead) throw new InvalidOperationException("The specified stream does not support read operations.");
+			if (!input.CanRead)
+			{
+				throw new InvalidOperationException("The specified stream does not support read operations.");
+			}
 
-			if (count == 0) return Slice.Empty;
+			if (count == 0)
+			{
+				return Slice.Empty;
+			}
 
 			byte[] tmp = new byte[count];
 			int p = 0;
 			while (p < count)
 			{
-				int n = await input.ReadAsync(tmp, p, count - p, ct).ConfigureAwait(false);
-				if (n <= 0) throw new IOException("The file does not contain enough data to satisfy the read operation exactly.");
+				int n = await input.ReadAsync(tmp.AsMemory(p, count - p), ct).ConfigureAwait(false);
+				if (n <= 0)
+				{
+					throw new IOException("The file does not contain enough data to satisfy the read operation exactly.");
+				}
+
 				p += n;
 			}
 			return new Slice(tmp);

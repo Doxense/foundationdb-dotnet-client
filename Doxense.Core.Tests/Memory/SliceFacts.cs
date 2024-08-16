@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable CA1825
+#pragma warning disable CA1861
+#pragma warning disable IDE0230
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ImplicitlyCapturedClosure
 // ReSharper disable RedundantCast
@@ -291,7 +294,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			// If the slice contain anything other than 7+bit ASCII, it should throw!
 			Assert.That(() => new byte[] { 0xFF, 0x41, 0x42, 0x43 }.AsSlice().ToStringAscii(), Throws.Exception, "\\xFF is not valid in 7-bit ASCII strings!");
-			Assert.That(() => Encoding.Default.GetBytes("héllô").AsSlice().ToStringAscii(), Throws.Exception, "String that contain code points >= 0x80 should trow");
+			Assert.That(() => Encoding.Default.GetBytes("héllô").AsSlice().ToStringAscii(), Throws.Exception, "String that contain code points >= 0x80 should throw");
 			Assert.That(() => "héllo 世界"u8.ToArray().AsSlice().ToStringAscii(), Throws.Exception, "String that contains code points >= 0x80 should throw");
 		}
 
@@ -468,7 +471,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// 16-bit integers should be encoded in little endian, and with 1 or 2 bytes
 
-			void Verify(short value, string expected)
+			static void Verify(short value, string expected)
 			{
 				Assert.That(Slice.FromInt16(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
@@ -1673,7 +1676,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			// FromFixed64 always produce 8 bytes and uses Big Endian
 
-			void Verify(ulong value, byte[] expected)
+			static void Verify(ulong value, byte[] expected)
 			{
 				Assert.That(Slice.FromFixedU64BE(value).GetBytes(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
@@ -1790,7 +1793,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_ToSingle()
 		{
-			void Verify(string value, float expected)
+			static void Verify(string value, float expected)
 			{
 				Assert.That(Slice.FromHexa(value).ToSingle(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
 				Assert.That(Slice.FromHexa(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
@@ -1851,7 +1854,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_ToDouble()
 		{
-			void Verify(string value, double expected)
+			static void Verify(string value, double expected)
 			{
 				Assert.That(Slice.FromHexa(value).ToDouble(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
 				Assert.That(Slice.FromHexa(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
@@ -1883,7 +1886,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_FromDecimal()
 		{
-			void Verify(decimal value, string expected)
+			static void Verify(decimal value, string expected)
 			{
 				Assert.That(Slice.FromDecimal(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
@@ -1907,7 +1910,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Slice_ToDecimal()
 		{
-			void Verify(string value, decimal expected)
+			static void Verify(string value, decimal expected)
 			{
 				Assert.That(Slice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), "Invalid decoding for '{0}'", value);
 			}
@@ -2332,7 +2335,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var abc2 = Slice.FromStringAscii("abc"); // same bytes but different buffer
 			var b = Slice.FromStringAscii("b");
 
-			// CompateTo
+			// CompareTo
 			// a = b
 			Assert.That(a.CompareTo(a), Is.EqualTo(0));
 			Assert.That(ab.CompareTo(ab), Is.EqualTo(0));
@@ -2806,7 +2809,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 					Log($"Reading 14 from position {ms.Position}");
 					var chunk = ms.ReadSliceExactly(14);
 					Assert.That(chunk.ToStringUtf8(), Is.EqualTo("This is a test"));
-					//note: for memorystreams we expose the original buffer!
+					//note: for MemoryStream we expose the original buffer!
 					Assert.That(chunk.Array, Is.SameAs(data), "Should expose the original stream buffer");
 					Assert.That(chunk.Offset, Is.Zero, ".Offset");
 					Assert.That(chunk.Count, Is.EqualTo(14));
@@ -2818,7 +2821,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 					Log($"Reading 34 from position {ms.Position}");
 					var chunk = ms.ReadSliceExactly(34);
 					Assert.That(chunk.ToStringUtf8(), Is.EqualTo(" of the emergency broadcast system"));
-					//note: for memorystreams we expose the original buffer!
+					//note: for MemoryStream we expose the original buffer!
 					Assert.That(chunk.Array, Is.SameAs(data), "Should expose the original stream buffer");
 					Assert.That(chunk.Offset, Is.EqualTo(14), ".Offset");
 					Assert.That(chunk.Count, Is.EqualTo(34));

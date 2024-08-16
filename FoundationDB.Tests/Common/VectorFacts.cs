@@ -164,17 +164,25 @@ namespace FoundationDB.Layers.Collections.Tests
 		}
 
 		private static async Task PrintVector<T>(FdbVector<T>.State vector, IFdbReadOnlyTransaction tr)
+			where T : notnull
 		{
 			bool first = true;
 			var sb = new StringBuilder();
 
 			await tr.GetRange(vector.Subspace.ToRange()).ForEachAsync((kvp) =>
 			{
-				if (!first) sb.Append(", "); else first = false;
+				if (!first)
+				{
+					sb.Append(", ");
+				}
+				else
+				{
+					first = false;
+				}
 				sb.Append($"{vector.Subspace.DecodeLast<long>(kvp.Key)}:{kvp.Value:P}");
 			});
 
-			Log("> Vector: (" + sb.ToString() + ")");
+			Log($"> Vector: ({sb})");
 		}
 
 	}

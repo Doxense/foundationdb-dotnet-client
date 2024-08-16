@@ -133,7 +133,7 @@ namespace FoundationDB.Client.Tests
 		protected TimeSpan TestElapsed
 		{
 			[DebuggerStepThrough]
-			get { return m_timer?.Elapsed ?? TimeSpan.Zero; }
+			get => m_timer?.Elapsed ?? TimeSpan.Zero;
 		}
 
 		/// <summary>Cancellation token usable by any test</summary>
@@ -142,7 +142,10 @@ namespace FoundationDB.Client.Tests
 			[DebuggerStepThrough]
 			get
 			{
-				if (m_cts == null) SetupCancellation();
+				if (m_cts == null)
+				{
+					SetupCancellation();
+				}
 				return m_ct;
 			}
 		}
@@ -231,10 +234,10 @@ namespace FoundationDB.Client.Tests
 
 		// These methods are just there to help with the problem of culture-aware string formatting
 
-		// Quand on est exécuté depuis VS en mode debug on préfère écrire dans Trace. Sinon, on écrit dans la Console...
+		/// <summary>If <see langword="true"/>, we are running with an attached debugger that prefers logs to be written to the Trace/Debug output.</summary>
 		private static readonly bool AttachedToDebugger = Debugger.IsAttached;
 
-		/// <summary>Indique si on fonctionne sous un runner qui préfère utiliser la console pour l'output des logs</summary>
+		/// <summary>If <see langword="true"/>, we are running under Console Test Runner that prefers logs to be written to the Console output</summary>
 		private static readonly bool MustOutputLogsOnConsole = DetectConsoleTestRunner();
 
 		private static bool DetectConsoleTestRunner()
@@ -282,24 +285,6 @@ namespace FoundationDB.Client.Tests
 				{
 					TestContext.Progress.Write(message);
 				}
-			}
-		}
-
-		[DebuggerNonUserCode]
-		private static void WriteToErrorLog(string message)
-		{
-			if (MustOutputLogsOnConsole)
-			{ // write to stderr
-				Console.Error.WriteLine(message);
-			}
-			else if (AttachedToDebugger)
-			{ // write to the VS 'output' tab
-				Trace.WriteLine("ERROR: " + message);
-				TestContext.Error.WriteLine(message);
-			}
-			else
-			{ // write to NUnit's stderr
-				TestContext.Error.WriteLine(message);
 			}
 		}
 
@@ -482,7 +467,11 @@ namespace FoundationDB.Client.Tests
 			     : WaitForInternal(task, timeout, throwIfExpired: true, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task Await(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
@@ -490,19 +479,31 @@ namespace FoundationDB.Client.Tests
 				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
@@ -510,7 +511,11 @@ namespace FoundationDB.Client.Tests
 				: WaitForInternal(task, timeout, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
@@ -558,14 +563,11 @@ namespace FoundationDB.Client.Tests
 
 		private async Task<TResult> WaitForInternal<TResult>(Task<TResult> task, TimeSpan delay, string taskExpression)
 		{
-			bool? success = null;
-			Exception? error = null;
 			if (!task.IsCompleted)
 			{
 				var ct = this.Cancellation;
 				if (task != (await Task.WhenAny(task, Task.Delay(delay, ct)).ConfigureAwait(false)))
 				{ // timeout!
-					success = false;
 
 					if (ct.IsCancellationRequested)
 					{

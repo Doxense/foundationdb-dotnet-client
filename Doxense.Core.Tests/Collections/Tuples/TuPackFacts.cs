@@ -902,7 +902,7 @@ namespace Doxense.Collections.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_TuplePack_Deserailize_VersionStamps()
+		public void Test_TuplePack_Deserialize_VersionStamps()
 		{
 			Assert.That(TuPack.Unpack(Slice.FromHexa("32 FF FF FF FF FF FF FF FF FF FF")).Get<VersionStamp>(0), Is.EqualTo(VersionStamp.Incomplete()), "Incomplete()");
 			Assert.That(TuPack.Unpack(Slice.FromHexa("32 01 23 45 67 89 AB CD EF 04 D2")).Get<VersionStamp>(0), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 1234)), "Complete(..., 1234)");
@@ -977,7 +977,6 @@ namespace Doxense.Collections.Tuples.Tests
 			);
 
 		}
-
 
 		[Test]
 		public void Test_TuplePack_Deserialize_IPAddress()
@@ -1489,8 +1488,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>Hello<00>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<15>{'"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("!<C0><09>!<FB>TD-<18><12><FB>-"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1503,8 +1502,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<16><03><15>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1517,8 +1516,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{'"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8>&"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<16><03><15>&"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1531,8 +1530,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1545,8 +1544,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'<02>yes<00>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&<02>yes<00>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&<02>no<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1559,8 +1558,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'<02>yes<00><15><07>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&<02>yes<00><15>*"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&<02>no<00><15><09>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1573,8 +1572,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'<02>yes<00><15><07>!<BF><F8><00><00><00><00><00><00>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&<02>yes<00><15>*!<BF><E6>ffffff"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&<02>no<00><15><09>!<BF><E5><1E><B8>Q<EB><85><1F>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 		}
 
@@ -1620,8 +1619,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>Hello<00>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15>{'"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC!<C0><09>!<FB>TD-<18><12><FB>-"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1635,8 +1634,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<16><03><15>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1650,8 +1649,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{'"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8>&"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<16><03><15>&"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1665,8 +1664,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00><15>{'"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00><16><01><C8>&"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00><16><03><15>&"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 		}
@@ -1813,8 +1812,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1827,10 +1826,9 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<16><03><15>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
-
 
 			{
 				var packed = TuPack.EncodeKeys(Enumerable.Range(0, 3));
@@ -1838,18 +1836,18 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("<14>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<15><01>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<15><02>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
-				var packed = TuPack.EncodeKeys(new[] {"Bonjour", "le", "Monde"}, (s) => s.Length);
+				var packed = TuPack.EncodeKeys(["Bonjour", "le", "Monde"], (s) => s.Length);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("<15><07>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<15><02>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("<15><05>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 		}
@@ -1870,8 +1868,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
@@ -1885,22 +1883,22 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<16><03><15>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 			{
 				var packed = TuPack.EncodePrefixedKeys(
 					prefix,
-					new[] { "Bonjour", "le", "Monde" },
+					["Bonjour", "le", "Monde"],
 					(s) => s.Length
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15><07>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15><02>"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<15><05>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
 		}
@@ -2372,7 +2370,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			Slice[] slices;
 			var tuple = STuple.Create("hello");
-			object[] items = {"world", 123, false, Guid.NewGuid(), long.MinValue};
+			object[] items = [ "world", 123, false, Guid.NewGuid(), long.MinValue ];
 
 			// array version
 			slices = TuPack.EncodePrefixedKeys<object>(tuple, items);

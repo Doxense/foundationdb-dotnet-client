@@ -2456,7 +2456,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Replaces a published JSON Array with a new version without the specified item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
 		/// <param name="original">Reference to the currently published JSON Array</param>
 		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <returns>New published JSON Array without the field, or the original arrray if the was not present.</returns>
+		/// <returns>New published JSON Array without the field, or the original array if the was not present.</returns>
 		/// <remarks>
 		/// <para>This method will attempt to atomically replace the original JSON Array with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
 		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
@@ -2493,7 +2493,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Replaces a published JSON Array with a new version without the specified item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
 		/// <param name="original">Reference to the currently published JSON Array</param>
 		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <returns>New published JSON Array without the field, or the original arrray if the was not present.</returns>
+		/// <returns>New published JSON Array without the field, or the original array if the was not present.</returns>
 		/// <remarks>
 		/// <para>This method will attempt to atomically replace the original JSON Array with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
 		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
@@ -4526,16 +4526,13 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable
 
-		private static bool ShouldInlineArray(ReadOnlySpan<JsonValue> items)
+		private static bool ShouldInlineArray(ReadOnlySpan<JsonValue> items) => items.Length switch
 		{
-			switch (items.Length)
-			{
-				case 0: return true;
-				case 1: return items[0].IsInlinable();
-				case 2: return items[0].IsInlinable() && items[1].IsInlinable();
-				default: return false;
-			}
-		}
+			0 => true,
+			1 => items[0].IsInlinable(),
+			2 => items[0].IsInlinable() && items[1].IsInlinable(),
+			_ => false
+		};
 
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
@@ -4623,20 +4620,8 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			// le hashcode de l'objet ne doit pas changer meme s'il est modifié (sinon on casse les hashtables!)
+			// the hashcode of the array should never change, even if the _content_ of the array can change
 			return RuntimeHelpers.GetHashCode(this);
-
-			//TODO: si on jour on gère les Read-Only Arrays, on peut utiliser ce code
-			//int n = Math.Min(m_size, 4);
-
-			//var items = m_items;
-			//int h = 17;
-			//for (int i = 0; i < n; i++)
-			//{
-			//	h = (h * 31) + items[i].GetHashCode();
-			//}
-			//h ^= m_size;
-			//return h;
 		}
 
 		public override int CompareTo(JsonValue? other)

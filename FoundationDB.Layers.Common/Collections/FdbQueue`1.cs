@@ -43,6 +43,7 @@ namespace FoundationDB.Layers.Collections
 	[DebuggerDisplay("Location={Location}")]
 	[PublicAPI]
 	public class FdbQueue<T> : IFdbLayer<FdbQueue<T>.State>
+		where T : notnull
 	{
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="location">Subspace where the queue will be stored</param>
@@ -108,7 +109,7 @@ namespace FoundationDB.Layers.Collections
 				tr.SetVersionStampedKey(this.Subspace[tr.CreateUniqueVersionStamp()], this.Encoder.EncodeValue(value));
 			}
 
-			private static readonly FdbRangeOptions SingleOptions = new FdbRangeOptions() { Limit = 1, Mode = FdbStreamingMode.Exact };
+			private static readonly FdbRangeOptions SingleOptions = new() { Limit = 1, Mode = FdbStreamingMode.Exact };
 
 			/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
 			public async Task<(T? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
@@ -157,8 +158,8 @@ namespace FoundationDB.Layers.Collections
 
 		public Task ExportAsync(IFdbDatabase db, Action<T, long> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			//REVIEW: is this approach correct ?
 
@@ -182,8 +183,8 @@ namespace FoundationDB.Layers.Collections
 
 		public Task ExportAsync(IFdbDatabase db, Func<T, long, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			//REVIEW: is this approach correct ?
 
@@ -206,8 +207,8 @@ namespace FoundationDB.Layers.Collections
 
 		public Task ExportAsync(IFdbDatabase db, Action<T[], long> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			//REVIEW: is this approach correct ?
 
@@ -225,8 +226,8 @@ namespace FoundationDB.Layers.Collections
 
 		public Task ExportAsync(IFdbDatabase db, Func<T[], long, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			//REVIEW: is this approach correct ?
 

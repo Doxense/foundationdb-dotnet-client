@@ -634,7 +634,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
-		public static Slice[] EncodeKeys<T>(params T[] keys)
+		public static Slice[] EncodeKeys<T>(params T?[] keys)
 		{
 			var empty = default(Slice);
 			return EncodeKeys(empty, keys);
@@ -727,7 +727,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, params T1[] keys)
+		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, params T1?[] keys)
 			where TTuple : IVarTuple?
 		{
 			Contract.NotNullAllowStructs(prefix);
@@ -764,7 +764,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T">Type of the first value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		public static T? DecodeFirst<T>(Slice packedKey)
 		{
@@ -778,7 +778,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		public static T? DecodeLast<T>(Slice packedKey)
 		{
@@ -846,7 +846,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than two items");
 		}
-
 
 		public static void DecodeKey<T1, T2>(ref TupleReader reader, out T1? item1, out T2? item2)
 		{
@@ -1047,7 +1046,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		internal class Encoder<T> : IKeyEncoder<T>, IValueEncoder<T>
 		{
-			public static readonly Encoder<T> Default = new Encoder<T>();
+			public static readonly Encoder<T> Default = new();
 
 			private Encoder() { }
 
@@ -1072,7 +1071,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			public Slice EncodeValue(T? key)
 			{
-				return TupleEncoder.EncodeKey(default(Slice), key);
+				return TupleEncoder.EncodeKey(default, key);
 			}
 
 			public T? DecodeValue(Slice encoded)
@@ -1086,7 +1085,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		internal class CompositeEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
 		{
 
-			public static readonly CompositeEncoder<T1, T2> Default = new CompositeEncoder<T1, T2>();
+			public static readonly CompositeEncoder<T1, T2> Default = new();
 
 			private CompositeEncoder() { }
 
@@ -1136,7 +1135,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		internal class CompositeEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
 		{
 
-			public static readonly CompositeEncoder<T1, T2, T3> Default = new CompositeEncoder<T1, T2, T3>();
+			public static readonly CompositeEncoder<T1, T2, T3> Default = new();
 
 			private CompositeEncoder() { }
 
@@ -1189,7 +1188,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		internal class CompositeEncoder<T1, T2, T3, T4> : CompositeKeyEncoder<T1, T2, T3, T4>
 		{
 
-			public static readonly CompositeEncoder<T1, T2, T3, T4> Default = new CompositeEncoder<T1, T2, T3, T4>();
+			public static readonly CompositeEncoder<T1, T2, T3, T4> Default = new();
 
 			private CompositeEncoder() { }
 
@@ -1245,7 +1244,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		internal class CompositeEncoder<T1, T2, T3, T4, T5> : CompositeKeyEncoder<T1, T2, T3, T4, T5>
 		{
 
-			public static readonly CompositeEncoder<T1, T2, T3, T4, T5> Default = new CompositeEncoder<T1, T2, T3, T4, T5>();
+			public static readonly CompositeEncoder<T1, T2, T3, T4, T5> Default = new();
 
 			private CompositeEncoder() { }
 
@@ -1304,7 +1303,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		internal class CompositeEncoder<T1, T2, T3, T4, T5, T6> : CompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
 		{
 
-			public static readonly CompositeEncoder<T1, T2, T3, T4, T5, T6> Default = new CompositeEncoder<T1, T2, T3, T4, T5, T6>();
+			public static readonly CompositeEncoder<T1, T2, T3, T4, T5, T6> Default = new();
 
 			private CompositeEncoder() { }
 
