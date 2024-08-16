@@ -22,6 +22,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Aspire.Hosting" />
+		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
 	<ItemGroup>
