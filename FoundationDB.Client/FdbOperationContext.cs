@@ -136,7 +136,7 @@ namespace FoundationDB.Client
 
 		private void RegisterStateCallback(object callback)
 		{
-			Contract.Debug.Requires(callback is Delegate || callback is IHandleTransactionLifecycle);
+			Contract.Debug.Requires(callback is Delegate or IHandleTransactionLifecycle);
 			lock (this)
 			{
 				var previous = this.StateCallbacks;
@@ -160,12 +160,12 @@ namespace FoundationDB.Client
 		private Task ExecuteHandlers(ref object? handlers, FdbOperationContext ctx, FdbTransactionState state)
 		{
 			var cbk = Interlocked.Exchange(ref handlers, null);
-			switch (cbk)
+			return cbk switch
 			{
-				case null: return Task.CompletedTask;
-				case object[] arr: return ExecuteMultipleHandlers(arr, ctx, state, this.Cancellation);
-				default: return ExecuteSingleHandler(cbk, ctx, state, this.Cancellation);
-			}
+				null         => Task.CompletedTask,
+				object[] arr => ExecuteMultipleHandlers(arr, ctx, state, this.Cancellation),
+				_            => ExecuteSingleHandler(cbk, ctx, state, this.Cancellation)
+			};
 		}
 
 		private static Task ExecuteSingleHandler(object del, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
@@ -234,37 +234,20 @@ namespace FoundationDB.Client
 		/// map[ typeof(TState) => map[ TToken => TState ] ]
 		private Dictionary<Type, object>? LocalData { get; set; }
 
-		[Pure, ContractAnnotation("createIfMissing:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private Dictionary<Type, object>? GetLocalDataContainer(bool createIfMissing)
+		/// <summary>Returns the container for features attached to this context</summary>
+		/// <returns>The existing or newly created container.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private Dictionary<Type, object> GetOrCreateLocalDataContainer()
 		{
-			return this.LocalData ?? GetLocalDataContainerSlow(createIfMissing);
+			return this.LocalData ??= new ();
 		}
 
-		[ContractAnnotation("createIfMissing:true => notnull"), MethodImpl(MethodImplOptions.NoInlining)]
-		private Dictionary<Type, object>? GetLocalDataContainerSlow(bool createIfMissing)
-		{
-			var container = this.LocalData;
-			if (container == null && createIfMissing)
-			{
-				container = new Dictionary<Type, object>();
-				this.LocalData = container;
-			}
-			return container;
-		}
-
-		/// <summary>Clear any local data currently attached on this transaction</summary>
+		/// <summary>Clears any local data currently attached on this transaction</summary>
 		internal void ClearAllLocalData()
 		{
 			lock (this)
 			{
-				var container = GetLocalDataContainer(false);
-				if (container != null)
-				{
-					lock (container)
-					{
-						container.Clear();
-					}
-				}
+				this.LocalData?.Clear();
 			}
 		}
 
@@ -282,7 +265,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(newState);
 			lock (this)
 			{
-				var container = GetLocalDataContainer(true)!;
+				var container = GetOrCreateLocalDataContainer();
 				if (!container.TryGetValue(typeof(TState), out var slot))
 				{
 					slot = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -307,7 +290,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(newState);
 			lock (this)
 			{
-				var container = GetLocalDataContainer(true)!;
+				var container = GetOrCreateLocalDataContainer();
 				if (!container.TryGetValue(typeof(TState), out var slot))
 				{
 					var items =  new Dictionary<TToken, TState>
@@ -339,7 +322,7 @@ namespace FoundationDB.Client
 			Contract.NotNullAllowStructs(key);
 			lock (this)
 			{
-				var container = GetLocalDataContainer(false);
+				var container = this.LocalData;
 				if (container != null && container.TryGetValue(typeof(TState), out var slot))
 				{
 					var items = (Dictionary<TToken, TState>) slot;
@@ -363,7 +346,7 @@ namespace FoundationDB.Client
 			Contract.NotNullAllowStructs(key);
 			lock (this)
 			{
-				var container = GetLocalDataContainer(false);
+				var container = this.LocalData;
 				if (container != null && container.TryGetValue(typeof(TState), out var slot))
 				{
 					var items = (Dictionary<TToken, TState>) slot;
@@ -392,7 +375,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(newState);
 			lock (this)
 			{
-				var container = GetLocalDataContainer(true)!;
+				var container = GetOrCreateLocalDataContainer();
 				TState? result;
 				if (container.TryGetValue(typeof(TState), out var slot))
 				{
@@ -431,7 +414,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(factory);
 			lock (this)
 			{
-				var container = GetLocalDataContainer(true)!;
+				var container = GetOrCreateLocalDataContainer();
 				TState? result;
 				if (container.TryGetValue(typeof(TState), out var slot))
 				{
