@@ -9504,10 +9504,10 @@ namespace Doxense.Serialization.Json.Tests
 		public DateTime Created;
 		public DateTime? Modified;
 		public DummyJsonEnum State;
-		public double RatioOfStuff => this.Amount * this.Size;
+		public readonly double RatioOfStuff => this.Amount * this.Size;
 
 		private string Invisible;
-		private string DotNotCall => "ShouldNotBeCalled";
+		private readonly string DotNotCall => "ShouldNotBeCalled";
 	}
 #pragma warning restore 169, 649
 

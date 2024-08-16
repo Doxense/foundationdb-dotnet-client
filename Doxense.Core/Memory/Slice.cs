@@ -2752,7 +2752,7 @@ namespace System
 				}
 			}
 
-			public bool IsAllocated => this.Handle.IsAllocated;
+			public readonly bool IsAllocated => this.Handle.IsAllocated;
 
 			public void Dispose()
 			{

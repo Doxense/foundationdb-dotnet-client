@@ -3058,7 +3058,7 @@ namespace Doxense.Serialization.Json
 				m_current = null;
 			}
 
-			public void Dispose()
+			public readonly void Dispose()
 			{ }
 
 			public bool MoveNext()
@@ -3079,7 +3079,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			object IEnumerator.Current
+			readonly object IEnumerator.Current
 			{
 				get
 				{
@@ -3097,7 +3097,8 @@ namespace Doxense.Serialization.Json
 				m_current = null;
 			}
 
-			public JsonValue Current => m_current!;
+			public readonly JsonValue Current => m_current!;
+
 		}
 
 		/// <summary>Retourne une vue typée de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonObject"/>s</summary>
@@ -3134,7 +3135,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Wrapper for a <see cref="JsonArray"/> that converts each element into a <typeparamref name="TValue"/>.</summary>
-		public struct TypedEnumerable<TValue> : IEnumerable<TValue> //REVIEW:TODO: IList<TValue> ?
+		public readonly struct TypedEnumerable<TValue> : IEnumerable<TValue> //REVIEW:TODO: IList<TValue> ?
 		{
 			//note: this is to convert JsonValue into int, bool, string, ...
 
@@ -3148,7 +3149,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public TypedEnumerator GetEnumerator()
+			public readonly TypedEnumerator GetEnumerator()
 			{
 				return new TypedEnumerator(m_array, m_required);
 			}
@@ -3191,7 +3192,7 @@ namespace Doxense.Serialization.Json
 					m_required = required;
 				}
 
-				public void Dispose()
+				public readonly void Dispose()
 				{ }
 
 				public bool MoveNext()
@@ -3213,7 +3214,7 @@ namespace Doxense.Serialization.Json
 				}
 
 				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-				private InvalidOperationException FailElementMissing()
+				private readonly InvalidOperationException FailElementMissing()
 				{
 					return new InvalidOperationException($"The JSON element at index {m_index} is null or missing");
 				}
@@ -3225,7 +3226,7 @@ namespace Doxense.Serialization.Json
 					return false;
 				}
 
-				object IEnumerator.Current
+				readonly object IEnumerator.Current
 				{
 					get
 					{
@@ -3243,7 +3244,7 @@ namespace Doxense.Serialization.Json
 					m_current = default;
 				}
 
-				public TValue Current => m_current!;
+				public readonly TValue Current => m_current!;
 
 			}
 
@@ -5062,7 +5063,7 @@ namespace Doxense.Serialization.Json
 				m_required = required;
 			}
 
-			public void Dispose()
+			public readonly void Dispose()
 			{ }
 
 			public bool MoveNext()
@@ -5113,7 +5114,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			object IEnumerator.Current
+			readonly object IEnumerator.Current
 			{
 				get
 				{
@@ -5132,7 +5133,7 @@ namespace Doxense.Serialization.Json
 				m_current = default;
 			}
 
-			public TJson Current => m_current!;
+			public readonly TJson Current => m_current!;
 		}
 
 		public int Count => m_size;
