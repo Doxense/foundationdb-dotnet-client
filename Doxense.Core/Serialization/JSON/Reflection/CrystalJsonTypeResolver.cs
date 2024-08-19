@@ -77,11 +77,6 @@ namespace Doxense.Serialization.Json
 			return GetTypeDefinition(type);
 		}
 
-		ICrystalTypeDefinition? ICrystalTypeResolver.ResolveType(Type type)
-		{
-			return ResolveJsonType(type);
-		}
-
 		public Type ResolveClassId(string classId)
 		{
 #if DEBUG_JSON_RESOLVER

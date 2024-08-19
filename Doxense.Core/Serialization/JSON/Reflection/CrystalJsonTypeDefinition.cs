@@ -29,7 +29,7 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics;
 
 	[DebuggerDisplay("Type={Type.Name}, ReqClass={RequiresClassAttribute}, IsAnonymousType={IsAnonymousType}, ClassId={ClassId}")]
-	public record CrystalJsonTypeDefinition : ICrystalTypeDefinition
+	public sealed record CrystalJsonTypeDefinition
 	{
 
 		public Type Type { get; init; }
@@ -72,8 +72,6 @@ namespace Doxense.Serialization.Json
 			this.Generator = generator;
 			this.Members = members;
 		}
-
-		IReadOnlyList<ICrystalMemberDefinition> ICrystalTypeDefinition.Members => this.Members;
 
 	}
 
