@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("Name={Name}, Type={Type}")]
 	public record CrystalJsonMemberDefinition : ICrystalMemberDefinition
 	{
+
 		/// <summary>Name of the member</summary>
 		public required string Name { get; init; }
 

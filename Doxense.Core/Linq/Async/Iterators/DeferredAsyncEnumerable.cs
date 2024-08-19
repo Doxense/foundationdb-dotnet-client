@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+
 	/// <summary>Iterator that will generate the underlying async sequence "just in time" when it is itself iterated</summary>
 	/// <typeparam name="TResult">Type of elements of the async sequence</typeparam>
 	/// <typeparam name="TCollection">Concrete type of the async sequence</typeparam>

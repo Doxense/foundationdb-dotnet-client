@@ -35,6 +35,7 @@ namespace Doxense.Linq
 		/// <param name="hint">Defines how the enumerator will be used by the caller. The source provider can use the mode to optimize how the results are produced.</param>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
 		IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint);
+
 	}
 
 }

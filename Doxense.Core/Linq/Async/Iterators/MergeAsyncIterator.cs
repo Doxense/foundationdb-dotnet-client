@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>
 	/// <typeparam name="TKey">Type of values extracted from the keys, that will be used for sorting</typeparam>
@@ -79,7 +80,7 @@ namespace Doxense.Linq.Async.Iterators
 			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
 			var sources = m_sources.ToArray();
-			IteratorState[]? iterators = new IteratorState[sources.Length];
+			var iterators = new IteratorState[sources.Length];
 			try
 			{
 				// start all the iterators

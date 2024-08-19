@@ -26,12 +26,14 @@
 
 namespace Doxense.Linq.Iterators
 {
+
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>
 	/// <typeparam name="TKey">Type of values extracted from the keys, that will be used for sorting</typeparam>
 	/// <typeparam name="TResult">Type of results returned</typeparam>
 	public abstract class MergeIterator<TSource, TKey, TResult> : Iterator<TResult>
 	{
+
 		// Takes several range queries that return **SORTED** lists of items
 		// - Make all queries iterators run concurrently
 		// - At each step, finds the "smallest" value from all remaining iterators, transform it into a TResult and expose it as the current element
@@ -76,7 +78,7 @@ namespace Doxense.Linq.Iterators
 
 			// even if the caller only wants the first, we will probably need to read more than that...
 			var sources = m_sources.ToArray();
-			IteratorState[]? iterators = new IteratorState[sources.Length];
+			var iterators = new IteratorState[sources.Length];
 			try
 			{
 				// start all the iterators
@@ -112,7 +114,7 @@ namespace Doxense.Linq.Iterators
 		/// <summary>Finds the next smallest item from all the active iterators</summary>
 		protected override bool OnNext()
 		{
-			if (m_remaining != null && m_remaining.Value <= 0)
+			if (m_remaining is <= 0)
 			{
 				return Completed();
 			}
@@ -195,7 +197,7 @@ namespace Doxense.Linq.Iterators
 						}
 						catch (Exception e)
 						{
-							(errors ??= new List<Exception>()).Add(e);
+							(errors ??= [ ]).Add(e);
 						}
 					}
 				}

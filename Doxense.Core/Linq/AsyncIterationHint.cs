@@ -27,34 +27,24 @@
 namespace Doxense.Linq
 {
 
-	/// <summary>
-	/// Defines the intent of a consumer of an async iterator
-	/// </summary>
+	/// <summary>Defines the intent of a consumer of an async iterator</summary>
+	[PublicAPI]
 	public enum AsyncIterationHint
 	{
-		/// <summary>
-		/// Use the default settings. The provider will make no attempt at optimizing the query.
-		/// </summary>
+
+		/// <summary>Use the default settings. The provider will make no attempt at optimizing the query.</summary>
 		Default = 0,
 
-		/// <summary>
-		/// The query will be consumed by chunks and may be aborted at any point. The provider will produce small chunks of data for the first few reads but should still be efficient if the caller consume all the sequence.
-		/// </summary>
+		/// <summary>The query will be consumed by chunks and may be aborted at any point. The provider will produce small chunks of data for the first few reads but should still be efficient if the caller consume all the sequence.</summary>
 		Iterator,
 
-		/// <summary>
-		/// The query will consume all the items in the source. The provider will produce large chunks of data immediately, and reduce the number of pages needed to consume the sequence.
-		/// </summary>
+		/// <summary>The query will consume all the items in the source. The provider will produce large chunks of data immediately, and reduce the number of pages needed to consume the sequence.</summary>
 		All,
 
-		/// <summary>
-		/// The query will consume the first element (or a very small fraction) of the source. The provider will only produce data in small chunks and expect the caller to abort after one or two iterations. This can also be used to reduce the latency of the first result.
-		/// </summary>
+		/// <summary>The query will consume the first element (or a very small fraction) of the source. The provider will only produce data in small chunks and expect the caller to abort after one or two iterations. This can also be used to reduce the latency of the first result.</summary>
 		Head,
 
-		/// <summary>
-		/// The query will consume all (or most of) the items of a very large sequence of data. The provider will use the appropriate page size in ordre to optimize the bandwith.
-		/// </summary>
+		/// <summary>The query will consume all (or most of) the items of a very large sequence of data. The provider will use the appropriate page size in ordre to optimize the bandwith.</summary>
 		Bulk,
 
 	}

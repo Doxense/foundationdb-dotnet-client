@@ -29,6 +29,7 @@ namespace Doxense.Serialization
 	using Doxense.Memory;
 
 	/// <summary>Supports direct binary serialization</summary>
+	[PublicAPI]
 	public interface ISliceSerializable
 	{
 
@@ -38,6 +39,7 @@ namespace Doxense.Serialization
 	}
 
 	/// <summary>Can serialize instances of type <typeparamref name="T"/> to and from binary form</summary>
+	[PublicAPI]
 	public interface ISliceSerializer<T>
 	{
 

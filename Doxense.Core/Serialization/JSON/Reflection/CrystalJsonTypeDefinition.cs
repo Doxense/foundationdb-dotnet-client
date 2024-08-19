@@ -31,6 +31,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("Type={Type.Name}, ReqClass={RequiresClassAttribute}, IsAnonymousType={IsAnonymousType}, ClassId={ClassId}")]
 	public record CrystalJsonTypeDefinition : ICrystalTypeDefinition
 	{
+
 		public Type Type { get; init; }
 
 		public Type? BaseType { get; init; }
@@ -47,7 +48,7 @@ namespace Doxense.Serialization.Json
 
 		public CrystalJsonMemberDefinition[] Members { get; init; }
 
-		/// <summary>Nouvelle définition de type</summary>
+		/// <summary>Constructs a new type definition</summary>
 		/// <param name="type">Type représenté</param>
 		/// <param name="baseType"></param>
 		/// <param name="classId">Identifiant custom du type (si null, génère un identifiant "Namespace.ClassName, Assembly"</param>

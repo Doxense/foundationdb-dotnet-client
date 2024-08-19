@@ -37,7 +37,7 @@ namespace Doxense.Mathematics.Statistics
 
 		#region Samples
 		//
-		// Compteurs de pages (avec des null values 'X'):
+		// Page counter (will null values marked as 'X'):
 		//
 		// 1,156,800 +--------------+--------------+--------------+-------------+
 		//           |              :              :              :             |
@@ -871,10 +871,10 @@ namespace Doxense.Mathematics.Statistics
 			var yAxis = Axis.Linear(yMin, yMax, height);
 			var xAxis = Axis.Linear(0, count - 1, width);
 
-			frame.DrawXAxis(width, xMargin, 0, end: '+');
-			frame.DrawYAxis(height, xMargin, 0, end: '+');
+			frame.DrawXAxis(width, xMargin, end: '+');
+			frame.DrawYAxis(height, xMargin, end: '+');
 			frame.DrawXAxis(width, xMargin, height - 1, end: '+');
-			frame.DrawYAxis(height, xMargin + width - 1, 0, end: '+');
+			frame.DrawYAxis(height, xMargin + width - 1, end: '+');
 
 			if (width >= 10)
 			{
@@ -883,13 +883,13 @@ namespace Doxense.Mathematics.Statistics
 			}
 			if (height >= 10)
 			{
-				frame.DrawYGridLine(height, xMargin + (1 * width / 4), 0, end: '+');
-				frame.DrawYGridLine(height, xMargin + (3 * width / 4), 0, end: '+');
+				frame.DrawYGridLine(height, xMargin + (1 * width / 4), end: '+');
+				frame.DrawYGridLine(height, xMargin + (3 * width / 4), end: '+');
 				frame.DrawText(0, 1 * height / 4, SigFormat(yMin + 1 * (yMax - yMin) / 4, d), xMargin - 1);
 				frame.DrawText(0, 3 * height / 4, SigFormat(yMin + 3 * (yMax - yMin) / 4, d), xMargin - 1);
 			}
 			frame.DrawXGridLine(width, xMargin, height / 2, end: '+');
-			frame.DrawYGridLine(height, xMargin + (width / 2), 0, end: '+');
+			frame.DrawYGridLine(height, xMargin + (width / 2), end: '+');
 
 			frame.DrawText(0, 0, SigFormat(yMin, d), xMargin - 1);
 			frame.DrawText(0, height / 2, SigFormat((yMin + yMax) / 2, d), xMargin - 1);
@@ -930,10 +930,10 @@ namespace Doxense.Mathematics.Statistics
 			var yAxis = Axis.Linear(yMinActual, yMaxActual, height);
 			var xAxis = Axis.Linear(xMinActual, xMaxActual, width);
 
-			frame.DrawXAxis(width, xMargin, 0, end: '+');
-			frame.DrawYAxis(height, xMargin, 0, end: '+');
+			frame.DrawXAxis(width, xMargin, end: '+');
+			frame.DrawYAxis(height, xMargin, end: '+');
 			frame.DrawXAxis(width, xMargin, height - 1, end: '+');
-			frame.DrawYAxis(height, xMargin + width - 1, 0, end: '+');
+			frame.DrawYAxis(height, xMargin + width - 1, end: '+');
 
 			if (width >= 10)
 			{
@@ -942,13 +942,13 @@ namespace Doxense.Mathematics.Statistics
 			}
 			if (height >= 10)
 			{
-				frame.DrawYGridLine(height, xMargin + (1 * width / 4), 0, end: '+');
-				frame.DrawYGridLine(height, xMargin + (3 * width / 4), 0, end: '+');
+				frame.DrawYGridLine(height, xMargin + (1 * width / 4), end: '+');
+				frame.DrawYGridLine(height, xMargin + (3 * width / 4), end: '+');
 				frame.DrawText(0, 1 * height / 4, SigFormat(yMinActual + 1 * (yMaxActual - yMinActual) / 4, d), xMargin - 1);
 				frame.DrawText(0, 3 * height / 4, SigFormat(yMinActual + 3 * (yMaxActual - yMinActual) / 4, d), xMargin - 1);
 			}
 			frame.DrawXGridLine(width, xMargin, height / 2, end: '+');
-			frame.DrawYGridLine(height, xMargin + (width / 2), 0, end: '+');
+			frame.DrawYGridLine(height, xMargin + (width / 2), end: '+');
 
 			frame.DrawText(0, 0, SigFormat(yMinActual, d), xMargin - 1);
 			frame.DrawText(0, height / 2, SigFormat((yMinActual + yMaxActual) / 2, d), xMargin - 1);
@@ -959,4 +959,5 @@ namespace Doxense.Mathematics.Statistics
 		}
 
 	}
+
 }

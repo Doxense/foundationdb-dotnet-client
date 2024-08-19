@@ -33,14 +33,15 @@ namespace Doxense.Networking
 	// ReSharper disable once InconsistentNaming
 	public sealed class IPAddressComparer : IComparer<IPAddress>, IEqualityComparer<IPAddress>
 	{
-		public static readonly IPAddressComparer Default = new IPAddressComparer();
+
+		public static readonly IPAddressComparer Default = new();
 
 		private IPAddressComparer()
 		{ }
 
 		public int Compare(IPAddress? x, IPAddress? y)
 		{
-			if (object.ReferenceEquals(x, y)) return 0;
+			if (ReferenceEquals(x, y)) return 0;
 			if (x == null) return -1;
 			if (y == null) return +1;
 

@@ -33,6 +33,7 @@ namespace Doxense.Messaging.Events
 
 	public static class EventFilters
 	{
+
 		public static readonly IEventFilter All = new AcceptAllEventFilter();
 
 		internal sealed class AcceptAllEventFilter : IEventFilter

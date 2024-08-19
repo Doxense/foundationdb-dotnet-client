@@ -31,7 +31,6 @@ namespace Doxense.Serialization.Json
 
 	internal static class CrystalJsonNodaPatterns
 	{
-		//REVIEW: trouver un moyen de s'assurer que cette classe est JITée avant CrystalJsonWriter/JsonString (pour virer le check au runtime si le static ctor s'est executé!)
 
 		public static readonly InstantPattern Instants = InstantPattern.ExtendedIso;
 
@@ -46,6 +45,7 @@ namespace Doxense.Serialization.Json
 		public static readonly OffsetDateTimePattern OffsetDateTimes = OffsetDateTimePattern.Rfc3339;
 
 		public static readonly OffsetPattern Offsets = OffsetPattern.GeneralInvariant;
+
 	}
 
 }

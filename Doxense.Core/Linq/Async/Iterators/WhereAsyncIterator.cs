@@ -32,6 +32,7 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 	public sealed class WhereAsyncIterator<TSource> : AsyncFilterIterator<TSource, TSource>
 	{
+
 		private readonly AsyncFilterExpression<TSource> m_filter;
 
 		public WhereAsyncIterator(IAsyncEnumerable<TSource> source, AsyncFilterExpression<TSource> filter)
@@ -88,7 +89,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TSource> Where(Func<TSource, bool> predicate)
 		{
-			return AsyncEnumerable.Filter<TSource>(
+			return AsyncEnumerable.Filter(
 				m_source,
 				m_filter.AndAlso(new AsyncFilterExpression<TSource>(predicate))
 			);
@@ -96,7 +97,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TSource> Where(Func<TSource, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			return AsyncEnumerable.Filter<TSource>(
+			return AsyncEnumerable.Filter(
 				m_source,
 				m_filter.AndAlso(new AsyncFilterExpression<TSource>(asyncPredicate))
 			);

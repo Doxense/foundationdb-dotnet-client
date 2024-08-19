@@ -32,6 +32,7 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
 	public class PrefetchingAsyncIterator<TInput> : AsyncFilterIterator<TInput, TInput>
 	{
+
 		// This iterator can be used to already ask for the next few items, while they are being processed somewhere down the line of the query.
 		// This can be useful, when combined with Batching or Windowing, to maximize the throughput of db queries that read pages of results at a time.
 

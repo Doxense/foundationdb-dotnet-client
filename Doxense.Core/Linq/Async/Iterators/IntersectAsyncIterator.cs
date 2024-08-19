@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+
 	/// <summary>Returns only the values for the keys that are in all the sub queries</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
 	/// <typeparam name="TKey">Type of the keys extracted from the source elements</typeparam>

@@ -481,7 +481,7 @@ namespace Doxense.Serialization
 			where TEnum : struct, Enum
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
-			return Enum.TryParse<TEnum>(value, true, out TEnum result) ? result : defaultValue;
+			return Enum.TryParse(value, true, out TEnum result) ? result : defaultValue;
 		}
 
 		[Pure]
@@ -489,7 +489,7 @@ namespace Doxense.Serialization
 			where TEnum : struct, Enum
 		{
 			if (string.IsNullOrEmpty(value)) return default(TEnum?);
-			return Enum.TryParse<TEnum>(value, true, out TEnum result) ? result : default(TEnum?);
+			return Enum.TryParse(value, true, out TEnum result) ? result : default(TEnum?);
 		}
 
 		#endregion
@@ -867,26 +867,34 @@ namespace Doxense.Serialization
 			int p = time.IndexOf('h');
 			if (p > 0)
 			{
-				hour = Convert.ToInt16(time.Substring(0, p));
+				hour = short.Parse(time.AsSpan(0, p));
 				if (p + 1 >= time.Length)
+				{
 					minute = 0;
+				}
 				else
-					minute = Convert.ToInt16(time.Substring(p + 1));
+				{
+					minute = short.Parse(time.AsSpan(p + 1));
+				}
 			}
 			else
 			{
 				p = time.IndexOf(':');
 				if (p > 0)
 				{
-					hour = Convert.ToInt16(time.Substring(0, p));
+					hour = short.Parse(time.AsSpan(0, p));
 					if (p + 1 >= time.Length)
+					{
 						minute = 0;
+					}
 					else
-						minute = Convert.ToInt16(time.Substring(p + 1));
+					{
+						minute = short.Parse(time.AsSpan(p + 1));
+					}
 				}
 				else
 				{
-					hour = Convert.ToInt16(time);
+					hour = short.Parse(time);
 				}
 			}
 			var d = DateTime.Today;

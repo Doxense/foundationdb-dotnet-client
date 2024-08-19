@@ -392,7 +392,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == default)
 			{ // le plus courant (objets vides)
-				output.Write(JsonTokens.Zero); //.DecimalZero);
+				output.Write(JsonTokens.Zero);
 				return;
 			}
 
@@ -423,7 +423,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == default)
 			{ // le plus courant (objets vides)
-				output.Write(JsonTokens.Zero); //.DecimalZero);
+				output.Write(JsonTokens.Zero);
 				return;
 			}
 

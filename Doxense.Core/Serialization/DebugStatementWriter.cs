@@ -119,6 +119,7 @@ namespace Doxense.Serialization
 		{
 			return this.Buffer.ToString();
 		}
+
 	}
 
 }

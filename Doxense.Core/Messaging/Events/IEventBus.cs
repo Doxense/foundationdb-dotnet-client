@@ -30,6 +30,7 @@ namespace Doxense.Messaging.Events
 
 	public interface IEventBus : IAsyncDisposable
 	{
+
 		List<IEventSink> GetSinks();
 
 		void Dispatch(IEvent evt);
@@ -37,6 +38,7 @@ namespace Doxense.Messaging.Events
 		void Dispatch(ReadOnlyMemory<IEvent> batch);
 
 		Instant Now();
+
 	}
 
 }

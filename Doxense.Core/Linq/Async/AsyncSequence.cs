@@ -26,11 +26,13 @@
 
 namespace Doxense.Linq.Async
 {
+
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal sealed class AsyncSequence<TSource, TResult> : IConfigurableAsyncEnumerable<TResult>
 	{
+
 		public readonly IAsyncEnumerable<TSource> Source;
 
 		public readonly Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> Factory;
@@ -66,5 +68,7 @@ namespace Doxense.Linq.Async
 				throw;
 			}
 		}
+
 	}
+
 }

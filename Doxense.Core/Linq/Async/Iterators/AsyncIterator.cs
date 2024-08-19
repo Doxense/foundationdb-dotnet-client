@@ -137,42 +137,42 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(predicate));
+			return AsyncEnumerable.Filter(this, new AsyncFilterExpression<TResult>(predicate));
 		}
 
 		public virtual AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			Contract.NotNull(asyncPredicate);
 
-			return AsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(asyncPredicate));
+			return AsyncEnumerable.Filter(this, new AsyncFilterExpression<TResult>(asyncPredicate));
 		}
 
 		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
 			Contract.NotNull(selector);
 
-			return AsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(selector));
+			return AsyncEnumerable.Map(this, new AsyncTransformExpression<TResult,TNew>(selector));
 		}
 
 		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
 			Contract.NotNull(asyncSelector);
 
-			return AsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(asyncSelector));
+			return AsyncEnumerable.Map(this, new AsyncTransformExpression<TResult,TNew>(asyncSelector));
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
 		{
 			Contract.NotNull(selector);
 
-			return AsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(selector));
+			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(selector));
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
 		{
 			Contract.NotNull(asyncSelector);
 
-			return AsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(asyncSelector));
+			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(asyncSelector));
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
@@ -180,7 +180,7 @@ namespace Doxense.Linq.Async.Iterators
 			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			return AsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(collectionSelector), resultSelector);
+			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(collectionSelector), resultSelector);
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
@@ -188,33 +188,33 @@ namespace Doxense.Linq.Async.Iterators
 			Contract.NotNull(asyncCollectionSelector);
 			Contract.NotNull(resultSelector);
 
-			return AsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
+			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
 		}
 
 		public virtual AsyncIterator<TResult> Take(int count)
 		{
-			return AsyncEnumerable.Limit<TResult>(this, count);
+			return AsyncEnumerable.Limit(this, count);
 		}
 
 		public virtual AsyncIterator<TResult> TakeWhile(Func<TResult, bool> condition)
 		{
-			return AsyncEnumerable.Limit<TResult>(this, condition);
+			return AsyncEnumerable.Limit(this, condition);
 		}
 
 		public virtual AsyncIterator<TResult> Skip(int count)
 		{
-			return AsyncEnumerable.Offset<TResult>(this, count);
+			return AsyncEnumerable.Offset(this, count);
 		}
 
 		/// <summary>Execute an action on the result of this async sequence</summary>
 		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 		{
-			return AsyncEnumerable.Run<TResult>(this, AsyncIterationHint.All, action, ct);
+			return AsyncEnumerable.Run(this, AsyncIterationHint.All, action, ct);
 		}
 
 		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
-			return AsyncEnumerable.Run<TResult>(this, AsyncIterationHint.All, asyncAction, ct);
+			return AsyncEnumerable.Run(this, AsyncIterationHint.All, asyncAction, ct);
 		}
 
 		#endregion
@@ -301,11 +301,13 @@ namespace Doxense.Linq.Async.Iterators
 				finally
 				{
 					m_current = default!;
+					GC.SuppressFinalize(this);
 				}
 			}
 		}
 
 		#endregion
+
 	}
 
 }

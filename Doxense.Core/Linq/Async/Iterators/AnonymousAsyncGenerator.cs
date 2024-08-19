@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+
 	/// <summary>Generate items asynchronously, using a user-provided lambda</summary>
 	/// <typeparam name="TOutput">Type of the items produced by this generator</typeparam>
 	public class AnonymousAsyncGenerator<TOutput> : AsyncIterator<TOutput>

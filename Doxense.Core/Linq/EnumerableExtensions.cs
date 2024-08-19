@@ -57,7 +57,10 @@ namespace Doxense.Linq
 			{
 				while (iterator.MoveNext())
 				{
-					if (predicate(iterator.Current)) return false;
+					if (predicate(iterator.Current))
+					{
+						return false;
+					}
 				}
 			}
 			return true;

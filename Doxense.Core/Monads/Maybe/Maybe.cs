@@ -36,10 +36,11 @@ namespace Doxense
 	[PublicAPI]
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
-		/// <summary>Représente un résultat vide (no computation)</summary>
+
+		/// <summary>Represents an empty result (no computation)</summary>
 		public static readonly Maybe<T> Nothing;
 
-		/// <summary>Représente un résultat correspondant à la valeur par défaut du type (0, false, null)</summary>
+		/// <summary>Represents a result that is equal to the default of a type (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...)</summary>
 		public static readonly Maybe<T> Default = new(default);
 
 		/// <summary>Cached completed Task that always return an empty value</summary>
@@ -54,13 +55,13 @@ namespace Doxense
 		//     False   |      -      |   null       | Le calcul n'a pas produit de résultat
 		//     False   |      -      |   Exception  | Le calcul a provoqué une exception
 
-		/// <summary>If true, there is a value. If false, either no value or an exception</summary>
+		/// <summary>If <see langword="true"/>, there is a value. If <see langword="false"/>, either no value or an exception</summary>
 		private readonly T? m_value;
 
-		/// <summary>If HasValue is true, holds the value. Else, contains default(T)</summary>
+		/// <summary>If HasValue is <see langword="true"/>, holds the value. Else, contains default(T)</summary>
 		private readonly bool m_hasValue;
 
-		/// <summary>If HasValue is false optionally holds an error that was captured</summary>
+		/// <summary>If <see cref="HasValue"/>> is <see langword="false"/> optionally holds an error that was captured</summary>
 		private readonly object? m_errorContainer; // either an Exception, or an ExceptionDispatchInfo
 
 		#endregion
@@ -502,7 +503,6 @@ namespace Doxense
 		[Pure]
 		public static Maybe<T> Error<T>(T? _, Exception? error0, Exception? error1)
 		{
-			// Il faut au moins une des deux !
 			Contract.Debug.Requires(error0 != null || error1 != null);
 
 			if (error1 == null)

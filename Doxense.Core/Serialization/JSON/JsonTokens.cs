@@ -26,9 +26,11 @@
 
 namespace Doxense.Serialization.Json
 {
+
 	/// <summary>Internal class that holds various constants and tokens used dureing parsing and serialization</summary>
 	internal static class JsonTokens
 	{
+
 		// On load les différents tokens en static readonly pour éviter d'allouer sans arret les mêmes chaines ...
 		public const string Null = "null";
 		public const string Undefined = "undefined";
@@ -50,12 +52,8 @@ namespace Doxense.Serialization.Json
 		public const string JavaScriptInfinityPos = "Number.POSITIVE_INFINITY";
 		public const string JavaScriptInfinityNeg = "Number.NEGATIVE_INFINITY";
 		public const string Zero = "0";
-		public const string DecimalZero = "0.0"; //DEPRECATED
-		public const string DotZero = ".0"; //DEPRECATED
-		public const string DoubleZero = "00";
 		public const string LongMinValue = "-9223372036854775808";
 		public const string CurlyCloseFormatted = " }";
-		public const string BracketOpenFormatted = " [";
 		public const string BracketCloseFormatted = " ]";
 		public const string CommaFormatted = ", ";
 		public const string CommaIndented = ",\r\n";
@@ -66,8 +64,6 @@ namespace Doxense.Serialization.Json
 		public const string DoubleQuotes = "''";
 		public const string DateBeginMicrosoft = "\"\\/Date(";
 		public const string DateEndMicrosoft = ")\\/\"";
-		public const string DateBeginMicrosoftDecoded = "/Date(";
-		public const string DateEndMicrosoftDecoded = ")/";
 		public const string DateBeginJavaScript = "new Date(";
 		public const string MicrosoftDateTimeMinValue = "\"\\/Date(-62135596800000)\\/\"";
 		public const string MicrosoftDateTimeMaxValue = "\"\\/Date(253402300799999)\\/\"";

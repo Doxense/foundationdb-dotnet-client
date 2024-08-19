@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+
 	public static partial class AsyncEnumerable
 	{
 		// These classes contain the logic to sort items (by themselves or by keys)
@@ -182,4 +183,5 @@ namespace Doxense.Linq
 		}
 
 	}
+
 }

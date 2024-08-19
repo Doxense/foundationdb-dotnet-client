@@ -357,10 +357,13 @@ namespace Doxense.Linq
 
 		/// <summary>Number of items in the buffer</summary>
 		public int Count;
+
 		/// <summary>Index in the current chunk</summary>
 		public int Index;
+
 		/// <summary>List of chunks</summary>
 		public T[][] Chunks;
+
 		/// <summary>Current (and last) chunk</summary>
 		public T[] Current;
 
@@ -402,10 +405,11 @@ namespace Doxense.Linq
 		{
 			var tmp = new T[this.Count];
 			int count = this.Count;
+			var chunks = this.Chunks;
 			int index = 0;
-			for (int i = 0; i < this.Chunks.Length - 1; i++)
+			for (int i = 0; i < chunks.Length - 1; i++)
 			{
-				var chunk = this.Chunks[i];
+				var chunk = chunks[i];
 				Array.Copy(chunk, 0, tmp, index, chunk.Length);
 				index += chunk.Length;
 				count -= chunk.Length;
@@ -462,7 +466,7 @@ namespace Doxense.Linq
 			int count = this.Count;
 			if (count == 0)
 			{ // empty sequence
-				return new List<T>();
+				return [ ];
 			}
 
 			var list = new List<T>(count);

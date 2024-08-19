@@ -82,8 +82,6 @@ namespace Doxense.Serialization.Encoders
 			this.Resolver = resolver ?? CrystalJson.DefaultResolver;
 		}
 
-		#region JobTicket...
-
 		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
 		{
 			Contract.NotNullAllowStructs(value);
@@ -94,8 +92,6 @@ namespace Doxense.Serialization.Encoders
 		{
 			return JsonPack.Decode(packed, this.Settings).As<T>(resolver: this.Resolver);
 		}
-
-		#endregion
 
 	}
 

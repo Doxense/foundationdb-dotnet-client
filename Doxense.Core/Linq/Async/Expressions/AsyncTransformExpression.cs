@@ -32,7 +32,9 @@ namespace Doxense.Linq.Async.Expressions
 	/// <typeparam name="TResult">Type of the transformed items</typeparam>
 	public sealed class AsyncTransformExpression<TSource, TResult>
 	{
+
 		private readonly Func<TSource, TResult>? m_transform;
+
 		private readonly Func<TSource, CancellationToken, Task<TResult>>? m_asyncTransform;
 
 		private static readonly Func<TSource, TSource> IdentityTransform = (x) => x;

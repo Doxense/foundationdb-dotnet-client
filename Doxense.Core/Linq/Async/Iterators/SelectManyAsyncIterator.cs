@@ -33,7 +33,9 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	public sealed class SelectManyAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
 	{
+
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TResult>> m_selector;
+
 		private IEnumerator<TResult>? m_batch;
 
 		public SelectManyAsyncIterator(IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)

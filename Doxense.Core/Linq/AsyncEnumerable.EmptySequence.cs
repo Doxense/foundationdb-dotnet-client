@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+
 	public static partial class AsyncEnumerable
 	{
 
@@ -41,7 +42,7 @@ namespace Doxense.Linq
 
 			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint) => this;
 
-			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync() => new ValueTask<bool>(false);
+			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync() => new(false);
 
 			TSource IAsyncEnumerator<TSource>.Current => throw new InvalidOperationException();
 
@@ -84,7 +85,7 @@ namespace Doxense.Linq
 			{
 				//REVIEW: we could have specialized version for Task returning vs non-Task returning lambdas
 
-				private CancellationToken m_ct;
+				private readonly CancellationToken m_ct;
 				private readonly Delegate m_lambda;
 				private bool m_called;
 				private TElement? m_current;

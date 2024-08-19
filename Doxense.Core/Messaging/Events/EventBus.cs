@@ -68,9 +68,9 @@ namespace Doxense.Messaging.Events
 
 		public Instant Now() => this.Clock.GetCurrentInstant();
 
-		public static EventBus Create(IEventSink sink, IClock? clock = null) => new EventBus(new[] { sink }, clock);
+		public static EventBus Create(IEventSink sink, IClock? clock = null) => new([ sink ], clock);
 
-		public static EventBus CreateInMemory(IEventFilter? filter = null, IClock? clock = null) => new EventBus(new[] { InMemoryEventSink.Create(filter) }, clock);
+		public static EventBus CreateInMemory(IEventFilter? filter = null, IClock? clock = null) => new([ InMemoryEventSink.Create(filter) ], clock);
 
 		public List<IEventSink> GetSinks()
 		{

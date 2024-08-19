@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq.Iterators
 {
+
 	/// <summary>Observe the items of a sequence</summary>
 	/// <typeparam name="TSource">Type of the observed elements</typeparam>
 	public sealed class ObserverIterator<TSource> : FilterIterator<TSource, TSource>
@@ -60,6 +61,7 @@ namespace Doxense.Linq.Iterators
 
 			return Publish(current);
 		}
+
 	}
 
 }

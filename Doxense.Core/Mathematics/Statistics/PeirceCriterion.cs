@@ -29,8 +29,9 @@ namespace Doxense.Mathematics.Statistics
 
 	public static class PeirceCriterion
 	{
-		public static readonly double[][] Tables = new double[][]
-		{
+
+		public static readonly double[][] Tables =
+		[
 			[ 1.196 ],
 			[ 1.383, 1.078 ],
 			[ 1.509, 1.200 ],
@@ -88,14 +89,14 @@ namespace Doxense.Mathematics.Statistics
 			[ 2.643,  2.380,  2.215,  2.093,  1.996,  1.915,  1.845,  1.784,  1.729 ],
 			[ 2.650,  2.387,  2.223,  2.101,  2.004,  1.923,  1.853,  1.792,  1.737 ],
 			[ 2.656,  2.394,  2.230,  2.109,  2.012,  1.931,  1.861,  1.800,  1.745 ],
-			[ 2.663,  2.401,  2.237,  2.116,  2.019,  1.939,  1.869,  1.808,  1.753 ],
-		};
+			[ 2.663,  2.401,  2.237,  2.116,  2.019,  1.939,  1.869,  1.808,  1.753 ]
+		];
 
-		static double PeircesTable(int n, int k)
+		private static double PeircesTable(int n, int k)
 		{
 			if (n < 3) throw new ArgumentOutOfRangeException(nameof(n), n, "Source list must have at least 3 elements");
 			if (n > 60) throw new ArgumentOutOfRangeException(nameof(n), n, "Source list must have at most 60 elements");
-			if (k < 1 || k > 9) throw new ArgumentOutOfRangeException(nameof(k), k, "Can only remove between 1 and 9 outliers");
+			if (k is < 1 or > 9) throw new ArgumentOutOfRangeException(nameof(k), k, "Can only remove between 1 and 9 outliers");
 
 			var table = Tables[n - 3];
 			if (table.Length <= k - 1) throw new ArgumentOutOfRangeException(nameof(k), k, $"Cannot remove {k} outliers with only {n} elements");

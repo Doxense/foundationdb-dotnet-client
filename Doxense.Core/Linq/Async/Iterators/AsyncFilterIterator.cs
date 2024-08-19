@@ -26,8 +26,10 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+
 	public abstract class AsyncFilterIterator<TSource, TResult> : AsyncIterator<TResult>
 	{
+
 		/// <summary>Source sequence (when in iterable mode)</summary>
 		protected IAsyncEnumerable<TSource> m_source;
 
@@ -42,7 +44,7 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 		/// <summary>Start the inner iterator</summary>
-		protected virtual IAsyncEnumerator<TSource> StartInner(CancellationToken ct)
+		protected virtual IAsyncEnumerator<TSource>? StartInner(CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 			// filtering changes the number of items, so that means that, even if the underlying caller wants one item, we may need to read more.

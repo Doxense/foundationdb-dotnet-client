@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Resolveur JSON capable d'énumérer les membres d'un type</summary>
 	public interface ICrystalJsonTypeResolver : ICrystalTypeResolver
 	{
+
 		/// <summary>Inspect a type, and generate a list of all its members</summary>
 		/// <param name="type">Type to introspect</param>
 		/// <returns>List of compiled members, or <see langword="null"/> if the type is not compatible (primitive, delegate, ...)</returns>

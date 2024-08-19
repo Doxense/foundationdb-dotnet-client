@@ -26,12 +26,14 @@
 
 namespace Doxense.Linq.Iterators
 {
+
 	/// <summary>Returns only the values for the keys that are in the first sub query, but not in the others</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
 	/// <typeparam name="TKey">Type of the keys extracted from the source elements</typeparam>
 	/// <typeparam name="TResult">Type of the elements of resulting async sequence</typeparam>
 	public sealed class ExceptIterator<TSource, TKey, TResult> : MergeIterator<TSource, TKey, TResult>
 	{
+
 		public ExceptIterator(IEnumerable<IEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
@@ -96,5 +98,7 @@ namespace Doxense.Linq.Iterators
 
 			return true;
 		}
+
 	}
+
 }

@@ -26,10 +26,12 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+
 	/// <summary>Reads an async sequence of items until a condition becomes false</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 	public sealed class TakeWhileAsyncIterator<TSource> : AsyncFilterIterator<TSource, TSource>
 	{
+
 		private readonly Func<TSource, bool> m_condition;
 		//TODO: also accept a Func<TSource, CT, Task<bool>> ?
 

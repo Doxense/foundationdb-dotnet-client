@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+
 	/// <summary>Container class for all settings relative to parallel operations</summary>
 	public sealed class ParallelAsyncQueryOptions
 	{

@@ -29,9 +29,9 @@ namespace Doxense.Serialization
 	using System.Diagnostics;
 	using System.Globalization;
 
-	/// <summary>Structure qui wrap un object CLR de n'importe quel type</summary>
-	/// <typeparam name="T">Type de l'objet wrappé</typeparam>
-	/// <remarks>Utile pour passer un ref type à une classe générique qui veut des structs, ou contourner certaines limitations des generic type constraints</remarks>
+	/// <summary>Wraps any type of CLR objects</summary>
+	/// <typeparam name="T">Type the wrapped object</typeparam>
+	/// <remarks>Can be used to bpass a ref type to a generic type or method that only accept structs, or to workaround some limitations in generic type constraints</remarks>
 	[DebuggerDisplay("[{Value}]")]
 	public readonly struct Boxed<T> : IEquatable<Boxed<T>>, IComparable<Boxed<T>>, IEquatable<T>, IComparable<T>
 	{
@@ -46,102 +46,55 @@ namespace Doxense.Serialization
 
 		public bool IsNull => this.Value == null;
 
-		public T? OrDefault(T? defaultValue)
-		{
-			// R# pense qu'on peut écrire "this.Value ?? defaultValue" ce qui est faux (T est generic sans reftype constraint)
-			// ReSharper disable once ConvertConditionalTernaryToNullCoalescing
-			return this.Value != null ? this.Value : defaultValue;
-		}
+		public T? OrDefault(T? defaultValue) => this.Value != null ? this.Value : defaultValue;
 
-		/// <summary>Retourne true si le type T est compatible avec le type TBase</summary>
-		public bool IsA<TBase>()
-		{
-			return typeof(TBase).IsAssignableFrom(typeof(T));
-		}
+		/// <summary>Returns <see langword="true"/> if the type <typeparamref name="T"/> is compatible with the type <typeparamref name="TBase"/></summary>
+		public bool IsA<TBase>() => typeof(TBase).IsAssignableFrom(typeof(T));
 
-		/// <summary>Convertit la valeur de type T en instance de type TTarget</summary>
-		/// <remarks>Si T et TTarget sont parent/enfants on fait un cast. Sinon on appelle Convert.ChangeType(...)</remarks>
+		/// <summary>Converts a value of type <typeparamref name="T"/> in to a value of type <typeparamref name="TTarget"/></summary>
+		/// <remarks>If <typeparamref name="T"/> and <typeparamref name="TTarget"/> are parent/child we can do direct casting. Otherwise, we call <see cref="Convert.ChangeType(object?,System.Type)"/></remarks>
 		public TTarget? Cast<TTarget>()
 		{
 			if (typeof(TTarget).IsAssignableFrom(typeof(T)))
 			{
 				return (TTarget?) (object?) this.Value;
 			}
-
 			return (TTarget?) Convert.ChangeType(this.Value, typeof(TTarget), CultureInfo.InvariantCulture);
 		}
 
-		public bool Equals(Boxed<T> other)
-		{
-			return EqualityComparer<T>.Default.Equals(this.Value, other.Value);
-		}
+		public bool Equals(Boxed<T> other) => EqualityComparer<T>.Default.Equals(this.Value, other.Value);
 
-		public bool Equals(T? other)
-		{
-			return EqualityComparer<T>.Default.Equals(this.Value, other);
-		}
+		public bool Equals(T? other) => EqualityComparer<T>.Default.Equals(this.Value, other);
 
-		public int CompareTo(Boxed<T> other)
-		{
-			return Comparer<T>.Default.Compare(this.Value, other.Value);
-		}
+		public int CompareTo(Boxed<T> other) => Comparer<T>.Default.Compare(this.Value, other.Value);
 
-		public int CompareTo(T? other)
-		{
-			return Comparer<T>.Default.Compare(this.Value, other);
-		}
+		public int CompareTo(T? other) => Comparer<T>.Default.Compare(this.Value, other);
 
-		public override bool Equals(object? obj)
+		public override bool Equals(object? obj) => obj switch
 		{
-			if (obj is Boxed<T> boxed) return Equals(boxed);
-			if (obj is T value) return Equals(value);
-			return false;
-		}
+			Boxed<T> boxed => Equals(boxed),
+			T value => Equals(value),
+			_ => false
+		};
 
-		public override int GetHashCode()
-		{
-			return EqualityComparer<T>.Default.GetHashCode(this.Value!);
-		}
+		public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(this.Value!);
 
-		public static bool operator==(Boxed<T> left, Boxed<T> right)
-		{
-			return left.Equals(right);
-		}
+		public static bool operator==(Boxed<T> left, Boxed<T> right) => left.Equals(right);
 
-		public static bool operator!=(Boxed<T> left, Boxed<T> right)
-		{
-			return !left.Equals(right);
-		}
+		public static bool operator!=(Boxed<T> left, Boxed<T> right) => !left.Equals(right);
 
-		public static bool operator ==(Boxed<T> left, T right)
-		{
-			return left.Equals(right);
-		}
+		public static bool operator ==(Boxed<T> left, T right) => left.Equals(right);
 
-		public static bool operator !=(Boxed<T> left, T right)
-		{
-			return !left.Equals(right);
-		}
+		public static bool operator !=(Boxed<T> left, T right) => !left.Equals(right);
 
-		public static bool operator ==(T left, Boxed<T> right)
-		{
-			return right.Equals(left);
-		}
+		public static bool operator ==(T left, Boxed<T> right) => right.Equals(left);
 
-		public static bool operator !=(T left, Boxed<T> right)
-		{
-			return !right.Equals(left);
-		}
+		public static bool operator !=(T left, Boxed<T> right) => !right.Equals(left);
 
-		public static implicit operator T(Boxed<T> value)
-		{
-			return value.Value;
-		}
+		public static implicit operator T(Boxed<T> value) => value.Value;
 
-		public static implicit operator Boxed<T>(T value)
-		{
-			return new Boxed<T>(value);
-		}
+		public static implicit operator Boxed<T>(T value) => new(value);
+
 	}
 
 }

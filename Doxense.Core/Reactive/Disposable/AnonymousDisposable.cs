@@ -26,10 +26,12 @@
 
 namespace Doxense.Reactive.Disposables
 {
+
 	/// <summary>Retourne un objet exécutant une Action lorsqu'il est Dispose()</summary>
 	/// <remarks>Version simplifiée de System.Disposables.AnonymousDisposable de Rx</remarks>
 	internal sealed class AnonymousDisposable : IDisposable
 	{
+
 		/// <summary>Action effectuée lors du Dispose() s'il n'a pas déjà été fait</summary>
 		/// <remarks>Est mit à null par le premier Dispose pour éviter de garder une référence vers l'objet</remarks>
 		private Action? m_onDispose;
@@ -45,6 +47,7 @@ namespace Doxense.Reactive.Disposables
 			var onDispose = Interlocked.Exchange(ref m_onDispose, null);
 			onDispose?.Invoke();
 		}
+
 	}
 
 }

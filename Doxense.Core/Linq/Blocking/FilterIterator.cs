@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq.Iterators
 {
+
 	public abstract class FilterIterator<TSource, TResult> : Iterator<TResult>
 	{
 		/// <summary>Source sequence (when in iterable mode)</summary>
@@ -42,7 +43,7 @@ namespace Doxense.Linq.Iterators
 		}
 
 		/// <summary>Start the inner iterator</summary>
-		protected virtual IEnumerator<TSource> StartInner()
+		protected virtual IEnumerator<TSource>? StartInner()
 		{
 			// filtering changes the number of items, so that means that, even if the underlying caller wants one item, we may need to read more.
 			// => change all "Head" requests into "Iterator" to prevent any wrong optimizations by the underlying source (ex: using a too small batch size)
@@ -65,7 +66,11 @@ namespace Doxense.Linq.Iterators
 			try
 			{
 				iterator = StartInner();
-				if (iterator == null) return false;
+				if (iterator == null)
+				{
+					return false;
+				}
+
 				OnStarted(iterator);
 				return true;
 			}

@@ -26,6 +26,7 @@
 
 namespace Doxense.Messaging.Events
 {
+
 	/// <summary>Ignore all received messages</summary>
 	public sealed class NullEventSink : IEventSink
 	{

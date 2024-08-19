@@ -98,21 +98,6 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-#if DEPRECATED
-		/// <summary>Retourne une estimation de la position dans le stream source, pour information</summary>
-		/// <remarks>ATTENTION: cette valeur ne correspond pas à la position exacte du dernier caractère lu!
-		/// Si le reader JSON utilisé buffer les caractères lu (la majorité du temps), alors la position dans le stream source sera toujours en avance sur la position réelle du reader!
-		/// </remarks>
-		public long? PositionHint
-		{
-			get
-			{
-				if (((object) this.Source) is StreamReader sr) return sr.BaseStream.Length;
-				return null;
-			}
-		}
-#endif
-
 #if ENABLE_SOURCE_POSITION
 		/// <summary>Nombre de charactères lus dans la source</summary>
 		public long Offset => m_offset;

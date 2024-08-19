@@ -31,7 +31,9 @@ namespace Doxense.Linq.Async.Expressions
 	/// <typeparam name="TSource">Type of observed items</typeparam>
 	public sealed class AsyncObserverExpression<TSource>
 	{
+
 		private readonly Action<TSource>? m_handler;
+
 		private readonly Func<TSource, CancellationToken, Task>? m_asyncHandler;
 
 		public AsyncObserverExpression(Action<TSource> handler)

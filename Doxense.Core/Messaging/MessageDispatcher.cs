@@ -120,6 +120,7 @@ namespace Doxense.Messaging
 		{
 			return Task.WhenAll(this.Dispatchers.Select(dispatcher => dispatcher.DrainAsync(final, ct)));
 		}
+
 	}
 
 	/// <summary>Dispatch messages using a buffered <see cref="Channel{TMessage}">channel</see> for async processing</summary>

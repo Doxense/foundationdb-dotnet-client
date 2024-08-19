@@ -53,7 +53,9 @@ namespace Doxense.Mathematics.Statistics
 		[PublicAPI]
 		public sealed class Report<TResult>
 		{
+
 			public int NumberOfRuns { get; set; }
+
 			public int IterationsPerRun { get; set; }
 
 			public TimeSpan RawTotal { get; set; }
@@ -75,22 +77,29 @@ namespace Doxense.Mathematics.Statistics
 			public TimeSpan AverageDuration { get; set; }
 
 			public TimeSpan MedianDuration { get; set; }
+
 			public double MedianIterationsPerSecond { get; set; }
+
 			public double MedianIterationsNanos { get; set; }
 
 			public TimeSpan BestDuration { get; set; }
+
 			public double BestIterationsPerSecond { get; set; }
+
 			public double BestIterationsNanos { get; set; }
 
 			public TimeSpan StdDevDuration { get; set; }
+
 			public double StdDevIterationNanos { get; set; }
 
 			// ReSharper disable InconsistentNaming
 
 			/// <summary>Number of gen0 collection per 1 million iterations</summary>
 			public double GC0 { get; set; }
+
 			/// <summary>Number of gen2 collection per 1 million iterations</summary>
 			public double GC1 { get; set; }
+
 			/// <summary>Number of gen2 collection per 1 million iterations</summary>
 			public double GC2 { get; set; }
 
@@ -99,11 +108,13 @@ namespace Doxense.Mathematics.Statistics
 			public TimeSpan BestRunTotalTime { get; set; }
 
 			public RobustHistogram? Histogram { get; set; }
+
 		}
 
 
 		private struct RobustStopWatch
 		{
+
 			/// <summary>Conversion ratio from timestamp ticks to TimeSpan ticks</summary>
 			private static readonly double TicksFrequency = (double)TimeSpan.TicksPerSecond / Stopwatch.Frequency;
 
@@ -111,7 +122,9 @@ namespace Doxense.Mathematics.Statistics
 			public static readonly long EpsilonDuration = (long)TicksFrequency;
 
 			public long StartTimeStamp;
+
 			public long Total;
+
 			public bool IsRunning;
 
 			public void Restart()
@@ -140,9 +153,9 @@ namespace Doxense.Mathematics.Statistics
 				}
 			}
 
-			public long ElapsedRawTicks => (this.IsRunning ? (Stopwatch.GetTimestamp() - this.StartTimeStamp) : 0) + this.Total;
+			public readonly long ElapsedRawTicks => (this.IsRunning ? (Stopwatch.GetTimestamp() - this.StartTimeStamp) : 0) + this.Total;
 
-			public TimeSpan Elapsed => GetDuration(this.ElapsedRawTicks);
+			public readonly TimeSpan Elapsed => GetDuration(this.ElapsedRawTicks);
 
 			public static TimeSpan GetDuration(long ticks) => TimeSpan.FromTicks((long)Math.Round(ticks * TicksFrequency, MidpointRounding.AwayFromZero));
 
@@ -252,7 +265,7 @@ namespace Doxense.Mathematics.Statistics
 			//var filtered = DixonTest.ComputeOutliers(times, x => (double)x, DixonTest.Confidence.CL95, DixonTest.Mode.Upper, out _outliers, out rejected).ToList();
 			var outliersMap = outliers.ToArray();
 
-			report.Times = filtered.Select(x => RobustStopWatch.GetDuration(x)).ToList();
+			report.Times = filtered.Select(RobustStopWatch.GetDuration).ToList();
 			report.RejectedRuns = rejected;
 			report.Runs = times.Select((ticks, i) => new RunData<TResult>
 			{
@@ -270,11 +283,10 @@ namespace Doxense.Mathematics.Statistics
 			var sorted = filtered.ToArray();
 			Array.Sort(sorted);
 			report.BestDuration = RobustStopWatch.GetDuration(times.Min());
-			report.AverageDuration = RobustStopWatch.GetDuration((long)sorted.Average());
+			report.AverageDuration = RobustStopWatch.GetDuration((long) sorted.Average());
 			long median = Median(sorted);
 			report.MedianDuration = RobustStopWatch.GetDuration(median);
 			report.StdDevDuration = RobustStopWatch.GetDuration(MeanAbsoluteDeviation(sorted, median));
-			//Console.WriteLine("Median of " + String.Join(", ", sorted) + " is " + Median(sorted));
 
 			report.MedianIterationsPerSecond = report.TotalIterations / report.TotalDuration.TotalSeconds;
 			report.MedianIterationsNanos = (double)(report.TotalDuration.Ticks * 100) / report.TotalIterations;
@@ -282,9 +294,7 @@ namespace Doxense.Mathematics.Statistics
 			report.BestIterationsPerSecond = report.IterationsPerRun / report.BestDuration.TotalSeconds;
 			report.BestIterationsNanos = (double)(report.BestDuration.Ticks * 100) / report.IterationsPerRun;
 
-			report.StdDevIterationNanos = (double)(report.StdDevDuration.Ticks * 100)  / report.TotalIterations;
-
-			//Console.WriteLine(Doxense.Serialization.Json.CrystalJson.Serialize(report, Doxense.Serialization.Json.CrystalJsonSettings.JsonIndented));
+			report.StdDevIterationNanos = (double)(report.StdDevDuration.Ticks * 100) / report.TotalIterations;
 
 			return report;
 		}
@@ -311,6 +321,5 @@ namespace Doxense.Mathematics.Statistics
 		}
 
 	}
-
 
 }

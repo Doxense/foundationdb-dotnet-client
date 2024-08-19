@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 
 	/// <summary>Attribute that controls how a type is serialized into JSON</summary>
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
 	[PublicAPI]
 	public sealed class JsonTypeAttribute : Attribute
 	{

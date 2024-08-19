@@ -36,6 +36,7 @@ namespace Doxense.Reactive.Disposables
 	[DebuggerDisplay("Value={m_value}, Disposed={Disposed}")]
 	public sealed class Disposable<T> : IDisposable<T>
 	{
+
 		#region Private Members...
 
 		/// <summary>Placeholder utilisé lorsqu'il ne faut rien faire</summary>

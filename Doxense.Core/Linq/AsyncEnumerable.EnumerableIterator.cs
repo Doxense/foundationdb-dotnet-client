@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+
 	public static partial class AsyncEnumerable
 	{
 

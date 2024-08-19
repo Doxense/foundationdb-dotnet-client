@@ -929,7 +929,7 @@ namespace Doxense.Serialization.Json
 
 		internal delegate JsonValue CrystalJsonTypePacker(object? instance, CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver);
 
-		private static QuasiImmutableCache<Type, Maybe<CrystalJsonTypePacker>> DuckTypedJsonPackMethods { get; } = new QuasiImmutableCache<Type, Maybe<CrystalJsonTypePacker>>(GetInstanceJsonPackHandler, TypeEqualityComparer.Default);
+		private static QuasiImmutableCache<Type, Maybe<CrystalJsonTypePacker>> DuckTypedJsonPackMethods { get; } = new(GetInstanceJsonPackHandler, TypeEqualityComparer.Default);
 
 		private static Maybe<CrystalJsonTypePacker> GetInstanceJsonPackHandler([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
 		{
@@ -967,7 +967,7 @@ namespace Doxense.Serialization.Json
 				: prms.Length == 2 ? Expression.Call(castedInstance, m, prmSettings, prmResolver)
 				: throw new InvalidOperationException("Invalid signature for JsonPack instance method");
 
-			return Expression.Lambda<CrystalJsonTypePacker>(body, "<>_" + type.Name + "_JsonUnpack", true, new[] { prmValue, prmSettings, prmResolver }).Compile();
+			return Expression.Lambda<CrystalJsonTypePacker>(body, "<>_" + type.Name + "_JsonUnpack", true, [ prmValue, prmSettings, prmResolver ]).Compile();
 		}
 
 	}

@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+
 	public class QueryStatistics<TData>
 	{
 		public QueryStatistics()
@@ -46,6 +47,7 @@ namespace Doxense.Linq
 
 	public sealed class KeyValueSizeStatistics
 	{
+
 		/// <summary>Total number of pairs of keys and values that have flowed through this point</summary>
 		public long Count { get; private set; }
 
@@ -64,10 +66,12 @@ namespace Doxense.Linq
 			this.KeySize = checked(keySize + this.KeySize);
 			this.ValueSize = checked(valueSize + this.ValueSize);
 		}
+
 	}
 
 	public sealed class DataSizeStatistics
 	{
+
 		/// <summary>Total number of items that have flowed through this point</summary>
 		public long Count { get; private set; }
 

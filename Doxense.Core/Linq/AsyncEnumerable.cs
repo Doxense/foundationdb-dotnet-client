@@ -1177,7 +1177,7 @@ namespace Doxense.Linq
 					min = x;
 					found = true;
 				}
-			};
+			}
 
 			return found ? min : throw new InvalidOperationException("The sequence was empty");
 		}

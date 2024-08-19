@@ -36,6 +36,7 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	public sealed class ParallelSelectAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
 	{
+
 		/// <summary>Default max concurrency when doing batch queries</summary>
 		/// <remarks>TODO: this is a placeholder value !</remarks>
 		public const int DefaultMaxConcurrency = 32;

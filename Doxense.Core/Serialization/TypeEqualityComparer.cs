@@ -38,10 +38,10 @@ namespace Doxense.Serialization
 
 		public bool Equals(Type? x, Type? y)
 		{
-			return object.ReferenceEquals(x, y);
+			return ReferenceEquals(x, y);
 		}
 
-		public int GetHashCode(Type obj)
+		public int GetHashCode(Type? obj)
 		{
 			return obj?.GetHashCode() ?? -1;
 		}

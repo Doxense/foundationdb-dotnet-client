@@ -32,7 +32,9 @@ namespace Doxense.Linq.Async.Expressions
 	[PublicAPI]
 	public sealed class AsyncFilterExpression<TSource>
 	{
+
 		private readonly Func<TSource, bool>? m_filter;
+
 		private readonly Func<TSource, CancellationToken, Task<bool>>? m_asyncFilter;
 
 		public AsyncFilterExpression(Func<TSource, bool> filter)
@@ -168,6 +170,7 @@ namespace Doxense.Linq.Async.Expressions
 				}
 			}
 		}
+
 	}
 
 }

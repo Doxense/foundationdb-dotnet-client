@@ -45,7 +45,9 @@ namespace Doxense.Serialization.Json
 	[DebuggerNonUserCode]
 	public static class CrystalJson
 	{
-		public static readonly CrystalJsonTypeResolver DefaultResolver = new CrystalJsonTypeResolver();
+
+		public static readonly CrystalJsonTypeResolver DefaultResolver = new();
+
 		public static readonly UTF8Encoding Utf8NoBom = CrystalJsonFormatter.Utf8NoBom;
 
 		public static void Warmup()
@@ -706,7 +708,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(
 #if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+			[StringSyntax("json")]
 #endif
 			string? jsonText,
 			CrystalJsonSettings? settings = null
@@ -1111,7 +1113,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+			[StringSyntax("json")]
 #endif
 			string jsonText
 		) where TValue : notnull
@@ -1129,10 +1131,10 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+			[StringSyntax("json")]
 #endif
 			string jsonText,
-			CrystalJsonSettings? settings = null,
+			CrystalJsonSettings? settings,
 			ICrystalJsonTypeResolver? resolver = null
 		) where TValue : notnull
 		{
@@ -1147,9 +1149,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(
+		public static TValue Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+			[StringSyntax("json")]
 #endif
 			string jsonText,
 			TValue defaultValue)
@@ -1167,13 +1169,13 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(
+		public static TValue Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+			[StringSyntax("json")]
 #endif
 			string jsonText,
 			TValue defaultValue,
-			CrystalJsonSettings? settings = null,
+			CrystalJsonSettings? settings,
 			ICrystalJsonTypeResolver? resolver = null
 		)
 		{
@@ -1199,7 +1201,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
-		public static TValue Deserialize<TValue>(byte[] jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
+		public static TValue Deserialize<TValue>(byte[] jsonBytes, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
 			return Parse(jsonBytes, settings).Required<TValue>(resolver);
 		}
@@ -1212,7 +1214,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue)
+		public static TValue Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1227,7 +1229,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
@@ -1249,7 +1251,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Objet correspondant</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
-		public static TValue Deserialize<TValue>(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
+		public static TValue Deserialize<TValue>(Slice jsonBytes, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
 			return Parse(jsonBytes, settings).Required<TValue>(resolver);
 		}
@@ -1261,7 +1263,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
+		public static TValue Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1275,7 +1277,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
@@ -1299,7 +1301,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
+		public static TValue Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1313,7 +1315,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
@@ -1338,7 +1340,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
+		public static TValue Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1352,7 +1354,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
@@ -1469,83 +1471,45 @@ namespace Doxense.Serialization.Json
 			#region Serialization Errors...
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_FailTooDeep(int depth, object? current)
-			{
-				return new JsonSerializationException($"Reached maximum depth of {depth} while serializing child object of type '{current?.GetType().GetFriendlyName() ?? "<null>"}'. Top object is too complex to be serialized this way!");
-			}
+			internal static JsonSerializationException Serialization_FailTooDeep(int depth, object? current) => new($"Reached maximum depth of {depth} while serializing child object of type '{current?.GetType().GetFriendlyName() ?? "<null>"}'. Top object is too complex to be serialized this way!");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static InvalidOperationException Serialization_ObjectRecursionIsNotAllowed(IEnumerable<object?> visited, object? value, int depth)
-			{
-				return new JsonSerializationException($"Object of type '{value?.GetType().FullName}' at depth {depth} already serialized before! Recursive object graphs not supported. Visited path: {string.Join(" <- ", visited.Select(v => v?.GetType().FullName ?? "<null>"))}");
-			}
+			internal static InvalidOperationException Serialization_ObjectRecursionIsNotAllowed(IEnumerable<object?> visited, object? value, int depth) => new JsonSerializationException($"Object of type '{value?.GetType().FullName}' at depth {depth} already serialized before! Recursive object graphs not supported. Visited path: {string.Join(" <- ", visited.Select(v => v?.GetType().FullName ?? "<null>"))}");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_InternalDepthInconsistent()
-			{
-				return new JsonSerializationException("Internal depth is inconsistent.");
-			}
+			internal static JsonSerializationException Serialization_InternalDepthInconsistent() => new("Internal depth is inconsistent.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object? current)
-			{
-				return new JsonSerializationException($"Desynchronization of the visited object stack: Leave() was called with a different value of type '{current?.GetType().GetFriendlyName() ?? "<null>"}' than MarkVisited() at depth {depth}.");
-			}
+			internal static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object? current) => new($"Desynchronization of the visited object stack: Leave() was called with a different value of type '{current?.GetType().GetFriendlyName() ?? "<null>"}' than MarkVisited() at depth {depth}.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_DoesNotKnowHowToSerializeType(Type type)
-			{
-				return new JsonSerializationException($"Doesn't know how to serialize values of type '{type.GetFriendlyName()}'.");
-			}
+			internal static JsonSerializationException Serialization_DoesNotKnowHowToSerializeType(Type type) => new($"Doesn't know how to serialize values of type '{type.GetFriendlyName()}'.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_DoesNotKnowHowToSerializeNullableType(Type type)
-			{
-				return new JsonSerializationException($"Doesn't know how to serialize Nullable type '{type.GetFriendlyName()}'.");
-			}
+			internal static JsonSerializationException Serialization_DoesNotKnowHowToSerializeNullableType(Type type) => new($"Doesn't know how to serialize Nullable type '{type.GetFriendlyName()}'.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_CouldNotResolveTypeDefinition(Type type)
-			{
-				return new JsonSerializationException($"Could not get the members list for type '{type.GetFriendlyName()}'.");
-			}
+			internal static JsonSerializationException Serialization_CouldNotResolveTypeDefinition(Type type) => new($"Could not get the members list for type '{type.GetFriendlyName()}'.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSignature(Type type, MethodInfo method)
-			{
-				return new JsonSerializationException($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
-			}
+			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSignature(Type type, MethodInfo method) => new($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidFirstParam(Type type, MethodInfo method, Type prmType)
-			{
-				return new JsonSerializationException($"First parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be assignable to type '{type.GetFriendlyName()}' (it was '{prmType.GetFriendlyName()}').");
-			}
+			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidFirstParam(Type type, MethodInfo method, Type prmType) => new($"First parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be assignable to type '{type.GetFriendlyName()}' (it was '{prmType.GetFriendlyName()}').");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSecondParam(Type type, MethodInfo method, Type prmType)
-			{
-				return new JsonSerializationException($"Second parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be a {nameof(CrystalJsonWriter)} object (it was '{prmType.GetFriendlyName()}').");
-			}
+			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSecondParam(Type type, MethodInfo method, Type prmType) => new($"Second parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be a {nameof(CrystalJsonWriter)} object (it was '{prmType.GetFriendlyName()}').");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonPackMethodInvalidSignature(Type type, MethodInfo method)
-			{
-				return new JsonSerializationException($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take three parameters.");
-			}
-
-			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_InstanceJsonPackMethodInvalidSignature(Type type, MethodInfo method)
-			{
-				return new JsonSerializationException($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
-			}
+			internal static JsonSerializationException Serialization_InstanceJsonPackMethodInvalidSignature(Type type, MethodInfo method) => new($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonSerializationException Serialization_CouldNotGetDefaultValueForMember(Type type, MemberInfo info, Exception? error)
 			{
 				var memberType = info is PropertyInfo pi ? pi.PropertyType : info is FieldInfo fi ? fi.FieldType : typeof(object);
-				if (memberType.IsByRefLike) return new JsonSerializationException($"Cannot serialize {(info is PropertyInfo ? "property" : "field")} {type.GetFriendlyName()}.{info.Name} with type {memberType.GetFriendlyName()}: ref-like types are NOT supported.", error);
-				return new JsonSerializationException($"Cannot generate default value for {(info is PropertyInfo ? "property" : "field")} {type.GetFriendlyName()}.{info.Name} with type {memberType.GetFriendlyName()}.", error);
+				return memberType.IsByRefLike
+					? new JsonSerializationException($"Cannot serialize {(info is PropertyInfo ? "property" : "field")} {type.GetFriendlyName()}.{info.Name} with type {memberType.GetFriendlyName()}: ref-like types are NOT supported.", error)
+					: new JsonSerializationException($"Cannot generate default value for {(info is PropertyInfo ? "property" : "field")} {type.GetFriendlyName()}.{info.Name} with type {memberType.GetFriendlyName()}.", error);
 			}
 
 
@@ -1554,28 +1518,16 @@ namespace Doxense.Serialization.Json
 			#region Parsing Errors...
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value)
-			{
-				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);
-			}
+			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonArray(JsonValue? value)
-			{
-				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Array.", value);
-			}
+			internal static JsonBindingException Parsing_CannotCastToJsonArray(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Array.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonNumber(JsonValue? value)
-			{
-				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Number.", value);
-			}
+			internal static JsonBindingException Parsing_CannotCastToJsonNumber(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Number.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonString(JsonValue? value)
-			{
-				return new JsonBindingException($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a String.", value);
-			}
+			internal static JsonBindingException Parsing_CannotCastToJsonString(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a String.", value);
 
 			#endregion
 
@@ -1583,4 +1535,5 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 	}
+
 }

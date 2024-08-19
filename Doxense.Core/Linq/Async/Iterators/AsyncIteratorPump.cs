@@ -37,6 +37,7 @@ namespace Doxense.Linq.Async.Iterators
 	[DebuggerDisplay("State={m_state}")]
 	public sealed class AsyncIteratorPump<TInput>
 	{
+
 		private const int STATE_IDLE = 0;
 		private const int STATE_WAITING_FOR_NEXT = 1;
 		private const int STATE_PUBLISHING_TO_TARGET = 2;

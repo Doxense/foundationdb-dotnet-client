@@ -190,7 +190,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 
 			// other cases are too complex :(
-			return base.SelectMany<TNew>(selector);
+			return base.SelectMany(selector);
 		}
 
 		public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
@@ -206,7 +206,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 
 			// other cases are too complex :(
-			return base.SelectMany<TNew>(asyncSelector);
+			return base.SelectMany(asyncSelector);
 		}
 
 		public override AsyncIterator<TResult> Take(int limit)
@@ -443,6 +443,7 @@ namespace Doxense.Linq.Async.Iterators
 				ct.ThrowIfCancellationRequested();
 			}
 		}
+
 	}
 
 }

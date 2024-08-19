@@ -26,12 +26,14 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+
 	/// <summary>Filters duplicate items from an async sequence</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 	public sealed class DistinctAsyncIterator<TSource> : AsyncFilterIterator<TSource, TSource>
 	{
 
 		private readonly IEqualityComparer<TSource> m_comparer;
+
 		private HashSet<TSource>? m_set;
 
 		public DistinctAsyncIterator(IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
