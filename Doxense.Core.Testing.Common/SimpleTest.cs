@@ -42,16 +42,14 @@ namespace SnowBank.Testing
 	using Doxense.Reactive.Disposables;
 	using Doxense.Runtime.Comparison;
 	using Doxense.Serialization;
-	using Doxense.Serialization.Json;
 	using Doxense.Tools;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
 	using NUnit.Framework.Internal;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-	/// <summary>Base class pour for simple unit tests. Provides a set of usefull services (logging, cancellation, async helpers, ...)</summary>
+	/// <summary>Base class for simple unit tests. Provides a set of usefull services (logging, cancellation, async helpers, ...)</summary>
 	[DebuggerNonUserCode]
 	[PublicAPI]
 	public abstract class SimpleTest

@@ -309,11 +309,9 @@ namespace Doxense.Networking
 
 			public (string Id, string? Argument)[] BrowseNetworkService(string serviceType)
 			{
-				if (!this.NetworkServices.TryGetValue(serviceType, out var services))
-				{
-					return Array.Empty<(string, string?)>();
-				}
-				return services.ToArray();
+				return !this.NetworkServices.TryGetValue(serviceType, out var services)
+					? [ ]
+					: services.ToArray();
 			}
 
 			public override string ToString() => $"Network<{this.Id}>(Type={this.Type}, Name={this.Name}, IP={this.Options.IpRange})";
@@ -524,10 +522,7 @@ namespace Doxense.Networking
 				Contract.Debug.Assert(hostName != null);
 			}
 
-			if (fqdn == null)
-			{
-				fqdn = hostName + (identity.DnsSuffix ?? ".simulated");
-			}
+			fqdn ??= hostName + (identity.DnsSuffix ?? ".simulated");
 
 			var aliases = identity.Aliases.ToArray();
 			var addresses = identity.Addresses.ToArray();
@@ -569,8 +564,8 @@ namespace Doxense.Networking
 						Name = "Loopback",
 						Description = "Loopback Network Adapter (virtual)",
 						Type = NetworkInterfaceType.Loopback,
-						UnicastAddresses = new [] { (IPAddress.Loopback, IPAddress.Parse("255.0.0.0"), 8) },
-						PhysicalAddress = null //REVIEW: est-ce que localhost a une MAC Address?
+						UnicastAddresses = [ (IPAddress.Loopback, IPAddress.Parse("255.0.0.0"), 8) ],
+						PhysicalAddress = null //REVIEW: should localhost have a MAC Address?
 					});
 				}
 

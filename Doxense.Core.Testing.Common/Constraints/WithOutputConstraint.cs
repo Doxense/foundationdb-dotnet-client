@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense
+namespace SnowBank.Testing
 {
 	using NUnit.Framework.Constraints;
 
@@ -80,7 +80,7 @@ namespace Doxense
 			object? rightActual,
 			ConstraintResult leftResult,
 			ConstraintResult rightResult)
-			: base((IConstraint) constraint, leftResult.IsSuccess ? rightActual : leftActual, leftResult.IsSuccess && rightResult.IsSuccess)
+			: base(constraint, leftResult.IsSuccess ? rightActual : leftActual, leftResult.IsSuccess && rightResult.IsSuccess)
 		{
 			this.LeftResult = leftResult;
 			this.RightResult = rightResult;

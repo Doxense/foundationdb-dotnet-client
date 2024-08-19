@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense
+namespace SnowBank.Testing
 {
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -48,4 +48,5 @@ namespace Doxense
 		}
 
 	}
+
 }

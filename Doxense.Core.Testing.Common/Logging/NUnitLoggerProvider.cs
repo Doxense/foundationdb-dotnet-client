@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense
+namespace SnowBank.Testing
 {
 	using System.Collections.Concurrent;
 	using Microsoft.Extensions.Logging;
@@ -36,7 +36,7 @@ namespace Doxense
 
 		private IOptionsMonitor<NUnitLoggerOptions> Options { get; }
 
-		private ConcurrentDictionary<string, NUnitLogger> Loggers { get; }= new ConcurrentDictionary<string, NUnitLogger>();
+		private ConcurrentDictionary<string, NUnitLogger> Loggers { get; }= new();
 
 		private IExternalScopeProvider ScopeProvider = NullExternalScopeProvider.Instance;
 
@@ -54,7 +54,7 @@ namespace Doxense
 
 		public ILogger CreateLogger(string categoryName)
 		{
-			return this.Loggers.GetOrAdd(categoryName, loggerName => new NUnitLogger(categoryName, this.Options.CurrentValue, this.ScopeProvider));
+			return this.Loggers.GetOrAdd(categoryName, loggerName => new NUnitLogger(loggerName, this.Options.CurrentValue, this.ScopeProvider));
 		}
 
 		public void SetScopeProvider(IExternalScopeProvider scopeProvider)
@@ -68,9 +68,7 @@ namespace Doxense
 		}
 	}
 
-	/// <summary>
-	/// An empty scope without any logic
-	/// </summary>
+	/// <summary>An empty scope without any logic</summary>
 	internal class NullScope : IDisposable
 	{
 		public static NullScope Instance { get; } = new NullScope();
@@ -85,18 +83,14 @@ namespace Doxense
 		}
 	}
 
-	/// <summary>
-	/// Scope provider that does nothing.
-	/// </summary>
+	/// <summary>Scope provider that does nothing.</summary>
 	internal class NullExternalScopeProvider : IExternalScopeProvider
 	{
 		private NullExternalScopeProvider()
 		{
 		}
 
-		/// <summary>
-		/// Returns a cached instance of <see cref="NullExternalScopeProvider"/>.
-		/// </summary>
+		/// <summary>Returns a cached instance of <see cref="NullExternalScopeProvider"/>.</summary>
 		public static IExternalScopeProvider Instance { get; } = new NullExternalScopeProvider();
 
 		/// <inheritdoc />
@@ -109,6 +103,7 @@ namespace Doxense
 		{
 			return NullScope.Instance;
 		}
+
 	}
 
 }

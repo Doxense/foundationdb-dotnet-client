@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense
+namespace SnowBank.Testing
 {
 	using System.Runtime.CompilerServices;
 	using NUnit.Framework.Constraints;

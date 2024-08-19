@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense
+namespace SnowBank.Testing
 {
 	using System.Globalization;
 	using System.Text;
@@ -43,9 +43,9 @@ namespace Doxense
 
 		private NUnitLoggerOptions Options { get; }
 
-		public IExternalScopeProvider ScopeProvider { get; set; }
+		public IExternalScopeProvider? ScopeProvider { get; set; }
 
-		public NUnitLogger(string name, NUnitLoggerOptions options, IExternalScopeProvider provider)
+		public NUnitLogger(string name, NUnitLoggerOptions options, IExternalScopeProvider? provider)
 		{
 			this.Name = name;
 			this.Options = options;
@@ -53,7 +53,7 @@ namespace Doxense
 			if (options.UseShortName)
 			{
 				int p = name.LastIndexOf('.');
-				this.LoggedName = "[" + (p < 0 ? name : name.Substring(p + 1)) + "]";
+				this.LoggedName = "[" + (p < 0 ? name : name[(p + 1)..]) + "]";
 			}
 			else
 			{
@@ -116,10 +116,7 @@ namespace Doxense
 			var logBuilder = CachedBuilderInstance;
 			CachedBuilderInstance = null;
 
-			if (logBuilder == null)
-			{
-				logBuilder = new StringBuilder();
-			}
+			logBuilder ??= new StringBuilder();
 
 			CreateDefaultLogMessage(logBuilder, now, logLevel, actorId, logName, eventId, message, exception);
 
@@ -203,7 +200,7 @@ namespace Doxense
 
 		private void GetScopeInformation(StringBuilder stringBuilder, bool multiLine)
 		{
-			var scopeProvider = ScopeProvider;
+			var scopeProvider = this.ScopeProvider;
 			if (scopeProvider != null)
 			{
 				var initialLength = stringBuilder.Length;
@@ -235,7 +232,7 @@ namespace Doxense
 			return logLevel >= this.Options.LogLevel && logLevel < LogLevel.None;
 		}
 
-		public IDisposable BeginScope<TState>(TState state) where TState : notnull => ScopeProvider?.Push(state) ?? NullScope.Instance;
+		public IDisposable BeginScope<TState>(TState state) where TState : notnull => this.ScopeProvider?.Push(state) ?? NullScope.Instance;
 
 	}
 

@@ -25,11 +25,11 @@
 #endregion
 
 // ReSharper disable MemberHidesStaticFromOuterClass
+
 namespace SnowBank.Testing
 {
 	using System.Linq.Expressions;
 	using Doxense.Serialization;
-	using Doxense.Serialization.Json;
 	using JetBrains.Annotations;
 	using NUnit.Framework.Constraints;
 	using NUnit.Framework.Internal;
@@ -648,7 +648,7 @@ namespace SnowBank.Testing
 
 			public override ConstraintResult ApplyTo<TActual>(TActual actual)
 			{
-				return ((object?) actual) switch
+				return actual switch
 				{
 					null => new Result(this, JsonNull.Null, true),
 					JsonValue val => new Result(this, val, val.IsReadOnly),
