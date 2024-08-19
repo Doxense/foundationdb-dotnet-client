@@ -1782,7 +1782,7 @@ namespace SnowBank.Testing
 		[StringFormatMethod(nameof(format)), Obsolete("Use string interpolation instead")]
 		public static void Log(string format, object? arg0, object? arg1) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 
-		[StringFormatMethod(nameof(format)),Obsolete("Use string interpolation instead")]
+		[StringFormatMethod(nameof(format)), Obsolete("Use string interpolation instead")]
 		public static void Log(string format, params object?[] args) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, args));
 
 		[Obsolete("This method is not required anymore. You can call Log() with an interporlated directly", error: true)]

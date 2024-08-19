@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Filters.Logging
 {
+	using System;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using FoundationDB.Client;
@@ -111,6 +112,42 @@ namespace FoundationDB.Filters.Logging
 				trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, args));
 			}
 		}
+
+		/// <summary>Annotate a logged transaction</summary>
+		/// <remarks>
+		/// This method only applies to transactions created from a logged database instance.
+		/// Calling this method on regular transaction is a no-op.
+		/// You can call <see cref="IFdbReadOnlyTransaction.IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
+		/// </remarks>
+		[StringFormatMethod("format")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Annotate(this IFdbReadOnlyTransaction trans, ref DefaultInterpolatedStringHandler message)
+		{
+			if (trans.IsLogged()) trans.Annotate(message.ToStringAndClear());
+		}
+
+#if NET9_0_OR_GREATER
+
+		/// <summary>Annotate a logged transaction</summary>
+		/// <remarks>
+		/// This method only applies to transactions created from a logged database instance.
+		/// Calling this method on regular transaction is a no-op.
+		/// You can call <see cref="IFdbReadOnlyTransaction.IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
+		/// </remarks>
+		[StringFormatMethod("format")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, params ReadOnlySpan<object?> args)
+		{
+			if (trans.IsLogged()) AnnotateCore(trans, format, args);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void AnnotateCore(IFdbReadOnlyTransaction trans, string format, ReadOnlySpan<object?> args)
+			{
+				trans.Annotate(string.Format(CultureInfo.InvariantCulture, format, args));
+			}
+		}
+
+#endif
 
 	}
 

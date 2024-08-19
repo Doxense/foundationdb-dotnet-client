@@ -46,6 +46,20 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
+		/// <summary>Encode a span of <typeparamref name="TValue"/> into an array of <typeparamref name="TStorage"/></summary>
+		public static TStorage[] EncodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params ReadOnlySpan<TValue> values)
+		{
+			Contract.NotNull(encoder);
+
+			var slices = new TStorage[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				slices[i] = encoder.EncodeValue(values[i]);
+			}
+
+			return slices;
+		}
+
 		/// <summary>Encode the values of a sequence of Key/Value pairs into a list of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
 		[LinqTunnel]
 		public static List<TStorage> EncodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TValue> values)
@@ -121,11 +135,24 @@ namespace Doxense.Serialization.Encoders
 
 		#region Decoding...
 
-		/// <summary>Decode an array of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
+		/// <summary>Decode a span of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
 		public static TValue[] DecodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params TStorage[] values)
 		{
 			Contract.NotNull(encoder);
 			Contract.NotNull(values);
+
+			var res = new TValue[values.Length];
+			for (int i = 0; i < res.Length; i++)
+			{
+				res[i] = encoder.DecodeValue(values[i])!;
+			}
+			return res;
+		}
+
+		/// <summary>Decode an array of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
+		public static TValue[] DecodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params ReadOnlySpan<TStorage> values)
+		{
+			Contract.NotNull(encoder);
 
 			var res = new TValue[values.Length];
 			for (int i = 0; i < res.Length; i++)

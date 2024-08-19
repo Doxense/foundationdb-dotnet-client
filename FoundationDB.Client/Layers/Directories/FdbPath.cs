@@ -293,7 +293,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbPath Add(ReadOnlySpan<FdbPathSegment> segments)
+		public FdbPath Add(params ReadOnlySpan<FdbPathSegment> segments)
 			=> segments.Length != 0 ? new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute) : this;
 
 		/// <summary>Add new segments to the current path</summary>

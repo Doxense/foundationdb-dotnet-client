@@ -86,6 +86,22 @@ namespace Doxense.Serialization
 			return Write(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
+#if NET9_0_OR_GREATER
+
+		[JetBrains.Annotations.StringFormatMethod("format")]
+		public DebugStatementWriter WriteLine(string format, params ReadOnlySpan<object?> args)
+		{
+			return WriteLine(string.Format(CultureInfo.InvariantCulture, format, args));
+		}
+
+		[JetBrains.Annotations.StringFormatMethod("format")]
+		public DebugStatementWriter Write(string format, params ReadOnlySpan<object?> args)
+		{
+			return Write(string.Format(CultureInfo.InvariantCulture, format, args));
+		}
+
+#endif
+
 		private void Indent()
 		{
 			switch (this.IndentLevel)

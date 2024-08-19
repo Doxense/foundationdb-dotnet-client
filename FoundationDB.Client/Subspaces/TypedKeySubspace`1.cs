@@ -198,7 +198,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, ReadOnlySpan<T1> items)
+		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, params ReadOnlySpan<T1> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}

@@ -358,7 +358,7 @@ namespace Doxense.Serialization.Encoders
 		#region Batched...
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
-		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<T> values)
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, params ReadOnlySpan<T> values)
 		{
 			Contract.NotNull(encoder);
 
@@ -385,7 +385,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
-		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, ReadOnlySpan<T> values)
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params ReadOnlySpan<T> values)
 		{
 			Contract.NotNull(encoder);
 
@@ -530,6 +530,19 @@ namespace Doxense.Serialization.Encoders
 		{
 			Contract.NotNull(encoder);
 			Contract.NotNull(slices);
+
+			var values = new T[slices.Length];
+			for (int i = 0; i < slices.Length; i++)
+			{
+				values[i] = encoder.DecodeKey(slices[i])!;
+			}
+			return values;
+		}
+
+		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		public static T[] DecodeKeys<T>(this IKeyEncoder<T> encoder, params ReadOnlySpan<Slice> slices)
+		{
+			Contract.NotNull(encoder);
 
 			var values = new T[slices.Length];
 			for (int i = 0; i < slices.Length; i++)

@@ -278,7 +278,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, ReadOnlySpan<(T1?, T2?, T3?, T4?)> items)
+		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, params ReadOnlySpan<(T1?, T2?, T3?, T4?)> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}
