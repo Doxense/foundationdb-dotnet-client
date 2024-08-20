@@ -286,17 +286,17 @@ namespace Doxense.Threading.Operations
 	}
 
 	[PublicAPI]
-	public interface IOperationWorflow;
+	public interface IOperationWorkflow;
 
 	[PublicAPI]
-	public interface IOperationWorflow<in TRequest, TResult> : IOperationWorflow
+	public interface IOperationWorkflow<in TRequest, TResult> : IOperationWorkflow
 	{
 		Task<OperationResult<TResult>> ExecuteAsync(TRequest request);
 	}
 
 	[PublicAPI]
-	public interface IOperationWorflow<TWorkflow, in TRequest, TResult> : IOperationWorflow<TRequest, TResult>
-		where TWorkflow: IOperationWorflow<TWorkflow, TRequest, TResult>
+	public interface IOperationWorkflow<TWorkflow, in TRequest, TResult> : IOperationWorkflow<TRequest, TResult>
+		where TWorkflow: IOperationWorkflow<TWorkflow, TRequest, TResult>
 	{
 		
 		//static abstract TWorkflow CreateInstance(IServiceProvider services, string name, IOperationScheduler scheduler, TRequest req, CancellationToken ct);
@@ -306,13 +306,13 @@ namespace Doxense.Threading.Operations
 	}
 
 	[PublicAPI]
-	public abstract class OperationWorflowBase<TWorkflow, TParameter, TResult> : IOperationWorflow<TWorkflow, TParameter, TResult>
-		where TWorkflow: OperationWorflowBase<TWorkflow, TParameter, TResult>
+	public abstract class OperationWorkflowBase<TWorkflow, TParameter, TResult> : IOperationWorkflow<TWorkflow, TParameter, TResult>
+		where TWorkflow: OperationWorkflowBase<TWorkflow, TParameter, TResult>
 	{
 
 		protected IOperationContext<TResult> Context { get; }
 
-		protected OperationWorflowBase(IOperationContext<TResult> context)
+		protected OperationWorkflowBase(IOperationContext<TResult> context)
 		{
 			this.Context = context;
 		}
