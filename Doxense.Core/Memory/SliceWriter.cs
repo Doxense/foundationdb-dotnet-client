@@ -546,6 +546,18 @@ namespace Doxense.Memory
 		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
 		/// <param name="value">Byte, 8 bits</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteByte(char value)
+		{
+			Contract.Debug.Assert(value <= 255);
+			var buffer = EnsureBytes(1);
+			int p = this.Position;
+			buffer[p] = (byte) value;
+			this.Position = p + 1;
+		}
+
+		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
+		/// <param name="value">Byte, 8 bits</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(int value)
 		{
 			var buffer = EnsureBytes(1);
@@ -1606,17 +1618,23 @@ namespace Doxense.Memory
 
 		public void WriteBase10(long value)
 		{
-			if ((ulong) value <= 9)
+			switch ((ulong) value)
 			{
-				WriteByte('0' + (int) value);
-			}
-			else if (value <= int.MaxValue)
-			{
-				WriteBase10Slow((int) value);
-			}
-			else
-			{
-				WriteBase10Slower(value);
+				case <= 9:
+				{
+					WriteByte('0' + (int) value);
+					break;
+				}
+				case <= int.MaxValue:
+				{
+					WriteBase10Slow((int) value);
+					break;
+				}
+				default:
+				{
+					WriteBase10Slower(value);
+					break;
+				}
 			}
 		}
 
@@ -1655,25 +1673,30 @@ namespace Doxense.Memory
 			{ // negative numbers
 				if (value == int.MinValue)
 				{ // cannot do Abs(MinValue), so special case for this one
-					WriteStringAscii("-2147483648");
+					WriteBytes("-2147483648"u8);
+					return;
+				}
+				value = -value;
+				if (value < 10)
+				{
+					WriteBytes(
+						(byte) '-',
+						(byte) ('0' + value)
+					);
 					return;
 				}
 				WriteByte('-');
-				value = -value;
 			}
 
-			if (value < 10)
-			{
-				WriteByte((byte) ('0' + value));
-			}
-			else if (value < 100)
+			//note: 0..9 already handled before
+			if (value < 100)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 10)),
 					(byte) ('0' + (value % 10))
 				);
 			}
-			else if (value < 1000)
+			else if (value < 1_000)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 100)),
@@ -1681,7 +1704,7 @@ namespace Doxense.Memory
 					(byte) ('0' + (value % 10))
 				);
 			}
-			else if (value < 10 * 1000)
+			else if (value < 10_000)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 1000)),
@@ -1690,7 +1713,7 @@ namespace Doxense.Memory
 					(byte) ('0' + (value % 10))
 				);
 			}
-			else if (value < 100 * 1000)
+			else if (value < 100_000)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 10000)),
@@ -1706,26 +1729,45 @@ namespace Doxense.Memory
 			}
 		}
 
+		private void WriteBase10Slower(int value)
+		{
+#if NET8_0_OR_GREATER
+			// max number of "digits" is 11 for int.MinValue (includes the leading '-')
+			var buffer = GetSpan(11);
+
+			value.TryFormat(buffer, out int n, provider: CultureInfo.InvariantCulture);
+			this.Position += n;
+#else
+			// unfortunately, we will have to allocate some memory
+			WriteStringAscii(value.ToString(CultureInfo.InvariantCulture));
+#endif
+		}
+
 		private void WriteBase10Slower(long value)
 		{
-			//TODO: OPTIMIZE: sans allocations?
+#if NET8_0_OR_GREATER
+			// max number of "digits" is 20 for long.MinValue (includes the leading '-')
+			var buffer = GetSpan(20);
+
+			value.TryFormat(buffer, out int n, provider: CultureInfo.InvariantCulture);
+			this.Position += n;
+#else
+			// unfortunately, we will have to allocate some memory
 			WriteStringAscii(value.ToString(CultureInfo.InvariantCulture));
+#endif
 		}
 
 		private void WriteBase10Slow(uint value)
 		{
-			if (value < 10)
-			{
-				WriteByte((byte) ('0' + value));
-			}
-			else if (value < 100)
+			// value is already >= 10
+			if (value < 100)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 10)),
 					(byte) ('0' + (value % 10))
 				);
 			}
-			else if (value < 1000)
+			else if (value < 1_000)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 100)),
@@ -1733,7 +1775,7 @@ namespace Doxense.Memory
 					(byte) ('0' + (value % 10))
 				);
 			}
-			else if (value < 10 * 1000)
+			else if (value < 10_000)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 1000)),
@@ -1742,7 +1784,7 @@ namespace Doxense.Memory
 					(byte) ('0' + (value % 10))
 				);
 			}
-			else if (value < 100 * 1000)
+			else if (value < 100_000)
 			{
 				WriteBytes(
 					(byte) ('0' + (value / 10000)),
@@ -1760,8 +1802,16 @@ namespace Doxense.Memory
 
 		private void WriteBase10Slower(ulong value)
 		{
+#if NET8_0_OR_GREATER
+			// max number of "digits" is 20 for ulong.MaxValue
+			var buffer = GetSpan(20);
+
+			value.TryFormat(buffer, out int n, provider: CultureInfo.InvariantCulture);
+			this.Position += n;
+#else
 			//TODO: OPTIMIZE: sans allocations?
 			WriteStringAscii(value.ToString(CultureInfo.InvariantCulture));
+#endif
 		}
 
 		#endregion

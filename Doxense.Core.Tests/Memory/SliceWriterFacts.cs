@@ -855,5 +855,50 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			bbb.Array[bbb.Offset] = (byte)'Z';
 			Assert.That(writer.ToSlice().ToStringAscii(), Is.EqualTo("aaaaaaaaaaaaaaaaaaaaaaaaZbbbbbbbbbbbbbbbbbbbbbbb"));
 		}
+
+		[Test]
+		public void Test_WriteBase10()
+		{
+			static void Verify(int value, ReadOnlySpan<byte> expected)
+			{
+				var writer = new SliceWriter();
+				writer.WriteBase10(value);
+				var res = writer.ToSlice();
+				if (!res.Equals(expected))
+				{
+					DumpVersus(res, Slice.Copy(expected));
+					Assert.Fail($"Expected '{expected.PrettyPrint()}' but got '{res.PrettyPrint()}'");
+				}
+			}
+
+			Verify(0, "0"u8);
+
+			Verify(1, "1"u8);
+			Verify(9, "9"u8);
+			Verify(12, "12"u8);
+			Verify(123, "123"u8);
+			Verify(1_234, "1234"u8);
+			Verify(12_345, "12345"u8);
+			Verify(123_456, "123456"u8);
+			Verify(1_234_567, "1234567"u8);
+			Verify(12_345_678, "12345678"u8);
+			Verify(123_456_789, "123456789"u8);
+			Verify(1_234_567_890, "1234567890"u8);
+			Verify(int.MaxValue, "2147483647"u8);
+
+			Verify(-1, "-1"u8);
+			Verify(-9, "-9"u8);
+			Verify(-12, "-12"u8);
+			Verify(-123, "-123"u8);
+			Verify(-1_234, "-1234"u8);
+			Verify(-12_345, "-12345"u8);
+			Verify(-123_456, "-123456"u8);
+			Verify(-1_234_567, "-1234567"u8);
+			Verify(-12_345_678, "-12345678"u8);
+			Verify(-123_456_789, "-123456789"u8);
+			Verify(-1_234_567_890, "-1234567890"u8);
+			Verify(int.MinValue, "-2147483648"u8);
+		}
+
 	}
 }
