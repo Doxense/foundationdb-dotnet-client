@@ -147,14 +147,14 @@ namespace Doxense.Memory
 		#region Public Properties...
 
 		/// <summary>Returns true if the buffer contains at least some data</summary>
-		public bool HasData
+		public readonly bool HasData
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Position > 0;
 		}
 
 		/// <summary>Capacity of the internal buffer</summary>
-		public int Capacity
+		public readonly int Capacity
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Buffer?.Length ?? 0;
@@ -162,7 +162,7 @@ namespace Doxense.Memory
 
 		/// <summary>Return the byte at the specified index</summary>
 		/// <param name="index">Index in the buffer (0-based if positive, from the end if negative)</param>
-		public byte this[int index]
+		public readonly byte this[int index]
 		{
 			[Pure]
 			get
@@ -181,7 +181,7 @@ namespace Doxense.Memory
 		/// <param name="endExclusive">The end position (excluded) of the substring. Positive values means from the start, negative values means from the end</param>
 		/// <returns>Slice that corresponds to the section selected. If the <paramref name="beginInclusive"/> if equal to or greater than <paramref name="endExclusive"/> then an empty Slice is returned</returns>
 		/// <exception cref="ArgumentOutOfRangeException">If either <paramref name="beginInclusive"/> or <paramref name="endExclusive"/> is outside of the currently allocated buffer.</exception>
-		public Slice this[int? beginInclusive, int? endExclusive]
+		public readonly Slice this[int? beginInclusive, int? endExclusive]
 		{
 			[Pure]
 			get
@@ -205,22 +205,22 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Return the byte that was previously written at the specified index</summary>
-		public byte this[Index index] => this[index.GetOffset(this.Position)];
+		public readonly byte this[Index index] => this[index.GetOffset(this.Position)];
 
 		/// <summary>Return a slice that contains the bytes previously written at the specified range</summary>
-		public Slice this[Range range] => Substring(range);
+		public readonly Slice this[Range range] => Substring(range);
 
 		#endregion
 
 		/// <summary>Returns the underlying buffer holding the data</summary>
 		/// <remarks>This will never return <c>null</c>, unlike <see cref="Buffer"/> which can be <c>null</c> if the instance was never written to.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public byte[] GetBufferUnsafe() => this.Buffer ?? [ ];
+		public readonly byte[] GetBufferUnsafe() => this.Buffer ?? [ ];
 
 		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
 		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
 		[Pure]
-		public byte[] GetBytes()
+		public readonly byte[] GetBytes()
 		{
 			int p = this.Position;
 			return p != 0 ? this.Buffer.AsSpan(0, p).ToArray() : [ ];
@@ -229,14 +229,14 @@ namespace Doxense.Memory
 		/// <summary>Returns a buffer segment pointing to the content of the buffer</summary>
 		/// <remarks>Any change to the segment will change the buffer !</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ArraySegment<byte> ToArraySegment()
+		public readonly ArraySegment<byte> ToArraySegment()
 		{
 			return ToSlice();
 		}
 
 		/// <summary>Returns a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see> pointing to the content of the buffer</summary>
 		[Pure]
-		public ReadOnlySpan<byte> ToSpan()
+		public readonly ReadOnlySpan<byte> ToSpan()
 		{
 			var buffer = this.Buffer;
 			var p = this.Position;
@@ -251,7 +251,7 @@ namespace Doxense.Memory
 		/// <summary>Returns a <see cref="Slice"/> pointing to the content of the buffer</summary>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		[Pure]
-		public Slice ToSlice()
+		public readonly Slice ToSlice()
 		{
 			var buffer = this.Buffer;
 			var p = this.Position;
@@ -266,7 +266,7 @@ namespace Doxense.Memory
 		/// <summary>Returns a <see cref="MutableSlice"/> pointing to the content of the buffer</summary>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		[Pure]
-		public MutableSlice ToMutableSlice()
+		public readonly MutableSlice ToMutableSlice()
 		{
 			var buffer = this.Buffer;
 			var p = this.Position;
@@ -289,7 +289,7 @@ namespace Doxense.Memory
 		/// </example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		[Pure]
-		public Slice Head(int count)
+		public readonly Slice Head(int count)
 		{
 			if (count == 0) return Slice.Empty;
 			if ((uint) count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Buffer is too small");
@@ -307,7 +307,7 @@ namespace Doxense.Memory
 		/// </example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		[Pure]
-		public Slice Head(uint count)
+		public readonly Slice Head(uint count)
 		{
 			if (count == 0) return Slice.Empty;
 			if (count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Buffer is too small");
@@ -324,7 +324,7 @@ namespace Doxense.Memory
 		/// {{HELLO WORLD}).Tail(0) => {}
 		/// </example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
-		public Slice Tail(int count)
+		public readonly Slice Tail(int count)
 		{
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
@@ -342,7 +342,7 @@ namespace Doxense.Memory
 		/// {{HELLO WORLD}).Tail(0) => {}
 		/// </example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
-		public Slice Tail(uint count)
+		public readonly Slice Tail(uint count)
 		{
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
@@ -355,7 +355,7 @@ namespace Doxense.Memory
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If <paramref name="offset"/> is less then zero, or after the current position</exception>
 		[Pure]
-		public Slice Substring(int offset)
+		public readonly Slice Substring(int offset)
 		{
 			int p = this.Position;
 			if (offset < 0 || offset > p) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be inside the buffer");
@@ -369,7 +369,7 @@ namespace Doxense.Memory
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
 		[Pure]
-		public Slice Substring(int offset, int count)
+		public readonly Slice Substring(int offset, int count)
 		{
 			int p = this.Position;
 			if ((uint) offset >= p) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be inside the buffer");
@@ -383,7 +383,7 @@ namespace Doxense.Memory
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If the <paramref name="range"/> does not fit inside the current buffer</exception>
 		[Pure]
-		public Slice Substring(Range range) //REVIEW: convert to an indexer? writer[4..10] instead of writer.Substring(4..10) ?
+		public readonly Slice Substring(Range range) //REVIEW: convert to an indexer? writer[4..10] instead of writer.Substring(4..10) ?
 		{
 			(int offset, int count) = range.GetOffsetAndLength(this.Position);
 			return count > 0 ? new Slice(this.Buffer!, offset, count) : Slice.Empty;
@@ -757,7 +757,11 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Write a span of bytes to the end of the buffer</summary>
+#if NET9_0_OR_GREATER
+		public void WriteBytes(params ReadOnlySpan<byte> data)
+#else
 		public void WriteBytes(ReadOnlySpan<byte> data)
+#endif
 		{
 			int p = this.Position;
 			data.CopyTo(EnsureBytes(data.Length).AsSpan(p));
@@ -818,12 +822,16 @@ namespace Doxense.Memory
 		/// Failure to do so may introduce memory correction (buffer overflow!).
 		/// This should ONLY be used in performance-sensitive code paths that have been audited thoroughly!
 		/// </remarks>
+#if NET9_0_OR_GREATER
+		public void UnsafeWriteBytes(params ReadOnlySpan<byte> data)
+#else
 		public void UnsafeWriteBytes(ReadOnlySpan<byte> data)
+#endif
 		{
 			if (data.Length != 0)
 			{
 				int p = this.Position;
-				Contract.Debug.Requires(this.Buffer != null && p >= 0 && data != null && p + data.Length <= this.Buffer.Length);
+				Contract.Debug.Requires(this.Buffer != null && p >= 0 && p + data.Length <= this.Buffer.Length);
 
 				int q = checked(p + data.Length);
 				data.CopyTo(this.Buffer.AsSpan(p));
@@ -1295,7 +1303,7 @@ namespace Doxense.Memory
 		// => caller MUST KNOWN the encoding! (usually UTF-8)
 		// => the string's length is NOT stored!
 
-		/// <summary>Write a variable-sized string, using the specified encoding</summary>
+		/// <summary>Writes a variable-sized string, using the specified encoding</summary>
 		public void WriteVarString(string? value, Encoding? encoding = null)
 		{
 			if (encoding == null)
@@ -1321,7 +1329,33 @@ namespace Doxense.Memory
 			this.Position = checked(p + n);
 		}
 
-		/// <summary>Write a variable-sized string, encoded using UTF-8</summary>
+		/// <summary>Writes a variable-sized string, using the specified encoding</summary>
+		public void WriteVarString(ReadOnlySpan<char> value, Encoding? encoding = null)
+		{
+			if (encoding == null)
+			{
+				WriteVarStringUtf8(value);
+				return;
+			}
+			uint byteCount;
+			if ((byteCount = checked((uint) encoding.GetByteCount(value))) == 0)
+			{
+				WriteByte(0);
+				return;
+			}
+			var buffer = EnsureBytes(byteCount + UnsafeHelpers.SizeOfVarBytes(byteCount));
+
+			// write the count
+			WriteVarInt32(byteCount);
+			Contract.Debug.Assert(this.Buffer == buffer);
+
+			// write the chars
+			int p = this.Position;
+			int n = encoding.GetBytes(value, buffer.AsSpan(p));
+			this.Position = checked(p + n);
+		}
+
+		/// <summary>Writes a variable-sized string, encoded using UTF-8</summary>
 		/// <param name="value">String to append</param>
 		/// <remarks>The null and empty string will be stored the same way. Caller must use a different technique if they must be stored differently.</remarks>
 		public void WriteVarStringUtf8(string? value)
@@ -1337,7 +1371,7 @@ namespace Doxense.Memory
 			// We need to know the encoded size beforehand, because we need to write the size first!
 			int byteCount;
 			if (value == null || (byteCount = Encoding.UTF8.GetByteCount(value)) == 0)
-			{ // nul or empty string
+			{ // null or empty string
 				WriteByte(0);
 			}
 			else if (byteCount == value.Length)
@@ -1350,17 +1384,46 @@ namespace Doxense.Memory
 			}
 		}
 
-		private void WriteVarStringUtf8Internal(string value, int byteCount)
+		/// <summary>Writes a variable-sized string, encoded using UTF-8</summary>
+		/// <param name="value">String to append</param>
+		/// <remarks>The empty string will be stored the same way. Caller must use a different technique if they must be stored differently.</remarks>
+		public void WriteVarStringUtf8(ReadOnlySpan<char> value)
 		{
-			Contract.Debug.Assert(value != null && byteCount > 0 && byteCount >= value.Length);
+			// Format:
+			// - VarInt     Number of following bytes
+			// - Byte[]     UTF-8 encoded bytes
+			// Examples:
+			// - "" => { 0x00 }
+			// - "ABC" => { 0x03 'A' 'B' 'C' }
+			// - "Héllo" => { 0x06 'h' 0xC3 0xA9 'l' 'l' 'o' }
+
+			// We need to know the encoded size beforehand, because we need to write the size first!
+			int byteCount;
+			if ((byteCount = Encoding.UTF8.GetByteCount(value)) == 0)
+			{ // null or empty string
+				WriteByte(0);
+			}
+			else if (byteCount == value.Length)
+			{ // ASCII!
+				WriteVarAsciiInternal(value);
+			}
+			else
+			{ // contains non-ASCII characters, we will need to encode
+				WriteVarStringUtf8Internal(value, byteCount);
+			}
+		}
+
+		private void WriteVarStringUtf8Internal(ReadOnlySpan<char> value, int byteCount)
+		{
+			Contract.Debug.Assert(byteCount > 0 && byteCount >= value.Length);
 			var buffer = EnsureBytes(byteCount + UnsafeHelpers.SizeOfVarBytes(byteCount));
-			WriteVarInt32((uint)byteCount);
+			WriteVarInt32((uint) byteCount);
 			int p = this.Position;
-			int n = Encoding.UTF8.GetBytes(s: value, charIndex: 0, charCount: value.Length, bytes: buffer, byteIndex: p);
+			int n = Encoding.UTF8.GetBytes(value, buffer.AsSpan(p));
 			this.Position = checked(p + n);
 		}
 
-		/// <summary>Write a variable-sized string, which is known to only contain ASCII characters (0..127)</summary>
+		/// <summary>Writes a variable-sized string, which is known to only contain ASCII characters (0..127)</summary>
 		/// <remarks>This is faster than <see cref="WriteVarString(string, Encoding)"/> when the caller KNOWS that the string is ASCII only. This should only be used with keywords and constants, NOT with user input!</remarks>
 		/// <exception cref="ArgumentException">If the string contains characters above 127</exception>
 		public void WriteVarStringAscii(string? value)
@@ -1375,11 +1438,26 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Write a variable string that is known to only contain ASCII characters</summary>
-		private unsafe void WriteVarAsciiInternal(string value)
+		/// <summary>Writes a variable-sized string, which is known to only contain ASCII characters (0..127)</summary>
+		/// <remarks>This is faster than <see cref="WriteVarString(string, Encoding)"/> when the caller KNOWS that the string is ASCII only. This should only be used with keywords and constants, NOT with user input!</remarks>
+		/// <exception cref="ArgumentException">If the string contains characters above 127</exception>
+		public void WriteVarStringAscii(ReadOnlySpan<char> value)
+		{
+			if (value.Length == 0)
+			{
+				WriteByte(0);
+			}
+			else
+			{
+				WriteVarAsciiInternal(value);
+			}
+		}
+
+		/// <summary>Writes a variable string that is known to only contain ASCII characters</summary>
+		private unsafe void WriteVarAsciiInternal(ReadOnlySpan<char> value)
 		{
 			// Caller must ensure that string is ASCII only! (otherwise it will be corrupted)
-			Contract.Debug.Requires(!string.IsNullOrEmpty(value));
+			Contract.Debug.Requires(value.Length > 0);
 
 			int len = value.Length;
 			var buffer = EnsureBytes(len + UnsafeHelpers.SizeOfVarBytes(len));
@@ -2081,7 +2159,7 @@ namespace Doxense.Memory
 		#endregion
 
 		/// <summary>Return the remaining capacity in the current underlying buffer</summary>
-		public int RemainingCapacity
+		public readonly int RemainingCapacity
 		{
 			[Pure]
 			get
@@ -2121,6 +2199,13 @@ namespace Doxense.Memory
 			return new InvalidOperationException("Cannot advance past the end of the allocated buffer.");
 		}
 
+		/// <summary>Allocates a buffer at the current cursor location, but do not advance the cursor</summary>
+		/// <param name="minCapacity">Minimum allocated capacity</param>
+		/// <returns>Buffer located at the current cursor position, and of size at least equal to <see cref="minCapacity"/></returns>
+		/// <remarks>
+		/// <para>After filling the returned buffer, the caller MUST advance the cursor manually!</para>
+		/// <para>This is intented to be used in combination with methods like <see cref="ISpanFormattable.TryFormat"/></para>
+		/// </remarks>
 		public Span<byte> GetSpan(int minCapacity)
 		{
 			Contract.Debug.Requires(minCapacity >= 0);
@@ -2134,6 +2219,13 @@ namespace Doxense.Memory
 			return buffer.AsSpan(pos);
 		}
 		
+		/// <summary>Allocates a buffer at the current cursor location, but do not advance the cursor</summary>
+		/// <param name="minCapacity">Minimum allocated capacity</param>
+		/// <returns>Buffer located at the current cursor position, and of size at least equal to <see cref="minCapacity"/></returns>
+		/// <remarks>
+		/// <para>After filling the returned buffer, the caller MUST advance the cursor manually!</para>
+		/// <para>This is intented to be used in combination with methods like <see cref="ISpanFormattable.TryFormat"/></para>
+		/// </remarks>
 		public Memory<byte> GetMemory(int minCapacity)
 		{
 			Contract.Debug.Requires(minCapacity >= 0);
@@ -2147,6 +2239,12 @@ namespace Doxense.Memory
 			return buffer.AsMemory(pos);
 		}
 
+		/// <summary>Allocates a buffer at the current cursor location, and advance the cursor</summary>
+		/// <param name="count">Number of bytes to allocate</param>
+		/// <returns>Buffer located at the current cursor position, and of size equal to <see cref="count"/></returns>
+		/// <remarks>
+		/// <para>The buffer must be completely filled, otherwise any pre-existing data in the buffer will leak!</para>
+		/// </remarks>
 		public Span<byte> AllocateSpan(int count)
 		{
 			Contract.Debug.Requires(count >= 0);
@@ -2162,6 +2260,12 @@ namespace Doxense.Memory
 			return buffer.AsSpan(pos, count);
 		}
 
+		/// <summary>Allocates a buffer at the current cursor location, and advance the cursor</summary>
+		/// <param name="count">Number of bytes to allocate</param>
+		/// <returns>Buffer located at the current cursor position, and of size equal to <see cref="count"/></returns>
+		/// <remarks>
+		/// <para>The buffer must be completely filled, otherwise any pre-existing data in the buffer will leak!</para>
+		/// </remarks>
 		public Memory<byte> AllocateMemory(int count)
 		{
 			Contract.Debug.Requires(count >= 0);
