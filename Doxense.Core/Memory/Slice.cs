@@ -379,7 +379,7 @@ namespace System
 
 		/// <summary>Expose the internal buffer, if it is perfectly covered by the slice</summary>
 		/// <param name="bytes">Receives the internal buffer</param>
-		/// <returns>True if the buffer is complete and is exposed in <paramref name="bytes"/>. False if the slice only cover a part of the buffer.</returns>
+		/// <returns><see langword="true"/>> if the buffer is complete and is exposed in <paramref name="bytes"/>, or <see langword="false"/> if the slice only cover a part of the buffer.</returns>
 		/// <remarks>
 		/// Used to optimize the case when the caller needs to send the slice as a non-chunkable <c>byte[]</c> to a legacy API, without copying.
 		/// The pattern should be: <c>if (slice.TryGetBytesUnsafe(out var bytes)) { /* use bytes as readonly! */ } else { /* must copy the slice somehow, or use a memory pool! */ }</c>

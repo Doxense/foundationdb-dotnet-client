@@ -31,8 +31,10 @@ namespace Doxense.Memory.Text
 	using System.Text;
 	using Doxense.Text;
 
+	[PublicAPI]
 	public sealed class Utf8StringWriter : TextWriter
 	{
+
 		public override Encoding Encoding => Encoding.UTF8;
 
 		private SliceWriter Writer;
@@ -62,44 +64,34 @@ namespace Doxense.Memory.Text
 
 		public override void Write(char[]? buffer)
 		{
-			if (buffer != null) this.Writer.WriteStringUtf8(buffer);
+			if (buffer != null)
+			{
+				this.Writer.WriteStringUtf8(buffer);
+			}
 		}
 
 		public override void Write(string? value)
 		{
-			if (value != null) this.Writer.WriteStringUtf8(value);
+			if (value != null)
+			{
+				this.Writer.WriteStringUtf8(value);
+			}
 		}
 
-		public override void Write(int value)
-		{
-			this.Writer.WriteBase10(value);
-		}
+		public override void Write(int value) => this.Writer.WriteBase10(value);
 
-		public override void Write(long value)
-		{
-			this.Writer.WriteBase10(value);
-		}
+		public override void Write(long value) => this.Writer.WriteBase10(value);
 
-		public override void Write(uint value)
-		{
-			this.Writer.WriteBase10(value);
-		}
+		public override void Write(uint value) => this.Writer.WriteBase10(value);
 
-		public override void Write(ulong value)
-		{
-			this.Writer.WriteBase10(value);
-		}
+		public override void Write(ulong value) => this.Writer.WriteBase10(value);
 
 		[Pure]
-		public byte[] ToArray()
-		{
-			return this.Writer.GetBytes();
-		}
+		public byte[] ToArray() => this.Writer.GetBytes();
 
 		[Pure]
-		public Slice GetBuffer()
-		{
-			return this.Writer.ToSlice();
-		}
+		public Slice GetBuffer() => this.Writer.ToSlice();
+
 	}
+
 }

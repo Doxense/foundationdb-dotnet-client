@@ -44,7 +44,7 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 		/// <summary>Start the inner iterator</summary>
-		protected virtual IAsyncEnumerator<TSource>? StartInner(CancellationToken ct)
+		protected virtual IAsyncEnumerator<TSource> StartInner(CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 			// filtering changes the number of items, so that means that, even if the underlying caller wants one item, we may need to read more.
