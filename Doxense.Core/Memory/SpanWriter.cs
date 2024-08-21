@@ -48,7 +48,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Return the rest of the buffer, starting from the current position</summary>
-		public Span<byte> Tail
+		public readonly Span<byte> Tail
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Buffer[this.Position..];

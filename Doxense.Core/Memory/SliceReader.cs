@@ -77,13 +77,13 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Returns true if there are more bytes to parse</summary>
-		public bool HasMore => this.Position < this.Buffer.Count;
+		public readonly bool HasMore => this.Position < this.Buffer.Count;
 
 		/// <summary>Returns the number of bytes remaining</summary>
-		public int Remaining => Math.Max(0, this.Buffer.Count - this.Position);
+		public readonly int Remaining => Math.Max(0, this.Buffer.Count - this.Position);
 
 		/// <summary>Returns a slice with all the bytes read so far in the buffer</summary>
-		public Slice Head => this.Buffer.Substring(0, this.Position);
+		public readonly Slice Head => this.Buffer.Substring(0, this.Position);
 
 		/// <summary>Returns a slice with all the remaining bytes in the buffer</summary>
 		public Slice Tail => this.Buffer.Substring(this.Position);
@@ -106,7 +106,7 @@ namespace Doxense.Memory
 
 		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
 		[Pure]
-		public int PeekByte()
+		public readonly int PeekByte()
 		{
 			int p = this.Position;
 			return p < this.Buffer.Count ? this.Buffer[p] : -1;
@@ -114,13 +114,13 @@ namespace Doxense.Memory
 
 		/// <summary>Return the value of the byte at a specified offset from the current position, or -1 if this is after the end, or before the start</summary>
 		[Pure]
-		public int PeekByteAt(int offset)
+		public readonly int PeekByteAt(int offset)
 		{
 			int p = this.Position + offset;
 			return p < this.Buffer.Count && p >= 0 ? this.Buffer[p] : -1;
 		}
 
-		public Slice PeekBytes(int count)
+		public readonly Slice PeekBytes(int count)
 		{
 			return this.Buffer.Substring(this.Position, count);
 		}
@@ -129,7 +129,7 @@ namespace Doxense.Memory
 		/// <param name="count">Number of bytes to peek</param>
 		/// <param name="bytes">Receives the corresponding slice if there are enough bytes remaining.</param>
 		/// <returns>If <c>true</c>, the next <paramref name="count"/> are available in <paramref name="bytes"/>. If <c>false</c>, there are not enough bytes remaining in the buffer.</returns>
-		public bool TryPeekBytes(int count, out Slice bytes)
+		public readonly bool TryPeekBytes(int count, out Slice bytes)
 		{
 			if (this.Remaining < count)
 			{

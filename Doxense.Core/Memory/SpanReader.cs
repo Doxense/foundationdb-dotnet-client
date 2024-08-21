@@ -58,16 +58,16 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Returns true if there are more bytes to parse</summary>
-		public bool HasMore => this.Position < this.Buffer.Length;
+		public readonly bool HasMore => this.Position < this.Buffer.Length;
 
 		/// <summary>Returns the number of bytes remaining</summary>
-		public int Remaining => Math.Max(0, this.Buffer.Length - this.Position);
+		public readonly int Remaining => Math.Max(0, this.Buffer.Length - this.Position);
 
 		/// <summary>Returns a slice with all the bytes read so far in the buffer</summary>
-		public ReadOnlySpan<byte> Head => this.Buffer.Slice(0, this.Position);
+		public readonly ReadOnlySpan<byte> Head => this.Buffer.Slice(0, this.Position);
 
 		/// <summary>Returns a slice with all the remaining bytes in the buffer</summary>
-		public ReadOnlySpan<byte> Tail => this.Buffer.Slice(this.Position);
+		public readonly ReadOnlySpan<byte> Tail => this.Buffer.Slice(this.Position);
 
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,20 +85,20 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
-		public int PeekByte()
+		public readonly int PeekByte()
 		{
 			int p = this.Position;
 			return (uint) p < this.Buffer.Length ? this.Buffer[p] : -1;
 		}
 
 		/// <summary>Return the value of the byte at a specified offset from the current position, or -1 if this is after the end, or before the start</summary>
-		public int PeekByteAt(int offset)
+		public readonly int PeekByteAt(int offset)
 		{
 			int p = this.Position + offset;
 			return (uint) p < this.Buffer.Length && p >= 0 ? this.Buffer[p] : -1;
 		}
 
-		public ReadOnlySpan<byte> PeekBytes(int count)
+		public readonly ReadOnlySpan<byte> PeekBytes(int count)
 		{
 			return this.Buffer.Slice(this.Position, count);
 		}
@@ -107,7 +107,7 @@ namespace Doxense.Memory
 		/// <param name="count">Number of bytes to peek</param>
 		/// <param name="bytes">Receives the corresponding slice if there are enough bytes remaining.</param>
 		/// <returns>If <c>true</c>, the next <paramref name="count"/> are available in <paramref name="bytes"/>. If <c>false</c>, there are not enough bytes remaining in the buffer.</returns>
-		public bool TryPeekBytes(int count, out ReadOnlySpan<byte> bytes)
+		public readonly bool TryPeekBytes(int count, out ReadOnlySpan<byte> bytes)
 		{
 			if (this.Remaining < count)
 			{
@@ -513,10 +513,10 @@ namespace Doxense.Memory
 		}
 
 		// for debugger only
-		private Slice BufferReadable => Slice.Copy(this.Buffer);
+		private readonly Slice BufferReadable => Slice.Copy(this.Buffer);
 
 		// for debugger only
-		private Slice TailReadable => Slice.Copy(this.Tail);
+		private readonly Slice TailReadable => Slice.Copy(this.Tail);
 
 	}
 
