@@ -33,9 +33,9 @@ namespace Doxense.Serialization.Encoders
 	public interface IOrderedTypeCodec<T>
 	{
 
-		void EncodeOrderedSelfTerm(ref SliceWriter output, T? value);
+		void EncodeOrderedTo(ref SliceWriter output, T? value);
 
-		T? DecodeOrderedSelfTerm(ref SliceReader input);
+		T? DecodeOrderedFrom(ref SliceReader input);
 
 		Slice EncodeOrdered(T? value);
 

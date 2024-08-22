@@ -81,16 +81,16 @@ namespace Doxense.Collections.Tuples.Tests
 			var third = TupleCodec<Guid>.Default;
 
 			var writer = default(SliceWriter);
-			first.EncodeOrderedSelfTerm(ref writer, x);
-			second.EncodeOrderedSelfTerm(ref writer, y);
-			third.EncodeOrderedSelfTerm(ref writer, z);
+			first.EncodeOrderedTo(ref writer, x);
+			second.EncodeOrderedTo(ref writer, y);
+			third.EncodeOrderedTo(ref writer, z);
 			var data = writer.ToSlice();
 			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x, y, z)));
 
 			var reader = new SliceReader(data);
-			Assert.That(first.DecodeOrderedSelfTerm(ref reader), Is.EqualTo(x));
-			Assert.That(second.DecodeOrderedSelfTerm(ref reader), Is.EqualTo(y));
-			Assert.That(third.DecodeOrderedSelfTerm(ref reader), Is.EqualTo(z));
+			Assert.That(first.DecodeOrderedFrom(ref reader), Is.EqualTo(x));
+			Assert.That(second.DecodeOrderedFrom(ref reader), Is.EqualTo(y));
+			Assert.That(third.DecodeOrderedFrom(ref reader), Is.EqualTo(z));
 			Assert.That(reader.HasMore, Is.False);
 		}
 

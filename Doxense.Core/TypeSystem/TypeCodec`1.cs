@@ -31,31 +31,31 @@ namespace Doxense.Serialization.Encoders
 	public abstract class TypeCodec<T> : IOrderedTypeCodec<T>, IUnorderedTypeCodec<T>
 	{
 
-		public abstract void EncodeOrderedSelfTerm(ref SliceWriter output, T? value);
+		public abstract void EncodeOrderedTo(ref SliceWriter output, T? value);
 
-		public abstract T? DecodeOrderedSelfTerm(ref SliceReader input);
+		public abstract T? DecodeOrderedFrom(ref SliceReader input);
 
 		public virtual Slice EncodeOrdered(T? value)
 		{
 			var writer = default(SliceWriter);
-			EncodeOrderedSelfTerm(ref writer, value);
+			EncodeOrderedTo(ref writer, value);
 			return writer.ToSlice();
 		}
 
 		public virtual T? DecodeOrdered(Slice input)
 		{
 			var slicer = new SliceReader(input);
-			return DecodeOrderedSelfTerm(ref slicer);
+			return DecodeOrderedFrom(ref slicer);
 		}
 
 		public virtual void EncodeUnorderedSelfTerm(ref SliceWriter output, T? value)
 		{
-			EncodeOrderedSelfTerm(ref output, value);
+			EncodeOrderedTo(ref output, value);
 		}
 
 		public virtual T? DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
-			return DecodeOrderedSelfTerm(ref input);
+			return DecodeOrderedFrom(ref input);
 		}
 
 		public virtual Slice EncodeUnordered(T? value)
