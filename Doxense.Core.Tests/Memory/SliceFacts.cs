@@ -2565,6 +2565,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			Assert.That(a.Concat("bc"u8), Is.EqualTo(Value("abc")));
 			Assert.That(ab.Concat("c"u8), Is.EqualTo(Value("abc")));
+			Assert.That(ab.Concat(""u8), Is.EqualTo(Value("ab")));
 
 			#endregion
 
@@ -2593,6 +2594,11 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(Slice.Concat(Slice.Empty, abc), Is.EqualTo(abc));
 			Assert.That(Slice.Concat(Slice.Nil, abc), Is.EqualTo(abc));
 
+			Assert.That(Slice.Concat(""u8, ""u8), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat("foo"u8, "bar"u8), Is.EqualTo(Value("foobar")));
+			Assert.That(Slice.Concat(""u8, "foo"u8), Is.EqualTo(Value("foo")));
+			Assert.That(Slice.Concat("foo"u8, ""u8), Is.EqualTo(Value("foo")));
+
 			#endregion
 
 			#region Concat3...
@@ -2606,6 +2612,23 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			Assert.That(Slice.Concat(Slice.Nil, Slice.Nil, Slice.Nil), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Concat(Slice.Empty, Slice.Empty, Slice.Empty), Is.EqualTo(Slice.Empty));
+
+			Assert.That(Slice.Concat(""u8, ""u8, ""u8), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat("foo"u8, "bar"u8, "baz"u8), Is.EqualTo(Value("foobarbaz")));
+			Assert.That(Slice.Concat(""u8, "foo"u8, "bar"u8), Is.EqualTo(Value("foobar")));
+			Assert.That(Slice.Concat("foo"u8, ""u8, "bar"u8), Is.EqualTo(Value("foobar")));
+			Assert.That(Slice.Concat("foo"u8, "bar"u8, ""u8), Is.EqualTo(Value("foobar")));
+
+			#endregion
+
+			#region Concat4...
+
+			Assert.That(Slice.Concat(""u8, ""u8, ""u8, ""u8), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat("foo"u8, "bar"u8, "baz"u8, "jazz"u8), Is.EqualTo(Value("foobarbazjazz")));
+			Assert.That(Slice.Concat(""u8, "foo"u8, "bar"u8, "baz"u8), Is.EqualTo(Value("foobarbaz")));
+			Assert.That(Slice.Concat("foo"u8, ""u8, "bar"u8, "baz"u8), Is.EqualTo(Value("foobarbaz")));
+			Assert.That(Slice.Concat("foo"u8, "bar"u8, ""u8, "baz"u8), Is.EqualTo(Value("foobarbaz")));
+			Assert.That(Slice.Concat("foo"u8, "bar"u8, "baz"u8, ""u8), Is.EqualTo(Value("foobarbaz")));
 
 			#endregion
 

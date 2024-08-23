@@ -1180,11 +1180,10 @@ namespace System
 			if (a.Length != 0)
 			{
 				a.CopyTo(buf);
-				buf = buf[a.Length..];
 			}
 			if (b.Length != 0)
 			{
-				b.CopyTo(buf);
+				b.CopyTo(buf.Slice(a.Length));
 			}
 
 			return new Slice(tmp, 0, count);
@@ -1202,12 +1201,12 @@ namespace System
 			if (a.Count > 0)
 			{
 				a.Span.CopyTo(buf);
-				buf = buf[a.Count..];
+				buf = buf.Slice(a.Count);
 			}
 			if (b.Count > 0)
 			{
 				b.Span.CopyTo(buf);
-				buf = buf[b.Count..];
+				buf = buf.Slice(b.Count);
 			}
 			if (c.Count > 0)
 			{
@@ -1228,16 +1227,78 @@ namespace System
 			if (a.Length != 0)
 			{
 				a.CopyTo(buf);
-				buf = buf[a.Length..];
+				buf = buf.Slice(a.Length);
 			}
 			if (b.Length != 0)
 			{
 				b.CopyTo(buf);
-				buf = buf[b.Length..];
+				buf = buf.Slice(b.Length);
 			}
 			if (c.Length != 0)
 			{
 				c.CopyTo(buf);
+			}
+			return new Slice(tmp, 0, count);
+		}
+
+		/// <summary>Concatenate four slices together</summary>
+		public static Slice Concat(Slice a, Slice b, Slice c, Slice d)
+		{
+			int count = checked(a.Count + b.Count + c.Count + d.Count);
+			if (count == 0) return Empty;
+
+			var tmp = new byte[count];
+
+			Span<byte> buf = tmp;
+			if (a.Count > 0)
+			{
+				a.Span.CopyTo(buf);
+				buf = buf.Slice(a.Count);
+			}
+			if (b.Count > 0)
+			{
+				b.Span.CopyTo(buf);
+				buf = buf.Slice(b.Count);
+			}
+			if (c.Count > 0)
+			{
+				c.Span.CopyTo(buf);
+				buf = buf.Slice(c.Count);
+			}
+			if (d.Count > 0)
+			{
+				d.Span.CopyTo(buf);
+			}
+			return new Slice(tmp, 0, count);
+		}
+
+		/// <summary>Concatenate four spans together</summary>
+		public static Slice Concat(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b, ReadOnlySpan<byte> c, ReadOnlySpan<byte> d)
+		{
+			int count = checked(a.Length + b.Length + c.Length + d.Length);
+			if (count == 0) return Empty;
+
+			var tmp = new byte[count];
+
+			Span<byte> buf = tmp;
+			if (a.Length != 0)
+			{
+				a.CopyTo(buf);
+				buf = buf.Slice(a.Length);
+			}
+			if (b.Length != 0)
+			{
+				b.CopyTo(buf);
+				buf = buf.Slice(b.Length);
+			}
+			if (c.Length != 0)
+			{
+				c.CopyTo(buf);
+				buf = buf.Slice(c.Length);
+			}
+			if (d.Length != 0)
+			{
+				d.CopyTo(buf);
 			}
 			return new Slice(tmp, 0, count);
 		}
