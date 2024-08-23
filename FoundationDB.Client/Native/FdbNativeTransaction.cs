@@ -212,7 +212,7 @@ namespace FoundationDB.Client.Native
 			);
 		}
 
-		public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter, bool snapshot, CancellationToken ct)
+		public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, bool snapshot, IBufferWriter<byte> valueWriter, CancellationToken ct)
 		{
 			return FdbFuture.CreateTaskFromHandle(
 				FdbNative.TransactionGet(m_handle, key, snapshot),

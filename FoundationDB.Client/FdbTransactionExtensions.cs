@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 
 		#region Get...
 
-		/// <summary>Reads a value from the database snapshot represented by by the current transaction.</summary>
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 			return trans.GetAsync(key.Span);
 		}
 
-		/// <summary>Reads a value from the database snapshot represented by by the current transaction.</summary>
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>

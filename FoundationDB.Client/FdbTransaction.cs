@@ -627,7 +627,6 @@ namespace FoundationDB.Client
 			return PerformGetOperation(key, valueWriter, snapshot: false);
 		}
 
-
 		private Task<Slice> PerformGetOperation(ReadOnlySpan<byte> key, bool snapshot)
 		{
 			FdbClientInstrumentation.ReportGet(this);
@@ -646,13 +645,13 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this);
 
-			return m_log == null ? m_handler.TryGetAsync(key, valueWriter, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot, valueWriter);
+			return m_log == null ? m_handler.TryGetAsync(key, snapshot: snapshot, valueWriter: valueWriter, ct: m_cancellation) : ExecuteLogged(this, key, snapshot, valueWriter);
 
 			static Task<bool> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, IBufferWriter<byte> valueWriter)
 				=> self.m_log!.ExecuteAsync<FdbTransactionLog.TryGetCommand, bool>(
 					self,
 					new FdbTransactionLog.TryGetCommand(self.m_log.Grab(key)) { Snapshot = snapshot },
-					(tr, cmd) => tr.m_handler.TryGetAsync(cmd.Key.Span, valueWriter, cmd.Snapshot,  tr.m_cancellation)
+					(tr, cmd) => tr.m_handler.TryGetAsync(cmd.Key.Span, cmd.Snapshot,  valueWriter, tr.m_cancellation)
 				);
 		}
 

@@ -68,20 +68,20 @@ namespace FoundationDB.Client.Core
 		/// </remarks>
 		void SetReadVersion(long version);
 
-		/// <summary>Reads a get from the database</summary>
-		/// <param name="key">Key to read</param>
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
-		/// <param name="ct"></param>
-		/// <returns></returns>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct);
 
-		/// <summary>Try read from database and write result to <paramref name="valueWriter"/></summary>
-		/// <param name="key">Key to read</param>
-		/// <param name="valueWriter">Buffer writter for which the value is written, if it exists</param>
+		/// <summary>Tries to read a value from database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
-		/// <param name="ct"></param>
-		/// <returns>Task with true if the key if it is found</returns>
-		Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter, bool snapshot, CancellationToken ct);
+		/// <param name="valueWriter">Buffer writter where the value will be written, if it was found</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task that will return <see langword="true"/> if the was is found, or <see langword="false"/> if the key does not exist, or an exception.</returns>
+		Task<bool> TryGetAsync(ReadOnlySpan<byte> key, bool snapshot, IBufferWriter<byte> valueWriter, CancellationToken ct);
 
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
