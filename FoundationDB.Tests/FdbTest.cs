@@ -29,11 +29,19 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Globalization;
+	using System.Linq;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
+	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics;
+	using Doxense.Runtime.Comparison;
+	using Doxense.Serialization;
+	using Doxense.Serialization.Json;
 	using NUnit.Framework;
 	using NUnit.Framework.Internal;
 
@@ -232,29 +240,31 @@ namespace FoundationDB.Client.Tests
 
 		#region Logging...
 
-		// These methods are just there to help with the problem of culture-aware string formatting
 
 		/// <summary>If <see langword="true"/>, we are running with an attached debugger that prefers logs to be written to the Trace/Debug output.</summary>
-		private static readonly bool AttachedToDebugger = Debugger.IsAttached;
+		protected static readonly bool AttachedToDebugger = Debugger.IsAttached;
 
 		/// <summary>If <see langword="true"/>, we are running under Console Test Runner that prefers logs to be written to the Console output</summary>
-		private static readonly bool MustOutputLogsOnConsole = DetectConsoleTestRunner();
+		public static readonly bool MustOutputLogsOnConsole = DetectConsoleTestRunner();
 
 		private static bool DetectConsoleTestRunner()
 		{
 			// TeamCity
-			if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TEAMCITY_VERSION"))) return true;
+			if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TEAMCITY_VERSION")))
+			{
+				return true;
+			}
 
 			string? host = Assembly.GetEntryAssembly()?.GetName().Name;
 			return host == "TestDriven.NetCore.AdHoc" // TestDriven.NET
-			    || host == "testhost";                // ReSharper Test Runner
+				|| host == "testhost";                // ReSharper Test Runner
 		}
 
 		[DebuggerNonUserCode]
-		private static void WriteToLog(string message, bool lineBreak = true)
+		private static void WriteToLog(string? message, bool lineBreak = true)
 		{
 			if (MustOutputLogsOnConsole)
-			{ // write to stdout
+			{ // force output to the console
 				if (lineBreak)
 				{
 					Console.Out.WriteLine(message);
@@ -265,7 +275,7 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 			else if (AttachedToDebugger)
-			{ // write to the VS 'output' tab
+			{ // outputs to the Output console (visible while the test is running under a debugger)
 				if (lineBreak)
 				{
 					Trace.WriteLine(message);
@@ -276,7 +286,11 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 			else
-			{ // write to NUnit's realtime log
+			{ // output to stdout
+
+				//note: before NUnit 3.6, the text had to be XML encoded, but this has been fixed since v3.6.0 (cf https://github.com/nunit/nunit/issues/1891)
+				//message = message.Replace("&", "&amp;").Replace("<", "&lt;");
+
 				if (lineBreak)
 				{
 					TestContext.Progress.WriteLine(message);
@@ -288,71 +302,395 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		[DebuggerStepThrough]
-		public static void Log(string? text)
+		[DebuggerNonUserCode]
+		private static void WriteToErrorLog(string? message)
 		{
-			WriteToLog(text ?? string.Empty);
-		}
-
-		[DebuggerStepThrough]
-		public static void Log(ref DefaultInterpolatedStringHandler text)
-		{
-			WriteToLog(text.ToStringAndClear());
-		}
-
-		public static void Log<T>(T value)
-		{
-			if (default(T) == null && value == null)
-			{
-				Log("<null>");
-				return;
+			if (MustOutputLogsOnConsole)
+			{ // force output to the console
+				Console.Error.WriteLine(message);
 			}
-
-			switch (value)
-			{
-				case string s:
-				{
-					Log(s);
-					break;
-				}
-				case null:
-				{
-					Log($"({typeof(T).Name}) <null>");
-					break;
-				}
-				case IFormattable fmt:
-				{
-					Log(fmt.ToString());
-					break;
-				}
-				default:
-				{
-					Log($"({value.GetType().Name}) {value}");
-					break;
-				}
-			}
-		}
-
-		[DebuggerStepThrough]
-		public static void Log()
-		{
-			WriteToLog(string.Empty);
-		}
-
-		[DebuggerStepThrough]
-		public static void Dump(object? item)
-		{
-			if (item == null)
-			{
-				WriteToLog("null");
+			else if (AttachedToDebugger)
+			{ // outputs to the Output console (visible while the test is running under a debugger)
+				Trace.WriteLine("ERROR: " + message);
+				TestContext.Error.WriteLine(message);
 			}
 			else
-			{
-				WriteToLog($"[{item.GetType().Name}] {item}");
+			{ // output to stderr
+				TestContext.Error.WriteLine(message);
 			}
+		}
+
+		[DebuggerNonUserCode]
+		protected void LogElapsed(string? text) => Log($"{this.TestElapsed} {text}");
+
+		/// <summary>Writes a message to the output log</summary>
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Log(string? text) => WriteToLog(text);
+
+		/// <summary>Writes a message to the output log</summary>
+		[DebuggerNonUserCode]
+		public static void Log(ref DefaultInterpolatedStringHandler handler) => WriteToLog(handler.ToStringAndClear());
+
+		[DebuggerNonUserCode]
+		public static void Log(object? item) => Log(item as string ?? Stringify(item));
+
+		[DebuggerNonUserCode]
+		protected static void LogPartial(string? text) => WriteToLog(text, lineBreak: false);
+
+		[DebuggerNonUserCode]
+		public static void Log() => WriteToLog(string.Empty);
+
+		[DebuggerNonUserCode]
+		public static void LogError(string? text) => WriteToErrorLog(text);
+
+		[DebuggerNonUserCode]
+		public static void LogError(ref DefaultInterpolatedStringHandler handler) => WriteToErrorLog(handler.ToStringAndClear());
+
+		[DebuggerNonUserCode]
+		public static void LogError(string? text, Exception e) => WriteToErrorLog(text + Environment.NewLine + e);
+
+		[DebuggerNonUserCode]
+		public static void LogError(ref DefaultInterpolatedStringHandler handler, Exception e)
+		{
+			handler.AppendLiteral(Environment.NewLine);
+			handler.AppendLiteral(e.ToString());
+			WriteToErrorLog(handler.ToStringAndClear());
+		}
+
+		/// <summary>Writes the current stack trace to the output log</summary>
+		/// <param name="skip">Number of stack frames to skip (usually at least 2)</param>
+		[DebuggerNonUserCode]
+		protected static void DumpStackTrace(int skip = 2)
+		{
+			var stack = Environment.StackTrace.Split('\n');
+
+			// drop the bottom of the stack (System and NUnit stuff...
+			int last = stack.Length - 1;
+			while(last > skip && (stack[last].IndexOf("   at System.", StringComparison.Ordinal) >= 0 || stack[last].IndexOf("   at NUnit.Framework.", StringComparison.Ordinal) >= 0))
+			{
+				--last;
+			}
+
+			Log($"> {string.Join("\n> ", stack, skip, last - skip + 1)}");
+		}
+
+		/// <summary>Format as a one-line compact JSON representation of the value</summary>
+		[DebuggerNonUserCode]
+		protected static string Jsonify(object? item) => CrystalJson.Serialize(item, CrystalJsonSettings.Json);
+
+		/// <summary>Format as a one-line compact JSON representation of the value</summary>
+		[DebuggerNonUserCode]
+		protected static string Jsonify<T>(T? item) => CrystalJson.Serialize(item, CrystalJsonSettings.Json);
+
+		/// <summary>Format as a one-line, human-reabable, textual representation of the value</summary>
+		[DebuggerNonUserCode]
+		protected static string Stringify(object? item)
+		{
+			switch (item)
+			{
+				case null:
+				{
+					return "<null>";
+				}
+				case string str:
+				{ // hack to prevent CRLF to break the layout
+					return str.Length == 0
+						? "\"\""
+						: "\"" + str.Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""") + "\"";
+				}
+				case int i:
+				{
+					return i.ToString(CultureInfo.InvariantCulture);
+				}
+				case long l:
+				{
+					return l.ToString(CultureInfo.InvariantCulture) + "L";
+				}
+				case uint ui:
+				{
+					return ui.ToString(CultureInfo.InvariantCulture) + "U";
+				}
+				case ulong ul:
+				{
+					return ul.ToString(CultureInfo.InvariantCulture) + "UL";
+				}
+				case double d:
+				{
+					return d.ToString("R", CultureInfo.InvariantCulture);
+				}
+				case float f:
+				{
+					return f.ToString("R", CultureInfo.InvariantCulture) + "F";
+				}
+				case Guid g:
+				{
+					return "{" + g.ToString() + "}";
+				}
+				case JsonValue json:
+				{
+					return json.ToJson();
+				}
+				case StringBuilder sb:
+				{
+					return sb.ToString();
+				}
+			}
+
+			var type = item.GetType();
+			if (type.Name.StartsWith("ValueTuple`", StringComparison.Ordinal))
+			{
+				return item.ToString()!;
+			}
+
+			if (type.IsAssignableTo(typeof(Task)) || type.IsGenericInstanceOf(typeof(Task<>)))
+			{
+				throw new AssertionException("Cannot stringify a Task! You probably forget to add 'await' somewhere the code!");
+			}
+
+			// Formattable
+			if (item is IFormattable formattable)
+			{
+				// use the most appropriate format, depending on the value type
+				string? fmt = null;
+				if (item is int or uint or long or ulong)
+				{
+					fmt = "N0";
+				}
+				else if (item is double or float)
+				{
+					fmt = "R";
+				}
+				else if (item is DateTime or DateTimeOffset)
+				{
+					fmt = "O";
+				}
+				return $"({item.GetType().GetFriendlyName()}) {formattable.ToString(fmt, CultureInfo.InvariantCulture)}";
+			}
+
+			if (type.IsArray)
+			{ // Array
+				Array arr = (Array) item;
+				var elType = type.GetElementType()!;
+				if (typeof(IFormattable).IsAssignableFrom(elType))
+				{
+					return $"({elType.GetFriendlyName()}[{arr.Length}]) [ {string.Join(", ", arr.Cast<IFormattable>().Select(x => x.ToString(null, CultureInfo.InvariantCulture)))} ]";
+				}
+				return $"({elType.GetFriendlyName()}[{arr.Length}]) {CrystalJson.Serialize(item)}";
+			}
+
+			// we are looking for types that are most probably data types that can be safely serialized to JSON
+			if (typeof(IJsonSerializable).IsAssignableFrom(type) || IsRecordType(type))
+			{
+				return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
+			}
+
+			return $"({type.GetFriendlyName()}) {item.ToString()}";
+		}
+
+		protected static bool IsRecordType(Type type)
+		{
+			// Based on the state of the art as described in https://github.com/dotnet/roslyn/issues/45777
+			var cloneMethod = type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance);
+			return cloneMethod != null && cloneMethod.ReturnType == type;
 		}
 
 		#endregion
+
+		#region Dump JSON...
+
+		/// <summary>Outputs a human-readable representation of a JSON Value</summary>
+		[DebuggerNonUserCode]
+		public static void Dump(JsonValue? value)
+		{
+			WriteToLog(value?.ToJson(CrystalJsonSettings.JsonIndented) ?? "<null>");
+		}
+
+		/// <summary>Outputs a human-readable representation of a JSON Array</summary>
+		[DebuggerNonUserCode]
+		public static void Dump(JsonArray? value)
+		{
+			if (value == null)
+			{
+				WriteToLog("[0] <null_array>");
+				return;
+			}
+
+			if (value.Count == 0)
+			{
+				WriteToLog("[0] <empty_array>");
+				return;
+			}
+
+			WriteToLog($"[{value.Count}] ", lineBreak: false);
+			if (value.All(JsonType.Number) || value.All(JsonType.Boolean))
+			{ // vector of numbers
+				WriteToLog(value.ToJson(CrystalJsonSettings.Json));
+				return;
+			}
+			WriteToLog(value.ToJson(CrystalJsonSettings.JsonIndented));
+		}
+
+		/// <summary>Outputs a human-readable representation of a JSON Object</summary>
+		[DebuggerNonUserCode]
+		public static void Dump(JsonObject? value)
+		{
+			WriteToLog(value?.ToJson(CrystalJsonSettings.JsonIndented) ?? "<null>");
+		}
+
+		#endregion
+
+		#region Dump (generic)...
+
+		/// <summary>Tests if a type is one of the many shapes of Task or ValueTask</summary>
+		/// <remarks>Used to detect common mistakes like passing a task to Dump(...) without first awaiting it</remarks>
+		protected static bool IsTaskLike(Type t)
+		{
+			if (typeof(Task).IsAssignableFrom(t)) return true;
+			if (t == typeof(ValueTask)) return true;
+			//TODO: ValueTask<...>
+			return false;
+		}
+
+		/// <summary>ERROR: you should await the task first, before dumping the result!</summary>
+		[Obsolete("You forgot to await the task!", error: true)]
+		protected static void Dump<T>(Task<T> value) => Assert.Fail($"Cannot dump the content of a Task<{typeof(T).GetFriendlyName()}>! Most likely you forgot to 'await' the method that produced this value.");
+
+		/// <summary>ERROR: you should await the task first, before dumping the result!</summary>
+		[Obsolete("You forgot to await the task!", error: true)]
+		protected static void Dump<T>(ValueTask<T> value) => Assert.Fail($"Cannot dump the content of a ValueTask<{typeof(T).GetFriendlyName()}>! Most likely you forgot to 'await' the method that produced this value.");
+
+		/// <summary>Outputs a human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
+		[DebuggerNonUserCode]
+		public static void Dump<T>(T value)
+		{
+			if (IsTaskLike(typeof(T)))
+			{
+				Assert.Fail($"Cannot dump the content of a {typeof(T).GetFriendlyName()}! Most likely you work to 'await' the method that produced this value!");
+			}
+			WriteToLog(CrystalJson.Serialize(value, CrystalJsonSettings.JsonIndented.WithNullMembers().WithEnumAsStrings()));
+		}
+
+		/// <summary>Outputs a human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
+		[DebuggerNonUserCode]
+		public static void Dump<T>(string label, T value)
+		{
+			WriteToLog($"{label}: <{(value != null ? value.GetType() : typeof(T)).GetFriendlyName()}>");
+			WriteToLog(CrystalJson.Serialize(value, CrystalJsonSettings.JsonIndented.WithEnumAsStrings()));
+		}
+
+		/// <summary>Output a compact human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
+		[DebuggerNonUserCode]
+		public static void DumpCompact<T>(T value)
+		{
+			WriteToLog(CrystalJson.Serialize(value, CrystalJsonSettings.Json));
+		}
+
+		/// <summary>Output a compact human-readable JSON representation of a value</summary>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
+		[DebuggerNonUserCode]
+		public static void DumpCompact<T>(string label, T value)
+		{
+			WriteToLog($"{label,-10}: {CrystalJson.Serialize(value, CrystalJsonSettings.Json)}");
+		}
+
+		/// <summary>Output the result of performing a JSON Diff between two instances of the same type</summary>
+		/// <typeparam name="T">Type of the values to compare</typeparam>
+		/// <param name="actual">Observed value</param>
+		/// <param name="expected">Expected value</param>
+		/// <returns><see langword="true"/> if there is at least one difference, or <see langword="false"/> if both objects are equivalent (at least their JSON representation)</returns>
+		/// <remarks>
+		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
+		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// </remarks>
+		[DebuggerNonUserCode]
+		public static bool DumpDifferences<T>(T actual, T expected)
+		{
+			bool found = false;
+
+			foreach (var (name, left, right) in ModelComparer.ComputeDifferences(actual, expected))
+			{
+				if (!found)
+				{
+					Log($"# Found differences between actual and expected {typeof(T).GetFriendlyName()} values:");
+					found = true;
+				}
+				Log($"  * [{name}] {Stringify(left)} != {Stringify(right)}");
+			}
+			return found;
+		}
+
+		#endregion
+		#region Dump Hexa...
+
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
+		[DebuggerNonUserCode]
+		public static void DumpHexa(byte[] buffer, HexaDump.Options options = HexaDump.Options.Default)
+		{
+			DumpHexa(buffer.AsSlice(), options);
+		}
+
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
+		[DebuggerNonUserCode]
+		public static void DumpHexa(Slice buffer, HexaDump.Options options = HexaDump.Options.Default)
+		{
+			WriteToLog(HexaDump.Format(buffer, options), lineBreak: false);
+		}
+
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
+		[DebuggerNonUserCode]
+		public static void DumpHexa(ReadOnlySpan<byte> buffer, HexaDump.Options options = HexaDump.Options.Default)
+		{
+			WriteToLog(HexaDump.Format(buffer, options), lineBreak: false);
+		}
+
+		/// <summary>Output an hexadecimal dump of the buffer, similar to the view in a binary file editor.</summary>
+		[DebuggerNonUserCode]
+		public static void DumpHexa<T>(ReadOnlySpan<T> array, HexaDump.Options options = HexaDump.Options.Default)
+			where T : struct
+		{
+			WriteToLog($"Dumping memory content of {typeof(T).GetFriendlyName()}[{array.Length:N0}]:");
+			WriteToLog(HexaDump.Format(MemoryMarshal.AsBytes(array), options), lineBreak: false);
+		}
+
+		/// <summary>Output an hexadecimal dump of two buffers, side by side, similar to the view in a binary diff tool.</summary>
+		[DebuggerNonUserCode]
+		public static void DumpVersus(byte[] left, byte[] right)
+		{
+			DumpVersus(left.AsSlice(), right.AsSlice());
+		}
+
+		/// <summary>Output an hexadecimal dump of two buffers, side by side, similar to the view in a binary diff tool.</summary>
+		[DebuggerNonUserCode]
+		public static void DumpVersus(Slice left, Slice right)
+		{
+			WriteToLog(HexaDump.Versus(left, right), lineBreak: false);
+		}
+
+		/// <summary>Output an hexadecimal dump of two buffers, side by side, similar to the view in a binary diff tool.</summary>
+		[DebuggerNonUserCode]
+		public static void DumpVersus(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
+		{
+			WriteToLog(HexaDump.Versus(left, right), lineBreak: false);
+		}
+
+		#endregion
+
+		#region Key/Value Helpers...
 
 		/// <summary>Converts a string into an utf-8 encoded key</summary>
 		protected static Slice Literal(string text) => Slice.FromByteString(text);
@@ -401,6 +739,10 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Converts a string into an utf-8 encoded value</summary>
 		protected static Slice Value(string text) => Slice.FromStringUtf8(text);
 
+		#endregion
+
+		#region Read/Write Helpers...
+
 		protected Task<T> DbRead<T>(IFdbRetryable db, Func<IFdbReadOnlyTransaction, Task<T>> handler)
 		{
 			return db.ReadAsync(handler, this.Cancellation);
@@ -425,6 +767,8 @@ namespace FoundationDB.Client.Tests
 		{
 			return db.ReadAsync(async (tr) => { await handler(tr); return true; }, this.Cancellation);
 		}
+
+		#endregion
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <param name="task">The task that will be awaited.</param>

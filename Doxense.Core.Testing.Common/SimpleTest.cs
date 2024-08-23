@@ -518,7 +518,11 @@ namespace SnowBank.Testing
 			     : WaitForInternal(task, timeout, throwIfExpired: true, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task Await(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
@@ -526,19 +530,31 @@ namespace SnowBank.Testing
 				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
@@ -546,7 +562,11 @@ namespace SnowBank.Testing
 				: WaitForInternal(task, timeout, taskExpression!);
 		}
 
-		/// <summary>Attend que la task s'exécute, avec un délai d'attente maximum, ou que le timeout d'exécution du test se déclenche</summary>
+		/// <summary>Wait for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// </remarks>
 		public Task<TResult> Await<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
@@ -554,6 +574,7 @@ namespace SnowBank.Testing
 				: WaitForInternal(task.AsTask(), timeout, taskExpression!);
 		}
 
+		[StackTraceHidden]
 		private async Task<bool> WaitForInternal(Task task, TimeSpan delay, bool throwIfExpired, string taskExpression)
 		{
 			bool success = false;
@@ -777,10 +798,10 @@ namespace SnowBank.Testing
 
 		#region Logging...
 
-		/// <summary>Set to true if a debugger is attached (usually when debugging unit tests)</summary>
+		/// <summary>If <see langword="true"/>, we are running with an attached debugger that prefers logs to be written to the Trace/Debug output.</summary>
 		protected static readonly bool AttachedToDebugger = Debugger.IsAttached;
 
-		/// <summary>Set to true if running from the console (and we want logs to be output to the Console)</summary>
+		/// <summary>If <see langword="true"/>, we are running under Console Test Runner that prefers logs to be written to the Console output</summary>
 		public static readonly bool MustOutputLogsOnConsole = DetectConsoleTestRunner();
 
 		private static bool DetectConsoleTestRunner()
@@ -799,8 +820,6 @@ namespace SnowBank.Testing
 		[DebuggerNonUserCode]
 		private static void WriteToLog(string? message, bool lineBreak = true)
 		{
-			//note: once 
-
 			if (MustOutputLogsOnConsole)
 			{ // force output to the console
 				if (lineBreak)
@@ -867,46 +886,25 @@ namespace SnowBank.Testing
 
 		/// <summary>Writes a message to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(ref DefaultInterpolatedStringHandler handler)
-		{
-			WriteToLog(handler.ToStringAndClear());
-		}
+		public static void Log(ref DefaultInterpolatedStringHandler handler) => WriteToLog(handler.ToStringAndClear());
 
 		[DebuggerNonUserCode]
-		public static void Log(object? item)
-		{
-			Log(item as string ?? Stringify(item));
-		}
+		public static void Log(object? item) => Log(item as string ?? Stringify(item));
 
 		[DebuggerNonUserCode]
-		protected static void LogPartial(string? text)
-		{
-			WriteToLog(text, lineBreak: false);
-		}
+		protected static void LogPartial(string? text) => WriteToLog(text, lineBreak: false);
 
 		[DebuggerNonUserCode]
-		public static void Log()
-		{
-			WriteToLog(string.Empty);
-		}
+		public static void Log() => WriteToLog(string.Empty);
 
 		[DebuggerNonUserCode]
-		public static void LogError(string? text)
-		{
-			WriteToErrorLog(text);
-		}
+		public static void LogError(string? text) => WriteToErrorLog(text);
 
 		[DebuggerNonUserCode]
-		public static void LogError(ref DefaultInterpolatedStringHandler handler)
-		{
-			WriteToErrorLog(handler.ToStringAndClear());
-		}
+		public static void LogError(ref DefaultInterpolatedStringHandler handler) => WriteToErrorLog(handler.ToStringAndClear());
 
 		[DebuggerNonUserCode]
-		public static void LogError(string? text, Exception e)
-		{
-			WriteToErrorLog(text + Environment.NewLine + e);
-		}
+		public static void LogError(string? text, Exception e) => WriteToErrorLog(text + Environment.NewLine + e);
 
 		[DebuggerNonUserCode]
 		public static void LogError(ref DefaultInterpolatedStringHandler handler, Exception e)
@@ -915,7 +913,6 @@ namespace SnowBank.Testing
 			handler.AppendLiteral(e.ToString());
 			WriteToErrorLog(handler.ToStringAndClear());
 		}
-
 
 		/// <summary>Writes the current stack trace to the output log</summary>
 		/// <param name="skip">Number of stack frames to skip (usually at least 2)</param>
@@ -1042,30 +1039,6 @@ namespace SnowBank.Testing
 			return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
 		}
 
-		/// <summary>List of any service provider that was created by the test method</summary>
-		private List<ServiceProvider>? CustomServices { get; set; }
-
-		/// <summary>Setup a <see cref="IServiceProvider">service provider</see> for use inside this test method</summary>
-		/// <param name="configure">Handler that will customize the service provider</param>
-		/// <returns>Service provider that can be used during this method</returns>
-		protected IServiceProvider CreateServices(Action<IServiceCollection> configure)
-		{
-			var services = new ServiceCollection();
-
-			services.AddSingleton(TestContext.CurrentContext);
-			services.AddSingleton(TestContext.Parameters);
-			services.AddSingleton(this);
-			services.AddSingleton(this.Clock);
-			services.AddSingleton(this.Rnd);
-			ConfigureLogging(services);
-			configure(services);
-
-			var provider = services.BuildServiceProvider(new ServiceProviderOptions() { ValidateOnBuild = true, });
-			(this.CustomServices ??= []).Add(provider);
-			return provider;
-		}
-
-
 		protected virtual ILoggerFactory Loggers => TestLoggerFactory.Instance;
 
 		protected static void ConfigureLogging(IServiceCollection services, Action<ILoggingBuilder>? configure = null)
@@ -1148,6 +1121,33 @@ namespace SnowBank.Testing
 
 			public IDisposable BeginScope<TState>(TState state) where TState : notnull => Disposable.Create(() => {});
 
+		}
+
+		#endregion
+
+		#region Dependency Injection...
+
+		/// <summary>List of any service provider that was created by the test method</summary>
+		private List<ServiceProvider>? CustomServices { get; set; }
+
+		/// <summary>Setup a <see cref="IServiceProvider">service provider</see> for use inside this test method</summary>
+		/// <param name="configure">Handler that will customize the service provider</param>
+		/// <returns>Service provider that can be used during this method</returns>
+		protected IServiceProvider CreateServices(Action<IServiceCollection> configure)
+		{
+			var services = new ServiceCollection();
+
+			services.AddSingleton(TestContext.CurrentContext);
+			services.AddSingleton(TestContext.Parameters);
+			services.AddSingleton(this);
+			services.AddSingleton(this.Clock);
+			services.AddSingleton(this.Rnd);
+			ConfigureLogging(services);
+			configure(services);
+
+			var provider = services.BuildServiceProvider(new ServiceProviderOptions() { ValidateOnBuild = true, });
+			(this.CustomServices ??= []).Add(provider);
+			return provider;
 		}
 
 		#endregion
@@ -1261,6 +1261,10 @@ namespace SnowBank.Testing
 			}
 			Log(xml);
 		}
+
+		#endregion
+
+		#region Dump (generic)...
 
 		/// <summary>Tests if a type is one of the many shapes of Task or ValueTask</summary>
 		/// <remarks>Used to detect common mistakes like passing a task to Dump(...) without first awaiting it</remarks>
@@ -1811,8 +1815,6 @@ namespace SnowBank.Testing
 		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
 
 		#endregion
-
-
 
 	}
 
