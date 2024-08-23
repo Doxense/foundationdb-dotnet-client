@@ -45,7 +45,7 @@ namespace FoundationDB.Linq.Tests
 		{
 			using(var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root.ByKey("Linq");
+				var location = db.Root["Linq"];
 				await CleanLocation(db, location);
 
 				await db.WriteAsync(async (tr) =>

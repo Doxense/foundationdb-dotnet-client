@@ -30,6 +30,7 @@
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 	using Doxense.Collections.Tuples;
+	using Doxense.Serialization;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
@@ -37,12 +38,24 @@
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts : FdbTest
-
 	{
 
-		private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>(DynamicKeySubspaceLocation.Root.ByKey("Foos", 1));
+		private readonly FdbIndex<int, string> FooBarIndex = new(DynamicKeySubspaceLocation.Root.ByKey("Foos", 1));
 
-		private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>(DynamicKeySubspaceLocation.Root.ByKey("Foos", 2));
+		private readonly FdbIndex<int, long> FooBazIndex = new(DynamicKeySubspaceLocation.Root.ByKey("Foos", 2));
+
+		private static void Dump(FdbQueryExpression? expr)
+		{
+			if (expr == null)
+			{
+				Log("// expr: <null>");
+			}
+			else
+			{
+				Log($"// expr: {expr.GetType().GetFriendlyName()}");
+				Log("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
+			}
+		}
 
 		[Test]
 		public void Test_FdbQueryIndexLookupExpression()

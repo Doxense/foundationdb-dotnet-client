@@ -28,7 +28,7 @@
 // ReSharper disable RedundantCast
 // ReSharper disable ReplaceAsyncWithTaskReturn
 
-#define ENABLE_LOGGING
+//#define ENABLE_LOGGING
 
 namespace FoundationDB.Client.Tests
 {
@@ -726,7 +726,7 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				var dl = FdbDirectoryLayer.Create(location);
-				Dump(dl);
+				Log(dl);
 
 				await db.WriteAsync(async tr =>
 				{
@@ -735,7 +735,7 @@ namespace FoundationDB.Client.Tests
 
 					Log("Creating partition /Foo$ ...");
 					var partition = await dl.CreateAsync(tr, FdbPath.Absolute(segFoo));
-					Dump(partition);
+					Log(partition);
 					await DumpSubspace(tr, location);
 					// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
 					var partitionKey = partition.Copy().GetPrefix();
@@ -749,7 +749,7 @@ namespace FoundationDB.Client.Tests
 
 					Log("Creating sub-directory Bar under partition Foo$ ...");
 					var bar = await partition.CreateAsync(tr, FdbPath.Relative(segBar));
-					Dump(bar);
+					Log(bar);
 					await DumpSubspace(tr, location);
 					Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
 					Assert.That(bar.Path, Is.EqualTo(FdbPath.Absolute(segFoo, FdbPathSegment.Create("Bar"))), "Path of directories under a partition should be absolute");
@@ -758,7 +758,7 @@ namespace FoundationDB.Client.Tests
 
 					Log("Creating sub-directory /Foo$/Baz starting from the root...");
 					var baz = await dl.CreateAsync(tr, FdbPath.Absolute(segFoo, FdbPathSegment.Create("Baz")));
-					Dump(baz);
+					Log(baz);
 					await DumpSubspace(tr, location);
 					Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
 					Assert.That(baz.FullName, Is.EqualTo("/Foo$/Baz"));
@@ -769,7 +769,7 @@ namespace FoundationDB.Client.Tests
 					// Rename 'Bar' to 'BarBar'
 					Log("Renaming /Foo$/Bar to /Foo$/BarBar...");
 					var bar2 = await bar.MoveToAsync(tr, FdbPath.Absolute(segFoo, FdbPathSegment.Create("BarBar")));
-					Dump(bar2);
+					Log(bar2);
 					await DumpSubspace(tr, location);
 					Assert.That(bar2, Is.InstanceOf<FdbDirectorySubspace>());
 					Assert.That(bar2, Is.Not.SameAs(bar));
@@ -794,19 +794,19 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				var dl = FdbDirectoryLayer.Create(location);
-				Dump(dl);
+				Log(dl);
 
 				await db.WriteAsync(async tr =>
 				{
 					Log("Creating /Foo$ ...");
 					var foo = await dl.CreateAsync(tr, FdbPath.Absolute("Foo$[partition]"));
-					Dump(foo);
+					Log(foo);
 					await DumpSubspace(tr, location);
 
 					Log("Creating /Foo$/Bar ...");
 					// create a 'Bar' under the 'Foo' partition
 					var bar = await foo.CreateAsync(tr, FdbPath.Relative("Bar"));
-					Dump(bar);
+					Log(bar);
 					await DumpSubspace(tr, location);
 
 					Assert.That(bar.FullName, Is.EqualTo("/Foo$/Bar"));
@@ -845,7 +845,7 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				var dl = FdbDirectoryLayer.Create(location);
-				Dump(dl);
+				Log(dl);
 
 				await db.WriteAsync(async tr =>
 				{
@@ -857,13 +857,13 @@ namespace FoundationDB.Client.Tests
 
 					Log("Create [Outer$]");
 					var outer = await dl.CreateAsync(tr, FdbPath.Absolute(segOuter));
-					Dump(outer);
+					Log(outer);
 					await DumpSubspace(tr, location);
 
 					// create a 'Inner' subpartition under the 'Outer' partition
 					Log("Create [Outer$][Inner$]");
 					var inner = await outer.CreateAsync(tr, FdbPath.Relative(segInner));
-					Dump(inner);
+					Log(inner);
 					await DumpSubspace(tr, location);
 
 					Assert.That(inner.FullName, Is.EqualTo("/Outer/Inner"));
@@ -944,7 +944,7 @@ namespace FoundationDB.Client.Tests
 					// create foo
 					Log("Creating /Foo$ ...");
 					var foo = await dl.CreateOrOpenAsync(tr, FdbPath.Absolute(segFoo));
-					Dump(foo);
+					Log(foo);
 					await DumpSubspace(tr, location);
 					Assert.That(foo, Is.Not.Null);
 					Assert.That(foo.FullName, Is.EqualTo("/Foo$"));
@@ -1088,7 +1088,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				var dl = FdbDirectoryLayer.Create(location);
-				Dump(dl);
+				Log(dl);
 
 				// the constraint will always be the same for all the checks
 				void ShouldFail<T>(ActualValueDelegate<T> del)
@@ -1186,7 +1186,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				var dl = FdbDirectoryLayer.Create(location);
-				Dump(dl);
+				Log(dl);
 
 				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
 				await db.ReadWriteAsync(tr => dl.CreateAsync(tr, FdbPath.Root["Zero"]), this.Cancellation);
@@ -1249,7 +1249,7 @@ namespace FoundationDB.Client.Tests
 				// ie: regular prefix would be ("DL", 123) and our custom prefixes will be ("DL", "abc")
 
 				var dl = FdbDirectoryLayer.Create(location);
-				Dump(dl);
+				Log(dl);
 
 				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
 				await db.ReadWriteAsync(tr => dl.CreateAsync(tr, FdbPath.Absolute("Zero")), this.Cancellation);

@@ -26,6 +26,9 @@
 
 // ReSharper disable ReplaceAsyncWithTaskReturn
 
+//#define ENABLE_LOGGING
+//#define FULL_DEBUG
+
 namespace FoundationDB.Layers.Collections.Tests
 {
 	using System;
@@ -49,6 +52,10 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = db.Root["Collections"]["Maps"];
 				await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
 
 				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
 
@@ -84,7 +91,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var value = await tr.GetAsync(foos.Subspace.AsDynamic().Encode("Foos", "hello"));
+					var value = await tr.GetAsync(foos.Subspace.AsDynamic().Encode("hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}, this.Cancellation);
@@ -121,6 +128,10 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = db.Root["Collections"]["Maps"];
 				await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
 
 				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
 
@@ -181,6 +192,10 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = db.Root["Collections"]["Maps"];
 				await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
 
 				var mapHosts = new FdbMap<IPEndPoint, string>(location.ByKey("Hosts").AsTyped<IPEndPoint>(keyEncoder), BinaryEncoding.StringEncoder);
 

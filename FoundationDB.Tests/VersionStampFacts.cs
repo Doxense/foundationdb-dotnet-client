@@ -89,8 +89,8 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.ToString(), Is.EqualTo("@?#12345"));
 			}
 
-			Assert.That(() => VersionStamp.Incomplete(-1), Throws.ArgumentException, "User version cannot be negative");
-			Assert.That(() => VersionStamp.Incomplete(65536), Throws.ArgumentException, "User version cannot be larger than 0xFFFF");
+			Assert.That(() => VersionStamp.Incomplete(-1), Throws.InstanceOf<ArgumentException>(), "User version cannot be negative");
+			Assert.That(() => VersionStamp.Incomplete(65536), Throws.InstanceOf<ArgumentException>(), "User version cannot be larger than 0xFFFF");
 
 			{
 				var writer = default(SliceWriter);
@@ -167,8 +167,8 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-12345#6789"));
 			}
 
-			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEFUL, 0, -1), Throws.ArgumentException, "User version cannot be negative");
-			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEFUL, 0, 65536), Throws.ArgumentException, "User version cannot be larger than 0xFFFF");
+			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEFUL, 0, -1), Throws.InstanceOf<ArgumentException>(), "User version cannot be negative");
+			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEFUL, 0, 65536), Throws.InstanceOf<ArgumentException>(), "User version cannot be larger than 0xFFFF");
 
 			{
 				var writer = default(SliceWriter);

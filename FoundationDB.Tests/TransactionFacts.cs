@@ -2023,7 +2023,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.Options.Timeout, Is.EqualTo(15_000), "Timeout (default)");
 					Assert.That(tr.Options.RetryLimit, Is.Zero, "RetryLimit (default)");
 					Assert.That(tr.Options.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
-					Assert.That(tr.Options.Tracing, Is.Default, "Tracing (default)");
+					Assert.That(tr.Options.Tracing, Is.EqualTo(FdbTracingOptions.Default), "Tracing (default)");
 
 					tr.Options.Timeout = 1_000; // 1 sec max
 					tr.Options.RetryLimit = 5; // 5 retries max
@@ -2046,7 +2046,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(15_000), "db.DefaultTimeout (default)");
 				Assert.That(db.Options.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 				Assert.That(db.Options.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
-				Assert.That(db.Options.DefaultTracing, Is.Default, "db.DefaultTracing (default)");
+				Assert.That(db.Options.DefaultTracing, Is.EqualTo(FdbTracingOptions.Default), "db.DefaultTracing (default)");
 
 				db.Options.DefaultTimeout = 500;
 				db.Options.DefaultRetryLimit = 3;
