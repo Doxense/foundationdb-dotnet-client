@@ -68,7 +68,16 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Encode a value into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, Slice prefix, T1? value)
 		{
-			var writer = new SliceWriter(prefix.Count + 16); // ~16 bytes si T1 = Guid
+			var writer = new SliceWriter(checked(prefix.Count + 16)); // ~16 bytes si T1 = Guid
+			writer.WriteBytes(prefix);
+			encoder.WriteKeyTo(ref writer, value);
+			return writer.ToSlice();
+		}
+
+		/// <summary>Encode a value into a key, with an additional prefix, using the specified encoder</summary>
+		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, ReadOnlySpan<byte> prefix, T1? value)
+		{
+			var writer = new SliceWriter(checked(prefix.Length + 16)); // ~16 bytes si T1 = Guid
 			writer.WriteBytes(prefix);
 			encoder.WriteKeyTo(ref writer, value);
 			return writer.ToSlice();
@@ -386,10 +395,14 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params ReadOnlySpan<T> values)
+			=> EncodeKeys<T>(encoder, prefix.Span, values);
+
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<byte> prefix, params ReadOnlySpan<T> values)
 		{
 			Contract.NotNull(encoder);
 
-			var writer = new SliceWriter(checked((17 + prefix.Count) * values.Length));
+			var writer = new SliceWriter(checked((17 + prefix.Length) * values.Length));
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
@@ -403,11 +416,15 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params T?[] values)
+			=> EncodeKeys<T>(encoder, prefix.Span, values);
+
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<byte> prefix, params T?[] values)
 		{
 			Contract.NotNull(encoder);
 			Contract.NotNull(values);
 
-			var writer = new SliceWriter(checked((17 + prefix.Count) * values.Length));
+			var writer = new SliceWriter(checked((17 + prefix.Length) * values.Length));
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{

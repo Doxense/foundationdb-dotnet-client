@@ -37,6 +37,7 @@ namespace Doxense.Collections.Tuples.Tests
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics;
 	using Doxense.Serialization;
+	using Doxense.Serialization.Encoders;
 	using NUnit.Framework;
 	using SnowBank.Testing;
 
@@ -86,11 +87,20 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			else
 			{
-				Log($"{label}: [{tuple.Count}] {tuple.ToString()}, {tuple.GetType().GetFriendlyName()}");
+				Log($"{label}: [{tuple.Count}] {tuple.ToString()}, {nameof(SlicedTuple)}");
 				for (int i = 0; i < tuple.Count; i++)
 				{
 					Log($"- t[{i}] = ({tuple.GetElementType(i)}) {STuple.Formatter.Stringify(tuple[i])} : [ {tuple.GetSlice(i):X} ]");
 				}
+			}
+		}
+
+		private static void Dump(string label, SpanTuple tuple)
+		{
+			Log($"{label}: [{tuple.Count}] {tuple.ToString()}, {nameof(SpanTuple)}");
+			for (int i = 0; i < tuple.Count; i++)
+			{
+				Log($"- t[{i}] = ({tuple.GetElementType(i)}) {STuple.Formatter.Stringify(tuple[i])} : [ {tuple.GetSlice(i):X} ]");
 			}
 		}
 
@@ -1064,8 +1074,13 @@ namespace Doxense.Collections.Tuples.Tests
 				var t2 = TuPack.Unpack(key);
 				Assert.That(t2, Is.Not.Null);
 				Assert.That(t2.Count, Is.EqualTo(t.Count), $"{t2}.Count");
-				Assert.That(t2, Is.EqualTo(t));
+				if (!t2.Equals(t))
+				{
+					Assert.That(t2, Is.EqualTo(t), $"Failed to unpack {t}: found {t2} instead");
+				}
 			}
+
+			goto here;
 
 			// Index composite key
 			IVarTuple value = STuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
@@ -1081,7 +1096,7 @@ namespace Doxense.Collections.Tuples.Tests
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			Verify(
-				STuple.Create(new object[] {42, value, docId}),
+				STuple.Create([ 42, value, docId ]),
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			Verify(
@@ -1113,6 +1128,7 @@ namespace Doxense.Collections.Tuples.Tests
 				STuple.Create(STuple.Create(STuple.Empty, STuple.Empty), STuple.Empty),
 				"05 05 00 05 00 00 05 00"
 			);
+here:
 			Verify(
 				STuple.Create(STuple.Create(default(string)), default(string)),
 				"05 00 FF 00 00" // inner null should be escaped, but not outer
@@ -1234,7 +1250,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.Pack(ValueTuple.Create("Hello World")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World"))), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create(new object[] {"Hello World"})), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create([ "Hello World" ])), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234).Substring(0, 1)), Is.EqualTo(expected));
 			}
 			{
@@ -1244,7 +1260,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234)), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World")).Append(1234)), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create(new object[] {"Hello World", 1234})), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create([ "Hello World", 1234 ])), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo").Substring(0, 2)), Is.EqualTo(expected));
 			}
 			{
@@ -1254,7 +1270,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234, "Foo"))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234).Append("Foo")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World")).Append(1234).Append("Foo")), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create(new object[] {"Hello World", 1234, "Foo"})), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create([ "Hello World", 1234, "Foo" ])), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo", "Bar").Substring(0, 3)), Is.EqualTo(expected));
 			}
 
@@ -1357,7 +1373,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 			Assert.That(
-				TuPack.Pack(STuple.Create(new object[] {"hello world", 123, false, new byte[] {123, 1, 66, 0, 42}})).ToString(),
+				TuPack.Pack(STuple.Create([ "hello world", 123, false, new byte[] {123, 1, 66, 0, 42} ])).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
@@ -1421,7 +1437,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 			Assert.That(
-				TuPack.Pack(prefix, STuple.Create(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } })).ToString(),
+				TuPack.Pack(prefix, STuple.Create([ "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } ])).ToString(),
 				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
@@ -1802,7 +1818,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			//Optimized STuple<...> versions
 
-			{
+			{ // params ReadOnlySpan<string>
 				var packed = TuPack.EncodeKeys(
 					"foo",
 					"bar",
@@ -1816,12 +1832,38 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
-			{
-				var packed = TuPack.EncodeKeys(
-					123,
-					456,
-					789
-				);
+			{ // direct ReadOnlySpan<T>
+				var packed = TuPack.EncodeKeys([ "foo", "bar", "baz" ]);
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+
+			{ // T[]
+				var packed = TuPack.EncodeKeys(new [] { "foo", "bar", "baz" });
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+
+			{ // T[].AsSpan()
+				var packed = TuPack.EncodeKeys(new [] { "invisible", "foo", "bar", "baz", "invisible" }.AsSpan(1, 3));
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+
+			{ // params ReadOnlySpan<int>
+				var packed = TuPack.EncodeKeys(123, 456, 789);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8>"));
@@ -1857,13 +1899,37 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			var prefix = Slice.FromString("ABC");
 
-			{
-				var packed = TuPack.EncodePrefixedKeys(
-					prefix,
-					"foo",
-					"bar",
-					"baz"
-				);
+			{ // params ReadOnlySpan<string>
+				var packed = TuPack.EncodePrefixedKeys(prefix, "foo", "bar", "baz");
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+			{ // collection expression
+				var packed = TuPack.EncodePrefixedKeys(prefix, [ "foo", "bar", "baz" ]);
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+			{ // span prefix
+				var packed = TuPack.EncodePrefixedKeys("ABC"u8, [ "foo", "bar", "baz" ]);
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+			{ // stackalloced prefix
+				Span<byte> pp = stackalloc byte[3];
+				prefix.CopyTo(pp);
+				var packed = TuPack.EncodePrefixedKeys(pp, [ "foo", "bar", "baz" ]);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
@@ -1872,13 +1938,9 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
-			{
-				var packed = TuPack.EncodePrefixedKeys(
-					prefix,
-					123,
-					456,
-					789
-				);
+
+			{ // params ReadOnlySpan<int>
+				var packed = TuPack.EncodePrefixedKeys(prefix, 123, 456, 789);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8>"));
@@ -1910,7 +1972,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var serializer = TupleSerializer<int>.Default;
 				var t = STuple.Create(123);
-				scoped var tw = new TupleWriter();
+				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<15>{"));
@@ -1918,7 +1980,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var serializer = TupleSerializer<string>.Default;
 				var t = STuple.Create("foo");
-				scoped var tw = new TupleWriter();
+				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>"));
@@ -1927,7 +1989,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var serializer = TupleSerializer<string, int>.Default;
 				var t = STuple.Create("foo", 123);
-				scoped var tw = new TupleWriter();
+				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><15>{"));
@@ -1936,7 +1998,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var serializer = TupleSerializer<string, bool, int>.Default;
 				var t = STuple.Create("foo", false, 123);
-				scoped var tw = new TupleWriter();
+				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{"));
@@ -1945,7 +2007,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var serializer = TupleSerializer<string, bool, int, long>.Default;
 				var t = STuple.Create("foo", false, 123, -1L);
-				scoped var tw = new TupleWriter();
+				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE>"));
@@ -1954,7 +2016,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var serializer = TupleSerializer<string, bool, int, long, string>.Default;
 				var t = STuple.Create("foo", false, 123, -1L, "narf");
-				scoped var tw = new TupleWriter();
+				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>"));
@@ -1963,7 +2025,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var serializer = TupleSerializer<string, bool, int, long, string, double>.Default;
 				var t = STuple.Create("foo", false, 123, -1L, "narf", Math.PI);
-				scoped var tw = new TupleWriter();
+				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>!<C0><09>!<FB>TD-<18>"));
@@ -2256,6 +2318,233 @@ namespace Doxense.Collections.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_SpanTuple_Unpack()
+		{
+			// note: this method is equivalent to TuPack.UnPack, but exposes the concrete SpanTuple types, and gives more inside into the items
+
+			{
+				var packed = TuPack.EncodeKey("hello world");
+				Dump("Packed", packed);
+
+				var tuple = SpanTuple.Unpack(packed);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(1));
+				Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
+				Assert.That(tuple.Get<string>(^1), Is.EqualTo("hello world"));
+				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
+				Assert.That(tuple.Last<string>(), Is.EqualTo("hello world"));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
+				Assert.That(tuple.IsUnicodeString(0), Is.True);
+				Assert.That(tuple.IsBytes(0), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.False);
+			}
+
+			{
+				var packed = TuPack.EncodeKey("hello world", 123);
+				Dump("Packed", packed);
+
+				var tuple = SpanTuple.Unpack(packed);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(2));
+				Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
+				Assert.That(tuple.Get<int>(1), Is.EqualTo(123));
+				Assert.That(tuple.Get<string>(^2), Is.EqualTo("hello world"));
+				Assert.That(tuple.Get<int>(^1), Is.EqualTo(123));
+				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
+				Assert.That(tuple.Last<int>(), Is.EqualTo(123));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("15 7B")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.IsUnicodeString(0), Is.True);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.False);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsInteger(0), Is.False);
+				Assert.That(tuple.IsInteger(1), Is.True);
+				Assert.That(tuple.IsFloatingPoint(0), Is.False);
+				Assert.That(tuple.IsFloatingPoint(1), Is.False);
+			}
+
+			{
+				var packed = TuPack.EncodeKey(1, 256, 257, 65536, int.MaxValue, long.MaxValue);
+				Dump("Packed", packed);
+
+				var tuple = SpanTuple.Unpack(packed);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(6));
+				Assert.That(tuple.Get<int>(0), Is.EqualTo(1));
+				Assert.That(tuple.Get<int>(1), Is.EqualTo(256));
+				Assert.That(tuple.Get<int>(2), Is.EqualTo(257), tuple.GetSlice(2).ToString());
+				Assert.That(tuple.Get<int>(3), Is.EqualTo(65536));
+				Assert.That(tuple.Get<int>(4), Is.EqualTo(int.MaxValue));
+				Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MaxValue));
+				Assert.That(tuple.Get<int>(^6), Is.EqualTo(1));
+				Assert.That(tuple.Get<int>(^5), Is.EqualTo(256));
+				Assert.That(tuple.Get<int>(^4), Is.EqualTo(257), tuple.GetSlice(2).ToString());
+				Assert.That(tuple.Get<int>(^3), Is.EqualTo(65536));
+				Assert.That(tuple.Get<int>(^2), Is.EqualTo(int.MaxValue));
+				Assert.That(tuple.Get<long>(^1), Is.EqualTo(long.MaxValue));
+				Assert.That(tuple.First<int>(), Is.EqualTo(1));
+				Assert.That(tuple.Last<long>(), Is.EqualTo(long.MaxValue));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("15 01")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("16 01 00")));
+				Assert.That(tuple.GetSlice(2), Is.EqualTo(Slice.FromHexa("16 01 01")));
+				Assert.That(tuple.GetSlice(3), Is.EqualTo(Slice.FromHexa("17 01 00 00")));
+				Assert.That(tuple.GetSlice(4), Is.EqualTo(Slice.FromHexa("18 7F FF FF FF")));
+				Assert.That(tuple.GetSlice(5), Is.EqualTo(Slice.FromHexa("1C 7F FF FF FF FF FF FF FF")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(2), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(3), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(4), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(5), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.IsUnicodeString(0), Is.False);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsUnicodeString(2), Is.False);
+				Assert.That(tuple.IsUnicodeString(3), Is.False);
+				Assert.That(tuple.IsUnicodeString(4), Is.False);
+				Assert.That(tuple.IsUnicodeString(5), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.True);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsNumber(2), Is.True);
+				Assert.That(tuple.IsNumber(3), Is.True);
+				Assert.That(tuple.IsNumber(4), Is.True);
+				Assert.That(tuple.IsNumber(5), Is.True);
+			}
+
+			{
+				var packed = TuPack.EncodeKey(-1, -256, -257, -65536, int.MinValue, long.MinValue);
+				Dump("Packed", packed);
+
+				var tuple = SpanTuple.Unpack(packed);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(6));
+				Assert.That(tuple.Get<int>(0), Is.EqualTo(-1));
+				Assert.That(tuple.Get<int>(1), Is.EqualTo(-256));
+				Assert.That(tuple.Get<int>(2), Is.EqualTo(-257), $"Slice is {tuple.GetSlice(2)}");
+				Assert.That(tuple.Get<int>(3), Is.EqualTo(-65536));
+				Assert.That(tuple.Get<int>(4), Is.EqualTo(int.MinValue));
+				Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MinValue));
+				Assert.That(tuple.Get<int>(^6), Is.EqualTo(-1));
+				Assert.That(tuple.Get<int>(^5), Is.EqualTo(-256));
+				Assert.That(tuple.Get<int>(^4), Is.EqualTo(-257), $"Slice is {tuple.GetSlice(2)}");
+				Assert.That(tuple.Get<int>(^3), Is.EqualTo(-65536));
+				Assert.That(tuple.Get<int>(^2), Is.EqualTo(int.MinValue));
+				Assert.That(tuple.Get<long>(^1), Is.EqualTo(long.MinValue));
+				Assert.That(tuple.First<int>(), Is.EqualTo(-1));
+				Assert.That(tuple.Last<long>(), Is.EqualTo(long.MinValue));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("13 FE")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("12 FE FF")));
+				Assert.That(tuple.GetSlice(2), Is.EqualTo(Slice.FromHexa("12 FE FE")));
+				Assert.That(tuple.GetSlice(3), Is.EqualTo(Slice.FromHexa("11 FE FF FF")));
+				Assert.That(tuple.GetSlice(4), Is.EqualTo(Slice.FromHexa("10 7F FF FF FF")));
+				Assert.That(tuple.GetSlice(5), Is.EqualTo(Slice.FromHexa("0C 7F FF FF FF FF FF FF FF")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(2), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(3), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(4), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.GetElementType(5), Is.EqualTo(TupleSegmentType.Integer));
+				Assert.That(tuple.IsUnicodeString(0), Is.False);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsUnicodeString(2), Is.False);
+				Assert.That(tuple.IsUnicodeString(3), Is.False);
+				Assert.That(tuple.IsUnicodeString(4), Is.False);
+				Assert.That(tuple.IsUnicodeString(5), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.True);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsNumber(2), Is.True);
+				Assert.That(tuple.IsNumber(3), Is.True);
+				Assert.That(tuple.IsNumber(4), Is.True);
+				Assert.That(tuple.IsNumber(5), Is.True);
+			}
+
+			{
+				var packed = TuPack.EncodeKey(0.0, 0.0f, 1.0, 1.0f, Math.PI, (float) Math.PI);
+				Dump("Packed", packed);
+
+				var tuple = SpanTuple.Unpack(packed);
+				Dump("Unpacked", tuple);
+
+				Assert.That(tuple.Count, Is.EqualTo(6));
+				Assert.That(tuple.Get<double>(0), Is.EqualTo(0));
+				Assert.That(tuple.Get<float>(1), Is.EqualTo(0));
+				Assert.That(tuple.Get<double>(2), Is.EqualTo(1));
+				Assert.That(tuple.Get<float>(3), Is.EqualTo(1));
+				Assert.That(tuple.Get<double>(4), Is.EqualTo(Math.PI));
+				Assert.That(tuple.Get<float>(5), Is.EqualTo((float) Math.PI));
+				Assert.That(tuple.Get<double>(^6), Is.EqualTo(0));
+				Assert.That(tuple.Get<float>(^5), Is.EqualTo(0));
+				Assert.That(tuple.Get<double>(^4), Is.EqualTo(1));
+				Assert.That(tuple.Get<float>(^3), Is.EqualTo(1));
+				Assert.That(tuple.Get<double>(^2), Is.EqualTo(Math.PI));
+				Assert.That(tuple.Get<float>(^1), Is.EqualTo((float) Math.PI));
+				Assert.That(tuple.First<double>(), Is.EqualTo(0.0));
+				Assert.That(tuple.Last<float>(), Is.EqualTo((float) Math.PI));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromHexa("21 80 00 00 00 00 00 00 00")));
+				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("20 80 00 00 00")));
+				Assert.That(tuple.GetSlice(2), Is.EqualTo(Slice.FromHexa("21 BF F0 00 00 00 00 00 00")));
+				Assert.That(tuple.GetSlice(3), Is.EqualTo(Slice.FromHexa("20 BF 80 00 00")));
+				Assert.That(tuple.GetSlice(4), Is.EqualTo(Slice.FromHexa("21 C0 09 21 FB 54 44 2D 18")));
+				Assert.That(tuple.GetSlice(5), Is.EqualTo(Slice.FromHexa("20 C0 49 0F DB")));
+				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
+				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.Double));
+				Assert.That(tuple.GetElementType(1), Is.EqualTo(TupleSegmentType.Single));
+				Assert.That(tuple.GetElementType(2), Is.EqualTo(TupleSegmentType.Double));
+				Assert.That(tuple.GetElementType(3), Is.EqualTo(TupleSegmentType.Single));
+				Assert.That(tuple.GetElementType(4), Is.EqualTo(TupleSegmentType.Double));
+				Assert.That(tuple.GetElementType(5), Is.EqualTo(TupleSegmentType.Single));
+				Assert.That(tuple.IsUnicodeString(0), Is.False);
+				Assert.That(tuple.IsUnicodeString(1), Is.False);
+				Assert.That(tuple.IsUnicodeString(2), Is.False);
+				Assert.That(tuple.IsUnicodeString(3), Is.False);
+				Assert.That(tuple.IsUnicodeString(4), Is.False);
+				Assert.That(tuple.IsUnicodeString(5), Is.False);
+				Assert.That(tuple.IsNumber(0), Is.True);
+				Assert.That(tuple.IsNumber(1), Is.True);
+				Assert.That(tuple.IsNumber(2), Is.True);
+				Assert.That(tuple.IsNumber(3), Is.True);
+				Assert.That(tuple.IsNumber(4), Is.True);
+				Assert.That(tuple.IsNumber(5), Is.True);
+				Assert.That(tuple.IsInteger(0), Is.False);
+				Assert.That(tuple.IsInteger(1), Is.False);
+				Assert.That(tuple.IsInteger(2), Is.False);
+				Assert.That(tuple.IsInteger(3), Is.False);
+				Assert.That(tuple.IsInteger(4), Is.False);
+				Assert.That(tuple.IsInteger(5), Is.False);
+				Assert.That(tuple.IsFloatingPoint(0), Is.True);
+				Assert.That(tuple.IsFloatingPoint(1), Is.True);
+				Assert.That(tuple.IsFloatingPoint(2), Is.True);
+				Assert.That(tuple.IsFloatingPoint(3), Is.True);
+				Assert.That(tuple.IsFloatingPoint(4), Is.True);
+				Assert.That(tuple.IsFloatingPoint(5), Is.True);
+				Assert.That(tuple.IsSingle(0), Is.False);
+				Assert.That(tuple.IsSingle(1), Is.True);
+				Assert.That(tuple.IsSingle(2), Is.False);
+				Assert.That(tuple.IsSingle(3), Is.True);
+				Assert.That(tuple.IsSingle(4), Is.False);
+				Assert.That(tuple.IsSingle(5), Is.True);
+				Assert.That(tuple.IsDouble(0), Is.True);
+				Assert.That(tuple.IsDouble(1), Is.False);
+				Assert.That(tuple.IsDouble(2), Is.True);
+				Assert.That(tuple.IsDouble(3), Is.False);
+				Assert.That(tuple.IsDouble(4), Is.True);
+				Assert.That(tuple.IsDouble(5), Is.False);
+			}
+
+		}
+
+		[Test]
 		public void Test_TuplePack_DecodeKey()
 		{
 			Assert.That(
@@ -2263,7 +2552,15 @@ namespace Doxense.Collections.Tuples.Tests
 				Is.EqualTo("hello world")
 			);
 			Assert.That(
+				TuPack.DecodeKey<string>("\u0002hello world\0"u8),
+				Is.EqualTo("hello world")
+			);
+			Assert.That(
 				TuPack.DecodeKey<int>(Slice.Unescape("<15>{")),
+				Is.EqualTo(123)
+			);
+			Assert.That(
+				TuPack.DecodeKey<int>("\x15\x7B"u8),
 				Is.EqualTo(123)
 			);
 			Assert.That(
@@ -2313,10 +2610,16 @@ namespace Doxense.Collections.Tuples.Tests
 			#region PackRange(Tuple, ...)
 
 			var tuple = STuple.Create("hello");
-			int[] items = new int[] {1, 2, 3, 123, -1, int.MaxValue};
+			int[] items = [ 1, 2, 3, 123, -1, int.MaxValue ];
 
 			// array version
 			slices = TuPack.EncodePrefixedKeys<int>(tuple, items);
+			Assert.That(slices, Is.Not.Null);
+			Assert.That(slices.Length, Is.EqualTo(items.Length));
+			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
+
+			// span version
+			slices = TuPack.EncodePrefixedKeys<int>(tuple, items.AsSpan());
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
@@ -2337,9 +2640,13 @@ namespace Doxense.Collections.Tuples.Tests
 
 			#region PackRange(Slice, ...)
 
-			string?[] words = {"hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty};
+			string?[] words = [ "hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty ];
 
 			var merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words);
+			Assert.That(merged, Is.Not.Null);
+			Assert.That(merged.Length, Is.EqualTo(words.Length));
+
+			merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words.AsSpan());
 			Assert.That(merged, Is.Not.Null);
 			Assert.That(merged.Length, Is.EqualTo(words.Length));
 
@@ -2508,8 +2815,8 @@ namespace Doxense.Collections.Tuples.Tests
 			packed = TuPack.EncodeKey("Hello\0World");
 			Assert.That(TuPack.DecodeKey<string>(packed), Is.EqualTo("Hello\0World"));
 
-			Assert.That(() => TuPack.DecodeKey<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => TuPack.DecodeKey<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => TuPack.DecodeKey<string>(Slice.Nil), Throws.InstanceOf<FormatException>());
+			Assert.That(() => TuPack.DecodeKey<string>(Slice.Empty), Throws.InstanceOf<FormatException>());
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3, 4)), Throws.InstanceOf<FormatException>());

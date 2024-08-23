@@ -95,6 +95,15 @@ namespace FoundationDB.Client
 		/// <remarks>This is the inverse operation of <see cref="Append"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		[Pure]
+		ReadOnlySpan<byte> ExtractKey(ReadOnlySpan<byte> absoluteKey, bool boundCheck = false);
+
+		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or <see cref="Slice.Nil"/> if the key does not fit inside the namespace</summary>
+		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
+		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
+		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> if the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns <see cref="Slice.Nil"/></returns>
+		/// <remarks>This is the inverse operation of <see cref="Append"/></remarks>
+		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
+		[Pure]
 		Slice ExtractKey(Slice absoluteKey, bool boundCheck = false);
 
 		/// <summary>Return a human-friendly string representation of a key, as encoded by this subspace</summary>

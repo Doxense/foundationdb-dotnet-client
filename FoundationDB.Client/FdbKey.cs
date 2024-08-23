@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
@@ -291,15 +292,16 @@ namespace FoundationDB.Client
 		[DebuggerNonUserCode]
 		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
 		{
-			if (key.Count > 1)
+			var span = key.Span;
+			if (span.Length> 1)
 			{
-				byte c = key[0];
+				byte c = span[0];
 				//OPTIMIZE: maybe we need a lookup table
 				if (c <= 28 || c == 32 || c == 33 || c == 48 || c == 49 || c >= 254)
 				{ // it could be a tuple...
 					try
 					{
-						IVarTuple? tuple = null;
+						SpanTuple tuple = default;
 						string? suffix = null;
 						bool skip = false;
 
@@ -312,12 +314,12 @@ namespace FoundationDB.Client
 									// for tuples, the really bad cases are for byte[]/strings (which normally end with 00)
 									// => pack(("string",))+\xFF => <02>string<00><FF>
 									// => string(("string",)) => <02>string<01>
-									switch (key[-1])
+									switch (span[^1])
 									{
 										case 0xFF:
 										{
 											//***README*** if you break under here, see README in the last catch() block
-											if (TuPack.TryUnpack(key[0, -1], out tuple))
+											if (TuPack.TryUnpack(span[0..^1], out tuple))
 											{
 												suffix = ".<FF>";
 											}
@@ -325,7 +327,8 @@ namespace FoundationDB.Client
 										}
 										case 0x01:
 										{
-											var tmp = key[0, -1] + 0;
+											var tmp = span.ToArray();
+											tmp[^1] = 0;
 											//***README*** if you break under here, see README in the last catch() block
 											if (TuPack.TryUnpack(tmp, out tuple))
 											{
@@ -343,10 +346,10 @@ namespace FoundationDB.Client
 									// but since the ToRange() on tuples add a <00> we can bet on the fact that it is not part of the tuple itself.
 									// except maybe if we have "00 FF 00" which would be the expected form of a string that ends with a <00>
 
-									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
+									if (span.Length > 2 && span[^1] == 0 && span[^2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										if (TuPack.TryUnpack(key[0, -1], out tuple))
+										if (TuPack.TryUnpack(span[0..^1], out tuple))
 										{
 											suffix = ".<00>";
 										}
@@ -358,15 +361,21 @@ namespace FoundationDB.Client
 						catch (Exception e)
 						{
 							suffix = null;
-							skip = !(e is FormatException || e is ArgumentOutOfRangeException);
+							skip = e is not (FormatException or ArgumentOutOfRangeException);
 						}
 
-						if (tuple == null && !skip)
+						if (tuple.Count != 0)
+						{
+							return tuple.ToString() + suffix;
+						}
+
+						if (!skip)
 						{ // attempt a regular decoding
-							TuPack.TryUnpack(key, out tuple);
+							if (TuPack.TryUnpack(span, out tuple))
+							{
+								return tuple.ToString() + suffix;
+							}
 						}
-
-						if (tuple != null) return tuple.ToString() + suffix;
 					}
 					catch (Exception)
 					{
@@ -406,7 +415,7 @@ namespace FoundationDB.Client
 				{ // it could be a tuple...
 					try
 					{
-						IVarTuple? tuple = null;
+						SpanTuple tuple = default;
 						string? suffix = null;
 						bool skip = false;
 
@@ -434,7 +443,7 @@ namespace FoundationDB.Client
 											var tmp = key.ToArray();
 											tmp[^1] = 0;
 											//***README*** if you break under here, see README in the last catch() block
-											tuple = TuPack.Unpack(tmp.AsSlice());
+											tuple = TuPack.Unpack(tmp);
 											suffix = " + 1";
 											break;
 										}
@@ -464,13 +473,13 @@ namespace FoundationDB.Client
 							skip = !(e is FormatException || e is ArgumentOutOfRangeException);
 						}
 
-						if (tuple == null && !skip)
+						if (tuple.Count == 0 && !skip)
 						{ // attempt a regular decoding
 							//***README*** if you break under here, see README in the last catch() block
 							tuple = TuPack.Unpack(key);
 						}
 
-						if (tuple != null) return tuple.ToString() + suffix;
+						if (tuple.Count != 0) return tuple.ToString() + suffix;
 					}
 					catch (Exception)
 					{

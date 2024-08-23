@@ -26,6 +26,8 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
+	using System.Runtime.CompilerServices;
+
 	/// <summary>
 	/// Constants for the various tuple value types
 	/// </summary>
@@ -114,9 +116,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		public const byte Escape = 255;
 
 		/// <summary>Return the type of a tuple segment, from its header</summary>
-		public static TupleSegmentType DecodeSegmentType(Slice segment)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static TupleSegmentType DecodeSegmentType(Slice segment) => DecodeSegmentType(segment.Span);
+
+		/// <summary>Return the type of a tuple segment, from its header</summary>
+		[Pure]
+		public static TupleSegmentType DecodeSegmentType(ReadOnlySpan<byte> segment)
 		{
-			if (segment.Count == 0) return TupleSegmentType.Nil;
+			if (segment.Length == 0) return TupleSegmentType.Nil;
 
 			int type = segment[0];
 			switch(type)

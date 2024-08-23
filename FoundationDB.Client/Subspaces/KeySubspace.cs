@@ -250,6 +250,28 @@ namespace FoundationDB.Client
 			return absoluteKey.Substring(key.Count);
 		}
 
+		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or <see cref="Slice.Nil"/> if the key does not fit inside the namespace</summary>
+		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
+		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
+		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns <see cref="Slice.Nil"/></returns>
+		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IKeySubspace.Item(Slice)"/></remarks>
+		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
+		public virtual ReadOnlySpan<byte> ExtractKey(ReadOnlySpan<byte> absoluteKey, bool boundCheck = false)
+		{
+			if (absoluteKey.Length == 0)
+			{
+				return default;
+			}
+
+			var key = GetKeyPrefix();
+			if (!absoluteKey.StartsWith(key.Span))
+			{
+				if (boundCheck) FailKeyOutOfBound(Slice.Copy(absoluteKey));
+				return default;
+			}
+			return absoluteKey.Slice(key.Count);
+		}
+
 		/// <inheritdoc/>
 		public virtual string PrettyPrint(Slice packedKey)
 		{

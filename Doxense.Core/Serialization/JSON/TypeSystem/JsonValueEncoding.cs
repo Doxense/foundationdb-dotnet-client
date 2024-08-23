@@ -311,8 +311,8 @@ namespace Doxense.Serialization.Encoders
 				return false;
 			}
 			Contract.Debug.Assert(tuple != null);
-			value = this.Encoding.DecodeNext(tuple, out tuple).As<T>();
-			return tuple is null;
+			value = this.Encoding.DecodeNext(tuple, out var remainder).As<T>();
+			return remainder is null;
 		}
 
 		#endregion
@@ -365,6 +365,8 @@ namespace Doxense.Serialization.Encoders
 
 		public T1 DecodeKey<T1>(Slice packed) => throw new NotImplementedException();
 
+		public T1 DecodeKey<T1>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
 		public T1 DecodeKeyFirst<T1>(Slice packed) => throw new NotImplementedException();
 
 		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed) => throw new NotImplementedException();
@@ -390,6 +392,20 @@ namespace Doxense.Serialization.Encoders
 		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed) => throw new NotImplementedException();
 
 		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed) => throw new NotImplementedException();
+
+		public (T1?, T2?) DecodeKey<T1, T2>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
 
 		public (Slice Begin, Slice End) ToRange(Slice prefix = default) => throw new NotImplementedException();
 

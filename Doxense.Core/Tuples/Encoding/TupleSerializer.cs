@@ -28,9 +28,9 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	public sealed class TupleSerializer<T1> : ITupleSerializer<STuple<T1>>
 	{
-		public static TupleSerializer<T1> Default { get; } = new TupleSerializer<T1>();
+		public static TupleSerializer<T1> Default { get; } = new();
 
-		public void PackTo(ref TupleWriter writer, scoped in STuple<T1> tuple)
+		public void PackTo(ref TupleWriter writer, in STuple<T1> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 		}
@@ -44,9 +44,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2> : ITupleSerializer<STuple<T1, T2>>
 	{
-		public static TupleSerializer<T1, T2> Default { get; } = new TupleSerializer<T1, T2>();
+		public static TupleSerializer<T1, T2> Default { get; } = new();
 
-		public void PackTo(ref TupleWriter writer, scoped in STuple<T1, T2> tuple)
+		public void PackTo(ref TupleWriter writer, in STuple<T1, T2> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 			TuplePackers.SerializeTo(ref writer, tuple.Item2);
@@ -61,9 +61,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3> : ITupleSerializer<STuple<T1, T2, T3>>
 	{
-		public static TupleSerializer<T1, T2, T3> Default { get; } = new TupleSerializer<T1, T2, T3>();
+		public static TupleSerializer<T1, T2, T3> Default { get; } = new();
 
-		public void PackTo(ref TupleWriter writer, scoped in STuple<T1, T2, T3> tuple)
+		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 			TuplePackers.SerializeTo(ref writer, tuple.Item2);
@@ -79,9 +79,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3, T4> : ITupleSerializer<STuple<T1, T2, T3, T4>>
 	{
-		public static TupleSerializer<T1, T2, T3, T4> Default { get; } = new TupleSerializer<T1, T2, T3, T4>();
+		public static TupleSerializer<T1, T2, T3, T4> Default { get; } = new();
 
-		public void PackTo(ref TupleWriter writer, scoped in STuple<T1, T2, T3, T4> tuple)
+		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 			TuplePackers.SerializeTo(ref writer, tuple.Item2);
@@ -98,9 +98,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3, T4, T5> : ITupleSerializer<STuple<T1, T2, T3, T4, T5>>
 	{
-		public static TupleSerializer<T1, T2, T3, T4, T5> Default { get; } = new TupleSerializer<T1, T2, T3, T4, T5>();
+		public static TupleSerializer<T1, T2, T3, T4, T5> Default { get; } = new();
 
-		public void PackTo(ref TupleWriter writer, scoped in STuple<T1, T2, T3, T4, T5> tuple)
+		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 			TuplePackers.SerializeTo(ref writer, tuple.Item2);
@@ -118,9 +118,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3, T4, T5, T6> : ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6>>
 	{
-		public static TupleSerializer<T1, T2, T3, T4, T5, T6> Default { get; } = new TupleSerializer<T1, T2, T3, T4, T5, T6>();
+		public static TupleSerializer<T1, T2, T3, T4, T5, T6> Default { get; } = new();
 
-		public void PackTo(ref TupleWriter writer, scoped in STuple<T1, T2, T3, T4, T5, T6> tuple)
+		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 			TuplePackers.SerializeTo(ref writer, tuple.Item2);
@@ -137,4 +137,25 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	}
 
+	public sealed class TupleSerializer<T1, T2, T3, T4, T5, T6, T7> : ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6, T7>>
+	{
+		public static TupleSerializer<T1, T2, T3, T4, T5, T6, T7> Default { get; } = new();
+
+		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			TuplePackers.SerializeTo(ref writer, tuple.Item1);
+			TuplePackers.SerializeTo(ref writer, tuple.Item2);
+			TuplePackers.SerializeTo(ref writer, tuple.Item3);
+			TuplePackers.SerializeTo(ref writer, tuple.Item4);
+			TuplePackers.SerializeTo(ref writer, tuple.Item5);
+			TuplePackers.SerializeTo(ref writer, tuple.Item6);
+			TuplePackers.SerializeTo(ref writer, tuple.Item7);
+		}
+
+		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			TupleEncoder.DecodeKey(ref reader, out tuple);
+		}
+
+	}
 }

@@ -27,6 +27,7 @@
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System.Buffers;
+	using System.Buffers.Binary;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Tuples;
@@ -955,7 +956,34 @@ namespace Doxense.Collections.Tuples.Encoding
 			return value;
 		}
 
-		internal static bool ShouldUnescapeByteString(ReadOnlySpan<byte> buffer)
+		/// <summary>Parse a tuple segment containing a signed 64-bit integer</summary>
+		/// <remarks>This method should only be used by custom decoders.</remarks>
+		public static long ParseInt64(int type, ReadOnlySpan<byte> slice)
+		{
+			int bytes = type - TupleTypes.IntZero;
+			if (bytes == 0) return 0L;
+
+			bool neg = false;
+			if (bytes < 0)
+			{
+				bytes = -bytes;
+				neg = true;
+			}
+
+			if (bytes > 8) throw new FormatException("Invalid size for tuple integer");
+			long value = (long) slice.Slice(1, bytes).ToUInt64BE();
+
+			if (neg)
+			{ // the value is encoded as the one's complement of the absolute value
+				value = (-(~value));
+				if (bytes < 8) value |= (-1L << (bytes << 3));
+				return value;
+			}
+
+			return value;
+		}
+
+		private static bool ShouldUnescapeByteString(ReadOnlySpan<byte> buffer)
 		{
 			// check for nulls
 
@@ -971,7 +999,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return true;
 		}
 
-		internal static bool TryUnescapeByteString(ReadOnlySpan<byte> buffer, Span<byte> output, out int bytesWritten)
+		private static bool TryUnescapeByteString(ReadOnlySpan<byte> buffer, Span<byte> output, out int bytesWritten)
 		{
 			int p = 0;
 			for(int i = 0; i < buffer.Length; i++)
@@ -1017,6 +1045,29 @@ namespace Doxense.Collections.Tuples.Encoding
 			return new Slice(span, 0, written);
 		}
 
+		/// <summary>Parse a tuple segment containing a byte array</summary>
+		[Pure]
+		public static Slice ParseBytes(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.Bytes && slice[^1] == 0);
+			if (slice.Length <= 2) return Slice.Empty;
+
+			var chunk = slice.Slice(1, slice.Length - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return Slice.Copy(chunk);
+			}
+
+			var span = new byte[chunk.Length];
+			if (!TryUnescapeByteString(chunk, span, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+			Contract.Debug.Requires(written <= span.Length);
+
+			return new Slice(span, 0, written);
+		}
+
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
 		[Pure]
 		public static string ParseAscii(Slice slice)
@@ -1026,6 +1077,30 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (slice.Count <= 2) return string.Empty;
 
 			var chunk = slice.Substring(1, slice.Count - 2).Span;
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return Encoding.Default.GetString(chunk);
+			}
+			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			if (!TryUnescapeByteString(chunk, buffer, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+
+			string s = Encoding.Default.GetString(buffer, 0, written);
+			ArrayPool<byte>.Shared.Return(buffer);
+			return s;
+		}
+
+		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
+		[Pure]
+		public static string ParseAscii(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Bytes && slice[^1] == 0);
+
+			if (slice.Length <= 2) return string.Empty;
+
+			var chunk = slice.Slice(1, slice.Length - 2);
 			if (!ShouldUnescapeByteString(chunk))
 			{
 				return Encoding.Default.GetString(chunk);
@@ -1065,14 +1140,51 @@ namespace Doxense.Collections.Tuples.Encoding
 			return s;
 		}
 
+		/// <summary>Parse a tuple segment containing a unicode string</summary>
+		[Pure]
+		public static string ParseUnicode(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.Utf8 && slice[^1] == 0);
+
+			if (slice.Length <= 2) return string.Empty;
+
+			var chunk = slice.Slice(1, slice.Length - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return Encoding.UTF8.GetString(chunk);
+			}
+			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			if (!TryUnescapeByteString(chunk, buffer, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+
+			var s = Encoding.UTF8.GetString(buffer, 0, written);
+			ArrayPool<byte>.Shared.Return(buffer);
+			return s;
+		}
+
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
 		[Pure]
 		public static IVarTuple ParseTuple(Slice slice)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.EmbeddedTuple && slice[-1] == 0);
+			Contract.Debug.Requires(slice.Count > 0 && slice[0] == TupleTypes.EmbeddedTuple && slice[^1] == 0);
 			if (slice.Count <= 2) return STuple.Empty;
 
-			return TuplePackers.Unpack(slice.Substring(1, slice.Count - 2), true);
+			var chunk = slice.Substring(1, slice.Count - 2);
+			var reader = new TupleReader(chunk.Span, depth: 1);
+			return TuplePackers.Unpack(ref reader).ToTuple(chunk);
+		}
+
+		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
+		[Pure]
+		public static SpanTuple ParseTuple(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.EmbeddedTuple && slice[^1] == 0);
+			if (slice.Length <= 2) return SpanTuple.Empty;
+
+			var reader = new TupleReader(slice.Slice(1, slice.Length - 2), depth: 1);
+			return TuplePackers.Unpack(ref reader);
 		}
 
 		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
@@ -1090,6 +1202,37 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			// read the raw bits
 			uint bits = slice.ReadUInt32BE(1, 4); //OPTIMIZE: inline version?
+
+			if ((bits & 0x80000000U) == 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // positive
+				bits ^= 0x80000000U;
+			}
+
+			float value;
+			unsafe { value = *((float*)&bits); }
+
+			return value;
+		}
+
+		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
+		[Pure]
+		public static float ParseSingle(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Single);
+
+			if (slice.Length != 5)
+			{
+				throw new FormatException("Slice has invalid size for a Single");
+			}
+
+			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
+
+			// read the raw bits
+			uint bits = BinaryPrimitives.ReadUInt32BigEndian(slice.Slice(1, 4));
 
 			if ((bits & 0x80000000U) == 0)
 			{ // negative
@@ -1138,6 +1281,38 @@ namespace Doxense.Collections.Tuples.Encoding
 			return value;
 		}
 
+		/// <summary>Parse a tuple segment containing a double precision number (float64)</summary>
+		[Pure]
+		public static double ParseDouble(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Double);
+
+			if (slice.Length != 9)
+			{
+				throw new FormatException("Slice has invalid size for a Double");
+			}
+
+			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
+
+			// read the raw bits
+			ulong bits = BinaryPrimitives.ReadUInt64BigEndian(slice.Slice(1, 8));
+
+			if ((bits & 0x8000000000000000UL) == 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // positive
+				bits ^= 0x8000000000000000UL;
+			}
+
+			// note: we could use BitConverter.Int64BitsToDouble(...), but it does the same thing, and also it does not exist for floats...
+			double value;
+			unsafe { value = *((double*)&bits); }
+
+			return value;
+		}
+
 		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
 		[Pure]
 		public static decimal ParseDecimal(Slice slice)
@@ -1145,6 +1320,20 @@ namespace Doxense.Collections.Tuples.Encoding
 			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Decimal);
 
 			if (slice.Count != 17)
+			{
+				throw new FormatException("Slice has invalid size for a Decimal");
+			}
+
+			throw new NotImplementedException();
+		}
+
+		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
+		[Pure]
+		public static decimal ParseDecimal(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Decimal);
+
+			if (slice.Length != 17)
 			{
 				throw new FormatException("Slice has invalid size for a Decimal");
 			}
@@ -1164,7 +1353,22 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return Uuid128.Convert(slice.Substring(1, 16));
+			return Uuid128.Convert(slice.Substring(1));
+		}
+
+		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
+		[Pure]
+		public static Guid ParseGuid(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Uuid128);
+
+			if (slice.Length != 17)
+			{
+				throw new FormatException("Slice has invalid size for a GUID");
+			}
+
+			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
+			return Uuid128.Convert(slice.Slice(1));
 		}
 
 		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
@@ -1178,7 +1382,21 @@ namespace Doxense.Collections.Tuples.Encoding
 				throw new FormatException("Slice has invalid size for a 128-bit UUID");
 			}
 
-			return new Uuid128(slice.Substring(1, 16));
+			return new Uuid128(slice.Substring(1));
+		}
+
+		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
+		[Pure]
+		public static Uuid128 ParseUuid128(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Uuid128);
+
+			if (slice.Length != 17)
+			{
+				throw new FormatException("Slice has invalid size for a 128-bit UUID");
+			}
+
+			return new Uuid128(slice.Slice(1));
 		}
 
 		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
@@ -1195,6 +1413,20 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Uuid64.Read(slice.Substring(1, 8));
 		}
 
+		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
+		[Pure]
+		public static Uuid64 ParseUuid64(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Uuid64);
+
+			if (slice.Length != 9)
+			{
+				throw new FormatException("Slice has invalid size for a 64-bit UUID");
+			}
+
+			return Uuid64.Read(slice.Slice(1, 8));
+		}
+
 		/// <summary>Parse a tuple segment containing an 80-bit or 96-bit VersionStamp</summary>
 		[Pure]
 		public static VersionStamp ParseVersionStamp(Slice slice)
@@ -1209,53 +1441,74 @@ namespace Doxense.Collections.Tuples.Encoding
 			return VersionStamp.Parse(slice.Substring(1));
 		}
 
+		/// <summary>Parse a tuple segment containing an 80-bit or 96-bit VersionStamp</summary>
+		[Pure]
+		public static VersionStamp ParseVersionStamp(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && (slice[0] is TupleTypes.VersionStamp80 or TupleTypes.VersionStamp96));
+
+			if (slice.Length != 11 && slice.Length != 13)
+			{
+				throw new FormatException("Slice has invalid size for a VersionStamp");
+			}
+
+			return VersionStamp.Parse(slice.Slice(1));
+		}
+
 		#endregion
 
 		#region Parsing...
 
 		/// <summary>Decode the next token from a packed tuple</summary>
-		/// <param name="reader">Parser from which to read the next token</param>
 		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
-		public static (Slice Token, Exception? Error) ParseNext(ref TupleReader reader)
+		public static bool TryParseNext(ref TupleReader reader, out Range token, out Exception? error)
 		{
-			int type = reader.Input.PeekByte();
+			int r = reader.Remaining;
+			if (r <= 0)
+			{ // End of Stream
+				token = default;
+				error = null;
+				return false;
+			}
+			int type = reader.Peek();
 			switch (type)
 			{
-				case -1:
-				{ // End of Stream
-					return (Slice.Nil, null);
-				}
-
 				case TupleTypes.Nil:
 				{ // <00> / <00><FF> => null
 					if (reader.Depth > 0)
 					{ // must be <00><FF> inside an embedded tuple
-						if (reader.Input.PeekByteAt(1) == 0xFF)
+						if (r > 1 && reader.PeekAt(1) == 0xFF)
 						{ // this is a Nil entry
-							reader.Input.Skip(2);
-							return (Slice.Empty, null);
+							token = new Range(reader.Cursor, reader.Cursor + 1);
+							reader.Advance(2);
+							error = null;
+							return true;
 						}
 						else
 						{ // this is the end of the embedded tuple
-							reader.Input.Skip(1);
-							return (Slice.Nil, null);
+							reader.Advance(1);
+							token = default;
+							error = null;
+							return false;
 						}
 					}
 					else
 					{ // can be <00> outside an embedded tuple
-						reader.Input.Skip(1);
-						return (Slice.Empty, null);
+						token = new Range(reader.Cursor, reader.Cursor + 1);
+						reader.Advance(1);
+						error = null;
+						return true;
 					}
 				}
 
 				case TupleTypes.Bytes:
 				{ // <01>(bytes)<00>
-					return reader.ReadByteString();
+					return reader.TryReadByteString(out token, out error);
 				}
 
 				case TupleTypes.Utf8:
 				{ // <02>(utf8 bytes)<00>
-					return reader.ReadByteString();
+					return reader.TryReadByteString(out token, out error);
 				}
 
 				case TupleTypes.LegacyTupleStart:
@@ -1263,68 +1516,70 @@ namespace Doxense.Collections.Tuples.Encoding
 
 					//note: this format is NOT SUPPORTED ANYMORE, because it was not compatible with the current spec (<03>...<00> instead of <03>...<04> and is replaced by <05>....<00>)
 					//we prefer throwing here instead of still attempting to decode the tuple, because it could silently break layers (if we read an old-style key and update it with the new-style format)
-					return (default, TupleParser.FailLegacyTupleNotSupported());
+					token = default;
+					error = TupleParser.FailLegacyTupleNotSupported();
+					return false;
 				}
 				case TupleTypes.EmbeddedTuple:
 				{ // <05>(packed tuple)<00>
 					//PERF: currently, we will first scan to get all the bytes of this tuple, and parse it later.
 					// This means that we may need to scan multiple times the bytes, which may not be efficient if there are multiple embedded tuples inside each other
-					return ReadEmbeddedTupleBytes(ref reader);
+					return TryReadEmbeddedTupleBytes(ref reader, out token, out error);
 				}
 
 				case TupleTypes.Single:
 				{ // <20>(4 bytes)
-					return reader.ReadBytes(5);
+					return reader.TryReadBytes(5, out token, out error);
 				}
 
 				case TupleTypes.Double:
 				{ // <21>(8 bytes)
-					return reader.ReadBytes(9);
+					return reader.TryReadBytes(9, out token, out error);
 				}
 
 				case TupleTypes.Triple:
 				{ // <22>(10 bytes)
-					return reader.ReadBytes(11);
+					return reader.TryReadBytes(11, out token, out error);
 				}
 
 				case TupleTypes.Decimal:
 				{ // <23>(16 bytes)
-					return reader.ReadBytes(17);
+					return reader.TryReadBytes(17, out token, out error);
 				}
 
 				case TupleTypes.False:
 				{ // <26>
-					return reader.ReadBytes(1);
+					return reader.TryReadBytes(1, out token, out error);
 				}
 				case TupleTypes.True:
 				{ // <27>
-					return reader.ReadBytes(1);
+					return reader.TryReadBytes(1, out token, out error);
 				}
 
 				case TupleTypes.Uuid128:
 				{ // <30>(16 bytes)
-					return reader.ReadBytes(17);
+					return reader.TryReadBytes(17, out token, out error);
 				}
 
 				case TupleTypes.Uuid64:
 				{ // <31>(8 bytes)
-					return reader.ReadBytes(9);
+					return reader.TryReadBytes(9, out token, out error);
 				}
 
 				case TupleTypes.VersionStamp80:
 				{ // <32>(10 bytes)
-					return reader.ReadBytes(11);
+					return reader.TryReadBytes(11, out token, out error);
 				}
 
 				case TupleTypes.VersionStamp96:
 				{ // <33>(12 bytes)
-					return reader.ReadBytes(13);
+					return reader.TryReadBytes(13, out token, out error);
 				}
 
 				case TupleTypes.Directory:
 				case TupleTypes.Escape:
 				{ // <FE> or <FF>
-					return reader.ReadBytes(1);
+					return reader.TryReadBytes(1, out token, out error);
 				}
 			}
 
@@ -1333,40 +1588,51 @@ namespace Doxense.Collections.Tuples.Encoding
 				int bytes = type - TupleTypes.IntZero;
 				if (bytes < 0) bytes = -bytes;
 
-				return reader.ReadBytes(1 + bytes);
+				return reader.TryReadBytes(1 + bytes, out token, out error);
 			}
 
-			return (default, new FormatException($"Invalid tuple type byte {type} at index {reader.Input.Position}/{reader.Input.Buffer.Count}"));
+			token = default;
+			error = new FormatException($"Invalid tuple type byte {type} at index {reader.Cursor}/{reader.Input.Length}");
+			return false;
 		}
 
 		/// <summary>Read an embedded tuple, without parsing it</summary>
-		internal static (Slice Token, Exception? Error) ReadEmbeddedTupleBytes(ref TupleReader reader)
+		private static bool TryReadEmbeddedTupleBytes(ref TupleReader reader, out Range token, out Exception? error)
 		{
 			// The current embedded tuple starts here, and stops on a <00>, but itself can contain more embedded tuples, and could have a <00> bytes as part of regular items (like bytes, strings, that end with <00> or could contain a <00><FF> ...)
 			// This means that we have to parse the tuple recursively, discard the tokens, and note where the cursor ended. The parsing of the tuple itself will be processed later.
 
 			++reader.Depth;
-			int start = reader.Input.Position;
-			reader.Input.Skip(1);
+			int start = reader.Cursor;
+			reader.Advance(1);
 
-			while(reader.Input.HasMore)
+			while(reader.HasMore)
 			{
-				var (token, error) = ParseNext(ref reader);
-				if (error != null) return (default, error);
-
-				// the token will be Nil for either the end of the stream, or the end of the tuple
-				// => since we already tested Input.HasMore, we know we are in the later case
-				if (token.IsNull)
+				if (!TryParseNext(ref reader, out token, out error))
 				{
-					--reader.Depth;
-					//note: ParseNext() has already eaten the <00>
-					int end = reader.Input.Position;
-					return (reader.Input.Buffer.Substring(start, end - start), null);
+					if (error != null)
+					{
+						return false;
+					}
+
+					// the token will be Nil for either the end of the stream, or the end of the tuple
+					// => since we already tested Input.HasMore, we know we are in the later case
+					if (token.Equals(default))
+					{
+						//note: ParseNext() has already eaten the <00>
+						--reader.Depth;
+						int end = reader.Cursor;
+						token = new Range(start, end);
+						error = null;
+						return true;
+					}
+					// else: ignore this token, it will be processed later if the tuple is unpacked and accessed
 				}
-				// else: ignore this token, it will be processed later if the tuple is unpacked and accessed
 			}
 
-			return (default, new FormatException($"Truncated embedded tuple started at index {start}/{reader.Input.Buffer.Count}"));
+			token = default;
+			error = new FormatException($"Truncated embedded tuple started at index {start}/{reader.Input.Length}");
+			return false;
 		}
 
 		/// <summary>Skip a number of tokens</summary>
@@ -1378,24 +1644,35 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			while (count-- > 0)
 			{
-				if (!reader.Input.HasMore) return false;
-				var (token, error) = ParseNext(ref reader);
-				if (error != null || token.IsNull) return false;
+				if (!reader.HasMore) return false;
+				if (!TryParseNext(ref reader, out _, out var error))
+				{
+					if (error != null) throw error;
+					return false;
+				}
 			}
 			return true;
 		}
+
+#if NET9_0_OR_GREATER
 
 		/// <summary>Visit the different tokens of a packed tuple</summary>
 		/// <param name="reader">Reader positioned at the start of a packed tuple</param>
 		/// <param name="visitor">Lambda called for each segment of a tuple. Returns true to continue parsing, or false to stop</param>
 		/// <returns>Number of tokens that have been visited until either <paramref name="visitor"/> returned false, or <paramref name="reader"/> reached the end.</returns>
-		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, TupleSegmentType, T> visitor)
+		public static T VisitNext<T>(ref TupleReader reader, Func<ReadOnlySpan<byte>, TupleSegmentType, T> visitor)
 		{
-			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
-			var (token, error) = ParseNext(ref reader);
-			if (error != null) throw error;
-			return visitor(token, TupleTypes.DecodeSegmentType(token));
+			if (!reader.HasMore) throw new InvalidOperationException("The reader has already reached the end");
+			if (!TryParseNext(ref reader, out var token, out var error))
+			{
+				if (error != null) throw error;
+			}
+
+			var slice = reader.Input[token];
+			return visitor(slice, TupleTypes.DecodeSegmentType(slice));
 		}
+
+#endif
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static Exception FailLegacyTupleNotSupported()

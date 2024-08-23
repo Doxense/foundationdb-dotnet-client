@@ -251,7 +251,7 @@ namespace Doxense.Collections.Tuples
 
 			if (other is ListTuple<T> list)
 			{
-				return list.Count == Count && CompareItems(list.m_items.Span, comparer);
+				return list.Count == this.Count && CompareItems(list.m_items.Span, comparer);
 			}
 
 			return TupleHelpers.Equals(this, other, comparer);

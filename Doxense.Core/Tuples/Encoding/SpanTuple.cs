@@ -29,24 +29,25 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Collections;
 	using System.ComponentModel;
 	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Runtime.Converters;
 	using Doxense.Serialization;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
-	public sealed class SlicedTuple : IVarTuple, ITupleSerializable, ISliceSerializable
+	public ref struct SpanTuple : IVarTuple, ITupleSerializable, ISliceSerializable
 	{
 
-		/// <summary>Buffer containing the original slices.</summary>
-		private readonly ReadOnlyMemory<Slice> m_slices;
+		/// <summary>Buffer containing the original content.</summary>
+		private readonly ReadOnlySpan<byte> m_buffer;
 
-		private int? m_hashCode;
+		/// <summary>Buffer containing the location of each slice.</summary>
+		private readonly ReadOnlySpan<Range> m_slices;
 
-		public static readonly SlicedTuple Empty = new(default);
+		public static SpanTuple Empty => default;
 
-		public SlicedTuple(ReadOnlyMemory<Slice> slices)
+		public SpanTuple(ReadOnlySpan<byte> buffer, ReadOnlySpan<Range> slices)
 		{
+			m_buffer = buffer;
 			m_slices = slices;
 		}
 
@@ -58,19 +59,28 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// </remarks>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure]
-		public static SlicedTuple Unpack(Slice packedKey)
+		public static SpanTuple Unpack(Slice packedKey)
 		{
 			if (packedKey.IsNull) throw new ArgumentNullException(nameof(packedKey), "Cannot unpack tuple from Nil");
-			if (packedKey.Count == 0) return SlicedTuple.Empty;
+			return Unpack(packedKey.Span);
+		}
 
-			var reader = new TupleReader(packedKey.Span);
-			var st = TuplePackers.Unpack(ref reader);
-			return st.ToTuple(packedKey);
+		/// <summary>Unpack a tuple from a serialized key blob</summary>
+		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
+		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
+		/// <remarks>
+		/// <para>This is the same as <see cref="TuPack.Unpack(System.Slice)"/>, except that it will expose the concrete type <see cref="SlicedTuple"/> instead of the <see cref="IVarTuple"/> interface.</para>
+		/// </remarks>
+		[Pure]
+		public static SpanTuple Unpack(ReadOnlySpan<byte> packedKey)
+		{
+			var reader = new TupleReader(packedKey);
+			return TuplePackers.Unpack(ref reader);
 		}
 
 		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SlicedTuple"/></summary>
 		/// <remarks>This methods can be useful to examine what the result of packing a tuple would be, after a round-trip to the database.</remarks>
-		public static SlicedTuple Repack<TTuple>(TTuple? tuple) where TTuple : IVarTuple?
+		public static SpanTuple Repack<TTuple>(TTuple? tuple) where TTuple : IVarTuple?
 		{
 			return tuple is SlicedTuple st ? Unpack(st.ToSlice()) : Unpack(TuPack.Pack(tuple));
 		}
@@ -81,10 +91,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		public Slice ToSlice()
 		{
 			// pre-compute the capacity required
+			var bufferLen = m_buffer.Length;
 			int size = 0;
-			foreach (var slice in m_slices.Span)
+			foreach (var slice in m_slices)
 			{
-				size += slice.Count;
+				size += slice.GetOffsetAndLength(bufferLen).Length;
 			}
 
 			if (size == 0)
@@ -101,9 +112,10 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public void WriteTo(ref SliceWriter writer)
 		{
-			foreach(var slice in m_slices.Span)
+			var buffer = m_buffer;
+			foreach(var slice in m_slices)
 			{
-				writer.WriteBytes(slice);
+				writer.WriteBytes(buffer[slice]);
 			}
 		}
 
@@ -114,9 +126,10 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		internal void PackTo(ref TupleWriter writer)
 		{
-			foreach(var slice in m_slices.Span)
+			var buffer = m_buffer;
+			foreach(var slice in m_slices)
 			{
-				writer.Output.WriteBytes(slice);
+				writer.Output.WriteBytes(buffer[slice]);
 			}
 		}
 
@@ -125,10 +138,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		public int Count => m_slices.Length;
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
+		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSpan(index));
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public SlicedTuple this[int? fromIncluded, int? toExcluded]
+		public SpanTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
@@ -137,34 +150,34 @@ namespace Doxense.Collections.Tuples.Encoding
 				int end = toExcluded.HasValue ? TupleHelpers.MapIndexBounded(toExcluded.Value, count) : count;
 
 				int len = end - begin;
-				if (len <= 0) return SlicedTuple.Empty;
+				if (len <= 0) return default;
 				if (begin == 0 && len == count) return this;
-				return new SlicedTuple(m_slices.Slice(begin, len));
+				return new(m_buffer, m_slices.Slice(begin, len));
 			}
 		}
 
 		/// <inheritdoc />
-		IVarTuple IVarTuple.this[int? fromIncluded, int? toExcluded] => this[fromIncluded, toExcluded];
+		IVarTuple IVarTuple.this[int? fromIncluded, int? toExcluded] => throw new NotSupportedException();
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public object? this[Index index] => TuplePackers.DeserializeBoxed(m_slices.Span[index.GetOffset(m_slices.Length)]);
+		public object? this[Index index] => TuplePackers.DeserializeBoxed(m_buffer[m_slices[index.GetOffset(m_slices.Length)]]);
 
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public SlicedTuple this[Range range]
+		public SpanTuple this[Range range]
 		{
 			get
 			{
 				int len = this.Count;
 				(int offset, int count) = range.GetOffsetAndLength(len);
-				if (count == 0) return SlicedTuple.Empty;
+				if (count == 0) return default;
 				if (offset == 0 && count == len) return this;
-				return new SlicedTuple(m_slices.Slice(offset, count));
+				return new(m_buffer, m_slices.Slice(offset, count));
 			}
 		}
 
 		/// <inheritdoc />
-		IVarTuple IVarTuple.this[Range range] => this[range];
+		IVarTuple IVarTuple.this[Range range] => throw new NotSupportedException();
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Always)]
@@ -187,7 +200,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// </example>
 		public T? Get<T>(Index index)
 		{
-			return TuplePacker<T>.Deserialize(m_slices.Span[index]);
+			return TuplePacker<T>.Deserialize(m_buffer[m_slices[index]]);
 		}
 
 		/// <summary>Returns the typed value of the first item in this tuple</summary>
@@ -201,8 +214,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public T? First<T>()
 		{
-			var slices = m_slices.Span;
-			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[0]) : throw new InvalidOperationException("Tuple is empty");
+			var slices = m_slices;
+			return slices.Length != 0 ? TuplePacker<T>.Deserialize(m_buffer[slices[0]]) : throw ThrowHelper.InvalidOperationException("Tuple is empty");
 		}
 
 		/// <summary>Returns the typed value of the last item of the tuple</summary>
@@ -216,16 +229,24 @@ namespace Doxense.Collections.Tuples.Encoding
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public T? Last<T>()
 		{
-			var slices = m_slices.Span;
-			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[^1]) : throw new InvalidOperationException("Tuple is empty");
+			var slices = m_slices;
+			return slices.Length != 0 ? TuplePacker<T>.Deserialize(m_buffer[slices[^1]]) : throw ThrowHelper.InvalidOperationException("Tuple is empty");
 		}
 
-		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
+		/// <summary>Returns the encoded binary representation of the element at the specified index</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ReadOnlySpan<byte> GetSpan(int index)
+		{
+			var slices = m_slices;
+			return m_buffer[slices[TupleHelpers.MapIndex(index, slices.Length)]];
+		}
+
+		/// <summary>Returns the encoded binary representation of the element at the specified index</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice GetSlice(int index)
 		{
-			var slices = m_slices.Span;
-			return slices[TupleHelpers.MapIndex(index, slices.Length)];
+			var slices = m_slices;
+			return Slice.Copy(m_buffer[slices[TupleHelpers.MapIndex(index, slices.Length)]]);
 		}
 
 		/// <summary>Test if the element at the specified index is <see cref="TupleSegmentType.Nil"/></summary>
@@ -267,7 +288,11 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice GetSlice(Index index) => m_slices.Span[index];
+		public ReadOnlySpan<byte> GetSpan(Index index) => m_buffer[m_slices[index]];
+
+		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice GetSlice(Index index) => Slice.Copy(m_buffer[m_slices[index]]);
 
 		/// <summary>Returns the <see cref="TupleSegmentType">encoded type</see> of the element at the specified index</summary>
 		/// <returns>This helps test if a parser element is a string, a number, a boolean, etc...</returns>
@@ -299,31 +324,81 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public bool TryCopyTo(Span<object?> destination)
 		{
-			var slices = m_slices.Span;
+			var slices = m_slices;
 			if (destination.Length < slices.Length)
 			{
 				return false;
 			}
 
+			var buffer = m_buffer;
 			for (int i = 0; i < slices.Length;i++)
 			{
-				destination[i] = TuplePackers.DeserializeBoxed(slices[i]);
+				destination[i] = TuplePackers.DeserializeBoxed(buffer[slices[i]]);
 			}
 			return true;
 		}
 
-		public void CopyTo(Span<Slice> destination) => m_slices.Span.CopyTo(destination);
+		public void CopyTo(Span<Slice> destination)
+		{
+			var slices = m_slices;
+			if (slices.Length > destination.Length) throw ThrowHelper.ArgumentException(nameof(destination), "Destination buffer is too short");
+			var buffer = m_buffer;
+			for (int i = 0; i < slices.Length; i++)
+			{
+				destination[i] = Slice.Copy(buffer[slices[i]]);
+			}
+		}
 
-		public bool TryCopyTo(Span<Slice> destination) => m_slices.Span.TryCopyTo(destination);
+		public bool TryCopyTo(Span<Slice> destination)
+		{
+			var slices = m_slices;
+			if (slices.Length > destination.Length)
+			{
+				return false;
+			}
+			var buffer = m_buffer;
+			for (int i = 0; i < slices.Length; i++)
+			{
+				destination[i] = Slice.Copy(buffer[slices[i]]);
+			}
+			return true;
+		}
+
+		public object?[] ToArray()
+		{
+			var slices = m_slices;
+			var buffer = m_buffer;
+			var items = new object?[slices.Length];
+			//note: I'm not sure if we're allowed to use a local variable of type Span<..> in here?
+			for (int i = 0; i < slices.Length; i++)
+			{
+				items[i] = TuplePackers.DeserializeBoxed(buffer[slices[i]]);
+			}
+
+			return items;
+		}
+
+		public IVarTuple ToTuple() => new ListTuple<object?>(ToArray());
+
+		internal SlicedTuple ToTuple(Slice original)
+		{
+			// the caller MUST pass the original Slice that contains our buffer (or with the same content)
+			var slices = m_slices;
+			if (m_slices.Length == 0) return SlicedTuple.Empty;
+
+			var tmp = new Slice[slices.Length];
+			for (int i = 0; i < slices.Length; i++)
+			{
+				tmp[i] = original[slices[i]];
+			}
+			return new SlicedTuple(tmp);
+		}
 
 		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
-			//note: I'm not sure if we're allowed to use a local variable of type Span<..> in here?
-			for (int i = 0; i < m_slices.Length; i++)
-			{
-				yield return TuplePackers.DeserializeBoxed(m_slices.Span[i]);
-			}
+			//TODO: PERF: we cannot use 'yield' since we are a ref struct, so we will have to allocate :/
+			return ((IEnumerable<object?>) ToArray()).GetEnumerator();
 		}
 
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
@@ -336,59 +411,44 @@ namespace Doxense.Collections.Tuples.Encoding
 			return STuple.Formatter.ToString(this);
 		}
 
-		public override bool Equals(object? obj) => obj is not null && ((IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
+		public override bool Equals(object? obj) => obj is not null && Equals(obj, SimilarValueComparer.Default);
 
-		public bool Equals(IVarTuple? other) => other is not null && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
+		public bool Equals(IVarTuple? other) => other is not null && Equals(other, SimilarValueComparer.Default);
 
-		public override int GetHashCode() => ((IStructuralEquatable) this).GetHashCode(SimilarValueComparer.Default);
+		public override int GetHashCode() => GetHashCode(SimilarValueComparer.Default);
 
-		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer) => Equals(other, comparer);
+
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer) => GetHashCode(comparer);
+
+		private bool Equals(object? other, IEqualityComparer comparer)
 		{
-			if (ReferenceEquals(this, other)) return true;
 			if (other is null) return false;
+			if (other is not IVarTuple vt) return false;
 
-			if (other is SlicedTuple sliced)
-			{
-				// compare slices!
-				var left = m_slices.Span;
-				var right = sliced.m_slices.Span;
-				if (left.Length != right.Length) return false;
-				for (int i = 0; i < left.Length; i++)
-				{
-					if (left[i] != right[i])
-					{
-						return false;
-					}
-				}
-				return false;
-			}
-
-			return TupleHelpers.Equals(this, other, comparer);
-		}
-
-		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
-		{
-			bool canUseCache = ReferenceEquals(comparer, SimilarValueComparer.Default);
-
-			if (m_hashCode.HasValue && canUseCache)
-			{
-				return m_hashCode.Value;
-			}
-
-			int h = 0;
-			var slices = m_slices.Span;
+			var slices = m_slices;
+			if (slices.Length != vt.Count) return false;
 			for (int i = 0; i < slices.Length; i++)
 			{
-				h = HashCodes.Combine(h, comparer.GetHashCode(slices[i]));
+				if (!comparer.Equals(this[i], vt[i])) return false;
 			}
-			if (canUseCache)
+
+			return true;
+		}
+
+		private int GetHashCode(IEqualityComparer comparer)
+		{
+			int h = 0;
+			var slices = m_slices;
+			var buffer = m_buffer;
+			for (int i = 0; i < slices.Length; i++)
 			{
-				m_hashCode = h;
+				h = HashCodes.Combine(h, TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[i]]), comparer));
 			}
 			return h;
 		}
 
-		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer) => comparer.GetHashCode(m_slices.Span[index]);
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer) => comparer.GetHashCode(m_slices[index]);
 	}
 
 }

@@ -784,6 +784,32 @@ namespace Doxense.Collections.Tuples
 				}
 			}
 
+			/// <summary>Converts a sequence of object into a displaying string, for loggin/debugging purpose</summary>
+			/// <param name="items">Sequence of items to stringify</param>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
+			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
+			internal static string ToString(SpanTuple items)
+			{
+				using (var enumerator = items.GetEnumerator())
+				{
+					if (!enumerator.MoveNext())
+					{ // empty tuple : "()"
+						return TokenTupleEmpty;
+					}
+
+					var sb = new StringBuilder();
+					sb.Append('(').Append(StringifyBoxed(enumerator.Current));
+					bool singleton = true;
+					while (enumerator.MoveNext())
+					{
+						singleton = false;
+						sb.Append(TokenTupleSep).Append(StringifyBoxed(enumerator.Current));
+					}
+					// add a trailing ',' for singletons
+					return sb.Append(singleton ? TokenTupleSingleClose : TokenTupleClose).ToString();
+				}
+			}
+
 		}
 
 		/// <summary>Helper to parse strings back into tuples</summary>

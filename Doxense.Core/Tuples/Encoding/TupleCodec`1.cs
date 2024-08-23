@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TupleEncoder.EncodeKey(default, value);
 		}
 
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T? value)
+		public override void EncodeOrderedTo(ref SliceWriter output, T? value)
 		{
 			//HACKHACK: we lose the current depth!
 			var writer = new TupleWriter(output);
@@ -61,12 +61,16 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.DecodeKey<T?>(input);
 		}
 
-		public override T? DecodeOrderedSelfTerm(ref SliceReader input)
+		public override T? DecodeOrderedFrom(ref SliceReader input)
 		{
-			//HACKHACK: we lose the current depth!
-			var reader = new TupleReader(input);
-			bool res = TuPack.DecodeNext<T?>(ref reader, out var value);
-			input = reader.Input;
+			// decode the next value from the tail
+			var reader = new TupleReader(input.Tail.Span);
+			bool res = TupleEncoder.TryDecodeNext<T?>(ref reader, out var value, out var error);
+			if (error != null) throw error;
+
+			// advance the original reader by the same amount that was consumed
+			input.Skip(reader.Cursor);
+
 			return res ? value : m_missingValue;
 		}
 

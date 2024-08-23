@@ -148,10 +148,23 @@ namespace Doxense.Collections.Tuples.Encoding
 		public IVarTuple UnpackKey(Slice packed) => TuPack.Unpack(packed);
 
 		/// <inheritdoc />
-		public bool TryUnpackKey(Slice packed, [NotNullWhen(true)] out IVarTuple? tuple) => TuPack.TryUnpack(packed, out tuple);
+		public bool TryUnpackKey(Slice packed, [NotNullWhen(true)] out IVarTuple? tuple)
+		{
+			if (TuPack.TryUnpack(packed, out var st))
+			{
+				tuple = st;
+				return true;
+			}
+
+			tuple = null;
+			return false;
+		}
 
 		/// <inheritdoc />
 		public T? DecodeKey<T>(Slice packed) => TuPack.DecodeKey<T>(packed);
+
+		/// <inheritdoc />
+		public T? DecodeKey<T>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T>(packed);
 
 		/// <inheritdoc />
 		public T1? DecodeKeyFirst<T1>(Slice packed) => TuPack.DecodeFirst<T1>(packed);
@@ -175,22 +188,43 @@ namespace Doxense.Collections.Tuples.Encoding
 		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed) => TuPack.DecodeKey<T1, T2>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?) DecodeKey<T1, T2>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2>(packed);
+
+		/// <inheritdoc />
 		public (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packed) => TuPack.DecodeKey<T1, T2, T3>(packed);
+
+		/// <inheritdoc />
+		public (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3>(packed);
 
 		/// <inheritdoc />
 		public (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3, T4>(packed);
+
+		/// <inheritdoc />
 		public (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5>(packed);
+
+		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5>(packed);
 
 		/// <inheritdoc />
 		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
+
+		/// <inheritdoc />
 		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(packed);
+
+		/// <inheritdoc />
 		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(packed);
+
+		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(packed);
 
 		/// <inheritdoc />
 		public (Slice Begin, Slice End) ToRange(Slice prefix) => TuPack.ToRange(prefix);

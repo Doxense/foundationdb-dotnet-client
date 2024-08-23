@@ -27,64 +27,100 @@
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
-	[DebuggerDisplay("{Input.Position}/{Input.Buffer.Count} @ {Depth}")]
-	public struct TupleReader
+	[DebuggerDisplay("{Cursor}/{Input.Length} @ {Depth}")]
+	public ref struct TupleReader
 	{
-		public SliceReader Input;
+		public readonly ReadOnlySpan<byte> Input;
 		public int Depth;
+		public int Cursor;
 
-		[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TupleReader(Slice buffer)
-		{
-			this.Input = new SliceReader(buffer);
-			this.Depth = 0;
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TupleReader(Slice buffer, int depth)
-		{
-			this.Input = new SliceReader(buffer);
-			this.Depth = depth;
-		}
-
-		public TupleReader(SliceReader input)
+		public TupleReader(ReadOnlySpan<byte> input)
 		{
 			this.Input = input;
 			this.Depth = 0;
+			this.Cursor = 0;
+		}
+
+		public TupleReader(ReadOnlySpan<byte> input, int depth)
+		{
+			this.Input = input;
+			this.Depth = depth;
+			this.Cursor = 0;
+		}
+
+		public TupleReader(ReadOnlySpan<byte> input, int depth, int cursor)
+		{
+			this.Input = input;
+			this.Depth = depth;
+			this.Cursor = cursor;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TupleReader Embedded(Slice packed)
+		public static TupleReader Embedded(ReadOnlySpan<byte> packed)
 		{
-			Contract.Debug.Requires(packed.Count >= 2 && packed[0] == TupleTypes.EmbeddedTuple && packed[-1] == 0);
-			return new TupleReader(packed.Substring(1, packed.Count - 2), 1);
+			Contract.Debug.Requires(packed.Length >= 2 && packed[0] == TupleTypes.EmbeddedTuple && packed[^1] == 0);
+			return new TupleReader(packed.Slice(1, packed.Length - 2));
 		}
 
-		public (Slice Token, Exception? Error) ReadBytes(int count)
+		public readonly int Remaining => this.Input.Length - this.Cursor;
+
+		public readonly bool HasMore => this.Cursor < this.Input.Length;
+
+		public readonly int Peek() => this.Input[this.Cursor];
+
+		public readonly int PeekAt(int offset) => this.Input[this.Cursor + offset];
+
+		public void Advance(int bytes) => this.Cursor += bytes;
+
+		public bool TryReadBytes(int count, out Range token, [NotNullWhen(false)] out Exception? error)
 		{
-			if (this.Input.TryReadBytes(count, out Slice bytes))
+			int start = this.Cursor;
+			int end = start + count;
+			if (end > this.Input.Length)
 			{
-				return (bytes, null);
+				token = default;
+				error = SliceReader.NotEnoughBytes(count);
+				return false;
 			}
-			else
-			{
-				return (default, SliceReader.NotEnoughBytes(count));
-			}
+
+			token = new Range(start, end);
+			this.Cursor = end;
+			error = null;
+			return true;
 		}
 
-		public (Slice Token, Exception? Error) ReadByteString()
+		public bool TryReadByteString(out Range token, [NotNullWhen(false)] out Exception? error)
 		{
-			if (this.Input.TryReadByteString(out var bytes))
+			int p = this.Cursor;
+			var buffer = this.Input;
+			int end = buffer.Length;
+			while (p < end)
 			{
-				return (bytes, null);
+				byte b = buffer[p++];
+				if (b == 0)
+				{
+					//TODO: decode \0\xFF ?
+					if (p < end && buffer[p] == 0xFF)
+					{
+						// skip the next byte and continue
+						p++;
+						continue;
+					}
+
+					token = new Range(this.Cursor, p);
+					this.Cursor = p;
+					error = null;
+					return true;
+				}
 			}
-			else
-			{
-				return (default, new FormatException("Truncated byte string (expected terminal NUL not found)"));
-			}
+
+			token = default;
+			error = new FormatException("Truncated byte string (expected terminal NUL not found)");
+			return false;
 		}
 
 	}

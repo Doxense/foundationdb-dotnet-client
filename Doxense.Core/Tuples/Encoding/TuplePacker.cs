@@ -36,7 +36,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true)!;
 
-		private static readonly Func<Slice, T?> Decoder = TuplePackers.GetDeserializer<T>(required: true);
+		internal static readonly TuplePackers.Decoder<T?> Decoder = TuplePackers.GetDeserializer<T>(required: true);
 
 		/// <summary>Serialize a <typeparamref name="T"/> using a Tuple Writer</summary>
 		/// <param name="writer">Target buffer</param>
@@ -85,9 +85,49 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Deserialize a tuple segment into a value of type <typeparamref name="T"/></summary>
 		/// <param name="slice">Slice that contains the binary representation of a tuple item</param>
 		/// <returns>Decoded value, or an exception if the item type is not compatible</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize(Slice slice)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T? Deserialize(Slice slice) => Decoder(slice.Span);
+
+		/// <summary>Deserialize a tuple segment into a value of type <typeparamref name="T"/></summary>
+		/// <param name="slice">Slice that contains the binary representation of a tuple item</param>
+		/// <returns>Decoded value, or an exception if the item type is not compatible</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T? Deserialize(ReadOnlySpan<byte> slice)
 		{
+			//<JIT_HACK>
+			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
+			// - In Debug builds, we have to disabled this, because it would be too slow
+#if !DEBUG
+			// non-nullable
+			if (typeof(T) == typeof(int)) return (T?) (object) TuplePackers.DeserializeInt32(slice);
+			if (typeof(T) == typeof(long)) return (T?) (object) TuplePackers.DeserializeInt64(slice);
+			if (typeof(T) == typeof(bool)) return (T?) (object) TuplePackers.DeserializeBoolean(slice);
+			if (typeof(T) == typeof(float)) return (T?) (object) TuplePackers.DeserializeSingle(slice);
+			if (typeof(T) == typeof(double)) return (T?) (object) TuplePackers.DeserializeDouble(slice);
+			if (typeof(T) == typeof(VersionStamp)) return (T?) (object) TuplePackers.DeserializeVersionStamp(slice);
+			if (typeof(T) == typeof(Guid)) return (T?) (object) TuplePackers.DeserializeGuid(slice);
+			if (typeof(T) == typeof(Uuid128)) return (T?) (object) TuplePackers.DeserializeUuid128(slice);
+			if (typeof(T) == typeof(Uuid96)) return (T?) (object) TuplePackers.DeserializeUuid96(slice);
+			if (typeof(T) == typeof(Uuid80)) return (T?) (object) TuplePackers.DeserializeUuid80(slice);
+			if (typeof(T) == typeof(Uuid64)) return (T?) (object) TuplePackers.DeserializeUuid64(slice);
+			if (typeof(T) == typeof(TimeSpan)) return (T?) (object) TuplePackers.DeserializeTimeSpan(slice);
+			if (typeof(T) == typeof(Slice)) return (T?) (object) TuplePackers.DeserializeSlice(slice);
+			// nullable
+			if (typeof(T) == typeof(int?)) return (T?) (object?) TuplePackers.DeserializeInt32Nullable(slice);
+			if (typeof(T) == typeof(long?)) return (T?) (object?) TuplePackers.DeserializeInt64Nullable(slice);
+			if (typeof(T) == typeof(bool?)) return (T?) (object?) TuplePackers.DeserializeBooleanNullable(slice);
+			if (typeof(T) == typeof(float?)) return (T?) (object?) TuplePackers.DeserializeSingleNullable(slice);
+			if (typeof(T) == typeof(double?)) return (T?) (object?) TuplePackers.DeserializeDoubleNullable(slice);
+			if (typeof(T) == typeof(VersionStamp?)) return (T?) (object?) TuplePackers.DeserializeVersionStampNullable(slice);
+			if (typeof(T) == typeof(Guid?)) return (T?) (object?) TuplePackers.DeserializeGuidNullable(slice);
+			if (typeof(T) == typeof(Uuid128?)) return (T?) (object?) TuplePackers.DeserializeUuid128Nullable(slice);
+			if (typeof(T) == typeof(Uuid96?)) return (T?) (object?) TuplePackers.DeserializeUuid96Nullable(slice);
+			if (typeof(T) == typeof(Uuid80?)) return (T?) (object?) TuplePackers.DeserializeUuid80Nullable(slice);
+			if (typeof(T) == typeof(TimeSpan?)) return (T?) (object?) TuplePackers.DeserializeTimeSpanNullable(slice);
+			if (typeof(T) == typeof(Uuid64?)) return (T?) (object?) TuplePackers.DeserializeUuid64Nullable(slice);
+#endif
+			//</JIT_HACK>
+
 			return Decoder(slice);
 		}
 

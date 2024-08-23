@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Appends the packed bytes of an item to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>
 		/// <param name="tuple">Tuple that will be packed</param>
-		void PackTo(ref TupleWriter writer, scoped in TTuple tuple);
+		void PackTo(ref TupleWriter writer, in TTuple tuple);
 
 		/// <summary>Decode the packed bytes from a buffer, and return the corresponding item</summary>
 		/// <param name="reader">Buffer that contains the bytes the decode</param>

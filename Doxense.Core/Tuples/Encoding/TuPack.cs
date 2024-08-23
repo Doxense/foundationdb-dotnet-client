@@ -26,6 +26,8 @@
 
 namespace Doxense.Collections.Tuples
 {
+	using System.ComponentModel;
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples.Encoding;
@@ -104,6 +106,14 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1>(ValueTuple<T1> tuple)
 		{
 			return TupleEncoder.Pack(default, in tuple);
@@ -145,6 +155,22 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
+		{
+			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) tuple)
+		{
+			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
 			return TupleEncoder.Pack(default, in tuple);
 		}
@@ -221,6 +247,17 @@ namespace Doxense.Collections.Tuples
 		public static Slice Pack<TTuple>(Slice prefix, TTuple? tuple)
 			where TTuple : IVarTuple?
 		{
+			return TupleEncoder.Pack(prefix.Span, tuple);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a tuple</summary>
+		/// <param name="prefix">Prefix added to the start of the packed slice</param>
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<TTuple>(ReadOnlySpan<byte> prefix, TTuple? tuple)
+			where TTuple : IVarTuple?
+		{
 			return TupleEncoder.Pack(prefix, tuple);
 		}
 
@@ -229,6 +266,15 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1>(Slice prefix, STuple<T1> tuple)
+		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Prefix added to the start of the packed slice</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1>(ReadOnlySpan<byte> prefix, STuple<T1> tuple)
 		{
 			return TupleEncoder.Pack(prefix, in tuple);
 		}
@@ -239,6 +285,15 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2>(Slice prefix, STuple<T1, T2> tuple)
 		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Prefix added to the start of the packed slice</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2>(ReadOnlySpan<byte> prefix, STuple<T1, T2> tuple)
+		{
 			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
@@ -247,6 +302,15 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3>(Slice prefix, STuple<T1, T2, T3> tuple)
+		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Prefix added to the start of the packed slice</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3> tuple)
 		{
 			return TupleEncoder.Pack(prefix, in tuple);
 		}
@@ -257,6 +321,15 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, STuple<T1, T2, T3, T4> tuple)
 		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Prefix added to the start of the packed slice</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4> tuple)
+		{
 			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
@@ -266,6 +339,15 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, STuple<T1, T2, T3, T4, T5> tuple)
 		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Prefix added to the start of the packed slice</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5> tuple)
+		{
 			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
@@ -274,6 +356,33 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
+		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
+		{
+			return TupleEncoder.Pack(prefix, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
 			return TupleEncoder.Pack(prefix, in tuple);
 		}
@@ -286,6 +395,17 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples(Slice prefix, params IVarTuple[] tuples)
 		{
+			return TupleEncoder.Pack(prefix.Span, tuples);
+		}
+
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples(ReadOnlySpan<byte> prefix, params IVarTuple[] tuples)
+		{
 			return TupleEncoder.Pack(prefix, tuples);
 		}
 
@@ -296,6 +416,17 @@ namespace Doxense.Collections.Tuples
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples(Slice prefix, params ReadOnlySpan<IVarTuple> tuples)
+		{
+			return TupleEncoder.Pack(prefix.Span, tuples);
+		}
+
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples(ReadOnlySpan<byte> prefix, params ReadOnlySpan<IVarTuple> tuples)
 		{
 			return TupleEncoder.Pack(prefix, tuples);
 		}
@@ -308,6 +439,17 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples(Slice prefix, IEnumerable<IVarTuple> tuples)
 		{
+			return TupleEncoder.Pack(prefix.Span, tuples);
+		}
+
+		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples(ReadOnlySpan<byte> prefix, IEnumerable<IVarTuple> tuples)
+		{
 			return TupleEncoder.Pack(prefix, tuples);
 		}
 
@@ -315,11 +457,25 @@ namespace Doxense.Collections.Tuples
 		public static Slice[] PackTuples<TElement, TTuple>(Slice prefix, TElement[] elements, Func<TElement, TTuple> transform)
 			where TTuple : IVarTuple?
 		{
+			return TupleEncoder.Pack(prefix.Span, elements, transform);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples<TElement, TTuple>(ReadOnlySpan<byte> prefix, TElement[] elements, Func<TElement, TTuple> transform)
+			where TTuple : IVarTuple?
+		{
 			return TupleEncoder.Pack(prefix, elements, transform);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<TElement, TTuple>(Slice prefix, IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
+			where TTuple : IVarTuple?
+		{
+			return TupleEncoder.Pack(prefix.Span, elements, transform);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples<TElement, TTuple>(ReadOnlySpan<byte> prefix, IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
 			where TTuple : IVarTuple?
 		{
 			return TupleEncoder.Pack(prefix, elements, transform);
@@ -390,8 +546,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodeKeys<T1>(IEnumerable<T1> keys)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.EncodeKeys(empty, keys);
+			return TupleEncoder.EncodeKeys(default(ReadOnlySpan<byte>), keys);
 		}
 
 		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -402,14 +557,24 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, IEnumerable<T> keys)
 		{
+			return TupleEncoder.EncodeKeys(prefix.Span, keys);
+		}
+
+		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodePrefixedKeys<T>(ReadOnlySpan<byte> prefix, IEnumerable<T> keys)
+		{
 			return TupleEncoder.EncodeKeys(prefix, keys);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodeKeys<T>(params T?[] keys)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.EncodeKeys(empty, keys);
+			return TupleEncoder.EncodeKeys(default(ReadOnlySpan<byte>), keys);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -420,14 +585,23 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, params T?[] keys)
 		{
-			return TupleEncoder.EncodeKeys(prefix, keys);
+			return TupleEncoder.EncodeKeys(prefix.Span, keys);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodeKeys<T>(params ReadOnlySpan<T?> keys)
+		public static Slice[] EncodeKeys<T>(params ReadOnlySpan<T> keys)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.EncodeKeys(empty, keys);
+			return TupleEncoder.EncodeKeys(default, keys);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Slice[] EncodeKeys<T>(Span<T> keys)
+		{
+			// This only exists to fix an overload resolution ambiguity in the following situation:
+			// > var keys = TuPack.EncodeKeys(..., someArray.AsSpan(...))
+			// In this case, AsSpan(..) returns a Span<T> which is not ReadOnlySpan<T>, so the compiler will prefer the (IEnumerable<T>) overload instead of (ReadOnlySpan<T>)
+			return TupleEncoder.EncodeKeys(default, (ReadOnlySpan<T>) keys);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -436,9 +610,35 @@ namespace Doxense.Collections.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, params ReadOnlySpan<T?> keys)
+		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, params ReadOnlySpan<T> keys)
+		{
+			return TupleEncoder.EncodeKeys(prefix.Span, keys);
+		}
+
+		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodePrefixedKeys<T>(ReadOnlySpan<byte> prefix, params ReadOnlySpan<T> keys)
 		{
 			return TupleEncoder.EncodeKeys(prefix, keys);
+		}
+
+		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, Span<T> keys)
+		{
+			// This only exists to fix an overload resolution ambiguity in the following situation:
+			// > var keys = TuPack.EncodePrefixKeys(..., someArray.AsSpan(...))
+			// In this case, AsSpan(..) returns a Span<T> which is not ReadOnlySpan<T>, so the compiler will prefer the (..., IEnumerable<T>) overload instead of (..., ReadOnlySpan<T>)
+			return TupleEncoder.EncodeKeys(prefix.Span, (ReadOnlySpan<T>) keys);
 		}
 
 		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
@@ -450,8 +650,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodeKeys<TKey, TElement>(TElement[] elements, Func<TElement, TKey> selector)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.EncodeKeys(empty, elements, selector);
+			return TupleEncoder.EncodeKeys(default, elements, selector);
 		}
 
 		/// <summary>Merge an array of elements with a same prefix, all sharing the same buffer</summary>
@@ -463,6 +662,19 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<TKey, TElement>(Slice prefix, TElement[] elements, Func<TElement, TKey> selector)
+		{
+			return TupleEncoder.EncodeKeys(prefix.Span, elements, selector);
+		}
+
+		/// <summary>Merge an array of elements with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="TElement">Type of the elements</typeparam>
+		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
+		/// <param name="prefix">Prefix shared by all keys (can be empty)</param>
+		/// <param name="elements">Sequence of elements to pack</param>
+		/// <param name="selector">Lambda that extract the key from each element</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodePrefixedKeys<TKey, TElement>(ReadOnlySpan<byte> prefix, TElement[] elements, Func<TElement, TKey> selector)
 		{
 			return TupleEncoder.EncodeKeys(prefix, elements, selector);
 		}
@@ -592,6 +804,19 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1>(Slice prefix, T1 item1)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1>(ReadOnlySpan<byte> prefix, T1 item1)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1);
 			return (
 				packed + 0x00,
@@ -647,6 +872,19 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>ToPrefixedKeyRange(..., "a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2);
 			return (
 				packed + 0x00,
@@ -697,6 +935,18 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2, item3);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3);
 			return (
 				packed + 0x00,
@@ -723,8 +973,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, in tuple);
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -746,6 +995,18 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2, item3, item4);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4);
@@ -774,8 +1035,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, in tuple);
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -797,6 +1057,18 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2, item3, item4, item5);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5);
@@ -849,7 +1121,45 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2, item3, item4, item5, item6);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(default, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) tuple)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -873,7 +1183,31 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2, item3, item4, item5, item6, item7);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) tuple)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -897,6 +1231,18 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2, item3, item4, item5, item6, item7, item8);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7, item8);
 			return (
 				packed + 0x00,
@@ -909,6 +1255,23 @@ namespace Doxense.Collections.Tuples
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple tuple)
+			where TTuple : IVarTuple?
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>TuPack.ToRange(Slice.FromInt32(42), STuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
+		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<TTuple>(ReadOnlySpan<byte> prefix, TTuple tuple)
 			where TTuple : IVarTuple?
 		{
 			Contract.NotNullAllowStructs(tuple);
@@ -929,6 +1292,21 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>TuPack.ToRange(STuple.Create("a")) includes all tuples ("a", ...), but not the tuple ("a") itself.</example>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1>(ReadOnlySpan<byte> prefix, STuple<T1> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, tuple);
 			return (
 				packed + 0x00,
@@ -940,6 +1318,21 @@ namespace Doxense.Collections.Tuples
 		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>(Slice prefix, STuple<T1, T2> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2>(ReadOnlySpan<byte> prefix, STuple<T1, T2> tuple)
 		{
 			Contract.NotNullAllowStructs(tuple);
 
@@ -958,6 +1351,20 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);
 			return (
 				packed + 0x00,
@@ -968,6 +1375,20 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(Slice prefix, STuple<T1, T2, T3, T4> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4> tuple)
 		{
 			Contract.NotNullAllowStructs(tuple);
 
@@ -986,6 +1407,20 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);
 			return (
 				packed + 0x00,
@@ -996,6 +1431,48 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
 			Contract.NotNullAllowStructs(tuple);
 
@@ -1020,8 +1497,7 @@ namespace Doxense.Collections.Tuples
 		{
 			if (packedKey.IsNull) throw new ArgumentNullException(nameof(packedKey), "Cannot unpack tuple from Nil");
 			if (packedKey.Count == 0) return STuple.Empty;
-
-			return TuplePackers.Unpack(packedKey, embedded: false);
+			return Unpack(packedKey.Span).ToTuple(packedKey);
 		}
 
 		/// <summary>Unpack a tuple from a serialized key blob</summary>
@@ -1029,7 +1505,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></param>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure]
-		public static bool TryUnpack(Slice packedKey, [NotNullWhen(true)] out IVarTuple? tuple)
+		public static bool TryUnpack(Slice packedKey, [MaybeNullWhen(false)] out IVarTuple tuple)
 		{
 			if (packedKey.IsNull)
 			{
@@ -1043,7 +1519,37 @@ namespace Doxense.Collections.Tuples
 				return true;
 			}
 
-			return TuplePackers.TryUnpack(packedKey, embedded: false, out tuple);
+			if (!TuplePackers.TryUnpack(packedKey, embedded: false, out var st, out _))
+			{
+				tuple = null;
+				return false;
+			}
+
+			tuple = st;
+			return true;
+		}
+
+		/// <summary>Unpack a tuple from a serialized key blob</summary>
+		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
+		/// <param name="tuple">Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></param>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
+		[Pure]
+		public static bool TryUnpack(ReadOnlySpan<byte> packedKey, out SpanTuple tuple)
+		{
+			if (packedKey.Length == 0)
+			{
+				tuple = default;
+				return false;
+			}
+
+			if (packedKey.Length == 0)
+			{
+				tuple = SpanTuple.Empty;
+				return true;
+			}
+
+			var reader = new TupleReader(packedKey);
+			return TuplePackers.TryUnpack(ref reader, out tuple, out _);
 		}
 
 		/// <summary>Unpack a tuple from a serialized key blob</summary>
@@ -1051,14 +1557,12 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure]
-		public static IVarTuple Unpack(ReadOnlySpan<byte> packedKey)
+		public static SpanTuple Unpack(ReadOnlySpan<byte> packedKey)
 		{
-			if (packedKey.Length == 0) return STuple.Empty;
+			if (packedKey.Length == 0) return SpanTuple.Empty;
 
-			//TODO: HACKHACK: until we rewrite the tuple parser to use spans, we _have_ to copy it to a temp location :(
-			var tmp = Slice.Copy(packedKey);
-
-			return TuplePackers.Unpack(tmp, embedded: false);
+			var reader = new TupleReader(packedKey);
+			return TuplePackers.Unpack(ref reader);
 		}
 
 		/// <summary>Unpack a tuple from a binary representation</summary>
@@ -1072,92 +1576,121 @@ namespace Doxense.Collections.Tuples
 			return TuplePackers.Unpack(packedKey, embedded: false);
 		}
 
+		#region DecodeFirst...
+
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 1 element</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeFirst<T1>(Slice packedKey)
-		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			=> TupleEncoder.DecodeFirst<T1>(packedKey.Span);
 
-			var slice = TuplePackers.UnpackFirst(packedKey);
-			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
-
-			return TuplePacker<T1>.Deserialize(slice);
-		}
+		/// <summary>Unpack a tuple and only return its first element</summary>
+		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 1 element</param>
+		/// <returns>Decoded value of the first item in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeFirst<T1>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeFirst<T1>(packedKey);
 
 		/// <summary>Unpack a tuple and only return its first 2 elements</summary>
-		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
-		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
-		/// <returns>Decoded values of the last two elements in the tuple</returns>
-		[Pure]
+		/// <returns>Decoded values of the first two elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeFirst<T1, T2>(Slice packedKey)
-		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			=> TupleEncoder.DecodeFirst<T1, T2>(packedKey.Span);
 
-			if (!TuplePackers.TryUnpackFirst(packedKey, out var slice1, out var slice2, out var error))
-			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
-			}
-
-			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2));
-		}
+		/// <summary>Unpack a tuple and only return its first 2 elements</summary>
+		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <returns>Decoded values of the first two elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeFirst<T1, T2>(packedKey);
 
 		/// <summary>Unpack a tuple and only return its first 3 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
-		/// <returns>Decoded values of the last three elements in the tuple</returns>
-		[Pure]
+		/// <returns>Decoded values of the first three elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(Slice packedKey)
-		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			=> TupleEncoder.DecodeFirst<T1, T2, T3>(packedKey.Span);
 
-			if (!TuplePackers.TryUnpackFirst(packedKey, out var slice1, out var slice2, out var slice3, out var error))
-			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
-			}
+		/// <summary>Unpack a tuple and only return its first 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <returns>Decoded values of the first three elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeFirst<T1, T2, T3>(packedKey);
 
-			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2), TuplePacker<T3>.Deserialize(slice3));
-		}
+		/// <summary>Unpack a tuple and only return its first 4 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the fourth  value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <returns>Decoded values of the first four elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(Slice packedKey)
+			=> TupleEncoder.DecodeFirst<T1, T2, T3, T4>(packedKey.Span);
+
+		/// <summary>Unpack a tuple and only return its first 4 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the fourth  value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <returns>Decoded values of the first four elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeFirst<T1, T2, T3, T4>(packedKey);
+
+		#endregion
+
+		#region DecodeLast...
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
-		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
+		/// <typeparam name="T1">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
-		[Pure]
-		public static T? DecodeLast<T>(Slice packedKey)
-		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeLast<T1>(Slice packedKey)
+			=> TupleEncoder.DecodeLast<T1>(packedKey.Span);
 
-			if (!TuplePackers.TryUnpackLast(packedKey, out var slice, out var error))
-			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
-			}
-
-			return TuplePacker<T>.Deserialize(slice);
-		}
+		/// <summary>Unpack a tuple and only return its last element</summary>
+		/// <typeparam name="T1">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
+		/// <returns>Decoded value of the last item in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeLast<T1>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeLast<T1>(packedKey);
 
 		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
 		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeLast<T1, T2>(Slice packedKey)
-		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			=> TupleEncoder.DecodeLast<T1, T2>(packedKey.Span);
 
-			if (!TuplePackers.TryUnpackLast(packedKey, out var slice1, out var slice2, out var error))
-			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
-			}
-
-			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2));
-		}
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <returns>Decoded values of the last two elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeLast<T1, T2>(packedKey);
 
 		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
@@ -1165,55 +1698,151 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(Slice packedKey)
-		{
-			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey.Span);
 
-			if (!TuplePackers.TryUnpackLast(packedKey, out var slice1, out var slice2, out var slice3, out var error))
-			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
-			}
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <returns>Decoded values of the last three elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey);
 
-			return (TuplePacker<T1>.Deserialize(slice1), TuplePacker<T2>.Deserialize(slice2), TuplePacker<T3>.Deserialize(slice3));
-		}
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <returns>Decoded values of the last four elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(Slice packedKey)
+			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey.Span);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <returns>Decoded values of the last four elements in the tuple</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
+			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey);
+
+		#endregion
+
+		#region TryDecodeLast...
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
+			=> TupleEncoder.TryDecodeLast(packedKey, out item1);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeLast(packedKey, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeLast(packedKey, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeLast(packedKey, out item1, out item2, out item3, out item4);
+
+		#endregion
+
+		#region DecodeKey...
 
 		/// <summary>Unpack the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeKey<T1>(Slice packedKey)
+		public static T1? DecodeKey<T1>(Slice packedKey) => DecodeKey<T1>(packedKey.Span);
+
+		/// <summary>Unpack the value of a singleton tuple</summary>
+		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
+		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeKey<T1>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out ValueTuple<T1?> tuple);
-			return tuple.Item1;
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out T1? item1);
+			return item1;
 		}
 
 		/// <summary>Unpack the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
-		/// <param name="item">Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</param>
+		/// <param name="item1">Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</param>
 		/// <returns><c>true</c> if the packed key was successfully unpacked.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool TryDecodeKey<T1>(Slice packedKey, out T1? item)
-		{
-			if (TupleEncoder.TryDecodeKey(packedKey, out ValueTuple<T1?> tuple))
-			{
-				item = tuple.Item1;
-				return true;
-			}
+		public static bool TryDecodeKey<T1>(Slice packedKey, out T1? item1) => TryDecodeKey<T1>(packedKey.Span, out item1);
 
-			item = default;
-			return false;
+		/// <summary>Unpack the value of a singleton tuple</summary>
+		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
+		/// <param name="item1">Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</param>
+		/// <returns><c>true</c> if the packed key was successfully unpacked.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeKey<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
+		{
+			var reader = new TupleReader(packedKey);
+			return TupleEncoder.TryDecodeKey(ref reader, out item1);
 		}
 
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than two elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeKey<T1, T2>(Slice packedKey)
+		public static (T1?, T2?) DecodeKey<T1, T2>(Slice packedKey) => DecodeKey<T1, T2>(packedKey.Span);
+
+		/// <summary>Unpack a key containing two elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than two elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeKey<T1, T2>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?) tuple);
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?) tuple);
 			return tuple;
 		}
 
@@ -1221,9 +1850,16 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than three elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packedKey)
+		public static (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packedKey) => DecodeKey<T1, T2, T3>(packedKey.Span);
+
+		/// <summary>Unpack a key containing three elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than three elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?) tuple);
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?) tuple);
 			return tuple;
 		}
 
@@ -1231,9 +1867,16 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than four elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packedKey)
+		public static (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packedKey) => DecodeKey<T1, T2, T3, T4>(packedKey.Span);
+
+		/// <summary>Unpack a key containing four elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than four elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?) tuple);
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?) tuple);
 			return tuple;
 		}
 
@@ -1241,9 +1884,16 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than five elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey)
+		public static (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5>(packedKey.Span);
+
+		/// <summary>Unpack a key containing five elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than five elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?, T5?) tuple);
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?) tuple);
 			return tuple;
 		}
 
@@ -1251,9 +1901,16 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than six elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey)
+		public static (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6>(packedKey.Span);
+
+		/// <summary>Unpack a key containing six elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than six elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?) tuple);
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?, T6?) tuple);
 			return tuple;
 		}
 
@@ -1261,9 +1918,16 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than seven elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packedKey)
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6, T7>(packedKey.Span);
+
+		/// <summary>Unpack a key containing seven elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than seven elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple);
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple);
 			return tuple;
 		}
 
@@ -1271,31 +1935,20 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packedKey)
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(packedKey.Span);
+
+		/// <summary>Unpack a key containing eight elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple);
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple);
 			return tuple;
 		}
 
-		/// <summary>Unpack the next item in the tuple, and advance the cursor</summary>
-		/// <typeparam name="T">Type of the next value in the tuple</typeparam>
-		/// <param name="input">Reader positioned at the start of the next item to read</param>
-		/// <param name="value">If decoding succeeded, receives the decoded value.</param>
-		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
-		public static bool DecodeNext<T>(ref TupleReader input, out T? value)
-		{
-			if (!input.Input.HasMore)
-			{
-				value = default;
-				return false;
-			}
-
-			var (slice, error) = TupleParser.ParseNext(ref input);
-			if (error != null) throw error;
-
-			value = TuplePacker<T>.Deserialize(slice);
-			return true;
-		}
+		#endregion
 
 		#endregion
 
@@ -1305,14 +1958,22 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1>(Slice prefix, T1? value)
-		{
-			return TupleEncoder.EncodeKey(prefix, value);
-		}
+		public static Slice EncodePrefixedKey<T1>(Slice prefix, T1? value) => TupleEncoder.EncodeKey(prefix.Span, value);
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1>(ReadOnlySpan<byte> prefix, T1? value) => TupleEncoder.EncodeKey(prefix, value);
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2>(Slice prefix, T1? value1, T2? value2)
+		{
+			return TupleEncoder.EncodeKey(prefix.Span, value1, value2);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1, T2>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2);
 		}
@@ -1321,12 +1982,26 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3>(Slice prefix, T1? value1, T2? value2, T3? value3)
 		{
+			return TupleEncoder.EncodeKey(prefix.Span, value1, value2, value3);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1, T2, T3>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3)
+		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4)
+		{
+			return TupleEncoder.EncodeKey(prefix.Span, value1, value2, value3, value4);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4);
 		}
@@ -1335,12 +2010,26 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5)
 		{
+			return TupleEncoder.EncodeKey(prefix.Span, value1, value2, value3, value4, value5);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 5-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5)
+		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 6-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6)
+		{
+			return TupleEncoder.EncodeKey(prefix.Span, value1, value2, value3, value4, value5, value6);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 6-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6);
 		}
@@ -1349,12 +2038,26 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7)
 		{
+			return TupleEncoder.EncodeKey(prefix.Span, value1, value2, value3, value4, value5, value6, value7);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 7-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7)
+		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6, value7);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 8-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7, T8? value8)
+		{
+			return TupleEncoder.EncodeKey(prefix.Span, value1, value2, value3, value4, value5, value6, value7, value8);
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 8-tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7, T8? value8)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6, value7, value8);
 		}
