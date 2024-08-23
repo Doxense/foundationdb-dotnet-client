@@ -77,6 +77,15 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key);
 
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState state, FdbValueDecoder<TState, TResult> decoder);
+
 		/// <summary>Try reads from database snapshot represented by the current transaction and write result to <paramref name="valueWriter"/>. </summary>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="valueWriter">Buffer writter for which the value is written, if it exists</param>
@@ -244,5 +253,9 @@ namespace FoundationDB.Client
 		void StopLogging();
 
 	}
+
+	public delegate TResult FdbValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> value, bool found);
+
+	public delegate TResult FdbValueDecoder<out TResult>(ReadOnlySpan<byte> value, bool found);
 
 }

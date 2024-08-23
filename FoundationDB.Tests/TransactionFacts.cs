@@ -771,6 +771,72 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Converted_Value()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("test").AsTyped<string>();
+				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+				// populate some data
+				Slice rnd = Slice.Random(Random.Shared, 1024);
+				long ticks = DateTime.UtcNow.Ticks;
+
+				Task<TResult> Read<TResult>(Func<IFdbReadOnlyTransaction, ITypedKeySubspace<string>, Task<TResult>> handler)
+				{
+					return db.ReadAsync<TResult>(async tr =>
+					{
+						var subspace = (await location.Resolve(tr))!;
+						return await handler(tr, subspace);
+					}, this.Cancellation);
+				}
+
+				await db.WriteAsync(async tr =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+
+					tr.Set(subspace["hello"], Value("World!"));
+					tr.Set(subspace["timestamp"], Slice.FromInt64(ticks));
+					tr.Set(subspace["blob"], rnd);
+					tr.Set(subspace["json"], """{ "hello": "world", "foo": "bar", "level": 9001 }"""u8);
+
+				}, this.Cancellation);
+
+				// read back
+
+				{
+					var res = await Read((tr, subspace) =>
+						tr.GetAsync(
+							subspace["hello"],
+							(buffer, exists) => exists ? buffer.ToStringUtf8() : "<not_found>"
+						)
+					);
+					Dump(res);
+				}
+				{
+					var res = await Read((tr, subspace) =>
+						tr.GetAsync(
+							subspace["hello"], "some_state",
+							(state, buffer, exists) => exists ? state + ":" + buffer.ToStringUtf8() : "<not_found>"
+						)
+					);
+					Dump(res);
+				}
+				{
+					var res = await Read((tr, subspace) =>
+						tr.GetAsync(
+							subspace["json"],
+							(buffer, exists) => exists ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(buffer) : null
+						)
+					);
+					Dump(res);
+				}
+			}
+		}
+
 		/// <summary>Performs (x OP y) and ensure that the result is correct</summary>
 		private async Task PerformAtomicOperationAndCheck(IFdbDatabase db, Slice key, int x, FdbMutationType type, int y)
 		{

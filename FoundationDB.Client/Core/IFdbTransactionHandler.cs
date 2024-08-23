@@ -75,6 +75,15 @@ namespace FoundationDB.Client.Core
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct);
 
+		/// <summary>Reads a value from the database snapshot represented by the current transaction, and return the converted value.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="snapshot">Set to true for snapshot reads</param>
+		/// <param name="state">Opaque state provided by the caller, and passed to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Handler that will convert the result of the read, into a <typeparamref name="TResult"/> instance.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task that will return the converted value of the key, or an exception</returns>
+		Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, bool snapshot, TState state, FdbValueDecoder<TState, TResult> decoder, CancellationToken ct);
+
 		/// <summary>Tries to read a value from database snapshot represented by the current transaction.</summary>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>

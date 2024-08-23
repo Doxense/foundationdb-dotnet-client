@@ -177,11 +177,24 @@ namespace FoundationDB.Client.Native
 
 			var err = FdbNative.FutureGetValue(h, out bool present, out ReadOnlySpan<byte> result);
 #if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+			Debug.WriteLine("FdbTransaction[].GetValueResultBytes() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
 #endif
 			FdbNative.DieOnError(err);
 
 			return present ? Slice.Copy(result) : Slice.Nil;
+		}
+
+		private static TResult GetValueResultBytes<TState, TResult>(FutureHandle h, TState state, FdbValueDecoder<TState, TResult> decoder)
+		{
+			Contract.Debug.Requires(h != null);
+
+			var err = FdbNative.FutureGetValue(h, out bool present, out var result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[].GetValueResultBytes() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+#endif
+			FdbNative.DieOnError(err);
+
+			return decoder(state, result, present);
 		}
 
 		private static bool GetValueResultBytes(FutureHandle h, IBufferWriter<byte> writer)
@@ -207,7 +220,16 @@ namespace FoundationDB.Client.Native
 		{
 			return FdbFuture.CreateTaskFromHandle(
 				FdbNative.TransactionGet(m_handle, key, snapshot),
-				(h) => GetValueResultBytes(h),
+				GetValueResultBytes,
+				ct
+			);
+		}
+
+		public Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, bool snapshot, TState state, FdbValueDecoder<TState, TResult> decoder, CancellationToken ct)
+		{
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.TransactionGet(m_handle, key, snapshot),
+				(h) => GetValueResultBytes(h, state, decoder),
 				ct
 			);
 		}

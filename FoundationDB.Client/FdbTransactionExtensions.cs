@@ -70,6 +70,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key)
 		{
 			return trans.GetAsync(key.Span);
@@ -83,10 +84,77 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, Slice key)
 		{
+			return !key.IsNull ? trans.GetAsync(key.Span) : throw Fdb.Errors.KeyCannotBeNull();
+		}
+
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static Task<TResult> GetAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key, TState state, FdbValueDecoder<TState, TResult> decoder)
+		{
+			return trans.GetAsync(key.Span, state, decoder);
+		}
+
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static Task<TResult> GetAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, Slice key, TState state, FdbValueDecoder<TState, TResult> decoder)
+		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
-			return trans.GetAsync(key.Span);
+			return trans.GetAsync(key.Span, state, decoder);
+		}
+
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Task<TResult> GetAsync<TResult>(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key, FdbValueDecoder<TResult> decoder)
+		{
+			return GetAsync(trans, key.Span, decoder);
+		}
+
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Task<TResult> GetAsync<TResult>(this IFdbReadOnlyTransaction trans, Slice key, FdbValueDecoder<TResult> decoder)
+		{
+			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return GetAsync(trans, key.Span, decoder);
+		}
+
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static Task<TResult> GetAsync<TResult>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, FdbValueDecoder<TResult> decoder)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			return trans.GetAsync(key, decoder, static (fn, value, found) => fn(value, found));
 		}
 
 		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
@@ -99,12 +167,10 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key, IValueEncoder<TValue> encoder)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Task<TValue?> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key, IValueEncoder<TValue> encoder)
 		{
-			Contract.NotNull(trans);
-			Contract.NotNull(encoder);
-
-			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false))!;
+			return GetAsync(trans, key.Span, encoder);
 		}
 
 		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
@@ -117,12 +183,32 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, IValueEncoder<TValue> encoder)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Task<TValue?> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, IValueEncoder<TValue> encoder)
+		{
+			return GetAsync(trans, key.Span, encoder);
+		}
+
+		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
+		/// <typeparam name="TValue">Type of the value.</typeparam>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="encoder">Encoder used to decode the value of the key.</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static Task<TValue?> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, IValueEncoder<TValue> encoder)
 		{
 			Contract.NotNull(trans);
 			Contract.NotNull(encoder);
 
-			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false))!;
+			return trans.GetAsync(key, encoder, static (state, buffer, found) =>
+			{
+				//HACKHACK: TODO: OPTIMIZE: PERF: IValueEncoder should also accept ReadOnlySpan !
+				return state.DecodeValue(found ? Slice.Copy(buffer) : Slice.Nil);
+			});
 		}
 
 		/// <summary>Add a read conflict range on the <c>\xff/metadataVersion</c> key</summary>

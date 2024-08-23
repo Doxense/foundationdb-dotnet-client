@@ -126,6 +126,20 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
+			public Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState state, FdbValueDecoder<TState, TResult> decoder)
+			{
+				EnsureCanRead();
+
+				FdbKey.EnsureKeyIsValid(key);
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
+#endif
+
+				return m_parent.PerformGetOperation(key, snapshot: true, state, decoder);
+			}
+
+			/// <inheritdoc />
 			public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte > valueWriter)
 			{
 				Contract.NotNull(valueWriter);

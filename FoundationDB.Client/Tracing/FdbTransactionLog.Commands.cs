@@ -33,6 +33,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Text;
 	using System.Threading.Tasks;
 	using Doxense;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
@@ -663,6 +664,49 @@ namespace FoundationDB.Filters.Logging
 			protected override string Dump(Slice value, KeyResolver resolver)
 			{
 				return value.ToString("P");
+			}
+
+		}
+
+		public sealed class GetCommand<TState, TResult> : Command<TResult>
+		{
+			/// <summary>Key read from the database</summary>
+			public Slice Key { get; }
+
+			public TState State { get; }
+
+			public FdbValueDecoder<TState, TResult> Decoder { get; }
+
+			public override Operation Op => Operation.Get;
+
+			public GetCommand(Slice key, TState state, FdbValueDecoder<TState, TResult> decoder)
+			{
+				this.Key = key;
+				this.State = state;
+				this.Decoder = decoder;
+			}
+
+			public override int? ArgumentBytes => this.Key.Count;
+
+			public override int? ResultBytes => null; //REVIEW: BUGBUG: how to track the actual number of bytes?
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				return resolver.Resolve(this.Key);
+			}
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				if (this.Result.HasValue)
+				{
+					return STuple.Formatter.Stringify(this.Result.Value);
+				}
+				return base.GetResult(resolver);
+			}
+
+			protected override string Dump(TResult value, KeyResolver resolver)
+			{
+				return STuple.Formatter.Stringify(value);
 			}
 
 		}
