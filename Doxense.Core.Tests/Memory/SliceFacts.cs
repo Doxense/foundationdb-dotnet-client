@@ -2670,6 +2670,43 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		}
 
 		[Test]
+		public void Test_Slice_Create_SpanAction()
+		{
+			{ // length 0 should return empty and not invoke the callback
+				var res = Slice.Create(0, "hello", (_, _) => Assert.Fail("Should not be called!"));
+				Assert.That(res, Is.EqualTo(Slice.Empty));
+			}
+			{ // should bubble up any exceptions in the callback
+				Assert.That(() => Slice.Create(40, "hello", (_, _) => throw new InvalidOperationException("Ooops")), Throws.InvalidOperationException);
+			}
+			{ // allocated buffer should have the exact length required
+
+				// fill a buffer with deterministic random bytes
+				var expected = new byte[123];
+				const int SEED = 0xC0FFEE;
+				new Random(SEED).NextBytes(expected);
+
+				var res = Slice.Create(expected.Length, new Random(SEED), (buf, rng) =>
+				{
+					Assert.That(buf.Length, Is.EqualTo(expected.Length));
+					rng.NextBytes(buf);
+				});
+				Dump(res);
+				Assert.That(res, Is.EqualTo(expected.AsSlice()));
+			}
+			{ // allocated buffer should be cleared before
+				var res = Slice.Create(17, "hello", (_, _) => { });
+				Assert.That(res, Is.EqualTo(Slice.Zero(17)));
+			}
+			{ // negative lengthshould throw
+				Assert.That(() => Slice.Create(-1, "hello", (buf, _) => { }), Throws.InstanceOf<ArgumentException>());
+			}
+			{ // overflow should throw
+				Assert.That(() => Slice.Create(17, "hello", (buf, _) => { buf[17] = 255; }), Throws.InstanceOf<IndexOutOfRangeException>());
+			}
+		}
+
+		[Test]
 		public void Test_Slice_Join_Array()
 		{
 			var a = Value("A");

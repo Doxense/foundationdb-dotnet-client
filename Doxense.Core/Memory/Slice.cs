@@ -152,6 +152,28 @@ namespace System
 			return new Slice(buffer, checked((int) offset), checked((int) count));
 		}
 
+		/// <summary>Creates a new Slice with a specific length and initializes it after creation by using the specified callback.</summary>
+		/// <param name="length">The length of the slice to create.</param>
+		/// <param name="state">The element to pass to <paramref name="action" />.</param>
+		/// <param name="action">A callback to initialize the slice.</param>
+		/// <typeparam name="TState">The type of the element to pass to <paramref name="action" />.</typeparam>
+		/// <returns>The created slice.</returns>
+		public static Slice Create<TState>(int length, TState state, SpanAction<byte, TState> action)
+		{
+			Contract.NotNull(action);
+			Contract.Positive(length);
+
+			if (length == 0)
+			{
+				return Slice.Empty;
+			}
+
+			var tmp = new byte[length];
+			action(tmp, state);
+			return new Slice(tmp, 0, length);
+		}
+
+
 		/// <summary>Creates a new slice with a copy of the array</summary>
 		[Pure]
 		public static Slice Copy(byte[] source)
