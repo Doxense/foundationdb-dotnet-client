@@ -234,15 +234,6 @@ namespace FoundationDB.Client.Native
 			);
 		}
 
-		public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, bool snapshot, IBufferWriter<byte> valueWriter, CancellationToken ct)
-		{
-			return FdbFuture.CreateTaskFromHandle(
-				FdbNative.TransactionGet(m_handle, key, snapshot),
-				(h) => GetValueResultBytes(h, valueWriter),
-				ct
-			);
-		}
-
 		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice[]>(ct);

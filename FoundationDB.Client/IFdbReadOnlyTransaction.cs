@@ -86,12 +86,6 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState state, FdbValueDecoder<TState, TResult> decoder);
 
-		/// <summary>Try reads from database snapshot represented by the current transaction and write result to <paramref name="valueWriter"/>. </summary>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="valueWriter">Buffer writter for which the value is written, if it exists</param>
-		/// <returns>Task with true if the key if it is found</returns>
-		Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter);
-
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>

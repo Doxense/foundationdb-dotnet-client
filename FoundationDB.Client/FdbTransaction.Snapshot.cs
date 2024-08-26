@@ -27,7 +27,6 @@
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -137,22 +136,6 @@ namespace FoundationDB.Client
 #endif
 
 				return m_parent.PerformGetOperation(key, snapshot: true, state, decoder);
-			}
-
-			/// <inheritdoc />
-			public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte > valueWriter)
-			{
-				Contract.NotNull(valueWriter);
-
-				EnsureCanRead();
-
-				FdbKey.EnsureKeyIsValid(key);
-
-#if DEBUG
-				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
-#endif
-
-				return m_parent.PerformGetOperation(key, valueWriter, snapshot: true);
 			}
 
 			/// <inheritdoc />

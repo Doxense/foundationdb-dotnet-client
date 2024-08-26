@@ -626,21 +626,6 @@ namespace FoundationDB.Client
 			return PerformGetOperation(key, snapshot: false, state, decoder);
 		}
 
-		public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter)
-		{
-			Contract.NotNull(valueWriter);
-
-			EnsureCanRead();
-
-			FdbKey.EnsureKeyIsValid(key);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "TryGetAsync", $"Getting value for '{key.ToString()}'");
-#endif
-
-			return PerformGetOperation(key, valueWriter, snapshot: false);
-		}
-
 		private Task<Slice> PerformGetOperation(ReadOnlySpan<byte> key, bool snapshot)
 		{
 			FdbClientInstrumentation.ReportGet(this);
@@ -666,20 +651,6 @@ namespace FoundationDB.Client
 					self,
 					new FdbTransactionLog.GetCommand<TState, TResult>(self.m_log.Grab(key), state, decoder) { Snapshot = snapshot },
 					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, cmd.State, cmd.Decoder, tr.m_cancellation)
-				);
-		}
-
-		private Task<bool> PerformGetOperation(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter,  bool snapshot)
-		{
-			FdbClientInstrumentation.ReportGet(this);
-
-			return m_log == null ? m_handler.TryGetAsync(key, snapshot: snapshot, valueWriter: valueWriter, ct: m_cancellation) : ExecuteLogged(this, key, snapshot, valueWriter);
-
-			static Task<bool> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, IBufferWriter<byte> valueWriter)
-				=> self.m_log!.ExecuteAsync<FdbTransactionLog.TryGetCommand, bool>(
-					self,
-					new FdbTransactionLog.TryGetCommand(self.m_log.Grab(key)) { Snapshot = snapshot },
-					(tr, cmd) => tr.m_handler.TryGetAsync(cmd.Key.Span, cmd.Snapshot,  valueWriter, tr.m_cancellation)
 				);
 		}
 

@@ -134,6 +134,12 @@ namespace FoundationDB.Filters.Logging
 						case Operation.GetValues:
 						case Operation.GetKeys:
 						case Operation.GetRange:
+						case Operation.CheckValue:
+						case Operation.GetVersionStamp:
+						case Operation.GetAddressesForKey:
+						case Operation.GetRangeSplitPoints:
+						case Operation.GetEstimatedRangeSizeBytes:
+						case Operation.GetApproximateSize:
 							return Mode.Read;
 
 						case Operation.GetReadVersion:
@@ -237,7 +243,14 @@ namespace FoundationDB.Filters.Logging
 				if (this.Result.Value == null) return "<null>";
 
 				string res = Dump(this.Result.Value, resolver);
-				if (res.Length > MAX_LENGTH) res = res.Substring(0, MAX_LENGTH / 2) + "..." + res.Substring(res.Length - (MAX_LENGTH / 2), MAX_LENGTH / 2);
+				if (res.Length > MAX_LENGTH)
+				{
+					if (res.Length > MAX_LENGTH)
+					{
+						res = string.Concat(res.AsSpan(0, MAX_LENGTH / 2), "...", res.AsSpan(res.Length - (MAX_LENGTH / 2), MAX_LENGTH / 2));
+					}
+				}
+
 				return res;
 			}
 
@@ -363,7 +376,7 @@ namespace FoundationDB.Filters.Logging
 				var s = base.Resolve(key.Substring(prefix.Count));
 				if (s != null! && s.Length >= 3 && s[0] == '(' && s[^1] == ')')
 				{ // that was a tuple
-					return string.Concat("([", path, "], ", s.Substring(1));
+					return string.Concat("([", path, "], ", s.AsSpan(1));
 				}
 				return string.Concat("[", path, "]:", s);
 			}
@@ -709,42 +722,6 @@ namespace FoundationDB.Filters.Logging
 				return STuple.Formatter.Stringify(value);
 			}
 
-		}
-
-		public sealed class TryGetCommand : Command<bool>
-		{
-			/// <summary>Key read from the database</summary>
-			public Slice Key { get; }
-
-			public override Operation Op => Operation.Get;
-
-			public TryGetCommand(Slice key)
-			{
-				this.Key = key;
-			}
-
-			public override int? ArgumentBytes => this.Key.Count;
-
-			public override int? ResultBytes => default;
-
-			public override string GetArguments(KeyResolver resolver)
-			{
-				return resolver.Resolve(this.Key);
-			}
-
-			public override string GetResult(KeyResolver resolver)
-			{
-				if (this.Result.HasValue)
-				{
-						return this.Result.Value.ToString();
-				}
-				return base.GetResult(resolver);
-			}
-
-			protected override string Dump(bool value, KeyResolver resolver)
-			{
-				return value.ToString();
-			}
 		}
 
 		public sealed class GetKeyCommand : Command<Slice>

@@ -157,7 +157,7 @@ namespace FoundationDB.Client
 			return trans.GetAsync(key, decoder, static (fn, value, found) => fn(value, found));
 		}
 
-		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
+		/// <summary>Reads and decodes a value from the database snapshot represented by the current transaction.</summary>
 		/// <typeparam name="TValue">Type of the value.</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -173,7 +173,7 @@ namespace FoundationDB.Client
 			return GetAsync(trans, key.Span, encoder);
 		}
 
-		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
+		/// <summary>Reads and decodes a value from the database snapshot represented by the current transaction.</summary>
 		/// <typeparam name="TValue">Type of the value.</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -189,7 +189,7 @@ namespace FoundationDB.Client
 			return GetAsync(trans, key.Span, encoder);
 		}
 
-		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
+		/// <summary>Reads and decodes a value from the database snapshot represented by the current transaction.</summary>
 		/// <typeparam name="TValue">Type of the value.</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -208,6 +208,40 @@ namespace FoundationDB.Client
 			{
 				//HACKHACK: TODO: OPTIMIZE: PERF: IValueEncoder should also accept ReadOnlySpan !
 				return state.DecodeValue(found ? Slice.Copy(buffer) : Slice.Nil);
+			});
+		}
+
+		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
+		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
+		public static Task<bool> TryGetAsync(IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key, IBufferWriter<byte> valueWriter)
+		{
+			return TryGetAsync(trans, key.Span, valueWriter);
+		}
+
+		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
+		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
+		public static Task<bool> TryGetAsync(IFdbReadOnlyTransaction trans, Slice key, IBufferWriter<byte> valueWriter)
+		{
+			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return TryGetAsync(trans, key.Span, valueWriter);
+		}
+
+		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
+		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
+		public static Task<bool> TryGetAsync(IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter)
+		{
+			Contract.NotNull(valueWriter);
+			return trans.GetAsync<IBufferWriter<byte>, bool>(key, valueWriter, static (vw, value, found) =>
+			{
+				if (!found) return false;
+				vw.Write(value);
+				return true;
 			});
 		}
 
