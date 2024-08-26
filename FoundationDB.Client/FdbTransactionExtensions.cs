@@ -1563,6 +1563,28 @@ namespace FoundationDB.Client
 		/// and lexicographically less than the key resolved by the end key selector.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns></returns>
+		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
+		{
+			int limit = options?.Limit ?? 0;
+			bool reverse = options?.Reverse ?? false;
+			int targetBytes = options?.TargetBytes ?? 0;
+			var mode = options?.Mode ?? FdbStreamingMode.Iterator;
+			var read = options?.Read ?? FdbReadMode.Both;
+
+			return trans.GetRangeAsync(beginInclusive, endExclusive, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
+		}
+
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">key selector pair defining the beginning and the end of the range</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
@@ -1644,6 +1666,23 @@ namespace FoundationDB.Client
 		{
 			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
+		}
+
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
+		/// <param name="endExclusive">Key defining the end (exclusive) of the range</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns></returns>
+		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
+		{
+			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
+			return trans.GetRangeAsync<TState, TResult>(range.Begin, range.End, state, decoder, options, iteration);
 		}
 
 		#endregion

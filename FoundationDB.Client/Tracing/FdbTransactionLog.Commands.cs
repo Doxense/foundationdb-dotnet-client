@@ -877,10 +877,11 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetRange;
 
-			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration)
+			public GetRangeCommand(KeySelector begin, KeySelector end, bool snapshot, FdbRangeOptions options, int iteration)
 			{
 				this.Begin = begin;
 				this.End = end;
+				this.Snapshot = snapshot;
 				this.Options = options;
 				this.Iteration = iteration;
 			}
@@ -901,6 +902,67 @@ namespace FoundationDB.Filters.Logging
 					return sum;
 				}
 			}
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				//TODO: use resolver!
+				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
+				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
+				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
+				if (this.Options.Reverse == true) s += ", reverse";
+				if (this.Options.Mode.HasValue) s += ", " + this.Options.Mode.Value.ToString();
+				if (this.Options.Read.HasValue) s += ", " + this.Options.Read.Value.ToString();
+				return s;
+			}
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				var chunk = this.Result.GetValueOrDefault();
+				if (chunk != null)
+				{
+					string s = $"{chunk.Count:N0} result(s)";
+					if (chunk.HasMore) s += ", has_more";
+					return s;
+				}
+				return base.GetResult(resolver);
+			}
+
+		}
+
+		public sealed class GetRangeCommand<TState, TResult> : Command<FdbRangeChunk<TResult>>
+		{
+			/// <summary>Selector to the start of the range</summary>
+			public KeySelector Begin { get; }
+
+			/// <summary>Selector to the end of the range</summary>
+			public KeySelector End { get; }
+
+			/// <summary>Options of the range read</summary>
+			public FdbRangeOptions Options { get; }
+
+			/// <summary>Iteration number</summary>
+			public int Iteration { get; }
+
+			public TState State { get; }
+
+			public FdbKeyValueDecoder<TState, TResult> Decoder { get; }
+
+			public override Operation Op => Operation.GetRange;
+
+			public GetRangeCommand(KeySelector begin, KeySelector end, bool snapshot, FdbRangeOptions options, int iteration, TState state, FdbKeyValueDecoder<TState, TResult> decoder)
+			{
+				this.Begin = begin;
+				this.End = end;
+				this.Snapshot = snapshot;
+				this.Options = options;
+				this.Iteration = iteration;
+				this.State = state;
+				this.Decoder = decoder;
+			}
+
+			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
+
+			public override int? ResultBytes => default; //TODO: BUGBUG: compute the total byte size? (maybe stored in the FdbRangeChunk itself?)
 
 			public override string GetArguments(KeyResolver resolver)
 			{

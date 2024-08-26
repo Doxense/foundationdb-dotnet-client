@@ -27,15 +27,25 @@
 namespace FoundationDB.Client.Native
 {
 	using System;
+	using System.Diagnostics.Contracts;
 	using System.Runtime.InteropServices;
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal unsafe struct FdbKeyValue
+	internal readonly unsafe struct FdbKeyValue
 	{
-		public byte* Key;
-		public uint KeyLength;
-		public byte* Value;
-		public uint ValueLength;
+
+		public readonly byte* Key;
+		public readonly uint KeyLength;
+
+		public readonly byte* Value;
+		public readonly uint ValueLength;
+
+		[Pure]
+		public ReadOnlySpan<byte> GetKey() => this.KeyLength > 0 ? new ReadOnlySpan<byte>(this.Key, checked((int) this.KeyLength)) : default;
+
+		[Pure]
+		public ReadOnlySpan<byte> GetValue() => this.ValueLength > 0 ? new ReadOnlySpan<byte>(this.Value, checked((int) this.ValueLength)) : default;
+
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]

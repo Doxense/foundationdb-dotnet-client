@@ -195,14 +195,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive,
-				KeySelector endExclusive,
-				int limit = 0,
-				bool reverse = false,
-				int targetBytes = 0,
-				FdbStreamingMode mode = FdbStreamingMode.Exact,
-				FdbReadMode read = FdbReadMode.Both,
-				int iteration = 0)
+			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
 			{
 				EnsureCanRead();
 
@@ -215,6 +208,22 @@ namespace FoundationDB.Client
 				if (iteration == 0) iteration = 1;
 
 				return m_parent.PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: true, limit, reverse, targetBytes, mode, read, iteration);
+			}
+
+			/// <inheritdoc />
+			public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+			{
+				EnsureCanRead();
+
+				FdbKey.EnsureKeyIsValid(in beginInclusive.Key);
+				FdbKey.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
+
+				FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
+
+				// The iteration value is only needed when in iterator mode, but then it should start from 1
+				if (iteration == 0) iteration = 1;
+
+				return m_parent.PerformGetRangeOperation<TState, TResult>(beginInclusive, endExclusive, snapshot: true, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
 			}
 
 			/// <inheritdoc />

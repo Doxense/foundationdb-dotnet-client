@@ -126,6 +126,33 @@ namespace FoundationDB.Client
 			int iteration = 0);
 
 		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="limit">Maximum number of items to return</param>
+		/// <param name="reverse">If true, results are returned in reverse order (from last to first)</param>
+		/// <param name="targetBytes">Maximum number of bytes to read</param>
+		/// <param name="mode">Streaming mode (defaults to <see cref="FdbStreamingMode.Iterator"/>)</param>
+		/// <param name="read">Read mode (defaults to <see cref="FdbReadMode.Both"/>)</param>
+		/// <param name="iteration">If <paramref name="mode">streaming mode</paramref> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns>Chunk of results</returns>
+		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			TState state,
+			FdbKeyValueDecoder<TState, TResult> decoder,
+			int limit = 0,
+			bool reverse = false,
+			int targetBytes = 0,
+			FdbStreamingMode mode = FdbStreamingMode.Iterator,
+			FdbReadMode read = FdbReadMode.Both,
+			int iteration = 0
+		);
+
+		/// <summary>
 		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
@@ -251,5 +278,7 @@ namespace FoundationDB.Client
 	public delegate TResult FdbValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> value, bool found);
 
 	public delegate TResult FdbValueDecoder<out TResult>(ReadOnlySpan<byte> value, bool found);
+
+	public delegate TResult FdbKeyValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
 
 }

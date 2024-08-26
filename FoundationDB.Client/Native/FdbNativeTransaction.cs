@@ -335,9 +335,9 @@ namespace FoundationDB.Client.Native
 		}
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		public Task<FdbRangeChunk> GetRangeAsync(KeySelector begin, KeySelector end, int limit, bool reversed, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, bool snapshot, CancellationToken ct)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, bool snapshot, CancellationToken ct)
 		{
-			var future = FdbNative.TransactionGetRange(m_handle, begin, end, limit, targetBytes, mode, iteration, snapshot, reversed);
+			var future = FdbNative.TransactionGetRange(m_handle, beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>
@@ -367,7 +367,28 @@ namespace FoundationDB.Client.Native
 							throw new InvalidOperationException();
 						}
 					}
-					return new FdbRangeChunk(items, hasMore, iteration, reversed, read, first, last);
+					return new FdbRangeChunk(items, hasMore, iteration, reverse, read, first, last);
+				},
+				ct
+			);
+		}
+
+		/// <summary>Asynchronously fetch a new page of results</summary>
+		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
+		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, CancellationToken ct)
+		{
+			var future = FdbNative.TransactionGetRange(m_handle, beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse);
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(h) =>
+				{
+					// note: we don't have a way currently to do KeyOnly or ValueOnly, we always have both coming from the native client
+					// but since we don't have to copy them into the managed heap, this is not really an issue
+
+					var err = FdbNative.FutureGetKeyValueArray(h, state, decoder, out var items, out var hasMore, out var first, out var last);
+					FdbNative.DieOnError(err);
+
+					return new FdbRangeChunk<TResult>(items, hasMore, iteration, reverse, read, first, last);
 				},
 				ct
 			);

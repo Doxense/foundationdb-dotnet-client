@@ -36,10 +36,11 @@ namespace FoundationDB.Client
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 
-	[DebuggerDisplay("Count={Chunk!=null?Chunk.Length:0}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
+	[DebuggerDisplay("Count={Count}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
 	[PublicAPI]
 	public sealed class FdbRangeChunk : IReadOnlyList<KeyValuePair<Slice, Slice>>
 	{
+
 		/// <summary>Contains the items that where </summary>
 		public KeyValuePair<Slice, Slice>[] Items { get; }
 
@@ -182,7 +183,7 @@ namespace FoundationDB.Client
 			public void Dispose()
 			{ }
 
-			object IEnumerator.Current => Current;
+			object IEnumerator.Current => this.Current;
 
 			void IEnumerator.Reset()
 			{
@@ -259,7 +260,7 @@ namespace FoundationDB.Client
 			public void Dispose()
 			{ }
 
-			object IEnumerator.Current => Current;
+			object IEnumerator.Current => this.Current;
 
 			void IEnumerator.Reset()
 			{
@@ -400,7 +401,7 @@ namespace FoundationDB.Client
 			public void Dispose()
 			{ }
 
-			object IEnumerator.Current => Current;
+			object IEnumerator.Current => this.Current;
 
 			void IEnumerator.Reset()
 			{
@@ -583,6 +584,154 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
+
+	}
+
+	[DebuggerDisplay("Count={Count}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
+	[PublicAPI]
+	public sealed class FdbRangeChunk<TResult> : IReadOnlyList<TResult>
+	{
+
+		/// <summary>Contains the items that where </summary>
+		public ReadOnlyMemory<TResult> Items { get; }
+
+		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
+		public bool Reversed { get; }
+
+		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
+		public bool HasMore { get; }
+
+		/// <summary>Iteration number of this chunk (used when paging through a long range)</summary>
+		public int Iteration { get; }
+
+		/// <summary>Specify if the chunk contains only keys, only values, or both (default)</summary>
+		public FdbReadMode ReadMode { get; }
+
+		/// <summary>Returns the first item in the chunk</summary>
+		/// <remarks>Note that if the range is reversed, then the first item will be GREATER than the last !</remarks>
+		public Slice Last { get; }
+
+		/// <summary>Returns the last item in the chunk</summary>
+		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
+		public Slice First { get; }
+
+		public FdbRangeChunk(ReadOnlyMemory<TResult> items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last)
+		{
+			this.Items = items;
+			this.HasMore = hasMore;
+			this.Iteration = iteration;
+			this.Reversed = reversed;
+			this.ReadMode = readMode;
+			this.First = first;
+			this.Last = last;
+		}
+
+		/// <summary>Returns the number of results in this chunk</summary>
+		public int Count => this.Items.Length;
+
+		/// <summary>Returns true if the chunk does not contain any item.</summary>
+		public bool IsEmpty => this.Items.Length == 0;
+
+		#region Items...
+
+		/// <summary>Return a reference to the result at the specified index</summary>
+		public TResult this[int index]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Items.Span[index];
+		}
+
+		/// <summary>Return a reference to the result at the specified index</summary>
+		public TResult this[Index index]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Items.Span[index];
+		}
+
+		/// <summary>Return a slice of the results in the specified range</summary>
+		public ReadOnlySpan<TResult> this[Range range]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Items.Span[range];
+		}
+
+		/// <summary>Return a reference to the result at the specified index</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ref readonly TResult ItemRef(int index) => ref this.Items.Span[index];
+
+		public TResult[] ToArray()
+		{
+			return this.Items.ToArray();
+		}
+
+		public void CopyTo(TResult[] array, int offset = 0)
+		{
+			this.Items.Span.CopyTo(array.AsSpan(offset));
+		}
+
+		public void CopyTo(Span<TResult> destination)
+		{
+			this.Items.Span.CopyTo(destination);
+		}
+
+		public ChunkEnumerator GetEnumerator()
+		{
+			return new ChunkEnumerator(this.Items);
+		}
+
+		IEnumerator<TResult> IEnumerable<TResult>.GetEnumerator() => GetEnumerator();
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		public struct ChunkEnumerator : IEnumerator<TResult>
+		{
+
+			private readonly ReadOnlyMemory<TResult> Items;
+			private int Index;
+
+			public ChunkEnumerator(ReadOnlyMemory<TResult> items)
+			{
+				this.Items = items;
+				this.Index = -1;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool MoveNext()
+			{
+				int p = this.Index + 1;
+				if (p >= this.Items.Length) return MoveNextRare();
+				this.Index = p;
+				return true;
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private bool MoveNextRare()
+			{
+				this.Index = this.Items.Length;
+				return false;
+			}
+
+			public TResult Current
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => this.Items.Span[this.Index];
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void Dispose()
+			{ }
+
+			object? IEnumerator.Current => this.Current;
+
+			void IEnumerator.Reset()
+			{
+				this.Index = -1;
+			}
+
+		}
+
+		#endregion
+
 	}
 
 }

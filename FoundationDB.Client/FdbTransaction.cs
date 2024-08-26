@@ -719,15 +719,7 @@ namespace FoundationDB.Client
 		#region GetRangeAsync...
 
 		/// <inheritdoc />
-		public Task<FdbRangeChunk> GetRangeAsync(
-			KeySelector beginInclusive,
-			KeySelector endExclusive,
-			int limit = 0,
-			bool reverse = false,
-			int targetBytes = 0,
-			FdbStreamingMode mode = FdbStreamingMode.Iterator,
-			FdbReadMode read = FdbReadMode.Both,
-			int iteration = 0)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
 		{
 			EnsureCanRead();
 
@@ -740,6 +732,22 @@ namespace FoundationDB.Client
 			if (iteration == 0) iteration = 1;
 
 			return PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: false, limit, reverse, targetBytes, mode, read, iteration);
+		}
+
+		/// <inheritdoc />
+		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+		{
+			EnsureCanRead();
+
+			FdbKey.EnsureKeyIsValid(in beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
+
+			FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
+
+			// The iteration value is only needed when in iterator mode, but then it should start from 1
+			if (iteration == 0) iteration = 1;
+
+			return PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: false, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
 		}
 
 		private Task<FdbRangeChunk> PerformGetRangeOperation(
@@ -765,12 +773,10 @@ namespace FoundationDB.Client
 					new FdbTransactionLog.GetRangeCommand(
 						self.m_log.Grab(beginInclusive),
 						self.m_log.Grab(endExclusive),
+						snapshot,
 						new FdbRangeOptions(limit, reverse, targetBytes, mode, read),
 						iteration
-					)
-					{
-						Snapshot =  snapshot
-					},
+					),
 					(tr, cmd) => tr.m_handler.GetRangeAsync(
 						cmd.Begin,
 						cmd.End,
@@ -781,6 +787,55 @@ namespace FoundationDB.Client
 						cmd.Options.Read.GetValueOrDefault(),
 						cmd.Iteration,
 						cmd.Snapshot,
+						tr.m_cancellation
+					)
+				);
+		}
+
+		private Task<FdbRangeChunk<TResult>> PerformGetRangeOperation<TState, TResult>(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			bool snapshot,
+			TState state,
+			FdbKeyValueDecoder<TState, TResult> decoder,
+			int limit,
+			bool reverse,
+			int targetBytes,
+			FdbStreamingMode mode,
+			FdbReadMode read,
+			int iteration
+		)
+		{
+			FdbClientInstrumentation.ReportGetRange(this);
+
+			return m_log == null
+				? m_handler.GetRangeAsync<TState, TResult>(beginInclusive, endExclusive, snapshot, state, decoder, limit, reverse, targetBytes, mode, read, iteration, m_cancellation)
+				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
+
+			static Task<FdbRangeChunk<TResult>> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetRangeCommand<TState, TResult>(
+						self.m_log.Grab(beginInclusive),
+						self.m_log.Grab(endExclusive),
+						snapshot,
+						new FdbRangeOptions(limit, reverse, targetBytes, mode, read),
+						iteration,
+						state,
+						decoder
+					),
+					(tr, cmd) => tr.m_handler.GetRangeAsync<TState, TResult>(
+						cmd.Begin,
+						cmd.End,
+						cmd.Snapshot,
+						cmd.State,
+						cmd.Decoder,
+						cmd.Options.Limit.GetValueOrDefault(),
+						cmd.Options.Reverse.GetValueOrDefault(),
+						cmd.Options.TargetBytes.GetValueOrDefault(),
+						cmd.Options.Mode.GetValueOrDefault(),
+						cmd.Options.Read.GetValueOrDefault(),
+						cmd.Iteration,
 						tr.m_cancellation
 					)
 				);

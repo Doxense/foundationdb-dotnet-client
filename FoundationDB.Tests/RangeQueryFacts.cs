@@ -154,6 +154,132 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Get_Range_Chunk_Decoded()
+		{
+			// test that we can get a chunk of data using a decoder
+
+			const int N = 200; // total item count
+			//note: should be small enough so that a WantAll read all of it in one chunk, but large enough that Iterator does not!
+
+			void Verify<TResult>(FdbRangeChunk<TResult> chunk, ReadOnlySpan<TResult> expected)
+			{
+				for (int i = 0; i < chunk.Count; i++)
+				{
+					Assert.That(chunk[i], Is.EqualTo(expected[i]), $"[{i}]");
+					Assert.That(chunk.Items.Span[i], Is.EqualTo(expected[i]), $"Items[{i}]");
+					Assert.That(chunk[new Index(i)], Is.EqualTo(expected[i]), $"[{i}]");
+				}
+			}
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = db.Root["Queries"]["Range"];
+				await CleanLocation(db, location);
+
+				// insert all values (batched)
+				Log($"Inserting {N:N0} keys...");
+				var insert = Stopwatch.StartNew();
+
+				var data = Enumerable.Range(0, N).Select(i => (i, "SomeValue:" + i.ToString("D08"))).ToArray();
+
+				await db.WriteAsync(async tr =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+					tr.SetValues(data.Select(kv => KeyValuePair.Create(subspace.Encode(kv.Item1), Slice.FromStringUtf8(kv.Item2))));
+				}, this.Cancellation);
+
+				insert.Stop();
+
+				Log($"> Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
+
+				// Read All
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+
+					Log("Getting range (WantAll)...");
+					var ts = Stopwatch.StartNew();
+					var chunk = await tr.GetRangeAsync(
+						folder.Encode(0),
+						folder.Encode(N),
+						folder,
+						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
+						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
+					);
+					ts.Stop();
+					Assert.That(chunk, Is.Not.Null);
+					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms");
+					//DumpCompact(chunk.Items.ToArray());
+
+					Assert.That(chunk.Count, Is.EqualTo(N), "Reading a small chunk in WantAll should return all results in one page! If this changes, you may need to tweak the parameters of the test!");
+					Assert.That(chunk.IsEmpty, Is.False, "Should not be empty");
+					Assert.That(chunk.HasMore, Is.False, "Should have all the results");
+					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
+					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.Reversed, Is.False);
+
+					Verify(chunk, data);
+					Assert.That(chunk.First, Is.EqualTo(folder.Encode(0)));
+					Assert.That(chunk.Last, Is.EqualTo(folder.Encode(N - 1)));
+				}
+
+				await db.ReadAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+
+					Log("Getting range (Iterator)...");
+					var ts = Stopwatch.StartNew();
+					var chunk = await tr.GetRangeAsync(
+						folder.Encode(0),
+						folder.Encode(N),
+						folder,
+						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
+						new FdbRangeOptions { Mode = FdbStreamingMode.Iterator }
+					);
+					ts.Stop();
+					Assert.That(chunk, Is.Not.Null);
+					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms");
+					//DumpCompact(chunk.Items.ToArray());
+
+					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThan(N), "Should only have read a portion of the results!");
+					Assert.That(chunk.HasMore, Is.True, "Should have more results after that!");
+					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
+					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.Reversed, Is.False);
+					Assert.That(chunk.Iteration, Is.EqualTo(1));
+
+					Verify(chunk, data[..chunk.Count]);
+					Assert.That(chunk.First, Is.EqualTo(folder.Encode(0)));
+					Assert.That(chunk.Last, Is.EqualTo(folder.Encode(chunk.Count - 1)));
+
+					// read the next chunk
+					ts.Restart();
+					var chunk2 = await tr.GetRangeAsync(
+						chunk.Last + (byte) '0',
+						folder.Encode(N),
+						folder,
+						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
+						new FdbRangeOptions { Mode = FdbStreamingMode.Iterator },
+						chunk.Iteration
+					);
+					ts.Stop();
+					Assert.That(chunk2, Is.Not.Null);
+					Log($"> Read {chunk2.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms");
+					//DumpCompact(chunk2.Items.ToArray());
+
+					Verify(chunk2, data[chunk.Count..][..chunk2.Count]);
+					Assert.That(chunk2.First, Is.EqualTo(folder.Encode(chunk.Count)));
+					Assert.That(chunk2.Last, Is.EqualTo(folder.Encode(chunk.Count + chunk2.Count - 1)));
+
+				}, this.Cancellation);
+
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_Get_Range()
 		{
 			// test that we can get a range of keys

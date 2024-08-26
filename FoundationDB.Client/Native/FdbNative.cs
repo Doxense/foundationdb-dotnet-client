@@ -1593,6 +1593,45 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_future_get_keyvalue_array</summary>
+		public static FdbError FutureGetKeyValueArray<TState, TResult>(FutureHandle future, TState state, FdbKeyValueDecoder<TState, TResult> decoder, out TResult[]? result, out bool more, out Slice first, out Slice last)
+		{
+			result = null;
+			first = default;
+			last = default;
+
+			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* ptr, out int count, out more);
+#if DEBUG_NATIVE_CALLS
+			LogNative($"fdb_future_get_keyvalue_array(0x{future.Handle:x}) => err={err}, count={count}, more={more}");
+#endif
+
+			if (err == FdbError.Success)
+			{
+				Contract.Debug.Assert(count >= 0, "Return count was negative");
+				var kvp = new ReadOnlySpan<FdbKeyValue>(ptr, count);
+
+				if (kvp.Length == 0)
+				{
+					result = [ ];
+				}
+				else
+				{
+					// convert the data using the raw native buffer
+					result = new TResult[kvp.Length];
+					for (int i = 0; i < kvp.Length; i++)
+					{
+						result[i] = decoder(state, kvp[i].GetKey(), kvp[i].GetValue());
+					}
+
+					// we also need to grab the first and last key (for pagination)
+					first = Slice.Copy(kvp[0].GetKey());
+					last = kvp.Length > 1 ? Slice.Copy(kvp[^1].GetKey()) : first;
+				}
+			}
+
+			return err;
+		}
+
+		/// <summary>fdb_future_get_keyvalue_array</summary>
 		public static FdbError FutureGetKeyValueArrayKeysOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more)
 		{
 			result = null;

@@ -119,6 +119,20 @@ namespace FoundationDB.Client.Core
 		/// <returns></returns>
 		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, bool snapshot, CancellationToken ct);
 
+		/// <summary>Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the begin key selector and lexicographically less than the key resolved by the end key selector.</summary>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="limit">Maximum number of items to return</param>
+		/// <param name="reverse">If true, results are returned in reverse order (from last to first)</param>
+		/// <param name="targetBytes">Maximum number of bytes to read</param>
+		/// <param name="mode">Streaming mode (defaults to <see cref="FdbStreamingMode.Iterator"/>)</param>
+		/// <param name="read">Read mode (defaults to <see cref="FdbReadMode.Both"/>)</param>
+		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="snapshot">Set to true for snapshot reads</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
+		/// <returns></returns>
+		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, CancellationToken ct);
+
 		/// <summary>Check the the value of a key in the database snapshot is equal to the expected value.</summary>
 		/// <param name="key">Key to check</param>
 		/// <param name="expected">Expected value of the key</param>
