@@ -4539,8 +4539,51 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr[^2], Is.Not.Null.And.SameAs(JsonNull.Null));
 				Assert.That(arr[^1], Is.Not.Null.And.SameAs(JsonNull.Missing));
 				Assert.That(arr[^4], Is.Not.Null.And.SameAs(JsonNull.Error));
-
 			}
+
+			{ // mutating original array should NOT change the JsonArray created (and vice versa)
+				var tmp = new JsonValue[] { "one", 2, "three" };
+				var arr = JsonArray.Create(tmp);
+				Assert.That(tmp[1], IsJson.Number.And.EqualTo(2));
+				Assert.That(arr[1], IsJson.Number.And.EqualTo(2));
+				tmp[1] = "two";
+				Assert.That(tmp[1], IsJson.String.And.EqualTo("two"));
+				Assert.That(arr[1], IsJson.Number.And.EqualTo(2));
+
+				arr[2] = 3;
+				Assert.That(tmp[2], IsJson.String.And.EqualTo("three"));
+				Assert.That(arr[2], IsJson.Number.And.EqualTo(3));
+			}
+
+		}
+
+		[Test]
+		public void Test_JsonArray_Create_Compiler_Trivia()
+		{
+			Assert.That(JsonArray.Create([ "one" ]), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one") }));
+			Assert.That(JsonArray.Create([ "one", "two" ]), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
+			Assert.That(JsonArray.Create([ "one", null, 123 ]), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
+			Assert.That(JsonArray.Create(new JsonValue?[] { "before", "one", null, 123, "after" }.AsSpan(1, 3)), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
+
+			Assert.That(JsonArray.Create("one"), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one") }));
+			Assert.That(JsonArray.Create("one", "two"), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
+			Assert.That(JsonArray.Create("one", null, 123), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
+			Assert.That(JsonArray.Create(1, 2, 3, 4, 5), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3), JsonNumber.Return(4), JsonNumber.Return(5) }));
+
+			Assert.That(JsonArray.Create([ "one", JsonArray.Create([ "two", "three" ]) ]), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
+			Assert.That(JsonArray.Create("one", JsonArray.Create("two", "three")), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
+
+			Assert.That(JsonArray.CreateReadOnly([ "one" ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one") }));
+			Assert.That(JsonArray.CreateReadOnly([ "one", "two" ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
+			Assert.That(JsonArray.CreateReadOnly([ "one", null, 123 ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
+
+			Assert.That(JsonArray.CreateReadOnly("one"), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one") }));
+			Assert.That(JsonArray.CreateReadOnly("one", "two"), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
+			Assert.That(JsonArray.CreateReadOnly("one", null, 123), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
+			Assert.That(JsonArray.CreateReadOnly(1, 2, 3, 4, 5), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3), JsonNumber.Return(4), JsonNumber.Return(5) }));
+
+			Assert.That(JsonArray.CreateReadOnly([ "one", JsonArray.CreateReadOnly([ "two", "three" ]) ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
+			Assert.That(JsonArray.CreateReadOnly("one", JsonArray.CreateReadOnly("two", "three")), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
 		}
 
 		[Test]
@@ -4989,8 +5032,9 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(it.MoveNext(), Is.False, "Capacity = 4, mais Count = 3 !");
 					Assert.That(it.Current, Is.Null, "After last MoveNext");
 				}
-				Assert.That(cast.ToArray(), Is.EqualTo(new JsonObject[] {a, b, c}));
-				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject> {a, b, c}));
+
+				Assert.That(cast.ToArray(), Is.EqualTo(new JsonObject[] { a, b, c }));
+				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject> { a, b, c }));
 			}
 
 			{ // the second element is null
@@ -5484,14 +5528,11 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// creating a readonly object with only immutable values should produce an immutable object
 
-			// singleton
-			AssertIsImmutable(JsonArray.CreateReadOnly("one"));
-
 			// DEPRECATED: should use collection expressions instead: [ ... ]
+			AssertIsImmutable(JsonArray.CreateReadOnly("one"));
 			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two"));
 			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three"));
 			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three", "four"));
-			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three", "four", "five"));
 
 			// collection expressions: should invoke the ReadOnlySpan<> overload
 			AssertIsImmutable(JsonArray.CreateReadOnly(["one"]));
@@ -6020,7 +6061,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.ToJson(), Is.EqualTo("""{ "Hello\\World": 123, "Hello\"World": 456, "\\\\?\\GLOBALROOT\\Device\\Foo\\Bar": 789 }"""));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("""{"Hello\\World":123,"Hello\"World":456,"\\\\?\\GLOBALROOT\\Device\\Foo\\Bar":789}""")));
 
-			//note: on ne sérialise pas les JsonNull "Missing"/"Error" par défaut!
+			//note: we do not deserialize JsonNull singletons "Missing"/"Error" by default
 			obj = JsonObject.Create("Foo", JsonNull.Null, "Bar", JsonNull.Missing, "Baz", JsonNull.Error);
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Foo\": null }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Foo\":null}")));
@@ -8434,7 +8475,7 @@ namespace Doxense.Serialization.Json.Tests
 			const string TEXT = @"[ { ""Foo"":""Bar"" }, { ""Foo"":""Bar"" } ]";
 
 			// by default, only the keys are interned, not the values
-			var array = JsonValue.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.Default)).Select(x => ((JsonObject)x).First()).ToArray();
+			var array = JsonValue.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.Default)).Select(x => ((JsonObject) x).First()).ToArray();
 			var one = array[0];
 			var two = array[1];
 

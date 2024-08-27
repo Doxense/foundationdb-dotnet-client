@@ -45,8 +45,8 @@ namespace Doxense.Serialization.Json
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
 	[PublicAPI]
-#if NET8_0_OR_GREATER
-	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
+#if NET9_0_OR_GREATER
+	[System.Runtime.CompilerServices.CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
 #endif
 	public sealed class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>
 	{
@@ -295,12 +295,18 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JsonArray that will hold a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray Create(JsonValue? value) => new([
 			value ?? JsonNull.Null
 		], 1, readOnly: false);
 
 		/// <summary>Create a new JsonArray that will hold a pair of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2) => new([
 			value1 ?? JsonNull.Null,
 			value2 ?? JsonNull.Null
@@ -308,6 +314,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JsonArray that will hold three elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
 			value1 ?? JsonNull.Null,
 			value2 ?? JsonNull.Null,
@@ -316,6 +325,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JsonArray that will hold four elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
 			value1 ?? JsonNull.Null,
 			value2 ?? JsonNull.Null,
@@ -325,7 +337,11 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		public static JsonArray Create(JsonValue?[] values)
+#else
 		public static JsonArray Create(params JsonValue?[] values)
+#endif
 		{
 			return Create(Contract.ValueNotNull(values).AsSpan());
 		}
@@ -333,6 +349,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure]
 #if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
 		public static JsonArray Create(params ReadOnlySpan<JsonValue?> values)
 #else
 		public static JsonArray Create(ReadOnlySpan<JsonValue?> values)
@@ -355,15 +372,21 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
+
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> that will hold a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray CreateReadOnly(JsonValue? value) => new([
 			(value ?? JsonNull.Null).ToReadOnly()
 		], 1, readOnly: true);
 
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Prefer using collection expressions instead: JsonArray.CreateReadOnly([ value1, value2, value3, value4 ])")]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
 			(value2 ?? JsonNull.Null).ToReadOnly()
@@ -371,7 +394,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Prefer using collection expressions instead: JsonArray.CreateReadOnly([ value1, value2, value3, value4 ])")]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
 			(value2 ?? JsonNull.Null).ToReadOnly(),
@@ -380,7 +405,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Prefer using collection expressions instead: JsonArray.CreateReadOnly([ value1, value2, value3, value4 ])")]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
 			(value2 ?? JsonNull.Null).ToReadOnly(),
@@ -394,7 +421,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray CreateReadOnly(params JsonValue?[] values)
+		public static JsonArray CreateReadOnly(JsonValue?[] values)
 		{
 			return CreateReadOnly(Contract.ValueNotNull(values).AsSpan());
 		}
@@ -402,10 +429,9 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure]
 #if NET9_0_OR_GREATER
-		public static JsonArray CreateReadOnly(params ReadOnlySpan<JsonValue?> values)
-#else
-		public static JsonArray CreateReadOnly(ReadOnlySpan<JsonValue?> values)
+		[OverloadResolutionPriority(1)]
 #endif
+		public static JsonArray CreateReadOnly(params ReadOnlySpan<JsonValue?> values)
 		{
 			if (values.Length == 0)
 			{
