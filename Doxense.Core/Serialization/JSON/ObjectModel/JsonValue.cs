@@ -332,6 +332,9 @@ namespace Doxense.Serialization.Json
 		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, string key) => new($"Cannot set property '{key}' on a JSON {value.Type}, because it is not a JSON Object");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, ReadOnlySpan<char> key) => new($"Cannot set property '{key.ToString()}' on a JSON {value.Type}, because it is not a JSON Object");
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, int index) => new($"Cannot set value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -343,6 +346,10 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		protected static InvalidOperationException FailCannotMutateImmutableValue(JsonValue value) => new($"Cannot mutate JSON {value.Type} because it is immutable.");
 
+		/// <summary>Returns the value of field with the specified name, if the current is an object and the field was found.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="value">Value of the field, if it was found</param>
+		/// <returns><see langword="true"/> if the field was found, or <see langword="false"/> if the field was not found, or the current value is not an object</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual bool TryGetValue(string key, [MaybeNullWhen(false)] out JsonValue value)
@@ -352,6 +359,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Returns the value of field with the specified name, if the current is an object and the field was found.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="value">Value of the field, if it was found</param>
+		/// <returns><see langword="true"/> if the field was found, or <see langword="false"/> if the field was not found, or the current value is not an object</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
@@ -369,6 +380,25 @@ namespace Doxense.Serialization.Json
 			value = null;
 			return false;
 		}
+
+#if NET9_0_OR_GREATER
+
+		/// <summary>Returns the value of field with the specified name, if the current is an object and the field was found.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="actualKey">Receives the original allocated key, if the field was found</param>
+		/// <param name="value">Value of the field, if it was found</param>
+		/// <returns><see langword="true"/> if the field was found, or <see langword="false"/> if the field was not found, or the current value is not an object</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			//TODO: REVIEW: should we return false, or fail if not supported? (note: this[xxx] throws on values that do not support indexing)
+			value = null;
+			actualKey = null;
+			return false;
+		}
+
+#endif
 
 		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -484,11 +514,12 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);
 
-		/// <summary>Retourne la valeur d'un champ, si cette valeur est un objet JSON</summary>
-		/// <param name="key">Nom du champ à retourner</param>
-		/// <returns>Valeur de ce champ, ou missing si le champ n'existe. Une exception si cette valeur n'est pas un objet JSON</returns>
-		/// <exception cref="System.ArgumentNullException">Si <paramref name="key"/> est null.</exception>
-		/// <exception cref="System.InvalidOperationException">Cet valeur JSON ne supporte pas la notion d'indexation</exception>
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name, if the current value is a JSON Object</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it was not found.</returns>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is <see langword="null"/>.</exception>
+		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the object is read-only</exception>
+		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[string key]
 		{
@@ -498,11 +529,26 @@ namespace Doxense.Serialization.Json
 			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : FailDoesNotSupportIndexingWrite(this, key));
 		}
 
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name, if the current value is a JSON Object</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it was not found.</returns>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is <see langword="null"/>.</exception>
+		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the object is read-only</exception>
+		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual JsonValue this[ReadOnlySpan<char> key]
+		{
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => GetValueOrDefault(key);
+			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : FailDoesNotSupportIndexingWrite(this, key));
+		}
+
 		/// <summary>Returns the element at the specified index, if the current value is a JSON Array</summary>
 		/// <param name="index">Index of the element to return</param>
-		/// <returns>Value of the element at the specified <paramref name="index"/>. An exception is thrown if the current value is not a JSON Array, or if the element is outside the bounds of the array</returns>
-		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing</exception>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array</exception>
+		/// <returns>Value of the element at the specified <paramref name="index"/> or <see cref="JsonNull.Error"/> if the index is outside of the bounds of the array. An exception is thrown if the current value is not a JSON Array.</returns>
+		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the array is read-only</exception>
+		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
 		[AllowNull]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[int index]
@@ -515,9 +561,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the element at the specified index, if the current value is a JSON Array</summary>
 		/// <param name="index">Index of the element to return</param>
-		/// <returns>Value of the element at the specified <paramref name="index"/>. An exception is thrown if the current value is not a JSON Array, or if the element is outside the bounds of the array</returns>
-		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing</exception>
-		/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is outside the bounds of the array</exception>
+		/// <returns>Value of the element at the specified <paramref name="index"/> or <see cref="JsonNull.Error"/> if the index is outside of the bounds of the array. An exception is thrown if the current value is not a JSON Array.</returns>
+		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the array is read-only</exception>
+		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
 		[AllowNull]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[Index index]

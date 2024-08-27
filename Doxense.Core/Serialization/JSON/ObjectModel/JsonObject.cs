@@ -971,13 +971,22 @@ namespace Doxense.Serialization.Json
 		[AllowNull]
 		public override JsonValue this[string key]
 		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_items.TryGetValue(key, out var value) ? value : JsonNull.Missing;
-			set
-			{
-				if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-				Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
-				m_items[key] = value ?? JsonNull.Null;
-			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			set => Set(key, value);
+		}
+
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[AllowNull]
+		public override JsonValue this[ReadOnlySpan<char> key]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => TryGetValue(key, out var value) ? value : JsonNull.Missing;
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			set => Set(key, value);
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Always)]
@@ -1028,6 +1037,18 @@ namespace Doxense.Serialization.Json
 			}
 #endif
 		}
+
+#if NET9_0_OR_GREATER
+
+		/// <inheritdoc/>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
+		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryGetValue(key, out actualKey, out value);
+		}
+
+#endif
 
 		/// <inheritdoc/>
 		[EditorBrowsable(EditorBrowsableState.Always)]
@@ -2101,7 +2122,7 @@ namespace Doxense.Serialization.Json
 		/// { Bar: ".."  }.Has("Foo") => false // not found
 		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public bool Has(string key) => TryGetValue(key, out var value) && !value.IsNullOrMissing();
+		public bool Has(string key) => m_items.TryGetValue(key, out var value) && !value.IsNullOrMissing();
 
 		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2111,7 +2132,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => m_items.TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
 		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3346,9 +3367,10 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
+			var otherItems = other.m_items;
 			foreach (var kvp in this)
 			{
-				if (!other.TryGetValue(kvp.Key, out var o) || !o.Equals(kvp.Value))
+				if (!otherItems.TryGetValue(kvp.Key, out var o) || !o.Equals(kvp.Value))
 				{
 					return false;
 				}
@@ -3363,9 +3385,10 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 			comparer ??= JsonValueComparer.Default;
+			var otherItems = other.m_items;
 			foreach (var kvp in this)
 			{
-				if (!other.TryGetValue(kvp.Key, out var o) || !comparer.Equals(o, kvp.Value))
+				if (!otherItems.TryGetValue(kvp.Key, out var o) || !comparer.Equals(o, kvp.Value))
 				{
 					return false;
 				}

@@ -5988,6 +5988,10 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456, \"Bar\": true, \"BAR\": { \"Alpha\": 111, \"Omega\": 999 } }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456,\"Bar\":true,\"BAR\":{\"Alpha\":111,\"Omega\":999}}")));
 
+			// ReadOnlySpan keys
+			Assert.That(obj["Hello".AsSpan()], IsJson.EqualTo("World"));
+			Assert.That(obj["NotHello".AsSpan(3)], IsJson.EqualTo("World"));
+
 			// property names that require escaping ("..\.." => "..\\..", "\\?\..." => "\\\\?\\....")
 			obj = new JsonObject();
 			obj["""Hello\World"""] = 123;
@@ -6007,6 +6011,67 @@ namespace Doxense.Serialization.Json.Tests
 			obj = JsonObject.Create("Foo", JsonNull.Null, "Bar", JsonNull.Missing, "Baz", JsonNull.Error);
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Foo\": null }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Foo\":null}")));
+		}
+
+		[Test]
+		public void Test_JsonObject_Span_Keys()
+		{
+			Span<char> spanKey = [ 'H', 'e', 'l', 'l', 'o' ]; // we assume that it is allocated on the stack!
+
+			{ // stackalloc'ed keys
+				var obj = new JsonObject();
+				obj[spanKey] = "World";
+				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
+				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
+				Assert.That(obj.TryGetValue(spanKey, out var value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+#if NET9_0_OR_GREATER
+				Assert.That(obj.TryGetValue(spanKey, out var actualKey, out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+				Assert.That(actualKey, Is.InstanceOf<string>().And.EqualTo("Hello"));
+#endif
+			}
+
+			{ // sliced keys
+				var obj = new JsonObject();
+				obj["NotHello".AsSpan(3)] = "World";
+				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
+				Assert.That(obj["Hello".AsSpan()], IsJson.EqualTo("World"));
+				Assert.That(obj["HelloNot".AsSpan(0, 5)], IsJson.EqualTo("World"));
+				Assert.That(obj.TryGetValue("NotHelloNot".AsSpan(3, 5), out var value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+#if NET9_0_OR_GREATER
+				Assert.That(obj.TryGetValue("NotHelloNot".AsSpan(3, 5), out var actualKey, out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+				Assert.That(actualKey, Is.InstanceOf<string>().And.EqualTo("Hello"));
+#endif
+			}
+
+#if NET9_0_OR_GREATER
+			{ // TryGetValue span returns original key
+
+				// create a unique key, add it to the object, and check that TryGetValue with a span will return the exact same instance (and not a copy!)
+				string key = DateTime.Now.Ticks.ToString();
+				var obj = new JsonObject();
+				obj[key] = "World";
+				Span<char> span = stackalloc char[key.Length];
+				key.CopyTo(span);
+				Assert.That(obj.TryGetValue(span, out var actualKey, out var value), Is.True);
+				Assert.That(value, IsJson.EqualTo("World"));
+				Assert.That(actualKey, Is.SameAs(key));
+			}
+#endif
+
+			{ // Set(JsonValue)
+				var obj = new JsonObject();
+				obj.Set(spanKey, "World");
+				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
+				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
+			}
+
+			{ // Set<T>(...)
+				var obj = new JsonObject();
+				obj.Set<string>(spanKey, "World");
+				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
+				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
+			}
+
 		}
 
 		[Test]
