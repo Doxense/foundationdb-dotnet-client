@@ -29,6 +29,7 @@
 namespace SnowBank.Testing
 {
 	using System.Linq.Expressions;
+	using System.Runtime.CompilerServices;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
 	using NUnit.Framework.Constraints;
@@ -109,14 +110,23 @@ namespace SnowBank.Testing
 		public static JsonConstraint OfSizeLessThan(int expected) => new JsonSizeConstraint(expected, ExpressionType.LessThan);
 
 		/// <summary>Assert that the value is read-only.</summary>
-		public static JsonConstraint ReadOnly => new JsonReadOnlyConstraint();
+		public static JsonConstraint ReadOnly => new JsonReadOnlyConstraint(readOnly: true);
+
+		/// <summary>Assert that the value is not read-only.</summary>
+		public static JsonConstraint Mutable => new JsonReadOnlyConstraint(readOnly: false);
 
 		#region JsonValue...
 		
 		/// <summary>Assert that the value is a JSON Value equal to the expected value</summary>
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static JsonConstraint EqualTo(JsonValue expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, expected);
 
 		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(-1)]
+#endif
 		public static JsonConstraint EqualTo(IEnumerable<JsonValue> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
@@ -646,12 +656,19 @@ namespace SnowBank.Testing
 		internal sealed class JsonReadOnlyConstraint : JsonConstraint
 		{
 
+			public bool ReadOnly { get; }
+
+			public JsonReadOnlyConstraint(bool readOnly)
+			{
+				this.ReadOnly = readOnly;
+			}
+
 			public override ConstraintResult ApplyTo<TActual>(TActual actual)
 			{
 				return actual switch
 				{
 					null => new Result(this, JsonNull.Null, true),
-					JsonValue val => new Result(this, val, val.IsReadOnly),
+					JsonValue val => new Result(this, val, this.ReadOnly ? val.IsReadOnly : !val.IsReadOnly),
 					_ => throw new ArgumentException("The actual value must be a JSON value. The value passed was of type " + typeof(TActual).Name, nameof(actual)),
 				};
 			}
@@ -946,7 +963,10 @@ namespace SnowBank.Testing
 			public JsonConstraintExpression OfSizeLessThan(int expected) => this.Append(new JsonSizeConstraint(expected, ExpressionType.LessThan));
 
 			/// <summary>Assert that the value is read-only.</summary>
-			public JsonConstraintExpression ReadOnly => this.Append(new JsonReadOnlyConstraint());
+			public JsonConstraintExpression ReadOnly => this.Append(new JsonReadOnlyConstraint(readOnly: true));
+
+			/// <summary>Assert that the value is not read-only.</summary>
+			public JsonConstraintExpression Mutable => this.Append(new JsonReadOnlyConstraint(readOnly: false));
 
 			/// <summary>Assert that the value is <see cref="JsonBoolean.False"/></summary>
 			public JsonConstraintExpression False => AddEqualConstraint(JsonBoolean.False);
@@ -960,9 +980,15 @@ namespace SnowBank.Testing
 			#region JsonValue...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
+#if NET9_0_OR_GREATER
+			[OverloadResolutionPriority(1)]
+#endif
 			public JsonConstraintExpression EqualTo(JsonValue expected) => AddEqualConstraint(expected);
 
 			/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+#if NET9_0_OR_GREATER
+			[OverloadResolutionPriority(-1)]
+#endif
 			public JsonConstraintExpression EqualTo(IEnumerable<JsonValue> expected) => AddEqualConstraint(JsonArray.FromValues(expected));
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
