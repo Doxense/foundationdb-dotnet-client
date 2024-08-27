@@ -61,16 +61,50 @@ namespace Doxense.Serialization.Json
 		private int m_size;
 		private bool m_readOnly;
 
+		#region Debug View...
+
 		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-		private class DebugView
+		internal sealed class DebugView
 		{
 			private readonly JsonArray m_array;
 
 			public DebugView(JsonArray array) => m_array = array;
 
 			[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-			public JsonValue[] Items => m_array.ToArray();
+			public DebugViewItem[] Items
+			{
+				get
+				{
+					var tmp = m_array.ToArray();
+					var items = new DebugViewItem[tmp.Length];
+					for (int i = 0; i < items.Length; ++i)
+					{
+						items[i] = new(i, tmp[i]);
+					}
+					return items;
+				}
+			}
+
 		}
+
+		[DebuggerDisplay("{Value.GetCompactRepresentation(0),nq}", Name = "[{Index}]")]
+		internal readonly struct DebugViewItem
+		{
+			public DebugViewItem(int index, JsonValue value)
+			{
+				this.Index = index;
+				this.Value = value;
+			}
+
+			[DebuggerBrowsable(DebuggerBrowsableState.Never)]
+			public int Index { get; }
+
+			[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+			public JsonValue Value { get; }
+
+		}
+
+		#endregion
 
 		#region Constructors...
 

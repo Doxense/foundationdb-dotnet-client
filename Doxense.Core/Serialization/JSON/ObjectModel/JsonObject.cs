@@ -73,8 +73,10 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
 		public static readonly JsonObject EmptyReadOnly = new(new Dictionary<string, JsonValue>(0, StringComparer.Ordinal), readOnly: true);
 
+		#region Debug View...
+
 		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-		private class DebugView
+		internal sealed class DebugView
 		{
 			private readonly JsonObject m_obj;
 
@@ -84,8 +86,40 @@ namespace Doxense.Serialization.Json
 			}
 
 			[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-			public KeyValuePair<string, JsonValue>[] Items => m_obj.ToArray();
+			public DebugViewItem[] Items
+			{
+				get
+				{
+					var tmp = m_obj.ToArray();
+					var items = new DebugViewItem[tmp.Length];
+					for (int i = 0; i < items.Length; ++i)
+					{
+						items[i] = new(tmp[i].Key, tmp[i].Value);
+					}
+					return items;
+				}
+			}
+
 		}
+
+		[DebuggerDisplay("{Value.GetCompactRepresentation(0),nq}", Name = "[{Key}]")]
+		internal readonly struct DebugViewItem
+		{
+			public DebugViewItem(string key, JsonValue value)
+			{
+				this.Key = key;
+				this.Value = value;
+			}
+
+			[DebuggerBrowsable(DebuggerBrowsableState.Never)]
+			public string Key { get; }
+
+			[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+			public JsonValue Value { get; }
+
+		}
+
+		#endregion
 
 		#region Constructors...
 
