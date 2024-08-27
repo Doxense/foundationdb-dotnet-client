@@ -2338,7 +2338,7 @@ namespace Doxense.Serialization.Json
 			JsonValue? prevNode = null;
 			ReadOnlyMemory<char> prevKey = default;
 			Index prevIndex = default;
-			foreach(var (parent, key, idx, last) in path)
+			foreach (var (parent, key, idx, last) in path)
 			{
 				if (key.Length > 0)
 				{ // field access
@@ -2350,7 +2350,7 @@ namespace Doxense.Serialization.Json
 					{
 						if (!current.IsNullOrMissing())
 						{ // incompatible type!
-							throw ThrowHelper.InvalidOperationException("TODO: object expected");
+							throw ThrowHelper.InvalidOperationException($"Cannot set key '{key.ToString()}' because parent '{parent}' is not an object");
 						}
 
 						if (prevNode == null)
@@ -2365,7 +2365,7 @@ namespace Doxense.Serialization.Json
 						{
 							if (prevNode is not JsonObject prevObj)
 							{
-								throw ThrowHelper.InvalidOperationException("TODO: object expected");
+								throw ThrowHelper.InvalidOperationException($"Cannot set key '{key.ToString()}' because parent of '{parent}' is not an object");
 							}
 							prevObj.Set(prevKey, obj);
 						}
@@ -2373,7 +2373,7 @@ namespace Doxense.Serialization.Json
 						{
 							if (prevNode is not JsonArray prevArray)
 							{
-								throw ThrowHelper.InvalidOperationException("TODO: array expected");
+								throw ThrowHelper.InvalidOperationException($"Cannot set key '{key.ToString()}' because parent of '{parent}' is not an array");
 							}
 							prevArray.Set(prevIndex, obj);
 						}
@@ -2422,7 +2422,7 @@ namespace Doxense.Serialization.Json
 					{
 						if (!current.IsNullOrMissing())
 						{ // incompatible type!
-							throw ThrowHelper.InvalidOperationException("TODO: array expected");
+							throw ThrowHelper.InvalidOperationException($"Cannot set index {idx} because parent '{parent}' is not an array");
 						}
 						if (prevNode == null)
 						{
@@ -2436,7 +2436,7 @@ namespace Doxense.Serialization.Json
 						{
 							if (prevNode is not JsonObject prevObj)
 							{
-								throw ThrowHelper.InvalidOperationException("TODO: object expected");
+								throw ThrowHelper.InvalidOperationException($"Cannot set index {idx} because parent of '{parent}' is not an object");
 							}
 							prevObj.Set(prevKey, arr);
 						}
@@ -2444,7 +2444,7 @@ namespace Doxense.Serialization.Json
 						{
 							if (prevNode is not JsonArray prevArray)
 							{
-								throw ThrowHelper.InvalidOperationException("TODO: array expected");
+								throw ThrowHelper.InvalidOperationException($"Cannot set index {idx} because parent of '{parent}' is not an array");
 							}
 							prevArray.Set(prevIndex, arr);
 						}

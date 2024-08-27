@@ -624,20 +624,26 @@ namespace Doxense.Serialization.Json
 
 		private static JsonValue VisitKeyValuePairGeneric<TKey, TValue>(CrystalJsonDomWriter writer, ref VisitingContext context, KeyValuePair<TKey, TValue> value)
 		{
-			return JsonArray.Create(
+			return new JsonArray([
 				JsonValue.FromValue<TKey>(value.Key), //REVIEW: on suppose que le type de clé est simple!
 				JsonValue.FromValue<TValue>(writer, ref context, value.Value)
-			);
+			], 2, readOnly: false);
 		}
 
 		private static JsonValue VisitKeyValuePair(KeyValuePair<string, string> kv)
 		{
-			return JsonArray.Create(JsonString.Return(kv.Key), JsonString.Return(kv.Value));
+			return new JsonArray([
+				JsonString.Return(kv.Key),
+				JsonString.Return(kv.Value)
+			], 2, readOnly: false);
 		}
 
 		private static JsonValue VisitKeyValuePair(KeyValuePair<long, long> kv)
 		{
-			return JsonArray.Create(JsonNumber.Return(kv.Key), JsonNumber.Return(kv.Value));
+			return new JsonArray([
+				JsonNumber.Return(kv.Key),
+				JsonNumber.Return(kv.Value)
+			], 2, readOnly: false);
 		}
 
 		[ContractAnnotation("=>true,result:notnull; =>false,result:null")]

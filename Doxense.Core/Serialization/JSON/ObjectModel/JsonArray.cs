@@ -3083,7 +3083,7 @@ namespace Doxense.Serialization.Json
 
 		IEnumerator<JsonValue> IEnumerable<JsonValue>.GetEnumerator() => new Enumerator(m_items, m_size);
 
-		IEnumerator IEnumerable.GetEnumerator() => new Enumerator(m_items, m_size);
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		public struct Enumerator : IEnumerator<JsonValue>
 		{
