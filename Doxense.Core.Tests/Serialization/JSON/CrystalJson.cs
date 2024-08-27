@@ -4526,6 +4526,19 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.Count, Is.EqualTo(4));
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("""["one",2,"three",4]""")));
+			}
+
+			{ // null entries are converted to JsonNull.Null
+				var arr = JsonArray.Create([ null, JsonNull.Null, JsonNull.Missing ]);
+				Assert.That(arr[0], Is.Not.Null.And.SameAs(JsonNull.Null));
+				Assert.That(arr[1], Is.Not.Null.And.SameAs(JsonNull.Null));
+				Assert.That(arr[2], Is.Not.Null.And.SameAs(JsonNull.Missing));
+				Assert.That(arr[3], Is.Not.Null.And.SameAs(JsonNull.Error));
+
+				Assert.That(arr[^3], Is.Not.Null.And.SameAs(JsonNull.Null));
+				Assert.That(arr[^2], Is.Not.Null.And.SameAs(JsonNull.Null));
+				Assert.That(arr[^1], Is.Not.Null.And.SameAs(JsonNull.Missing));
+				Assert.That(arr[^4], Is.Not.Null.And.SameAs(JsonNull.Error));
 
 			}
 		}

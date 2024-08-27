@@ -847,7 +847,7 @@ namespace Doxense.Serialization.Json
 		public override JsonValue this[int index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => GetValueOrDefault(index);
+			get => TryGetValue(index, out var value) ? value : JsonNull.Error;
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			set => Set(index, value);
 		}
@@ -857,7 +857,7 @@ namespace Doxense.Serialization.Json
 		public override JsonValue this[Index index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => GetValueOrDefault(index);
+			get => TryGetValue(index, out var value) ? value : JsonNull.Error;
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			set => Set(index, value);
 		}
