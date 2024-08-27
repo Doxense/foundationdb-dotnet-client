@@ -26,10 +26,12 @@
 
 namespace Doxense.Collections.Tuples
 {
+	using System.Collections;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
@@ -491,65 +493,65 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1>(T1 item1)
 		{
-			return TupleEncoder.EncodeKey(default, item1);
+			return TupleEncoder.EncodeKey(prefix: default, item1);
 		}
 
 		/// <summary>Pack a 2-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2>(T1 item1, T2 item2)
 		{
-			return TupleEncoder.EncodeKey(default, item1, item2);
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2);
 		}
 
 		/// <summary>Pack a 3-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			return TupleEncoder.EncodeKey(default, item1, item2, item3);
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3);
 		}
 
 		/// <summary>Pack a 4-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			return TupleEncoder.EncodeKey(default, item1, item2, item3, item4);
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4);
 		}
 
 		/// <summary>Pack a 5-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			return TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5);
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
-			return TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6);
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
-			return TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6, item7);
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6, item7);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
-			return TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6, item7, item8);
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodeKeys<T1>(IEnumerable<T1> keys)
+		public static Slice[] EncodeKeys<TKey>(IEnumerable<TKey> keys)
 		{
-			return TupleEncoder.EncodeKeys(default(ReadOnlySpan<byte>), keys);
+			return TupleEncoder.EncodeKeys(prefix: default, keys);
 		}
 
-		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Encodes a sequence of keys with a common prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
@@ -560,7 +562,7 @@ namespace Doxense.Collections.Tuples
 			return TupleEncoder.EncodeKeys(prefix.Span, keys);
 		}
 
-		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Encodes a sequence of keys with a common prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
@@ -571,59 +573,80 @@ namespace Doxense.Collections.Tuples
 			return TupleEncoder.EncodeKeys(prefix, keys);
 		}
 
+		/// <summary>Encodes a sequence of keys, all sharing the same buffer</summary>
+		/// <typeparam name="TKey">Type of the keys</typeparam>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (fo all keys) that share the same underlyinh buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodeKeys<T>(params T?[] keys)
+		public static Slice[] EncodeKeys<TKey>(TKey[] keys)
 		{
-			return TupleEncoder.EncodeKeys(default(ReadOnlySpan<byte>), keys);
+			Contract.NotNull(keys);
+			return TupleEncoder.EncodeKeys(prefix: default, new ReadOnlySpan<TKey>(keys));
 		}
 
-		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Encodes an array of keys with a common prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, params T?[] keys)
+		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, T[] keys)
 		{
-			return TupleEncoder.EncodeKeys(prefix.Span, keys);
+			Contract.NotNull(keys);
+			return TupleEncoder.EncodeKeys(prefix.Span, new ReadOnlySpan<T>(keys));
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodeKeys<T>(params ReadOnlySpan<T> keys)
+		public static Slice[] EncodeKeys<TKey>(ReadOnlySpan<TKey> keys)
 		{
-			return TupleEncoder.EncodeKeys(default, keys);
+			return TupleEncoder.EncodeKeys(prefix: default, keys);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static Slice[] EncodeKeys<T>(Span<T> keys)
+		public static Slice[] EncodeKeys<TKey>(Span<TKey> keys)
 		{
 			// This only exists to fix an overload resolution ambiguity in the following situation:
 			// > var keys = TuPack.EncodeKeys(..., someArray.AsSpan(...))
 			// In this case, AsSpan(..) returns a Span<T> which is not ReadOnlySpan<T>, so the compiler will prefer the (IEnumerable<T>) overload instead of (ReadOnlySpan<T>)
-			return TupleEncoder.EncodeKeys(default, (ReadOnlySpan<T>) keys);
+			return TupleEncoder.EncodeKeys(prefix: default, (ReadOnlySpan<TKey>) keys);
 		}
 
-		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Encodes an array of keys with a common prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
+		/// <param name="keys">Sequence of keys to encode</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, params ReadOnlySpan<T> keys)
+		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, ReadOnlySpan<T> keys)
 		{
 			return TupleEncoder.EncodeKeys(prefix.Span, keys);
 		}
 
-		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Encodes a span of keys with a same prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>(ReadOnlySpan<byte> prefix, params ReadOnlySpan<T> keys)
+		public static Slice[] EncodePrefixedKeys<T>(ReadOnlySpan<byte> prefix, ReadOnlySpan<T> keys)
 		{
 			return TupleEncoder.EncodeKeys(prefix, keys);
+		}
+
+		/// <summary>Encodes a span of keys with a common prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Slice[] EncodePrefixedKeys<T>(ReadOnlySpan<byte> prefix, Span<T> keys)
+		{
+			// This only exists to fix an overload resolution ambiguity issue between ReadOnlySpan<T> and IEnumerable<T>:
+			// > var keys = TuPack.EncodePrefixKeys(..., someArray.AsSpan(...))
+			// In this case, AsSpan(..) returns a Span<T> which is not ReadOnlySpan<T>, so the compiler will prefer the (..., IEnumerable<T>) overload instead of (..., ReadOnlySpan<T>)
+			return TupleEncoder.EncodeKeys(prefix, (ReadOnlySpan<T>) keys);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -635,7 +658,7 @@ namespace Doxense.Collections.Tuples
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, Span<T> keys)
 		{
-			// This only exists to fix an overload resolution ambiguity in the following situation:
+			// This only exists to fix an overload resolution ambiguity issue between ReadOnlySpan<T> and IEnumerable<T>:
 			// > var keys = TuPack.EncodePrefixKeys(..., someArray.AsSpan(...))
 			// In this case, AsSpan(..) returns a Span<T> which is not ReadOnlySpan<T>, so the compiler will prefer the (..., IEnumerable<T>) overload instead of (..., ReadOnlySpan<T>)
 			return TupleEncoder.EncodeKeys(prefix.Span, (ReadOnlySpan<T>) keys);
@@ -650,6 +673,19 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodeKeys<TKey, TElement>(TElement[] elements, Func<TElement, TKey> selector)
 		{
+			Contract.NotNull(elements);
+			return TupleEncoder.EncodeKeys(default, new ReadOnlySpan<TElement>(elements), selector);
+		}
+
+		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
+		/// <typeparam name="TElement">Type of the elements</typeparam>
+		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
+		/// <param name="elements">Sequence of elements to pack</param>
+		/// <param name="selector">Lambda that extract the key from each element</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodeKeys<TKey, TElement>(ReadOnlySpan<TElement> elements, Func<TElement, TKey> selector)
+		{
 			return TupleEncoder.EncodeKeys(default, elements, selector);
 		}
 
@@ -663,6 +699,20 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<TKey, TElement>(Slice prefix, TElement[] elements, Func<TElement, TKey> selector)
 		{
+			Contract.NotNull(elements);
+			return TupleEncoder.EncodeKeys(prefix.Span, new ReadOnlySpan<TElement>(elements), selector);
+		}
+
+		/// <summary>Merge an array of elements with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="TElement">Type of the elements</typeparam>
+		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
+		/// <param name="prefix">Prefix shared by all keys (can be empty)</param>
+		/// <param name="elements">Sequence of elements to pack</param>
+		/// <param name="selector">Lambda that extract the key from each element</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodePrefixedKeys<TKey, TElement>(Slice prefix, ReadOnlySpan<TElement> elements, Func<TElement, TKey> selector)
+		{
 			return TupleEncoder.EncodeKeys(prefix.Span, elements, selector);
 		}
 
@@ -675,6 +725,19 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<TKey, TElement>(ReadOnlySpan<byte> prefix, TElement[] elements, Func<TElement, TKey> selector)
+		{
+			return TupleEncoder.EncodeKeys(prefix, elements, selector);
+		}
+
+		/// <summary>Merge an array of elements with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="TElement">Type of the elements</typeparam>
+		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
+		/// <param name="prefix">Prefix shared by all keys (can be empty)</param>
+		/// <param name="elements">Sequence of elements to pack</param>
+		/// <param name="selector">Lambda that extract the key from each element</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] EncodePrefixedKeys<TKey, TElement>(ReadOnlySpan<byte> prefix, ReadOnlySpan<TElement> elements, Func<TElement, TKey> selector)
 		{
 			return TupleEncoder.EncodeKeys(prefix, elements, selector);
 		}
@@ -698,11 +761,12 @@ namespace Doxense.Collections.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, params T?[] keys)
+		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, T[] keys)
 		{
 			Contract.NotNull(prefix);
+			Contract.NotNull(keys);
 
-			return EncodePrefixedKeys(Pack(prefix), keys);
+			return EncodePrefixedKeys(Pack(prefix), new ReadOnlySpan<T>(keys));
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -1507,26 +1571,13 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static bool TryUnpack(Slice packedKey, [MaybeNullWhen(false)] out IVarTuple tuple)
 		{
-			if (packedKey.IsNull)
+			if (!packedKey.IsNull && TryUnpack(packedKey.Span, out var st))
 			{
-				tuple = null;
-				return false;
-			}
-
-			if (packedKey.Count == 0)
-			{
-				tuple = STuple.Empty;
+				tuple = st.ToTuple(packedKey);
 				return true;
 			}
-
-			if (!TuplePackers.TryUnpack(packedKey, embedded: false, out var st, out _))
-			{
-				tuple = null;
-				return false;
-			}
-
-			tuple = st;
-			return true;
+			tuple = null;
+			return false;
 		}
 
 		/// <summary>Unpack a tuple from a serialized key blob</summary>
@@ -1536,12 +1587,6 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static bool TryUnpack(ReadOnlySpan<byte> packedKey, out SpanTuple tuple)
 		{
-			if (packedKey.Length == 0)
-			{
-				tuple = default;
-				return false;
-			}
-
 			if (packedKey.Length == 0)
 			{
 				tuple = SpanTuple.Empty;

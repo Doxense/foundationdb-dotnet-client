@@ -1166,7 +1166,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
 		[Pure]
-		public static IVarTuple ParseTuple(Slice slice)
+		public static IVarTuple ParseEmbeddedTuple(Slice slice)
 		{
 			Contract.Debug.Requires(slice.Count > 0 && slice[0] == TupleTypes.EmbeddedTuple && slice[^1] == 0);
 			if (slice.Count <= 2) return STuple.Empty;
@@ -1178,7 +1178,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
 		[Pure]
-		public static SpanTuple ParseTuple(ReadOnlySpan<byte> slice)
+		public static SpanTuple ParseEmbeddedTuple(ReadOnlySpan<byte> slice)
 		{
 			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.EmbeddedTuple && slice[^1] == 0);
 			if (slice.Length <= 2) return SpanTuple.Empty;

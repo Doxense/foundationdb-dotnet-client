@@ -926,7 +926,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
 					case TupleTypes.Utf8: return TupleParser.ParseUnicode(slice);
 					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
-					case TupleTypes.EmbeddedTuple: return TupleParser.ParseTuple(slice);
+					case TupleTypes.EmbeddedTuple: return TupleParser.ParseEmbeddedTuple(slice);
 				}
 			}
 			else
@@ -979,7 +979,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
 					case TupleTypes.Utf8: return TupleParser.ParseUnicode(slice);
 					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
-					case TupleTypes.EmbeddedTuple: return TupleParser.ParseTuple(slice).ToTuple();
+					case TupleTypes.EmbeddedTuple: return TupleParser.ParseEmbeddedTuple(slice).ToTuple();
 				}
 			}
 			else
@@ -1146,12 +1146,12 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 				case TupleTypes.Bytes:
 				{
-					return TupleEncoder.Unpack(TupleParser.ParseBytes(slice));
+					return TuPack.Unpack(TupleParser.ParseBytes(slice));
 				}
 				case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
 				case TupleTypes.EmbeddedTuple:
 				{
-					return TupleParser.ParseTuple(slice);
+					return TupleParser.ParseEmbeddedTuple(slice);
 				}
 				default:
 				{
@@ -1169,9 +1169,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			return type switch
 			{
 				TupleTypes.Nil => null,
-				TupleTypes.Bytes => TupleEncoder.Unpack(TupleParser.ParseBytes(slice)),
+				TupleTypes.Bytes => TuPack.Unpack(TupleParser.ParseBytes(slice)),
 				TupleTypes.LegacyTupleStart => throw TupleParser.FailLegacyTupleNotSupported(),
-				TupleTypes.EmbeddedTuple => TupleParser.ParseTuple(slice).ToTuple(),
+				TupleTypes.EmbeddedTuple => TupleParser.ParseEmbeddedTuple(slice).ToTuple(),
 				_ => throw new FormatException("Cannot convert tuple segment into a Tuple")
 			};
 		}
@@ -1197,7 +1197,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> DeserializeTuple<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1, T2, T3, T4, T5, T6, T7>(slice);
 
-		//TODO: there is not STuple with 8 arguments !
+		//TODO: there is no STuple<...> with 8 generic arguments !
 
 		[Pure]
 		public static ValueTuple<T1?> DeserializeValueTuple<T1>(ReadOnlySpan<byte> slice)
@@ -1205,8 +1205,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			ValueTuple<T1?> res = default;
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1224,7 +1223,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -1243,8 +1242,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var res = default(ValueTuple<T1?, T2?>);
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1262,7 +1260,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -1281,8 +1279,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var res = default(ValueTuple<T1?, T2?, T3?>);
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1300,7 +1297,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -1320,8 +1317,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var res = default(ValueTuple<T1?, T2?, T3?, T4?>);
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1339,7 +1335,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -1359,8 +1355,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var res = default(ValueTuple<T1?, T2?, T3?, T4?, T5?>);
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1378,7 +1373,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -1397,8 +1392,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var res = default((T1?, T2?, T3?, T4?, T5?, T6?));
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1416,7 +1410,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -1435,8 +1429,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var res = default((T1?, T2?, T3?, T4?, T5?, T6?, T7?));
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1454,7 +1447,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -1473,8 +1466,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var res = default((T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?));
 			if (slice.Length != 0)
 			{
-				byte type = slice[0];
-				switch (type)
+				switch (slice[0])
 				{
 					case TupleTypes.Nil:
 					{
@@ -1492,7 +1484,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.EmbeddedTuple:
 					{
 						// extract the embedded tuple, and resume parsing
-						var reader = TupleReader.Embedded(slice);
+						var reader = TupleReader.UnpackEmbeddedTuple(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
 						break;
 					}
@@ -2924,25 +2916,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				return SlicedTuple.Empty;
 			}
 			return tuple.ToTuple(buffer);
-		}
-
-		/// <summary>Unpack a tuple from a buffer</summary>
-		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
-		/// <param name="embedded"></param>
-		/// <param name="tuple"></param>
-		/// <returns>Decoded tuple</returns>
-		internal static bool TryUnpack(Slice buffer, bool embedded, [MaybeNullWhen(false)] out SlicedTuple tuple, out Exception? error)
-		{
-			var reader = new TupleReader(buffer.Span, embedded ? 1 : 0);
-			if (!TryUnpack(ref reader, out var st, out error))
-			{
-				tuple = null;
-				return false;
-			}
-
-			tuple = st.ToTuple(buffer);
-			error = null;
-			return true;
 		}
 
 		/// <summary>Unpack a tuple from a buffer</summary>

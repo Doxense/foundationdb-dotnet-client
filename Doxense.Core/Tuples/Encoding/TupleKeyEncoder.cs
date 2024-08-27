@@ -170,19 +170,37 @@ namespace Doxense.Collections.Tuples.Encoding
 		public T1? DecodeKeyFirst<T1>(Slice packed) => TuPack.DecodeFirst<T1>(packed);
 
 		/// <inheritdoc />
+		public T1? DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed) => TuPack.DecodeFirst<T1>(packed);
+
+		/// <inheritdoc />
 		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed) => TuPack.DecodeFirst<T1, T2>(packed);
+
+		/// <inheritdoc />
+		public (T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed) => TuPack.DecodeFirst<T1, T2>(packed);
 
 		/// <inheritdoc />
 		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed) => TuPack.DecodeFirst<T1, T2, T3>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed) => TuPack.DecodeFirst<T1, T2, T3>(packed);
+
+		/// <inheritdoc />
 		public T? DecodeKeyLast<T>(Slice packed) => TuPack.DecodeLast<T>(packed);
+
+		/// <inheritdoc />
+		public T? DecodeKeyLast<T>(ReadOnlySpan<byte> packed) => TuPack.DecodeLast<T>(packed);
 
 		/// <inheritdoc />
 		public (T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed) => TuPack.DecodeLast<T1, T2>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed) => TuPack.DecodeLast<T1, T2>(packed);
+
+		/// <inheritdoc />
 		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed) => TuPack.DecodeLast<T1, T2, T3>(packed);
+
+		/// <inheritdoc />
+		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed) => TuPack.DecodeLast<T1, T2, T3>(packed);
 
 		/// <inheritdoc />
 		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed) => TuPack.DecodeKey<T1, T2>(packed);

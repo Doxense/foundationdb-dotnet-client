@@ -698,9 +698,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			Contract.NotNull(keys);
 
 			// use optimized version for arrays
-			if (keys is T[] array) return EncodeKeys<T>(prefix, array);
+			if (keys is T[] array) return EncodeKeys<T>(prefix, new ReadOnlySpan<T>(array));
+			if (keys is List<T> list) return EncodeKeys<T>(prefix, CollectionsMarshal.AsSpan(list));
 
-			var next = new List<int>((keys as ICollection<T>)?.Count ?? 0);
+			var next = new List<int>(keys.TryGetNonEnumeratedCount(out var count) ? count : 0);
 			var writer = new TupleWriter();
 			var packer = TuplePacker<T>.Encoder;
 
@@ -710,32 +711,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			foreach (var key in keys)
 			{
 				if (hasPrefix) writer.Output.WriteBytes(prefix);
-				packer(ref writer, key);
-				next.Add(writer.Output.Position);
-			}
-
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
-		}
-
-		/// <summary>Merges an array of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<T>(ReadOnlySpan<byte> prefix, T?[] keys)
-		{
-			Contract.NotNull(keys);
-
-			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new TupleWriter(checked(keys.Length * (prefix.Length + 8)));
-			var next = new List<int>(keys.Length);
-			var packer = TuplePacker<T>.Encoder;
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var key in keys)
-			{
-				if (prefix.Length > 0) writer.Output.WriteBytes(prefix);
 				packer(ref writer, key);
 				next.Add(writer.Output.Position);
 			}
@@ -767,17 +742,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
-		/// <summary>Merges an array of elements, all sharing the same buffer</summary>
-		/// <typeparam name="TElement">Type of the elements</typeparam>
-		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
-		/// <param name="elements">Sequence of elements to pack</param>
-		/// <param name="selector">Lambda that extract the key from each element</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<TKey, TElement>(TElement[] elements, Func<TElement, TKey> selector)
-		{
-			return EncodeKeys<TKey, TElement>(default, elements, selector);
-		}
-
 		/// <summary>Merges an array of elements with a same prefix, all sharing the same buffer</summary>
 		/// <typeparam name="TElement">Type of the elements</typeparam>
 		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
@@ -785,9 +749,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="elements">Sequence of elements to pack</param>
 		/// <param name="selector">Lambda that extract the key from each element</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<TKey, TElement>(ReadOnlySpan<byte> prefix, TElement[] elements, Func<TElement, TKey> selector)
+		public static Slice[] EncodeKeys<TKey, TElement>(ReadOnlySpan<byte> prefix, ReadOnlySpan<TElement> elements, Func<TElement, TKey> selector)
 		{
-			Contract.NotNull(elements);
 			Contract.NotNull(selector);
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
@@ -807,75 +770,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
-		/// <summary>Packs a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="TTuple">Type of the prefix tuple</typeparam>
-		/// <typeparam name="T1">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, IEnumerable<T1> keys)
-			where TTuple : IVarTuple?
-		{
-			Contract.NotNullAllowStructs(prefix);
-			var head = Pack(prefix);
-			return EncodeKeys<T1>(head.Span, keys);
-		}
-
-		/// <summary>Packs a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="TTuple">Type of the prefix tuple</typeparam>
-		/// <typeparam name="T1">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, T1?[] keys)
-			where TTuple : IVarTuple?
-		{
-			Contract.NotNullAllowStructs(prefix);
-
-			var head = Pack(prefix);
-			return EncodeKeys<T1>(head.Span, keys);
-		}
-
-		/// <summary>Packs a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="TTuple">Type of the prefix tuple</typeparam>
-		/// <typeparam name="T1">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, ReadOnlySpan<T1> keys)
-			where TTuple : IVarTuple?
-		{
-			Contract.NotNullAllowStructs(prefix);
-
-			var head = Pack(prefix);
-			return EncodeKeys<T1>(head.Span, keys);
-		}
-
 		#endregion
 
 		#region Unpacking...
-
-		/// <summary>Unpacks a tuple from a serialized key blob</summary>
-		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
-		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
-		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
-		public static IVarTuple Unpack(Slice packedKey)
-		{
-			if (packedKey.IsNull) throw new ArgumentNullException(nameof(packedKey));
-			if (packedKey.Count == 0) return STuple.Empty;
-
-			return TuplePackers.Unpack(packedKey, false);
-		}
-
-		/// <summary>Unpacks a tuple from a binary representation</summary>
-		/// <param name="packedKey">Binary key containing a previously packed tuple, or <see cref="Slice.Nil"/></param>
-		/// <returns>Unpacked tuple, the empty tuple if <paramref name="packedKey"/> is equal to <see cref="Slice.Empty"/>, or null if the key is <see cref="Slice.Nil"/></returns>
-		public static IVarTuple? UnpackOrDefault(Slice packedKey)
-		{
-			if (packedKey.IsNull) return null;
-			if (packedKey.Count == 0) return STuple.Empty;
-			return TuplePackers.Unpack(packedKey, false);
-		}
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
@@ -1187,13 +1084,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Unpacks the value of a singleton tuple</summary>
-		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
+		/// <typeparam name="TKey">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with a single element</param>
-		/// <param name="item1">Receives the decoded value</param>
+		/// <param name="key">Receives the decoded value</param>
 		/// <return>False if if the tuple is empty, or has more than one element; otherwise, false.</return>
-		public static bool TryDecodeKey<T1>(ref TupleReader reader, out T1? item1)
+		public static bool TryDecodeKey<TKey>(ref TupleReader reader, out TKey? key)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error))
+			if (!TryDecodeNext(ref reader, out key, out var error))
 			{
 				return false;
 			}
@@ -1205,7 +1102,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Unpacks a key containing two elements</summary>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with two elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than two elements.</remarks>
 		public static void DecodeKey<T1, T2>(ref TupleReader reader, out (T1?, T2?) tuple)

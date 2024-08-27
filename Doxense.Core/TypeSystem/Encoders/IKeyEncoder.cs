@@ -26,6 +26,8 @@
 
 namespace Doxense.Serialization.Encoders
 {
+	using System.Diagnostics.CodeAnalysis;
+	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
 	/// <summary>Base interface for all key encoders</summary>
@@ -35,35 +37,53 @@ namespace Doxense.Serialization.Encoders
 		IKeyEncoding Encoding { get; }
 	}
 
-	public interface IKeyEncoder<T1> : IKeyEncoder
+	/// <summary>Encoder that can serialize and deserialize keys using a binary encoding</summary>
+	/// <typeparam name="TKey">Type of the key</typeparam>
+	public interface IKeyEncoder<TKey> : IKeyEncoder
 	{
-		/// <summary>Encode a single value</summary>
-		void WriteKeyTo(ref SliceWriter writer, T1? value);
 
-		/// <summary>Decode a single value</summary>
-		void ReadKeyFrom(ref SliceReader reader, out T1? value);
+		/// <summary>Encodes a single value to an output buffer</summary>
+		void WriteKeyTo(ref SliceWriter writer, TKey? value);
 
-		bool TryReadKeyFrom(ref SliceReader reader, out T1? value);
+		/// <summary>Decodes a single value from an input buffer</summary>
+		void ReadKeyFrom(ref SliceReader reader, out TKey? value);
+
+		/// <summary>Tries to decode a single value from an input buffer</summary>
+		bool TryReadKeyFrom(ref SliceReader reader, out TKey? value);
+
 	}
 
-	public class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
+	/// <summary>Encoder for a key composed of a single part</summary>
+	/// <typeparam name="TKey">Type of the key</typeparam>
+	public sealed class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
 	{
+
 		public KeyEncoder(Func<TKey?, Slice> pack, Func<Slice, TKey?> unpack)
 		{
 			this.Pack = pack;
 			this.Unpack = unpack;
 		}
 
-		private Delegate Pack { get; }
+		private Func<TKey?, Slice> Pack { get; }
 
-		private Delegate Unpack { get; }
+		private Func<Slice, TKey?> Unpack { get; }
 
 		#region KeyEncoding...
 
-		IKeyEncoder<T> IKeyEncoding.GetKeyEncoder<T>()
+		IKeyEncoder<TOther> IKeyEncoding.GetKeyEncoder<TOther>()
 		{
-			if (typeof(T) != typeof(TKey)) throw new NotSupportedException($"This custom encoding can only process keys of type {typeof(TKey).Name}.");
-			return (IKeyEncoder<T>) this;
+			var type = typeof(TOther);
+			if (type != typeof(TKey))
+			{
+				throw ErrorKeyTypeNotSupported(type);
+			}
+			return (IKeyEncoder<TOther>) (object) this;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static NotSupportedException ErrorKeyTypeNotSupported(Type type)
+		{
+			return new NotSupportedException($"This custom encoding is intended for type {typeof(TKey).GetFriendlyName} and cannot process keys of type {type.GetFriendlyName()}.");
 		}
 
 		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
@@ -82,45 +102,30 @@ namespace Doxense.Serialization.Encoders
 
 		public void WriteKeyTo(ref SliceWriter writer, TKey? value)
 		{
-			if (this.Pack is Func<TKey?, Slice> f)
-			{
-				writer.WriteBytes(f(value));
-				return;
-			}
-			throw new InvalidOperationException();
+			writer.WriteBytes(this.Pack(value));
 		}
 
 		public void ReadKeyFrom(ref SliceReader reader, out TKey? value)
 		{
-			if (this.Unpack is Func<Slice, TKey?> f)
-			{
-				value = f(reader.ReadToEnd());
-				return;
-			}
-			throw new InvalidOperationException();
+			value = this.Unpack(reader.ReadToEnd());
 		}
 
 		public bool TryReadKeyFrom(ref SliceReader reader, out TKey? value)
 		{
-			if (this.Unpack is Func<Slice, TKey?> f)
+			try
 			{
-				try
-				{
-					value = f(reader.ReadToEnd());
-					return true;
-				}
-				catch (FormatException)
-				{
-					value = default;
-					return false;
-				}
+				value = this.Unpack(reader.ReadToEnd());
+				return true;
 			}
-
-			value = default;
-			return false;
-
+			catch (FormatException)
+			{
+				value = default;
+				return false;
+			}
 		}
 
 		#endregion
+
 	}
+
 }

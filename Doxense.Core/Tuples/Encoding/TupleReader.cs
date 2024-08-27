@@ -31,51 +31,75 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
+	/// <summary>Reads bytes from a contiguous region of arbitrary memory</summary>
 	[DebuggerDisplay("{Cursor}/{Input.Length} @ {Depth}")]
 	public ref struct TupleReader
 	{
+		// This reader maintains a cursor in the original input buffer, in order to be able to format error messages with the absolute byte offset "Invalid XYZ at offset CURSOR", instead of simply reapeatedly slicing the buffer.
+		// We also always return "Range" instead of a ReadOnlySpan<char> so that we avoid any potentiel compiler warnings 
+
+		/// <summary>Input buffer containing a packed tuple</summary>
 		public readonly ReadOnlySpan<byte> Input;
-		public int Depth;
+
+		/// <summary>Cursor of the next bytes that will be read from <see cref="Input"/></summary>
 		public int Cursor;
 
-		public TupleReader(ReadOnlySpan<byte> input)
-		{
-			this.Input = input;
-			this.Depth = 0;
-			this.Cursor = 0;
-		}
+		/// <summary>Current decoding depth (0 = top level, 1+ = embedded tuple)</summary>
+		public int Depth;
 
-		public TupleReader(ReadOnlySpan<byte> input, int depth)
+		public TupleReader(ReadOnlySpan<byte> input, int depth = 0, int cursor = 0)
 		{
+			Contract.Debug.Requires(depth >= 0 && cursor >= 0);
 			this.Input = input;
-			this.Depth = depth;
-			this.Cursor = 0;
-		}
-
-		public TupleReader(ReadOnlySpan<byte> input, int depth, int cursor)
-		{
-			this.Input = input;
-			this.Depth = depth;
 			this.Cursor = cursor;
+			this.Depth = depth;
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TupleReader Embedded(ReadOnlySpan<byte> packed)
-		{
-			Contract.Debug.Requires(packed.Length >= 2 && packed[0] == TupleTypes.EmbeddedTuple && packed[^1] == 0);
-			return new TupleReader(packed.Slice(1, packed.Length - 2));
-		}
-
+		/// <summary>Number of bytes remaining in the input buffer</summary>
 		public readonly int Remaining => this.Input.Length - this.Cursor;
 
+		/// <summary>Tests if there is more data remaining in the buffer</summary>
 		public readonly bool HasMore => this.Cursor < this.Input.Length;
 
+		/// <summary>Peek the next byte in the buffer, without advancing the cursor</summary>
+		/// <returns>Value of the next byte in the buffer.</returns>
+		/// <exception cref="IndexOutOfRangeException">If the cursor is outside the bounds of the buffer (no more bytes, advanced too fart, ...)</exception>
 		public readonly int Peek() => this.Input[this.Cursor];
 
-		public readonly int PeekAt(int offset) => this.Input[this.Cursor + offset];
+		/// <summary>Peek at a byte further away in the buffer, without advancing the cursor</summary>
+		/// <param name="offset">Offset (from the cursor) of the byte to return</param>
+		/// <returns>Value of the byte at the specified offset from the cursor.</returns>
+		/// <exception cref="IndexOutOfRangeException">If the cursor plus offset falls outside the bounds of the buffer (no more bytes, advanced too fart, ...)</exception>
+		public readonly int PeekAt([Positive] int offset) => this.Input[this.Cursor + offset];
 
+		/// <summary>Advance the cursor by the specified amount of bytes</summary>
+		/// <param name="bytes">Number of bytes to skip</param>
 		public void Advance(int bytes) => this.Cursor += bytes;
 
+		/// <summary>Tries to read the specified amount of bytes from the buffer</summary>
+		/// <param name="count">Number of bytes to read</param>
+		/// <param name="token">Receives the corresponding range in the original buffer, if there was enough bytes</param>
+		/// <returns><see langword="true"/> if the read was successfull, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining.</returns>
+		public bool TryReadBytes(int count, out Range token)
+		{
+			int start = this.Cursor;
+			int end = start + count;
+			if (end > this.Input.Length)
+			{
+				token = default;
+				return false;
+			}
+
+			token = new Range(start, end);
+			this.Cursor = end;
+			return true;
+		}
+
+		/// <summary>Tries to read the specified amount of bytes from the buffer</summary>
+		/// <param name="count">Number of bytes to read</param>
+		/// <param name="token">Receives the corresponding range in the original buffer, if there was enough bytes</param>
+		/// <param name="error">Receives an exception if there was not enough bytes</param>
+		/// <returns><see langword="true"/> if the read was successfull, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining and <paramref name="error"/> receives an exception that can be re-thrown by the caller.</returns>
 		public bool TryReadBytes(int count, out Range token, [NotNullWhen(false)] out Exception? error)
 		{
 			int start = this.Cursor;
@@ -93,6 +117,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			return true;
 		}
 
+		/// <summary>Tries to read an encoded null-terminated byte string (which contains escaped NUL-bytes)</summary>
+		/// <param name="token">Receives the range that starts from the current cursor up until the end of the string</param>
+		/// <param name="error">Receives an exception if the string is incomplete</param>
+		/// <returns><see langword="true"/> if the string was successfully read, or <see langword="false"/> if the string was truncated, or if there was no more data in the buffer</returns>
 		public bool TryReadByteString(out Range token, [NotNullWhen(false)] out Exception? error)
 		{
 			int p = this.Cursor;
@@ -103,7 +131,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				byte b = buffer[p++];
 				if (b == 0)
 				{
-					//TODO: decode \0\xFF ?
 					if (p < end && buffer[p] == 0xFF)
 					{
 						// skip the next byte and continue
@@ -121,6 +148,16 @@ namespace Doxense.Collections.Tuples.Encoding
 			token = default;
 			error = new FormatException("Truncated byte string (expected terminal NUL not found)");
 			return false;
+		}
+
+		/// <summary>Unpack the content of an embedded tuple</summary>
+		/// <param name="packed">Packed tuple (starts with <c>0x02</c> and ends with <c>0x00</c></param>
+		/// <returns></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static TupleReader UnpackEmbeddedTuple(ReadOnlySpan<byte> packed)
+		{
+			Contract.Debug.Requires(packed.Length >= 2 && packed[0] == TupleTypes.EmbeddedTuple && packed[^1] == 0);
+			return new TupleReader(packed.Slice(1, packed.Length - 2));
 		}
 
 	}

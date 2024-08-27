@@ -369,15 +369,27 @@ namespace Doxense.Serialization.Encoders
 
 		public T1 DecodeKeyFirst<T1>(Slice packed) => throw new NotImplementedException();
 
+		public T1 DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
 		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed) => throw new NotImplementedException();
+
+		public (T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
 
 		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
 
+		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
 		public T1 DecodeKeyLast<T1>(Slice packed) => throw new NotImplementedException();
+
+		public T1 DecodeKeyLast<T1>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
 
 		public (T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed) => throw new NotImplementedException();
 
+		public (T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
 		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
+
+		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
 
 		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed) => throw new NotImplementedException();
 

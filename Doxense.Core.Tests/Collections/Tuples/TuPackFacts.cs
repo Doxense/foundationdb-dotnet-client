@@ -1818,21 +1818,7 @@ here:
 		{
 			//Optimized STuple<...> versions
 
-			{ // params ReadOnlySpan<string>
-				var packed = TuPack.EncodeKeys(
-					"foo",
-					"bar",
-					"baz"
-				);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // direct ReadOnlySpan<T>
+			{ // ReadOnlySpan<string>
 				var packed = TuPack.EncodeKeys([ "foo", "bar", "baz" ]);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
@@ -1862,8 +1848,8 @@ here:
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
-			{ // params ReadOnlySpan<int>
-				var packed = TuPack.EncodeKeys(123, 456, 789);
+			{ // ReadOnlySpan<int>
+				var packed = TuPack.EncodeKeys([ 123, 456, 789 ]);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8>"));
@@ -1872,7 +1858,7 @@ here:
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
-			{
+			{ // IEnumerable<int>
 				var packed = TuPack.EncodeKeys(Enumerable.Range(0, 3));
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("<14>"));
@@ -1882,8 +1868,28 @@ here:
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
-			{
+			{ // IEnumerable<T> + Func
 				var packed = TuPack.EncodeKeys(["Bonjour", "le", "Monde"], (s) => s.Length);
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<15><07>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<15><02>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<15><05>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+
+			{ // ReadOnlySpan<T> + Func
+				var packed = TuPack.EncodeKeys(["Bonjour", "le", "Monde"], (s) => s.Length);
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<15><07>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<15><02>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<15><05>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+
+			{ // T[] + Func
+				var packed = TuPack.EncodeKeys(new [] { "Bonjour", "le", "Monde" }, (s) => s.Length);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("<15><07>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("<15><02>"));
@@ -1899,15 +1905,6 @@ here:
 		{
 			var prefix = Slice.FromString("ABC");
 
-			{ // params ReadOnlySpan<string>
-				var packed = TuPack.EncodePrefixedKeys(prefix, "foo", "bar", "baz");
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
 			{ // collection expression
 				var packed = TuPack.EncodePrefixedKeys(prefix, [ "foo", "bar", "baz" ]);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
@@ -1940,7 +1937,7 @@ here:
 
 
 			{ // params ReadOnlySpan<int>
-				var packed = TuPack.EncodePrefixedKeys(prefix, 123, 456, 789);
+				var packed = TuPack.EncodePrefixedKeys(prefix, [ 123, 456, 789 ]);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8>"));
@@ -1949,12 +1946,18 @@ here:
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
-			{
-				var packed = TuPack.EncodePrefixedKeys(
-					prefix,
-					["Bonjour", "le", "Monde"],
-					(s) => s.Length
-				);
+			{ // ReadOnlySpan<T> + Func
+				var packed = TuPack.EncodePrefixedKeys(prefix, ["Bonjour", "le", "Monde"], (s) => s.Length);
+				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
+				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15><07>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15><02>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<15><05>"));
+				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
+			}
+
+			{ // T[] + Func
+				var packed = TuPack.EncodePrefixedKeys(prefix, new [] { "Bonjour", "le", "Monde" }, (s) => s.Length);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15><07>"));
 				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15><02>"));
@@ -2640,36 +2643,79 @@ here:
 
 			#region PackRange(Slice, ...)
 
-			string?[] words = [ "hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty ];
-
-			var merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words);
-			Assert.That(merged, Is.Not.Null);
-			Assert.That(merged.Length, Is.EqualTo(words.Length));
-
-			merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words.AsSpan());
-			Assert.That(merged, Is.Not.Null);
-			Assert.That(merged.Length, Is.EqualTo(words.Length));
-
-			for (int i = 0; i < words.Length; i++)
 			{
-				var expected = Slice.FromByte(42) + TuPack.EncodeKey(words[i]);
-				Assert.That(merged[i], Is.EqualTo(expected));
+				string?[] words = [ "hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty ];
 
-				Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
-				if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
+				var merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words);
+				Assert.That(merged, Is.Not.Null);
+				Assert.That(merged.Length, Is.EqualTo(words.Length));
+
+				merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words.AsSpan());
+				Assert.That(merged, Is.Not.Null);
+				Assert.That(merged.Length, Is.EqualTo(words.Length));
+
+				for (int i = 0; i < words.Length; i++)
+				{
+					var expected = Slice.FromByte(42) + TuPack.EncodeKey(words[i]);
+					Assert.That(merged[i], Is.EqualTo(expected));
+
+					Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
+					if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
+				}
+
+				// corner cases
+				// ReSharper disable AssignNullToNotNullAttribute
+				Assert.That(
+					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(int[])!),
+					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
+				);
+				Assert.That(
+					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)!),
+					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
+				);
+				// ReSharper restore AssignNullToNotNullAttribute
 			}
 
-			// corner cases
-			// ReSharper disable AssignNullToNotNullAttribute
-			Assert.That(
-				() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(int[])!),
-				Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
-			Assert.That(
-				() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)!),
-				Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
-			// ReSharper restore AssignNullToNotNullAttribute
+			#endregion
+
+			#region PackRange(ReadOnlySpan, ...)
+			{
+				string?[] words = [ "hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty ];
+				var span = new ReadOnlySpan<string?>(words);
+
+				var merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), span);
+				Assert.That(merged, Is.Not.Null);
+				Assert.That(merged.Length, Is.EqualTo(words.Length));
+
+				merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words.AsSpan());
+				Assert.That(merged, Is.Not.Null);
+				Assert.That(merged.Length, Is.EqualTo(words.Length));
+
+				for (int i = 0; i < words.Length; i++)
+				{
+					var expected = Slice.FromByte(42) + TuPack.EncodeKey(words[i]);
+					Assert.That(merged[i], Is.EqualTo(expected));
+
+					Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
+					if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
+				}
+
+				// corner cases
+				// ReSharper disable AssignNullToNotNullAttribute
+				Assert.That(
+					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(int[])!),
+					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
+				);
+				Assert.That(
+					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)!),
+					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
+				);
+				// ReSharper restore AssignNullToNotNullAttribute
+
+			}
 
 			#endregion
+
 		}
 
 		[Test]
