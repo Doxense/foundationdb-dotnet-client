@@ -26,12 +26,9 @@
 
 namespace Doxense.Collections.Tuples
 {
-	using System.Collections;
 	using System.ComponentModel;
-	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
@@ -192,7 +189,11 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
 		public static Slice[] PackTuples(params ReadOnlySpan<IVarTuple> tuples)
+#else
+		public static Slice[] PackTuples(ReadOnlySpan<IVarTuple> tuples)
+#endif
 		{
 			return TupleEncoder.Pack(default, tuples);
 		}
@@ -213,7 +214,11 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
 		public static Slice[] PackTuples<TTuple>(params ReadOnlySpan<TTuple> tuples)
+#else
+		public static Slice[] PackTuples<TTuple>(ReadOnlySpan<TTuple> tuples)
+#endif
 			where TTuple : IVarTuple?
 		{
 			return TupleEncoder.Pack<TTuple>(default, tuples);
@@ -417,7 +422,11 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
 		public static Slice[] PackTuples(Slice prefix, params ReadOnlySpan<IVarTuple> tuples)
+#else
+		public static Slice[] PackTuples(Slice prefix, ReadOnlySpan<IVarTuple> tuples)
+#endif
 		{
 			return TupleEncoder.Pack(prefix.Span, tuples);
 		}
@@ -428,7 +437,11 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
 		public static Slice[] PackTuples(ReadOnlySpan<byte> prefix, params ReadOnlySpan<IVarTuple> tuples)
+#else
+		public static Slice[] PackTuples(ReadOnlySpan<byte> prefix, ReadOnlySpan<IVarTuple> tuples)
+#endif
 		{
 			return TupleEncoder.Pack(prefix, tuples);
 		}
@@ -775,7 +788,11 @@ namespace Doxense.Collections.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
 		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, params ReadOnlySpan<T?> keys)
+#else
+		public static Slice[] EncodePrefixedKeys<T>(IVarTuple prefix, ReadOnlySpan<T?> keys)
+#endif
 		{
 			Contract.NotNull(prefix);
 
