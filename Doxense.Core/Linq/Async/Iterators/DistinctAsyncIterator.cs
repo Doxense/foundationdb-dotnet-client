@@ -115,6 +115,63 @@ namespace Doxense.Linq.Async.Iterators
 			ct.ThrowIfCancellationRequested();
 		}
 
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TSource> handler, CancellationToken ct)
+		{
+			Contract.NotNull(handler);
+			ct.ThrowIfCancellationRequested();
+
+			var mode = m_mode;
+			if (mode == AsyncIterationHint.Head)
+			{
+				mode = AsyncIterationHint.Iterator;
+			}
+
+			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
+			{
+				var set = new HashSet<TSource>(m_comparer);
+
+				while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+				{
+					var current = iter.Current;
+					if (set.Add(current))
+					{ // first occurrence of this item
+						handler(state, current);
+					}
+				}
+			}
+
+			ct.ThrowIfCancellationRequested();
+		}
+
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TSource, TAggregate> handler, CancellationToken ct)
+		{
+			Contract.NotNull(handler);
+			ct.ThrowIfCancellationRequested();
+
+			var mode = m_mode;
+			if (mode == AsyncIterationHint.Head)
+			{
+				mode = AsyncIterationHint.Iterator;
+			}
+
+			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
+			{
+				var set = new HashSet<TSource>(m_comparer);
+
+				while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+				{
+					var current = iter.Current;
+					if (set.Add(current))
+					{ // first occurrence of this item
+						seed = handler(seed, current);
+					}
+				}
+			}
+
+			ct.ThrowIfCancellationRequested();
+			return seed;
+		}
+
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
 		{
 			Contract.NotNull(asyncHandler);

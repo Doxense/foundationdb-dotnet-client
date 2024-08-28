@@ -175,6 +175,81 @@ namespace Doxense.Linq.Async.Iterators
 			ct.ThrowIfCancellationRequested();
 		}
 
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TSource> handler, CancellationToken ct)
+		{
+			Contract.NotNull(handler);
+
+			ct.ThrowIfCancellationRequested();
+
+			var filter = m_filter;
+			await using (var iter = StartInner(ct))
+			{
+				if (!filter.Async)
+				{
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+					{
+						var current = iter.Current;
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+						if (filter.Invoke(current))
+						{
+							handler(state, current);
+						}
+					}
+				}
+				else
+				{
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+					{
+						var current = iter.Current;
+						if (await filter.InvokeAsync(current, ct).ConfigureAwait(false))
+						{
+							handler(state, current);
+						}
+					}
+				}
+			}
+
+			ct.ThrowIfCancellationRequested();
+		}
+
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TSource, TAggregate> handler, CancellationToken ct)
+		{
+			Contract.NotNull(handler);
+
+			ct.ThrowIfCancellationRequested();
+
+			var filter = m_filter;
+			await using (var iter = StartInner(ct))
+			{
+				if (!filter.Async)
+				{
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+					{
+						var current = iter.Current;
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+						if (filter.Invoke(current))
+						{
+							seed = handler(seed, current);
+						}
+					}
+				}
+				else
+				{
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+					{
+						var current = iter.Current;
+						if (await filter.InvokeAsync(current, ct).ConfigureAwait(false))
+						{
+							seed = handler(seed, current);
+						}
+					}
+				}
+			}
+
+			ct.ThrowIfCancellationRequested();
+			return seed;
+		}
+
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
 		{
 			Contract.NotNull(asyncHandler);

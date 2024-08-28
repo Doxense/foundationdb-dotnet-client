@@ -26,7 +26,6 @@
 
 namespace Doxense.Linq
 {
-	using System.Diagnostics;
 	using Doxense.Linq.Async;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
@@ -182,7 +181,7 @@ namespace Doxense.Linq
 		/// <param name="action">Action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(
+		internal static async Task Run<TSource>(
 			IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
 			[InstantHandle] Action<TSource> action,
@@ -193,7 +192,6 @@ namespace Doxense.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			long count = 0;
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
@@ -201,10 +199,71 @@ namespace Doxense.Linq
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
 					action(iterator.Current);
-					++count;
 				}
 			}
-			return count;
+		}
+
+		/// <summary>Immediately execute an action on each element of an async sequence</summary>
+		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
+		/// <param name="source">Source async sequence</param>
+		/// <param name="mode">If different than default, can be used to optimise the way the source will produce the items</param>
+		/// <param name="action">Action to perform on each element as it arrives</param>
+		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
+		/// <returns>Number of items that have been processed</returns>
+		internal static async Task Run<TState, TSource>(
+			IAsyncEnumerable<TSource> source,
+			AsyncIterationHint mode,
+			TState state,
+			[InstantHandle] Action<TState, TSource> action,
+			CancellationToken ct)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(action);
+
+			ct.ThrowIfCancellationRequested();
+
+			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
+			{
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					action(state, iterator.Current);
+				}
+			}
+		}
+
+		/// <summary>Immediately execute an action on each element of an async sequence</summary>
+		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
+		/// <typeparam name="TAggregate"></typeparam>
+		/// <param name="source">Source async sequence</param>
+		/// <param name="mode">If different than default, can be used to optimise the way the source will produce the items</param>
+		/// <param name="seed"></param>
+		/// <param name="action">Action to perform on each element as it arrives</param>
+		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
+		/// <returns>Number of items that have been processed</returns>
+		internal static async Task<TAggregate> Run<TAggregate, TSource>(
+			IAsyncEnumerable<TSource> source,
+			AsyncIterationHint mode,
+			TAggregate seed,
+			[InstantHandle] Func<TAggregate, TSource, TAggregate> action,
+			CancellationToken ct)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(action);
+
+			ct.ThrowIfCancellationRequested();
+
+			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
+			{
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					seed = action(seed, iterator.Current);
+				}
+			}
+			return seed;
 		}
 
 		/// <summary>Immediately execute an action on each element of an async sequence, with the possibility of stopping before the end</summary>
@@ -214,7 +273,7 @@ namespace Doxense.Linq
 		/// <param name="action">Lambda called for each element as it arrives. If the return value is true, the next value will be processed. If the return value is false, the iterations will stop immediately.</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed successfully</returns>
-		internal static async Task<long> Run<TSource>(
+		internal static async Task Run<TSource>(
 			IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
 			Func<TSource, bool> action,
@@ -225,7 +284,6 @@ namespace Doxense.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			long count = 0;
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
@@ -236,10 +294,8 @@ namespace Doxense.Linq
 					{
 						break;
 					}
-					++count;
 				}
 			}
-			return count;
 		}
 
 		/// <summary>Immediately execute an async action on each element of an async sequence</summary>
@@ -249,7 +305,7 @@ namespace Doxense.Linq
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(
+		internal static async Task Run<TSource>(
 			IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
 			Func<TSource, CancellationToken, Task> action,
@@ -257,7 +313,6 @@ namespace Doxense.Linq
 		{
 			ct.ThrowIfCancellationRequested();
 
-			long count = 0;
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
@@ -265,40 +320,8 @@ namespace Doxense.Linq
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
 					await action(iterator.Current, ct).ConfigureAwait(false);
-					++count;
 				}
 			}
-			return count;
-		}
-
-		/// <summary>Immediately execute an async action on each element of an async sequence</summary>
-		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-		/// <param name="source">Source async sequence</param>
-		/// <param name="mode">Expected execution mode of the query</param>
-		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
-		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
-		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(
-			IAsyncEnumerable<TSource> source,
-			AsyncIterationHint mode,
-			Func<TSource, Task> action,
-			CancellationToken ct)
-		{
-			ct.ThrowIfCancellationRequested();
-
-			long count = 0;
-			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
-			{
-				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
-
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					ct.ThrowIfCancellationRequested();
-					await action(iterator.Current).ConfigureAwait(false);
-					++count;
-				}
-			}
-			return count;
 		}
 
 		/// <summary>Helper async method to get the first element of an async sequence</summary>

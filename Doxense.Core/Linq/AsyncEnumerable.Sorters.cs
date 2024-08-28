@@ -38,22 +38,21 @@ namespace Doxense.Linq
 		internal abstract class SequenceSorter<TSource>
 		{
 			/// <summary>Fill the array with all the keys extracted from the source</summary>
-			/// <param name="items"></param>
-			/// <param name="count"></param>
-			internal abstract void ComputeKeys(TSource[] items, int count);
+			internal abstract void ComputeKeys(ReadOnlyMemory<TSource> items, int count);
 
 			internal abstract int CompareKeys(int index1, int index2);
 
-			internal int[] Sort(TSource[] items, int count)
+			internal void Sort(ReadOnlyMemory<TSource> items, Span<int> map)
 			{
-				ComputeKeys(items, count);
-				var map = new int[count];
-				for (int i = 0; i < map.Length; i++) map[i] = i;
-				QuickSort(map, 0, count - 1);
-				return map;
+				ComputeKeys(items, map.Length);
+				for (int i = 0; i < map.Length; i++)
+				{
+					map[i] = i;
+				}
+				QuickSort(map, 0, map.Length - 1);
 			}
 
-			private void QuickSort(int[] map, int left, int right)
+			private void QuickSort(Span<int> map, int left, int right)
 			{
 				do
 				{
@@ -101,7 +100,7 @@ namespace Doxense.Linq
 			private readonly bool m_descending;
 
 			private readonly SequenceSorter<TSource>? m_next;
-			private TSource[]? m_items;
+			private ReadOnlyMemory<TSource> m_items;
 
 			public SequenceByElementSorter(IComparer<TSource> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
@@ -112,16 +111,15 @@ namespace Doxense.Linq
 				m_next = next;
 			}
 
-			internal override void ComputeKeys(TSource[] items, int count)
+			internal override void ComputeKeys(ReadOnlyMemory<TSource> items, int count)
 			{
 				m_items = items;
 			}
 
 			internal override int CompareKeys(int index1, int index2)
 			{
-				Contract.Debug.Requires(m_items != null);
 				var items = m_items;
-				int c = m_comparer.Compare(items[index1], items[index2]);
+				int c = m_comparer.Compare(items.Span[index1], items.Span[index2]);
 				if (c == 0)
 				{
 					SequenceSorter<TSource>? next;
@@ -154,13 +152,16 @@ namespace Doxense.Linq
 				m_next = next;
 			}
 
-			internal override void ComputeKeys(TSource[] items, int count)
+			internal override void ComputeKeys(ReadOnlyMemory<TSource> items, int count)
 			{
 				var selector = m_keySelector;
+				var span = items.Span;
+				if (span.Length < count) throw new ArgumentException("Source buffer is too small", nameof(items));
 				var keys = new TKey[count];
+
 				for (int i = 0; i < keys.Length; i++)
 				{
-					keys[i] = selector(items[i]);
+					keys[i] = selector(span[i]);
 				}
 				m_keys = keys;
 				m_next?.ComputeKeys(items, count);
@@ -168,16 +169,26 @@ namespace Doxense.Linq
 
 			internal override int CompareKeys(int index1, int index2)
 			{
-				Contract.Debug.Requires(m_keys != null);
-				Contract.Debug.Requires(m_comparer != null);
-				var keys = m_keys;
+				Contract.Debug.Requires(m_comparer != null && m_keys != null);
+				var keys = m_keys!;
+
 				int c = m_comparer.Compare(keys[index1], keys[index2]);
 				if (c == 0)
-				{
-					SequenceSorter<TSource>? next;
-					return (next = m_next) == null ? (index1 - index2) : next.CompareKeys(index1, index2);
+				{ // indentical values
+
+					// fallback to the next comparer, if there is one
+					var next = m_next;
+					if (next != null)
+					{ 
+						return next.CompareKeys(index1, index2);
+					}
+
+					// otherwise, use the position in the source as the tie-breaker
+					c = (index1 - index2);
 				}
+
 				return !m_descending ? c : -c;
+
 			}
 
 		}

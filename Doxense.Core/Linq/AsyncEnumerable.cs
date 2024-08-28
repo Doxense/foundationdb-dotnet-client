@@ -26,6 +26,9 @@
 
 namespace Doxense.Linq
 {
+	using System.Collections.Immutable;
+	using System.Xml.Linq;
+
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
 	using Doxense.Threading.Tasks;
@@ -535,85 +538,126 @@ namespace Doxense.Linq
 		#region Leaving the Monad...
 
 		/// <summary>Execute an action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Action<T> action, CancellationToken ct = default)
+		public static Task ForEachAsync<TElement>(this IAsyncEnumerable<TElement> source, [InstantHandle] Action<TElement> action, CancellationToken ct = default)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(action);
 
-			if (source is AsyncIterator<T> iterator)
+			return source switch
 			{
-				return iterator.ExecuteAsync(action, ct);
-			}
-			return Run(source, AsyncIterationHint.All, action, ct);
+				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(action, ct),
+				_ => Run(source, AsyncIterationHint.All, action, ct)
+			};
+		}
+
+		/// <summary>Execute an action for each element of an async sequence</summary>
+		public static Task ForEachAsync<TState, TElement>(this IAsyncEnumerable<TElement> source, TState state, [InstantHandle] Action<TState, TElement> action, CancellationToken ct = default)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(action);
+
+			return source switch
+			{
+				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(state, action, ct),
+				_ => Run(source, AsyncIterationHint.All, state, action, ct)
+			};
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, Task> asyncAction, CancellationToken ct = default)
+		public static Task ForEachAsync<TElement>(this IAsyncEnumerable<TElement> source, [InstantHandle] Func<TElement, Task> asyncAction, CancellationToken ct = default)
 		{
 			Contract.NotNull(asyncAction);
 
-			if (source is AsyncIterator<T> iterator)
+			return source switch
 			{
-				return iterator.ExecuteAsync(TaskHelpers.WithCancellation(asyncAction), ct);
-			}
-
-			return ForEachAsync(source, TaskHelpers.WithCancellation(asyncAction), ct);
+				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(TaskHelpers.WithCancellation(asyncAction), ct),
+				_ => ForEachAsync(source, TaskHelpers.WithCancellation(asyncAction), ct)
+			};
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default)
+		public static Task ForEachAsync<TElement>(this IAsyncEnumerable<TElement> source, [InstantHandle] Func<TElement, CancellationToken, Task> asyncAction, CancellationToken ct = default)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(asyncAction);
 
-			if (source is AsyncIterator<T> iterator)
+			return source switch
 			{
-				return iterator.ExecuteAsync(asyncAction, ct);
-			}
-
-			return Run(source, AsyncIterationHint.All, asyncAction, ct);
+				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(asyncAction, ct),
+				_ => Run(source, AsyncIterationHint.All, asyncAction, ct)
+			};
 		}
 
 		#region ToList/Array/Dictionary/HashSet...
 
 		/// <summary>Create a list from an async sequence.</summary>
-		public static async Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source)
+		public static Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source)
 		{
 			Contract.NotNull(source);
 
-			var buffer = new Buffer<T>();
-			await ForEachAsync(source, (x) => buffer.Add(x), CancellationToken.None).ConfigureAwait(false);
-			return buffer.ToList();
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				static (b, x) => b.Add(x),
+				static (b) => b.ToList(),
+				CancellationToken.None
+			);
 		}
 
 		/// <summary>Create a list from an async sequence.</summary>
-		public static async Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
+		public static Task<ImmutableArray<T>> ToImmutableArrayAsync<T>(this IAsyncEnumerable<T> source)
 		{
 			Contract.NotNull(source);
 
-			var buffer = new Buffer<T>();
-			await ForEachAsync(source, (x) => buffer.Add(x), ct).ConfigureAwait(false);
-			return buffer.ToList();
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				static (b, x) => b.Add(x),
+				static (b) => b.ToImmutableArray(),
+				CancellationToken.None
+			);
+		}
+
+		/// <summary>Create a list from an async sequence.</summary>
+		public static Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
+		{
+			Contract.NotNull(source);
+
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				static (b, x) => b.Add(x),
+				static (b) => b.ToList(),
+				ct
+			);
 		}
 
 		/// <summary>Create an array from an async sequence.</summary>
-		public static async Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source)
+		public static Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source)
 		{
 			Contract.NotNull(source);
 
-			var buffer = new Buffer<T>();
-			await ForEachAsync(source, (x) => buffer.Add(x), CancellationToken.None).ConfigureAwait(false);
-			return buffer.ToArray();
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				static (b, x) => b.Add(x),
+				static (b) => b.ToArray(),
+				CancellationToken.None
+			);
 		}
 
 		/// <summary>Create an array from an async sequence.</summary>
-		public static async Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
+		public static Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
 		{
 			Contract.NotNull(source);
 
-			var buffer = new Buffer<T>();
-			await ForEachAsync(source, (x) => buffer.Add(x), ct).ConfigureAwait(false);
-			return buffer.ToArray();
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				static (b, x) => b.Add(x),
+				static (b) => b.ToArray(),
+				ct
+			);
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
@@ -625,8 +669,12 @@ namespace Doxense.Linq
 
 			return AggregateAsync(
 				source,
-				new Dictionary<TKey, TSource>(comparer ?? EqualityComparer<TKey>.Default),
-				(results, x) => { results[keySelector(x)] = x; },
+				(
+					Results: new Dictionary<TKey, TSource>(comparer),
+					KeySelector: keySelector
+				),
+				static (s, x) => s.Results.Add(s.KeySelector(x), x),
+				static (s) => s.Results,
 				ct
 			);
 		}
@@ -635,14 +683,18 @@ namespace Doxense.Linq
 		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, [InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
 			where TKey: notnull
 		{
-			Contract.NotNull(source);
 			Contract.NotNull(keySelector);
 			Contract.NotNull(elementSelector);
 
 			return AggregateAsync(
 				source,
-				new Dictionary<TKey, TElement>(comparer ?? EqualityComparer<TKey>.Default),
-				(results, x) => { results[keySelector(x)] = elementSelector(x); },
+				(
+					Results: new Dictionary<TKey, TElement>(comparer),
+					KeySelector: keySelector,
+					ElementSelector: elementSelector
+				),
+				static (s, x) => s.Results.Add(s.KeySelector(x), s.ElementSelector(x)),
+				static (s) => s.Results,
 				ct
 			);
 		}
@@ -708,7 +760,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, CancellationToken ct = default)
+		public static async Task<TAggregate> AggregateAsync<TSource, TAggregate>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Func<TAggregate, TSource, TAggregate> aggregator, CancellationToken ct = default)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
@@ -720,18 +772,23 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Action<TAccumulate, TSource> aggregator, CancellationToken ct = default)
+		public static async Task<TAggregate> AggregateAsync<TSource, TAggregate>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Action<TAggregate, TSource> aggregator, CancellationToken ct = default)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
 
-			var accumulate = seed;
-			await ForEachAsync(source, (x) => { aggregator(accumulate, x); }, ct).ConfigureAwait(false);
-			return accumulate;
+			await ForEachAsync(
+				source,
+				(Fn: aggregator, Acc: seed),
+				static (s, x) => s.Fn(s.Acc, x),
+				ct
+			).ConfigureAwait(false);
+
+			return seed;
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, [InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken ct = default)
+		public static async Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Func<TAggregate, TSource, TAggregate> aggregator, [InstantHandle] Func<TAggregate, TResult> resultSelector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
@@ -743,15 +800,20 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Action<TAccumulate, TSource> aggregator, [InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken ct = default)
+		public static async Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Action<TAggregate, TSource> aggregator, [InstantHandle] Func<TAggregate, TResult> resultSelector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
 			Contract.NotNull(resultSelector);
 
-			var accumulate = seed;
-			await ForEachAsync(source, (x) => aggregator(accumulate, x), ct).ConfigureAwait(false);
-			return resultSelector(accumulate);
+			await ForEachAsync(
+				source,
+				(Fn: aggregator, Acc: seed),
+				static (s, x) => s.Fn(s.Acc, x), 
+				ct
+			).ConfigureAwait(false);
+
+			return resultSelector(seed);
 		}
 
 		#endregion

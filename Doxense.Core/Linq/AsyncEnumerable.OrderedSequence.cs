@@ -131,7 +131,7 @@ namespace Doxense.Linq
 			private readonly IAsyncEnumerator<TSource> m_inner;
 			private readonly SequenceSorter<TSource> m_sorter;
 
-			private TSource[]? m_items;
+			private ReadOnlyMemory<TSource> m_items;
 			private int[]? m_map;
 			private int m_offset;
 			private TSource? m_current;
@@ -155,7 +155,7 @@ namespace Doxense.Linq
 				var inner = m_inner;
 				if (inner is AsyncIterator<TSource> iterator)
 				{
-					await iterator.ExecuteAsync((x) => buffer.Add(x), m_ct).ConfigureAwait(false);
+					await iterator.ExecuteAsync(buffer, (b, x) => b.Add(x), m_ct).ConfigureAwait(false);
 				}
 				else
 				{
@@ -172,11 +172,12 @@ namespace Doxense.Linq
 				}
 
 				// then we need to sort everything...
-				m_items = buffer.GetBuffer();
-				m_map = m_sorter.Sort(m_items, buffer.Count);
+				m_items = buffer.ToMemory();
+				m_map = new int[m_items.Length];
+				m_sorter.Sort(m_items, m_map);
 
 				// and only then we can start outputting the first value
-				// (after that, all MoveNext operations will be non-async
+				// (after that, all MoveNext operations will be non-async)
 				Publish(0);
 				return true;
 			}
@@ -205,8 +206,8 @@ namespace Doxense.Linq
 
 			private void Publish(int offset)
 			{
-				Contract.Debug.Requires(m_items != null && m_map != null && offset >= 0 && offset < m_map.Length);
-				m_current = m_items[m_map[offset]];
+				Contract.Debug.Requires(m_map != null && offset >= 0 && offset < m_map.Length);
+				m_current = m_items.Span[m_map[offset]];
 				m_offset = offset;
 			}
 
@@ -214,7 +215,7 @@ namespace Doxense.Linq
 			{
 				m_current = default;
 				m_offset = -1;
-				m_items = null;
+				m_items = default;
 				m_map = null;
 
 			}

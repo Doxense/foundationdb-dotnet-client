@@ -373,6 +373,148 @@ namespace Doxense.Linq.Async.Iterators
 			}
 		}
 
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TResult> action, CancellationToken ct)
+		{
+			Contract.NotNull(action);
+
+			int? remaining = m_limit;
+			int? skipped = m_offset;
+
+			await using(var iterator = StartInner(ct))
+			{
+				while (remaining == null || remaining.Value > 0)
+				{
+					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+					{ // completed
+						break;
+					}
+
+					// Filter...
+
+					TSource current = iterator.Current;
+					var filter = m_filter;
+					if (filter != null)
+					{
+						if (!filter.Async)
+						{
+							// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+							if (!filter.Invoke(current)) continue;
+						}
+						else
+						{
+							if (!await filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
+						}
+					}
+
+					// Skip...
+
+					if (skipped != null)
+					{
+						if (skipped.Value > 0)
+						{ // skip this result
+							skipped = skipped.Value - 1;
+							continue;
+						}
+						// we can now start outputting results...
+						skipped = null;
+					}
+
+					// Transform...
+
+					TResult result;
+					if (!m_transform.Async)
+					{
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+						result = m_transform.Invoke(current);
+					}
+					else
+					{
+						result = await m_transform.InvokeAsync(current, ct).ConfigureAwait(false);
+					}
+
+					// Publish...
+
+					// decrement remaining quota
+					--remaining;
+					action(state, result);
+				}
+
+				ct.ThrowIfCancellationRequested();
+			}
+		}
+
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> action, CancellationToken ct)
+		{
+			Contract.NotNull(action);
+
+			int? remaining = m_limit;
+			int? skipped = m_offset;
+
+			await using(var iterator = StartInner(ct))
+			{
+				while (remaining == null || remaining.Value > 0)
+				{
+					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+					{ // completed
+						break;
+					}
+
+					// Filter...
+
+					TSource current = iterator.Current;
+					var filter = m_filter;
+					if (filter != null)
+					{
+						if (!filter.Async)
+						{
+							// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+							if (!filter.Invoke(current)) continue;
+						}
+						else
+						{
+							if (!await filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
+						}
+					}
+
+					// Skip...
+
+					if (skipped != null)
+					{
+						if (skipped.Value > 0)
+						{ // skip this result
+							skipped = skipped.Value - 1;
+							continue;
+						}
+						// we can now start outputting results...
+						skipped = null;
+					}
+
+					// Transform...
+
+					TResult result;
+					if (!m_transform.Async)
+					{
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+						result = m_transform.Invoke(current);
+					}
+					else
+					{
+						result = await m_transform.InvokeAsync(current, ct).ConfigureAwait(false);
+					}
+
+					// Publish...
+
+					// decrement remaining quota
+					--remaining;
+					seed = action(seed, result);
+				}
+
+				ct.ThrowIfCancellationRequested();
+			}
+
+			return seed;
+		}
+
 		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
 			Contract.NotNull(asyncAction);

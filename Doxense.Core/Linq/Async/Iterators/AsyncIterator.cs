@@ -212,6 +212,18 @@ namespace Doxense.Linq.Async.Iterators
 			return AsyncEnumerable.Run(this, AsyncIterationHint.All, action, ct);
 		}
 
+		/// <summary>Execute an action on the result of this async sequence</summary>
+		public virtual Task ExecuteAsync<TState>(TState state, Action<TState, TResult> action, CancellationToken ct)
+		{
+			return AsyncEnumerable.Run(this, AsyncIterationHint.All, state, action, ct);
+		}
+
+		/// <summary>Execute an action on the result of this async sequence</summary>
+		public virtual Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> action, CancellationToken ct)
+		{
+			return AsyncEnumerable.Run(this, AsyncIterationHint.All, seed, action, ct);
+		}
+
 		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
 			return AsyncEnumerable.Run(this, AsyncIterationHint.All, asyncAction, ct);
