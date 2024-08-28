@@ -68,30 +68,6 @@ namespace FoundationDB.Client
 			description: "The number of keyspace operations that have been performed"
 		);
 
-		private static Counter<long> GetRangeCount { get; } = Meter.CreateCounter<long>(
-			"db.fdb.client.api.get_range",
-			"{calls}",
-			description: "The number of GetRange() operations that have been performed"
-		);
-
-		private static Counter<long> SetCount { get; } = Meter.CreateCounter<long>(
-			"db.fdb.client.api.set",
-			"{calls}",
-			description: "The number of Set() operations that have been performed"
-		);
-
-		private static Counter<long> ClearCount { get; } = Meter.CreateCounter<long>(
-			"db.fdb.client.api.clear",
-			"{calls}",
-			description: "The number of Clear() operations that have been performed"
-		);
-
-		private static Counter<long> ClearRangeCount { get; } = Meter.CreateCounter<long>(
-			"db.fdb.client.api.clear_range",
-			"{calls}",
-			description: "The number of ClearRange() operations that have been performed"
-		);
-
 		internal static void ReportTransactionStart(FdbOperationContext context, IFdbTransaction tr)
 		{
 			TransactionsExecuting.Add(1);
