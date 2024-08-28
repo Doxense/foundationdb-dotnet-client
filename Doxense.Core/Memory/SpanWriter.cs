@@ -41,6 +41,13 @@ namespace Doxense.Memory
 		/// <summary>Current position in the buffer</summary>
 		public int Position;
 
+		public SpanWriter(int capacity)
+		{
+			Contract.Positive(capacity);
+			this.Buffer = new byte[capacity];
+			this.Position = 0;
+		}
+
 		public SpanWriter(Span<byte> buffer)
 		{
 			this.Buffer = buffer;
@@ -52,6 +59,25 @@ namespace Doxense.Memory
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Buffer[this.Position..];
+		}
+
+		/// <summary>Returns a span of everything that was written so far</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public readonly ReadOnlySpan<byte> ToSpan()
+		{
+			return this.Buffer[..this.Position];
+		}
+
+		/// <summary>Copy everything that was written so far into a destination span</summary>
+		public void CopyTo(Span<byte> destination)
+		{
+			this.Buffer[..this.Position].CopyTo(destination);
+		}
+
+		/// <summary>Copy everything that was written so far into a destination span, if it is large enough</summary>
+		public bool TryCopyTo(Span<byte> destination)
+		{
+			return this.Buffer[..this.Position].TryCopyTo(destination);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
