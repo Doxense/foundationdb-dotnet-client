@@ -53,6 +53,7 @@ namespace Doxense.Diagnostics.Contracts
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
+			[StackTraceHidden]
 			public static void Requires(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -73,6 +74,7 @@ namespace Doxense.Diagnostics.Contracts
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
+			[StackTraceHidden]
 			public static void Assert(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -92,6 +94,7 @@ namespace Doxense.Diagnostics.Contracts
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
+			[StackTraceHidden]
 			public static void Ensures(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -112,6 +115,7 @@ namespace Doxense.Diagnostics.Contracts
 			/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
+			[StackTraceHidden]
 			public static void Invariant(
 				[AssertionCondition(AssertionConditionType.IS_TRUE)]
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -132,6 +136,7 @@ namespace Doxense.Diagnostics.Contracts
 			[Conditional("DEBUG")]
 			[AssertionMethod]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturn]
+			[StackTraceHidden]
 			public static void Fail(string? userMessage, Exception? exception = null)
 			{
 #if DEBUG

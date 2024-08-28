@@ -108,6 +108,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Requires(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -125,6 +126,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Assert(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -141,6 +143,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Ensures(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -158,6 +161,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
 		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Invariant(
 			[AssertionCondition(AssertionConditionType.IS_TRUE)]
 			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
@@ -175,6 +179,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.NoInlining)]
 		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
+		[StackTraceHidden]
 		public static void Fail(string? userMessage, Exception? exception = null)
 		{
 			throw RaiseContractFailure(SDC.ContractFailureKind.Invariant, userMessage, null, exception);
