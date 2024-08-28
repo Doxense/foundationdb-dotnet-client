@@ -275,10 +275,11 @@ namespace FoundationDB.Client.Native
 		/// <param name="more">Receives true if there are more result, or false if all results have been transmitted</param>
 		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
 		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
+		/// <param name="dataBytes">Total size of keys and values</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more, out Slice first, out Slice last)
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more, out Slice first, out Slice last, out int dataBytes)
 		{
-			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more);
+			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more, out dataBytes);
 			FdbNative.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
@@ -292,10 +293,11 @@ namespace FoundationDB.Client.Native
 		/// <param name="more">Receives true if there are more result, or false if all results have been transmitted</param>
 		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
 		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
+		/// <param name="dataBytes">Total size of keys</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultKeysOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultKeysOnly(FutureHandle h, out bool more, out Slice first, out Slice last, out int dataBytes)
 		{
-			var err = FdbNative.FutureGetKeyValueArrayKeysOnly(h, out var result, out more);
+			var err = FdbNative.FutureGetKeyValueArrayKeysOnly(h, out var result, out more, out dataBytes);
 			FdbNative.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
@@ -309,10 +311,11 @@ namespace FoundationDB.Client.Native
 		/// <param name="more">Receives true if there are more result, or false if all results have been transmitted</param>
 		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
 		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
+		/// <param name="dataBytes">Total size of values</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultValuesOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultValuesOnly(FutureHandle h, out bool more, out Slice first, out Slice last, out int dataBytes)
 		{
-			var err = FdbNative.FutureGetKeyValueArrayValuesOnly(h, out var result, out more, out first, out last);
+			var err = FdbNative.FutureGetKeyValueArrayValuesOnly(h, out var result, out more, out first, out last, out dataBytes);
 			FdbNative.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
@@ -345,21 +348,22 @@ namespace FoundationDB.Client.Native
 					KeyValuePair<Slice, Slice>[] items;
 					bool hasMore;
 					Slice first, last;
+					int dataBytes;
 					switch (read)
 					{
 						case FdbReadMode.Both:
 						{
-							items = GetKeyValueArrayResult(h, out hasMore, out first, out last);
+							items = GetKeyValueArrayResult(h, out hasMore, out first, out last, out dataBytes);
 							break;
 						}
 						case FdbReadMode.Keys:
 						{
-							items = GetKeyValueArrayResultKeysOnly(h, out hasMore, out first, out last);
+							items = GetKeyValueArrayResultKeysOnly(h, out hasMore, out first, out last, out dataBytes);
 							break;
 						}
 						case FdbReadMode.Values:
 						{
-							items = GetKeyValueArrayResultValuesOnly(h, out hasMore, out first, out last);
+							items = GetKeyValueArrayResultValuesOnly(h, out hasMore, out first, out last, out dataBytes);
 							break;
 						}
 						default:
@@ -367,7 +371,7 @@ namespace FoundationDB.Client.Native
 							throw new InvalidOperationException();
 						}
 					}
-					return new FdbRangeChunk(items, hasMore, iteration, reverse, read, first, last);
+					return new FdbRangeChunk(items, hasMore, iteration, reverse, read, first, last, dataBytes);
 				},
 				ct
 			);
@@ -385,10 +389,10 @@ namespace FoundationDB.Client.Native
 					// note: we don't have a way currently to do KeyOnly or ValueOnly, we always have both coming from the native client
 					// but since we don't have to copy them into the managed heap, this is not really an issue
 
-					var err = FdbNative.FutureGetKeyValueArray(h, state, decoder, out var items, out var hasMore, out var first, out var last);
+					var err = FdbNative.FutureGetKeyValueArray(h, state, decoder, out var items, out var hasMore, out var first, out var last, out var totalBytes);
 					FdbNative.DieOnError(err);
 
-					return new FdbRangeChunk<TResult>(items, hasMore, iteration, reverse, read, first, last);
+					return new FdbRangeChunk<TResult>(items, hasMore, iteration, reverse, read, first, last, totalBytes);
 				},
 				ct
 			);

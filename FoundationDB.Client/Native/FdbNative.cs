@@ -1522,9 +1522,10 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_future_get_keyvalue_array</summary>
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more)
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out int dataBytes)
 		{
 			result = null;
+			dataBytes = 0;
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
@@ -1535,7 +1536,7 @@ namespace FoundationDB.Client.Native
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
-				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
+				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : [ ];
 
 				if (count > 0)
 				{ // convert the FdbKeyValueNative result into an array of slices
@@ -1546,18 +1547,20 @@ namespace FoundationDB.Client.Native
 					// into a single byte[] and return a list of Slice that will
 					// link to the different chunks of this buffer.
 
-					// first pass to compute the total size needed
-					long total = 0;
+					// first pass to compute the total buffer size needed
+					long sum = 0;
 					for (int i = 0; i < count; i++)
 					{
 						uint kl = kvp[i].KeyLength;
 						uint vl = kvp[i].ValueLength;
 						if (kl > int.MaxValue) throw ThrowHelper.InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
-						total += kl;
+						sum += kl;
 						if (vl > int.MaxValue) throw ThrowHelper.InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
-						total += vl;
+						sum += vl;
 					}
-					if (total > int.MaxValue) throw ThrowHelper.NotSupportedException("Cannot read more than 2GB of key/value data in a single batch!");
+					if (sum > int.MaxValue) throw ThrowHelper.NotSupportedException("Cannot read more than 2GB of key/value data in a single batch!");
+
+					dataBytes = (int) sum;
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
@@ -1570,7 +1573,7 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					//TODO: PERF: find a way to use Memory Pooling for this?
-					var page = new byte[total];
+					var page = new byte[sum];
 					int p = 0;
 					for (int i = 0; i < result.Length; i++)
 					{
@@ -1593,11 +1596,12 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_future_get_keyvalue_array</summary>
-		public static FdbError FutureGetKeyValueArray<TState, TResult>(FutureHandle future, TState state, FdbKeyValueDecoder<TState, TResult> decoder, out TResult[]? result, out bool more, out Slice first, out Slice last)
+		public static FdbError FutureGetKeyValueArray<TState, TResult>(FutureHandle future, TState state, FdbKeyValueDecoder<TState, TResult> decoder, out TResult[]? result, out bool more, out Slice first, out Slice last, out int totalBytes)
 		{
 			result = null;
 			first = default;
 			last = default;
+			totalBytes = 0;
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* ptr, out int count, out more);
 #if DEBUG_NATIVE_CALLS
@@ -1617,14 +1621,20 @@ namespace FoundationDB.Client.Native
 				{
 					// convert the data using the raw native buffer
 					result = new TResult[kvp.Length];
+					long sum = 0;
 					for (int i = 0; i < kvp.Length; i++)
 					{
-						result[i] = decoder(state, kvp[i].GetKey(), kvp[i].GetValue());
+						var k = kvp[i].GetKey();
+						var v = kvp[i].GetValue();
+						sum += k.Length;
+						sum += v.Length;
+						result[i] = decoder(state, k, v);
 					}
 
 					// we also need to grab the first and last key (for pagination)
 					first = Slice.Copy(kvp[0].GetKey());
 					last = kvp.Length > 1 ? Slice.Copy(kvp[^1].GetKey()) : first;
+					totalBytes = checked((int) sum);
 				}
 			}
 
@@ -1632,9 +1642,10 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_future_get_keyvalue_array</summary>
-		public static FdbError FutureGetKeyValueArrayKeysOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more)
+		public static FdbError FutureGetKeyValueArrayKeysOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out int dataBytes)
 		{
 			result = null;
+			dataBytes = 0;
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
@@ -1656,17 +1667,19 @@ namespace FoundationDB.Client.Native
 					// into a single byte[] and return a list of Slice that will
 					// link to the different chunks of this buffer.
 
-					// first pass to compute the total size needed
-					long total = 0;
+					// first pass to compute the total buffer size needed
+					long sum = 0;
 					for (int i = 0; i < count; i++)
 					{
 						uint kl = kvp[i].KeyLength;
 						uint vl = kvp[i].ValueLength;
 						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
 						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
-						total += kl;
+						sum += kl;
 					}
-					if (total > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of key data in a single batch!");
+					if (sum > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of key data in a single batch!");
+
+					dataBytes = (int) sum;
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
@@ -1679,7 +1692,7 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					//TODO: PERF: find a way to use Memory Pooling for this?
-					var page = new byte[total];
+					var page = new byte[sum];
 					int p = 0;
 					for (int i = 0; i < result.Length; i++)
 					{
@@ -1691,7 +1704,7 @@ namespace FoundationDB.Client.Native
 						result[i] = new KeyValuePair<Slice, Slice>(key, default);
 					}
 
-					Contract.Debug.Assert(p == total);
+					Contract.Debug.Assert(p == sum);
 				}
 			}
 
@@ -1699,11 +1712,12 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_future_get_keyvalue_array</summary>
-		public static FdbError FutureGetKeyValueArrayValuesOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out Slice first, out Slice last)
+		public static FdbError FutureGetKeyValueArrayValuesOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out Slice first, out Slice last, out int dataBytes)
 		{
 			result = null;
 			first = default;
 			last = default;
+			dataBytes = 0;
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
@@ -1727,8 +1741,8 @@ namespace FoundationDB.Client.Native
 
 					int end = count - 1;
 
-					// first pass to compute the total size needed
-					long total = 0;
+					// first pass to compute the total buffer size needed
+					long sum = 0;
 					for (int i = 0; i < count; i++)
 					{
 						//TODO: protect against negative values or values too big ?
@@ -1736,10 +1750,12 @@ namespace FoundationDB.Client.Native
 						uint vl = kvp[i].ValueLength;
 						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
 						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
-						if (i == 0 || i == end) total += kl;
-						total += vl;
+						if (i == 0 || i == end) sum += kl;
+						sum += vl;
 					}
-					if (total > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of value data in a single batch!");
+					if (sum > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of value data in a single batch!");
+
+					dataBytes = (int) sum;
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
@@ -1752,7 +1768,7 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					//TODO: PERF: find a way to use Memory Pooling for this?
-					var page = new byte[total];
+					var page = new byte[sum];
 					int p = 0;
 					for (int i = 0; i < result.Length; i++)
 					{
@@ -1774,7 +1790,7 @@ namespace FoundationDB.Client.Native
 
 						result[i] = new KeyValuePair<Slice, Slice>(default, value);
 					}
-					Contract.Debug.Assert(p == total);
+					Contract.Debug.Assert(p == sum);
 				}
 			}
 

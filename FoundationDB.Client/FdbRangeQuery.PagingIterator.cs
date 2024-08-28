@@ -216,7 +216,7 @@ namespace FoundationDB.Client
 					if (this.RemainingCount.HasValue) this.RemainingCount = this.RemainingCount.Value - result.Count;
 
 					// subtract size of rows from the remaining allowed
-					if (this.RemainingSize.HasValue) this.RemainingSize = this.RemainingSize.Value - result.GetSize();
+					if (this.RemainingSize.HasValue) this.RemainingSize = this.RemainingSize.Value - result.TotalBytes;
 
 					this.AtEnd = !result.HasMore || (this.RemainingCount.HasValue && this.RemainingCount.Value <= 0) || (this.RemainingSize.HasValue && this.RemainingSize.Value <= 0);
 

@@ -64,7 +64,10 @@ namespace FoundationDB.Client
 		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
 		public Slice First { get; }
 
-		public FdbRangeChunk(KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last)
+		/// <summary>Sum of the size (in bytes) of all the keys and values read from the database</summary>
+		public int TotalBytes { get; }
+
+		public FdbRangeChunk(KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last, int totalBytes)
 		{
 			Contract.NotNull(items);
 			this.Items = items;
@@ -74,9 +77,10 @@ namespace FoundationDB.Client
 			this.ReadMode = readMode;
 			this.First = first;
 			this.Last = last;
+			this.TotalBytes = totalBytes;
 		}
 
-		[Obsolete("This property will be removed in the next release.")]
+		[Obsolete("This property will be removed in the next release.", error: true)]
 		public KeyValuePair<Slice, Slice>[] Chunk => this.Items;
 
 		/// <summary>Returns the number of results in this chunk</summary>
@@ -85,17 +89,6 @@ namespace FoundationDB.Client
 		/// <summary>Returns true if the chunk does not contain any item.</summary>
 		public bool IsEmpty => this.Items.Length == 0;
 
-		/// <summary>Returns the total size of all keys and values in the chunk</summary>
-		public int GetSize()
-		{
-			long sum = 0;
-			var results = this.Items;
-			for (int i = 0; i < results.Length; i++)
-			{
-				sum += results[i].Key.Count + results[i].Value.Count;
-			}
-			return checked((int) sum);
-		}
 
 		#region Items...
 
@@ -615,7 +608,11 @@ namespace FoundationDB.Client
 		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
 		public Slice First { get; }
 
-		public FdbRangeChunk(ReadOnlyMemory<TResult> items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last)
+		/// <summary>Sum of the size (in bytes) of all the keys and values read from the database</summary>
+		/// <returns>This is the size of the data read from the network, before they were decoded into instances of <typeparamref name="TResult"/></returns>
+		public int TotalBytes { get; }
+
+		public FdbRangeChunk(ReadOnlyMemory<TResult> items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last, int totalBytes)
 		{
 			this.Items = items;
 			this.HasMore = hasMore;
@@ -624,6 +621,7 @@ namespace FoundationDB.Client
 			this.ReadMode = readMode;
 			this.First = first;
 			this.Last = last;
+			this.TotalBytes = totalBytes;
 		}
 
 		/// <summary>Returns the number of results in this chunk</summary>
