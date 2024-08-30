@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Tests
 {
 	using System;
+	using System.Buffers.Text;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
@@ -41,10 +42,18 @@ namespace Doxense.Serialization.Tests
 		[Test]
 		public void Test_Basics()
 		{
+			Assume.That(Convert.ToBase64String("a"u8), Is.EqualTo("YQ=="), "Base64 encoding padds by default");
+#if NET9_0_OR_GREATER
+			Assume.That(Base64Url.EncodeToString("a"u8), Is.EqualTo("YQ"), "Base64Url does not pad by default");
+#endif
 
+			int seed = Random.Shared.Next();
+			Log("Seed: " + seed);
 			byte[] data = new byte[1024];
-			new Random().NextBytes(data);
+			new Random(seed).NextBytes(data);
 			for (int i = 0; i < 256; i++) data[i] = (byte) i;
+
+			DumpHexa(data);
 
 			string expected = Convert.ToBase64String(data, 0, 1024);
 			Assert.That(Base64Encoding.ToBase64String(data.AsSlice(0, 1024)), Is.EqualTo(expected));

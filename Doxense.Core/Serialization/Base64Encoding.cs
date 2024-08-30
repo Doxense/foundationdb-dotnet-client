@@ -29,6 +29,7 @@
 namespace Doxense.Serialization
 {
 	using System.Buffers;
+	using System.Buffers.Text;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -191,12 +192,6 @@ namespace Doxense.Serialization
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe string ToBase64String(byte* buffer, int count)
-		{
-			return EncodeBufferUnsafe(buffer, count, padded: true, urlSafe: false);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] FromBase64String(string s)
 		{
 			Contract.NotNull(s);
@@ -231,12 +226,6 @@ namespace Doxense.Serialization
 		public static string ToBase64UrlString(Slice buffer)
 		{
 			return EncodeBuffer(buffer.Span, padded: false, urlSafe: true);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe string ToBase64UrlString(byte* buffer, int count)
-		{
-			return EncodeBufferUnsafe(buffer, count, padded: false, urlSafe: true);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -296,79 +285,75 @@ namespace Doxense.Serialization
 			// La version de la BCL "triche" en pré-allouant la string, et en écrivant directement dedans.
 			// => j'ai essayé d'appeler FastAllocateString() directement, et je passe a 35% plus rapide...
 
+			if (padded && !urlSafe)
+			{
+				return Convert.ToBase64String(buffer);
+			}
+#if NET9_0_OR_GREATER
+			if (urlSafe && !padded)
+			{
+				return Base64Url.EncodeToString(buffer);
+			}
+#endif
+
 			// détermine la taille exacte du résultat (incluant le padding si présent)
 			int size = GetCharsCount(buffer.Length, padded);
-
-			unsafe
-			{
-				fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))
-				{
-					return EncodeBufferUnsafe(ptr, buffer.Length, size, padded, urlSafe);
-				}
-			}
+			return EncodeBufferUnsafe(buffer, size, padded, urlSafe);
 		}
 
 		[Pure]
-		public static unsafe string EncodeBufferUnsafe(byte* buffer, int count, bool padded = true, bool urlSafe = false)
+		public static string EncodeBufferUnsafe(ReadOnlySpan<byte> source, bool padded = true, bool urlSafe = false)
 		{
-			if (count == 0) return string.Empty;
-
-			Contract.PointerNotNull(buffer);
-			Contract.Positive(count);
+			if (source.Length == 0) return string.Empty;
 
 			// détermine la taille exacte du résultat (incluant le padding si présent)
-			int size = GetCharsCount(count, padded);
+			int size = GetCharsCount(source.Length, padded);
 
-			return EncodeBufferUnsafe(buffer, count, size, padded, urlSafe);
+			return EncodeBufferUnsafe(source, size, padded, urlSafe);
 		}
 
 		/// <summary>Encode un buffer en base64</summary>
-		/// <param name="buffer">Buffer source</param>
-		/// <param name="count">Nombre d'octets à convertir</param>
+		/// <param name="source">Buffer source</param>
 		/// <param name="charCount">Taille du résultat (précalculée via <see cref="GetCharsCount"/>)</param>
 		/// <param name="padded">Si true, pad la fin si pas multiple de 3</param>
 		/// <param name="urlSafe">Si true, utilise le charset web safe</param>
 		/// <returns></returns>
 		[Pure]
-		private static unsafe string EncodeBufferUnsafe(byte* buffer, int count, int charCount, bool padded, bool urlSafe)
+		private static string EncodeBufferUnsafe(ReadOnlySpan<byte> source, int charCount, bool padded, bool urlSafe)
 		{
-			Contract.Debug.Requires(buffer != null && count >= 0 && charCount >= 0);
+			Contract.Debug.Requires(charCount >= 0);
 
 			char padChar = padded ? (urlSafe ? Base64UrlPadChar : Base64PadChar) : '\0';
 			char[] charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
 
-			fixed (char* pMap = charMap)
-			{
 #if USE_FAST_STRING_ALLOCATOR
-				// alloue directement la string, avec la bonne taille
-				string s = s_fastStringAllocator(charCount);
-				fixed (char* ptr = s)
-				{
-					// on va écrire directement dans la string (!!)
-					EncodeBufferUnsafe(ptr, charCount, buffer, count, pMap, padChar);
-				}
-				return s;
-#else
-				// arrondi a 8 supérieur, pour garder un alignement correct sur la stack
-				size = (size + 7) & (~0x7);
+			// alloue directement la string, avec la bonne taille
 
-				if (size <= MAX_INLINE_SIZE)
-				{ // Allocate on the stack
-					char* output = stackalloc char[size];
-					int n = EncodeBufferUnsafe(output, size, buffer, count, pMap, padChar);
+			var s = new string('\0', charCount);
+			var b = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(s.AsSpan()), charCount);
+			// on va écrire directement dans la string (!!)
+			EncodeBufferUnsafe(b, source, charMap, padChar);
+			return s;
+#else
+			// arrondi a 8 supérieur, pour garder un alignement correct sur la stack
+			size = (size + 7) & (~0x7);
+
+			if (size <= MAX_INLINE_SIZE)
+			{ // Allocate on the stack
+				char* output = stackalloc char[size];
+				int n = EncodeBufferUnsafe(output, size, buffer, count, ref charMap[0], padChar);
+				return new string(output, 0, n);
+			}
+			else
+			{ // Allocate on the heap
+				char[] output = new char[size];
+				fixed (char* pOut = output)
+				{
+					int n = EncodeBufferUnsafe(pOut, size, buffer, count, ref charMap[0], padChar);
 					return new string(output, 0, n);
 				}
-				else
-				{ // Allocate on the heap
-					char[] output = new char[size];
-					fixed (char* pOut = output)
-					{
-						int n = EncodeBufferUnsafe(pOut, size, buffer, count, pMap, padChar);
-						return new string(output, 0, n);
-					}
-				}
-#endif
 			}
+#endif
 		}
 
 		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
@@ -384,17 +369,18 @@ namespace Doxense.Serialization
 
 		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
 		/// <param name="output">Writer où écrire le texte encodé en Base64</param>
-		/// <param name="buffer">Buffer source contenant les données à encoder</param>
+		/// <param name="source">Buffer source contenant les données à encoder</param>
 		/// <param name="padded">Ajoute des caractères de padding (true) ou non (false). Le caractère de padding utilisé dépend de la valeur de <paramref name="urlSafe"/>.</param>
 		/// <param name="urlSafe">Si true, remplace les caractères 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractères classiques ('+' et '/')</param>
 		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractères écrit sera toujours un multiple de 4.</remarks>
-		public static void EncodeTo(TextWriter output, ReadOnlySpan<byte> buffer, bool padded = true, bool urlSafe = false)
+		public static void EncodeTo(TextWriter output, ReadOnlySpan<byte> source, bool padded = true, bool urlSafe = false)
 		{
 			Contract.NotNull(output);
 
-			if (buffer.Length == 0) return;
 
-			int size = GetCharsCount(buffer.Length, padded);
+			if (source.Length == 0) return;
+
+			int size = GetCharsCount(source.Length, padded);
 			char padChar = !padded ? '\0' : urlSafe ? Base64UrlPadChar : Base64PadChar;
 			char[] charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
 
@@ -409,27 +395,20 @@ namespace Doxense.Serialization
 			bufferSize = (bufferSize + 7) & (~0x7); // arrondi a 8 supérieur, pour garder un alignement correct
 			var chars = ArrayPool<char>.Shared.Rent(bufferSize);
 
-			unsafe
+			var remaining = source;
+			while (remaining.Length > 0)
 			{
-				fixed (byte* pIn = &MemoryMarshal.GetReference(buffer))
-				fixed (char* pOut = &chars[0])
-				fixed (char* pMap = charMap)
-				{
-					byte* ptr = pIn;
-					int remaining = buffer.Length;
-					while (remaining > 0)
-					{
-						int sz = Math.Min(remaining, BYTESIZE);
-						int n = EncodeBufferUnsafe(pOut, bufferSize, ptr, sz, pMap, remaining > BYTESIZE ? '\0' : padChar);
-						Contract.Debug.Assert(n <= bufferSize);
-						if (n <= 0) break; //REVIEW: dans quel cas on peut avoir <= 0 ???
-						output.Write(chars, 0, n);
-						remaining -= sz;
-						ptr += sz;
-					}
-					ArrayPool<char>.Shared.Return(chars);
-					if (remaining > 0) throw new InvalidOperationException(); // ??
-				}
+				int sz = Math.Min(remaining.Length, BYTESIZE);
+				int n = EncodeBufferUnsafe(chars, remaining[..sz], charMap, remaining.Length > BYTESIZE ? '\0' : padChar);
+				Contract.Debug.Assert(n <= bufferSize);
+				if (n <= 0) break; //REVIEW: dans quel cas on peut avoir <= 0 ???
+				output.Write(chars, 0, n);
+				remaining = remaining[sz..];
+			}
+			ArrayPool<char>.Shared.Return(chars);
+			if (remaining.Length > 0)
+			{
+				throw new InvalidOperationException(); // ??
 			}
 		}
 
@@ -439,41 +418,46 @@ namespace Doxense.Serialization
 
 		/// <summary>Encode un segment de données vers un buffer</summary>
 		/// <param name="output">Buffer où écrire le texte encodée. La capacité doit être suffisante!</param>
-		/// <param name="capacity">Capacité du buffer pointé par <paramref name="output"/></param>
 		/// <param name="source">Pointeur vers le début octets à encoder.</param>
-		/// <param name="len">Nombre d'octets à encoder</param>
 		/// <param name="charMap">Pointeur vers la map de conversion Base64 à utiliser (2 x 256 chars)</param>
 		/// <param name="padChar">Caractère de padding utilisé, ou '\0' si pas de padding</param>
 		/// <returns>Nombre de caractères écrits dans <paramref name="output"/>.</returns>
-		internal static unsafe int EncodeBufferUnsafe(char* output, int capacity, byte* source, int len, char* charMap, char padChar)
+		internal static int EncodeBufferUnsafe(Span<char> output, ReadOnlySpan<byte> source, ReadOnlySpan<char> charMap, char padChar)
 		{
-			Contract.Debug.Requires(output != null && capacity >= 0 && source != null && len >= 0 && charMap != null);
-
 			// portage en C# de modp_b64.c: https://code.google.com/p/stringencoders/source/browse/trunk/src/modp_b64.c
 
-			byte* inp = source;
-			char* outp = output;
+			ref byte inp = ref MemoryMarshal.GetReference(source);
 
-			char* e0 = charMap + 0;
-			char* e1 = charMap + CHARMAP_PAGE_SIZE;
+			ref char e0 = ref MemoryMarshal.GetReference(charMap);
+			ref char e1 = ref Unsafe.Add(ref e0, CHARMAP_PAGE_SIZE);
 			//note: e2 == e1 ?
 
+			// vérifie que le buffer peut contenir au moins les chunks complets
+			ref char start = ref MemoryMarshal.GetReference(output);
+			ref char stop = ref Unsafe.Add(ref start, output.Length);
+
+			int len = source.Length;
+			if (Unsafe.IsAddressGreaterThan(ref Unsafe.Add(ref start, ((source.Length / 3) * 4)), ref stop))
+			{
+				ThrowOutputBufferTooSmall();
+			}
+
+			ref char outp = ref start;
 			int i, end;
 			uint t1, t2, t3;
-
-			// vérifie que le buffer peut contenir au moins les chunks complets
-			char* stop = outp + capacity;
-			if (outp + (len / 3 * 4) > stop) ThrowOutputBufferTooSmall();
 
 			// 4 bytes chunks...
 			for (i = 0, end = len - 2; i < end; i += 3)
 			{
-				t1 = inp[i]; t2 = inp[i + 1]; t3 = inp[i + 2];
-				outp[0] = e0[t1];
-				outp[1] = e1[((t1 & 0x03) << 4) | ((t2 >> 4) & 0x0F)];
-				outp[2] = e1[((t2 & 0x0F) << 2) | ((t3 >> 6) & 0x03)];
-				outp[3] = e1[t3];
-				outp += 4;
+				t1 = Unsafe.Add(ref inp, 0);
+				t2 = Unsafe.Add(ref inp, 1);
+				t3 = Unsafe.Add(ref inp, 2);
+				Unsafe.Add(ref outp, 0) = Unsafe.Add(ref e0, t1);
+				Unsafe.Add(ref outp, 1) = Unsafe.Add(ref e1, ((t1 & 0x03) << 4) | ((t2 >> 4) & 0x0F));
+				Unsafe.Add(ref outp, 2) = Unsafe.Add(ref e1, ((t2 & 0x0F) << 2) | ((t3 >> 6) & 0x03));
+				Unsafe.Add(ref outp, 3) = Unsafe.Add(ref e1, t3);
+				inp = ref Unsafe.Add(ref inp, 3);
+				outp = ref Unsafe.Add(ref outp, 4);
 			}
 
 			// remainder...
@@ -485,38 +469,59 @@ namespace Doxense.Serialization
 				}
 				case 1:
 				{
-					if (outp + 2 > stop) ThrowOutputBufferTooSmall();
-					t1 = inp[i];
-					outp[0] = e0[t1];
-					outp[1] = e1[(t1 & 0x03) << 4];
-					outp += 2;
+					if (Unsafe.IsAddressGreaterThan(ref Unsafe.Add(ref outp,  2), ref stop))
+					{
+						ThrowOutputBufferTooSmall();
+					}
+
+					t1 = inp;
+					Unsafe.Add(ref outp, 0) = Unsafe.Add(ref e0, t1);
+					Unsafe.Add(ref outp, 1) = Unsafe.Add(ref e1, (t1 & 0x03) << 4);
+					outp = ref Unsafe.Add(ref outp, 2);
+
 					if (padChar != '\0')
 					{
-						if (outp + 2 > stop) ThrowOutputBufferTooSmall();
-						outp[0] = padChar;
-						outp[1] = padChar;
-						outp += 2;
+						if (Unsafe.IsAddressGreaterThan(ref Unsafe.Add(ref outp, 2), ref stop))
+						{
+							ThrowOutputBufferTooSmall();
+						}
+						Unsafe.Add(ref outp, 0) = padChar;
+						Unsafe.Add(ref outp, 1) = padChar;
+						outp = ref Unsafe.Add(ref outp, 2);
 					}
+
 					break;
 				}
 				default:
 				{
-					t1 = inp[i]; t2 = inp[i + 1];
-					if (outp + 3 > stop) ThrowOutputBufferTooSmall();
-					outp[0] = e0[t1];
-					outp[1] = e1[((t1 & 0x03) << 4) | ((t2 >> 4) & 0x0F)];
-					outp[2] = e1[(t2 & 0x0F) << 2];
-					outp += 3;
+					t1 = inp;
+					t2 = Unsafe.Add(ref inp, 1);
+					if (Unsafe.IsAddressGreaterThan(ref Unsafe.Add(ref outp, 3), ref stop))
+					{
+						ThrowOutputBufferTooSmall();
+					}
+					Unsafe.Add(ref outp, 0) = Unsafe.Add(ref e0, t1);
+					Unsafe.Add(ref outp, 1) = Unsafe.Add(ref e1, ((t1 & 0x03) << 4) | ((t2 >> 4) & 0x0F));
+					Unsafe.Add(ref outp, 2) = Unsafe.Add(ref e1, (t2 & 0x0F) << 2);
+					outp = ref Unsafe.Add(ref outp, 3);
+
 					if (padChar != '\0')
 					{
-						if (outp + 1 > stop) ThrowOutputBufferTooSmall();
-						*outp++ = padChar;
+						if (Unsafe.IsAddressGreaterThan(ref Unsafe.Add(ref outp, 1), ref stop))
+						{
+							ThrowOutputBufferTooSmall();
+						}
+						outp = padChar;
+						outp = ref Unsafe.Add(ref outp, 1);
 					}
+
 					break;
 				}
 			}
-			Contract.Debug.Ensures(outp >= output && outp <= stop);
-			return (int)(outp - output);
+
+			Contract.Debug.Ensures(!Unsafe.IsAddressLessThan(ref inp, ref MemoryMarshal.GetReference(source)) && !Unsafe.IsAddressGreaterThan(ref inp, ref Unsafe.Add(ref MemoryMarshal.GetReference(source), source.Length)));
+			Contract.Debug.Ensures(!Unsafe.IsAddressLessThan(ref outp, ref MemoryMarshal.GetReference(output)) && !Unsafe.IsAddressGreaterThan(ref outp, ref stop));
+			return (int) (Unsafe.ByteOffset(ref output[0], ref outp).ToInt64() / Unsafe.SizeOf<char>());
 		}
 
 		[ContractAnnotation("buffer:null => halt")]
@@ -542,7 +547,7 @@ namespace Doxense.Serialization
 			var method = typeof(string).GetMethod("FastAllocateString", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
 			if (method != null)
 			{
-				return (Func<int, string>)method.CreateDelegate(typeof(Func<int, string>));
+				return (Func<int, string>) method.CreateDelegate(typeof(Func<int, string>));
 			}
 			else
 			{

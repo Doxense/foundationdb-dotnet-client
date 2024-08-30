@@ -62,7 +62,7 @@ namespace Doxense.Memory
 		/// <param name="buffer">Pointer to a temporary scratch buffer (previous data will not be maintained)</param>
 		/// <param name="minCapacity">Minimum expected capacity</param>
 		/// <returns>Same buffer if it was large enough, or a new allocated buffer with length greater than or equal to <paramref name="minCapacity"/></returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] EnsureCapacity([NotNull] ref byte[]? buffer, int minCapacity)
 		{
 			if (buffer == null || buffer.Length < minCapacity)
