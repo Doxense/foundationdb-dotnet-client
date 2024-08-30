@@ -35,6 +35,7 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Collections.Caching;
 	using Doxense.IO;
 	using Doxense.Memory;
 	using Doxense.Memory.Text;
@@ -94,7 +95,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(object), null, settings, resolver).ToString();
+			return SerializeToString(value, typeof(object), null, settings, resolver);
 		}
 
 		/// <summary>Serializes a boxed value (of any type)</summary>
@@ -107,7 +108,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, declaredType, null, settings, resolver).ToString();
+			return SerializeToString(value, declaredType, null, settings, resolver);
 		}
 
 		/// <summary>Serializes a value (of any type)</summary>
@@ -119,8 +120,32 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static string Serialize<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(T), null, settings, resolver).ToString();
+			if (value == null)
+			{ // special case for null instances
+				return JsonTokens.Null;
+			}
+
+			FastStringWriter? fsw = null;
+			try
+			{
+				fsw = WriterPool.Allocate();
+				fsw.Reset();
+				var writer = new CrystalJsonWriter(fsw, settings, resolver);
+				CrystalJsonVisitor.VisitValue<T>(value, writer);
+
+				return fsw.Buffer.ToString();
+			}
+			finally
+			{
+				if (fsw != null)
+				{
+					fsw.Reset();
+					WriterPool.Free(fsw);
+				}
+			}
 		}
+
+		private static readonly ObjectPool<FastStringWriter> WriterPool = new(() => new FastStringWriter(new StringBuilder(4096)));
 
 		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
@@ -132,7 +157,22 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static StringBuilder Serialize(object? value, StringBuilder? buffer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeInternal(value, typeof(object), buffer, settings, resolver);
+			if (value == null)
+			{ // special case for null instances
+				return buffer?.Append(JsonTokens.Null) ?? new StringBuilder(JsonTokens.Null);
+			}
+
+			// grab a new buffer if needed
+			buffer ??= CreateBufferFromSettings(settings);
+
+			//REVIEW: use an ObjectPool for FastStringWriter and CrystalJsonWriter?
+
+			using (var fsw = new FastStringWriter(buffer))
+			{
+				var writer = new CrystalJsonWriter(fsw, settings, resolver);
+				CrystalJsonVisitor.VisitValue(value, typeof(object), writer);
+				return buffer;
+			}
 		}
 
 		/// <summary>Creates a new empty buffer with the appropriate size</summary>
@@ -153,23 +193,31 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Value of <paramref name="buffer"/>, or of the newly created buffer if it was null (for call chaining)</returns>
 		[Pure]
-		private static StringBuilder SerializeInternal(object? value, Type declaredType, StringBuilder? buffer, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		private static string SerializeToString(object? value, Type declaredType, StringBuilder? buffer, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (value == null)
 			{ // special case for null instances
-				return buffer?.Append(JsonTokens.Null) ?? new StringBuilder(JsonTokens.Null);
+				return JsonTokens.Null;
 			}
 
-			// grab a new buffer if needed
-			buffer ??= CreateBufferFromSettings(settings);
-
-			//REVIEW: use an ObjectPool for FastStringWriter and CrystalJsonWriter?
-
-			using (var fsw = new FastStringWriter(buffer))
+			FastStringWriter? fsw = null;
+			try
 			{
+				fsw = WriterPool.Allocate();
+				fsw.Reset();
 				var writer = new CrystalJsonWriter(fsw, settings, resolver);
+
 				CrystalJsonVisitor.VisitValue(value, declaredType, writer);
-				return buffer;
+
+				return fsw.Buffer.ToString();
+			}
+			finally
+			{
+				if (fsw != null)
+				{
+					fsw.Reset();
+					WriterPool.Free(fsw);
+				}
 			}
 		}
 
@@ -182,7 +230,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static TextWriter SerializeTo(TextWriter output, object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeToInternal(output, value, typeof(object), settings, resolver);
+			return SerializeToTextWriter(output, value, typeof(object), settings, resolver);
 		}
 
 		/// <summary>Serializes a value (of any type) into the specified output</summary>
@@ -194,7 +242,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static TextWriter SerializeTo<T>(TextWriter output, T value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeToInternal(output, value, typeof(T), settings, resolver);
+			return SerializeToTextWriter(output, value, typeof(T), settings, resolver);
 		}
 
 		/// <summary>Serializes a value (of any type) into the specified stream</summary>
@@ -208,7 +256,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(output);
 			using (var sw = new StreamWriter(output, Utf8NoBom))
 			{
-				SerializeToInternal(sw, value, typeof(T), settings, resolver);
+				SerializeToTextWriter(sw, value, typeof(T), settings, resolver);
 			}
 		}
 
@@ -284,7 +332,7 @@ namespace Doxense.Serialization.Json
 				// note: we are serializing to memory, the size of the StreamWriter's buffer does not matter so make it as small as possible
 				using (var sw = new StreamWriter(ms, Utf8NoBom, bufferSize, leaveOpen: true))
 				{
-					SerializeToInternal(sw, value, declaredType, settings, resolver);
+					SerializeToTextWriter(sw, value, declaredType, settings, resolver);
 				}
 
 				if (ms.Position == 0) return [ ];
@@ -406,7 +454,7 @@ namespace Doxense.Serialization.Json
 			// note: vu qu'on sérialise en mémoire, la taille du buffer du StreamWriter importe peu donc autant la réduire le plus possible pour éviter d'allouer 1K par défaut !
 			using (var sw = new Utf8StringWriter(new SliceWriter(buffer)))
 			{
-				SerializeToInternal(sw, value, declaredType, settings, resolver);
+				SerializeToTextWriter(sw, value, declaredType, settings, resolver);
 				return sw.GetBuffer();
 			}
 		}
@@ -511,7 +559,7 @@ namespace Doxense.Serialization.Json
 			// note: vu qu'on sérialise en mémoire, la taille du buffer du StreamWriter importe peu donc autant la réduire le plus possible pour éviter d'allouer 1K par défaut !
 			using (var sw = new Utf8StringWriter(new SliceWriter(bufferSize, pool)))
 			{
-				SerializeToInternal(sw, value, declaredType, settings, resolver);
+				SerializeToTextWriter(sw, value, declaredType, settings, resolver);
 				return sw.GetBuffer();
 			}
 		}
@@ -522,7 +570,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
 		/// <returns>The same instance as <paramref name="output"/></returns>
-		private static TextWriter SerializeToInternal(TextWriter output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		private static TextWriter SerializeToTextWriter(TextWriter output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			Contract.NotNull(output);
 
@@ -628,7 +676,7 @@ namespace Doxense.Serialization.Json
 				{
 					using (var output = OpenJsonStreamWriter(savePath, settings))
 					{
-						SerializeToInternal(output, value, declaredType, settings, resolver);
+						SerializeToTextWriter(output, value, declaredType, settings, resolver);
 						// note: certains implémentation "bugguée" de streams (GzipStream, etc..) requiert un flush pour finir d'écrire les data...
 
 						output.Flush();
@@ -659,7 +707,7 @@ namespace Doxense.Serialization.Json
 
 					using (var output = OpenJsonStreamWriter(savePath, settings))
 					{
-						SerializeToInternal(output, value, declaredType, settings, resolver);
+						SerializeToTextWriter(output, value, declaredType, settings, resolver);
 					}
 				}
 				catch (Exception)
@@ -681,7 +729,7 @@ namespace Doxense.Serialization.Json
 				{
 					using (var output = OpenJsonStreamWriter(savePath, settings))
 					{
-						SerializeToInternal(output, value, declaredType, settings, resolver);
+						SerializeToTextWriter(output, value, declaredType, settings, resolver);
 					}
 				}
 				catch (Exception)

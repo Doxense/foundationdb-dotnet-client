@@ -51,10 +51,11 @@ namespace Doxense.Serialization.Json
 		internal JsonBoolean(bool value) => m_value = value;
 
 		/// <summary>Returns either <see cref="JsonBoolean.True"/> or <see cref="JsonBoolean.False"/></summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonBoolean Return(bool value) => value ? True : False;
 
 		/// <summary>Returns either <see cref="JsonBoolean.True"/>, <see cref="JsonBoolean.False"/> or <see cref="JsonNull.Null"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(bool? value) => value == null ? JsonNull.Null : value.Value ? JsonBoolean.True : JsonBoolean.False;
 
 		public bool Value => m_value;
@@ -90,6 +91,8 @@ namespace Doxense.Serialization.Json
 			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
 			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
 			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
+			if (typeof(T) == typeof(TimeOnly)) return (T) (object) ToTimeOnly();
 			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
 			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
 			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();

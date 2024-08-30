@@ -357,6 +357,14 @@ namespace Doxense.Serialization.Json
 
 		public override DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null) => defaultValue;
 
+		public override DateOnly ToDateOnly() => default;
+
+		public override DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null) => defaultValue;
+
+		public override TimeOnly ToTimeOnly() => default;
+
+		public override TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = null) => defaultValue;
+
 		public override TimeSpan ToTimeSpan() => default;
 
 		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => defaultValue;

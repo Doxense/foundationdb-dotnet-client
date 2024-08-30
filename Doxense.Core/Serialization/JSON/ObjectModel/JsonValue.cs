@@ -1704,6 +1704,18 @@ namespace Doxense.Serialization.Json
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = default) => ToDateTimeOffset();
 
+		/// <summary>Returns the equivalent <see cref="DateOnly"/>, if there exists a valid conversion</summary>
+		public virtual DateOnly ToDateOnly() => throw Errors.JsonConversionNotSupported(this, typeof(DateOnly));
+
+		/// <summary>Returns the equivalent <see cref="DateOnly"/>, if there exists a valid conversion</summary>
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public virtual DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = default) => ToDateOnly();
+
+		public virtual TimeOnly ToTimeOnly() => throw Errors.JsonConversionNotSupported(this, typeof(TimeOnly));
+
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public virtual TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = default) => ToTimeOnly();
+
 		public virtual TimeSpan ToTimeSpan() => throw Errors.JsonConversionNotSupported(this, typeof(TimeSpan));
 
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]

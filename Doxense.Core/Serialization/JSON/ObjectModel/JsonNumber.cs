@@ -1198,51 +1198,63 @@ namespace Doxense.Serialization.Json
 				? SmallNumbers[value + CACHED_OFFSET_ZERO]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(ushort? value) =>
 			value.HasValue
 				? Return(value.Value)
 				: JsonNull.Null;
 
-		[Pure]
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(int value) =>
 			value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX
 				? SmallNumbers[value - CACHED_SIGNED_MIN]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
 
-		/// <summary>Retourne un petit nombre en cache</summary>
-		/// <param name="value">Valeur qui doit être comprise dans l'interval [-128, +255]</param>
-		/// <returns>JsonNumber en cache correspondant</returns>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Returns a singleton from the small numbers cache</summary>
+		/// <param name="value">Value that must be in the range [-128, +255]</param>
+		/// <returns>Chached JsonNumber for this value</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonNumber GetCachedSmallNumber(int value)
 		{
 			Contract.Debug.Requires(value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX);
 			return SmallNumbers[value - CACHED_SIGNED_MIN];
 		}
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <param name="value">Integer value, that can be null.</param>
+		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(int? value) =>
 			value.HasValue
 				? Return(value.Value)
 				: JsonNull.Null;
 
-		[Pure]
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values (between 0 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(uint value) =>
 			value <= CACHED_SIGNED_MAX
 				? SmallNumbers[value + CACHED_OFFSET_ZERO]
 				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(uint? value) =>
 			value.HasValue
 				? Return(value.Value)
 				: JsonNull.Null;
 
-		[Pure]
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonNumber Return(long value) =>
 			value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
 				? SmallNumbers[value - CACHED_SIGNED_MIN]
@@ -1255,6 +1267,10 @@ namespace Doxense.Serialization.Json
 				? Return(value.Value)
 				: JsonNull.Null;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values (between 0 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure]
 		public static JsonNumber Return(ulong value) =>
 			value <= CACHED_SIGNED_MAX
@@ -1268,6 +1284,10 @@ namespace Doxense.Serialization.Json
 				? Return(value.Value)
 				: JsonNull.Null;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
+		/// <param name="value">Decimal value</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure]
 		public static JsonNumber Return(double value) =>
 			  value == 0d ? DecimalZero
@@ -1279,21 +1299,28 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(double? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
-		[Pure]
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
+		/// <param name="value">Decimal value</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(float value) =>
 			  value == 0f ? DecimalZero
 			: value == 1f ? DecimalOne
 			: float.IsNaN(value) ? NaN
 			: new JsonNumber(new Number(value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(Half? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 #if NET8_0_OR_GREATER
-		[Pure]
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
+		/// <param name="value">Decimal value</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(Half value) =>
-			value == Half.Zero ? DecimalZero
+			  value == Half.Zero ? DecimalZero
 			: value == Half.One ? DecimalOne
 			: Half.IsNaN(value) ? NaN
 			: new JsonNumber(new Number((double) value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
@@ -1302,7 +1329,7 @@ namespace Doxense.Serialization.Json
 		private static readonly Half HalfOne = (Half) 1;
 		[Pure]
 		public static JsonNumber Return(Half value) =>
-			value == HalfZero ? DecimalZero
+			  value == HalfZero ? DecimalZero
 			: value == HalfOne ? DecimalOne
 			: Half.IsNaN(value) ? NaN
 			: new JsonNumber(new Number((double) value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
@@ -1319,26 +1346,127 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(decimal? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
+		/// <param name="value">Interval (in seconds)</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>
+		/// <para>Since <see cref="TimeSpan.TotalSeconds"/> can introduce rounding errors, this value may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
+		/// </remarks>
 		[Pure]
 		public static JsonNumber Return(TimeSpan value) => value == TimeSpan.Zero ? DecimalZero : Return(value.TotalSeconds);
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
+		/// <param name="value">Interval to convert, or <see langword="null"/></param>
+		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(TimeSpan? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">DateTime to convert</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>
+		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
+		/// </remarks>
 		[Pure]
 		public static JsonNumber Return(DateTime value)
 		{
-			// Nb de secondes écoulées depuis le 1970-01-01Z, MinValue -> 0, MaxValue -> NaN
+			// Converted as the number of secondes elapsed since 1970-01-01Z
+			// By convention, DateTime.MinValue is 0 (since it is equal to default(DateTime)), and DateTime.MaxValue is "NaN"
 			const long UNIX_EPOCH_TICKS = 621355968000000000L;
 			return value == DateTime.MinValue ? DecimalZero
 			     : value == DateTime.MaxValue ? NaN
 			     : Return((double) (value.ToUniversalTime().Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerSecond);
 		}
 
-		[Pure]
-		public static JsonValue Return(DateTime? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">DateTime to convert, or <see langword="null"/></param>
+		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>
+		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateTime? value)
+			=> value != null ? Return(value.Value) : JsonNull.Null;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">DateTimeOffset to convert</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>
+		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure]
+		public static JsonNumber Return(DateTimeOffset value)
+		{
+			// Converted as the number of secondes elapsed since 1970-01-01Z
+			// By convention, DateTime.MinValue is 0 (since it is equal to default(DateTime)), and DateTime.MaxValue is "NaN"
+			const long UNIX_EPOCH_TICKS = 621355968000000000L;
+			return value == DateTimeOffset.MinValue ? DecimalZero
+			     : value == DateTimeOffset.MaxValue ? NaN
+			     : Return((double) (value.ToUniversalTime().Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerSecond);
+		}
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">DateTimeOffset to convert, or <see langword="null"/></param>
+		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>
+		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateTimeOffset? value)
+			=> value != null ? Return(value.Value) : JsonNull.Null;
+
+		[Pure]
+		public static JsonValue Return(DateOnly value)
+			=> value == DateOnly.MinValue ? DecimalZero
+			 : value == DateOnly.MaxValue ? NaN
+			 : Return((value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) - DateTime.UnixEpoch).TotalDays);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(DateOnly? value)
+			=> value != null ? Return(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
+		/// <param name="value">Time to convert</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(TimeOnly value)
+			=> Return(value.ToTimeSpan());
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
+		/// <param name="value">Time to convert, or <see langword="null"/></param>
+		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(TimeOnly? value)
+			=> value == null ? JsonNull.Null : Return(value.Value.ToTimeSpan());
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">Instant to convert</param>
+		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <remarks>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
+		/// </remarks>
 		[Pure]
 		public static JsonNumber Return(NodaTime.Instant value) => value != default ? Return((value - default(NodaTime.Instant)).TotalSeconds) : DecimalZero;
 
@@ -1516,6 +1644,8 @@ namespace Doxense.Serialization.Json
 			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
 			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
 			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
+			if (typeof(T) == typeof(TimeOnly)) return (T) (object) ToTimeOnly();
 			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
 			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
 			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
@@ -1728,15 +1858,15 @@ namespace Doxense.Serialization.Json
 
 		public override decimal ToDecimal() => m_value.ToDecimal(m_kind);
 
-		/// <summary>Convertit un JSON Number, correspondant au nombre de secondes écoulés depuis Unix Epoch, en DateTime UTC</summary>
-		/// <returns>DateTime (UTC) égale à epoch(1970-1-1Z) + seconds(value)</returns>
+		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTime (UTC)</summary>
+		/// <returns>DateTime (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
 		public override DateTime ToDateTime()
 		{
-			// NaN est considéré comme MaxValue
+			// By convention, NaN is mapped to DateTime.MaxValue
 			double value = ToDouble();
 			if (double.IsNaN(value)) return DateTime.MaxValue;
 
-			// les DateTime sont stockés en nombre de secondes écoulées depuis Unix Epoch
+			// DateTime is stored as the number of seconds since Unix Epoch
 			const long UNIX_EPOCH_TICKS = 621355968000000000L;
 			double ticks = Math.Round(value * NodaTime.NodaConstants.TicksPerSecond, MidpointRounding.AwayFromZero) + UNIX_EPOCH_TICKS;
 
@@ -1747,15 +1877,34 @@ namespace Doxense.Serialization.Json
 			return new DateTime((long) ticks, DateTimeKind.Utc);
 		}
 
+		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTimeOffset</summary>
+		/// <returns>DateTimeOffset (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
+		/// <remarks>Since the original timezone information is lost, the result with have a time offset of <see langword="0"/>.</remarks>.
 		public override DateTimeOffset ToDateTimeOffset()
 		{
-			//REVIEW: comment gérer proprement ce cas? Les dates numériques sont en nb de jours depuis Unix Epoch (UTC), et n'ont pas d'informations sur la TimeZone.
-			// => pour le moment, on retourne un DateTimeOffset en GMT...
-			return new DateTimeOffset(this.ToDateTime());
+			// By convention, NaN is mapped to DateTime.MaxValue
+			double value = ToDouble();
+			if (double.IsNaN(value)) return DateTimeOffset.MaxValue;
+
+			// DateTime is stored as the number of seconds since Unix Epoch
+			const long UNIX_EPOCH_TICKS = 621355968000000000L;
+			double ticks = Math.Round(value * NodaTime.NodaConstants.TicksPerSecond, MidpointRounding.AwayFromZero) + UNIX_EPOCH_TICKS;
+
+			// bound checking
+			if (ticks >= long.MaxValue) return DateTimeOffset.MaxValue;
+			if (ticks <= 0) return DateTimeOffset.MinValue;
+
+			//note: since we don't have any knowledge of the original timezone, we will a time offset of 0 by convention!
+			return new DateTimeOffset((long) ticks, TimeSpan.Zero);
 		}
 
-		private const double TimeSpanMaxValueInTicks = 9.2233720368547758E+18d;
-		private const double TimeSpanMinValueInTicks = -9.2233720368547758E+18d;
+		[Pure]
+		public override DateOnly ToDateOnly()
+			=> !IsNaN(this) ? new DateOnly(1970, 1, 1).AddDays(ToInt32()) : DateOnly.MaxValue;
+
+		[Pure]
+		public override TimeOnly ToTimeOnly()
+			=> !IsNaN(this) ? TimeOnly.FromTimeSpan(ToTimeSpan()) : TimeOnly.MaxValue;
 
 		public override TimeSpan ToTimeSpan()
 		{
@@ -1764,9 +1913,12 @@ namespace Doxense.Serialization.Json
 			// on convertit d'abord en Ticks
 			double ticks = Math.Round(this.ToDouble() * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero);
 
+			const double TIME_SPAN_MAX_VALUE_IN_TICKS = 9.2233720368547758E+18d;
+			const double TIME_SPAN_MIN_VALUE_IN_TICKS = -9.2233720368547758E+18d;
+
 			// attention: le nombre de secondes peut dépasser TimeSpan.MaxValue ou TimeSpan.MinValue!
-			if (ticks >= TimeSpanMaxValueInTicks) return TimeSpan.MaxValue;
-			if (ticks <= TimeSpanMinValueInTicks) return TimeSpan.MinValue;
+			if (ticks >= TIME_SPAN_MAX_VALUE_IN_TICKS) return TimeSpan.MaxValue;
+			if (ticks <= TIME_SPAN_MIN_VALUE_IN_TICKS) return TimeSpan.MinValue;
 
 			return new TimeSpan((long)ticks);
 		}

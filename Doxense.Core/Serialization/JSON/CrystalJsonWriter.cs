@@ -28,6 +28,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Buffers.Text;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.IO;
@@ -1573,6 +1574,60 @@ namespace Doxense.Serialization.Json
 			if (value.HasValue) WriteValue(value.Value); else WriteNull();
 		}
 
+		/// <summary>Writes a <see cref="DateOnly"/> value, using the configured formatting</summary>
+		public void WriteValue(DateOnly value)
+		{
+			if (value == DateOnly.MinValue)
+			{
+				m_buffer.Write(JsonTokens.Zero);
+			}
+			else
+			{
+				WriteValue(value.ToDateTime(TimeOnly.MinValue));
+			}
+		}
+
+		/// <summary>Writes a <see cref="TimeOnly"/> value, using the configured formatting</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(DateOnly? value)
+		{
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a <see cref="TimeOnly"/> value, using the configured formatting</summary>
+		public void WriteValue(TimeOnly value)
+		{
+			if (value == TimeOnly.MinValue)
+			{
+				m_buffer.Write(JsonTokens.Zero);
+			}
+			else
+			{
+				WriteValue(value.ToTimeSpan().TotalSeconds);
+			}
+		}
+
+		/// <summary>Writes a <see cref="TimeOnly"/> value, using the configured formatting</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteValue(TimeOnly? value)
+		{
+			if (value.HasValue)
+			{
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
+		}
+
 		/// <summary>Write a date, using Microsoft's custom encoding <c>"\/Date(....)\/"</c></summary>
 		public void WriteDateTimeMicrosoft(DateTime date)
 		{
@@ -2117,7 +2172,7 @@ namespace Doxense.Serialization.Json
 			else
 			{ // note: Base64 without any <'> or <">, so no need to escape it!
 				buffer.Write('"');
-				buffer.Write(Convert.ToBase64String(bytes));
+				Base64Encoding.EncodeTo(buffer, bytes);
 				buffer.Write('"');
 			}
 		}

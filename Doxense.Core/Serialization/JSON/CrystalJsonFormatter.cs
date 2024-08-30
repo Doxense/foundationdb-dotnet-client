@@ -31,6 +31,7 @@ namespace Doxense.Serialization.Json
 	using System.Globalization;
 	using System.IO;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Mathematics;
 	using Doxense.Web;
@@ -421,7 +422,7 @@ namespace Doxense.Serialization.Json
 
 		internal static void WriteDoubleUnsafe(TextWriter output, double value, char[] buf, CrystalJsonSettings.FloatFormat format)
 		{
-			if (value == default)
+			if (value == 0)
 			{ // le plus courant (objets vides)
 				output.Write(JsonTokens.Zero);
 				return;
@@ -500,39 +501,48 @@ namespace Doxense.Serialization.Json
 
 			GetDateParts(date.Ticks, out var year, out var month, out var day, out var hour, out var min, out var sec, out var millis);
 
-			unsafe
+			ref char cursor = ref output[0];
+
+			if (quotes != '\0')
 			{
-				fixed (char* buf = output)
-				{
-					char* ptr = buf;
-
-					if (quotes != '\0') *ptr++ = quotes;
-
-					ptr += FormatDatePart(ptr, year, month, day);
-					*ptr++ = 'T';
-					ptr += FormatTimePart(ptr, hour, min, sec, millis);
-
-					if (kind == DateTimeKind.Utc)
-					{ // "Z"
-						*ptr++ = 'Z';
-					}
-					else if (utcOffset.HasValue)
-					{
-						ptr += FormatTimeZoneOffset(ptr, utcOffset.Value, false);
-					}
-					else if (kind == DateTimeKind.Local)
-					{
-						ptr += FormatTimeZoneOffset(ptr, TimeZoneInfo.Local.GetUtcOffset(date), true);
-					}
-
-					if (quotes != '\0')
-					{
-						*ptr++ = quotes;
-					}
-
-					return output[..(int) (ptr - buf)];
-				}
+				cursor = quotes;
+				cursor = ref Unsafe.Add(ref cursor, 1);
 			}
+
+			cursor = ref FormatDatePart(ref cursor, year, month, day);
+			int b = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+
+			cursor = 'T';
+			cursor = ref Unsafe.Add(ref cursor, 1);
+
+			cursor = ref FormatTimePart(ref cursor, hour, min, sec, millis);
+			int c = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+
+			if (kind == DateTimeKind.Utc)
+			{ // "Z"
+				cursor = 'Z';
+				cursor = ref Unsafe.Add(ref cursor, 1);
+			} 
+			else if (utcOffset.HasValue)
+			{
+				cursor = ref FormatTimeZoneOffset(ref cursor, utcOffset.Value, false);
+			}
+			else if (kind == DateTimeKind.Local)
+			{
+				cursor = ref FormatTimeZoneOffset(ref cursor, TimeZoneInfo.Local.GetUtcOffset(date), true);
+			}
+
+			if (quotes != '\0')
+			{
+				cursor = quotes;
+				int d = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+				cursor = ref Unsafe.Add(ref cursor, 1);
+			}
+
+			int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+			Contract.Debug.Assert((uint) offset <= ISO8601_MAX_FORMATTED_SIZE);
+
+			return output.Slice(0, offset);
 		}
 
 		public static string ToIso8601String(DateTime date)
@@ -543,6 +553,7 @@ namespace Doxense.Serialization.Json
 			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, quotes: '\0'));
 		}
 
+
 		public static string ToIso8601String(DateTimeOffset date)
 		{
 			if (date == DateTime.MinValue) return string.Empty;
@@ -551,98 +562,131 @@ namespace Doxense.Serialization.Json
 			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, quotes: '\0'));
 		}
 
-		private static unsafe int FormatDatePart(char* ptr, int year, int month, int day)
+		public static string ToIso8601String(DateOnly date)
 		{
-			Contract.Debug.Requires(ptr != null);
-			Paranoid.Requires(year >= 0 && month >= 1 && month <= 12 && day >= 1 && day <= 31);
+			if (date == DateOnly.MinValue) return string.Empty;
 
-			// Year
-			ptr[3] = (char)(48 + (year % 10)); year /= 10;
-			ptr[2] = (char)(48 + (year % 10)); year /= 10;
-			ptr[1] = (char)(48 + (year % 10));
-			ptr[0] = (char)(48 + (year / 10));
-			ptr += 4;
-
-			// Month
-			ptr[0] = '-';
-			ptr[1] = (char)(48 + (month / 10));
-			ptr[2] = (char)(48 + (month % 10));
-			ptr += 3;
-
-			// Day
-			ptr[0] = '-';
-			ptr[1] = (char)(48 + (day / 10));
-			ptr[2] = (char)(48 + (day % 10));
-
-			return 10;
+			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
+			return new string(FormatIso8601DateOnly(buf, date, quotes: '\0'));
 		}
 
-		private static unsafe int FormatTimePart(char* ptr, int hour, int min, int sec, int ticks)
+		internal static ReadOnlySpan<char> FormatIso8601DateOnly(Span<char> output, DateOnly date, char quotes = '\0')
 		{
-			Contract.Debug.Requires(ptr != null);
-			Paranoid.Requires(hour >= 0 && hour < 24 && min >= 0 && min < 60 && sec >= 0 && sec < 60 && ticks >= 0 && ticks < TimeSpan.TicksPerSecond);
+			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer
+			if (output.Length < ISO8601_MAX_FORMATTED_SIZE) ThrowHelper.ThrowArgumentException(nameof(output), "Output buffer size is too small");
 
-			ptr[0] = (char)(48 + (hour / 10));
-			ptr[1] = (char)(48 + (hour % 10));
+#if NET8_0_OR_GREATER
+			date.Deconstruct(out var year, out var month, out var day);
+#else
+			int year = date.Year;
+			int month = date.Month;
+			int day = date.Day;
+#endif
 
-			// Minutes
-			ptr[2] = ':';
-			ptr[3] = (char)(48 + (min / 10));
-			ptr[4] = (char)(48 + (min % 10));
-
-			// Seconds
-			ptr[5] = ':';
-			ptr[6] = (char)(48 + (sec / 10));
-			ptr[7] = (char)(48 + (sec % 10));
-
-			// Milliseconds
-			// (sur 7 digits)
-			if (ticks > 0)
+			ref char cursor = ref output[0];
+			if (quotes != '\0')
 			{
-				ptr += 8;
-				ptr[0] = '.';
-				ptr[7] = (char)(48 + (ticks % 10)); ticks /= 10;
-				ptr[6] = (char)(48 + (ticks % 10)); ticks /= 10;
-				ptr[5] = (char)(48 + (ticks % 10)); ticks /= 10;
-				ptr[4] = (char)(48 + (ticks % 10)); ticks /= 10;
-				ptr[3] = (char)(48 + (ticks % 10)); ticks /= 10;
-				ptr[2] = (char)(48 + (ticks % 10));
-				ptr[1] = (char)(48 + (ticks / 10));
-
-				return 16;
+				cursor = quotes;
+				cursor = ref Unsafe.Add(ref cursor, 1);
 			}
 
-			return 8;
+			cursor = ref FormatDatePart(ref cursor, year, month, day);
+
+			if (quotes != '\0')
+			{
+				cursor = quotes;
+				cursor = ref Unsafe.Add(ref cursor, 1);
+			}
+
+			return output.Slice(0, (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>()));
 		}
 
-		private static unsafe int FormatTimeZoneOffset(char* ptr, TimeSpan utcOffset, bool forceLocal)
+		private static ref char FormatDatePart(ref char ptr, int year, int month, int day)
 		{
-			Contract.Debug.Requires(ptr != null);
+			Paranoid.Requires(year >= 0 && month is >= 1 and <= 12 && day is >= 1 and <= 31);
 
+			// Year
+			Unsafe.Add(ref ptr, 3) = (char) ('0' + (year % 10)); year /= 10;
+			Unsafe.Add(ref ptr, 2) = (char) ('0' + (year % 10)); year /= 10;
+			Unsafe.Add(ref ptr, 1) = (char) ('0' + (year % 10));
+			Unsafe.Add(ref ptr, 0) = (char) ('0' + (year / 10));
+
+			// Month
+			Unsafe.Add(ref ptr, 4) = '-';
+			Unsafe.Add(ref ptr, 5) = (char) ('0' + (month / 10));
+			Unsafe.Add(ref ptr, 6) = (char) ('0' + (month % 10));
+
+			// Day
+			Unsafe.Add(ref ptr, 7) = '-';
+			Unsafe.Add(ref ptr, 8) = (char) ('0' + (day / 10));
+			Unsafe.Add(ref ptr, 9) = (char) ('0' + (day % 10));
+
+			return ref Unsafe.Add(ref ptr, 10);
+		}
+
+		private static ref char FormatTimePart(ref char ptr, int hour, int min, int sec, int ticks)
+		{
+			Paranoid.Requires(hour is >= 0 and < 24 && min is >= 0 and < 60 && sec is >= 0 and < 60 && ticks >= 0 && ticks < TimeSpan.TicksPerSecond);
+
+			Unsafe.Add(ref ptr, 0) = (char)(48 + (hour / 10));
+			Unsafe.Add(ref ptr, 1) = (char)(48 + (hour % 10));
+
+			// Minutes
+			Unsafe.Add(ref ptr, 2) = ':';
+			Unsafe.Add(ref ptr, 3) = (char)(48 + (min / 10));
+			Unsafe.Add(ref ptr, 4) = (char)(48 + (min % 10));
+
+			// Seconds
+			Unsafe.Add(ref ptr, 5) = ':';
+			Unsafe.Add(ref ptr, 6) = (char)(48 + (sec / 10));
+			Unsafe.Add(ref ptr, 7) = (char)(48 + (sec % 10));
+
+			ptr = ref Unsafe.Add(ref ptr, 8);
+
+			if (ticks > 0)
+			{ // writes the milliseconds (7 digits)
+
+				Unsafe.Add(ref ptr, 0) = '.';
+				Unsafe.Add(ref ptr, 7) = (char) (48 + (ticks % 10)); ticks /= 10;
+				Unsafe.Add(ref ptr, 6) = (char) (48 + (ticks % 10)); ticks /= 10;
+				Unsafe.Add(ref ptr, 5) = (char) (48 + (ticks % 10)); ticks /= 10;
+				Unsafe.Add(ref ptr, 4) = (char) (48 + (ticks % 10)); ticks /= 10;
+				Unsafe.Add(ref ptr, 3) = (char) (48 + (ticks % 10)); ticks /= 10;
+				Unsafe.Add(ref ptr, 2) = (char) (48 + (ticks % 10));
+				Unsafe.Add(ref ptr, 1) = (char) (48 + (ticks / 10));
+
+				ptr = ref Unsafe.Add(ref ptr, 8);
+			}
+
+			return ref ptr;
+
+		}
+
+		private static ref char FormatTimeZoneOffset(ref char ptr, TimeSpan utcOffset, bool forceLocal)
+		{
 			int min = (int)(utcOffset.Ticks / TimeSpan.TicksPerMinute);
 
 			// special case: on affiche quand meme 'Z' pour les DTO avec l'offset GMT, car on ne peut pas les distinguer de DTO version "UTC"
 			// => si un serveur tourne qqpart du coté de Greenwith, on confondra les heures de type locales avec les heures UTC, mais ce n'est pas très grave au final...
 			if (min == 0 && !forceLocal)
 			{ // "Z"
-				*ptr = 'Z';
-				return 1;
+				ptr = 'Z';
+				return ref Unsafe.Add(ref ptr, 1);
 			}
-			else
-			{ // "+HH:MM"
-				ptr[0] = min >= 0 ? '+' : '-';
+			
+			// "+HH:MM"
+			ptr = min >= 0 ? '+' : '-';
 
-				min = Math.Abs(min);
-				int hour = min / 60;
-				min %= 60;
+			min = Math.Abs(min);
+			int hour = min / 60;
+			min %= 60;
 
-				ptr[1] = (char)(48 + (hour / 10));
-				ptr[2] = (char)(48 + (hour % 10));
-				ptr[3] = ':';
-				ptr[4] = (char)(48 + (min / 10));
-				ptr[5] = (char)(48 + (min % 10));
-				return 6;
-			}
+			Unsafe.Add(ref ptr, 1) = (char)(48 + (hour / 10));
+			Unsafe.Add(ref ptr, 2) = (char)(48 + (hour % 10));
+			Unsafe.Add(ref ptr, 3) = ':';
+			Unsafe.Add(ref ptr, 4) = (char)(48 + (min / 10));
+			Unsafe.Add(ref ptr, 5) = (char)(48 + (min % 10));
+			return ref Unsafe.Add(ref ptr, 6);
 		}
 
 		public static void GetDateParts(long ticks, out int year, out int month, out int day, out int hour, out int minute, out int second, out int remainder)

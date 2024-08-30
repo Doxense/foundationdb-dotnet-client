@@ -303,6 +303,53 @@ namespace Doxense.Serialization.Json
 			return TypeNameCache.FromType(type) ?? JsonNull.Null;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(DateTime value)
+		{
+			return value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(DateTime? value)
+		{
+			return value == null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(DateTimeOffset value)
+		{
+			return value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(DateTimeOffset? value)
+		{
+			return value == null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(DateOnly value)
+		{
+			return value == DateOnly.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(DateOnly? value)
+		{
+			return value == null ? JsonNull.Null : value.Value == DateOnly.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(TimeOnly value)
+		{
+			return value == TimeOnly.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(TimeOnly? value)
+		{
+			return value == null ? JsonNull.Null : value.Value == TimeOnly.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+		}
 
 		#region Noda Types...
 
@@ -471,6 +518,8 @@ namespace Doxense.Serialization.Json
 			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
 			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
 			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
+			if (typeof(T) == typeof(TimeOnly)) return (T) (object) ToTimeOnly();
 			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
 			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
 			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
@@ -1153,6 +1202,28 @@ namespace Doxense.Serialization.Json
 		public override DateTime? ToDateTimeOrDefault(DateTime? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTime();
+		}
+
+		public override DateOnly ToDateOnly()
+		{
+			if (string.IsNullOrEmpty(m_value)) return default;
+			return DateOnly.FromDateTime(ToDateTime());
+		}
+
+		public override DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null)
+		{
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateOnly();
+		}
+
+		public override TimeOnly ToTimeOnly()
+		{
+			if (string.IsNullOrEmpty(m_value)) return default;
+			return TimeOnly.FromTimeSpan(ToTimeSpan());
+		}
+
+		public override TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = null)
+		{
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToTimeOnly();
 		}
 
 		public bool TryConvertDateTime(out DateTime dt)

@@ -3979,6 +3979,29 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.Return(DateTime.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
 			Assert.That(JsonNumber.NaN.ToDateTime(), Is.EqualTo(DateTime.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
 
+			// DateTimeOffset
+			//note: dates are converted into the number of days (floating point) since Unix Epoch, using UTC as the reference timezone
+			Assert.That(JsonNumber.Return(0).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)), "0.ToDateTimeOffset()");
+			Assert.That(JsonNumber.Return(1).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 1, 0, 0, 1, TimeSpan.Zero)), "1.ToDateTimeOffset()");
+			Assert.That(JsonNumber.Return(86400).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 2, 0, 0, 0, TimeSpan.Zero)), "86400.ToDateTimeOffset()");
+			Assert.That(JsonNumber.Return(1484830412.854).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2017, 1, 19, 12, 53, 32, 854, TimeSpan.Zero)).Within(TimeSpan.FromMilliseconds(1)), "(DAYS).ToDateTimeOffset()");
+			Assert.That(JsonNumber.Return(new DateTimeOffset(2017, 1, 19, 12, 53, 32, 854, offset: TimeSpan.Zero)).ToDouble(), Is.EqualTo(1484830412.854), "(UTC).Value");
+			Assert.That(JsonNumber.Return(new DateTimeOffset(2017, 1, 19, 13, 53, 32, 854, offset: TimeSpan.FromHours(1))).ToDouble(), Is.EqualTo(1484830412.854), "(LOCAL).Value");
+			Assert.That(JsonNumber.Return(DateTimeOffset.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
+			Assert.That(JsonNumber.Return(DateTimeOffset.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
+			Assert.That(JsonNumber.NaN.ToDateTimeOffset(), Is.EqualTo(DateTimeOffset.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
+
+			// DateOnly
+			//note: dates are converted into the number of days (floating point) since Unix Epoch, using UTC as the reference timezone
+			Assert.That(JsonNumber.Return(0).ToDateOnly(), Is.EqualTo(new DateOnly(1970, 1, 1)), "0.ToDateOnly()");
+			Assert.That(JsonNumber.Return(1).ToDateOnly(), Is.EqualTo(new DateOnly(1970, 1, 2)), "1.ToDateOnly()");
+			Assert.That(JsonNumber.Return(31).ToDateOnly(), Is.EqualTo(new DateOnly(1970, 2, 1)), "31.ToDateOnly()");
+			Assert.That(JsonNumber.Return(new DateOnly(2017, 1, 19)).ToDouble(), Is.EqualTo(17185), "(DATE).Value");
+			Assert.That(JsonNumber.Return(17185).ToDateOnly(), Is.EqualTo(new DateOnly(2017, 1, 19)), "(DAYS).ToDateOnly()");
+			Assert.That(JsonNumber.Return(DateOnly.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
+			Assert.That(JsonNumber.Return(DateOnly.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
+			Assert.That(JsonNumber.NaN.ToDateOnly(), Is.EqualTo(DateOnly.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
+
 			// Instant
 			//note: instants are converted into the number of days (floating point) since Unix Epoch
 			Assert.That(JsonNumber.Return(0).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 1, 0, 0, 0)), "0.ToInstant()");

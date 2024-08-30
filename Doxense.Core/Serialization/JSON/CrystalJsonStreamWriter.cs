@@ -27,7 +27,9 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 
 	/// <summary>Classe capable d'écrire des fragments de JSON, en mode stream</summary>
@@ -283,11 +285,20 @@ namespace Doxense.Serialization.Json
 			return new ObjectStream(this, state, cancellationToken);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void EnsureInObjectMode()
 		{
-			if (m_disposed) ThrowDisposed();
-
+			if (m_disposed)
+			{
+				ThrowDisposed();
+			}
 			if (m_writer.CurrentState.Node != CrystalJsonWriter.NodeType.Object)
+			{
+				ThrowNotInObjectMode();
+			}
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static void ThrowNotInObjectMode()
 			{
 				throw new InvalidOperationException("Invalid writer state: can only write fields in object mode. Did you forget to call BeginObject() first?");
 			}
@@ -661,9 +672,18 @@ namespace Doxense.Serialization.Json
 
 		private void EnsureInArrayMode()
 		{
-			if (m_disposed) ThrowDisposed();
+			if (m_disposed)
+			{
+				ThrowDisposed();
+			}
 
 			if (m_writer.CurrentState.Node != CrystalJsonWriter.NodeType.Array)
+			{
+				ThrowNotInArrayMode();
+			}
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static void ThrowNotInArrayMode()
 			{
 				throw new InvalidOperationException("Invalid writer state: can only write batched entries in Array mode. Did you forget to call BeginArray() first?");
 			}
@@ -812,7 +832,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		[ContractAnnotation("=> halt")]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
 		private void ThrowDisposed()
 		{
 			throw new ObjectDisposedException(this.GetType().Name);

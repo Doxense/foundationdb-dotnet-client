@@ -515,47 +515,47 @@ namespace Doxense.Serialization.Json
 		{
 			if (type == typeof (DateTime))
 			{ // DateTime
-				return (v, _, _, writer) => writer.WriteValue((DateTime) v!);
+				return static (v, _, _, writer) => writer.WriteValue((DateTime) v!);
 			}
 
 			if (type == typeof (TimeSpan))
 			{
-				return (v, _, _, writer) => writer.WriteValue((TimeSpan) v!);
+				return static (v, _, _, writer) => writer.WriteValue((TimeSpan) v!);
 			}
 
 			if (type == typeof (Guid))
 			{ // Guid
-				return (v, _, _, writer) => writer.WriteValue((Guid) v!);
+				return static (v, _, _, writer) => writer.WriteValue((Guid) v!);
 			}
 
 			if (type == typeof (DateTimeOffset))
 			{ // DateTime
-				return (v, _, _, writer) => writer.WriteValue((DateTimeOffset) v!);
+				return static (v, _, _, writer) => writer.WriteValue((DateTimeOffset) v!);
 			}
 
 			if (type == typeof (decimal))
 			{ // decimal
-				return (v, _, _, writer) => writer.WriteValue((decimal) v!);
+				return static (v, _, _, writer) => writer.WriteValue((decimal) v!);
 			}
 
 			if (type == typeof(Uuid128))
 			{ // 128-bit UUID
-				return (v, _, _, writer) => writer.WriteValue((Uuid128) v!);
+				return static (v, _, _, writer) => writer.WriteValue((Uuid128) v!);
 			}
 
 			if (type == typeof(Uuid96))
 			{ // 96-bit UUID
-				return (v, _, _, writer) => writer.WriteValue((Uuid96) v!);
+				return static (v, _, _, writer) => writer.WriteValue((Uuid96) v!);
 			}
 
 			if (type == typeof(Uuid80))
 			{ // 80-bit UUID
-				return (v, _, _, writer) => writer.WriteValue((Uuid80) v!);
+				return static (v, _, _, writer) => writer.WriteValue((Uuid80) v!);
 			}
 
 			if (type == typeof(Uuid64))
 			{ // 64-bit UUID
-				return (v, _, _, writer) => writer.WriteValue((Uuid64) v!);
+				return static (v, _, _, writer) => writer.WriteValue((Uuid64) v!);
 			}
 
 			if (type.IsAssignableTo<IVarTuple>())
@@ -579,7 +579,7 @@ namespace Doxense.Serialization.Json
 				}
 				else
 				{ // for flag enums, use the slower path
-					return (v, _, _, writer) => writer.WriteEnum((Enum) v!);
+					return static (v, _, _, writer) => writer.WriteEnum((Enum) v!);
 				}
 			}
 
@@ -597,16 +597,16 @@ namespace Doxense.Serialization.Json
 
 			if (type == typeof(Slice))
 			{
-				return (v, _, _, writer) => writer.WriteBuffer((Slice) v!);
+				return static (v, _, _, writer) => writer.WriteBuffer((Slice) v!);
 			}
 
 			if (type == typeof (System.Drawing.Color))
 			{ // Color => we will output the "Name" property of the color
 #if !NET461 && !NET472
 				//TODO: HACKHACK: how to convert color into HTML name in .NET Standard 2.0 ?
-				return (v, _, _, writer) => writer.WriteValue(((System.Drawing.Color) v!).ToString());
+				return static (v, _, _, writer) => writer.WriteValue(((System.Drawing.Color) v!).ToString());
 #else
-				return (v, _, _, writer) => writer.WriteValue(System.Drawing.ColorTranslator.ToHtml((System.Drawing.Color) v));
+				return static (v, _, _, writer) => writer.WriteValue(System.Drawing.ColorTranslator.ToHtml((System.Drawing.Color) v));
 #endif
 			}
 
@@ -614,35 +614,35 @@ namespace Doxense.Serialization.Json
 
 			if (type == typeof (NodaTime.Instant))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.Instant) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.Instant) v!);
 			}
 			if (type == typeof (NodaTime.Duration))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.Duration) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.Duration) v!);
 			}
 			if (type == typeof (NodaTime.LocalDateTime))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.LocalDateTime) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.LocalDateTime) v!);
 			}
 			if (type == typeof (NodaTime.ZonedDateTime))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.ZonedDateTime) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.ZonedDateTime) v!);
 			}
 			if (type == typeof (NodaTime.Offset))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.Offset) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.Offset) v!);
 			}
 			if (type == typeof (NodaTime.OffsetDateTime))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.OffsetDateTime) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.OffsetDateTime) v!);
 			}
 			if (type == typeof (NodaTime.LocalDate))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.LocalDate) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.LocalDate) v!);
 			}
 			if (type == typeof (NodaTime.LocalTime))
 			{
-				return (v, _, _, writer) => writer.WriteValue((NodaTime.LocalTime) v!);
+				return static (v, _, _, writer) => writer.WriteValue((NodaTime.LocalTime) v!);
 			}
 
 			#endregion
@@ -912,37 +912,56 @@ namespace Doxense.Serialization.Json
 		{
 			#region <JIT_HACK>
 #if !DEBUG
-			if (typeof(T) == typeof(bool)) { writer.WriteValue((bool)(object)value); return; }
-			if (typeof(T) == typeof(char)) { writer.WriteValue((char)(object)value); return; }
-			if (typeof(T) == typeof(int)) { writer.WriteValue((int) (object) value); return; }
-			if (typeof(T) == typeof(long)) { writer.WriteValue((long)(object)value); return; }
-			if (typeof(T) == typeof(uint)) { writer.WriteValue((uint)(object)value); return; }
-			if (typeof(T) == typeof(ulong)) { writer.WriteValue((ulong)(object)value); return; }
-			if (typeof(T) == typeof(double)) { writer.WriteValue((double)(object)value); return; }
-			if (typeof(T) == typeof(float)) { writer.WriteValue((float)(object)value); return; }
-			if (typeof(T) == typeof(Guid)) { writer.WriteValue((Guid)(object)value); return; }
-			if (typeof(T) == typeof(TimeSpan)) { writer.WriteValue((TimeSpan)(object)value); return; }
-			if (typeof(T) == typeof(DateTime)) { writer.WriteValue((DateTime)(object)value); return; }
-			if (typeof(T) == typeof(DateTimeOffset)) { writer.WriteValue((DateTimeOffset)(object)value); return; }
-			if (typeof(T) == typeof(NodaTime.Duration)) { writer.WriteValue((NodaTime.Duration)(object)value); return; }
-			if (typeof(T) == typeof(NodaTime.Instant)) { writer.WriteValue((NodaTime.Instant)(object)value); return; }
+			if (typeof(T) == typeof(bool)) { writer.WriteValue((bool) (object) value!); return; }
+			if (typeof(T) == typeof(char)) { writer.WriteValue((char) (object) value!); return; }
+			if (typeof(T) == typeof(int)) { writer.WriteValue((int) (object) value!); return; }
+			if (typeof(T) == typeof(long)) { writer.WriteValue((long) (object) value!); return; }
+			if (typeof(T) == typeof(uint)) { writer.WriteValue((uint) (object) value!); return; }
+			if (typeof(T) == typeof(ulong)) { writer.WriteValue((ulong) (object) value!); return; }
+			if (typeof(T) == typeof(double)) { writer.WriteValue((double) (object) value!); return; }
+			if (typeof(T) == typeof(float)) { writer.WriteValue((float) (object) value!); return; }
+			if (typeof(T) == typeof(Guid)) { writer.WriteValue((Guid) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid128)) { writer.WriteValue((Uuid128) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid96)) { writer.WriteValue((Uuid96) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid80)) { writer.WriteValue((Uuid80) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid64)) { writer.WriteValue((Uuid64) (object) value!); return; }
+			if (typeof(T) == typeof(TimeSpan)) { writer.WriteValue((TimeSpan) (object) value!); return; }
+			if (typeof(T) == typeof(DateTime)) { writer.WriteValue((DateTime) (object) value!); return; }
+			if (typeof(T) == typeof(DateTimeOffset)) { writer.WriteValue((DateTimeOffset) (object) value!); return; }
+			if (typeof(T) == typeof(DateOnly)) { writer.WriteValue((DateOnly) (object) value!); return; }
+			if (typeof(T) == typeof(TimeOnly)) { writer.WriteValue((TimeOnly) (object) value!); return; }
+			if (typeof(T) == typeof(NodaTime.Duration)) { writer.WriteValue((NodaTime.Duration) (object) value!); return; }
+			if (typeof(T) == typeof(NodaTime.Instant)) { writer.WriteValue((NodaTime.Instant) (object) value!); return; }
 
-			if (typeof(T) == typeof(bool?)) { writer.WriteValue((bool?)(object)value); return; }
-			if (typeof(T) == typeof(char?)) { writer.WriteValue((char?)(object)value); return; }
-			if (typeof(T) == typeof(int?)) { writer.WriteValue((int?)(object)value); return; }
-			if (typeof(T) == typeof(long?)) { writer.WriteValue((long?)(object)value); return; }
-			if (typeof(T) == typeof(uint?)) { writer.WriteValue((uint?)(object)value); return; }
-			if (typeof(T) == typeof(ulong?)) { writer.WriteValue((ulong?)(object)value); return; }
-			if (typeof(T) == typeof(double?)) { writer.WriteValue((double?)(object)value); return; }
-			if (typeof(T) == typeof(float?)) { writer.WriteValue((float?)(object)value); return; }
-			if (typeof(T) == typeof(Guid?)) { writer.WriteValue((Guid?)(object)value); return; }
-			if (typeof(T) == typeof(TimeSpan?)) { writer.WriteValue((TimeSpan?)(object)value); return; }
-			if (typeof(T) == typeof(DateTime?)) { writer.WriteValue((DateTime?)(object)value); return; }
-			if (typeof(T) == typeof(DateTimeOffset?)) { writer.WriteValue((DateTimeOffset?)(object)value); return; }
-			if (typeof(T) == typeof(NodaTime.Duration?)) { writer.WriteValue((NodaTime.Duration?)(object)value); return; }
-			if (typeof(T) == typeof(NodaTime.Instant?)) { writer.WriteValue((NodaTime.Instant?)(object)value); return; }
+			if (typeof(T) == typeof(bool?)) { writer.WriteValue((bool?) (object?) value); return; }
+			if (typeof(T) == typeof(char?)) { writer.WriteValue((char?) (object?) value); return; }
+			if (typeof(T) == typeof(int?)) { writer.WriteValue((int?) (object?) value); return; }
+			if (typeof(T) == typeof(long?)) { writer.WriteValue((long?) (object?) value); return; }
+			if (typeof(T) == typeof(uint?)) { writer.WriteValue((uint?) (object?) value); return; }
+			if (typeof(T) == typeof(ulong?)) { writer.WriteValue((ulong?) (object?) value); return; }
+			if (typeof(T) == typeof(double?)) { writer.WriteValue((double?) (object?) value); return; }
+			if (typeof(T) == typeof(float?)) { writer.WriteValue((float?) (object?) value); return; }
+			if (typeof(T) == typeof(Guid?)) { writer.WriteValue((Guid?) (object?) value); return; }
+			if (typeof(T) == typeof(Uuid128?)) { writer.WriteValue((Uuid128?) (object?) value); return; }
+			if (typeof(T) == typeof(Uuid96?)) { writer.WriteValue((Uuid96?) (object?) value); return; }
+			if (typeof(T) == typeof(Uuid80?)) { writer.WriteValue((Uuid80?) (object?) value); return; }
+			if (typeof(T) == typeof(Uuid64?)) { writer.WriteValue((Uuid64?) (object?) value); return; }
+			if (typeof(T) == typeof(TimeSpan?)) { writer.WriteValue((TimeSpan?) (object?) value); return; }
+			if (typeof(T) == typeof(DateTime?)) { writer.WriteValue((DateTime?) (object?) value); return; }
+			if (typeof(T) == typeof(DateTimeOffset?)) { writer.WriteValue((DateTimeOffset?) (object?) value); return; }
+			if (typeof(T) == typeof(DateOnly?)) { writer.WriteValue((DateOnly?) (object?) value); return; }
+			if (typeof(T) == typeof(TimeOnly?)) { writer.WriteValue((TimeOnly?) (object?) value); return; }
+			if (typeof(T) == typeof(NodaTime.Duration?)) { writer.WriteValue((NodaTime.Duration?) (object?) value); return; }
+			if (typeof(T) == typeof(NodaTime.Instant?)) { writer.WriteValue((NodaTime.Instant?) (object?) value); return; }
+
+#if NET8_0_OR_GREATER
+			if (typeof(T) == typeof(Half)) { writer.WriteValue((Half) (object) value!); return; }
+			if (typeof(T) == typeof(Half?)) { writer.WriteValue((Half?) (object?) value); return; }
+#endif
+
 #endif
 			#endregion </JIT_HACK>
+
 
 			VisitValue(value, typeof(T), writer);
 		}
@@ -959,7 +978,11 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			if (value is string s) { writer.WriteValue(s); return; }
+			if (value is string s)
+			{
+				writer.WriteValue(s);
+				return;
+			}
 
 			Type type = value.GetType();
 			var visitor = GetVisitorForType(type);
