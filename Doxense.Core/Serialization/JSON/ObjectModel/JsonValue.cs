@@ -38,7 +38,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerNonUserCode]
 	[PublicAPI]
 	[JetBrains.Annotations.CannotApplyEqualityOperator]
-	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable
+	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable, IConvertible
 #pragma warning disable CS0618 // Type or member is obsolete
 		, IJsonDynamic
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -1553,111 +1553,154 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonConvertible...
 
+		/// <summary>Returns the equivalent <see cref="System.String"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual string? ToStringOrDefault(string? defaultValue = null) => ToString();
 
+		/// <summary>Returns the equivalent <see cref="System.Boolean"/>, if there exists a valid conversion</summary>
 		public virtual bool ToBoolean() => throw Errors.JsonConversionNotSupported(this, typeof(bool));
 
+		/// <summary>Returns the equivalent <see cref="System.Boolean"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual bool? ToBooleanOrDefault(bool? defaultValue = default) => ToBoolean();
 
+		/// <summary>Returns the equivalent <see cref="System.Byte"/>, if there exists a valid conversion</summary>
 		public virtual byte ToByte() => throw Errors.JsonConversionNotSupported(this, typeof(byte));
 
+		/// <summary>Returns the equivalent <see cref="System.Byte"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual byte? ToByteOrDefault(byte? defaultValue = default) => ToByte();
 
+		/// <summary>Returns the equivalent <see cref="System.SByte"/>, if there exists a valid conversion</summary>
 		public virtual sbyte ToSByte() => throw Errors.JsonConversionNotSupported(this, typeof(sbyte));
 
+		/// <summary>Returns the equivalent <see cref="System.SByte"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual sbyte? ToSByteOrDefault(sbyte? defaultValue = default) => ToSByte();
 
+		/// <summary>Returns the equivalent <see cref="System.Char"/>, if there exists a valid conversion</summary>
 		public virtual char ToChar() => throw Errors.JsonConversionNotSupported(this, typeof(char));
 
+		/// <summary>Returns the equivalent <see cref="System.Char"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual char? ToCharOrDefault(char? defaultValue = default) => ToChar();
 
+		/// <summary>Returns the equivalent <see cref="System.Int16"/>, if there exists a valid conversion</summary>
 		public virtual short ToInt16() => throw Errors.JsonConversionNotSupported(this, typeof(short));
 
+		/// <summary>Returns the equivalent <see cref="System.Int16"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual short? ToInt16OrDefault(short? defaultValue = default) => ToInt16();
 
+		/// <summary>Returns the equivalent <see cref="System.UInt16"/>, if there exists a valid conversion</summary>
 		public virtual ushort ToUInt16() => throw Errors.JsonConversionNotSupported(this, typeof(ushort));
 
+		/// <summary>Returns the equivalent <see cref="System.UInt16"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual ushort? ToUInt16OrDefault(ushort? defaultValue = default) => ToUInt16();
 
+		/// <summary>Returns the equivalent <see cref="System.Int32"/>, if there exists a valid conversion</summary>
 		public virtual int ToInt32() => throw Errors.JsonConversionNotSupported(this, typeof(int));
 
+		/// <summary>Returns the equivalent <see cref="System.Int32"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual int? ToInt32OrDefault(int? defaultValue = default) => ToInt32();
 
+		/// <summary>Returns the equivalent <see cref="System.UInt32"/>, if there exists a valid conversion</summary>
 		public virtual uint ToUInt32() => throw Errors.JsonConversionNotSupported(this, typeof(uint));
 
+		/// <summary>Returns the equivalent <see cref="System.UInt32"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual uint? ToUInt32OrDefault(uint? defaultValue = default) => ToUInt32();
 
+		/// <summary>Returns the equivalent <see cref="System.Int64"/>, if there exists a valid conversion</summary>
 		public virtual long ToInt64() => throw Errors.JsonConversionNotSupported(this, typeof(long));
 
+		/// <summary>Returns the equivalent <see cref="System.Int64"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual long? ToInt64OrDefault(long? defaultValue = default) => ToInt64();
 
+		/// <summary>Returns the equivalent <see cref="System.UInt64"/>, if there exists a valid conversion</summary>
 		public virtual ulong ToUInt64() => throw Errors.JsonConversionNotSupported(this, typeof(ulong));
 
+		/// <summary>Returns the equivalent <see cref="System.UInt64"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual ulong? ToUInt64OrDefault(ulong? defaultValue = default) => ToUInt64();
 
+		/// <summary>Returns the equivalent <see cref="System.Single"/>, if there exists a valid conversion</summary>
 		public virtual float ToSingle() => throw Errors.JsonConversionNotSupported(this, typeof(float));
 
+		/// <summary>Returns the equivalent <see cref="System.Single"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual float? ToSingleOrDefault(float? defaultValue = default) => ToSingle();
 
+		/// <summary>Returns the equivalent <see cref="System.Double"/>, if there exists a valid conversion</summary>
 		public virtual double ToDouble() => throw Errors.JsonConversionNotSupported(this, typeof(double));
 
+		/// <summary>Returns the equivalent <see cref="System.Double"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual double? ToDoubleOrDefault(double? defaultValue = default) => ToDouble();
 
+		/// <summary>Returns the equivalent <see cref="System.Half"/>, if there exists a valid conversion</summary>
 		public virtual Half ToHalf() => throw Errors.JsonConversionNotSupported(this, typeof(Half));
 
+		/// <summary>Returns the equivalent <see cref="System.Half"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual Half? ToHalfOrDefault(Half? defaultValue = default) => ToHalf();
 
+		/// <summary>Returns the equivalent <see cref="Decimal"/>, if there exists a valid conversion</summary>
 		public virtual decimal ToDecimal() => throw Errors.JsonConversionNotSupported(this, typeof(decimal));
 
+		/// <summary>Returns the equivalent <see cref="Decimal"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual decimal? ToDecimalOrDefault(decimal? defaultValue = default) => ToDecimal();
 
+		/// <summary>Returns the equivalent <see cref="Guid"/>, if there exists a valid conversion</summary>
 		public virtual Guid ToGuid() => throw Errors.JsonConversionNotSupported(this, typeof(Guid));
 
+		/// <summary>Returns the equivalent <see cref="Guid"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual Guid? ToGuidOrDefault(Guid? defaultValue = default) => ToGuid();
 
+		/// <summary>Returns the equivalent <see cref="Uuid128"/>, if there exists a valid conversion</summary>
 		public virtual Uuid128 ToUuid128() => throw Errors.JsonConversionNotSupported(this, typeof(Uuid128));
 
+		/// <summary>Returns the equivalent <see cref="Uuid128"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = default) => ToUuid128();
 
+		/// <summary>Returns the equivalent <see cref="Uuid96"/>, if there exists a valid conversion</summary>
 		public virtual Uuid96 ToUuid96() => throw Errors.JsonConversionNotSupported(this, typeof(Uuid96));
 
+		/// <summary>Returns the equivalent <see cref="Uuid96"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = default) => ToUuid96();
 
+		/// <summary>Returns the equivalent <see cref="Uuid80"/>, if there exists a valid conversion</summary>
 		public virtual Uuid80 ToUuid80() => throw Errors.JsonConversionNotSupported(this, typeof(Uuid80));
 
+		/// <summary>Returns the equivalent <see cref="Uuid80"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = default) => ToUuid80();
 
+		/// <summary>Returns the equivalent <see cref="Uuid64"/>, if there exists a valid conversion</summary>
 		public virtual Uuid64 ToUuid64() => throw Errors.JsonConversionNotSupported(this, typeof(Uuid64));
 
+		/// <summary>Returns the equivalent <see cref="Uuid64"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = default) => ToUuid64();
 
+		/// <summary>Returns the equivalent <see cref="DateTime"/>, if there exists a valid conversion</summary>
 		public virtual DateTime ToDateTime() => throw Errors.JsonConversionNotSupported(this, typeof(DateTime));
 
+		/// <summary>Returns the equivalent <see cref="DateTime"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual DateTime? ToDateTimeOrDefault(DateTime? defaultValue = default) => ToDateTime();
 
+		/// <summary>Returns the equivalent <see cref="DateTimeOffset"/>, if there exists a valid conversion</summary>
 		public virtual DateTimeOffset ToDateTimeOffset() => throw Errors.JsonConversionNotSupported(this, typeof(DateTimeOffset));
 
+		/// <summary>Returns the equivalent <see cref="DateTimeOffset"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = default) => ToDateTimeOffset();
 
@@ -1685,6 +1728,61 @@ namespace Doxense.Serialization.Json
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = default) => ToDuration();
 		//TODO: ToZonedDateTime, ToLocalDateTime ?
+
+		#endregion
+
+		#region IConvertible...
+
+		/// <inheritdoc />
+		TypeCode IConvertible.GetTypeCode() => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		bool IConvertible.ToBoolean(IFormatProvider? provider) => ToBoolean();
+
+		/// <inheritdoc />
+		byte IConvertible.ToByte(IFormatProvider? provider) => ToByte();
+
+		/// <inheritdoc />
+		char IConvertible.ToChar(IFormatProvider? provider) => ToChar();
+
+		/// <inheritdoc />
+		DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ToDateTime();
+
+		/// <inheritdoc />
+		decimal IConvertible.ToDecimal(IFormatProvider? provider) => ToDecimal();
+
+		/// <inheritdoc />
+		double IConvertible.ToDouble(IFormatProvider? provider) => ToDouble();
+
+		/// <inheritdoc />
+		short IConvertible.ToInt16(IFormatProvider? provider) => ToInt16();
+
+		/// <inheritdoc />
+		int IConvertible.ToInt32(IFormatProvider? provider) => ToInt32();
+
+		/// <inheritdoc />
+		long IConvertible.ToInt64(IFormatProvider? provider) => ToInt64();
+
+		/// <inheritdoc />
+		sbyte IConvertible.ToSByte(IFormatProvider? provider) => ToSByte();
+
+		/// <inheritdoc />
+		float IConvertible.ToSingle(IFormatProvider? provider) => ToSingle();
+
+		/// <inheritdoc />
+		string IConvertible.ToString(IFormatProvider? provider) => ToStringOrDefault()!;
+
+		/// <inheritdoc />
+		ushort IConvertible.ToUInt16(IFormatProvider? provider) => ToUInt16();
+
+		/// <inheritdoc />
+		uint IConvertible.ToUInt32(IFormatProvider? provider) => ToUInt32();
+
+		/// <inheritdoc />
+		ulong IConvertible.ToUInt64(IFormatProvider? provider) => ToUInt64();
+
+		/// <inheritdoc />
+		object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => Bind(conversionType, null)!;
 
 		#endregion
 
