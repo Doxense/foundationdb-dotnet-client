@@ -43,7 +43,7 @@ namespace Doxense.IO
 		// * All operations are InvariantCulture by default
 		// * Attempt to better inline code
 
-		private readonly StringBuilder m_buffer;
+		public StringBuilder Buffer { get; }
 
 		private static readonly UnicodeEncoding s_encoding = new(bigEndian: false, byteOrderMark: false);
 
@@ -64,16 +64,21 @@ namespace Doxense.IO
 		{
 			Contract.NotNull(buffer);
 
-			m_buffer = buffer;
+			this.Buffer = buffer;
 		}
 
 		#endregion
+
+		public void Reset()
+		{
+			this.Buffer.Clear();
+		}
 
 		/// <summary>Return the underlying buffer used by this writer</summary>
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public StringBuilder GetStringBuilder()
 		{
-			return m_buffer;
+			return this.Buffer;
 		}
 
 		/// <summary>Return the current buffer as a string</summary>
@@ -82,7 +87,7 @@ namespace Doxense.IO
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override string ToString()
 		{
-			return m_buffer.ToString();
+			return this.Buffer.ToString();
 		}
 
 		/// <summary>Return the current buffer as an array of char</summary>
@@ -90,8 +95,9 @@ namespace Doxense.IO
 		/// <remarks>Caution: please don't call this method if more text will be written later, because it will cause a lot of extra memory allocations!</remarks>
 		public char[] ToCharArray()
 		{
-			char[] data = new char[m_buffer.Length];
-			m_buffer.CopyTo(0, data, 0, m_buffer.Length);
+			var buffer = this.Buffer;
+			char[] data = new char[buffer.Length];
+			buffer.CopyTo(0, data, 0, buffer.Length);
 			return data;
 		}
 
@@ -100,7 +106,7 @@ namespace Doxense.IO
 		/// <returns>Content of the buffer, encoded into bytes</returns>
 		public byte[] GetBytes(Encoding encoding)
 		{
-			return encoding.GetBytes(m_buffer.ToString());
+			return encoding.GetBytes(this.Buffer.ToString());
 		}
 
 		/// <summary>Copy the content of the buffer to another text writer</summary>
@@ -111,17 +117,17 @@ namespace Doxense.IO
 		{
 			Contract.NotNull(output);
 
-			if (m_buffer.Length == 0) return;
+			if (this.Buffer.Length == 0) return;
 
-			buffer ??= new char[Math.Min(m_buffer.Length, 0x400)];
+			buffer ??= new char[Math.Min(this.Buffer.Length, 0x400)];
 			if (buffer.Length == 0) throw new ArgumentException("Buffer cannot be empty", nameof(buffer));
 
-			int remaining = m_buffer.Length;
+			int remaining = this.Buffer.Length;
 			int p = 0;
 			while (remaining > 0)
 			{
 				int n = Math.Min(remaining, buffer.Length);
-				m_buffer.CopyTo(p, buffer, 0, remaining);
+				this.Buffer.CopyTo(p, buffer, 0, remaining);
 				output.Write(buffer, 0, n);
 				p += n;
 				remaining -= n;
@@ -139,53 +145,77 @@ namespace Doxense.IO
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override void Close()
 		{
-			this.Dispose(true);
+			// NOP
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override void Write(char value)
 		{
-			m_buffer.Append(value);
+			this.Buffer.Append(value);
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override void Write(string? value)
 		{
-			m_buffer.Append(value);
+			this.Buffer.Append(value);
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override void Write(char[]? value)
 		{
-			m_buffer.Append(value);
+			this.Buffer.Append(value);
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override void Write(char[] buffer, int index, int count)
 		{
-			m_buffer.Append(buffer, index, count);
+			this.Buffer.Append(buffer, index, count);
 		}
 
 		public override void Write(int value)
 		{
-			m_buffer.Append(StringConverters.ToString(value));
+			this.Buffer.Append(StringConverters.ToString(value));
 		}
 
 		public override void Write(long value)
 		{
-			m_buffer.Append(StringConverters.ToString(value));
+			this.Buffer.Append(StringConverters.ToString(value));
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
-		public override void WriteLine(string? value)
+		public override void Write(ReadOnlySpan<char> buffer)
 		{
-			m_buffer.AppendLine(value);
+			this.Buffer.Append(buffer);
 		}
 
 		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 		public override void WriteLine()
 		{
-			m_buffer.AppendLine();
+			this.Buffer.AppendLine();
+		}
+
+		/// <inheritdoc />
+		public override void WriteLine(char value)
+		{
+			this.Buffer.Append(value).AppendLine();
+		}
+
+		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
+		public override void WriteLine(string? value)
+		{
+			this.Buffer.AppendLine(value);
+		}
+
+		/// <inheritdoc />
+		public override void WriteLine(char[] buffer, int index, int count)
+		{
+			this.Buffer.Append(buffer, index, count).AppendLine();
+		}
+
+		[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
+		public override void WriteLine(ReadOnlySpan<char> buffer)
+		{
+			this.Buffer.Append(buffer).AppendLine();
 		}
 
 		#endregion
@@ -199,19 +229,35 @@ namespace Doxense.IO
 
 		public override Task WriteAsync(string? value)
 		{
-			m_buffer.Append(value);
+			this.Buffer.Append(value);
 			return Task.CompletedTask;
 		}
 
 		public override Task WriteAsync(char value)
 		{
-			m_buffer.Append(value);
+			this.Buffer.Append(value);
 			return Task.CompletedTask;
 		}
 
 		public override Task WriteAsync(char[] value, int index, int count)
 		{
-			m_buffer.Append(value, index, count);
+			this.Buffer.Append(value, index, count);
+			return Task.CompletedTask;
+		}
+
+		/// <inheritdoc />
+		public override Task WriteAsync(StringBuilder? value, CancellationToken cancellationToken = new CancellationToken())
+		{
+			if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
+
+			this.Buffer.Append(value);
+			return Task.CompletedTask;
+		}
+
+		public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = new CancellationToken())
+		{
+			if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
+			this.Buffer.Append(buffer.Span);
 			return Task.CompletedTask;
 		}
 
