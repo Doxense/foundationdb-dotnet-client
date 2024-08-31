@@ -388,13 +388,18 @@ namespace FoundationDB.Layers.Messaging
 							{
 								await RunTask(db, msg, handler, ct);
 							}
+							//TODO: logging?
+#if DEBUG
 							catch (Exception e)
 							{
-								//TODO: logging?
-#if DEBUG
 								Console.Error.WriteLine($"Task[{msg.Id:P}] failed: {e}");
-#endif
 							}
+#else
+							catch
+							{
+								// ?
+							}
+#endif
 						}
 					}
 				}

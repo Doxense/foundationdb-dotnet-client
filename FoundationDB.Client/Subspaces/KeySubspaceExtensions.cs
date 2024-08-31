@@ -342,16 +342,5 @@ namespace FoundationDB.Client
 			return db.WriteAsync((tr) => ClearRange(tr, subspace), ct);
 		}
 
-		/// <summary>Returns all the keys inside of a subspace</summary>
-		[Pure]
-		[Obsolete("This method will be removed soon. Replace with 'trans.GetRange(subspace.ToRange(), ...)'")]
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, IKeySubspace subspace, FdbRangeOptions? options = null)
-		{
-			//REVIEW: should we remove this method?
-			Contract.Debug.Requires(trans != null && subspace != null);
-
-			return trans.GetRange(subspace.ToRange(), options);
-		}
-
 	}
 }

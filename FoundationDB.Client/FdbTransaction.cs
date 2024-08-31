@@ -30,7 +30,6 @@
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -39,6 +38,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Filters.Logging;
@@ -846,9 +846,9 @@ namespace FoundationDB.Client
 		#region GetRange...
 
 		[Pure, LinqTunnel]
-		internal FdbRangeQuery<TResult> GetRangeCore<TResult>(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot, Func<KeyValuePair<Slice, Slice>, TResult> selector)
+		internal FdbRangeQuery<TState, TResult> GetRangeCore<TState, TResult>(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder)
 		{
-			Contract.Debug.Requires(selector != null);
+			Contract.Debug.Requires(decoder != null);
 
 			EnsureCanRead();
 			FdbKey.EnsureKeyIsValid(in begin.Key);
@@ -861,19 +861,97 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
 #endif
 
-			return new FdbRangeQuery<TResult>(this, begin, end, selector, snapshot, options);
+			return new FdbRangeQuery<TState, TResult>(this, begin, end, state, null, decoder, snapshot, options);
+		}
+
+		[Pure, LinqTunnel]
+		internal FdbRangeQuery GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot)
+		{
+			EnsureCanRead();
+			FdbKey.EnsureKeyIsValid(in begin.Key);
+			FdbKey.EnsureKeyIsValid(in end.Key, endExclusive: true);
+
+			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
+			options.EnsureLegalValues();
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
+#endif
+
+			switch (options.Read)
+			{
+				case FdbReadMode.Keys:
+				{
+					return new FdbRangeQuery(
+						this,
+						begin,
+						end,
+						static (s, k, _) => new KeyValuePair<Slice, Slice>(s.Intern(k), default),
+						snapshot,
+						options
+					);
+				}
+				case FdbReadMode.Values:
+				{
+					return new FdbRangeQuery(
+						this,
+						begin,
+						end,
+						static (s, _, v) => new KeyValuePair<Slice, Slice>(default, s.Intern(v)),
+						snapshot,
+						options
+					);
+				}
+				default:
+				{
+					return new FdbRangeQuery(
+						this,
+						begin,
+						end,
+						static (s, k, v) => new KeyValuePair<Slice, Slice>(s.Intern(k), s.Intern(v)),
+						snapshot,
+						options
+					);
+				}
+			}
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
+		public IFdbRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
-			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, (kv) => kv);
+			return GetRangeCore(
+				beginInclusive,
+				endExclusive,
+				options,
+				snapshot: false
+			);
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
+		[Obsolete("REFACTOR IN PROGRESS: fix handling of keys/values only")]
+		public IFdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 		{
-			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, selector);
+			return GetRangeCore(
+				beginInclusive,
+				endExclusive,
+				options,
+				snapshot: false,
+				state: (Selector: selector, Pool: new SliceBuffer()),
+				decoder: (s, k, v) => s.Selector(new KeyValuePair<Slice, Slice>(s.Pool.Intern(k), s.Pool.Intern(v)))
+			);
+		}
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TResult> GetRange<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
+		{
+			return GetRangeCore(
+				beginInclusive,
+				endExclusive,
+				options,
+				snapshot: false,
+				state: state,
+				decoder: decoder
+			);
 		}
 
 		#endregion

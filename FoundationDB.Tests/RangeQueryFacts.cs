@@ -53,22 +53,22 @@ namespace FoundationDB.Client.Tests
 			const int N = 200; // total item count
 			//note: should be small enough so that a WantAll read all of it in one chunk, but large enough that Iterator does not!
 
-			void Verify(FdbRangeChunk chunk, KeyValuePair<Slice, Slice>[] expected, int offset)
+			void Verify(FdbRangeChunk chunk, ReadOnlySpan<(Slice Key, Slice Value)> expected)
 			{
 				for (int i = 0; i < chunk.Count; i++)
 				{
-					Assert.That(chunk[i].Key, Is.EqualTo(expected[offset + i].Key), $"[{i}].Key");
-					Assert.That(chunk[i].Value, Is.EqualTo(expected[offset + i].Value), $"[{i}].Value");
+					Assert.That(chunk[i].Key, Is.EqualTo(expected[i].Key), $"[{i}].Key");
+					Assert.That(chunk[i].Value, Is.EqualTo(expected[i].Value), $"[{i}].Value");
 
-					Assert.That(chunk.Items[i].Key, Is.EqualTo(expected[offset + i].Key), $"Items[{i}].Key");
-					Assert.That(chunk.Items[i].Value, Is.EqualTo(expected[offset + i].Value), $"Items[{i}].Value");
+					Assert.That(chunk.Items[i].Key, Is.EqualTo(expected[i].Key), $"Items[{i}].Key");
+					Assert.That(chunk.Items[i].Value, Is.EqualTo(expected[i].Value), $"Items[{i}].Value");
 
-					Assert.That(chunk.Keys[i], Is.EqualTo(expected[offset + i].Key), $"Keys[{i}]");
-					Assert.That(chunk.Values[i], Is.EqualTo(expected[offset + i].Value), $"Values[{i}]");
+					Assert.That(chunk.Keys[i], Is.EqualTo(expected[i].Key), $"Keys[{i}]");
+					Assert.That(chunk.Values[i], Is.EqualTo(expected[i].Value), $"Values[{i}]");
 				}
 
-				Assert.That(chunk.First, Is.EqualTo(expected[offset].Key));
-				Assert.That(chunk.Last, Is.EqualTo(expected[offset + chunk.Count - 1].Key));
+				Assert.That(chunk.First, Is.EqualTo(expected[0].Key));
+				Assert.That(chunk.Last, Is.EqualTo(expected[chunk.Count - 1].Key));
 			}
 
 			using (var db = await OpenTestPartitionAsync())
@@ -85,7 +85,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await location.Resolve(tr);
 					Assert.That(subspace, Is.Not.Null);
-					var items = Enumerable.Range(0, N).Select(i => new KeyValuePair<Slice, Slice>(subspace.Encode(i), Slice.FromInt32(i))).ToArray();
+					var items = Enumerable.Range(0, N).Select(i => (subspace.Encode(i), Slice.FromInt32(i))).ToArray();
 					tr.SetValues(items);
 					return items;
 				}, this.Cancellation);
@@ -120,7 +120,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
 					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
 
-					Verify(chunk, data, 0);
+					Verify(chunk, data);
 				}
 
 				await db.ReadAsync(async tr =>
@@ -146,7 +146,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
 					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
 
-					Verify(chunk, data, 0);
+					Verify(chunk, data);
 
 				}, this.Cancellation);
 
@@ -379,10 +379,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					Assert.That(folder, Is.Not.Null);
 
-					foreach (int i in Enumerable.Range(0, N))
-					{
-						tr.Set(folder.Encode(i), Slice.FromInt32(i));
-					}
+					tr.SetValues(Enumerable.Range(0, N).Select(i => (folder.Encode(i), Slice.FromInt32(i))));
 				}, this.Cancellation);
 
 				// via FdbReadMode.Keys option
@@ -468,35 +465,10 @@ namespace FoundationDB.Client.Tests
 						// key should be a tuple in the correct order
 						var key = folder.Unpack(items[i]);
 						Assert.That(key.Count, Is.EqualTo(1));
-						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
+						Assert.That(key.Get<int>(^1), Is.EqualTo(i));
 					}
 				}, this.Cancellation);
 
-				// via OnlyKeys() LINQ extension
-				await db.ReadAsync(async tr =>
-				{
-					var folder = await location.Resolve(tr);
-					Assert.That(folder, Is.Not.Null);
-
-					var query = tr
-						.GetRange(folder.Encode(0), folder.Encode(N))
-						.OnlyKeys();
-
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
-
-					var items = await query.ToListAsync();
-
-					Assert.That(items, Is.Not.Null);
-					Assert.That(items.Count, Is.EqualTo(N));
-
-					for (int i = 0; i < N; i++)
-					{
-						// key should be a tuple in the correct order
-						var key = folder.Unpack(items[i]);
-						Assert.That(key.Count, Is.EqualTo(1));
-						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
-					}
-				}, this.Cancellation);
 			}
 		}
 
@@ -611,31 +583,6 @@ namespace FoundationDB.Client.Tests
 					}
 				}, this.Cancellation);
 
-				// via OnlyValues() LINQ extension
-				await db.ReadAsync(async tr =>
-				{
-					var folder = await location.Resolve(tr);
-					Assert.That(folder, Is.Not.Null);
-
-					var query = tr
-						.GetRange(folder.Encode(0), folder.Encode(N))
-						.OnlyValues();
-
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
-
-					var items = await query.ToListAsync();
-
-					Assert.That(items, Is.Not.Null);
-					Assert.That(items.Count, Is.EqualTo(N));
-
-					for (int i = 0; i < N; i++)
-					{
-						// value should be equal to the index
-						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
-						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
-					}
-				}, this.Cancellation);
-
 				// if the range needs to read multiple chunks, it will need the last (or first) key for read the next chunk!
 				await db.ReadAsync(async tr =>
 				{
@@ -691,32 +638,98 @@ namespace FoundationDB.Client.Tests
 					}
 				}, this.Cancellation);
 
-				// GetRange<T>
+				{ // GetRange<TState, TResult>
 
-				await db.ReadAsync(async tr =>
-				{
-					var folder = await location.Resolve(tr);
-					Assert.That(folder, Is.Not.Null);
-
-					var query = tr.GetRange(
-						folder.Encode(0),
-						folder.Encode(N),
-						(kv) => (Index: folder.DecodeLast<int>(kv.Key), Score: kv.Value.ToInt32()),
-						new FdbRangeOptions { Limit = N / 2 }
-					);
-					Assert.That(query, Is.Not.Null);
-
-					var items = await query.ToListAsync();
-
-					Assert.That(items, Is.Not.Null);
-					Assert.That(items.Count, Is.EqualTo(N / 2));
-
-					for (int i = 0; i < N / 2; i++)
+					await db.ReadAsync(async tr =>
 					{
-						Assert.That(items[i].Index, Is.EqualTo(i));
-						Assert.That(items[i].Score, Is.EqualTo(i));
-					}
-				}, this.Cancellation);
+						var folder = await location.Resolve(tr);
+						Assert.That(folder, Is.Not.Null);
+
+						var query = tr.GetRange(
+							folder.Encode(0),
+							folder.Encode(N),
+							folder,
+							static (f, k, v) => (Index: f.DecodeLast<int>(k), Score: v.ToInt32()),
+							new FdbRangeOptions { Limit = N / 2 }
+						);
+						Assert.That(query, Is.Not.Null);
+
+						var items = await query.ToListAsync();
+
+						Assert.That(items, Is.Not.Null);
+						Assert.That(items.Count, Is.EqualTo(N / 2));
+
+						for (int i = 0; i < N / 2; i++)
+						{
+							Assert.That(items[i].Index, Is.EqualTo(i));
+							Assert.That(items[i].Score, Is.EqualTo(i));
+						}
+					}, this.Cancellation);
+				}
+
+				{ // GetRange(...).Decode<TState, TResult>(...)
+
+					await db.ReadAsync(async tr =>
+					{
+						var folder = await location.Resolve(tr);
+						Assert.That(folder, Is.Not.Null);
+
+						var query = tr
+							.GetRange(
+								folder.Encode(0),
+								folder.Encode(N),
+								new FdbRangeOptions { Limit = N / 2 }
+							)
+							.Decode(
+								folder,
+								static (f, k, v) => (Index: f.DecodeLast<int>(k), Score: v.ToInt32())
+							);
+						Assert.That(query, Is.Not.Null);
+
+						var items = await query.ToListAsync();
+
+						Assert.That(items, Is.Not.Null);
+						Assert.That(items.Count, Is.EqualTo(N / 2));
+
+						for (int i = 0; i < N / 2; i++)
+						{
+							Assert.That(items[i].Index, Is.EqualTo(i));
+							Assert.That(items[i].Score, Is.EqualTo(i));
+						}
+					}, this.Cancellation);
+				}
+
+				{ // GetRange(...).Decode<TState, TResult>(...)
+
+					await db.ReadAsync(async tr =>
+					{
+						var folder = await location.Resolve(tr);
+						Assert.That(folder, Is.Not.Null);
+
+						var query = tr
+							.GetRange(
+								folder.Encode(0),
+								folder.Encode(N),
+								new FdbRangeOptions { Limit = N / 2 }
+							)
+							.Decode(
+								folder,
+								static (f, k, v) => (Index: f.DecodeLast<int>(k), Score: v.ToInt32())
+							);
+						Assert.That(query, Is.Not.Null);
+
+						var items = await query.ToListAsync();
+
+						Assert.That(items, Is.Not.Null);
+						Assert.That(items.Count, Is.EqualTo(N / 2));
+
+						for (int i = 0; i < N / 2; i++)
+						{
+							Assert.That(items[i].Index, Is.EqualTo(i));
+							Assert.That(items[i].Score, Is.EqualTo(i));
+						}
+					}, this.Cancellation);
+				}
 
 			}
 		}

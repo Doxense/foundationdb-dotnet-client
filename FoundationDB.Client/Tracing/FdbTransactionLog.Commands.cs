@@ -888,20 +888,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
 
-			public override int? ResultBytes
-			{
-				get
-				{
-					var chunk = this.Result.GetValueOrDefault()?.Items;
-					if (chunk == null) return null;
-					int sum = 0;
-					for (int i = 0; i < chunk.Length; i++)
-					{
-						sum += chunk[i].Key.Count + chunk[i].Value.Count;
-					}
-					return sum;
-				}
-			}
+			public override int? ResultBytes => this.Result.HasValue ? this.Result.Value.TotalBytes : null;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -962,7 +949,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
 
-			public override int? ResultBytes => default; //TODO: BUGBUG: compute the total byte size? (maybe stored in the FdbRangeChunk itself?)
+			public override int? ResultBytes => this.Result.HasValue ? this.Result.Value.TotalBytes : null;
 
 			public override string GetArguments(KeyResolver resolver)
 			{

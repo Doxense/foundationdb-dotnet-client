@@ -32,10 +32,12 @@ namespace FoundationDB.Layers.Blobs
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
 
 	/// <summary>Represents a collection of dictionaries of fields.</summary>
+	[PublicAPI]
 	public class FdbHashSetCollection
 	{
 
@@ -168,9 +170,6 @@ namespace FoundationDB.Layers.Blobs
 		#region Delete
 
 		/// <summary>Remove a field of an hashset</summary>
-		/// <param name="trans"></param>
-		/// <param name="id"></param>
-		/// <param name="field"></param>
 		public void DeleteValue(IFdbTransaction trans, IVarTuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -181,7 +180,6 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Remove all fields of an hashset</summary>
-		/// <param name="id"></param>
 		public void Delete(IFdbTransaction trans, IVarTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -192,9 +190,6 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Remove one or more fields of an hashset</summary>
-		/// <param name="trans"></param>
-		/// <param name="id"></param>
-		/// <param name="fields"></param>
 		public void Delete(IFdbTransaction trans, IVarTuple id, params string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -218,16 +213,13 @@ namespace FoundationDB.Layers.Blobs
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>
 		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, IVarTuple id)
 		{
-			//note: As of Beta2, FDB does not have a fdb_get_range that only return the keys. That means that we will have to also read the values from the db, in order to just get the names of the fields :(
-			//TODO: find a way to optimize this ?
-
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var prefix = GetKey(id);
 			return trans
-				.GetRange(KeyRange.StartsWith(prefix))
-				.Select((kvp) => ParseFieldKey(TuPack.Unpack(kvp.Key)))
+				.GetRangeKeys(KeyRange.StartsWith(prefix))
+				.Select((k) => ParseFieldKey(TuPack.Unpack(k)))
 				.ToListAsync();
 		}
 

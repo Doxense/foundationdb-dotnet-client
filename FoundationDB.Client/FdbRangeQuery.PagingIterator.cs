@@ -36,21 +36,20 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
-	using Doxense.Threading.Tasks;
 
-	public partial class FdbRangeQuery<T>
+	internal partial class FdbRangeQuery<TState, TResult>
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, Iteration={Iteration}, AtEnd={AtEnd}, HasMore={HasMore}")]
-		private sealed class PagingIterator : AsyncIterator<KeyValuePair<Slice, Slice>[]>
+		private sealed class PagingIterator : AsyncIterator<ReadOnlyMemory<TResult>>
 		{
 
 			#region Iterable Properties...
 
-			private FdbRangeQuery<T> Query { get; }
+			private FdbRangeQuery<TState, TResult> Query { get; }
 
-			private IFdbReadOnlyTransaction Transaction { get; }
+			private TState QueryState { get; }
 
 			#endregion
 
@@ -72,7 +71,7 @@ namespace FoundationDB.Client
 			private int Iteration { get; set; }
 
 			/// <summary>Current page (may contain all records or only a segment at a time)</summary>
-			private KeyValuePair<Slice, Slice>[]? Chunk { get; set; }
+			private ReadOnlyMemory<TResult> Chunk { get; set; }
 
 			/// <summary>If true, we have more records pending</summary>
 			private bool HasMore { get; set; }
@@ -88,17 +87,17 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			public PagingIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction? transaction)
+			public PagingIterator(FdbRangeQuery<TState, TResult> query, TState queryState)
 			{
 				Contract.Debug.Requires(query != null);
 
 				this.Query = query;
-				this.Transaction = transaction ?? query.Transaction;
+				this.QueryState = queryState;
 			}
 
-			protected override AsyncIterator<KeyValuePair<Slice, Slice>[]> Clone()
+			protected override AsyncIterator<ReadOnlyMemory<TResult>> Clone()
 			{
-				return new PagingIterator(this.Query, this.Transaction);
+				return new PagingIterator(this.Query, this.QueryState);
 			}
 
 			#region IFdbAsyncEnumerator<T>...
@@ -124,7 +123,7 @@ namespace FoundationDB.Client
 				if (this.Begin != bounds.Begin || this.End != bounds.End)
 				{
 					//TODO: find a better way to do this!
-					var tr = this.Query.Snapshot ? this.Transaction.Snapshot : this.Transaction;
+					var tr = this.Query.Snapshot ? this.Query.Transaction.Snapshot : this.Query.Transaction;
 					var keys = await tr.GetKeysAsync([ bounds.Begin, this.Begin, bounds.End, this.End ]).ConfigureAwait(false);
 
 					var min = keys[0] >= keys[1] ? keys[0] : keys[1];
@@ -163,7 +162,7 @@ namespace FoundationDB.Client
 				Contract.Debug.Requires(this.Iteration >= 0);
 
 				m_ct.ThrowIfCancellationRequested();
-				this.Transaction.EnsureCanRead();
+				this.Query.Transaction.EnsureCanRead();
 
 				this.Iteration++;
 
@@ -196,15 +195,25 @@ namespace FoundationDB.Client
 				}
 
 				//BUGBUG: mix the custom cancellation token with the transaction, if it is different !
-				var tr = (this.Query.Snapshot ? this.Transaction.Snapshot : this.Transaction);
-				var query = tr.GetRangeAsync(this.Begin, this.End, this.RemainingCount ?? 0, this.Query.Reversed, this.RemainingSize ?? 0, mode, this.Query.Read, this.Iteration);
+				var tr = (this.Query.Snapshot ? this.Query.Transaction.Snapshot : this.Query.Transaction);
+				var query = tr.GetRangeAsync<TState, TResult>(
+					this.Begin,
+					this.End,
+					this.QueryState,
+					this.Query.Decoder,
+					this.RemainingCount ?? 0,
+					this.Query.Reversed,
+					this.RemainingSize ?? 0,
+					mode,
+					this.Query.Read,
+					this.Iteration);
 				var task = ProcessResults(query);
 
 				// keep track of this operation
 				this.PendingReadTask = task;
 				return task;
 
-				async Task<bool> ProcessResults(Task<FdbRangeChunk> read)
+				async Task<bool> ProcessResults(Task<FdbRangeChunk<TResult>> read)
 				{
 					var result = await read.ConfigureAwait(false); 
 
@@ -249,7 +258,7 @@ namespace FoundationDB.Client
 			protected override ValueTask Cleanup()
 			{
 				//TODO: should we wait/cancel any pending read task ?
-				this.Chunk = null;
+				this.Chunk = default;
 				this.AtEnd = true;
 				this.HasMore = false;
 				this.RemainingCount = null;

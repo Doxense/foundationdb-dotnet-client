@@ -36,29 +36,26 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Iterators;
 
-	public partial class FdbRangeQuery<T>
+	internal partial class FdbRangeQuery<TState, TResult>
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInChunk={m_itemsRemainingInChunk}, OutOfChunks={m_outOfChunks}")]
-		private sealed class ResultIterator : AsyncIterator<T>
+		private sealed class ResultIterator : AsyncIterator<TResult>
 		{
 
-			private readonly FdbRangeQuery<T> m_query;
+			private readonly FdbRangeQuery<TState, TResult> m_query;
 
-			private readonly IFdbReadOnlyTransaction m_transaction;
-
-			/// <summary>Lambda used to transform pairs of key/value into the expected result</summary>
-			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
+			private readonly TState m_queryState;
 
 			/// <summary>Iterator used to read chunks from the database</summary>
-			private IAsyncEnumerator<KeyValuePair<Slice, Slice>[]>? m_chunkIterator;
+			private IAsyncEnumerator<ReadOnlyMemory<TResult>>? m_chunkIterator;
 
 			/// <summary>True if we have reached the last page</summary>
 			private bool m_outOfChunks;
 
 			/// <summary>Current chunk (may contain all records or only a segment at a time)</summary>
-			private KeyValuePair<Slice, Slice>[]? m_chunk;
+			private ReadOnlyMemory<TResult> m_chunk;
 
 			/// <summary>Number of remaining items in the current batch</summary>
 			private int m_itemsRemainingInChunk;
@@ -68,24 +65,23 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			public ResultIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction? transaction, Func<KeyValuePair<Slice, Slice>, T> transform)
+			public ResultIterator(FdbRangeQuery<TState, TResult> query, TState state)
 			{
-				Contract.Debug.Requires(query != null && transform != null);
+				Contract.Debug.Requires(query != null);
 
 				m_query = query;
-				m_transaction = transaction ?? query.Transaction;
-				m_resultTransform = transform;
+				m_queryState = state;
 			}
 
-			protected override AsyncIterator<T> Clone()
+			protected override AsyncIterator<TResult> Clone()
 			{
-				return new ResultIterator(m_query, m_transaction, m_resultTransform);
+				return new ResultIterator(m_query, m_queryState);
 			}
 
 			protected override ValueTask<bool> OnFirstAsync()
 			{
 				// on first call, setup the page iterator
-				m_chunkIterator ??= new PagingIterator(m_query, m_transaction).GetAsyncEnumerator(m_ct, m_mode);
+				m_chunkIterator ??= new PagingIterator(m_query, m_queryState).GetAsyncEnumerator(m_ct, m_mode);
 				return new ValueTask<bool>(true);
 			}
 
@@ -106,7 +102,7 @@ namespace FoundationDB.Client
 				}
 
 				// slower path, we need to actually read the first batch...
-				m_chunk = null;
+				m_chunk = default;
 				m_currentOffsetInChunk = -1;
 				return ReadAnotherBatchAsync();
 			}
@@ -128,7 +124,7 @@ namespace FoundationDB.Client
 					var chunk = iterator.Current;
 
 					//note: if the range is empty, we may have an empty chunk, that is equivalent to no chunk
-					if (chunk != null! && chunk.Length > 0)
+					if (chunk.Length > 0)
 					{
 #if DEBUG_RANGE_ITERATOR
 						Debug.WriteLine("Got a new chunk from page iterator: " + chunk.Length);
@@ -153,33 +149,27 @@ namespace FoundationDB.Client
 
 			private bool ProcessNextItem()
 			{
-				Contract.Debug.Requires(m_chunk != null && m_itemsRemainingInChunk > 0);
+				Contract.Debug.Requires(m_chunk.Length > 0 && m_itemsRemainingInChunk > 0);
 				++m_currentOffsetInChunk;
 				--m_itemsRemainingInChunk;
-				return Publish(m_resultTransform(m_chunk[m_currentOffsetInChunk]));
+				return Publish(m_chunk.Span[m_currentOffsetInChunk]);
 			}
 
 			#endregion
 
 			#region LINQ
 
-			public override AsyncIterator<TResult> Select<TResult>(Func<T, TResult> selector)
+			public override AsyncIterator<TOther> Select<TOther>(Func<TResult, TOther> selector)
 			{
-				var query = new FdbRangeQuery<TResult>(
-					m_transaction,
-					m_query.Begin,
-					m_query.End,
-					(x) => selector(m_resultTransform(x)),
-					m_query.Snapshot,
-					m_query.Options
-				);
+				var query = (FdbRangeQuery<TState, TOther>) m_query.Select(selector);
 
-				return new FdbRangeQuery<TResult>.ResultIterator(query, m_transaction, query.Transform);
+				return new FdbRangeQuery<TState, TOther>.ResultIterator(query, m_queryState);
 			}
 
-			public override AsyncIterator<T> Take(int limit)
+			public override AsyncIterator<TResult> Take(int limit)
 			{
-				return new ResultIterator(m_query.Take(limit), m_transaction, m_resultTransform);
+				var query = (FdbRangeQuery<TState, TResult>) m_query.Take(limit);
+				return new ResultIterator(query, m_queryState);
 			}
 
 			#endregion

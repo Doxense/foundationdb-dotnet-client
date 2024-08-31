@@ -153,17 +153,18 @@ namespace FoundationDB.Client
 		);
 
 		/// <summary>
-		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
+		/// Creates a new range query that will read all key-value pairs in the database snapshot represented by the transaction
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, LinqTunnel]
-		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null);
+		[Obsolete]
+		IFdbRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null);
 
 		/// <summary>
-		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction, and transform them into a result of type <typeparamref name="TResult"/>
+		/// Creates a new range query that will read all key-value pairs in the database snapshot represented by the transaction, and transform them into a result of type <typeparamref name="TResult"/>
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
@@ -171,7 +172,19 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, LinqTunnel]
-		FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null);
+		[Obsolete]
+		IFdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null);
+
+		/// <summary>
+		/// Creates a new range query that will read all key-value pairs in the database snapshot represented by the transaction, and transform them into a result of type <typeparamref name="TResult"/>
+		/// </summary>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="selector">Selector used to convert each key-value pair into an element of type <typeparamref name="TResult"/></param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
+		[Pure, LinqTunnel]
+		IFdbRangeQuery<TResult> GetRange<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> selector, FdbRangeOptions? options = null);
 
 		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -280,5 +293,7 @@ namespace FoundationDB.Client
 	public delegate TResult FdbValueDecoder<out TResult>(ReadOnlySpan<byte> value, bool found);
 
 	public delegate TResult FdbKeyValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
+
+	public delegate TResult FdbKeyValueDecoder<out TResult>(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
 
 }

@@ -116,7 +116,7 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have the specified <paramref name="value"/></summary>
-			public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
+			public IFdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 			{
 				var prefix = this.Subspace.EncodePartial(value);
 
@@ -126,7 +126,7 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value greater than (or equal) a specified <paramref name="value"/></summary>
-			public FdbRangeQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+			public IFdbRangeQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
 				var prefix = this.Subspace.EncodePartial(value);
 				if (!orEqual) prefix = FdbKey.Increment(prefix);
@@ -142,7 +142,7 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal) a specified <paramref name="value"/></summary>
-			public FdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+			public IFdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
 				var prefix = this.Subspace.EncodePartial(value);
 				if (orEqual) prefix = FdbKey.Increment(prefix);
@@ -212,7 +212,7 @@ namespace FoundationDB.Layers.Indexing
 		public IAsyncEnumerable<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			return AsyncEnumerable.Defer<TId, FdbRangeQuery<TId>>((_) => CreateLookupQuery(trans, value, reverse));
+			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupQuery(trans, value, reverse));
 		}
 
 		/// <summary>Returns a query that will return all id of the entities that have the specified value in this index</summary>
@@ -220,7 +220,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
-		public async Task<FdbRangeQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
+		public async Task<IFdbRangeQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 		{
 			var state = await Resolve(trans);
 			return state.Lookup(trans, value, reverse);
@@ -229,10 +229,10 @@ namespace FoundationDB.Layers.Indexing
 		public IAsyncEnumerable<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			return AsyncEnumerable.Defer<TId, FdbRangeQuery<TId>>((_) => CreateLookupGreaterThanQuery(trans, value, orEqual, reverse));
+			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupGreaterThanQuery(trans, value, orEqual, reverse));
 		}
 
-		public async Task<FdbRangeQuery<TId>> CreateLookupGreaterThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public async Task<IFdbRangeQuery<TId>> CreateLookupGreaterThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var state = await Resolve(trans);
 			return state.LookupGreaterThan(trans, value, orEqual, reverse);
@@ -241,10 +241,10 @@ namespace FoundationDB.Layers.Indexing
 		public IAsyncEnumerable<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			return AsyncEnumerable.Defer<TId, FdbRangeQuery<TId>>((_) => CreateLookupLessThanQuery(trans, value, orEqual, reverse));
+			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupLessThanQuery(trans, value, orEqual, reverse));
 		}
 
-		public async Task<FdbRangeQuery<TId>> CreateLookupLessThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public async Task<IFdbRangeQuery<TId>> CreateLookupLessThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var state = await Resolve(trans);
 			return state.LookupLessThan(trans, value, orEqual, reverse);

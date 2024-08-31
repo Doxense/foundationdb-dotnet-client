@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using FoundationDB.Filters.Logging;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
@@ -227,15 +228,40 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
+			public IFdbRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 			{
-				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, kv => kv);
+				return m_parent.GetRangeCore(
+					beginInclusive,
+					endExclusive,
+					options,
+					snapshot: true
+				);
 			}
 
 			/// <inheritdoc />
-			public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
+			public IFdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 			{
-				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, selector);
+				return m_parent.GetRangeCore(
+					beginInclusive,
+					endExclusive,
+					options,
+					snapshot: true,
+					state: (Selector: selector, Pool: new SliceBuffer()),
+					decoder: (s, k, v) => s.Selector(new KeyValuePair<Slice, Slice>(s.Pool.Intern(k), s.Pool.Intern(v)))
+				);
+			}
+
+			/// <inheritdoc />
+			public IFdbRangeQuery<TResult> GetRange<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
+			{
+				return m_parent.GetRangeCore(
+					beginInclusive,
+					endExclusive,
+					options,
+					snapshot: true,
+					state: state,
+					decoder: decoder
+				);
 			}
 
 			/// <inheritdoc />
