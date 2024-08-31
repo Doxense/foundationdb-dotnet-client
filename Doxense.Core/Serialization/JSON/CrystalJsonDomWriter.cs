@@ -455,32 +455,42 @@ namespace Doxense.Serialization.Json
 			}
 			if (typeof(Guid) == type)
 			{
-				result = ((Guid)value).ToString();
+				result = JsonString.Return((Guid) value);
 				return true;
 			}
 			if (typeof(Decimal) == type)
 			{
-				result = (decimal)value;
+				result = JsonNumber.Return((decimal) value);
 				return true;
 			}
 			if (typeof(Uuid128) == type)
 			{
-				result = ((Uuid128) value).ToString();
+				result = JsonString.Return((Uuid128) value);
 				return true;
 			}
 			if (typeof(Uuid64) == type)
 			{
-				result = ((Uuid64) value).ToString();
+				result = JsonString.Return((Uuid64) value);
 				return true;
 			}
 			if (typeof(Uuid96) == type)
 			{
-				result = ((Uuid96) value).ToString();
+				result = JsonString.Return((Uuid96) value);
 				return true;
 			}
 			if (typeof(Uuid80) == type)
 			{
-				result = ((Uuid80) value).ToString();
+				result = JsonString.Return((Uuid80) value);
+				return true;
+			}
+			if (typeof(DateOnly) == type)
+			{
+				result = JsonDateTime.Return((DateOnly) value);
+				return true;
+			}
+			if (typeof(TimeOnly) == type)
+			{
+				result = JsonNumber.Return((TimeOnly) value);
 				return true;
 			}
 

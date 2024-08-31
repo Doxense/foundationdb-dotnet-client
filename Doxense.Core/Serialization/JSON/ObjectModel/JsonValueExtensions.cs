@@ -278,6 +278,8 @@ namespace Doxense.Serialization.Json
 			if (typeof(TValue) == typeof(TimeSpan)) return (TValue) (object) value.ToTimeSpan();
 			if (typeof(TValue) == typeof(DateTime)) return (TValue) (object) value.ToDateTime();
 			if (typeof(TValue) == typeof(DateTimeOffset)) return (TValue) (object) value.ToDateTimeOffset();
+			if (typeof(TValue) == typeof(DateOnly)) return (TValue) (object) value.ToDateOnly();
+			if (typeof(TValue) == typeof(TimeOnly)) return (TValue) (object) value.ToTimeOnly();
 			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstant();
 			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDuration();
 			// Nullable variants don't really make sense here since null will always throw.
@@ -329,6 +331,8 @@ namespace Doxense.Serialization.Json
 			if (typeof(TValue) == typeof(TimeSpan)) return (TValue) (object) value.ToTimeSpan();
 			if (typeof(TValue) == typeof(DateTime)) return (TValue) (object) value.ToDateTime();
 			if (typeof(TValue) == typeof(DateTimeOffset)) return (TValue) (object) value.ToDateTimeOffset();
+			if (typeof(TValue) == typeof(DateOnly)) return (TValue) (object) value.ToDateOnly();
+			if (typeof(TValue) == typeof(TimeOnly)) return (TValue) (object) value.ToTimeOnly();
 			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstant();
 			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDuration();
 
@@ -405,6 +409,8 @@ namespace Doxense.Serialization.Json
 			if (typeof(TValue) == typeof(TimeSpan)) return (TValue) (object) value.ToTimeSpanOrDefault((TimeSpan) (object) defaultValue!);
 			if (typeof(TValue) == typeof(DateTime)) return (TValue) (object) value.ToDateTimeOrDefault((DateTime) (object) defaultValue!);
 			if (typeof(TValue) == typeof(DateTimeOffset)) return (TValue) (object) value.ToDateTimeOffsetOrDefault((DateTimeOffset) (object) defaultValue!);
+			if (typeof(TValue) == typeof(DateOnly)) return (TValue) (object) value.ToDateOnlyOrDefault((DateOnly) (object) defaultValue!);
+			if (typeof(TValue) == typeof(TimeOnly)) return (TValue) (object) value.ToTimeOnlyOrDefault((TimeOnly) (object) defaultValue!);
 			if (typeof(TValue) == typeof(NodaTime.Instant)) return (TValue) (object) value.ToInstantOrDefault((NodaTime.Instant) (object) defaultValue!);
 			if (typeof(TValue) == typeof(NodaTime.Duration)) return (TValue) (object) value.ToDurationOrDefault((NodaTime.Duration) (object) defaultValue!);
 			//
@@ -430,6 +436,8 @@ namespace Doxense.Serialization.Json
 			if (typeof(TValue) == typeof(TimeSpan?)) return (TValue?) (object?) value.ToTimeSpanOrDefault((TimeSpan?) (object?) defaultValue);
 			if (typeof(TValue) == typeof(DateTime?)) return (TValue?) (object?) value.ToDateTimeOrDefault((DateTime?) (object?) defaultValue);
 			if (typeof(TValue) == typeof(DateTimeOffset?)) return (TValue?) (object?) value.ToDateTimeOffsetOrDefault((DateTimeOffset?) (object?) defaultValue);
+			if (typeof(TValue) == typeof(DateOnly?)) return (TValue?) (object?) value.ToDateOnlyOrDefault((DateOnly?) (object?) defaultValue);
+			if (typeof(TValue) == typeof(TimeOnly?)) return (TValue?) (object?) value.ToTimeOnlyOrDefault((TimeOnly?) (object?) defaultValue);
 			if (typeof(TValue) == typeof(NodaTime.Instant?)) return (TValue?) (object?) value.ToInstantOrDefault((NodaTime.Instant?) (object?) defaultValue);
 			if (typeof(TValue) == typeof(NodaTime.Duration?)) return (TValue?) (object?) value.ToDurationOrDefault((NodaTime.Duration?) (object?) defaultValue);
 #endif

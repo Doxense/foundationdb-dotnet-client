@@ -243,6 +243,8 @@ namespace Doxense.Serialization.Json
 					[typeof(TimeSpan)] = new JsonString("TimeSpan"),
 					[typeof(DateTime)] = new JsonString("DateTime"),
 					[typeof(DateTimeOffset)] = new JsonString("DateTimeOffset"),
+					[typeof(DateOnly)] = new JsonString("DateOnly"),
+					[typeof(TimeOnly)] = new JsonString("TimeOnly"),
 					[typeof(Guid)] = new JsonString("Guid"),
 					// nullable types
 					[typeof(bool?)] = new JsonString("bool?"),
@@ -261,6 +263,8 @@ namespace Doxense.Serialization.Json
 					[typeof(TimeSpan?)] = new JsonString("TimeSpan?"),
 					[typeof(DateTime?)] = new JsonString("DateTime?"),
 					[typeof(DateTimeOffset?)] = new JsonString("DateTimeOffset?"),
+					[typeof(DateOnly?)] = new JsonString("DateOnly?"),
+					[typeof(TimeOnly?)] = new JsonString("TimeOnly?"),
 					[typeof(Guid?)] = new JsonString("Guid?"),
 					// system types
 					[typeof(Uri)] = new JsonString(typeof(Uri).FullName!),
@@ -614,6 +618,14 @@ namespace Doxense.Serialization.Json
 				else if (typeof(TimeSpan) == type)
 				{
 					return ToTimeSpan();
+				}
+				else if (typeof(DateOnly) == type)
+				{
+					return ToDateOnly();
+				}
+				else if (typeof(TimeOnly) == type)
+				{
+					return ToTimeOnly();
 				}
 				else if (typeof(char[]) == type)
 				{

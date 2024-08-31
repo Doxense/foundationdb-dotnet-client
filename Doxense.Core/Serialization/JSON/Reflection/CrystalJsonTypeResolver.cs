@@ -296,7 +296,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// some types are not object
-			if (typeof(string) == type || typeof(DateTime) == type || typeof(decimal) == type || type.IsPrimitive)
+			if (type.IsPrimitive || typeof(string) == type || typeof(DateTime) == type || typeof(decimal) == type)
 			{
 				throw JsonBindingException.CannotBindJsonObjectToThisType(value, type);
 			}

@@ -1577,13 +1577,25 @@ namespace Doxense.Serialization.Json
 		/// <summary>Writes a <see cref="DateOnly"/> value, using the configured formatting</summary>
 		public void WriteValue(DateOnly value)
 		{
-			if (value == DateOnly.MinValue)
+			switch (m_dateFormat)
 			{
-				m_buffer.Write(JsonTokens.Zero);
-			}
-			else
-			{
-				WriteValue(value.ToDateTime(TimeOnly.MinValue));
+				// CrystalJsonSettings.DateFormat.Default:
+				// CrystalJsonSettings.DateFormat.TimeStampIso8601:
+				default:
+				{  // ISO 8601 "YYYY-MM-DDTHH:MM:SS.00000"
+					WriteDateOnlyIso8601(value);
+					break;
+				}
+				case CrystalJsonSettings.DateFormat.Microsoft:
+				{ // "\/Date(#####)\/" for UTC, or "\/Date(####+HHMM)\/" for LocalTime
+					WriteDateTimeMicrosoft(value.ToDateTime(default));
+					break;
+				}
+				case CrystalJsonSettings.DateFormat.JavaScript:
+				{ // "new Date(123456789)"
+					WriteDateTimeJavaScript(value.ToDateTime(default));
+					break;
+				}
 			}
 		}
 
@@ -1723,6 +1735,20 @@ namespace Doxense.Serialization.Json
 			{
 				Span<char> buf = stackalloc char[CrystalJsonFormatter.ISO8601_MAX_FORMATTED_SIZE];
 				m_buffer.Write(CrystalJsonFormatter.FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, '"'));
+			}
+		}
+
+		/// <summary>Write a date using the ISO 8601 format: <c>"YYYY-MM-DD"</c></summary>
+		public void WriteDateOnlyIso8601(DateOnly date)
+		{
+			if (date == DateOnly.MinValue)
+			{ // MinValue is serialized as the emtpy string
+				m_buffer.Write(JsonTokens.EmptyString);
+			}
+			else
+			{
+				Span<char> buf = stackalloc char[CrystalJsonFormatter.ISO8601_MAX_FORMATTED_SIZE];
+				m_buffer.Write(CrystalJsonFormatter.FormatIso8601DateOnly(buf, date, '"'));
 			}
 		}
 

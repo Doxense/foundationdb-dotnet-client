@@ -510,13 +510,11 @@ namespace Doxense.Serialization.Json
 			}
 
 			cursor = ref FormatDatePart(ref cursor, year, month, day);
-			int b = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
 
 			cursor = 'T';
 			cursor = ref Unsafe.Add(ref cursor, 1);
 
 			cursor = ref FormatTimePart(ref cursor, hour, min, sec, millis);
-			int c = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
 
 			if (kind == DateTimeKind.Utc)
 			{ // "Z"
@@ -535,7 +533,6 @@ namespace Doxense.Serialization.Json
 			if (quotes != '\0')
 			{
 				cursor = quotes;
-				int d = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
 				cursor = ref Unsafe.Add(ref cursor, 1);
 			}
 

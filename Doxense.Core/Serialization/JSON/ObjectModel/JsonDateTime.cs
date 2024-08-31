@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
 	/// <summary>JSON DateTime</summary>
@@ -92,6 +93,7 @@ namespace Doxense.Serialization.Json
 
 		#region Constructors...
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal JsonDateTime(DateTime value, short offset)
 		{
 			m_value = value;
@@ -111,17 +113,30 @@ namespace Doxense.Serialization.Json
 		public JsonDateTime(DateTimeOffset value)
 		{
 			m_value = value.DateTime;
-			m_offset = (short)value.Offset.TotalMinutes;
+			m_offset = (short) value.Offset.TotalMinutes;
 		}
 
+		/// <summary>Wrap un valeur de type DateTime</summary>
+		/// <param name="value"></param>
+		public JsonDateTime(DateOnly value)
+		{
+			m_value = value.ToDateTime(default, DateTimeKind.Local);
+			m_offset = NO_TIMEZONE;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonDateTime(long ticks, DateTimeKind kind) : this(new DateTime(ticks, kind)) { }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonDateTime(int year, int month, int day) : this(new DateTime(year, month, day)) { }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonDateTime(int year, int month, int day, int hour, int minute, int second, DateTimeKind kind) : this(new DateTime(year, month, day, hour, minute, second, kind)) { }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonDateTime(int year, int month, int day, int hour, int minute, int second, int millisecond, DateTimeKind kind) : this(new DateTime(year, month, day, hour, minute, second, millisecond, kind)) { }
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonDateTime Return(DateTime value)
 		{
 			if (value == DateTime.MinValue) return JsonDateTime.MinValue;
@@ -129,11 +144,13 @@ namespace Doxense.Serialization.Json
 			return new JsonDateTime(value);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(DateTime? value)
 		{
 			return value.HasValue ? Return(value.Value) : JsonNull.Null;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonDateTime Return(DateTimeOffset value)
 		{
 			if (value == DateTimeOffset.MinValue) return JsonDateTime.MinValue;
@@ -141,7 +158,22 @@ namespace Doxense.Serialization.Json
 			return new JsonDateTime(value);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(DateTimeOffset? value)
+		{
+			return value.HasValue ? Return(value.Value) : JsonNull.Null;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonDateTime Return(DateOnly value)
+		{
+			if (value == DateOnly.MinValue) return JsonDateTime.MinValue;
+			if (value == DateOnly.MaxValue) return JsonDateTime.MaxValue;
+			return new JsonDateTime(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateOnly? value)
 		{
 			return value.HasValue ? Return(value.Value) : JsonNull.Null;
 		}
@@ -150,7 +182,11 @@ namespace Doxense.Serialization.Json
 
 		#region Public Members...
 
-		public long Ticks => m_value.Ticks;
+		public long Ticks
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => m_value.Ticks;
+		}
 
 		public long UtcTicks
 		{
@@ -192,6 +228,21 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		public DateOnly DateWithoutTime
+		{
+			get
+			{
+				if (m_offset != NO_TIMEZONE)
+				{ // DateTimeOffset, ou DateTime local à convertir en UTC
+					return DateOnly.FromDateTime(DateTime.SpecifyKind(m_value, DateTimeKind.Utc));
+				}
+				else
+				{ // DateTime retournée telle quelle
+					return DateOnly.FromDateTime(m_value);
+				}
+			}
+		}
+
 		public DateTime LocalDateTime => this.DateWithOffset.LocalDateTime;
 
 		public DateTime UtcDateTime => this.DateWithOffset.UtcDateTime;
@@ -212,8 +263,10 @@ namespace Doxense.Serialization.Json
 
 		public bool IsUtc => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Utc : m_offset == 0;
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DateTime ToUniversalTime() => this.UtcDateTime;
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DateTime ToLocalTime() => this.LocalDateTime;
 
 		#endregion
@@ -235,6 +288,7 @@ namespace Doxense.Serialization.Json
 #if !DEBUG
 			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
 			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+			if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
 			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
 #endif
 			#endregion
@@ -251,6 +305,10 @@ namespace Doxense.Serialization.Json
 			if (type == typeof(DateTime))
 			{
 				return this.Date;
+			}
+			if (type == typeof(DateOnly))
+			{
+				return this.DateWithoutTime;
 			}
 			if (type == typeof(NodaTime.Instant))
 			{
@@ -419,14 +477,22 @@ namespace Doxense.Serialization.Json
 			return (decimal) this.UnixTimeDays;
 		}
 
+		/// <inheritdoc />
 		public override DateTime ToDateTime()
 		{
 			return this.Date;
 		}
 
+		/// <inheritdoc />
 		public override DateTimeOffset ToDateTimeOffset()
 		{
 			return this.DateWithOffset;
+		}
+
+		/// <inheritdoc />
+		public override DateOnly ToDateOnly()
+		{
+			return DateOnly.FromDateTime(this.Date);
 		}
 
 		public NodaTime.LocalDateTime ToLocalDateTime()

@@ -519,7 +519,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (type == typeof (TimeSpan))
-			{
+			{ // TimeSpan
 				return static (v, _, _, writer) => writer.WriteValue((TimeSpan) v!);
 			}
 
@@ -556,6 +556,16 @@ namespace Doxense.Serialization.Json
 			if (type == typeof(Uuid64))
 			{ // 64-bit UUID
 				return static (v, _, _, writer) => writer.WriteValue((Uuid64) v!);
+			}
+
+			if (type == typeof (DateOnly))
+			{ // DateOnly
+				return static (v, _, _, writer) => writer.WriteValue((DateOnly) v!);
+			}
+
+			if (type == typeof (TimeOnly))
+			{ // TimeOnly
+				return static (v, _, _, writer) => writer.WriteValue((TimeOnly) v!);
 			}
 
 			if (type.IsAssignableTo<IVarTuple>())

@@ -1621,64 +1621,82 @@ namespace Doxense.Serialization.Json.Tests
 
 			// empty struct
 			var x = new DummyJsonStruct();
-			string expected = "{ \"Valid\": false, \"Index\": 0, \"Size\": 0, \"Height\": 0, \"Amount\": 0, \"Created\": \"\", \"State\": 0, \"RatioOfStuff\": 0 }";
-			string jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON)");
-			expected = "{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JS)");
+			Assert.That(
+				CrystalJson.Serialize(x),
+				Is.EqualTo("""{ "Valid": false, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }"""),
+				"Serialize(EMPTY, JSON)"
+			);
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript),
+				Is.EqualTo("""{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }"""),
+				"Serialize(EMPTY, JS)"
+			);
 
 			// with explicit nulls
-			expected = "{ \"Valid\": false, \"Name\": null, \"Index\": 0, \"Size\": 0, \"Height\": 0, \"Amount\": 0, \"Created\": \"\", \"Modified\": null, \"State\": 0, \"RatioOfStuff\": 0 }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+ShowNull)");
-			expected = "{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, State: 0, RatioOfStuff: 0 }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JS+ShowNull)");
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()),
+				Is.EqualTo("""{ "Valid": false, "Name": null, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "Modified": null, "DateOfBirth": null, "State": 0, "RatioOfStuff": 0 }"""),
+				"Serialize(EMPTY, JSON+ShowNull)"
+			);
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers()),
+				Is.EqualTo("{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, DateOfBirth: null, State: 0, RatioOfStuff: 0 }"),
+				"Serialize(EMPTY, JS+ShowNull)"
+			);
 
 			// hide default values
-			expected = "{ }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+HideDefaults)");
-			expected = "{ }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithoutDefaultValues());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JS+HideDefaults)");
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues()),
+				Is.EqualTo("{ }"),
+				"Serialize(EMPTY, JSON+HideDefaults)"
+			);
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithoutDefaultValues()),
+				Is.EqualTo("{ }"),
+				"Serialize(EMPTY, JS+HideDefaults)"
+			);
 
-			// en mode compact
-			expected = "{\"Valid\":false,\"Index\":0,\"Size\":0,\"Height\":0,\"Amount\":0,\"Created\":\"\",\"State\":0,\"RatioOfStuff\":0}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JsonCompact);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+Compact)");
-			expected = "{Valid:false,Index:0,Size:0,Height:0,Amount:0,Created:new Date(-62135596800000),State:0,RatioOfStuff:0}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JS+Compact)");
+			// compact mode
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JsonCompact),
+				Is.EqualTo("""{"Valid":false,"Index":0,"Size":0,"Height":0,"Amount":0,"Created":"","State":0,"RatioOfStuff":0}"""),
+				"Serialize(EMPTY, JSON+Compact)"
+			);
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted()),
+				Is.EqualTo("{Valid:false,Index:0,Size:0,Height:0,Amount:0,Created:new Date(-62135596800000),State:0,RatioOfStuff:0}"),
+				"Serialize(EMPTY, JS+Compact)"
+			);
 
 			// indented
-			expected =
-				"{\r\n" +
-				"\t\"Valid\": false,\r\n" +
-				"\t\"Index\": 0,\r\n" +
-				"\t\"Size\": 0,\r\n" +
-				"\t\"Height\": 0,\r\n" +
-				"\t\"Amount\": 0,\r\n" +
-				"\t\"Created\": \"\",\r\n" +
-				"\t\"State\": 0,\r\n" +
-				"\t\"RatioOfStuff\": 0\r\n" +
-				"}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JsonIndented);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(X, JSON+Indented)");
-			expected =
-				"{\r\n" +
-				"\tValid: false,\r\n" +
-				"\tIndex: 0,\r\n" +
-				"\tSize: 0,\r\n" +
-				"\tHeight: 0,\r\n" +
-				"\tAmount: 0,\r\n" +
-				"\tCreated: new Date(-62135596800000),\r\n" +
-				"\tState: 0,\r\n" +
-				"\tRatioOfStuff: 0\r\n" +
-				"}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScriptIndented);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(X, JS+Indented)");
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JsonIndented),
+				Is.EqualTo("{\r\n" +
+				           "\t\"Valid\": false,\r\n" +
+				           "\t\"Index\": 0,\r\n" +
+				           "\t\"Size\": 0,\r\n" +
+				           "\t\"Height\": 0,\r\n" +
+				           "\t\"Amount\": 0,\r\n" +
+				           "\t\"Created\": \"\",\r\n" +
+				           "\t\"State\": 0,\r\n" +
+				           "\t\"RatioOfStuff\": 0\r\n" +
+				           "}"),
+				"Serialize(X, JSON+Indented)"
+			);
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScriptIndented),
+				Is.EqualTo("{\r\n" +
+				           "\tValid: false,\r\n" +
+				           "\tIndex: 0,\r\n" +
+				           "\tSize: 0,\r\n" +
+				           "\tHeight: 0,\r\n" +
+				           "\tAmount: 0,\r\n" +
+				           "\tCreated: new Date(-62135596800000),\r\n" +
+				           "\tState: 0,\r\n" +
+				           "\tRatioOfStuff: 0\r\n" +
+				           "}"),
+				"Serialize(X, JS+Indented)"
+			);
 
 			// filled with values
 			x.Valid = true;
@@ -1690,20 +1708,28 @@ namespace Doxense.Serialization.Json.Tests
 			x.Created = new DateTime(1968, 5, 8);
 			x.State = DummyJsonEnum.Foo;
 
-			expected = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00\", \"State\": 1, \"RatioOfStuff\": 8641975.23 }";
-			jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(BOND, JSON)");
-			expected = "{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52106400000), State: 1, RatioOfStuff: 8641975.23 }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(BOND, JS)");
+			Assert.That(
+				CrystalJson.Serialize(x),
+				Is.EqualTo("""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00", "State": 1, "RatioOfStuff": 8641975.23 }"""),
+				"Serialize(BOND, JSON)"
+			);
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript),
+				Is.EqualTo("{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52106400000), State: 1, RatioOfStuff: 8641975.23 }"),
+				"Serialize(BOND, JS)"
+			);
 
 			// compact mode
-			expected = "{\"Valid\":true,\"Name\":\"James Bond\",\"Index\":7,\"Size\":123456789,\"Height\":1.8,\"Amount\":0.07,\"Created\":\"1968-05-08T00:00:00\",\"State\":1,\"RatioOfStuff\":8641975.23}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.Compacted());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(BOND, JSON+Compact)");
-			expected = "{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52106400000),State:1,RatioOfStuff:8641975.23}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(BOND, JS+Compact)");
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.Json.Compacted()),
+				Is.EqualTo("""{"Valid":true,"Name":"James Bond","Index":7,"Size":123456789,"Height":1.8,"Amount":0.07,"Created":"1968-05-08T00:00:00","State":1,"RatioOfStuff":8641975.23}"""),
+				"Serialize(BOND, JSON+Compact)"
+			);
+			Assert.That(
+				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted()),
+				Is.EqualTo("{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52106400000),State:1,RatioOfStuff:8641975.23}"),
+				"Serialize(BOND, JS+Compact)"
+			);
 		}
 
 		[Test]
@@ -1756,10 +1782,10 @@ namespace Doxense.Serialization.Json.Tests
 			Assume.That(typeof(DummyJsonClass).IsClass, Is.True);
 
 			var x = new DummyJsonClass();
-			string expected = "{ \"Valid\": false, \"Index\": 0, \"Size\": 0, \"Height\": 0, \"Amount\": 0, \"Created\": \"\", \"State\": 0, \"RatioOfStuff\": 0 }";
+			string expected = """{ "Valid": false, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }""";
 			string jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON)");
-			expected = "{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }";
+			expected = """{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }""";
 			string jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
 			Assert.That(jsText, Is.EqualTo(expected), "Serialize(EMPTY, JS)");
 
@@ -1771,10 +1797,10 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(jsText, Is.EqualTo(expected), "SerializeObject(EMPTY, JS+HideDefaults)");
 
 			// with explicit nulls
-			expected = "{ \"Valid\": false, \"Name\": null, \"Index\": 0, \"Size\": 0, \"Height\": 0, \"Amount\": 0, \"Created\": \"\", \"Modified\": null, \"State\": 0, \"RatioOfStuff\": 0 }";
+			expected = """{ "Valid": false, "Name": null, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "Modified": null, "DateOfBirth": null, "State": 0, "RatioOfStuff": 0 }""";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+ShowNullMembers)");
-			expected = "{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, State: 0, RatioOfStuff: 0 }";
+			expected = """{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, DateOfBirth: null, State: 0, RatioOfStuff: 0 }""";
 			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers());
 			Assert.That(jsText, Is.EqualTo(expected), "Serialize(EMPTY, JS+ShowNullMembers)");
 
@@ -1788,17 +1814,17 @@ namespace Doxense.Serialization.Json.Tests
 			x.Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc);
 			x.State = DummyJsonEnum.Bar;
 			// formatted
-			expected = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			expected = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(class, JSON)");
-			expected = "{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52099200000), Modified: new Date(1288280340000), State: 42, RatioOfStuff: 8641975.23 }";
+			expected = """{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52099200000), Modified: new Date(1288280340000), State: 42, RatioOfStuff: 8641975.23 }""";
 			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
 			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS)");
 			// compact
-			expected = "{\"Valid\":true,\"Name\":\"James Bond\",\"Index\":7,\"Size\":123456789,\"Height\":1.8,\"Amount\":0.07,\"Created\":\"1968-05-08T00:00:00Z\",\"Modified\":\"2010-10-28T15:39:00Z\",\"State\":42,\"RatioOfStuff\":8641975.23}";
+			expected = """{"Valid":true,"Name":"James Bond","Index":7,"Size":123456789,"Height":1.8,"Amount":0.07,"Created":"1968-05-08T00:00:00Z","Modified":"2010-10-28T15:39:00Z","State":42,"RatioOfStuff":8641975.23}""";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JsonCompact);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(class, JSON+Compact)");
-			expected = "{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52099200000),Modified:new Date(1288280340000),State:42,RatioOfStuff:8641975.23}";
+			expected = """{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52099200000),Modified:new Date(1288280340000),State:42,RatioOfStuff:8641975.23}""";
 			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted());
 			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS+Compact)");
 
@@ -1835,7 +1861,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS+Indented)");
 
 			// Camel Casing
-			expected = "{ \"valid\": true, \"name\": \"James Bond\", \"index\": 7, \"size\": 123456789, \"height\": 1.8, \"amount\": 0.07, \"created\": \"1968-05-08T00:00:00Z\", \"modified\": \"2010-10-28T15:39:00Z\", \"state\": 42, \"ratioOfStuff\": 8641975.23 }";
+			expected = """{ "valid": true, "name": "James Bond", "index": 7, "size": 123456789, "height": 1.8, "amount": 0.07, "created": "1968-05-08T00:00:00Z", "modified": "2010-10-28T15:39:00Z", "state": 42, "ratioOfStuff": 8641975.23 }""";
 			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.CamelCased());
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(class, JSON+CamelCasing)");
 			expected = "{ valid: true, name: 'James Bond', index: 7, size: 123456789, height: 1.8, amount: 0.07, created: new Date(-52099200000), modified: new Date(1288280340000), state: 42, ratioOfStuff: 8641975.23 }";
@@ -1851,7 +1877,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			var x = new DummyOuterClass();
 
-			string expected = "{ \"Id\": 0 }";
+			string expected = """{ "Id": 0 }""";
 			string jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON)");
 
@@ -1870,13 +1896,13 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Serialize the instance directly (known type)
 			// since the instance is top-level, and the type is known, it should not include the _class property.
-			string expectedAgent = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			string expectedAgent = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			jsonText = CrystalJson.Serialize(agent);
 			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
 
 			// Serialize the container type that references this instance via the interface
 			// since the instance is not top-level, and the type is not known, it should include the _class property!
-			expectedAgent = "{ \"_class\": \"Doxense.Serialization.Json.Tests.DummyJsonClass, Doxense.Core.Tests\", \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			expectedAgent = """{ "_class": "Doxense.Serialization.Json.Tests.DummyJsonClass, Doxense.Core.Tests", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
 			jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
@@ -1914,7 +1940,7 @@ namespace Doxense.Serialization.Json.Tests
 			x.Agent.Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc);
 			x.Agent.State = DummyJsonEnum.Bar;
 
-			string expectedAgent = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			string expectedAgent = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			string jsonText = CrystalJson.Serialize(x.Agent);
 			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
 
@@ -1966,7 +1992,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			var x = new DummyOuterDerivedClass();
 
-			string expected = "{ \"Id\": 0 }";
+			string expected = """{ "Id": 0 }""";
 			string jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON)");
 
@@ -1985,13 +2011,13 @@ namespace Doxense.Serialization.Json.Tests
 
 			// serialize the derived type explicitly (known type)
 			// as it is top-level, the _class property should not be included
-			string expectedAgent = "{ \"IsDoubleAgent\": true, \"DoubleAgentName\": \"Janov Bondovicz\", \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			string expectedAgent = """{ "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			jsonText = CrystalJson.Serialize(agent);
 			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
 
 			// serilalize the container, which references this instance via the base type
 			// as it is no top-level, the _class property should be included!
-			expectedAgent = "{ \"_class\": \"Doxense.Serialization.Json.Tests.DummyDerivedJsonClass, Doxense.Core.Tests\", \"IsDoubleAgent\": true, \"DoubleAgentName\": \"Janov Bondovicz\", \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			expectedAgent = """{ "_class": "Doxense.Serialization.Json.Tests.DummyDerivedJsonClass, Doxense.Core.Tests", "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
 			jsonText = CrystalJson.Serialize(x);
 			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
@@ -2724,11 +2750,9 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonSerialize_DataContract()
 		{
 			var x = new DummyDataContractClass();
-			string expected = @"{ ""Id"": 0, ""Age"": 0, ""IsFemale"": false, ""VisibleProperty"": ""CanBeSeen"" }";
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo(expected));
+			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 0, "Age": 0, "IsFemale": false, "VisibleProperty": "CanBeSeen" }"""));
 			// with explicit nulls
-			expected = @"{ ""Id"": 0, ""Name"": null, ""Age"": 0, ""IsFemale"": false, ""CurrentLoveInterest"": null, ""VisibleProperty"": ""CanBeSeen"" }";
-			Assert.That(CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()), Is.EqualTo(expected));
+			Assert.That(CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()), Is.EqualTo("""{ "Id": 0, "Name": null, "Age": 0, "IsFemale": false, "CurrentLoveInterest": null, "VisibleProperty": "CanBeSeen" }"""));
 
 			x.AgentId = 7;
 			x.Name = "James Bond";
@@ -2736,8 +2760,7 @@ namespace Doxense.Serialization.Json.Tests
 			x.Female = false;
 			x.CurrentLoveInterest = "Miss Moneypenny";
 			x.InvisibleField = "007";
-			expected = @"{ ""Id"": 7, ""Name"": ""James Bond"", ""Age"": 69, ""IsFemale"": false, ""CurrentLoveInterest"": ""Miss Moneypenny"", ""VisibleProperty"": ""CanBeSeen"" }";
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo(expected));
+			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 7, "Name": "James Bond", "Age": 69, "IsFemale": false, "CurrentLoveInterest": "Miss Moneypenny", "VisibleProperty": "CanBeSeen" }"""));
 		}
 
 		[Test]
@@ -2745,18 +2768,15 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			var x = new DummyXmlSerializableContractClass();
 
-			string expected = @"{ ""Id"": 0, ""Age"": 0, ""IsFemale"": false, ""VisibleProperty"": ""CanBeSeen"" }";
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo(expected));
-			expected = @"{ ""Id"": 0, ""Name"": null, ""Age"": 0, ""IsFemale"": false, ""CurrentLoveInterest"": null, ""VisibleProperty"": ""CanBeSeen"" }";
-			Assert.That(CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()), Is.EqualTo(expected));
+			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 0, "Age": 0, "IsFemale": false, "VisibleProperty": "CanBeSeen" }"""));
+			Assert.That(CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()), Is.EqualTo("""{ "Id": 0, "Name": null, "Age": 0, "IsFemale": false, "CurrentLoveInterest": null, "VisibleProperty": "CanBeSeen" }"""));
 
 			x.AgentId = 7;
 			x.Name = "James Bond";
 			x.Age = 69;
 			x.CurrentLoveInterest = "Miss Moneypenny";
 			x.InvisibleField = "007";
-			expected = @"{ ""Id"": 7, ""Name"": ""James Bond"", ""Age"": 69, ""IsFemale"": false, ""CurrentLoveInterest"": ""Miss Moneypenny"", ""VisibleProperty"": ""CanBeSeen"" }";
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo(expected));
+			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 7, "Name": "James Bond", "Age": 69, "IsFemale": false, "CurrentLoveInterest": "Miss Moneypenny", "VisibleProperty": "CanBeSeen" }"""));
 		}
 
 		[Test]
@@ -3102,7 +3122,7 @@ namespace Doxense.Serialization.Json.Tests
 
 				// when deserializing an object with all members explicitly set to null, we should return the default of this type
 				var j = JsonValue
-					.ParseObject(@"{ ""Int32"": null, ""Bool"": null, ""String"": null, ""Guid"": null, ""NullInt32"": null, ""NullBool"": null, ""NullGuid"": null, ""JsonValue"": null, ""JsonNull"": null, ""JsonArray"": null, ""JsonObject"": null }")
+					.ParseObject("""{ "Int32": null, "Bool": null, "String": null, "Guid": null, "NullInt32": null, "NullBool": null, "NullGuid": null, "JsonValue": null, "JsonNull": null, "JsonArray": null, "JsonObject": null }""")
 					.As(template);
 
 				Assert.That(j.Int32, Is.Zero);
@@ -3636,6 +3656,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.True);
 				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MinValue));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(DateOnly.MinValue));
 				Assert.That(value.IsLocalTime, Is.False, "MinValue should be unspecifed");
 				Assert.That(value.IsUtc, Is.False, "MinValue should be unspecified");
 			}
@@ -3646,6 +3667,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MaxValue));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(DateOnly.MaxValue));
 				Assert.That(value.IsLocalTime, Is.False, "MaxValue should be unspecified");
 				Assert.That(value.IsUtc, Is.False, "MaxValue should be unspecified");
 			}
@@ -3656,6 +3678,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24)));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(new DateOnly(1974, 3, 24)));
 				Assert.That(value.IsLocalTime, Is.False, "TZ is unspecified");
 				Assert.That(value.IsUtc, Is.False, "TZ is unspecified");
 			}
@@ -3666,6 +3689,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24, 12, 34, 56, DateTimeKind.Utc)));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(new DateOnly(1974, 3, 24)));
 				Assert.That(value.IsLocalTime, Is.False);
 				Assert.That(value.IsUtc, Is.True);
 			}
@@ -3676,6 +3700,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.ToDateTime(), Is.EqualTo(new DateTime(1974, 3, 24, 12, 34, 56, 789, DateTimeKind.Local)));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(new DateOnly(1974, 3, 24)));
 				Assert.That(value.IsLocalTime, Is.True);
 				Assert.That(value.IsUtc, Is.False);
 			}
@@ -3687,16 +3712,33 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.ToDateTime(), Is.EqualTo(now));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(DateOnly.FromDateTime(now)));
 				Assert.That(value.IsLocalTime, Is.False);
 				Assert.That(value.IsUtc, Is.True);
 			}
 
+			{
+				var now = DateTimeOffset.Now;
+				var today = DateOnly.FromDateTime(now.LocalDateTime);
+				var value = new JsonDateTime(today);
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToDateTime(), Is.EqualTo(today.ToDateTime(default)));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(today));
+				Assert.That(value.ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(today.ToDateTime(default), now.Offset)));
+				Assert.That(value.IsLocalTime, Is.True);
+				Assert.That(value.IsUtc, Is.False);
+			}
+
 			// Nullables
 
-			Assert.That(JsonDateTime.Return((DateTime?)null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonDateTime.Return((DateTimeOffset?)null).Type, Is.EqualTo(JsonType.Null));
-			Assert.That(JsonDateTime.Return((DateTime?)DateTime.Now).Type, Is.EqualTo(JsonType.DateTime));
-			Assert.That(JsonDateTime.Return((DateTimeOffset?)DateTimeOffset.Now).Type, Is.EqualTo(JsonType.DateTime));
+			Assert.That(JsonDateTime.Return((DateTime?) null).Type, Is.EqualTo(JsonType.Null));
+			Assert.That(JsonDateTime.Return((DateTimeOffset?) null).Type, Is.EqualTo(JsonType.Null));
+			Assert.That(JsonDateTime.Return((DateOnly?) null).Type, Is.EqualTo(JsonType.Null));
+			Assert.That(JsonDateTime.Return((DateTime?) DateTime.Now).Type, Is.EqualTo(JsonType.DateTime));
+			Assert.That(JsonDateTime.Return((DateTimeOffset?) DateTimeOffset.Now).Type, Is.EqualTo(JsonType.DateTime));
+			Assert.That(JsonDateTime.Return((DateOnly?) DateOnly.FromDateTime(DateTime.Now)).Type, Is.EqualTo(JsonType.DateTime));
 		}
 
 		[Test]
@@ -4001,6 +4043,18 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.Return(DateOnly.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
 			Assert.That(JsonNumber.Return(DateOnly.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
 			Assert.That(JsonNumber.NaN.ToDateOnly(), Is.EqualTo(DateOnly.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
+
+			// TimeOnly
+			//note: times are encoded as the number of seconds since midnight
+			Assert.That(JsonNumber.Return(0).ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 0, 0)), "0.ToTimeOnly()");
+			Assert.That(JsonNumber.Return(1).ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 0, 1)), "1.ToTimeOnly()");
+			Assert.That(JsonNumber.Return(60).ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 1, 0)), "31.ToTimeOnly()");
+			Assert.That(JsonNumber.Return(3600).ToTimeOnly(), Is.EqualTo(new TimeOnly(1, 0, 0)), "31.ToTimeOnly()");
+			Assert.That(JsonNumber.Return(new TimeOnly(12, 34, 56)).ToDouble(), Is.EqualTo(45296), "(TIME).Value");
+			Assert.That(JsonNumber.Return(45296).ToTimeOnly(), Is.EqualTo(new TimeOnly(12, 34, 56)), "(SECONDS).ToTimeOnly()");
+			Assert.That(JsonNumber.Return(TimeOnly.MinValue).ToDouble(), Is.EqualTo(0d), "MinValue"); // by convention, MinValue == 0 == midnight
+			Assert.That(JsonNumber.Return(TimeOnly.MaxValue).ToDouble(), Is.EqualTo(86399.9999999d), "MaxValue"); // by convention, MaxValue == NaN
+			Assert.That(JsonNumber.NaN.ToTimeOnly(), Is.EqualTo(TimeOnly.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
 
 			// Instant
 			//note: instants are converted into the number of days (floating point) since Unix Epoch
@@ -7510,6 +7564,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonValue.FromValue(IPAddress.Loopback), Is.InstanceOf<JsonString>());
 			Assert.That(JsonValue.FromValue(DateTime.Now), Is.InstanceOf<JsonDateTime>());
 			Assert.That(JsonValue.FromValue(TimeSpan.FromMinutes(1)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue(DateOnly.FromDateTime(DateTime.Now)), Is.InstanceOf<JsonDateTime>());
+			Assert.That(JsonValue.FromValue(TimeOnly.FromDateTime(DateTime.Now)), Is.InstanceOf<JsonNumber>());
 			Assert.That(JsonValue.FromValue(new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ")), Is.InstanceOf<JsonString>());
 
 			// FromValue(object)
@@ -7534,6 +7590,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonValue.FromValue((object) IPAddress.Loopback), Is.InstanceOf<JsonString>());
 			Assert.That(JsonValue.FromValue((object) DateTime.Now), Is.InstanceOf<JsonDateTime>());
 			Assert.That(JsonValue.FromValue((object) TimeSpan.FromMinutes(1)), Is.InstanceOf<JsonNumber>());
+			Assert.That(JsonValue.FromValue((object) DateOnly.FromDateTime(DateTime.Now)), Is.InstanceOf<JsonDateTime>());
+			Assert.That(JsonValue.FromValue((object) TimeOnly.FromDateTime(DateTime.Now)), Is.InstanceOf<JsonNumber>());
 			Assert.That(JsonValue.FromValue((object) new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ")), Is.InstanceOf<JsonString>());
 		}
 
@@ -7757,6 +7815,7 @@ namespace Doxense.Serialization.Json.Tests
 				Amount = 0.07d,
 				Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
 				Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
+				DateOfBirth = new DateOnly(1920, 11, 11),
 				State = DummyJsonEnum.Bar,
 			};
 
@@ -7773,6 +7832,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(j["Amount"], Is.Not.Null.And.Property("Type").EqualTo(JsonType.Number));
 			Assert.That(j["Created"], Is.Not.Null.And.Property("Type").EqualTo(JsonType.DateTime));
 			Assert.That(j["Modified"], Is.Not.Null.And.Property("Type").EqualTo(JsonType.DateTime));
+			Assert.That(j["DateOfBirth"], Is.Not.Null.And.Property("Type").EqualTo(JsonType.DateTime));
 			Assert.That(j["State"], Is.Not.Null.And.Property("Type").EqualTo(JsonType.String));
 			//TODO: ignore defaults?
 			//Assert.That(j.Count, Is.EqualTo(8));
@@ -7784,6 +7844,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(j.Get<double>("Amount"), Is.EqualTo(agent.Amount), ".Amount");
 			Assert.That(j.Get<DateTime>("Created"), Is.EqualTo(agent.Created), ".Created");
 			Assert.That(j.Get<DateTime>("Modified"), Is.EqualTo(agent.Modified), ".Modified");
+			Assert.That(j.Get<DateOnly>("DateOfBirth"), Is.EqualTo(agent.DateOfBirth), ".DateOfBirth");
 			Assert.That(j.Get<DummyJsonEnum>("State"), Is.EqualTo(agent.State), ".State");
 		}
 
@@ -7802,6 +7863,7 @@ namespace Doxense.Serialization.Json.Tests
 					Amount = 0.07d,
 					Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
 					Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
+					DateOfBirth = new DateOnly(1920, 11, 11),
 					State = DummyJsonEnum.Bar,
 				},
 			};
@@ -9076,7 +9138,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonDeserialize_CustomClass()
 		{
-			string jsonText = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			string jsonText = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"DateOfBirth\": \"1920-11-11\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
 			var x = CrystalJson.Deserialize<DummyJsonClass>(jsonText);
 			Assert.That(x, Is.Not.Null, jsonText);
 			Assert.That(x, Is.InstanceOf<DummyJsonClass>());
@@ -9089,6 +9151,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(x.Amount, Is.EqualTo(0.07d), "x.Amount");
 			Assert.That(x.Created, Is.EqualTo(new DateTime(1968, 5, 8)), "x.Created");
 			Assert.That(x.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0)), "x.Modified");
+			Assert.That(x.DateOfBirth, Is.EqualTo(new DateOnly(1920, 11, 11)), "x.DateOfBirth");
 			Assert.That(x.State, Is.EqualTo(DummyJsonEnum.Bar), "x.State");
 			Assert.That(x.RatioOfStuff, Is.EqualTo(0.07d * 123456789), "x.RatioOfStuff");
 
@@ -9102,7 +9165,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonDeserialize_CustomStruct()
 		{
-			string jsonText = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			string jsonText = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"DateOfBirth\": \"1920-11-11\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
 			var x = CrystalJson.Deserialize<DummyJsonStruct>(jsonText);
 			Assert.That(x, Is.Not.Null, jsonText);
 			Assert.That(x, Is.InstanceOf<DummyJsonStruct>());
@@ -9115,6 +9178,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(x.Amount, Is.EqualTo(0.07d), "x.Amount");
 			Assert.That(x.Created, Is.EqualTo(new DateTime(1968, 5, 8)), "x.Created");
 			Assert.That(x.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0)), "x.Modified");
+			Assert.That(x.DateOfBirth, Is.EqualTo(new DateOnly(1920, 11, 11)), "x.DateOfBirth");
 			Assert.That(x.State, Is.EqualTo(DummyJsonEnum.Bar), "x.State");
 			Assert.That(x.RatioOfStuff, Is.EqualTo(0.07d * 123456789), "x.RatioOfStuff");
 
@@ -9645,6 +9709,7 @@ namespace Doxense.Serialization.Json.Tests
 		public double Amount;
 		public DateTime Created;
 		public DateTime? Modified;
+		public DateOnly? DateOfBirth;
 		public DummyJsonEnum State;
 		public readonly double RatioOfStuff => this.Amount * this.Size;
 
@@ -9703,6 +9768,7 @@ namespace Doxense.Serialization.Json.Tests
 		public double Amount { get; set; }
 		public DateTime Created { get; set; }
 		public DateTime? Modified { get; set; }
+		public DateOnly? DateOfBirth { get; set; }
 		public DummyJsonEnum State { get; set; }
 
 		public double RatioOfStuff => this.Amount * this.Size;

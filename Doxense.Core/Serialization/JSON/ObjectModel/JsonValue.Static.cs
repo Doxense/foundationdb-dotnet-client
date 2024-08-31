@@ -103,6 +103,8 @@ namespace Doxense.Serialization.Json
 			if (type == typeof(Guid)) return jsonValue.ToGuid();
 			if (type == typeof(decimal)) return jsonValue.ToDecimal();
 			if (type == typeof(Half)) return jsonValue.ToHalf();
+			if (type == typeof(DateOnly)) return jsonValue.ToDateOnly();
+			if (type == typeof(TimeOnly)) return jsonValue.ToTimeOnly();
 			if (type == typeof(JsonValue)) return jsonValue;
 
 			if (type.IsEnum)
@@ -609,6 +611,8 @@ namespace Doxense.Serialization.Json
 			if (typeof (T) == typeof (TimeSpan)) return JsonNumber.Return((TimeSpan) (object) value!);
 			if (typeof (T) == typeof (DateTime)) return JsonDateTime.Return((DateTime) (object) value!);
 			if (typeof (T) == typeof (DateTimeOffset)) return JsonDateTime.Return((DateTimeOffset) (object) value!);
+			if (typeof (T) == typeof (DateOnly)) return JsonDateTime.Return((DateOnly) (object) value!);
+			if (typeof (T) == typeof (TimeOnly)) return JsonNumber.Return((TimeOnly) (object) value!);
 			if (typeof (T) == typeof (NodaTime.Instant)) return JsonString.Return((NodaTime.Instant) (object) value!);
 			if (typeof (T) == typeof (NodaTime.Duration)) return JsonNumber.Return((NodaTime.Duration) (object) value!);
 			if (typeof (T) == typeof (NodaTime.LocalDateTime)) return JsonString.Return((NodaTime.LocalDateTime) (object) value!);
@@ -637,6 +641,8 @@ namespace Doxense.Serialization.Json
 			if (typeof (T) == typeof (TimeSpan?)) return JsonNumber.Return((TimeSpan?) (object?) value);
 			if (typeof (T) == typeof (DateTime?)) return JsonDateTime.Return((DateTime?) (object?) value);
 			if (typeof (T) == typeof (DateTimeOffset?)) return JsonDateTime.Return((DateTimeOffset?) (object?) value);
+			if (typeof (T) == typeof (DateOnly?)) return JsonDateTime.Return((DateOnly?) (object?) value);
+			if (typeof (T) == typeof (TimeOnly?)) return JsonNumber.Return((TimeOnly?) (object?) value);
 			if (typeof (T) == typeof (NodaTime.Instant?)) return JsonString.Return((NodaTime.Instant?) (object?) value);
 			if (typeof (T) == typeof (NodaTime.Duration?)) return JsonNumber.Return((NodaTime.Duration?) (object?) value);
 			if (typeof (T) == typeof (NodaTime.LocalDateTime?)) return JsonString.Return((NodaTime.LocalDateTime?) (object?) value);
