@@ -4661,6 +4661,19 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.That(JsonArray.CreateReadOnly([ "one", JsonArray.CreateReadOnly([ "two", "three" ]) ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
 			Assert.That(JsonArray.CreateReadOnly("one", JsonArray.CreateReadOnly("two", "three")), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
+
+			// check that Span<..> will use the Create(ReadOnlySpan<..>) overload
+			Span<JsonValue?> buf = [ JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) ];
+			Assert.That(JsonArray.Create(buf), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) }));
+
+#if NET9_0_OR_GREATER
+
+			// check that there is no ambiguous call with other types
+
+			Assert.That(JsonArray.Create(Enumerable.Range(1, 3).Select(i => JsonNumber.Return(i))), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) }));
+			Assert.That(JsonArray.CreateReadOnly(Enumerable.Range(1, 3).Select(i => JsonNumber.Return(i))), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) }));
+
+#endif
 		}
 
 		[Test]

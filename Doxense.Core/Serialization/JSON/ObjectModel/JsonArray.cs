@@ -291,12 +291,15 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new empty array, that can be modified</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static JsonArray Create() => new();
 
 		/// <summary>Create a new JsonArray that will hold a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray Create(JsonValue? value) => new([
 			value ?? JsonNull.Null
@@ -305,7 +308,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JsonArray that will hold a pair of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2) => new([
 			value1 ?? JsonNull.Null,
@@ -315,7 +318,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JsonArray that will hold three elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
 			value1 ?? JsonNull.Null,
@@ -326,7 +329,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JsonArray that will hold four elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
 			value1 ?? JsonNull.Null,
@@ -337,46 +340,103 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
-		public static JsonArray Create(JsonValue?[] values)
-#else
 		public static JsonArray Create(params JsonValue?[] values)
-#endif
 		{
-			return Create(Contract.ValueNotNull(values).AsSpan());
+			return Create(new ReadOnlySpan<JsonValue?>(Contract.ValueNotNull(values))); 
+		}
+
+		public static void DoIt(JsonValue[] xz)
+		{
+			var arr = Create([ true, false, 0 ]);
+			Console.WriteLine(arr);
 		}
 
 		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
 		public static JsonArray Create(params ReadOnlySpan<JsonValue?> values)
 #else
 		public static JsonArray Create(ReadOnlySpan<JsonValue?> values)
 #endif
 		{
-			if (values.Length == 0)
+			// <JIT_HACK>
+			// In the case where the call-site is constructing the span using a collection express: var xs = JsonArray.Create([ "hello", "world" ])
+			// the JIT can optimize the method, since it knows that values.Length == 2, and can safely remove the test and the rest of the method, as well as inline the ctor.
+			// => using JIT disassembly, we can see that the whole JSON Array construction will be completely inlined in the caller's method body
+
+			// note: currently (.NET 9 preview), the JIT will not elide the null-check on the values, even if they are known to be not-null.
+
+			switch (values.Length)
 			{
-				return new();
+				case 0:
+				{
+					return new();
+				}
+				case 1:
+				{
+					return new([
+						values[0] ?? JsonNull.Null
+					], 1, readOnly: false);
+				}
+				case 2:
+				{
+					return new([
+						values[0] ?? JsonNull.Null,
+						values[1] ?? JsonNull.Null
+					], 2, readOnly: false);
+				}
+				case 3:
+				{
+					return new([
+						values[0] ?? JsonNull.Null,
+						values[1] ?? JsonNull.Null,
+						values[2] ?? JsonNull.Null
+					], 3, readOnly: false);
+				}
 			}
 
-			var buf = new JsonValue[values.Length];
+			// </JIT_HACK>
+
+			var buf = values.ToArray();
 			for (int i = 0; i < buf.Length; i++)
 			{
-				buf[i] = values[i] ?? JsonNull.Null;
+				buf[i] ??= JsonNull.Null;
 			}
-			return new JsonArray(buf, buf.Length, readOnly: false);
+			return new JsonArray(buf!, buf.Length, readOnly: false);
 		}
+
+#if NET9_0_OR_GREATER
+
+		//note: we only add this for .NET9+ because we require overload resolution priority to be able to fix ambigous calls between IEnumerable<> en ReadOnlySpan<>
+
+		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <param name="values">Elements of the new array</param>
+		[Pure]
+		[OverloadResolutionPriority(-1)]
+		public static JsonArray Create(IEnumerable<JsonValue?> values)
+		{
+			Contract.NotNull(values);
+			return new JsonArray().AddRange(values);
+		}
+
+#endif
 
 		#endregion
 
 		#region Immutable...
 
+		/// <summary>Create a new read-only empty array, that cannot be modified</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
+		public static JsonArray CreateReadOnly() => JsonArray.EmptyReadOnly;
 
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> that will hold a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray CreateReadOnly(JsonValue? value) => new([
 			(value ?? JsonNull.Null).ToReadOnly()
@@ -385,7 +445,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
@@ -395,7 +455,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
@@ -406,7 +466,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(2)]
+		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
 			(value1 ?? JsonNull.Null).ToReadOnly(),
@@ -415,28 +475,58 @@ namespace Doxense.Serialization.Json
 			(value4 ?? JsonNull.Null).ToReadOnly()
 		], 4, readOnly: true);
 
-		/// <summary>Create a new read-only empty array, that cannot be modified</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray CreateReadOnly() => JsonArray.EmptyReadOnly;
-
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray CreateReadOnly(JsonValue?[] values)
+		public static JsonArray CreateReadOnly(params JsonValue?[] values)
 		{
-			return CreateReadOnly(Contract.ValueNotNull(values).AsSpan());
+			return CreateReadOnly(new ReadOnlySpan<JsonValue?>(Contract.ValueNotNull(values)));
 		}
 
 		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
 		[Pure]
 #if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
-#endif
 		public static JsonArray CreateReadOnly(params ReadOnlySpan<JsonValue?> values)
+#else
+		public static JsonArray CreateReadOnly(ReadOnlySpan<JsonValue?> values)
+#endif
 		{
-			if (values.Length == 0)
+			// <JIT_HACK>
+			// In the case where the call-site is constructing the span using a collection express: var xs = JsonArray.CreateReadOnly([ "hello", "world" ])
+			// the JIT can optimize the method, since it knows that values.Length == 2, and can safely remove the test and the rest of the method, as well as inline the ctor.
+			// => using JIT disassembly, we can see that the whole JSON Array construction will be completely inlined in the caller's method body
+
+			// note: currently (.NET 9 preview), the JIT will not elide the null-check on the values, even if they are known to be not-null.
+
+			switch (values.Length)
 			{
-				return EmptyReadOnly;
+				case 0:
+				{
+					return JsonArray.EmptyReadOnly;
+				}
+				case 1:
+				{
+					return new([
+						(values[0] ?? JsonNull.Null).ToReadOnly()
+					], 1, readOnly: true);
+				}
+				case 2:
+				{
+					return new([
+						(values[0] ?? JsonNull.Null).ToReadOnly(),
+						(values[1] ?? JsonNull.Null).ToReadOnly()
+					], 2, readOnly: true);
+				}
+				case 3:
+				{
+					return new([
+						(values[0] ?? JsonNull.Null).ToReadOnly(),
+						(values[1] ?? JsonNull.Null).ToReadOnly(),
+						(values[2] ?? JsonNull.Null).ToReadOnly()
+					], 3, readOnly: true);
+				}
 			}
+
+			// </JIT_HACK>
 
 			var buf = new JsonValue[values.Length];
 			for (int i = 0; i < buf.Length; i++)
@@ -446,6 +536,25 @@ namespace Doxense.Serialization.Json
 			return new JsonArray(buf, buf.Length, readOnly: true);
 		}
 
+#if NET9_0_OR_GREATER
+
+		//note: we only add this for .NET9+ because we require overload resolution priority to be able to fix ambigous calls between IEnumerable<> en ReadOnlySpan<>
+
+		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <param name="values">Elements of the new array</param>
+		[Pure]
+		[OverloadResolutionPriority(-1)]
+		public static JsonArray CreateReadOnly(IEnumerable<JsonValue?> values)
+		{
+			Contract.NotNull(values);
+
+			return values.TryGetNonEnumeratedCount(out var count) && count == 0
+				? EmptyReadOnly
+				: new JsonArray().AddRangeReadOnly(values).FreezeUnsafe();
+		}
+
+#endif
+
 		#endregion
 
 		#endregion
@@ -454,31 +563,47 @@ namespace Doxense.Serialization.Json
 
 		#region Mutable...
 
-		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <summary>Creates a new JsonArray using a list of elements</summary>
 		/// <param name="values">Elements of the new array</param>
 		[Pure]
+#if NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please use JsonArray.Create() instead")]
+#else
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
 		public static JsonArray Copy(ReadOnlySpan<JsonValue> values)
 		{
 			return new JsonArray().AddRange(values!);
 		}
 
-		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <summary>Creates a new JsonArray using a list of elements</summary>
 		/// <param name="values">Elements of the new array</param>
 		[Pure]
+#if NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please use JsonArray.Create() instead")]
+#else
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
 		public static JsonArray Copy(JsonValue[] values)
 		{
 			Contract.NotNull(values);
-			return new JsonArray().AddRange(values.AsSpan()!);
+			return new JsonArray().AddRange(new ReadOnlySpan<JsonValue?>(values));
 		}
 
-		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <summary>Creates a new JsonArray using a list of elements</summary>
 		/// <param name="values">Elements of the new array</param>
 		[Pure]
+#if NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please use JsonArray.Create() instead")]
+#else
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
 		public static JsonArray Copy(IEnumerable<JsonValue?> values)
 		{
+			Contract.NotNull(values);
 			return new JsonArray().AddRange(values);
 		}
 
@@ -486,23 +611,40 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
-		/// <summary>Create a new JsonArray from a list of elements</summary>
+		/// <summary>Creates a new JsonArray from a list of elements</summary>
 		[Pure]
+#if NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please use JsonArray.Create() instead")]
+#else
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
 		public static JsonArray CopyReadOnly(ReadOnlySpan<JsonValue> items)
 		{
 			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items!).FreezeUnsafe();
 		}
 
-		/// <summary>Create a new JsonArray from a list of elements</summary>
+		/// <summary>Creates a new JsonArray from a list of elements</summary>
+#if NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please use JsonArray.Create() instead")]
+#else
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
 		public static JsonArray CopyReadOnly(JsonValue[] items)
 		{
 			Contract.NotNull(items);
-			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(items.AsSpan()!).FreezeUnsafe();
+			return items.Length == 0 ? EmptyReadOnly : new JsonArray().AddRangeReadOnly(new ReadOnlySpan<JsonValue?>(items)).FreezeUnsafe();
 		}
 
-		/// <summary>Create a new JsonArray from a list of elements</summary>
+		/// <summary>Creates a new JsonArray from a list of elements</summary>
 		[Pure]
-		[EditorBrowsable(EditorBrowsableState.Always)]
+#if NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please use JsonArray.Create() instead")]
+#else
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
 		public static JsonArray CopyReadOnly(IEnumerable<JsonValue?> items)
 		{
 			Contract.NotNull(items);
@@ -542,7 +684,7 @@ namespace Doxense.Serialization.Json
 		public static JsonArray FromValues<TValue>(TValue[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
-			return new JsonArray().AddValues<TValue>(values.AsSpan(), settings, resolver);
+			return new JsonArray().AddValues<TValue>(new ReadOnlySpan<TValue>(values), settings, resolver);
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
@@ -584,7 +726,7 @@ namespace Doxense.Serialization.Json
 		public static JsonArray FromValues<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
-			return new JsonArray().AddValues(values.AsSpan(), selector, settings, resolver);
+			return new JsonArray().AddValues(new ReadOnlySpan<TItem>(values), selector, settings, resolver);
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
@@ -627,7 +769,7 @@ namespace Doxense.Serialization.Json
 		public static JsonArray FromValuesReadOnly<TValue>(TValue[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
-			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(values.AsSpan(), settings, resolver).FreezeUnsafe();
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(values), settings, resolver).FreezeUnsafe();
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
@@ -672,7 +814,7 @@ namespace Doxense.Serialization.Json
 		public static JsonArray FromValuesReadOnly<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
-			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddValuesReadOnly(values.AsSpan(), selector, settings, resolver).FreezeUnsafe();
+			return values.Length == 0 ? EmptyReadOnly : new JsonArray().AddValuesReadOnly(new ReadOnlySpan<TItem>(values), selector, settings, resolver).FreezeUnsafe();
 		}
 
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
@@ -1021,7 +1163,7 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddRange(JsonValue[] values)
 		{
 			Contract.NotNull(values);
-			return AddRange(values.AsSpan()!);
+			return AddRange(new ReadOnlySpan<JsonValue?>(values));
 		}
 
 		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
@@ -1030,7 +1172,7 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddRange<TSource>(TSource[] values, Func<TSource, JsonValue?> selector)
 		{
 			Contract.NotNull(values);
-			return AddRange(values.AsSpan(), selector);
+			return AddRange(new ReadOnlySpan<TSource>(values), selector);
 		}
 
 		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
@@ -1039,7 +1181,7 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddRangeReadOnly(JsonValue[] values)
 		{
 			Contract.NotNull(values);
-			return AddRangeReadOnly(values.AsSpan()!);
+			return AddRangeReadOnly(new ReadOnlySpan<JsonValue?>(values));
 		}
 
 		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
@@ -1048,12 +1190,15 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddRangeReadOnly<TSource>(TSource[] items, Func<TSource, JsonValue?> selector)
 		{
 			Contract.NotNull(items);
-			return AddRangeReadOnly(items.AsSpan(), selector);
+			return AddRangeReadOnly(new ReadOnlySpan<TSource>(items), selector);
 		}
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
 		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(-1)]
+#endif
 		public JsonArray AddRange(IEnumerable<JsonValue?> values)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1068,7 +1213,7 @@ namespace Doxense.Serialization.Json
 			// Regular Array
 			if (values is JsonValue?[] arr)
 			{ // optimized
-				return AddRange(arr.AsSpan());
+				return AddRange(new ReadOnlySpan<JsonValue?>(arr));
 			}
 
 			// Collection
@@ -1115,7 +1260,7 @@ namespace Doxense.Serialization.Json
 			// Regular Array
 			if (values is TSource[] arr)
 			{ // optimized
-				return AddRange(arr.AsSpan(), selector);
+				return AddRange(new ReadOnlySpan<TSource>(arr), selector);
 			}
 
 			// Collection
@@ -1179,6 +1324,9 @@ namespace Doxense.Serialization.Json
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
 		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(-1)]
+#endif
 		public JsonArray AddRangeReadOnly(IEnumerable<JsonValue?> values)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1193,7 +1341,7 @@ namespace Doxense.Serialization.Json
 			// Regular Array
 			if (values is JsonValue?[] arr)
 			{ // optimized
-				return AddRangeReadOnly(arr.AsSpan());
+				return AddRangeReadOnly(new ReadOnlySpan<JsonValue?>(arr));
 			}
 
 			// Collection
@@ -1325,7 +1473,7 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddValues<TValue>(TValue[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
-			return AddValues<TValue>(items.AsSpan(), settings, resolver);
+			return AddValues<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver);
 		}
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
@@ -1337,7 +1485,7 @@ namespace Doxense.Serialization.Json
 
 			if (items is TValue[] arr)
 			{ // fast path for arrays
-				return AddValues<TValue>(arr.AsSpan(), settings, resolver);
+				return AddValues<TValue>(new ReadOnlySpan<TValue>(arr), settings, resolver);
 			}
 
 			if (items is List<TValue> list)
@@ -1519,7 +1667,7 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddValues<TSource, TValue>(TSource[] items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
-			return AddValues(items.AsSpan(), transform, settings, resolver);
+			return AddValues(new ReadOnlySpan<TSource>(items), transform, settings, resolver);
 		}
 
 		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new <see cref="JsonArray"/></summary>
@@ -1538,7 +1686,7 @@ namespace Doxense.Serialization.Json
 
 			if (items is TSource[] arr)
 			{
-				return AddValues(arr.AsSpan(), transform, settings, resolver);
+				return AddValues(new ReadOnlySpan<TSource>(arr), transform, settings, resolver);
 			}
 
 			if (items is List<TSource> list)
@@ -1714,7 +1862,7 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddValuesReadOnly<TValue>(TValue[] items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
-			return AddValuesReadOnly<TValue>(items.AsSpan(), settings, resolver);
+			return AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver);
 		}
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
@@ -1726,7 +1874,7 @@ namespace Doxense.Serialization.Json
 
 			if (items is TValue[] arr)
 			{ // fast path for arrays
-				return AddValuesReadOnly<TValue>(arr.AsSpan(), settings, resolver);
+				return AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(arr), settings, resolver);
 			}
 
 			if (items is List<TValue> list)
@@ -1907,7 +2055,7 @@ namespace Doxense.Serialization.Json
 		public JsonArray AddValuesReadOnly<TSource, TValue>(TSource[] items, Func<TSource, TValue> transform, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
-			return AddValuesReadOnly(items.AsSpan(), transform, settings, resolver);
+			return AddValuesReadOnly(new ReadOnlySpan<TSource>(items), transform, settings, resolver);
 		}
 
 		/// <summary>Transforms the elements of an <see cref="T:System.Collections.Generic.IEnumerable`1"/> into a new <see cref="JsonArray"/></summary>
@@ -1926,7 +2074,7 @@ namespace Doxense.Serialization.Json
 
 			if (items is TSource[] arr)
 			{
-				return AddValuesReadOnly(arr.AsSpan(), transform, settings, resolver);
+				return AddValuesReadOnly(new ReadOnlySpan<TSource>(arr), transform, settings, resolver);
 			}
 
 			if (items is List<TSource> list)
