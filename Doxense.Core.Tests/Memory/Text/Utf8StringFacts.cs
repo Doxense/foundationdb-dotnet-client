@@ -30,12 +30,9 @@
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 namespace Doxense.Text.Utf8.Tests
 {
-	using System;
 	using System.Linq;
 	using System.Text;
 	using Doxense.Memory.Text;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

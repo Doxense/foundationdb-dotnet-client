@@ -83,9 +83,7 @@ namespace Doxense.Serialization.Json.Tests
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Runtime.Converters;
-	using NUnit.Framework;
 	using NUnit.Framework.Constraints;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

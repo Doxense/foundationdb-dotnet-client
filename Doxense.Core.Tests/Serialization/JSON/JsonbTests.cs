@@ -30,13 +30,10 @@
 
 namespace Doxense.Serialization.Json.Binary.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO.Compression;
 	using System.Linq;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -445,6 +442,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public sealed class FooDb
 		{
 			public required int Version { get; set; }
+
 			public required List<Vendor> Vendors { get; set; }
 
 			public enum DeviceType

@@ -33,7 +33,6 @@
 
 namespace Doxense.Serialization.Json.Tests
 {
-	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -48,8 +47,6 @@ namespace Doxense.Serialization.Json.Tests
 #if ENABLE_NEWTONSOFT
 	using NJ = Newtonsoft.Json;
 #endif
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

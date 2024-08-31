@@ -28,15 +28,12 @@
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace Doxense.Diagnostics.Contracts.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Diagnostics.Contracts;
 	using System.IO;
 	using System.Threading;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 	using Contract = Doxense.Diagnostics.Contracts.Contract;
 
 	/// <summary>Tests sur la classe statique Doxense.Diagnostics.Contracts.Contract</summary>

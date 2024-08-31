@@ -8,11 +8,8 @@
 
 namespace Doxense.Threading.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	public class ExponentialRandomizedBackoffFacts : SimpleTest

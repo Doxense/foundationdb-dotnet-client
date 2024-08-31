@@ -30,12 +30,9 @@
 // ReSharper disable RedundantCast
 namespace Doxense.Core.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

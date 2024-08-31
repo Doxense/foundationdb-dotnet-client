@@ -30,7 +30,6 @@
 // ReSharper disable MethodSupportsCancellation
 namespace Doxense.Linq.Async.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
@@ -40,8 +39,6 @@ namespace Doxense.Linq.Async.Tests
 	using Doxense.Async;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

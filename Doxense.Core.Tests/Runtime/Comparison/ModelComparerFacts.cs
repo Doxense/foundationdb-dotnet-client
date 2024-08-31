@@ -27,10 +27,7 @@
 // ReSharper disable UnusedMember.Global
 namespace Doxense.Runtime.Comparison.Tests
 {
-	using System;
 	using System.Collections.Generic;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

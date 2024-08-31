@@ -26,12 +26,9 @@
 
 namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all perf history in TeamCity!
 {
-	using NUnit.Framework;
-	using System;
 	using System.Linq;
 	using System.Text;
 	using Doxense.Memory;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

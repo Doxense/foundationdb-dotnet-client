@@ -26,10 +26,6 @@
 
 namespace Doxense.Runtime.Converters.Tests
 {
-	using System;
-	using NUnit.Framework;
-	using SnowBank.Testing;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	public class ConversionFacts : SimpleTest

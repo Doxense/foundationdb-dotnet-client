@@ -28,11 +28,8 @@
 // ReSharper disable StringLiteralTypo
 namespace Doxense.Tools.Tests
 {
-	using System;
 	using System.Globalization;
-	using NUnit.Framework;
 	using Doxense.Serialization;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

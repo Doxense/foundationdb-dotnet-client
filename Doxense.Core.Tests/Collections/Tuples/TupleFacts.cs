@@ -33,8 +33,6 @@ namespace Doxense.Collections.Tuples.Tests
 	using System.Net;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Runtime.Converters;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

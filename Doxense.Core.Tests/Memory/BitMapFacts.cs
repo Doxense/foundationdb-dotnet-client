@@ -28,12 +28,9 @@
 // ReSharper disable UseObjectOrCollectionInitializer
 namespace Doxense.IO.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using Doxense.Memory;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	/// <summary>Actor that pushes messages around until a counter reaches 0</summary>
 	[TestFixture]

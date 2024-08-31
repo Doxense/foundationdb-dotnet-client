@@ -26,10 +26,7 @@
 
 namespace Doxense.Serialization.Json.Tests
 {
-	using System;
 	using JetBrains.Annotations;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	public sealed class JsonPathFacts : SimpleTest

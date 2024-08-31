@@ -26,10 +26,6 @@
 
 namespace Doxense.Serialization.Tests
 {
-	using System;
-	using NUnit.Framework;
-	using SnowBank.Testing;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	public class Base62EncodingTest : SimpleTest

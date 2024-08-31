@@ -26,14 +26,11 @@
 
 namespace Doxense.Linq.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.Linq;
 	using System.Runtime.InteropServices;
 	using Doxense.Memory;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 	using ZstdSharp.Unsafe;
 
 	[TestFixture]

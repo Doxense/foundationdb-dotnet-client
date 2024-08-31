@@ -26,11 +26,8 @@
 
 namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
 {
-	using System;
 	using System.Text;
 	using Doxense.Memory;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

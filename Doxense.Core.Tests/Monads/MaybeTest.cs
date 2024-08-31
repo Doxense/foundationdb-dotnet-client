@@ -28,10 +28,8 @@
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace Doxense.Monads.Tests
 {
-	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using NUnit.Framework;
 
 	/// <summary>Tests sur l'objet DynamicCache</summary>
 	[TestFixture]

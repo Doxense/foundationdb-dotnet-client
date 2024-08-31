@@ -26,7 +26,6 @@
 
 namespace Doxense.Testing
 {
-	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;

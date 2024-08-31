@@ -31,7 +31,6 @@
 
 namespace Doxense.Collections.Tuples.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
@@ -39,8 +38,6 @@ namespace Doxense.Collections.Tuples.Tests
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics;
 	using Doxense.Serialization;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -28,10 +28,8 @@
 // ReSharper disable MemberHidesStaticFromOuterClass
 namespace Doxense.Runtime.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using Doxense.Serialization;
-	using NUnit.Framework;
 
 	[TestFixture]
 	[Category("Core-SDK")]

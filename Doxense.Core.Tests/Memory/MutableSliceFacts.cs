@@ -30,11 +30,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 {
 	//README:IMPORTANT! This source file is expected to be stored as UTF-8! If the encoding is changed, some tests below may fail because they rely on specific code points!
 
-	using System;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Text;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -29,15 +29,12 @@
 #pragma warning disable CS0618 // Type or member is obsolete
 namespace Doxense.Tools.Tests
 {
-	using System;
 	using System.Buffers.Binary;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Text;
 	using Doxense.IO.Hashing;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	/// <summary>Tests sur la classe statique KTL</summary>
 	[TestFixture]
