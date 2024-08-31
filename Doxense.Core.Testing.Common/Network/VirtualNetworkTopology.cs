@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if NET8_0_OR_GREATER
+
 namespace Doxense.Networking
 {
 	using System.Diagnostics;
@@ -688,3 +690,5 @@ namespace Doxense.Networking
 	}
 
 }
+
+#endif

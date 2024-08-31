@@ -169,6 +169,8 @@ namespace Doxense.Slices.Tests
 			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("GH")));
 		}
 
+#if NET8_0_OR_GREATER
+
 		[Test]
 		public void Test_ReadFixed128()
 		{
@@ -182,6 +184,8 @@ namespace Doxense.Slices.Tests
 			Assert.That(reader.Position, Is.EqualTo(32));
 			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("WXYZabcdef")));
 		}
+
+#endif
 
 		[Test]
 		public void Test_ReadUuid64()

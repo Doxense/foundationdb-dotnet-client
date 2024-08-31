@@ -1080,6 +1080,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 		#region Little-Endian
 
+#if NET8_0_OR_GREATER
+
 		[Test]
 		public void Test_Slice_FromInt128()
 		{
@@ -1279,6 +1281,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(() => MutateCount(x, 17).ToInt128(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null!).ToInt128(), Throws.InstanceOf<FormatException>());
 		}
+
+#endif
 
 		#endregion
 
@@ -1566,6 +1570,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(() => MutateArray(x, null!).ToUInt64(), Throws.InstanceOf<FormatException>());
 		}
 
+#if NET8_0_OR_GREATER
+
 		[Test]
 		public void Test_Slice_ToUInt128()
 		{
@@ -1632,6 +1638,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(() => MutateCount(x, 17).ToUInt128(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null!).ToUInt128(), Throws.InstanceOf<FormatException>());
 		}
+
+#endif
 
 		[Test]
 		public void Test_Slice_FromUInt64BE()

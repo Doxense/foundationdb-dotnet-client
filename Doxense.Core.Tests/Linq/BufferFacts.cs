@@ -423,7 +423,11 @@ namespace Doxense.Linq.Tests
 			}
 
 			var list = new List<int>();
+#if NET8_0_OR_GREATER
 			buffer.ForEachSegments(list, static (l, chunk) => l.AddRange(chunk.Span));
+#else
+			buffer.ForEachSegments(list, static (l, chunk) => l.AddRange(chunk.Span.ToArray()));
+#endif
 			Assert.That(list, Is.EqualTo(Enumerable.Range(0, 100)));
 
 			list.Clear();

@@ -4434,6 +4434,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		//TODO: INumber<T> divisions
 
+#if NET8_0_OR_GREATER
+
 		[Test]
 		public void Test_JsonNumber_Can_By_Used_With_Generic_Arithmethic()
 		{
@@ -4453,6 +4455,8 @@ namespace Doxense.Serialization.Json.Tests
 			_ = y--;
 			_ = --y;
 		}
+
+#endif
 
 		#endregion
 
@@ -9997,8 +10001,13 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				// Don't try this at home!
 				int p = xy.IndexOf(':', StringComparison.Ordinal);
+#if NET8_0_OR_GREATER
 				this.X = int.Parse(xy.AsSpan(0, p), CultureInfo.InvariantCulture);
 				this.Y = int.Parse(xy.AsSpan(p + 1), CultureInfo.InvariantCulture);
+#else
+				this.X = int.Parse(xy.Substring(0, p), CultureInfo.InvariantCulture);
+				this.Y = int.Parse(xy.Substring(p + 1), CultureInfo.InvariantCulture);
+#endif
 			}
 			this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
 		}
@@ -10081,8 +10090,13 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				// Don't try this at home!
 				int p = xy.IndexOf(':', StringComparison.Ordinal);
+#if NET8_0_OR_GREATER
 				this.X = int.Parse(xy.AsSpan(0, p), CultureInfo.InvariantCulture);
 				this.Y = int.Parse(xy.AsSpan(p + 1), CultureInfo.InvariantCulture);
+#else
+				this.X = int.Parse(xy.Substring(0, p), CultureInfo.InvariantCulture);
+				this.Y = int.Parse(xy.Substring(p + 1), CultureInfo.InvariantCulture);
+#endif
 			}
 			this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
 		}
@@ -10148,8 +10162,13 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				// Don't try this at home!
 				int p = xy.IndexOf(':', StringComparison.Ordinal);
+#if NET8_0_OR_GREATER
 				this.X = int.Parse(xy.AsSpan(0, p), CultureInfo.InvariantCulture);
 				this.Y = int.Parse(xy.AsSpan(p + 1), CultureInfo.InvariantCulture);
+#else
+				this.X = int.Parse(xy.Substring(0, p), CultureInfo.InvariantCulture);
+				this.Y = int.Parse(xy.Substring(p + 1), CultureInfo.InvariantCulture);
+#endif
 			}
 			else
 			{

@@ -328,6 +328,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			PerformWriterTest<long>(Test, long.MinValue, "80 00 00 00 00 00 00 00");
 		}
 
+#if NET8_0_OR_GREATER
+
 		[Test]
 		public void Test_WriteFixed128_Unsigned()
 		{
@@ -349,6 +351,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			PerformWriterTest<UInt128>(Test, UInt128.MaxValue, "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF");
 		}
 
+#endif
 
 		[Test]
 		public void Test_WriteVarint32()
@@ -400,6 +403,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			PerformWriterTest(Test, ulong.MaxValue, "FF FF FF FF FF FF FF FF FF 01");
 		}
 
+#if NET8_0_OR_GREATER
+
 		[Test]
 		public void Test_WriteVarint128()
 		{
@@ -430,6 +435,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			PerformWriterTest(Test, (UInt128) ulong.MaxValue, "FF FF FF FF FF FF FF FF FF 01");
 			PerformWriterTest(Test, UInt128.MaxValue, "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 03");
 		}
+
+#endif
 
 		[Test]
 		public void Test_WriteVarBytes()

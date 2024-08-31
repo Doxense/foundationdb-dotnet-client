@@ -356,6 +356,8 @@ namespace Doxense.Serialization.Json.Tests
 			ShouldNotBeChild("foo\\.bar.baz", "foo");
 		}
 
+#if NET8_0_OR_GREATER
+
 		[Test]
 		public void Test_JsonPath_GetCommonAncestor()
 		{
@@ -427,6 +429,8 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 		}
+
+#endif
 
 		[Test]
 		public void Test_JsonPath_Tokenizer()
