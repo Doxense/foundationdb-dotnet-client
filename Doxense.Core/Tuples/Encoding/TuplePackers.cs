@@ -3039,12 +3039,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			return token;
 		}
 
-		/// <summary>Only returns the first N items of a packed tuple, without decoding them.</summary>
+		/// <summary>Only returns the first N items of a packed tuple, without deserializing them.</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 3 elements</param>
 		/// <param name="tokens">Raw slice corresponding to the third element from the end of the tuple</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <param name="error">Receives an exception if the parsing failed</param>
-		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
-		public static bool TryUnpackFirst(ReadOnlySpan<byte> buffer, Span<Range> tokens, out Exception? error)
+		/// <returns><see langword="true"/> if the buffer was successfully parsed and has the expected size</returns>
+		/// <remarks>If <paramref name="expectedSize"/> is <see langword="null"/>, this will not attempt to decode the rest of the tuple and will not observe any invalid or corrupted data.</remarks>
+		public static bool TryUnpackFirst(ReadOnlySpan<byte> buffer, Span<Range> tokens, int? expectedSize, out Exception? error)
 		{
 			var reader = new TupleReader(buffer);
 
@@ -3052,8 +3054,26 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				if (!TupleParser.TryParseNext(ref reader, out tokens[i], out error))
 				{
-					tokens.Clear();
 					error ??= new InvalidOperationException("Tuple has less elements than expected.");
+					return false;
+				}
+			}
+
+			if (expectedSize != null)
+			{ // we have to continue parsing, to compute the actual size!
+
+				for (int i = tokens.Length; i < expectedSize.Value; i++)
+				{
+					if (!TupleParser.TryParseNext(ref reader, out _, out error))
+					{
+						error ??= new InvalidOperationException("Tuple has less elements than expected.");
+						return false;
+					}
+				}
+				// should not have any more !
+				if (reader.HasMore)
+				{
+					error = new InvalidOperationException("Tuple has more elements than expected.");
 					return false;
 				}
 			}
@@ -3062,38 +3082,15 @@ namespace Doxense.Collections.Tuples.Encoding
 			return true; 
 		}
 
-		/// <summary>Only returns the last item of a packed tuple</summary>
-		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
-		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
-		public static Range UnpackLast(ReadOnlySpan<byte> buffer)
-		{
-			Range item = default;
-			var reader = new TupleReader(buffer);
-			while (true)
-			{
-				if (!TupleParser.TryParseNext(ref reader, out var token, out var error))
-				{
-					if (error != null) throw error;
-					break;
-				}
-				item = token;
-			}
-
-			if (item.Equals(default) || reader.HasMore)
-			{
-				throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
-			}
-
-			return item;
-		}
-
 		/// <summary>Only returns the last N items of a packed tuple, without decoding them.</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 3 elements</param>
 		/// <param name="tokens">Array that will receive the last N raw slice corresponding to the each of the last N elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <param name="error">Receive an exception if the parsing failed</param>
-		/// <returns><c>true</c> if the buffer was successfully unpacked</returns>
-		public static bool TryUnpackLast(ReadOnlySpan<byte> buffer, Span<Range> tokens, out Exception? error)
+		/// <returns><see langword="true"/> if the buffer was successfully parsed and has the expected size</returns>
+		public static bool TryUnpackLast(ReadOnlySpan<byte> buffer, Span<Range> tokens, int? expectedSize, out Exception? error)
 		{
+			error = null;
 			var reader = new TupleReader(buffer);
 
 			int n = 0;
@@ -3133,7 +3130,13 @@ namespace Doxense.Collections.Tuples.Encoding
 				return false;
 			}
 
-			error = null;
+			if (expectedSize != null && n != expectedSize.Value)
+			{
+				error = new InvalidOperationException($"Expected a tuple of size {expectedSize.Value}, but decoded only {n} elements");
+				tokens.Clear();
+				return false;
+			}
+
 			return true;
 		}
 

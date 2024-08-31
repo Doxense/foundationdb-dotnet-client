@@ -143,7 +143,10 @@ namespace Doxense.Collections.Tuples
 		#region Creation
 
 		/// <summary>Create a new empty tuple with 0 elements</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple Create()
 		{
 			//note: redundant with STuple.Empty, but is here to fit nicely with the other Create<T...> overloads
@@ -151,49 +154,67 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
 		public static STuple<T1> Create<T1>(T1 item1)
 		{
 			return new STuple<T1>(item1);
 		}
 
 		/// <summary>Create a new 2-tuple, holding two items</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
 		{
 			return new STuple<T1, T2>(item1, item2);
 		}
 
 		/// <summary>Create a new 3-tuple, holding three items</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			return new STuple<T1, T2, T3>(item1, item2, item3);
 		}
 
 		/// <summary>Create a new 4-tuple, holding four items</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return new STuple<T1, T2, T3, T4>(item1, item2, item3, item4);
 		}
 
 		/// <summary>Create a new 5-tuple, holding five items</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Create a new 6-tuple, holding six items</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Create a new 7-tuple, holding seven items</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6, T7>(item1, item2, item3, item4, item5, item6, item7);
@@ -203,7 +224,11 @@ namespace Doxense.Collections.Tuples
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
 		[Pure]
+#if NET9_0_OR_GREATER
+		public static IVarTuple Create(object?[] items)
+#else
 		public static IVarTuple Create(params object?[] items)
+#endif
 		{
 			Contract.NotNull(items);
 
@@ -213,6 +238,24 @@ namespace Doxense.Collections.Tuples
 
 			// We don't copy the array, and rely on the fact that the array was created by the compiler and that nobody will get a reference on it.
 			return new ListTuple<object?>(items.AsMemory());
+		}
+
+		/// <summary>Create a new N-tuple, from N items</summary>
+		/// <param name="items">Items to wrap in a tuple</param>
+		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
+		[Pure]
+#if NET9_0_OR_GREATER
+		public static IVarTuple Create(params ReadOnlySpan<object?> items)
+#else
+		public static IVarTuple Create(ReadOnlySpan<object?> items)
+#endif
+		{
+			//note: this is a convenience method for people that wants to pass more than 3 args arguments, and not have to call CreateRange(object[]) method
+
+			if (items.Length == 0) return STuple.Empty;
+
+			// We don't copy the array, and rely on the fact that the array was created by the compiler and that nobody will get a reference on it.
+			return new ListTuple<object?>(items.ToArray());
 		}
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
@@ -435,74 +478,110 @@ namespace Doxense.Collections.Tuples
 			return new STuple<T1>(tuple.Item1);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2> Create<T1, T2>((T1, T2) tuple)
 		{
 			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2> Create<T1, T2>(ref (T1, T2) tuple)
 		{
 			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>((T1, T2, T3) tuple)
 		{
 			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>(ref (T1, T2, T3) tuple)
 		{
 			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 		{
 			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(ref (T1, T2, T3, T4) tuple)
 		{
 			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(ref (T1, T2, T3, T4, T5) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(ref (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>(ref (T1, T2, T3, T4, T5, T6, T7) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);

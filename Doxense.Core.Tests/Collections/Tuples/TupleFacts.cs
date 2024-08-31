@@ -511,7 +511,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_Many()
 		{
 			// ReSharper disable once RedundantExplicitParamsArrayCreation
-			IVarTuple tn = STuple.Create(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI });
+			IVarTuple tn = STuple.Create((object[]) [ "hello world", 123, false, 1234L, -1234, "six", true, Math.PI ]);
 			Assert.That(tn.Count, Is.EqualTo(8));
 			Assert.That(tn.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(tn.Get<int>(1), Is.EqualTo(123));
@@ -700,101 +700,143 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_Tuple_Negative_Indexing()
 		{
-			var t1 = STuple.Create("hello world");
-			Assert.That(t1.Get<string>(-1), Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t1)[-1], Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t1)[^1], Is.EqualTo("hello world"));
+			//note: we would like to phase out negative indexing in the future, but for now we have to still support and test it!
 
-			var t2 = STuple.Create("hello world", 123);
-			Assert.That(t2.Get<int>(-1), Is.EqualTo(123));
-			Assert.That(t2.Get<string>(-2), Is.EqualTo("hello world"));
-			Assert.That(t2.Get<int>(^1), Is.EqualTo(123));
-			Assert.That(t2.Get<string>(^2), Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t2)[-1], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t2)[-2], Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t2)[^1], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t2)[^2], Is.EqualTo("hello world"));
+			{
+				var t1 = STuple.Create("hello world");
+				Assert.That(t1.Get<string>(-1), Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t1)[-1], Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t1)[^1], Is.EqualTo("hello world"));
+			}
 
-			var t3 = STuple.Create("hello world", 123, false);
-			Assert.That(t3.Get<bool>(-1), Is.False);
-			Assert.That(t3.Get<int>(-2), Is.EqualTo(123));
-			Assert.That(t3.Get<String>(-3), Is.EqualTo("hello world"));
-			Assert.That(t3.Get<bool>(^1), Is.False);
-			Assert.That(t3.Get<int>(^2), Is.EqualTo(123));
-			Assert.That(t3.Get<String>(^3), Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t3)[-1], Is.False);
-			Assert.That(((IVarTuple) t3)[-2], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t3)[-3], Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t3)[^1], Is.False);
-			Assert.That(((IVarTuple) t3)[^2], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t3)[^3], Is.EqualTo("hello world"));
+			{
+				var t2 = STuple.Create("hello world", 123);
+				Assert.That(t2.Get<int>(-1), Is.EqualTo(123));
+				Assert.That(t2.Get<string>(-2), Is.EqualTo("hello world"));
+				Assert.That(t2.Get<int>(^1), Is.EqualTo(123));
+				Assert.That(t2.Get<string>(^2), Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t2)[-1], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t2)[-2], Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t2)[^1], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t2)[^2], Is.EqualTo("hello world"));
+			}
 
-			var t4 = STuple.Create("hello world", 123, false, 1234L);
-			Assert.That(t4.Get<long>(-1), Is.EqualTo(1234L));
-			Assert.That(t4.Get<bool>(-2), Is.False);
-			Assert.That(t4.Get<int>(-3), Is.EqualTo(123));
-			Assert.That(t4.Get<String>(-4), Is.EqualTo("hello world"));
-			Assert.That(t4.Get<long>(^1), Is.EqualTo(1234L));
-			Assert.That(t4.Get<bool>(^2), Is.False);
-			Assert.That(t4.Get<int>(^3), Is.EqualTo(123));
-			Assert.That(t4.Get<String>(^4), Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t4)[-1], Is.EqualTo(1234L));
-			Assert.That(((IVarTuple) t4)[-2], Is.False);
-			Assert.That(((IVarTuple) t4)[-3], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t4)[-4], Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t4)[^1], Is.EqualTo(1234L));
-			Assert.That(((IVarTuple) t4)[^2], Is.False);
-			Assert.That(((IVarTuple) t4)[^3], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t4)[^4], Is.EqualTo("hello world"));
+			{
+				var t3 = STuple.Create("hello world", 123, false);
+				Assert.That(t3.Get<bool>(-1), Is.False);
+				Assert.That(t3.Get<int>(-2), Is.EqualTo(123));
+				Assert.That(t3.Get<string>(-3), Is.EqualTo("hello world"));
+				Assert.That(t3.Get<bool>(^1), Is.False);
+				Assert.That(t3.Get<int>(^2), Is.EqualTo(123));
+				Assert.That(t3.Get<string>(^3), Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t3)[-1], Is.False);
+				Assert.That(((IVarTuple) t3)[-2], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t3)[-3], Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t3)[^1], Is.False);
+				Assert.That(((IVarTuple) t3)[^2], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t3)[^3], Is.EqualTo("hello world"));
+			}
 
-			var t5 = STuple.Create("hello world", 123, false, 1234L, -1234);
-			Assert.That(t5.Get<long>(-1), Is.EqualTo(-1234));
-			Assert.That(t5.Get<long>(-2), Is.EqualTo(1234L));
-			Assert.That(t5.Get<bool>(-3), Is.False);
-			Assert.That(t5.Get<int>(-4), Is.EqualTo(123));
-			Assert.That(t5.Get<String>(-5), Is.EqualTo("hello world"));
-			Assert.That(t5.Get<long>(^1), Is.EqualTo(-1234));
-			Assert.That(t5.Get<long>(^2), Is.EqualTo(1234L));
-			Assert.That(t5.Get<bool>(^3), Is.False);
-			Assert.That(t5.Get<int>(^4), Is.EqualTo(123));
-			Assert.That(t5.Get<String>(^5), Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t5)[-1], Is.EqualTo(-1234));
-			Assert.That(((IVarTuple) t5)[-2], Is.EqualTo(1234L));
-			Assert.That(((IVarTuple) t5)[-3], Is.False);
-			Assert.That(((IVarTuple) t5)[-4], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t5)[-5], Is.EqualTo("hello world"));
-			Assert.That(((IVarTuple) t5)[^1], Is.EqualTo(-1234));
-			Assert.That(((IVarTuple) t5)[^2], Is.EqualTo(1234L));
-			Assert.That(((IVarTuple) t5)[^3], Is.False);
-			Assert.That(((IVarTuple) t5)[^4], Is.EqualTo(123));
-			Assert.That(((IVarTuple) t5)[^5], Is.EqualTo("hello world"));
+			{
+				var t4 = STuple.Create("hello world", 123, false, 1234L);
+				Assert.That(t4.Get<long>(-1), Is.EqualTo(1234L));
+				Assert.That(t4.Get<bool>(-2), Is.False);
+				Assert.That(t4.Get<int>(-3), Is.EqualTo(123));
+				Assert.That(t4.Get<String>(-4), Is.EqualTo("hello world"));
+				Assert.That(t4.Get<long>(^1), Is.EqualTo(1234L));
+				Assert.That(t4.Get<bool>(^2), Is.False);
+				Assert.That(t4.Get<int>(^3), Is.EqualTo(123));
+				Assert.That(t4.Get<String>(^4), Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t4)[-1], Is.EqualTo(1234L));
+				Assert.That(((IVarTuple) t4)[-2], Is.False);
+				Assert.That(((IVarTuple) t4)[-3], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t4)[-4], Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t4)[^1], Is.EqualTo(1234L));
+				Assert.That(((IVarTuple) t4)[^2], Is.False);
+				Assert.That(((IVarTuple) t4)[^3], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t4)[^4], Is.EqualTo("hello world"));
+			}
 
-			// ReSharper disable once RedundantExplicitParamsArrayCreation
-			var tn = STuple.Create(new object[] { "hello world", 123, false, 1234, -1234, "six" });
-			Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
-			Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
-			Assert.That(tn.Get<long>(-3), Is.EqualTo(1234));
-			Assert.That(tn.Get<bool>(-4), Is.False);
-			Assert.That(tn.Get<int>(-5), Is.EqualTo(123));
-			Assert.That(tn.Get<string>(-6), Is.EqualTo("hello world"));
-			Assert.That(tn.Get<string>(^1), Is.EqualTo("six"));
-			Assert.That(tn.Get<int>(^2), Is.EqualTo(-1234));
-			Assert.That(tn.Get<long>(^3), Is.EqualTo(1234));
-			Assert.That(tn.Get<bool>(^4), Is.False);
-			Assert.That(tn.Get<int>(^5), Is.EqualTo(123));
-			Assert.That(tn.Get<string>(^6), Is.EqualTo("hello world"));
-			Assert.That(tn[-1], Is.EqualTo("six"));
-			Assert.That(tn[-2], Is.EqualTo(-1234));
-			Assert.That(tn[-3], Is.EqualTo(1234));
-			Assert.That(tn[-4], Is.False);
-			Assert.That(tn[-5], Is.EqualTo(123));
-			Assert.That(tn[-6], Is.EqualTo("hello world"));
-			Assert.That(tn[^1], Is.EqualTo("six"));
-			Assert.That(tn[^2], Is.EqualTo(-1234));
-			Assert.That(tn[^3], Is.EqualTo(1234));
-			Assert.That(tn[^4], Is.False);
-			Assert.That(tn[^5], Is.EqualTo(123));
-			Assert.That(tn[^6], Is.EqualTo("hello world"));
+			{
+				var t5 = STuple.Create("hello world", 123, false, 1234L, -1234);
+				Assert.That(t5.Get<long>(-1), Is.EqualTo(-1234));
+				Assert.That(t5.Get<long>(-2), Is.EqualTo(1234L));
+				Assert.That(t5.Get<bool>(-3), Is.False);
+				Assert.That(t5.Get<int>(-4), Is.EqualTo(123));
+				Assert.That(t5.Get<String>(-5), Is.EqualTo("hello world"));
+				Assert.That(t5.Get<long>(^1), Is.EqualTo(-1234));
+				Assert.That(t5.Get<long>(^2), Is.EqualTo(1234L));
+				Assert.That(t5.Get<bool>(^3), Is.False);
+				Assert.That(t5.Get<int>(^4), Is.EqualTo(123));
+				Assert.That(t5.Get<String>(^5), Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t5)[-1], Is.EqualTo(-1234));
+				Assert.That(((IVarTuple) t5)[-2], Is.EqualTo(1234L));
+				Assert.That(((IVarTuple) t5)[-3], Is.False);
+				Assert.That(((IVarTuple) t5)[-4], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t5)[-5], Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t5)[^1], Is.EqualTo(-1234));
+				Assert.That(((IVarTuple) t5)[^2], Is.EqualTo(1234L));
+				Assert.That(((IVarTuple) t5)[^3], Is.False);
+				Assert.That(((IVarTuple) t5)[^4], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t5)[^5], Is.EqualTo("hello world"));
+			}
+
+			{
+				var tn = STuple.Create((object[]) [ "hello world", 123, false, 1234, -1234, "six" ]);
+				Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
+				Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
+				Assert.That(tn.Get<long>(-3), Is.EqualTo(1234));
+				Assert.That(tn.Get<bool>(-4), Is.False);
+				Assert.That(tn.Get<int>(-5), Is.EqualTo(123));
+				Assert.That(tn.Get<string>(-6), Is.EqualTo("hello world"));
+				Assert.That(tn.Get<string>(^1), Is.EqualTo("six"));
+				Assert.That(tn.Get<int>(^2), Is.EqualTo(-1234));
+				Assert.That(tn.Get<long>(^3), Is.EqualTo(1234));
+				Assert.That(tn.Get<bool>(^4), Is.False);
+				Assert.That(tn.Get<int>(^5), Is.EqualTo(123));
+				Assert.That(tn.Get<string>(^6), Is.EqualTo("hello world"));
+				Assert.That(tn[-1], Is.EqualTo("six"));
+				Assert.That(tn[-2], Is.EqualTo(-1234));
+				Assert.That(tn[-3], Is.EqualTo(1234));
+				Assert.That(tn[-4], Is.False);
+				Assert.That(tn[-5], Is.EqualTo(123));
+				Assert.That(tn[-6], Is.EqualTo("hello world"));
+				Assert.That(tn[^1], Is.EqualTo("six"));
+				Assert.That(tn[^2], Is.EqualTo(-1234));
+				Assert.That(tn[^3], Is.EqualTo(1234));
+				Assert.That(tn[^4], Is.False);
+				Assert.That(tn[^5], Is.EqualTo(123));
+				Assert.That(tn[^6], Is.EqualTo("hello world"));
+			}
+
+			{
+				var tn = STuple.Create([ "hello world", 123, false, 1234, -1234, "six" ]);
+				Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
+				Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
+				Assert.That(tn.Get<long>(-3), Is.EqualTo(1234));
+				Assert.That(tn.Get<bool>(-4), Is.False);
+				Assert.That(tn.Get<int>(-5), Is.EqualTo(123));
+				Assert.That(tn.Get<string>(-6), Is.EqualTo("hello world"));
+				Assert.That(tn.Get<string>(^1), Is.EqualTo("six"));
+				Assert.That(tn.Get<int>(^2), Is.EqualTo(-1234));
+				Assert.That(tn.Get<long>(^3), Is.EqualTo(1234));
+				Assert.That(tn.Get<bool>(^4), Is.False);
+				Assert.That(tn.Get<int>(^5), Is.EqualTo(123));
+				Assert.That(tn.Get<string>(^6), Is.EqualTo("hello world"));
+				Assert.That(tn[-1], Is.EqualTo("six"));
+				Assert.That(tn[-2], Is.EqualTo(-1234));
+				Assert.That(tn[-3], Is.EqualTo(1234));
+				Assert.That(tn[-4], Is.False);
+				Assert.That(tn[-5], Is.EqualTo(123));
+				Assert.That(tn[-6], Is.EqualTo("hello world"));
+				Assert.That(tn[^1], Is.EqualTo("six"));
+				Assert.That(tn[^2], Is.EqualTo(-1234));
+				Assert.That(tn[^3], Is.EqualTo(1234));
+				Assert.That(tn[^4], Is.False);
+				Assert.That(tn[^5], Is.EqualTo(123));
+				Assert.That(tn[^6], Is.EqualTo("hello world"));
+			}
+
 		}
 
 		[Test]
@@ -1678,13 +1720,17 @@ namespace Doxense.Collections.Tuples.Tests
 			// same type equality
 			AssertEquality(t1, t2);
 
-			var t3 = STuple.Create(new object[] { 1, 2 });
-			// other tuple type equality
+			var t3 = STuple.Create((object[]) [ 1, 2 ]);
+			// boxed array
 			AssertEquality(t1, t3);
 
-			var t4 = STuple.Create(1).Append(2);
-			// multi step
+			var t4 = STuple.Create([ 1, 2 ]);
+			// collection expression
 			AssertEquality(t1, t4);
+
+			var t5 = STuple.Create(1).Append(2);
+			// multi step
+			AssertEquality(t1, t5);
 		}
 
 		[Test]

@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Encoders
 {
 	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Collections.Tuples;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>
@@ -158,11 +159,22 @@ namespace Doxense.Serialization.Encoders
 		/// <returns>Tuple of any size (0 to N)</returns>
 		IVarTuple UnpackKey(Slice packed);
 
+		/// <summary>Decode a binary slice into a tuple of arbitrary length</summary>
+		/// <param name="packed">Binary slice produced by a previous call to <see cref="PackKey{TTuple}"/></param>
+		/// <returns>Tuple of any size (0 to N)</returns>
+		SpanTuple UnpackKey(ReadOnlySpan<byte> packed);
+
 		/// <summary>Attempt to decode a binary slice into a tuple of arbitrary length</summary>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="PackKey{TTuple}"/></param>
 		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
 		/// <returns>True if <paramref name="packed"/> was a legal binary representation; otherwise, false.</returns>
 		bool TryUnpackKey(Slice packed, [NotNullWhen(true)] out IVarTuple? tuple);
+
+		/// <summary>Attempt to decode a binary slice into a tuple of arbitrary length</summary>
+		/// <param name="packed">Binary slice produced by a previous call to <see cref="PackKey{TTuple}"/></param>
+		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
+		/// <returns>True if <paramref name="packed"/> was a legal binary representation; otherwise, false.</returns>
+		bool TryUnpackKey(ReadOnlySpan<byte> packed, out SpanTuple tuple);
 
 		/// <summary>Decode a binary slice containing exactly on element</summary>
 		/// <typeparam name="T">Expected type of the element</typeparam>
@@ -320,27 +332,27 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded value of first element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T1? DecodeKeyFirst<T1>(Slice packed);
+		T1? DecodeKeyFirst<T1>(Slice packed, int? expectedSize = null);
 
 		/// <summary>Decode the first element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded value of first element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T1? DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed);
+		T1? DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		/// <summary>Decode the first 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 2 elements.</param>
 		/// <returns>Decoded values of the first 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed);
+		(T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed, int? expectedSize = null);
 
 		/// <summary>Decode the first 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 2 elements.</param>
 		/// <returns>Decoded values of the first 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed);
+		(T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		/// <summary>Decode the first 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -348,7 +360,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the thrid element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 3 elements.</param>
 		/// <returns>Decoded values of the first 3 elements, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed);
+		(T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed, int? expectedSize = null);
 
 		/// <summary>Decode the first 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -356,33 +368,34 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the thrid element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 3 elements.</param>
 		/// <returns>Decoded values of the first 3 elements, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed);
+		(T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		/// <summary>Decode the last element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded value of the last element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T? DecodeKeyLast<T>(Slice packed);
+		T? DecodeKeyLast<T>(Slice packed, int? expectedSize = null);
 
 		/// <summary>Decode the last element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded value of the last element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T? DecodeKeyLast<T>(ReadOnlySpan<byte> packed);
+		T? DecodeKeyLast<T>(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		/// <summary>Decode the last 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the second to last element</typeparam>
 		/// <typeparam name="T2">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded values of the last 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed);
+		(T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed, int? expectedSize = null);
 
 		/// <summary>Decode the last 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the second to last element</typeparam>
 		/// <typeparam name="T2">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded values of the last 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed);
+		/// <param name="expectedSize">If non-null, specifies the expected size of the decoded tuple (at least 2)</param>
+		/// <returns>Decoded values of the last 2 elements. Throws an exception if the data is invalid, the encoded tuple has less than 2 elements, or a size different than <param name="expectedSize"></param> (if specified).</returns>
+		(T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		/// <summary>Decode the last 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the third to last element</typeparam>
@@ -390,7 +403,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded values of the last 3 element, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed);
+		(T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed, int? expectedSize = null);
 
 		/// <summary>Decode the last 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the third to last element</typeparam>
@@ -398,7 +411,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
 		/// <returns>Decoded values of the last 3 element, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed);
+		(T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		#endregion
 

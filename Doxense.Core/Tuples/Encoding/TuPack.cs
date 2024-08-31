@@ -48,10 +48,18 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<TTuple>(TTuple? tuple)
-			where TTuple : IVarTuple?
+		public static Slice Pack(IVarTuple? tuple)
 		{
 			return TupleEncoder.Pack(tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<TTuple>(in TTuple? tuple)
+			where TTuple : IVarTuple?
+		{
+			return TupleEncoder.Pack(in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -826,10 +834,10 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToRange<TTuple>(TTuple tuple)
 			where TTuple : IVarTuple?
 		{
-			Contract.NotNullAllowStructs(tuple);
+			if (tuple is null) throw Contract.FailArgumentNull(nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.Pack(tuple);
+			var packed = TupleEncoder.Pack(in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -1643,56 +1651,62 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 1 element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeFirst<T1>(Slice packedKey)
-			=> TupleEncoder.DecodeFirst<T1>(packedKey.Span);
+		public static T1? DecodeFirst<T1>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 1 element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeFirst<T1>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeFirst<T1>(packedKey);
+		public static T1? DecodeFirst<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1>(packedKey, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its first 2 elements</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first two elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeFirst<T1, T2>(Slice packedKey)
-			=> TupleEncoder.DecodeFirst<T1, T2>(packedKey.Span);
+		public static (T1?, T2?) DecodeFirst<T1, T2>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1, T2>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its first 2 elements</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first two elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeFirst<T1, T2>(packedKey);
+		public static (T1?, T2?) DecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1, T2>(packedKey, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its first 3 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first three elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(Slice packedKey)
-			=> TupleEncoder.DecodeFirst<T1, T2, T3>(packedKey.Span);
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1, T2, T3>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its first 3 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first three elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeFirst<T1, T2, T3>(packedKey);
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1, T2, T3>(packedKey, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its first 4 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
@@ -1700,10 +1714,11 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
 		/// <typeparam name="T4">Type of the fourth  value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first four elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(Slice packedKey)
-			=> TupleEncoder.DecodeFirst<T1, T2, T3, T4>(packedKey.Span);
+		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1, T2, T3, T4>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its first 4 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
@@ -1711,10 +1726,11 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
 		/// <typeparam name="T4">Type of the fourth  value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first four elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeFirst<T1, T2, T3, T4>(packedKey);
+		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeFirst<T1, T2, T3, T4>(packedKey, expectedSize);
 
 		#endregion
 
@@ -1723,56 +1739,62 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T1">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeLast<T1>(Slice packedKey)
-			=> TupleEncoder.DecodeLast<T1>(packedKey.Span);
+		public static T1? DecodeLast<T1>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T1">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeLast<T1>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeLast<T1>(packedKey);
+		public static T1? DecodeLast<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1>(packedKey, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
 		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeLast<T1, T2>(Slice packedKey)
-			=> TupleEncoder.DecodeLast<T1, T2>(packedKey.Span);
+		public static (T1?, T2?) DecodeLast<T1, T2>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1, T2>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
 		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeLast<T1, T2>(packedKey);
+		public static (T1?, T2?) DecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1, T2>(packedKey, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(Slice packedKey)
-			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey.Span);
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey);
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
 		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
@@ -1780,10 +1802,11 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last four elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(Slice packedKey)
-			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey.Span);
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(Slice packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey.Span, expectedSize);
 
 		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
 		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
@@ -1791,10 +1814,11 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last four elements in the tuple</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
-			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey);
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey, expectedSize);
 
 		#endregion
 
@@ -1806,8 +1830,252 @@ namespace Doxense.Collections.Tuples
 		/// <param name="item1">Last decoded element</param>
 		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1>(Slice packedKey, out T1? item1)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1);
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
+			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1);
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1>(Slice packedKey, int expectedSize, out T1? item1)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1);
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1)
+			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2>(Slice packedKey, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3, T4>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1, out item2, out item3, out item4);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1, out item2, out item3, out item4);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3, T4>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1, out item2, out item3, out item4);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1, out item2, out item3, out item4);
+
+		#endregion
+
+		#region TryDecodeLast...
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1>(Slice packedKey, out T1? item1)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1);
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
-			=> TupleEncoder.TryDecodeLast(packedKey, out item1);
+			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1);
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1>(Slice packedKey, int expectedSize, out T1? item1)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1);
+
+		/// <summary>Unpack a tuple and only return the last element</summary>
+		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <param name="item1">Last decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1)
+			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2>(Slice packedKey, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1, out item2);
 
 		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
 		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
@@ -1818,7 +2086,44 @@ namespace Doxense.Collections.Tuples
 		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2)
-			=> TupleEncoder.TryDecodeLast(packedKey, out item1, out item2);
+			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2)
+			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1, out item2);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1, out item2, out item3);
 
 		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
 		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
@@ -1831,7 +2136,50 @@ namespace Doxense.Collections.Tuples
 		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3)
-			=> TupleEncoder.TryDecodeLast(packedKey, out item1, out item2, out item3);
+			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
+			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1, out item2, out item3);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3, T4>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1, out item2, out item3, out item4);
 
 		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
 		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
@@ -1846,7 +2194,39 @@ namespace Doxense.Collections.Tuples
 		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
-			=> TupleEncoder.TryDecodeLast(packedKey, out item1, out item2, out item3, out item4);
+			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1, out item2, out item3, out item4);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3, T4>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1, out item2, out item3, out item4);
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <param name="expectedSize">Expected size of the decoded tuple</param>
+		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1, out item2, out item3, out item4);
 
 		#endregion
 
@@ -1888,7 +2268,7 @@ namespace Doxense.Collections.Tuples
 		public static bool TryDecodeKey<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
 		{
 			var reader = new TupleReader(packedKey);
-			return TupleEncoder.TryDecodeKey(ref reader, out item1);
+			return TupleEncoder.TryDecodeKey(ref reader, out item1, out _);
 		}
 
 		/// <summary>Unpack a key containing two elements</summary>

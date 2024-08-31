@@ -31,6 +31,8 @@ namespace Doxense.Collections.Tuples
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 
+	using Doxense.Collections.Tuples.Encoding;
+
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
 	[PublicAPI]
 	public static class TupleExtensions
@@ -233,7 +235,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		/// <summary>Verify that this tuple has the expected size</summary>
+		/// <summary>Ensures that the tuple has the expected size</summary>
 		/// <param name="tuple">Tuple which must be of a specific size</param>
 		/// <param name="size">Expected number of items in this tuple</param>
 		/// <returns>The <paramref name="tuple"/> itself it it has the correct size; otherwise, an exception is thrown</returns>
@@ -243,10 +245,35 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TTuple OfSize<TTuple>(this TTuple? tuple, int size) where TTuple : IVarTuple
 		{
-			return tuple != null && tuple.Count == size ? tuple : ThrowInvalidTupleSize(tuple, size, 0);
+			return tuple != null && tuple.Count == size ? tuple : TupleInvalidSize(tuple, size);
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static TTuple TupleInvalidSize(TTuple? tuple, int expected)
+			{
+				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+				throw new InvalidOperationException($"This operation requires a tuple of size {expected}, but this tuple has {tuple.Count} elements");
+			}
 		}
 
-		/// <summary>Verify that this tuple has at least a certain size</summary>
+		/// <summary>Ensures that the tuple has the expected size</summary>
+		/// <param name="tuple">Tuple which must be of a specific size</param>
+		/// <param name="size">Expected number of items in this tuple</param>
+		/// <returns>The <paramref name="tuple"/> itself it it has the correct size; otherwise, an exception is thrown</returns>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller or larger than <paramref name="size"/></exception>
+		[ContractAnnotation("halt <= tuple:null")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SpanTuple OfSize(this SpanTuple tuple, int size)
+		{
+			return tuple.Count == size ? tuple : TupleInvalidSize(tuple.Count, size);
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static SpanTuple TupleInvalidSize(int size, int expected)
+			{
+				throw new InvalidOperationException($"This operation requires a tuple of size {expected}, but this tuple has {size} elements");
+			}
+		}
+
+		/// <summary>Ensures that the tuple has at least a certain size</summary>
 		/// <param name="tuple">Tuple which must be of a specific size</param>
 		/// <param name="size">Expected minimum number of items in this tuple</param>
 		/// <returns>The <paramref name="tuple"/> itself it it has the correct size; otherwise, an exception is thrown</returns>
@@ -256,10 +283,35 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TTuple OfSizeAtLeast<TTuple>(this TTuple? tuple, int size) where TTuple : IVarTuple
 		{
-			return tuple != null && tuple.Count >= size ? tuple : ThrowInvalidTupleSize(tuple, size, -1);
+			return tuple != null && tuple.Count >= size ? tuple : TupleTooSmall(tuple, size);
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static TTuple TupleTooSmall(TTuple? tuple, int expected)
+			{
+				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+				throw new InvalidOperationException($"This operation requires a tuple of size {expected} or more, but this tuple has {tuple.Count} elements");
+			}
 		}
 
-		/// <summary>Verify that this tuple has at most a certain size</summary>
+		/// <summary>Ensures that the tuple has at least a certain size</summary>
+		/// <param name="tuple">Tuple which must be of a specific size</param>
+		/// <param name="size">Expected minimum number of items in this tuple</param>
+		/// <returns>The <paramref name="tuple"/> itself it it has the correct size; otherwise, an exception is thrown</returns>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller than <paramref name="size"/></exception>
+		[ContractAnnotation("halt <= tuple:null")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SpanTuple OfSizeAtLeast(this SpanTuple tuple, int size)
+		{
+			return tuple.Count >= size ? tuple : TupleTooSmall(tuple.Count, size);
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static SpanTuple TupleTooSmall(int size, int expected)
+			{
+				throw new InvalidOperationException($"This operation requires a tuple of size {expected} or more, but this tuple has {size} elements");
+			}
+		}
+
+		/// <summary>Ensures that the tuple has at most a certain size</summary>
 		/// <param name="tuple">Tuple which must be of a specific size</param>
 		/// <param name="size">Expected maximum number of items in this tuple</param>
 		/// <returns>The <paramref name="tuple"/> itself it it has the correct size; otherwise, an exception is thrown</returns>
@@ -269,18 +321,31 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TTuple OfSizeAtMost<TTuple>(this TTuple? tuple, int size) where TTuple : IVarTuple
 		{
-			return tuple != null && tuple.Count <= size ? tuple : ThrowInvalidTupleSize(tuple, size, 1);
+			return tuple != null && tuple.Count <= size ? tuple : TupleTooLarge(tuple, size);
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static TTuple TupleTooLarge(TTuple? tuple, int expected)
+			{
+				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+				throw new InvalidOperationException($"This operation requires a tuple of size {expected} or less, but this tuple has {tuple.Count} elements");
+			}
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn, ContractAnnotation("=> halt")][StackTraceHidden]
-		internal static TTuple ThrowInvalidTupleSize<TTuple>(TTuple? tuple, int expected, int test) where TTuple : IVarTuple
+		/// <summary>Ensures that the tuple has at most a certain size</summary>
+		/// <param name="tuple">Tuple which must be of a specific size</param>
+		/// <param name="size">Expected maximum number of items in this tuple</param>
+		/// <returns>The <paramref name="tuple"/> itself it it has the correct size; otherwise, an exception is thrown</returns>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is larger than <paramref name="size"/></exception>
+		[ContractAnnotation("halt <= tuple:null")]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SpanTuple OfSizeAtMost(this SpanTuple tuple, int size)
 		{
-			Contract.NotNullAllowStructs(tuple);
-			switch(test)
+			return tuple.Count <= size ? tuple : TupleTooLarge(tuple.Count, size);
+
+			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			static SpanTuple TupleTooLarge(int size, int expected)
 			{
-				case 1: throw new InvalidOperationException($"This operation requires a tuple of size {expected} or less, but this tuple has {tuple.Count} elements");
-				case -1: throw new InvalidOperationException($"This operation requires a tuple of size {expected} or more, but this tuple has {tuple.Count} elements");
-				default: throw new InvalidOperationException($"This operation requires a tuple of size {expected}, but this tuple has {tuple.Count} elements");
+				throw new InvalidOperationException($"This operation requires a tuple of size {expected} or less, but this tuple has {size} elements");
 			}
 		}
 

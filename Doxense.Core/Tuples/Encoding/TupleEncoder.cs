@@ -27,6 +27,8 @@
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
@@ -40,7 +42,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Internal helper that serializes the content of a Tuple into a TupleWriter, meant to be called by implementers of <see cref="IVarTuple"/> types.</summary>
 		/// <remarks>Warning: This method will call into <see cref="ITupleSerializable.PackTo"/> if <paramref name="tuple"/> implements <see cref="ITupleSerializable"/></remarks>
 
-		internal static void WriteTo<TTuple>(ref TupleWriter writer, TTuple tuple)
+		internal static void WriteTo<TTuple>(ref TupleWriter writer, in TTuple tuple)
 			where TTuple : IVarTuple?
 		{
 			Contract.Debug.Requires(tuple != null);
@@ -78,12 +80,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Packs a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure]
-		public static Slice Pack<TTuple>(TTuple? tuple)
+		public static Slice Pack<TTuple>(in TTuple? tuple)
 			where TTuple : IVarTuple?
 		{
-			if (tuple == null) return Slice.Nil;
+			if (tuple is null) return Slice.Nil;
 			var writer = new TupleWriter();
-			WriteTo(ref writer, tuple);
+			WriteTo(ref writer, in tuple);
 			return writer.ToSlice();
 		}
 
@@ -774,19 +776,26 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Unpacking...
 
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		private static void ThrowFailedToUnpackTuple(Exception? error)
+		{
+			throw error ?? new InvalidOperationException("Failed to unpack tuple");
+		}
+
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 1 element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		[Pure]
-		public static T1? DecodeFirst<T1>(ReadOnlySpan<byte> packedKey)
+		public static T1? DecodeFirst<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[1];
-			if (!TuplePackers.TryUnpackFirst(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
@@ -796,16 +805,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the second value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first two elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?) DecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey)
+		public static (T1?, T2?) DecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[2];
-			if (!TuplePackers.TryUnpackFirst(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return (
@@ -819,16 +829,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first three elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[3];
-			if (!TuplePackers.TryUnpackFirst(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return (
@@ -844,16 +855,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T3">Type of the third value in the decoded tuple</typeparam>
 		/// <typeparam name="T4">Type of the fourth  value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first four elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
+		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[4];
-			if (!TuplePackers.TryUnpackFirst(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return (
@@ -863,20 +875,23 @@ namespace Doxense.Collections.Tuples.Encoding
 				TuplePacker<T4>.Deserialize(packedKey[slices[3]])
 			);
 		}
+		
+		#region DecodeLast...
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T1">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure]
-		public static T1? DecodeLast<T1>(ReadOnlySpan<byte> packedKey)
+		public static T1? DecodeLast<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[1];
-			if (!TuplePackers.TryUnpackLast(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
@@ -886,16 +901,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T1">Type of the next to last value in the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?) DecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey)
+		public static (T1?, T2?) DecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[2];
-			if (!TuplePackers.TryUnpackLast(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return (
@@ -909,16 +925,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[3];
-			if (!TuplePackers.TryUnpackLast(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return (
@@ -934,16 +951,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last four elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 			Span<Range> slices = stackalloc Range[4];
-			if (!TuplePackers.TryUnpackLast(packedKey, slices, out var error))
+			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
 			{
-				throw error ?? new InvalidOperationException("Failed to unpack tuple");
+				ThrowFailedToUnpackTuple(error);
 			}
 
 			return (
@@ -954,40 +972,52 @@ namespace Doxense.Collections.Tuples.Encoding
 			);
 		}
 
+		#endregion
+
+		#region TryDecodeLast...
+
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T1">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
+		/// <param name="item1">Receives the decoded value of the last item</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
+		public static bool TryDecodeFirst<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			Contract.Debug.Requires(expectedSize is null or >= 1);
 
-			Span<Range> slices = stackalloc Range[1];
-			if (!TuplePackers.TryUnpackLast(packedKey, slices, out _))
+			if (packedKey.Length != 0)
 			{
-				item1 = default;
-				return false;
+				Span<Range> slices = stackalloc Range[1];
+				if (TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out _))
+				{
+					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
+					return true;
+				}
 			}
 
-			item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
-			return true;
+			item1 = default;
+			return false;
 		}
 
 		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
 		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T2">Type of the last value of the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <returns>Decoded values of the last 2 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2)
+		public static bool TryDecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2)
 		{
+			Contract.Debug.Requires(expectedSize is null or >= 2);
+
 			if (packedKey.Length > 0)
 			{
-				Span<Range> slices = stackalloc Range[3];
-				if (TuplePackers.TryUnpackLast(packedKey, slices, out _))
+				Span<Range> slices = stackalloc Range[2];
+				if (TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out _))
 				{
 					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
 					item2 = TuplePacker<T2>.Deserialize(packedKey[slices[1]]);
@@ -1005,17 +1035,20 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T3">Type of the last value of the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <returns>Decoded values of the last 3 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3)
+		public static bool TryDecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3)
 		{
+			Contract.Debug.Requires(expectedSize is null or >= 3);
+
 			if (packedKey.Length > 0)
 			{
 				Span<Range> slices = stackalloc Range[3];
-				if (TuplePackers.TryUnpackLast(packedKey, slices, out _))
+				if (TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out _))
 				{
 					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
 					item2 = TuplePacker<T2>.Deserialize(packedKey[slices[1]]);
@@ -1036,18 +1069,21 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
 		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
 		/// <returns>Decoded values of the last 4 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+		public static bool TryDecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
+			Contract.Debug.Requires(expectedSize is null or >= 4);
+
 			if (packedKey.Length > 0)
 			{
 				Span<Range> slices = stackalloc Range[4];
-				if (TuplePackers.TryUnpackLast(packedKey, slices, out _))
+				if (TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out _))
 				{
 					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
 					item2 = TuplePacker<T2>.Deserialize(packedKey[slices[1]]);
@@ -1064,10 +1100,141 @@ namespace Doxense.Collections.Tuples.Encoding
 			return false;
 		}
 
+		#endregion
+
+		#region TryDecodeLast...
+
+		/// <summary>Unpack a tuple and only return its last element</summary>
+		/// <typeparam name="T1">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
+		/// <param name="item1">Receives the decoded value of the last item</param>
+		/// <returns>Decoded value of the last item in the tuple</returns>
+		[Pure]
+		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1)
+		{
+			Contract.Debug.Requires(expectedSize is null or >= 1);
+
+			if (packedKey.Length != 0)
+			{
+				Span<Range> slices = stackalloc Range[1];
+				if (TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out _))
+				{
+					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
+					return true;
+				}
+			}
+
+			item1 = default;
+			return false;
+		}
+
+		/// <summary>Unpack a tuple and only return its last 2 elements</summary>
+		/// <typeparam name="T1">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <returns>Decoded values of the last 2 elements in the tuple</returns>
+		[Pure]
+		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2)
+		{
+			Contract.Debug.Requires(expectedSize is null or >= 2);
+
+			if (packedKey.Length > 0)
+			{
+				Span<Range> slices = stackalloc Range[2];
+				if (TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out _))
+				{
+					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
+					item2 = TuplePacker<T2>.Deserialize(packedKey[slices[1]]);
+					return true;
+				}
+			}
+
+			item1 = default;
+			item2 = default;
+			return false;
+		}
+
+		/// <summary>Unpack a tuple and only return its last 3 elements</summary>
+		/// <typeparam name="T1">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the last value of the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <returns>Decoded values of the last 3 elements in the tuple</returns>
+		[Pure]
+		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3)
+		{
+			Contract.Debug.Requires(expectedSize is null or >= 3);
+
+			if (packedKey.Length > 0)
+			{
+				Span<Range> slices = stackalloc Range[3];
+				if (TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out _))
+				{
+					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
+					item2 = TuplePacker<T2>.Deserialize(packedKey[slices[1]]);
+					item3 = TuplePacker<T3>.Deserialize(packedKey[slices[2]]);
+					return true;
+				}
+			}
+
+			item1 = default;
+			item2 = default;
+			item3 = default;
+			return false;
+		}
+
+		/// <summary>Unpack a tuple and only return its last 4 elements</summary>
+		/// <typeparam name="T1">Type of the fourth value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T2">Type of the third value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T3">Type of the second value from the end of the decoded tuple</typeparam>
+		/// <typeparam name="T4">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
+		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
+		/// <param name="item1">First decoded element</param>
+		/// <param name="item2">Second decoded element</param>
+		/// <param name="item3">Third decoded element</param>
+		/// <param name="item4">Fourth decoded element</param>
+		/// <returns>Decoded values of the last 4 elements in the tuple</returns>
+		[Pure]
+		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+		{
+			Contract.Debug.Requires(expectedSize is null or >= 4);
+
+			if (packedKey.Length > 0)
+			{
+				Span<Range> slices = stackalloc Range[4];
+				if (TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out _))
+				{
+					item1 = TuplePacker<T1>.Deserialize(packedKey[slices[0]]);
+					item2 = TuplePacker<T2>.Deserialize(packedKey[slices[1]]);
+					item3 = TuplePacker<T3>.Deserialize(packedKey[slices[2]]);
+					item4 = TuplePacker<T4>.Deserialize(packedKey[slices[3]]);
+					return true;
+				}
+			}
+
+			item1 = default;
+			item2 = default;
+			item3 = default;
+			item4 = default;
+			return false;
+		}
+
+		#endregion
+
+		#region DecodeKey<T1>...
+
 		/// <summary>Unpacks the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
-		/// <param name="depth"></param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty or has more than one element.</remarks>
 		public static void DecodeKey<T1>(ref TupleReader reader, out ValueTuple<T1?> tuple)
@@ -1087,10 +1254,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="TKey">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <param name="key">Receives the decoded value</param>
+		/// <param name="error"></param>
 		/// <return>False if if the tuple is empty, or has more than one element; otherwise, false.</return>
-		public static bool TryDecodeKey<TKey>(ref TupleReader reader, out TKey? key)
+		public static bool TryDecodeKey<TKey>(ref TupleReader reader, out TKey? key, out Exception? error)
 		{
-			if (!TryDecodeNext(ref reader, out key, out var error))
+			if (!TryDecodeNext(ref reader, out key, out error))
 			{
 				return false;
 			}
@@ -1100,6 +1268,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			return true;
 		}
+
+		#endregion
+
+		#region DecodeKey<T1, T2>...
 
 		/// <summary>Unpacks a key containing two elements</summary>
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with two elements</param>
@@ -1119,8 +1291,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than two items");
 		}
 
+		#endregion
+
+		#region DecodeKey<T1, T2, T3>...
+
 		/// <summary>Unpacks a key containing three elements</summary>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with three elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than three elements.</remarks>
 		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out (T1?, T2?, T3?) tuple)
@@ -1139,8 +1315,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than three items");
 		}
 
+		#endregion
+
+		#region DecodeKey<T1, T2, T3, T4>...
+
 		/// <summary>Unpacks a key containing four elements</summary>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with four elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than four elements.</remarks>
 		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out (T1?, T2?, T3?, T4?) tuple)
@@ -1161,8 +1341,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than four items");
 		}
 
+		#endregion
+
+		#region DecodeKey<T1, T2, T3, T4, T5>...
+
 		/// <summary>Unpacks a key containing five elements</summary>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with five elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than five elements.</remarks>
 		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?) tuple)
@@ -1185,8 +1369,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than five items");
 		}
 
+		#endregion
+
+		#region DecodeKey<T1, T2, T3, T4, T5, T6>...
+
 		/// <summary>Unpacks a key containing six elements</summary>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
 		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) tuple)
@@ -1211,8 +1399,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than six items");
 		}
 
+		#endregion
+
+		#region DecodeKey<T1, T2, T3, T4, T5, T6, T7>...
+
 		/// <summary>Unpacks a key containing six elements</summary>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
 		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple)
@@ -1239,8 +1431,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than seven items");
 		}
 
+		#endregion
+
+		#region DecodeKey<T1, T2, T3, T4, T5, T6, T7>...
+
 		/// <summary>Unpacks a key containing eight elements</summary>
-		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
 		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple)
@@ -1269,10 +1465,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than eight items");
 		}
 
+		#endregion
+
 		/// <summary>Unpacks the next item in the tuple, and advance the cursor</summary>
 		/// <typeparam name="T">Type of the next value in the tuple</typeparam>
 		/// <param name="reader">Reader positioned at the start of the next item to read</param>
 		/// <param name="value">If decoding succeeded, receives the decoded value.</param>
+		/// <param name="error"></param>
 		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
 		public static bool TryDecodeNext<T>(ref TupleReader reader, out T? value, out Exception? error)
 		{

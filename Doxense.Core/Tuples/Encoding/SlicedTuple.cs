@@ -70,9 +70,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SlicedTuple"/></summary>
 		/// <remarks>This methods can be useful to examine what the result of packing a tuple would be, after a round-trip to the database.</remarks>
-		public static SlicedTuple Repack<TTuple>(TTuple? tuple) where TTuple : IVarTuple?
+		public static SlicedTuple Repack<TTuple>(in TTuple? tuple) where TTuple : IVarTuple?
 		{
-			return tuple is SlicedTuple st ? Unpack(st.ToSlice()) : Unpack(TuPack.Pack(tuple));
+			return tuple is SlicedTuple st ? Unpack(st.ToSlice()) : Unpack(TuPack.Pack(in tuple));
 		}
 
 		/// <summary>Return the original serialized key blob that is equivalent to this tuple</summary>

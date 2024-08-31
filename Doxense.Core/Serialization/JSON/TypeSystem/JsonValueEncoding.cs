@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Encoders
 {
 	using Doxense.Collections.Tuples;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
 	using Doxense.Serialization.Json;
 
@@ -361,35 +362,39 @@ namespace Doxense.Serialization.Encoders
 
 		public IVarTuple UnpackKey(Slice packed) => throw new NotImplementedException();
 
+		public SpanTuple UnpackKey(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+
 		public bool TryUnpackKey(Slice packed, out IVarTuple tuple) => throw new NotImplementedException();
+
+		public bool TryUnpackKey(ReadOnlySpan<byte> packed, out SpanTuple tuple) => throw new NotImplementedException();
 
 		public T1 DecodeKey<T1>(Slice packed) => throw new NotImplementedException();
 
 		public T1 DecodeKey<T1>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
 
-		public T1 DecodeKeyFirst<T1>(Slice packed) => throw new NotImplementedException();
+		public T1 DecodeKeyFirst<T1>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public T1 DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		public T1 DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed) => throw new NotImplementedException();
+		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		public (T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
+		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public T1 DecodeKeyLast<T1>(Slice packed) => throw new NotImplementedException();
+		public T1 DecodeKeyLast<T1>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public T1 DecodeKeyLast<T1>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		public T1 DecodeKeyLast<T1>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed) => throw new NotImplementedException();
+		public (T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		public (T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
+		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
 
-		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
 
 		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed) => throw new NotImplementedException();
 
