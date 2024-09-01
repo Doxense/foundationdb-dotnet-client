@@ -39,6 +39,9 @@ namespace Doxense.Serialization.Json
 	[PublicAPI]
 	[JetBrains.Annotations.CannotApplyEqualityOperator]
 	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable, IConvertible
+#if NET8_0_OR_GREATER
+		, IParsable<JsonValue>, ISpanParsable<JsonValue>
+#endif
 #pragma warning disable CS0618 // Type or member is obsolete
 		, IJsonDynamic
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -1804,6 +1807,48 @@ namespace Doxense.Serialization.Json
 		public abstract void WriteTo(ref SliceWriter writer);
 
 		#endregion
+
+		/// <inheritdoc />
+		public static JsonValue Parse(string s, IFormatProvider? provider)
+		{
+			return CrystalJson.Parse(s);
+		}
+
+		/// <inheritdoc />
+		public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonValue result)
+		{
+			try
+			{
+				result = CrystalJson.Parse(s);
+				return true;
+			}
+			catch
+			{
+				result = default;
+				return false;
+			}
+		}
+
+		/// <inheritdoc />
+		public static JsonValue Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
+		{
+			return CrystalJson.Parse(s);
+		}
+
+		/// <inheritdoc />
+		public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonValue result)
+		{
+			try
+			{
+				result = CrystalJson.Parse(s);
+				return true;
+			}
+			catch
+			{
+				result = default;
+				return false;
+			}
+		}
 
 	}
 
