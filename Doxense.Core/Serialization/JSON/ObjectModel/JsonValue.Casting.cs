@@ -753,6 +753,62 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region DateOnly
+
+		[Pure]
+		public static implicit operator JsonValue(DateOnly value)
+		{
+			return JsonDateTime.Return(value);
+		}
+
+		[Pure]
+		public static explicit operator DateOnly(JsonValue? value)
+		{
+			return (value ?? JsonNull.Null).ToDateOnly();
+		}
+
+		[Pure]
+		public static implicit operator JsonValue(DateOnly? value)
+		{
+			return JsonDateTime.Return(value);
+		}
+
+		[Pure]
+		public static explicit operator DateOnly?(JsonValue? value)
+		{
+			return (value ?? JsonNull.Null).ToDateOnlyOrDefault();
+		}
+
+		#endregion
+
+		#region TimeOnly
+
+		[Pure]
+		public static implicit operator JsonValue(TimeOnly value)
+		{
+			return JsonNumber.Return(value);
+		}
+
+		[Pure]
+		public static explicit operator TimeOnly(JsonValue? value)
+		{
+			return (value ?? JsonNull.Null).ToTimeOnly();
+		}
+
+		[Pure]
+		public static implicit operator JsonValue(TimeOnly? value)
+		{
+			return JsonNumber.Return(value);
+		}
+
+		[Pure]
+		public static explicit operator TimeOnly?(JsonValue? value)
+		{
+			return (value ?? JsonNull.Null).ToTimeOnlyOrDefault();
+		}
+
+		#endregion
+
 		#region NodaTime.Duration
 
 		[Pure]

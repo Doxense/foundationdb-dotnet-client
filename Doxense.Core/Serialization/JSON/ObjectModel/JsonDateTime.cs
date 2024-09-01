@@ -43,6 +43,8 @@ namespace Doxense.Serialization.Json
 
 		public static readonly JsonDateTime MinValue = new(DateTime.MinValue, NO_TIMEZONE);
 		public static readonly JsonDateTime MaxValue = new(DateTime.MaxValue, NO_TIMEZONE);
+		private static readonly DateTime MaxValueDate = new DateTime(3155378112000000000);
+		public static readonly JsonDateTime DateOnlyMaxValue = new(MaxValueDate, NO_TIMEZONE);
 
 		public static JsonDateTime UtcNow => new(Truncate(DateTime.UtcNow));
 
@@ -79,9 +81,10 @@ namespace Doxense.Serialization.Json
 		// Problème: DateTimeOffset "perd" l'information du DateTimeKind d'origine
 		// cad que si le serveur est dans la TimeZone de Greenwith (== UTC), alors on ne saura pas dire si la DateTime d'origine était Kind.Utc ou Kind.Local
 
-		/// <summary>Copie du membre "dateData" de DateTime (ou de m_dateTime pour un DateTimeOffset)</summary>
+		/// <summary>Copy of the "m_dateTime" field of a DateTimeOffset, or the original DateTime value</summary>
 		private readonly DateTime m_value;
-		/// <summary>Copie du membre "m_offsetMinutes" de DateTimeOffset (ou int.MinValue pour un DateTime)</summary>
+
+		/// <summary>Copy of the "m_offsetMinutes" of a DateTimeOffset, or int.MinValue for DateTime</summary>
 		private readonly short m_offset;
 
 		// un DateTimeOffset est stocké sous forme d'une DateTime en UTC, accompagnée d'un offset
@@ -168,7 +171,7 @@ namespace Doxense.Serialization.Json
 		public static JsonDateTime Return(DateOnly value)
 		{
 			if (value == DateOnly.MinValue) return JsonDateTime.MinValue;
-			if (value == DateOnly.MaxValue) return JsonDateTime.MaxValue;
+			if (value == DateOnly.MaxValue) return JsonDateTime.DateOnlyMaxValue;
 			return new JsonDateTime(value);
 		}
 
