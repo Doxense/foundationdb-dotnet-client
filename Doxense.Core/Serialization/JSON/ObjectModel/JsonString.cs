@@ -743,6 +743,12 @@ namespace Doxense.Serialization.Json
 			writer.WriteValue(m_value);
 		}
 
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return JsonEncoding.TryEncodeTo(destination, m_value, out charsWritten);
+		}
+
 		#endregion
 
 		#region IEquatable<...>...

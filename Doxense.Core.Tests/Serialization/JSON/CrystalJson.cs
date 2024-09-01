@@ -3012,6 +3012,120 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<Uri?>("null", null), Is.EqualTo(default(Uri)));
 		}
 
+		static void Verify_TryFormat(JsonValue literal)
+		{
+			string expected = literal.ToJson();
+			Log($"# {literal:P} => {expected}");
+
+			{ // with more space than required
+				Span<char> buf = new char[expected.Length + 10];
+				buf.Fill('無');
+				Assert.That(literal.TryFormat(buf, out int charsWritten, default, null), Is.True, $"{literal}.TryFormat([{buf.Length}])");
+				Assert.That(buf.Slice(0, charsWritten).ToString(), Is.EqualTo(expected), $"{literal}.TryFormat([{buf.Length}])");
+				Assert.That(charsWritten, Is.EqualTo(expected.Length), $"{literal}.TryFormat([{buf.Length}])");
+				Assert.That(buf.Slice(charsWritten).ToString(), Is.EqualTo(new string('無', buf.Length - charsWritten)), $"{literal}.TryFormat([{buf.Length}])");
+			}
+
+			{ // with exactly enough space
+				Span<char> buf = new char[expected.Length + 10];
+				buf.Fill('無');
+				var exactSize = buf.Slice(0, expected.Length);
+				Assert.That(literal.TryFormat(exactSize, out int charsWritten, default, null), Is.True, $"{literal}.TryFormat([{exactSize.Length}])");
+				Assert.That(charsWritten, Is.EqualTo(expected.Length), $"{literal}.TryFormat([{exactSize.Length}])");
+				Assert.That(exactSize.ToString(), Is.EqualTo(expected), $"{literal}.TryFormat([{exactSize.Length}])");
+				Assert.That(buf.Slice(exactSize.Length).ToString(), Is.EqualTo(new string('無', buf.Length - exactSize.Length)), $"{literal}.TryFormat([{exactSize.Length}])");
+			}
+
+			{ // with empty buffer
+				Span<char> buf = new char[expected.Length];
+				buf.Fill('無');
+				var empty = Span<char>.Empty;
+				Assert.That(literal.TryFormat(empty, out int charsWritten, default, null), Is.False, $"{literal}.TryFormat([0])");
+				Assert.That(charsWritten, Is.Zero, $"{literal}.TryFormat([0])");
+				Assert.That(buf.ToString(), Is.EqualTo(new string('無', buf.Length)), $"{literal}.TryFormat([0])");
+			}
+
+			{ // with not enough space
+				Span<char> buf = new char[expected.Length];
+				buf.Fill('無');
+				// buffer is too short by 3 characters
+				var tooShort = buf.Slice(0, Math.Max(expected.Length - 3, 0));
+				Assert.That(literal.TryFormat(tooShort, out int charsWritten, default, null), Is.False, $"{literal}.TryFormat([{tooShort.Length}])");
+				Assert.That(charsWritten, Is.Zero, $"{literal}.TryFormat([{tooShort.Length}])");
+				Assert.That(buf.Slice(tooShort.Length).ToString(), Is.EqualTo(new string('無', buf.Length - tooShort.Length)), $"{literal}.TryFormat([{tooShort.Length}])");
+			}
+		}
+
+		[Test]
+		public void Test_JsonString_TryFormat()
+		{
+			Verify_TryFormat(JsonString.Empty);
+
+			Verify_TryFormat("a");
+			Verify_TryFormat("hello");
+
+			Verify_TryFormat("\"");
+			Verify_TryFormat("hello\"world");
+			Verify_TryFormat("Héllö, 世界!");
+
+			Verify_TryFormat("\0");
+			Verify_TryFormat("\x12");
+			Verify_TryFormat("\x7F");
+			Verify_TryFormat("\xFF");
+			Verify_TryFormat("\uDF34");
+			Verify_TryFormat("\uFFFE");
+			Verify_TryFormat("\uFFFF");
+
+			Verify_TryFormat(Slice.Random(Random.Shared, 1024).ToBase64());
+		}
+
+		[Test]
+		public void Test_JsonNumber_TryFormat()
+		{
+			Verify_TryFormat(JsonNumber.Zero);
+			Verify_TryFormat(JsonNumber.DecimalZero);
+			Verify_TryFormat(JsonNumber.One);
+			Verify_TryFormat(JsonNumber.DecimalOne);
+			Verify_TryFormat(JsonNumber.MinusOne);
+
+			Verify_TryFormat(123);
+			Verify_TryFormat(-123);
+			Verify_TryFormat(123d);
+			Verify_TryFormat(12.3);
+			Verify_TryFormat(0.123);
+
+			Verify_TryFormat(Math.PI);
+			Verify_TryFormat(double.NaN);
+			Verify_TryFormat(double.PositiveInfinity);
+			Verify_TryFormat(double.NegativeInfinity);
+			Verify_TryFormat(double.Epsilon);
+
+			Verify_TryFormat(JsonValue.Parse("123"));
+			Verify_TryFormat(JsonValue.Parse("123.0"));
+			Verify_TryFormat(JsonValue.Parse("123.000"));
+		}
+
+		[Test]
+		public void Test_JsonBoolean_TryFormat()
+		{
+			Verify_TryFormat(JsonBoolean.False);
+			Verify_TryFormat(JsonBoolean.True);
+		}
+
+		[Test]
+		public void Test_JsonDateTime_TryFormat()
+		{
+			Verify_TryFormat(DateTime.MinValue);
+			Verify_TryFormat(DateTime.MaxValue);
+			Verify_TryFormat(DateTime.Now);
+			Verify_TryFormat(DateTime.Now.Date);
+			Verify_TryFormat(DateTime.UtcNow);
+			Verify_TryFormat(DateTime.UtcNow.Date);
+			Verify_TryFormat(DateOnly.MinValue);
+			Verify_TryFormat(DateOnly.MaxValue);
+			Verify_TryFormat(DateOnly.FromDateTime(DateTime.Now));
+		}
+
 		#endregion
 
 		#region JSON Object Model...
@@ -3665,6 +3779,17 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MaxValue));
+				Assert.That(value.ToDateOnly(), Is.EqualTo(DateOnly.MaxValue));
+				Assert.That(value.IsLocalTime, Is.False, "MaxValue should be unspecified");
+				Assert.That(value.IsUtc, Is.False, "MaxValue should be unspecified");
+			}
+
+			{
+				var value = JsonDateTime.DateOnlyMaxValue;
+				Assert.That(value.Type, Is.EqualTo(JsonType.DateTime));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToDateTime(), Is.EqualTo(DateTime.MaxValue.Date));
 				Assert.That(value.ToDateOnly(), Is.EqualTo(DateOnly.MaxValue));
 				Assert.That(value.IsLocalTime, Is.False, "MaxValue should be unspecified");
 				Assert.That(value.IsUtc, Is.False, "MaxValue should be unspecified");

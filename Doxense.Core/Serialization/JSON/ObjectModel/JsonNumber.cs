@@ -1826,6 +1826,48 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			var literal = m_literal;
+			if (literal != null)
+			{ // we will output the original literal unless we need to do some special formatting...
+
+				if (literal.Length > destination.Length)
+				{
+					charsWritten = 0;
+					return false;
+				}
+				literal.CopyTo(destination);
+				charsWritten = literal.Length;
+				return true;
+			}
+
+			switch (m_kind)
+			{
+				case Kind.Signed:
+				{
+					return m_value.Signed.TryFormat(destination, out charsWritten, format, provider);
+				}
+				case Kind.Unsigned:
+				{
+					return m_value.Unsigned.TryFormat(destination, out charsWritten, format, provider);
+				}
+				case Kind.Double:
+				{
+					return m_value.Double.TryFormat(destination, out charsWritten, format, provider);
+				}
+				case Kind.Decimal:
+				{
+					return m_value.Decimal.TryFormat(destination, out charsWritten, format, provider);
+				}
+				default:
+				{
+					throw new InvalidOperationException();
+				}
+			}
+		}
+
 		#endregion
 
 		#region ToXXX() ...

@@ -41,6 +41,7 @@ namespace Doxense.Serialization.Json
 	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable, IConvertible
 #if NET8_0_OR_GREATER
 		, IParsable<JsonValue>, ISpanParsable<JsonValue>
+		, ISpanFormattable
 #endif
 #pragma warning disable CS0618 // Type or member is obsolete
 		, IJsonDynamic
@@ -1849,6 +1850,9 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 		}
+
+		/// <inheritdoc />
+		public abstract bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
 
 	}
 

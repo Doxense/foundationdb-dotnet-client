@@ -151,7 +151,7 @@ namespace Doxense.Serialization.Json
 			return StringBuilderCache.GetStringAndRelease(AppendSlow(sb, text, true));
 		}
 
-		/// <summary>Encode a string of text that must be written to a JSON document</summary>
+		/// <summary>Encodes a string literal that must be written to a JSON document</summary>
 		/// <param name="text">Text to encode</param>
 		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
 		/// <remarks>String with the correct escaping and surrounded by double-quotes (<c>"..."</c>), or <c>"null"</c> if <paramref name="text"/> is <c>null</c></remarks>
@@ -186,7 +186,7 @@ namespace Doxense.Serialization.Json
 			return StringBuilderCache.GetStringAndRelease(AppendSlow(sb, text, true));
 		}
 
-		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
+		/// <summary>Encodes a string literal that must be written to a JSON document (slow path)</summary>
 		internal static StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
 		{
 			if (text == null)
@@ -196,7 +196,7 @@ namespace Doxense.Serialization.Json
 			return AppendSlow(sb, text.AsSpan(), includeQuotes);
 		}
 
-		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
+		/// <summary>Encodes a string literal that must be written to a JSON document (slow path)</summary>
 		internal static unsafe StringBuilder AppendSlow(StringBuilder sb, ReadOnlySpan<char> text, bool includeQuotes)
 		{
 			// We check and encode in a single pass:
@@ -287,11 +287,11 @@ namespace Doxense.Serialization.Json
 			return includeQuotes ? sb.Append('"') : sb;
 		}
 
-		/// <summary>Encode une chaîne en JSON, et append le résultat à un StringBuilder</summary>
-		/// <param name="sb">Buffer où écrire le résultat</param>
-		/// <param name="text">Chaîne à encoder</param>
-		/// <returns>Le StringBuilder passé en paramètre (pour chaînage)</returns>
-		/// <remarks>Note: Ajoute "null" si text==null && includeQuotes==true</remarks>
+		/// <summary>Encodes a string literal into a JSON string, and appends the result to a StringBuilder</summary>
+		/// <param name="sb">Target string builder</param>
+		/// <param name="text">string literal to encode</param>
+		/// <returns>The same StringBuilder builder instance</returns>
+		/// <remarks>Note: appends <c>null</c> if <paramref name="text"/> is <see langword="null"/></remarks>
 		public static StringBuilder Append(StringBuilder sb, string? text)
 		{
 			if (text == null)
@@ -308,6 +308,250 @@ namespace Doxense.Serialization.Json
 			}
 			// chaîne qui nécessite (a priori) un encoding
 			return AppendSlow(sb, text, true);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool TryAppendChar(Span<char> buf, ref int cursor, char c)
+		{
+			if (cursor >= buf.Length)
+			{
+				return false;
+			}
+			buf[cursor++] = c;
+			return true;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool TryAppendChars(Span<char> buf, ref int cursor, char c1, char c2)
+		{
+			if (cursor + 1 >= buf.Length)
+			{
+				return false;
+			}
+			buf[cursor] = c1;
+			buf[cursor + 1] = c2;
+			cursor += 2;
+			return true;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool TryAppendChars(Span<char> buf, ref int cursor, ReadOnlySpan<char> literal)
+		{
+			if (cursor + literal.Length > buf.Length)
+			{
+				return false;
+			}
+
+			literal.CopyTo(buf.Slice(cursor));
+			cursor += literal.Length;
+			return true;
+		}
+
+		private static bool TryAppendUnicode(Span<char> buf, ref int cursor, int unicode)
+		{
+			// "\u####" = 6 characters
+			if (cursor + 5 >= buf.Length)
+			{
+				return false;
+			}
+
+			ref char ptr = ref buf[cursor];
+
+			// "\u" prefix
+			Unsafe.Add(ref ptr, 0) = '\\';
+			Unsafe.Add(ref ptr, 1) = 'u';
+
+			// lower-case hexadecimal
+			int b;
+
+			b = (unicode >> 12) & 0xF;
+			Unsafe.Add(ref ptr, 2) = (char) (b + (b < 10 ? 48 : 87));
+			b = (unicode >> 8) & 0xF;
+			Unsafe.Add(ref ptr, 3) = (char) (b + (b < 10 ? 48 : 87));
+			b = (unicode >> 4) & 0xF;
+			Unsafe.Add(ref ptr, 4) = (char) (b + (b < 10 ? 48 : 87));
+			b = unicode & 0xF;
+			Unsafe.Add(ref ptr, 5) = (char) (b + (b < 10 ? 48 : 87));
+
+			cursor += 6;
+			return true;
+		}
+
+		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
+		private static unsafe bool TryEncodeToSlow(Span<char> destination, ReadOnlySpan<char> text, bool includeQuotes, out int charsWritten)
+		{
+			// We check and encode in a single pass:
+			// - we have a cursor on the last changed character (initially set to 0)
+			// - as long as we see valid characters, we advance the cursor
+			// - if we find a character that needs to be escaped (or reach the end of the string):
+			//   - we copy the clean text from the previous cursor to the current position,
+			//   - we encode the current character,
+			//   - we advance the cursor to the next character
+			//
+			// A string that did not require any replacement will end up with the cursor still set to 0
+			//
+			// note: we do not encode the forward slash ('/'), to help distinguish with it, and '\/' that is frequently used to encode dates.
+
+			charsWritten = 0;
+			int cursor = 0;
+
+			if (includeQuotes)
+			{
+				if (!TryAppendChar(destination, ref cursor, '"'))
+				{
+					return false;
+				}
+			}
+
+			int i = 0, last = 0;
+			int n = text.Length;
+			fixed (char* str = text)
+			{
+				char* ptr = str;
+				while (n-- > 0)
+				{
+					char c = *ptr++;
+					if (c <= '/')
+					{ // ASCII 0..47
+						if (c == '"')
+						{ // " -> \"
+							goto escape_backslash;
+						}
+						if (c >= ' ')
+						{ // ASCII 32..47 : from space to '/'
+							goto next; // => not modified
+						}
+						// ASCII 0..31 : encoded
+						// - we directly escape any of \n, \r, \t, \b and \f
+						// - all others will be escaped as Unicode: \uXXXX
+						switch (c)
+						{
+							case '\n': c = 'n'; goto escape_backslash;
+							case '\r': c = 'r'; goto escape_backslash;
+							case '\t': c = 't'; goto escape_backslash;
+							case '\b': c = 'b'; goto escape_backslash;
+							case '\f': c = 'f'; goto escape_backslash;
+						}
+						// encode as \uXXXX
+						goto escape_unicode;
+					}
+					if (c == '\\')
+					{ // \ -> \\
+						goto escape_backslash;
+					}
+					if (c >= 0xD800 && (c < 0xE000 || c >= 0xFFFE))
+					{ // warning, the Unicode range D800 - DFFF is used to escape non-BMP characters (> 0x10000), and FFFE/FFFF corresponds to BOM UTF-16 (LE/BE)
+						goto escape_unicode;
+					}
+					// => skip
+					goto next;
+
+					// character encoded with a single backslash => \c
+				escape_backslash:
+					if (i > last)
+					{
+						if (!TryAppendChars(destination, ref cursor, text.Slice(last, i - last)))
+						{
+							return false;
+						}
+					}
+					last = i + 1;
+					if (!TryAppendChars(destination, ref cursor, '\\', c))
+					{
+						return false;
+					}
+					goto next;
+
+					// character encoded as Unicode using 16 bits
+				escape_unicode:
+					if (i > last)
+					{
+						if (!TryAppendChars(destination, ref cursor, text.Slice(last, i - last)))
+						{
+							return false;
+						}
+					}
+					last = i + 1;
+					if (!TryAppendUnicode(destination, ref cursor, (int) c))
+					{
+						return false;
+					}
+					goto next;
+
+				next:
+					// no encoding required.
+					++i;
+
+				} // while
+			} // fixed
+
+			if (last == 0)
+			{ // the text did not require any escaping
+				if (!TryAppendChars(destination, ref cursor, text))
+				{
+					return false;
+				}
+			}
+			else if (last < text.Length)
+			{ // append the tail that did not need any escaping
+				if (!TryAppendChars(destination, ref cursor, text.Slice(last, text.Length - last)))
+				{
+					return false;
+				}
+			}
+
+			if (includeQuotes)
+			{
+				if (!TryAppendChar(destination, ref cursor, '"'))
+				{
+					return false;
+				}
+			}
+
+			charsWritten = cursor;
+			return true;
+		}
+
+		/// <summary>Encodes a string literal into a JSON string, and appends the result to a StringBuilder</summary>
+		/// <param name="destination">Target buffer where the encoding JSON literal will be written</param>
+		/// <param name="text">input string literal to encode</param>
+		/// <param name="charsWritten">Receives the number of characters written to <paramref name="destination"/>, if it was large enough</param>
+		/// <returns><see langword="true"/> if the buffer was large enough; otherwise, <see langword="false"/>.</returns>
+		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int charsWritten)
+		{
+			if (text.Length == 0)
+			{ // empty string-> ""
+
+				if (destination.Length < 2)
+				{
+					charsWritten = 0;
+					return false;
+				}
+
+				destination[0] = '"';
+				destination[1] = '"';
+				charsWritten = 2;
+				return true;
+			}
+
+			if (!JsonEncoding.NeedsEscaping(text))
+			{ // no encoding required
+
+				if (destination.Length < text.Length + 2)
+				{
+					charsWritten = 0;
+					return false;
+				}
+
+				destination[0] = '"';
+				text.CopyTo(destination.Slice(1));
+				destination[text.Length + 1] = '"';
+				charsWritten = text.Length + 2;
+				return true;
+			}
+
+			// must encode
+			return TryEncodeToSlow(destination, text, includeQuotes: true, out charsWritten);
 		}
 
 	}

@@ -3351,6 +3351,24 @@ namespace Doxense.Serialization.Json
 			writer.EndObject(state);
 		}
 
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			//TODO: maybe attempt to do it without allocating?
+			// => for the moment, we will serialize the object into memory, and copy the result
+
+			var literal = ToJson();
+			if (literal.Length > destination.Length)
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			literal.CopyTo(destination);
+			charsWritten = literal.Length;
+			return true;
+		}
+
 		#endregion
 
 		#region IEquatable<...>

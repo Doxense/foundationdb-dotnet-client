@@ -248,6 +248,22 @@ namespace Doxense.Serialization.Json
 			writer.WriteValue(m_value);
 		}
 
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			var literal = m_value ? JsonTokens.True : JsonTokens.False;
+
+			if (destination.Length < literal.Length)
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			literal.CopyTo(destination);
+			charsWritten = literal.Length;
+			return true;
+		}
+
 		#endregion
 
 		#region ISliceSerializable

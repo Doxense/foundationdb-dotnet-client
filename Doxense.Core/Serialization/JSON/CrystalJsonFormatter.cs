@@ -31,7 +31,6 @@ namespace Doxense.Serialization.Json
 	using System.Globalization;
 	using System.IO;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Mathematics;
 	using Doxense.Web;
@@ -542,6 +541,89 @@ namespace Doxense.Serialization.Json
 			return output.Slice(0, offset);
 		}
 
+		internal static bool TryFormatIso8601DateTime(Span<char> output, out int charsWritten, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')
+		{
+			GetDateParts(date.Ticks, out var year, out var month, out var day, out var hour, out var min, out var sec, out var millis);
+
+			// compute the exact required size
+			// - 'YYYY-DD-MMTHH:MM:SS___' => at least 19
+			// - '"...."' if quotes != 0 => +2
+			// - '___.0000000____" if there are milliseconds => +6
+			// - '___Z" if UTC => +1
+			// - '___+XX:XX" if offset => +6
+
+			int size = (quotes == '\0' ? 0 : 2) + 19 + (millis == 0 ? 0 : 8) + ((kind == DateTimeKind.Utc || utcOffset == TimeSpan.Zero) ? 1 : 6);
+
+			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer
+			if (output.Length < size)
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			ref char cursor = ref output[0];
+
+			if (quotes != '\0')
+			{
+				cursor = quotes;
+				cursor = ref Unsafe.Add(ref cursor, 1);
+			}
+
+			cursor = ref FormatDatePart(ref cursor, year, month, day);
+			{
+				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
+			}
+
+			cursor = 'T';
+			cursor = ref Unsafe.Add(ref cursor, 1);
+
+			{
+				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
+			}
+
+			cursor = ref FormatTimePart(ref cursor, hour, min, sec, millis);
+
+			{
+				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
+			}
+
+			if (kind == DateTimeKind.Utc)
+			{ // "Z"
+				cursor = 'Z';
+				cursor = ref Unsafe.Add(ref cursor, 1);
+			} 
+			else if (utcOffset != null)
+			{
+				cursor = ref FormatTimeZoneOffset(ref cursor, utcOffset.Value, false);
+			}
+			else if (kind == DateTimeKind.Local)
+			{
+				cursor = ref FormatTimeZoneOffset(ref cursor, TimeZoneInfo.Local.GetUtcOffset(date), true);
+			}
+
+			{
+				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
+			}
+
+			if (quotes != '\0')
+			{
+				cursor = quotes;
+				cursor = ref Unsafe.Add(ref cursor, 1);
+			}
+
+			{
+				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
+				Contract.Debug.Assert(offset == size, $"{offset} == {size}");
+				charsWritten = offset;
+				return true;
+			}
+
+		}
+
 		public static string ToIso8601String(DateTime date)
 		{
 			if (date == DateTime.MinValue) return string.Empty;
@@ -661,28 +743,28 @@ namespace Doxense.Serialization.Json
 
 		private static ref char FormatTimeZoneOffset(ref char ptr, TimeSpan utcOffset, bool forceLocal)
 		{
-			int min = (int)(utcOffset.Ticks / TimeSpan.TicksPerMinute);
-
-			// special case: on affiche quand meme 'Z' pour les DTO avec l'offset GMT, car on ne peut pas les distinguer de DTO version "UTC"
-			// => si un serveur tourne qqpart du coté de Greenwith, on confondra les heures de type locales avec les heures UTC, mais ce n'est pas très grave au final...
-			if (min == 0 && !forceLocal)
+			// special case: we still output 'Z' for DateTimeOffset with GMT offset, since we cannot distinguish with values set to UTC
+			// => we may mix up times set to GMT offset with UTC times, but if the server is set to GMT without any DST, this should not change the actual instant
+			if (utcOffset == default && !forceLocal)
 			{ // "Z"
-				ptr = 'Z';
+				Unsafe.Add(ref ptr, 0) = 'Z';
 				return ref Unsafe.Add(ref ptr, 1);
 			}
 			
 			// "+HH:MM"
-			ptr = min >= 0 ? '+' : '-';
 
-			min = Math.Abs(min);
-			int hour = min / 60;
-			min %= 60;
+			int minutes = (int) (utcOffset.Ticks / TimeSpan.TicksPerMinute);
+			Unsafe.Add(ref ptr, 0) = minutes >= 0 ? '+' : '-';
+
+			minutes = Math.Abs(minutes);
+			int hour = minutes / 60;
+			minutes %= 60;
 
 			Unsafe.Add(ref ptr, 1) = (char)(48 + (hour / 10));
 			Unsafe.Add(ref ptr, 2) = (char)(48 + (hour % 10));
 			Unsafe.Add(ref ptr, 3) = ':';
-			Unsafe.Add(ref ptr, 4) = (char)(48 + (min / 10));
-			Unsafe.Add(ref ptr, 5) = (char)(48 + (min % 10));
+			Unsafe.Add(ref ptr, 4) = (char)(48 + (minutes / 10));
+			Unsafe.Add(ref ptr, 5) = (char)(48 + (minutes % 10));
 			return ref Unsafe.Add(ref ptr, 6);
 		}
 

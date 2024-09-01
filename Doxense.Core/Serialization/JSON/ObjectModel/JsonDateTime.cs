@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
@@ -348,6 +349,87 @@ namespace Doxense.Serialization.Json
 			{ // DateTimeOffset
 				writer.WriteValue(this.DateWithOffset);
 			}
+		}
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			if (m_offset == NO_TIMEZONE)
+			{ // DateTime
+
+
+				if (m_value == DateTime.MinValue)
+				{
+					if (destination.Length < 2)
+					{
+						goto too_small;
+					}
+					destination[0] = '"';
+					destination[1] = '"';
+					charsWritten = 2;
+					return true;
+				}
+				
+				if (m_value == DateTime.MaxValue)
+				{ // DateTime.MaxValue
+					if (destination.Length < JsonTokens.Iso8601DateTimeMaxValue.Length)
+					{
+						goto too_small;
+					}
+					JsonTokens.Iso8601DateTimeMaxValue.CopyTo(destination);
+					charsWritten = JsonTokens.Iso8601DateTimeMaxValue.Length;
+					return true;
+				}
+
+				if (m_value == JsonDateTime.MaxValueDate)
+				{ // DateOnly.MaxValue
+					if (destination.Length < JsonTokens.Iso8601DateOnlyMaxValue.Length)
+					{
+						goto too_small;
+					}
+					JsonTokens.Iso8601DateOnlyMaxValue.CopyTo(destination);
+					charsWritten = JsonTokens.Iso8601DateOnlyMaxValue.Length;
+					return true;
+				}
+
+				if (destination.Length < 2 || !CrystalJsonFormatter.TryFormatIso8601DateTime(destination.Slice(1), out int n, m_value, m_value.Kind, null))
+				{
+					goto too_small;
+				}
+				destination[0] = '"';
+				destination[n + 1] = '"';
+				charsWritten = n + 2;
+				return true;
+
+			}
+			else
+			{ // DateTimeOffset
+				var dto = new DateTimeOffset(m_value, TimeSpan.FromMinutes(m_offset));
+
+				if (dto == DateTime.MinValue)
+				{
+					return JsonString.Empty.TryFormat(destination, out charsWritten, format, provider);
+				}
+
+				if (destination.Length < 2)
+				{
+					goto too_small;
+				}
+
+				destination[0] = '"';
+				if (!dto.TryFormat(destination.Slice(1), out int n, "O", CultureInfo.InvariantCulture))
+				{
+					goto too_small;
+				}
+
+				destination[n + 1] = '"';
+				charsWritten = n + 2;
+				return true;
+			}
+
+		too_small:
+			charsWritten = 0;
+			return false;
 		}
 
 		#endregion

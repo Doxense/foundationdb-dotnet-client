@@ -221,6 +221,20 @@ namespace Doxense.Serialization.Json
 			writer.WriteNull(); // "null"
 		}
 
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			if (destination.Length < 4)
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			JsonTokens.Null.CopyTo(destination);
+			charsWritten = 4;
+			return true;
+		}
+
 		#endregion
 
 		#region Equality Operators...
