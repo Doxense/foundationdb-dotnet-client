@@ -53,11 +53,7 @@ namespace Doxense.Messaging.Events
 
 		private List<IEvent> Events { get; } = [ ];
 
-#if NET9_0_OR_GREATER
 		private Lock Lock { get; } = new();
-#else
-		private object Lock { get; } = new();
-#endif
 
 		public bool Async => false;
 		//note: in truth, this is a "lie" because we lock(), but this is not really an issue here!

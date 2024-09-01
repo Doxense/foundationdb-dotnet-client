@@ -200,11 +200,7 @@ namespace FoundationDB.Client
 
 		private sealed class BatchIterator : IEnumerable<IEnumerable<KeyValuePair<int, int>>>
 		{
-#if NET9_0_OR_GREATER
 			private readonly System.Threading.Lock m_lock = new ();
-#else
-			private readonly object m_lock = new ();
-#endif
 			private int m_cursor;
 			private int m_remaining;
 

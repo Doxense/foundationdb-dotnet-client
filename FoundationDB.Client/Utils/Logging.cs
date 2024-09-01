@@ -31,16 +31,13 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Security;
+	using System.Threading;
 
 	internal static class Logging
 	{
 		#region Private Fields...
 
-#if NET9_0_OR_GREATER
-		private static readonly System.Threading.Lock s_lock = new();
-#else
-		private static readonly object s_lock = new();
-#endif
+		private static readonly Lock s_lock = new();
 
 		private static bool s_initialized;
 

@@ -63,7 +63,7 @@ namespace Doxense.Runtime.Comparison
 
 		private static readonly Dictionary<Type, (Func<object?, object?, bool> Comparer, Func<object, int> HashFunction, MemberInfo[]? Members)> BoxedCache = new(TypeEqualityComparer.Default);
 
-		private static readonly object PadLock = new();
+		private static readonly Lock PadLock = new();
 
 		public sealed class Comparer<T> : IEqualityComparer<T>
 		{
