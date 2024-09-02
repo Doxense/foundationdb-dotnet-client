@@ -19,6 +19,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="NUnit.Analyzers">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="System.Collections.Immutable" />
 		<PackageReference Include="System.Threading.Channels" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
