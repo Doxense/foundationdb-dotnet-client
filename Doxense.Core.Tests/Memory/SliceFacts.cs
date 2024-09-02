@@ -1801,8 +1801,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(string value, float expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToSingle(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
+				Assert.That(Slice.FromHexa(value).ToSingle(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
+				Assert.That(Slice.FromHexa(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
 			}
 
 			Assert.That(Slice.Empty.ToSingle(), Is.EqualTo(0d));
@@ -1862,8 +1862,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(string value, double expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDouble(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
+				Assert.That(Slice.FromHexa(value).ToDouble(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
+				Assert.That(Slice.FromHexa(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
 			}
 
 			Verify("", 0d);
@@ -1918,7 +1918,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(string value, decimal expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), "Invalid decoding for '{0}'", value);
+				Assert.That(Slice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), $"Invalid decoding for '{value}'");
 			}
 
 			Verify("", 0m);

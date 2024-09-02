@@ -258,6 +258,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_MutableSlice_Equality()
 		{
 #pragma warning disable 1718
+#pragma warning disable NUnit2009
 			// a == b == c && x != y && a != x
 			var a = new byte[] { 1, 2, 3 }.AsMutableSlice();
 			var b = new byte[] { 1, 2, 3 }.AsMutableSlice();
@@ -281,6 +282,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(a, Is.Not.EqualTo(x));
 			Assert.That(a, Is.Not.EqualTo(y));
 			Assert.That(a, Is.Not.EqualTo(z));
+#pragma warning restore NUnit2009
 #pragma warning restore 1718
 		}
 

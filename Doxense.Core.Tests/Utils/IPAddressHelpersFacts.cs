@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable InconsistentNaming
+
 namespace Doxense.Networking.Tests
 {
 	using System.Net;
@@ -41,21 +43,21 @@ namespace Doxense.Networking.Tests
 		{
 			static void ShouldPassV4(string ip)
 			{
-				Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, "'{0}' is a valid IP address", ip);
-				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.True, "'{0}' is a valid IPv4 address", ip);
-				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.False, "'{0}' is NOT an IPv4 address", ip);
+				Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, $"'{ip}' is a valid IP address");
+				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.True, $"'{ip}' is a valid IPv4 address");
+				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.False, $"'{ip}' is NOT an IPv4 address");
 			}
 
 			static void ShouldFailV4(string? ip)
 			{
-				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.False, "'{0}' is NOT a valid IPv4 address", ip ?? "<null>");
+				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.False, $"'{ip ?? "<null>"}' is NOT a valid IPv4 address");
 				if (IPAddress.TryParse(ip, out var x) && x.AddressFamily == AddressFamily.InterNetworkV6)
 				{
-					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, "'{0}' is valid but no an IPv4 address", ip);
+					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, $"'{ip}' is valid but no an IPv4 address");
 				}
 				else
 				{
-					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, "'{0}' is NOT a valid IP address", ip ?? "<null>");
+					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, $"'{ip ?? "<null>"}' is NOT a valid IP address");
 				}
 			}
 
@@ -92,21 +94,21 @@ namespace Doxense.Networking.Tests
 		{
 			static void ShouldPassV6(string ip)
 			{
-				Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, "'{0}' is a valid IP address", ip);
-				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.True, "'{0}' is a valid IPv6 address", ip);
-				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.False, "'{0}' is NOT an IPv6 address", ip);
+				Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, $"'{ip}' is a valid IP address");
+				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.True, $"'{ip}' is a valid IPv6 address");
+				Assert.That(IPAddressHelpers.IsValidIPv4(ip), Is.False, $"'{ip}' is NOT an IPv6 address");
 			}
 
 			static void ShouldFailV6(string? ip)
 			{
-				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.False, "'{0}' is NOT a valid IPv6 address", ip ?? "<null>");
+				Assert.That(IPAddressHelpers.IsValidIPv6(ip), Is.False, $"'{ip ?? "<null>"}' is NOT a valid IPv6 address");
 				if (IPAddress.TryParse(ip, out var x) && x.AddressFamily == AddressFamily.InterNetwork)
 				{
-					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, "'{0}' is valid but no an IPv6 address", ip);
+					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.True, $"'{ip}' is valid but no an IPv6 address");
 				}
 				else
 				{
-					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, "'{0}' is NOT a valid IP address", ip ?? "<null>");
+					Assert.That(IPAddressHelpers.IsValidIP(ip), Is.False, $"'{ip ?? "<null>"}' is NOT a valid IP address");
 				}
 			}
 
@@ -139,12 +141,12 @@ namespace Doxense.Networking.Tests
 
 			static void ShouldPass(string ip)
 			{
-				Assert.That(IPAddressHelpers.IsPrivateRange(IPAddress.Parse(ip)), Is.True, "'{0}' is an adress in the Private Network range", ip);
+				Assert.That(IPAddressHelpers.IsPrivateRange(IPAddress.Parse(ip)), Is.True, $"'{ip}' is an adress in the Private Network range");
 			}
 
 			static void ShouldFail(string ip)
 			{
-				Assert.That(IPAddressHelpers.IsPrivateRange(IPAddress.Parse(ip)), Is.False, "'{0}' is NOT an adress in the Private Network range", ip);
+				Assert.That(IPAddressHelpers.IsPrivateRange(IPAddress.Parse(ip)), Is.False, $"'{ip}' is NOT an adress in the Private Network range");
 			}
 
 			// 192.168/16

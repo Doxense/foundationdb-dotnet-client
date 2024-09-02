@@ -2175,7 +2175,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			{ // Deserialize<T> should invoke the ctor(JsonObject,...)
 				var x = CrystalJson.Deserialize<DummyCtorBasedJsonSerializableStruct>("""{ "Id":123,"Name":"Bob","XY":"5:7" }""");
-				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
 				Assert.That(x.X, Is.EqualTo(5));
@@ -2184,7 +2183,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			{ // As<...> should also use the ctor(JsonObject)
 				var x = JsonValue.ParseObject(json).Required<DummyCtorBasedJsonSerializableStruct>();
-				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
 				Assert.That(x.X, Is.EqualTo(5));
@@ -3705,8 +3703,8 @@ namespace Doxense.Serialization.Json.Tests
 				JsonValue ja = JsonString.Return(a);
 				JsonValue jb = JsonString.Return(b);
 
-				Assert.That(Math.Sign(ja.CompareTo(jb)), Is.EqualTo(Math.Sign(string.CompareOrdinal(a, b))), "'{0}' cmp '{1}'", a, b);
-				Assert.That(Math.Sign(jb.CompareTo(ja)), Is.EqualTo(Math.Sign(string.CompareOrdinal(b, a))), "'{0}' cmp '{1}'", b, a);
+				Assert.That(Math.Sign(ja.CompareTo(jb)), Is.EqualTo(Math.Sign(string.CompareOrdinal(a, b))), $"'{a}' cmp '{b}'");
+				Assert.That(Math.Sign(jb.CompareTo(ja)), Is.EqualTo(Math.Sign(string.CompareOrdinal(b, a))), $"'{b}' cmp '{a}'");
 			}
 
 			Compare("", "");
@@ -6003,7 +6001,9 @@ namespace Doxense.Serialization.Json.Tests
 				string constraintExpression = "")
 			{
 				Dump(actualExpression, actual);
+#pragma warning disable NUnit2050
 				Assert.That(actual, expression, message, actualExpression, constraintExpression);
+#pragma warning restore NUnit2050
 			}
 
 			Check(JsonArray.EmptyReadOnly.CopyAndAdd("hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
@@ -7235,10 +7235,10 @@ namespace Doxense.Serialization.Json.Tests
 			void Check(JsonValue o, string name, string expectedType, IResolveConstraint valueConstraint)
 			{
 				var arr = o[name].AsArray();
-				Assert.That(arr, Is.Not.Null, "Property '{0}' is missing", name);
+				Assert.That(arr, Is.Not.Null, $"Property '{name}' is missing");
 				Assert.That(arr.Count, Is.EqualTo(2), $"Array should have exactly 2 elements: {arr:P}");
-				Assert.That(arr[0].ToStringOrDefault(), Is.EqualTo(expectedType), "Item type does not match for {0}", name);
-				Assert.That(arr[1], valueConstraint, "Value does not match for {0}", name);
+				Assert.That(arr[0].ToStringOrDefault(), Is.EqualTo(expectedType), $"Item type does not match for {name}");
+				Assert.That(arr[1], valueConstraint, $"Value does not match for {name}");
 			}
 
 			//note: throw and catch the exception to have an actual StackTrace
@@ -9308,7 +9308,6 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			string jsonText = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"DateOfBirth\": \"1920-11-11\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
 			var x = CrystalJson.Deserialize<DummyJsonStruct>(jsonText);
-			Assert.That(x, Is.Not.Null, jsonText);
 			Assert.That(x, Is.InstanceOf<DummyJsonStruct>());
 
 			Assert.That(x.Valid, Is.True, "x.Valid");

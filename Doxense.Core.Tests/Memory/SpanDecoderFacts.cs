@@ -72,18 +72,18 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_Span_ToStringAscii()
 		{
 			Assert.That(default(ReadOnlySpan<byte>).ToStringAscii(), Is.EqualTo(string.Empty));
-			Assert.That(new byte[] { 0x41 }.AsSpan().ToStringAscii(), Is.EqualTo("A"));
-			Assert.That(new byte[] { 0x41, 0x42 }.AsSpan().ToStringAscii(), Is.EqualTo("AB"));
-			Assert.That(new byte[] { 0x41, 0x42, 0x43 }.AsSpan().ToStringAscii(), Is.EqualTo("ABC"));
-			Assert.That(new byte[] { 0x41, 0x42, 0x43, 0x44 }.AsSpan().ToStringAscii(), Is.EqualTo("ABCD"));
-			Assert.That(new byte[] { 0x7F, 0x00, 0x1F }.AsSpan().ToStringAscii(), Is.EqualTo("\x7F\x00\x1F"));
-			Assert.That(new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46 }.AsSpan(2, 3).ToStringAscii(), Is.EqualTo("CDE"));
-			Assert.That(Encoding.ASCII.GetBytes("This is a test of the emergency encoding system").AsSpan().ToStringAscii(), Is.EqualTo("This is a test of the emergency encoding system"));
+			Assert.That("A"u8.ToStringAscii(), Is.EqualTo("A"));
+			Assert.That("AB"u8.ToStringAscii(), Is.EqualTo("AB"));
+			Assert.That("ABC"u8.ToStringAscii(), Is.EqualTo("ABC"));
+			Assert.That("ABCD"u8.ToStringAscii(), Is.EqualTo("ABCD"));
+			Assert.That(((byte[]) [ 0x7F, 0x00, 0x1F ]).AsSpan().ToStringAscii(), Is.EqualTo("\x7F\x00\x1F"));
+			Assert.That("ABCDEF"u8.ToArray().AsSpan(2, 3).ToStringAscii(), Is.EqualTo("CDE"));
+			Assert.That("This is a test of the emergency encoding system"u8.ToStringAscii(), Is.EqualTo("This is a test of the emergency encoding system"));
 
 			// If the slice contain anything other than 7+bit ASCII, it should throw!
-			Assert.That(() => new byte[] { 0xFF, 0x41, 0x42, 0x43 }.AsSpan().ToStringAscii(), Throws.Exception, "\\xFF is not valid in 7-bit ASCII strings!");
+			Assert.That(() => ((byte[]) [ 0xFF, 0x41, 0x42, 0x43 ]).AsSpan().ToStringAscii(), Throws.Exception, "\\xFF is not valid in 7-bit ASCII strings!");
 			Assert.That(() => Encoding.Default.GetBytes("héllô").AsSpan().ToStringAscii(), Throws.Exception, "String that contain code points >= 0x80 should trow");
-			Assert.That(() => Encoding.UTF8.GetBytes("héllo 世界").AsSpan().ToStringAscii(), Throws.Exception, "String that contains code points >= 0x80 should throw");
+			Assert.That(() => "héllo 世界"u8.ToStringAscii(), Throws.Exception, "String that contains code points >= 0x80 should throw");
 		}
 
 		[Test]
@@ -92,7 +92,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			//note: FromStringAnsi uses Encoding.Default which varies from system to system! (win-1252, utf8-, ...)
 
 			Assert.That(default(ReadOnlySpan<byte>).ToStringAnsi(), Is.EqualTo(String.Empty));
-			Assert.That(new[] { (byte) 'A', (byte) 'B', (byte) 'C' }.AsSpan().ToStringAnsi(), Is.EqualTo("ABC"));
+			Assert.That("ABC"u8.ToStringAnsi(), Is.EqualTo("ABC"));
 			Assert.That(Encoding.Default.GetBytes("héllô").AsSpan().ToStringAnsi(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
 			Assert.That(new[] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' }.AsSpan().ToStringAnsi(), Is.EqualTo(Encoding.Default.GetString(new[] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' })));
 		}
@@ -100,10 +100,15 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_Span_ToStringUtf8()
 		{
-			Assert.That(default(ReadOnlySpan<byte>).ToStringUtf8(), Is.EqualTo(String.Empty));
-			Assert.That(new[] { (byte) 'A', (byte) 'B', (byte) 'C' }.AsSpan().ToStringUtf8(), Is.EqualTo("ABC"));
-			Assert.That(Encoding.UTF8.GetBytes("héllô").AsSpan().ToStringUtf8(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
-			Assert.That(Encoding.UTF8.GetBytes("世界").AsSpan().ToStringUtf8(), Is.EqualTo("世界"));
+			Assert.That(default(ReadOnlySpan<byte>).ToStringUtf8(), Is.EqualTo(string.Empty));
+			Assert.That("ABC"u8.ToStringUtf8(), Is.EqualTo("ABC"));
+			Assert.That("héllô"u8.ToStringUtf8(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
+			Assert.That("世界"u8.ToStringUtf8(), Is.EqualTo("世界"));
+
+			Assert.That(default(Span<byte>).ToStringUtf8(), Is.EqualTo(string.Empty));
+			Assert.That("ABC"u8.ToArray().AsSpan().ToStringUtf8(), Is.EqualTo("ABC"));
+			Assert.That("héllô"u8.ToArray().AsSpan().ToStringUtf8(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
+			Assert.That("世界"u8.ToArray().AsSpan().ToStringUtf8(), Is.EqualTo("世界"));
 
 			// should remove the bom!
 			Assert.That(new byte[] { 0xEF, 0xBB, 0xBF, (byte) 'A', (byte) 'B', (byte) 'C' }.AsSpan().ToStringUtf8(), Is.EqualTo("ABC"), "BOM should be removed");
@@ -127,25 +132,26 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, int expected)
 			{
-				Assert.That(bytes.AsSpan().ToInt24(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToInt24(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToInt24(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToInt24(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] {0x12}, 0x12);
-			Verify(new byte[] { 0x34, 0x12 }, 0x1234);
-			Verify(new byte[] { 0x34, 0x12, 0x00 }, 0x1234);
-			Verify(new byte[] { 0x56, 0x34, 0x12 }, 0x123456);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x34, 0x12 ], 0x1234);
+			Verify([ 0x34, 0x12, 0x00 ], 0x1234);
+			Verify([ 0x56, 0x34, 0x12 ], 0x123456);
 
-			Verify(new byte[] { }, 0);
-			Verify(new byte[] { 0 }, 0);
-			Verify(new byte[] { 127 }, 127);
-			Verify(new byte[] { 255 }, 255);
-			Verify(new byte[] { 0, 1 }, 256);
-			Verify(new byte[] { 255, 127 }, 32767);
-			Verify(new byte[] { 255, 255 }, 65535);
-			Verify(new byte[] { 0, 0, 1 }, 1 << 16);
-			Verify(new byte[] { 255, 255, 127 }, (1 << 23) - 1);
-			Verify(new byte[] { 255, 255, 255 }, (1 << 24) - 1);
+			Verify([ ], 0);
+			Verify([ 0 ], 0);
+			Verify([ 127 ], 127);
+			Verify([ 255 ], 255);
+			Verify([ 0, 1 ], 256);
+			Verify([ 255, 127 ], 32767);
+			Verify([ 255, 255 ], 65535);
+			Verify([ 0, 0, 1 ], 1 << 16);
+			Verify([ 255, 255, 127 ], (1 << 23) - 1);
+			Verify([ 255, 255, 255 ], (1 << 24) - 1);
 
 			Assert.That(() => new byte[4].AsSpan().ToInt24(), Throws.InstanceOf<FormatException>());
 		}
@@ -155,24 +161,25 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, int expected)
 			{
-				Assert.That(bytes.AsSpan().ToInt24BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToInt24BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToInt24BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToInt24BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] {0x12}, 0x12);
-			Verify(new byte[] { 0x12, 0x34 }, 0x1234);
-			Verify(new byte[] { 0x12, 0x34, 0x56 }, 0x123456);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x12, 0x34 ], 0x1234);
+			Verify([ 0x12, 0x34, 0x56 ], 0x123456);
 
-			Verify(new byte[] { }, 0);
-			Verify(new byte[] { 0 }, 0);
-			Verify(new byte[] { 127 }, 127);
-			Verify(new byte[] { 255 }, 255);
-			Verify(new byte[] { 1, 0 }, 256);
-			Verify(new byte[] { 127, 255 }, 32767);
-			Verify(new byte[] { 255, 255 }, 65535);
-			Verify(new byte[] { 1, 0, 0 }, 1 << 16);
-			Verify(new byte[] { 127, 255, 255 }, (1 << 23) - 1);
-			Verify(new byte[] { 255, 255, 255 }, (1 << 24) - 1);
+			Verify([ ], 0);
+			Verify([ 0 ], 0);
+			Verify([ 127 ], 127);
+			Verify([ 255 ], 255);
+			Verify([ 1, 0 ], 256);
+			Verify([ 127, 255 ], 32767);
+			Verify([ 255, 255 ], 65535);
+			Verify([ 1, 0, 0 ], 1 << 16);
+			Verify([ 127, 255, 255 ], (1 << 23) - 1);
+			Verify([ 255, 255, 255 ], (1 << 24) - 1);
 
 			Assert.That(() => new byte[4].AsSpan().ToInt24BE(), Throws.InstanceOf<FormatException>());
 		}
@@ -186,26 +193,27 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, int expected)
 			{
-				Assert.That(bytes.AsSpan().ToInt32(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToInt32(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToInt32(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToInt32(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] { 0x12 }, 0x12);
-			Verify(new byte[] { 0x34, 0x12 }, 0x1234);
-			Verify(new byte[] { 0x56, 0x34, 0x12 }, 0x123456);
-			Verify(new byte[] { 0x56, 0x34, 0x12, 0x00 }, 0x123456);
-			Verify(new byte[] { 0x78, 0x56, 0x34, 0x12 }, 0x12345678);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x34, 0x12 ], 0x1234);
+			Verify([ 0x56, 0x34, 0x12 ], 0x123456);
+			Verify([ 0x56, 0x34, 0x12, 0x00 ], 0x123456);
+			Verify([ 0x78, 0x56, 0x34, 0x12 ], 0x12345678);
 
-			Verify(new byte[] { }, 0);
-			Verify(new byte[] { 0 }, 0);
-			Verify(new byte[] { 255 }, 255);
-			Verify(new byte[] { 0, 1 }, 256);
-			Verify(new byte[] { 255, 255 }, 65535);
-			Verify(new byte[] { 0, 0, 1 }, 1 << 16);
-			Verify(new byte[] { 0, 0, 1, 0 }, 1 << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1 << 24) - 1);
-			Verify(new byte[] { 0, 0, 0, 1 }, 1 << 24);
-			Verify(new byte[] { 255, 255, 255, 127 }, int.MaxValue);
+			Verify([ ], 0);
+			Verify([ 0 ], 0);
+			Verify([ 255 ], 255);
+			Verify([ 0, 1 ], 256);
+			Verify([ 255, 255 ], 65535);
+			Verify([ 0, 0, 1 ], 1 << 16);
+			Verify([ 0, 0, 1, 0 ], 1 << 16);
+			Verify([ 255, 255, 255 ], (1 << 24) - 1);
+			Verify([ 0, 0, 0, 1 ], 1 << 24);
+			Verify([ 255, 255, 255, 127 ], int.MaxValue);
 
 			Assert.That(() => new byte[5].AsSpan().ToInt32(), Throws.InstanceOf<FormatException>());
 		}
@@ -215,26 +223,27 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, int expected)
 			{
-				Assert.That(bytes.AsSpan().ToInt32BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToInt32BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToInt32BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That((new ReadOnlySpan<byte>(bytes)).ToInt32BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] {0x12}, 0x12);
-			Verify(new byte[] { 0x12, 0x34 }, 0x1234);
-			Verify(new byte[] { 0x12, 0x34, 0x56 }, 0x123456);
-			Verify(new byte[] { 0x00, 0x12, 0x34, 0x56 }, 0x123456);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78 }, 0x12345678);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x12, 0x34 ], 0x1234);
+			Verify([ 0x12, 0x34, 0x56 ], 0x123456);
+			Verify([ 0x00, 0x12, 0x34, 0x56 ], 0x123456);
+			Verify([ 0x12, 0x34, 0x56, 0x78 ], 0x12345678);
 
-			Verify(new byte[] { }, 0);
-			Verify(new byte[] { 0 }, 0);
-			Verify(new byte[] { 255 }, 255);
-			Verify(new byte[] { 1, 0 }, 256);
-			Verify(new byte[] { 255, 255 }, 65535);
-			Verify(new byte[] { 1, 0, 0 }, 1 << 16);
-			Verify(new byte[] { 0, 1, 0, 0 }, 1 << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1 << 24) - 1);
-			Verify(new byte[] { 1, 0, 0, 0 }, 1 << 24);
-			Verify(new byte[] { 127, 255, 255, 255 }, int.MaxValue);
+			Verify([ ], 0);
+			Verify([ 0 ], 0);
+			Verify([ 255 ], 255);
+			Verify([ 1, 0 ], 256);
+			Verify([ 255, 255 ], 65535);
+			Verify([ 1, 0, 0 ], 1 << 16);
+			Verify([ 0, 1, 0, 0 ], 1 << 16);
+			Verify([ 255, 255, 255 ], (1 << 24) - 1);
+			Verify([ 1, 0, 0, 0 ], 1 << 24);
+			Verify([ 127, 255, 255, 255 ], int.MaxValue);
 
 			Assert.That(() => new byte[5].AsSpan().ToInt32BE(), Throws.InstanceOf<FormatException>());
 		}
@@ -248,36 +257,37 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, long expected)
 			{
-				Assert.That(bytes.AsSpan().ToInt64(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToInt64(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToInt64(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToInt64(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] {0x12}, 0x12);
-			Verify(new byte[] { 0x34, 0x12 }, 0x1234);
-			Verify(new byte[] { 0x56, 0x34, 0x12 }, 0x123456);
-			Verify(new byte[] { 0x56, 0x34, 0x12, 0x00 }, 0x123456);
-			Verify(new byte[] { 0x78, 0x56, 0x34, 0x12 }, 0x12345678);
-			Verify(new byte[] { 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789A);
-			Verify(new byte[] { 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789ABC);
-			Verify(new byte[] { 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789ABCDE);
-			Verify(new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789ABCDEF0);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x34, 0x12 ], 0x1234);
+			Verify([ 0x56, 0x34, 0x12 ], 0x123456);
+			Verify([ 0x56, 0x34, 0x12, 0x00 ], 0x123456);
+			Verify([ 0x78, 0x56, 0x34, 0x12 ], 0x12345678);
+			Verify([ 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789A);
+			Verify([ 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789ABC);
+			Verify([ 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789ABCDE);
+			Verify([ 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789ABCDEF0);
 
-			Verify(new byte[] { }, 0L);
-			Verify(new byte[] { 0 }, 0L);
-			Verify(new byte[] { 255 }, 255L);
-			Verify(new byte[] { 0, 1 }, 256L);
-			Verify(new byte[] { 255, 255 }, 65535L);
-			Verify(new byte[] { 0, 0, 1 }, 1L << 16);
-			Verify(new byte[] { 0, 0, 1, 0 }, 1L << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1L << 24) - 1);
-			Verify(new byte[] { 0, 0, 0, 1 }, 1L << 24);
-			Verify(new byte[] { 0, 0, 0, 0, 1 }, 1L << 32);
-			Verify(new byte[] { 0, 0, 0, 0, 0, 1 }, 1L << 40);
-			Verify(new byte[] { 0, 0, 0, 0, 0, 0, 1 }, 1L << 48);
-			Verify(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, 1L << 56);
-			Verify(new byte[] { 255, 255, 255, 127 }, int.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }, long.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, -1L);
+			Verify([ ], 0L);
+			Verify([ 0 ], 0L);
+			Verify([ 255 ], 255L);
+			Verify([ 0, 1 ], 256L);
+			Verify([ 255, 255 ], 65535L);
+			Verify([ 0, 0, 1 ], 1L << 16);
+			Verify([ 0, 0, 1, 0 ], 1L << 16);
+			Verify([ 255, 255, 255 ], (1L << 24) - 1);
+			Verify([ 0, 0, 0, 1 ], 1L << 24);
+			Verify([ 0, 0, 0, 0, 1 ], 1L << 32);
+			Verify([ 0, 0, 0, 0, 0, 1 ], 1L << 40);
+			Verify([ 0, 0, 0, 0, 0, 0, 1 ], 1L << 48);
+			Verify([ 0, 0, 0, 0, 0, 0, 0, 1 ], 1L << 56);
+			Verify([ 255, 255, 255, 127 ], int.MaxValue);
+			Verify([ 255, 255, 255, 255, 255, 255, 255, 127 ], long.MaxValue);
+			Verify([ 255, 255, 255, 255, 255, 255, 255, 255 ], -1L);
 		}
 
 		[Test]
@@ -285,36 +295,37 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, long expected)
 			{
-				Assert.That(bytes.AsSpan().ToInt64BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToInt64BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToInt64BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToInt64BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] {0x12}, 0x12);
-			Verify(new byte[] { 0x12, 0x34 }, 0x1234);
-			Verify(new byte[] { 0x12, 0x34, 0x56 }, 0x123456);
-			Verify(new byte[] { 0x00, 0x12, 0x34, 0x56 }, 0x123456);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78 }, 0x12345678);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A }, 0x123456789A);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC }, 0x123456789ABC);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE }, 0x123456789ABCDE);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }, 0x123456789ABCDEF0);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x12, 0x34 ], 0x1234);
+			Verify([ 0x12, 0x34, 0x56 ], 0x123456);
+			Verify([ 0x00, 0x12, 0x34, 0x56 ], 0x123456);
+			Verify([ 0x12, 0x34, 0x56, 0x78 ], 0x12345678);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A ], 0x123456789A);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC ], 0x123456789ABC);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE ], 0x123456789ABCDE);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 ], 0x123456789ABCDEF0);
 
-			Verify(new byte[] { }, 0L);
-			Verify(new byte[] { 0 }, 0L);
-			Verify(new byte[] { 255 }, 255L);
-			Verify(new byte[] { 1, 0 }, 256L);
-			Verify(new byte[] { 255, 255 }, 65535L);
-			Verify(new byte[] { 1, 0, 0 }, 1L << 16);
-			Verify(new byte[] { 0, 1, 0, 0 }, 1L << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1L << 24) - 1);
-			Verify(new byte[] { 1, 0, 0, 0 }, 1L << 24);
-			Verify(new byte[] { 1, 0, 0, 0, 0 }, 1L << 32);
-			Verify(new byte[] { 1, 0, 0, 0, 0, 0 }, 1L << 40);
-			Verify(new byte[] { 1, 0, 0, 0, 0, 0, 0 }, 1L << 48);
-			Verify(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, 1L << 56);
-			Verify(new byte[] { 127, 255, 255, 255 }, int.MaxValue);
-			Verify(new byte[] { 127, 255, 255, 255, 255, 255, 255, 255 }, long.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, -1L);
+			Verify([ ], 0L);
+			Verify([ 0 ], 0L);
+			Verify([ 255 ], 255L);
+			Verify([ 1, 0 ], 256L);
+			Verify([ 255, 255 ], 65535L);
+			Verify([ 1, 0, 0 ], 1L << 16);
+			Verify([ 0, 1, 0, 0 ], 1L << 16);
+			Verify([ 255, 255, 255 ], (1L << 24) - 1);
+			Verify([ 1, 0, 0, 0 ], 1L << 24);
+			Verify([ 1, 0, 0, 0, 0 ], 1L << 32);
+			Verify([ 1, 0, 0, 0, 0, 0 ], 1L << 40);
+			Verify([ 1, 0, 0, 0, 0, 0, 0 ], 1L << 48);
+			Verify([ 1, 0, 0, 0, 0, 0, 0, 0 ], 1L << 56);
+			Verify([ 127, 255, 255, 255 ], int.MaxValue);
+			Verify([ 127, 255, 255, 255, 255, 255, 255, 255 ], long.MaxValue);
+			Verify([ 255, 255, 255, 255, 255, 255, 255, 255 ], -1L);
 		}
 
 		#endregion
@@ -330,27 +341,28 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, uint expected)
 			{
-				Assert.That(bytes.AsSpan().ToUInt32(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToUInt32(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToUInt32(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToUInt32(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] { 0x12 }, 0x12U);
-			Verify(new byte[] { 0x34, 0x12 }, 0x1234U);
-			Verify(new byte[] { 0x56, 0x34, 0x12 }, 0x123456U);
-			Verify(new byte[] { 0x56, 0x34, 0x12, 0x00 }, 0x123456U);
-			Verify(new byte[] { 0x78, 0x56, 0x34, 0x12 }, 0x12345678U);
+			Verify([ 0x12 ], 0x12U);
+			Verify([ 0x34, 0x12 ], 0x1234U);
+			Verify([ 0x56, 0x34, 0x12 ], 0x123456U);
+			Verify([ 0x56, 0x34, 0x12, 0x00 ], 0x123456U);
+			Verify([ 0x78, 0x56, 0x34, 0x12 ], 0x12345678U);
 
-			Verify(new byte[] { }, 0U);
-			Verify(new byte[] { 0 }, 0U);
-			Verify(new byte[] { 255 }, 255U);
-			Verify(new byte[] { 0, 1 }, 256U);
-			Verify(new byte[] { 255, 255 }, 65535U);
-			Verify(new byte[] { 0, 0, 1 }, 1U << 16);
-			Verify(new byte[] { 0, 0, 1, 0 }, 1U << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1U << 24) - 1U);
-			Verify(new byte[] { 0, 0, 0, 1 }, 1U << 24);
-			Verify(new byte[] { 255, 255, 255, 127 }, (uint)int.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255 }, uint.MaxValue);
+			Verify([ ], 0U);
+			Verify([ 0 ], 0U);
+			Verify([ 255 ], 255U);
+			Verify([ 0, 1 ], 256U);
+			Verify([ 255, 255 ], 65535U);
+			Verify([ 0, 0, 1 ], 1U << 16);
+			Verify([ 0, 0, 1, 0 ], 1U << 16);
+			Verify([ 255, 255, 255 ], (1U << 24) - 1U);
+			Verify([ 0, 0, 0, 1 ], 1U << 24);
+			Verify([ 255, 255, 255, 127 ], int.MaxValue);
+			Verify([ 255, 255, 255, 255 ], uint.MaxValue);
 
 			Assert.That(() => new byte[5].AsSpan().ToUInt32(), Throws.InstanceOf<FormatException>());
 		}
@@ -360,27 +372,28 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, uint expected)
 			{
-				Assert.That(bytes.AsSpan().ToUInt32BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToUInt32BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToUInt32BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToUInt32BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] { 0x12 }, 0x12U);
-			Verify(new byte[] { 0x12, 0x34 }, 0x1234U);
-			Verify(new byte[] { 0x12, 0x34, 0x56 }, 0x123456U);
-			Verify(new byte[] { 0x00, 0x12, 0x34, 0x56 }, 0x123456U);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78 }, 0x12345678U);
+			Verify([ 0x12 ], 0x12U);
+			Verify([ 0x12, 0x34 ], 0x1234U);
+			Verify([ 0x12, 0x34, 0x56 ], 0x123456U);
+			Verify([ 0x00, 0x12, 0x34, 0x56 ], 0x123456U);
+			Verify([ 0x12, 0x34, 0x56, 0x78 ], 0x12345678U);
 
-			Verify(new byte[] { }, 0U);
-			Verify(new byte[] { 0 }, 0U);
-			Verify(new byte[] { 255 }, 255U);
-			Verify(new byte[] { 1, 0 }, 256U);
-			Verify(new byte[] { 255, 255 }, 65535U);
-			Verify(new byte[] { 1, 0, 0 }, 1U << 16);
-			Verify(new byte[] { 0, 1, 0, 0 }, 1U << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1U << 24) - 1U);
-			Verify(new byte[] { 1, 0, 0, 0 }, 1U << 24);
-			Verify(new byte[] { 127, 255, 255, 255 }, (uint)int.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255 }, uint.MaxValue);
+			Verify([ ], 0U);
+			Verify([ 0 ], 0U);
+			Verify([ 255 ], 255U);
+			Verify([ 1, 0 ], 256U);
+			Verify([ 255, 255 ], 65535U);
+			Verify([ 1, 0, 0 ], 1U << 16);
+			Verify([ 0, 1, 0, 0 ], 1U << 16);
+			Verify([ 255, 255, 255 ], (1U << 24) - 1U);
+			Verify([ 1, 0, 0, 0 ], 1U << 24);
+			Verify([ 127, 255, 255, 255 ], int.MaxValue);
+			Verify([ 255, 255, 255, 255 ], uint.MaxValue);
 
 			Assert.That(() => new byte[5].AsSpan().ToUInt32BE(), Throws.InstanceOf<FormatException>());
 		}
@@ -394,37 +407,38 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, ulong expected)
 			{
-				Assert.That(bytes.AsSpan().ToUInt64(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToUInt64(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToUInt64(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToUInt64(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] {0x12}, 0x12);
-			Verify(new byte[] { 0x34, 0x12 }, 0x1234);
-			Verify(new byte[] { 0x56, 0x34, 0x12 }, 0x123456);
-			Verify(new byte[] { 0x56, 0x34, 0x12, 00 }, 0x123456);
-			Verify(new byte[] { 0x78, 0x56, 0x34, 0x12 }, 0x12345678);
-			Verify(new byte[] { 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789A);
-			Verify(new byte[] { 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789ABC);
-			Verify(new byte[] { 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789ABCDE);
-			Verify(new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }, 0x123456789ABCDEF0);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x34, 0x12 ], 0x1234);
+			Verify([ 0x56, 0x34, 0x12 ], 0x123456);
+			Verify([ 0x56, 0x34, 0x12, 00 ], 0x123456);
+			Verify([ 0x78, 0x56, 0x34, 0x12 ], 0x12345678);
+			Verify([ 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789A);
+			Verify([ 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789ABC);
+			Verify([ 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789ABCDE);
+			Verify([ 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 ], 0x123456789ABCDEF0);
 
-			Verify(new byte[] { }, 0UL);
-			Verify(new byte[] { 0 }, 0UL);
-			Verify(new byte[] { 255 }, 255UL);
-			Verify(new byte[] { 0, 1 }, 256UL);
-			Verify(new byte[] { 255, 255 }, 65535UL);
-			Verify(new byte[] { 0, 0, 1 }, 1UL << 16);
-			Verify(new byte[] { 0, 0, 1, 0 }, 1UL << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1UL << 24) - 1);
-			Verify(new byte[] { 0, 0, 0, 1 }, 1UL << 24);
-			Verify(new byte[] { 0, 0, 0, 0, 1 }, 1UL << 32);
-			Verify(new byte[] { 0, 0, 0, 0, 0, 1 }, 1UL << 40);
-			Verify(new byte[] { 0, 0, 0, 0, 0, 0, 1 }, 1UL << 48);
-			Verify(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, 1UL << 56);
-			Verify(new byte[] { 255, 255, 255, 127 }, int.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255 }, uint.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }, long.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, ulong.MaxValue);
+			Verify([ ], 0UL);
+			Verify([ 0 ], 0UL);
+			Verify([ 255 ], 255UL);
+			Verify([ 0, 1 ], 256UL);
+			Verify([ 255, 255 ], 65535UL);
+			Verify([ 0, 0, 1 ], 1UL << 16);
+			Verify([ 0, 0, 1, 0 ], 1UL << 16);
+			Verify([ 255, 255, 255 ], (1UL << 24) - 1);
+			Verify([ 0, 0, 0, 1 ], 1UL << 24);
+			Verify([ 0, 0, 0, 0, 1 ], 1UL << 32);
+			Verify([ 0, 0, 0, 0, 0, 1 ], 1UL << 40);
+			Verify([ 0, 0, 0, 0, 0, 0, 1 ], 1UL << 48);
+			Verify([ 0, 0, 0, 0, 0, 0, 0, 1 ], 1UL << 56);
+			Verify([ 255, 255, 255, 127 ], int.MaxValue);
+			Verify([ 255, 255, 255, 255 ], uint.MaxValue);
+			Verify([ 255, 255, 255, 255, 255, 255, 255, 127 ], long.MaxValue);
+			Verify([ 255, 255, 255, 255, 255, 255, 255, 255 ], ulong.MaxValue);
 		}
 
 		[Test]
@@ -432,37 +446,38 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(byte[] bytes, ulong expected)
 			{
-				Assert.That(bytes.AsSpan().ToUInt64BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
-				Assert.That(((ReadOnlySpan<byte>) bytes.AsSpan()).ToUInt64BE(), Is.EqualTo(expected), "Invalid decoding for {0}", bytes.AsSlice().ToHexaString(' '));
+				string hexa = bytes.AsSlice().ToHexaString(' ');
+				Assert.That(bytes.AsSpan().ToUInt64BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
+				Assert.That(new ReadOnlySpan<byte>(bytes).ToUInt64BE(), Is.EqualTo(expected), $"Invalid decoding for {hexa}");
 			}
 
-			Verify(new byte[] {0x12}, 0x12);
-			Verify(new byte[] { 0x12, 0x34 }, 0x1234);
-			Verify(new byte[] { 0x12, 0x34, 0x56 }, 0x123456);
-			Verify(new byte[] { 0x00, 0x12, 0x34, 0x56 }, 0x123456);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78 }, 0x12345678);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A }, 0x123456789A);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC }, 0x123456789ABC);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE }, 0x123456789ABCDE);
-			Verify(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }, 0x123456789ABCDEF0);
+			Verify([ 0x12 ], 0x12);
+			Verify([ 0x12, 0x34 ], 0x1234);
+			Verify([ 0x12, 0x34, 0x56 ], 0x123456);
+			Verify([ 0x00, 0x12, 0x34, 0x56 ], 0x123456);
+			Verify([ 0x12, 0x34, 0x56, 0x78 ], 0x12345678);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A ], 0x123456789A);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC ], 0x123456789ABC);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE ], 0x123456789ABCDE);
+			Verify([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 ], 0x123456789ABCDEF0);
 
-			Verify(new byte[] { }, 0L);
-			Verify(new byte[] { 0 }, 0L);
-			Verify(new byte[] { 255 }, 255L);
-			Verify(new byte[] { 1, 0 }, 256L);
-			Verify(new byte[] { 255, 255 }, 65535L);
-			Verify(new byte[] { 1, 0, 0 }, 1L << 16);
-			Verify(new byte[] { 0, 1, 0, 0 }, 1L << 16);
-			Verify(new byte[] { 255, 255, 255 }, (1L << 24) - 1);
-			Verify(new byte[] { 1, 0, 0, 0 }, 1L << 24);
-			Verify(new byte[] { 1, 0, 0, 0, 0 }, 1L << 32);
-			Verify(new byte[] { 1, 0, 0, 0, 0, 0 }, 1L << 40);
-			Verify(new byte[] { 1, 0, 0, 0, 0, 0, 0 }, 1L << 48);
-			Verify(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, 1L << 56);
-			Verify(new byte[] { 127, 255, 255, 255 }, int.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255 }, uint.MaxValue);
-			Verify(new byte[] { 127, 255, 255, 255, 255, 255, 255, 255 }, long.MaxValue);
-			Verify(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, ulong.MaxValue);
+			Verify([ ], 0L);
+			Verify([ 0 ], 0L);
+			Verify([ 255 ], 255L);
+			Verify([ 1, 0 ], 256L);
+			Verify([ 255, 255 ], 65535L);
+			Verify([ 1, 0, 0 ], 1L << 16);
+			Verify([ 0, 1, 0, 0 ], 1L << 16);
+			Verify([ 255, 255, 255 ], (1L << 24) - 1);
+			Verify([ 1, 0, 0, 0 ], 1L << 24);
+			Verify([ 1, 0, 0, 0, 0 ], 1L << 32);
+			Verify([ 1, 0, 0, 0, 0, 0 ], 1L << 40);
+			Verify([ 1, 0, 0, 0, 0, 0, 0 ], 1L << 48);
+			Verify([ 1, 0, 0, 0, 0, 0, 0, 0 ], 1L << 56);
+			Verify([ 127, 255, 255, 255 ], int.MaxValue);
+			Verify([ 255, 255, 255, 255 ], uint.MaxValue);
+			Verify([ 127, 255, 255, 255, 255, 255, 255, 255 ], long.MaxValue);
+			Verify([ 255, 255, 255, 255, 255, 255, 255, 255 ], ulong.MaxValue);
 		}
 
 		#endregion
@@ -488,8 +503,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(string value, float expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToSingle(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
+				Assert.That(Slice.FromHexa(value).GetBytes().AsSpan().ToSingle(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
+				Assert.That(Slice.FromHexa(SwapHexa(value)).Span.ToSingleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
 			}
 
 			Assert.That(Slice.Empty.ToSingle(), Is.EqualTo(0d));
@@ -520,8 +535,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(string value, double expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDouble(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
+				Assert.That(Slice.FromHexa(value).GetBytes().AsSpan().ToDouble(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
+				Assert.That(Slice.FromHexa(SwapHexa(value)).Span.ToDoubleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
 			}
 
 			Verify("", 0d);
@@ -552,7 +567,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			void Verify(string value, decimal expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), "Invalid decoding for '{0}'", value);
+				Assert.That(Slice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), $"Invalid decoding for '{value}'");
 			}
 
 			Verify("", 0m);

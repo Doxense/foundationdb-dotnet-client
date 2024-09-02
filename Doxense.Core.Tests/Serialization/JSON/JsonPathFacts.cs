@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable NUnit2009
+
 namespace Doxense.Serialization.Json.Tests
 {
 	using JetBrains.Annotations;
@@ -332,7 +334,7 @@ namespace Doxense.Serialization.Json.Tests
 				Log($"# '{child}'.IsChildOf('{parent}') => false");
 				Assert.That(childPath.IsChildOf(parentPath), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
 				Assert.That(childPath.IsChildOf(parent.AsSpan()), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
-				Assert.That(childPath.IsChildOf(parentPath, out var rp), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
+				Assert.That(childPath.IsChildOf(parentPath, out _), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
 			}
 
 			// PARENT
