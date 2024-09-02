@@ -33,6 +33,7 @@ namespace Doxense.Tools.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class StringConvertersFacts : SimpleTest
 	{
 
@@ -314,8 +315,6 @@ namespace Doxense.Tools.Tests
 			Assert.That(StringConverters.ToDateTime("Friday, September 22, 1978", DateTime.MinValue, new CultureInfo("en-US", false)), Is.EqualTo(new DateTime(1978, 09, 22, 0, 0, 0)), "Friday, September 22, 1978");
 			Assert.That(StringConverters.ToDateTime("Freitag, 22. September 1978 13:30:45", DateTime.MinValue, new CultureInfo("de-DE", false)), Is.EqualTo(new DateTime(1978, 09, 22, 13, 30, 45)), "Freitag, 22. September 1978 13:30:45");
 			Assert.That(StringConverters.ToDateTime("Freitag, 22. September 1978", DateTime.MinValue, new CultureInfo("de-DE", false)), Is.EqualTo(new DateTime(1978, 09, 22, 0, 0, 0)), "Freitag, 22. September 1978");
-
-
 		}
 
 	}

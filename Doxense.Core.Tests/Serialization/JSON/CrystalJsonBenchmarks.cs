@@ -51,6 +51,7 @@ namespace Doxense.Serialization.Json.Tests
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Category("Benchmark")]
+	[Parallelizable(ParallelScope.None)]
 	public class CrystalJsonBenchmarks : SimpleTest
 	{
 		protected override void OnBeforeEverything()

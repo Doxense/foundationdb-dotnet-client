@@ -29,6 +29,8 @@ namespace Doxense.Serialization.Json.Tests
 	using JetBrains.Annotations;
 
 	[TestFixture]
+	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public sealed class JsonPathFacts : SimpleTest
 	{
 

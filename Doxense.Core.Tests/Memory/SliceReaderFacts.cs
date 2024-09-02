@@ -26,8 +26,10 @@
 
 namespace Doxense.Slices.Tests
 {
+
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class SliceReaderFacts : SimpleTest
 	{
 
@@ -216,4 +218,5 @@ namespace Doxense.Slices.Tests
 		}
 
 	}
+
 }

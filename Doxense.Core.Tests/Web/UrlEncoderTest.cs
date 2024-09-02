@@ -35,6 +35,7 @@ namespace Doxense.Web.Tests
 	/// <summary>Tests sur la classe statique KTL</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class UrlEncoderTest : SimpleTest
 	{
 
@@ -259,7 +260,7 @@ namespace Doxense.Web.Tests
 			// Vérifie TOUS les caracètres UNICODEs !
 			for (int i = 0; i < 65536; i++)
 			{
-				string s = new string((char)i, 1);
+				string s = new string((char) i, 1);
 				Check(s);
 			}
 

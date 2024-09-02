@@ -39,6 +39,7 @@ namespace Doxense.Tools.Tests
 	/// <summary>Tests sur la classe statique KTL</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class CRCTest : SimpleTest
 	{
 

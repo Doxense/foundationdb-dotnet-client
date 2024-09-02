@@ -33,8 +33,10 @@ namespace Doxense.Core.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class UuidFacts : SimpleTest
 	{
+
 		[Test]
 		public void Test_Uuid_Empty()
 		{

@@ -12,6 +12,8 @@ namespace Doxense.Threading.Tests
 	using System.Linq;
 
 	[TestFixture]
+	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class ExponentialRandomizedBackoffFacts : SimpleTest
 	{
 

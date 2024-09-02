@@ -36,8 +36,10 @@ namespace Doxense.Core.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class Uuid64Facts : SimpleTest
 	{
+
 		[Test]
 		public void Test_Uuid64_Empty()
 		{

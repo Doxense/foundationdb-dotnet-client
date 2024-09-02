@@ -36,6 +36,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class TupleFacts : SimpleTest
 	{
 

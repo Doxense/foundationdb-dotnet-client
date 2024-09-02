@@ -33,6 +33,7 @@ namespace Doxense.Mathematics.Test
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class FastDtoaFacts : SimpleTest
 	{
 

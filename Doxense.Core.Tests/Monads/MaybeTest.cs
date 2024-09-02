@@ -34,6 +34,7 @@ namespace Doxense.Monads.Tests
 	/// <summary>Tests sur l'objet DynamicCache</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class MaybeTest
 	{
 

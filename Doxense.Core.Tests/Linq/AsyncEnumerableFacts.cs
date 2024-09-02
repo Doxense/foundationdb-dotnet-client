@@ -42,6 +42,7 @@ namespace Doxense.Linq.Async.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.Self)]
 	public class AsyncEnumerableFacts : SimpleTest
 	{
 
