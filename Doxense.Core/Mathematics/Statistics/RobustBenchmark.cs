@@ -26,6 +26,7 @@
 
 namespace Doxense.Mathematics.Statistics
 {
+	using System;
 	using System.Diagnostics;
 	using Doxense.Runtime;
 
@@ -163,24 +164,76 @@ namespace Doxense.Mathematics.Statistics
 
 		public static Report<long> Run(Action<int> test, int runs, int iterations, RobustHistogram? histo = null)
 		{
-			return Run<int, long>(
-				() => iterations,
-				(_, i) => test(i),
-				(_) => iterations,
+			return Run(
+				global: test,
+				setup: (_) => (long) iterations,
+				test: static (g, _, i) =>
+				{
+					g(i);
+					return i;
+				},
+				cleanup: static (_, s) => s,
 				runs,
 				iterations,
 				histo
 			);
 		}
 
-		public static Report<TResult> Run<TState, TResult>(Func<TState> setup, Action<TState, int> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		public static Report<TResult> Run<TState, TResult>(TState state, Action<TState> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		{
+			return Run(
+				global: (state, test, cleanup),
+				setup: static (g) => g.state,
+				test: static (g, s, i) =>
+				{
+					g.test(s);
+					return i;
+				},
+				cleanup: static (g, s) => g.cleanup(s),
+				runs,
+				iterations,
+				histo
+			);
+		}
+
+		public static Report<TResult> Run<TState, TResult>(TState state, Action<TState, int> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		{
+			return Run(
+				global: (State: state, Test: test, Cleanup: cleanup),
+				setup: static (g) => g.State,
+				test: static (g, s, i) =>
+				{
+					g.Test(s, i);
+					return s;
+				},
+				cleanup: static (g, s) => g.Cleanup(s),
+				runs,
+				iterations,
+				histo
+			);
+		}
+
+		public static Report<TResult> Run<TState, TResult, TIntermediate>(TState state, Func<TState, int, TIntermediate> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		{
+			return Run(
+				global: (State: state, Test: test, Cleanup: cleanup),
+				setup: static (g) => g.State,
+				test: static (g, s, i) => g.Test(s, i),
+				cleanup: static (g, s) => g.Cleanup(s),
+				runs,
+				iterations,
+				histo
+			);
+		}
+
+		public static Report<TResult> Run<TGlobal, TState, TResult, TIntermediate>(TGlobal global, Func<TGlobal, TState> setup, Func<TGlobal, TState, int, TIntermediate> test, Func<TGlobal, TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
 		{
 			var times = new List<long>(runs);
 			var results = new List<TResult>(runs);
 
-			var global = Stopwatch.StartNew();
+			var clock = Stopwatch.StartNew();
 			// note: au cas où ca serait le premier hit sur Stopwatch, on appelle une deuxième fois !
-			global.Restart();
+			clock.Restart();
 
 			TimeSpan bestRunTotalTime = TimeSpan.MaxValue;
 			var totalTimePerRun = new RobustStopWatch();
@@ -197,7 +250,7 @@ namespace Doxense.Mathematics.Statistics
 				var swH = new RobustStopWatch();
 
 				totalTimePerRun.Restart();
-				var state = setup();
+				var state = setup(global);
 
 				var gcCount0 = GC.CollectionCount(0);
 				var gcCount1 = GC.CollectionCount(1);
@@ -209,7 +262,7 @@ namespace Doxense.Mathematics.Statistics
 					for (int i = 0; i < iterations; i++)
 					{
 						sw.Restart();
-						test(state, i);
+						test(global, state, i);
 						sw.Stop();
 						swH.Start();
 						histo.Add(sw.Elapsed);
@@ -220,7 +273,7 @@ namespace Doxense.Mathematics.Statistics
 				{
 					for (int i = 0; i < iterations; i++)
 					{
-						test(state, i);
+						test(global, state, i);
 					}
 				}
 				iterTimePerRun.Stop();
@@ -232,7 +285,7 @@ namespace Doxense.Mathematics.Statistics
 					totalGc2 += GC.CollectionCount(2) - gcCount2;
 				}
 
-				var result = cleanup(state);
+				var result = cleanup(global, state);
 				totalTimePerRun.Stop();
 				if (totalTimePerRun.Elapsed < bestRunTotalTime) bestRunTotalTime = totalTimePerRun.Elapsed;
 
@@ -245,7 +298,7 @@ namespace Doxense.Mathematics.Statistics
 				}
 			}
 
-			global.Stop();
+			clock.Stop();
 
 			var report = new Report<TResult>
 			{
@@ -253,7 +306,7 @@ namespace Doxense.Mathematics.Statistics
 				IterationsPerRun = iterations,
 				Results = results,
 				RawTimes = times,
-				RawTotal = global.Elapsed,
+				RawTotal = clock.Elapsed,
 				BestRunTotalTime = bestRunTotalTime,
 				Histogram = histo,
 				GC0 = totalGc0, //(totalGC0 * 1000000.0) / (runs * iterations),

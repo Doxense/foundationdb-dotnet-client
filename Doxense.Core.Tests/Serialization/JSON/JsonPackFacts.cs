@@ -333,7 +333,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			VerifyRoundtrip(JsonArray.Create(1.1, 2.2, 3.3));
 
 			// mixed types
-			VerifyRoundtrip(JsonArray.Create([ "hello", 123, true, JsonNull.Null, Math.PI, false, Guid.NewGuid() ]));
+			VerifyRoundtrip(JsonArray.Create("hello", 123, true, JsonNull.Null, Math.PI, false, Guid.NewGuid()));
 
 			// 0..99
 			VerifyRoundtrip(Enumerable.Range(0, 100).ToJsonArray());

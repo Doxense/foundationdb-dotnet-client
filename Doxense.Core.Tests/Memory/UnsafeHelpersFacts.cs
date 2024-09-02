@@ -38,7 +38,7 @@ namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all pe
 
 		private static void Wipe(byte[] data)
 		{
-			for (int i = 0; i < data.Length; i++) data[i] = (byte)'X';
+			data.AsSpan().Fill((byte) 'X');
 		}
 
 		private static string ToHex(byte[] data)

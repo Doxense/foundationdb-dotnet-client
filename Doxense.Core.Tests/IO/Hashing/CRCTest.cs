@@ -285,10 +285,10 @@ namespace Doxense.Tools.Tests
 		[Test]
 		public void Bench_HashFunctions()
 		{
-			byte[] TINY = new byte[] { 42 };
-			byte[] SMALL = new byte[] { 1, 2, 3, 4, 5 };
+			byte[] TINY = [ 42 ];
+			byte[] SMALL = [ 1, 2, 3, 4, 5 ];
 			byte[] GUID = Guid.NewGuid().ToByteArray(); // Encoding.ASCII.GetBytes("Hello!");
-			byte[] MEDIUM = Encoding.UTF8.GetBytes("連邦政府軍のご協力により、君達の基地は、全てCATSがいただいた。");
+			byte[] MEDIUM = "連邦政府軍のご協力により、君達の基地は、全てCATSがいただいた。"u8.ToArray();
 			byte[] LARGE = new byte[4096];
 			new Random().NextBytes(LARGE);
 			byte[] HUGE = new byte[256 * 1024];
@@ -382,8 +382,6 @@ namespace Doxense.Tools.Tests
 		#region Verification Tests....
 
 		/// <summary>Helper fonction utilisée pour vérifier une Hash Function</summary>
-		/// <param name="hashFunction">Hash function à vérifier (doit produire des hash de 32-bits / 4-bytes)</param>
-		/// <returns></returns>
 		public static uint VerificationTest(int hashBits, Func<uint, byte[], byte[]> hashFunction)
 		{
 			Assert.That(hashFunction, Is.Not.Null, "hashFunction");

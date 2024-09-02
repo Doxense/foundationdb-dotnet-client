@@ -511,7 +511,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute(w => w.WriteValue(long.MinValue)), Is.EqualTo("-9223372036854775808"));
 			Assert.That(Execute(w => w.WriteValue(Math.PI)), Is.EqualTo("3.141592653589793"));
 			Assert.That(Execute(w => w.WriteValue((float) Math.PI)), Is.EqualTo("3.1415927"));
-			Assert.That(Execute(w => w.WriteValue((Half) Math.PI)), Is.EqualTo("3.14"));
 
 			Assert.That(Execute(w => w.WriteValue(default(int?))), Is.EqualTo("null"));
 			Assert.That(Execute(w => w.WriteValue((int?) 42)), Is.EqualTo("42"));
@@ -527,8 +526,12 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute(w => w.WriteValue((double?) 42)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue(default(decimal?))), Is.EqualTo("null"));
 			Assert.That(Execute(w => w.WriteValue((decimal?) 42)), Is.EqualTo("42"));
+
+#if NET8_0_OR_GREATER
+			Assert.That(Execute(w => w.WriteValue((Half) Math.PI)), Is.EqualTo("3.14"));
 			Assert.That(Execute(w => w.WriteValue(default(Half?))), Is.EqualTo("null"));
 			Assert.That(Execute(w => w.WriteValue((Half?) 42)), Is.EqualTo("42"));
+#endif
 
 			#endregion
 		}

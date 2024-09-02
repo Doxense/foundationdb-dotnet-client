@@ -42,8 +42,10 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_MutableSlice_Nil()
 		{
-			// MutableSlice.Nil is the equivalent of 'default(byte[])'
+			// MutableSlice.Nil is the equivalent of 'default(byte[])' or 'null'
 
+			Assert.Multiple(() =>
+			{
 				Assert.That(MutableSlice.Nil.Count, Is.EqualTo(0));
 				Assert.That(MutableSlice.Nil.Offset, Is.EqualTo(0));
 				Assert.That(MutableSlice.Nil.Array, Is.Null);
@@ -61,13 +63,16 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 				Assert.That(MutableSlice.Nil.Slice.Offset, Is.Zero);
 				Assert.That(MutableSlice.Nil.Slice.Count, Is.Zero);
 				Assert.That(MutableSlice.Nil.Slice, Is.EqualTo(Slice.Nil));
+			});
+
 		}
 
 		[Test]
 		public void Test_MutableSlice_Empty()
 		{
 			// MutableSlice.Empty is the equivalent of 'new byte[0]'
-
+			Assert.Multiple(() =>
+			{
 				Assert.That(MutableSlice.Empty.Count, Is.EqualTo(0));
 				Assert.That(MutableSlice.Empty.Offset, Is.EqualTo(0));
 				Assert.That(MutableSlice.Empty.Array, Is.Not.Null);
@@ -86,10 +91,13 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 				Assert.That(MutableSlice.Empty.Slice.Offset, Is.Zero);
 				Assert.That(MutableSlice.Empty.Slice.Count, Is.Zero);
 				Assert.That(MutableSlice.Empty.Slice, Is.EqualTo(Slice.Empty));
+			});
 		}
 
 		[Test]
 		public void Test_MutableSlice_With_Content()
+		{
+			Assert.Multiple(() =>
 			{
 				var slice = MutableSlice.Create("ABC"u8.ToArray());
 
@@ -109,6 +117,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 				Assert.That(slice.Slice.ToByteString(), Is.EqualTo("ABC"));
 				Assert.That(slice.Slice.ToUnicode(), Is.EqualTo("ABC"));
 				Assert.That(slice.Slice.PrettyPrint(), Is.EqualTo("'ABC'"));
+			});
 		}
 
 		[Test]
@@ -198,7 +207,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
 
 			Assert.That(default(ArraySegment<byte>).AsMutableSlice(), Is.EqualTo(MutableSlice.Nil));
-			Assert.That(new ArraySegment<byte>(Array.Empty<byte>()).AsMutableSlice(), Is.EqualTo(MutableSlice.Empty));
+			Assert.That(new ArraySegment<byte>([ ]).AsMutableSlice(), Is.EqualTo(MutableSlice.Empty));
 		}
 
 		[Test]

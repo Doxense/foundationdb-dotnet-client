@@ -1005,7 +1005,7 @@ namespace System
 
 			public static bool TryDecode(ReadOnlySpan<char> s, out ulong value)
 			{
-				if (s == null || s.Length == 0 || s.Length > 11)
+				if (s.Length == 0 || s.Length > 11)
 				{ // fail: too small/too big
 					value = 0;
 					return false;

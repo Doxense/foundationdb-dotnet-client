@@ -24,7 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable disable
 // ReSharper disable UnusedParameter.Local
 // ReSharper disable UnusedMember.Global
 // ReSharper disable ReturnValueOfPureMethodIsNotUsed
@@ -138,7 +137,7 @@ namespace Doxense.Serialization.Json.Tests
 			}, 1000);
 		}
 
-		private static void ComparativeBenchmark<T>(T data, int iterations, ICrystalJsonTypeResolver resolver = null)
+		private static void ComparativeBenchmark<T>(T? data, int iterations, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Log();
 			Log("### Comparative Benchmark: " + (data == null ? "<null>" : (data.GetType().GetFriendlyName())));
@@ -148,13 +147,13 @@ namespace Doxense.Serialization.Json.Tests
 			_ = CrystalJson.Serialize(data, sb, settings, resolver);
 			string jsonText = sb.ToString();
 			Log("CJS # [" + jsonText.Length + "] " + jsonText);
-			object jsonValue = CrystalJson.Deserialize<T>(jsonText);
+			object? jsonValue = CrystalJson.Deserialize<T?>(jsonText, default(T));
 			Log("CJS > " + jsonValue);
 
 #if ENABLE_NEWTONSOFT
 			var njs = new NJ.JsonSerializer();
 			bool newtonOk = true;
-			string njsonText = null;
+			string? njsonText = null;
 			try
 			{
 				sb.Clear();
@@ -174,13 +173,14 @@ namespace Doxense.Serialization.Json.Tests
 			// Benchmarking!
 
 			var report = RobustBenchmark.Run(
-				() => new StringBuilder(1024),
-				(buffer, _) =>
+				(data, settings, resolver),
+				static (g) => new StringBuilder(1024),
+				static (g, buffer, _) =>
 				{
 					buffer.Clear();
-					CrystalJson.Serialize(data, buffer, settings, resolver);
+					return CrystalJson.Serialize(g.data, buffer, g.settings, g.resolver);
 				},
-				(buffer) => buffer.Length,
+				static (g, buffer) => buffer.Length,
 				20,
 				iterations
 			);
@@ -188,11 +188,8 @@ namespace Doxense.Serialization.Json.Tests
 			Log($"* CRYSTAL   SERIALIZATION: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.Results[0]}");
 
 			report = RobustBenchmark.Run(
-				() => jsonText,
-				(text, _) =>
-				{
-					CrystalJson.Deserialize<T>(text);
-				},
+				jsonText,
+				(text) => CrystalJson.Deserialize(text, default(T)),
 				(text) => text.Length,
 				20,
 				iterations
@@ -205,12 +202,11 @@ namespace Doxense.Serialization.Json.Tests
 			if (newtonOk)
 			{
 				report = RobustBenchmark.Run(
-					() => new StringBuilder(1024),
-					(buffer, _) =>
+					new StringBuilder(1024),
+					(buffer) =>
 					{
 						buffer.Clear();
 						njs.Serialize(new StringWriter(buffer), data);
-						//Log(buffer.ToString());
 					},
 					(buffer) => buffer.Length,
 					20,
@@ -231,13 +227,9 @@ namespace Doxense.Serialization.Json.Tests
 			if (newtonOk)
 			{
 				report = RobustBenchmark.Run(
-					() => njsonText,
-					(text, _) =>
-					{
-						njs.Deserialize<T>(new NJ.JsonTextReader(new StringReader(text)));
-						//Log(buffer.ToString());
-					},
-					(text) => text.Length,
+					njsonText ?? "",
+					(text) => njs.Deserialize<T>(new NJ.JsonTextReader(new StringReader(text))),
+					(text) => text?.Length ?? 0,
 					20,
 					iterations
 				);
@@ -286,7 +278,7 @@ namespace Doxense.Serialization.Json.Tests
 			// The standard test value.
 			return new MediaContent
 			{
-				Media = new Media
+				Media = new()
 				{
 					Uri = "http://javaone.com/keynote.mpg",
 					Title = "Javaone Keynote",
@@ -297,28 +289,29 @@ namespace Doxense.Serialization.Json.Tests
 					Size = 58982400,        // bitrate * duration in seconds / 8 bits per byte
 					Bitrate = 262144,  // 256k
 					HasBitrate = true,
-					Persons = new List<string> { "Bill Gates", "Steve Jobs" },
+					Persons = [ "Bill Gates", "Steve Jobs" ],
 					Player = Media.PlayerType.Java,
-					Copyright = null
 				},
 
-				Images = new List<Image>
-				{
-					new Image {
+				Images =
+				[
+					new()
+					{
 						Uri = "http://javaone.com/keynote_large.jpg",
 						Title = "Javaone Keynote",
 						Width = 1024,
 						Height = 768,
 						Size = Image.ImageSize.Large
 					},
-					new Image {
+					new()
+					{
 						Uri = "http://javaone.com/keynote_small.jpg",
 						Title = "Javaone Keynote",
 						Width = 320,
 						Height = 240,
 						Size = Image.ImageSize.Small
-					}
-				}
+					},
+				]
 			};
 		}
 
@@ -463,7 +456,8 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// Mesure des temps d'execution pour l'encodage de String en JSON
 
-			var LIST = new string[] {
+			string[] phrases =
+			[
 				"\"",
 				"a",
 				"ab",
@@ -480,7 +474,7 @@ namespace Doxense.Serialization.Json.Tests
 				"This is a test of the emergency broadcast system!!",
 				"This is a test of the emergency broadcast system!!!",
 				"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent ac urna nisl, ut placerat nibh. Quisque molestie feugiat tellus et feugiat.",
-			};
+			];
 
 			#region Warmup...
 			JsonEncoding.NeedsEscaping("foo");
@@ -489,18 +483,18 @@ namespace Doxense.Serialization.Json.Tests
 			JsonEncoding.NeedsEscaping("hello world\"hello world");
 			#endregion
 
-			double[][] nanos = new double[LIST.Length][];
+			double[][] nanos = new double[phrases.Length][];
 
-			for (int i = 0; i < LIST.Length; i++)
+			for (int i = 0; i < phrases.Length; i++)
 			{
-				string s = LIST[i];
+				string s = phrases[i];
 				var ts = new double[6];
 				int p = 0;
 				var sb = new StringBuilder(1024);
 				Trace.WriteLine("\"" + s + "\"");
-				ts[p++] = RunBenchOnMethod("  check best  #" + i.ToString(), () => { JsonEncoding.NeedsEscaping(s); }, measure: false);
-				ts[p++] = RunBenchOnMethod(" append       #" + i.ToString(), () => { sb.Clear(); sb.Append('"').Append(s).Append('"'); }, measure: false);
-				ts[p++] = RunBenchOnMethod(" append best  #" + i.ToString(), () => { sb.Clear(); JsonEncoding.Append(sb, s); }, measure: false);
+				ts[p++] = RunBenchOnMethod($"  check best  #{i}", () => { JsonEncoding.NeedsEscaping(s); }, measure: false);
+				ts[p++] = RunBenchOnMethod($" append       #{i}", () => { sb.Clear(); sb.Append('"').Append(s).Append('"'); }, measure: false);
+				ts[p  ] = RunBenchOnMethod($" append best  #{i}", () => { sb.Clear(); JsonEncoding.Append(sb, s); }, measure: false);
 				nanos[i] = ts;
 			}
 
@@ -537,8 +531,8 @@ namespace Doxense.Serialization.Json.Tests
 			var histo = measure ? new RobustHistogram() : null;
 
 			var report = RobustBenchmark.Run(
-				() => method,
-				(m, _) => { m(); },
+				method,
+				(m) => { m(); },
 				(_) => 0,
 				BENCH_RUNS,
 				BENCH_ITERS,
@@ -548,7 +542,7 @@ namespace Doxense.Serialization.Json.Tests
 			gen0 = GC.CollectionCount(0) - gen0;
 			gen1 = GC.CollectionCount(1) - gen1;
 			gen2 = GC.CollectionCount(2) - gen2;
-			Log(name + " = " + report.BestIterationsNanos.ToString("N0") + " nanos [" + report.MedianIterationsNanos.ToString("N0") + "] (~ " + report.BestIterationsPerSecond.ToString("N0") + " ips [" + report.MedianIterationsPerSecond.ToString("N0") + "], gen0=" + gen0 + ", gen1=" + gen1 + ", gen2=" + gen2 + ")");
+			Log($"{name} = {report.BestIterationsNanos:N0} nanos [{report.MedianIterationsNanos:N0}] (~ {report.BestIterationsPerSecond:N0} ips [{report.MedianIterationsPerSecond:N0}], gen0={gen0}, gen1={gen1}, gen2={gen2})");
 			if (histo != null)
 			{
 				Log(histo.GetReport(true));
@@ -571,6 +565,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		public void RunTestMethod<T>(T model, TestMode mode = TestMode.All, bool histos = false)
+			where T : notnull
 		{
 #if DEBUG
 			// Build TeamCity
@@ -591,12 +586,12 @@ namespace Doxense.Serialization.Json.Tests
 			var settings = CrystalJsonSettings.JsonCompact;
 			var resolver = CrystalJson.DefaultResolver;
 
-			Action fullGC = () =>
+			static void DoFullGc()
 			{
 				GC.Collect();
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
-			};
+			}
 
 			// setup / warmup
 			var jsonText = CrystalJson.Serialize<T>(model, settings);
@@ -606,46 +601,46 @@ namespace Doxense.Serialization.Json.Tests
 				_ = JsonValue.FromValue<T>(model, settings, resolver);
 			}
 
-			int ITER_PER_RUN = jsonText.Length <= 100 ? ITER_FAST : jsonText.Length <= 1000 ? ITER_NORMAL : jsonText.Length <= 10000 ? ITER_MEDIUM : ITER_SLOW;
+			int iterationsPerRun = jsonText.Length <= 100 ? ITER_FAST : jsonText.Length <= 1000 ? ITER_NORMAL : jsonText.Length <= 10000 ? ITER_MEDIUM : ITER_SLOW;
 			//Log("{0} => {1}", sw.Elapsed.Ticks, ITER_PER_RUN);
 
 			//fullGC();
 			var serReport = RobustBenchmark.Run(
-				() => model,
-				(value, _) => CrystalJson.Serialize<T>(value, settings),
+				model,
+				(value) => CrystalJson.Serialize<T>(value, settings),
 				(value) => value,
 				RUNS,
-				ITER_PER_RUN,
+				iterationsPerRun,
 				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
-			fullGC();
+			DoFullGc();
 			var parseReport = RobustBenchmark.Run(
-				() => jsonText,
-				(text, _) => CrystalJson.Parse(text, settings),
+				jsonText,
+				(text) => CrystalJson.Parse(text, settings),
 				(text) => text,
 				RUNS,
-				ITER_PER_RUN,
+				iterationsPerRun,
 				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
-			fullGC();
+			DoFullGc();
 			var deserReport = RobustBenchmark.Run(
-				() => jsonText,
-				(text, _) => CrystalJson.Deserialize<T>(text, settings, resolver),
+				jsonText,
+				(text) => CrystalJson.Deserialize<T>(text, settings, resolver),
 				(text) => text,
 				RUNS,
-				ITER_PER_RUN,
+				iterationsPerRun,
 				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
-			fullGC();
+			DoFullGc();
 			var domReport = RobustBenchmark.Run(
-				() => model,
-				(value, _) => JsonValue.FromValue<T>(value),
+				model,
+				(value) => JsonValue.FromValue<T>(value),
 				(value) => value,
 				RUNS,
-				ITER_PER_RUN,
+				iterationsPerRun,
 				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
@@ -676,7 +671,7 @@ namespace Doxense.Serialization.Json.Tests
 				string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", parseReport.GC0, parseReport.GC1, parseReport.GC2),
 				string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", deserReport.GC0, deserReport.GC1, deserReport.GC2),
 				string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", domReport.GC0, domReport.GC1, domReport.GC2),
-				ITER_PER_RUN
+				iterationsPerRun
 			));
 			//Log(serReport.Histogram.GetReport(true));
 		}
@@ -747,7 +742,7 @@ namespace Doxense.Serialization.Json.Tests
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => rnd.Next(1001) - 500).ToArray()); // -500..+500
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => rnd.Next(1001) - 500.0).ToArray()); // -500..+500
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => rnd.Next()).ToArray()); // big numbers
-			RunTestMethod(Enumerable.Range(0, 365).Select(i => ((long) rnd.Next()) * (long) rnd.Next()).ToArray());
+			RunTestMethod(Enumerable.Range(0, 365).Select(i => ((long) rnd.Next()) * rnd.Next()).ToArray());
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => (ulong) rnd.Next() * (ulong) rnd.Next()).ToArray());
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => Math.Round((rnd.NextDouble() - 0.5) * 500, 2, MidpointRounding.AwayFromZero)).ToArray()); // -500.00..+500.00
 
@@ -758,7 +753,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// sealed
 			{
-				var users = CrystalJson.LoadFrom<UserSealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"));
+				var users = CrystalJson.LoadFrom<UserSealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"))!;
 				RunTestMethod(users[0]);
 				RunTestMethod(users.Take(7).ToArray());
 				RunTestMethod(users.Take(100).ToArray());
@@ -766,7 +761,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// unsealed
 			{
-				var users = CrystalJson.LoadFrom<UserUnsealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"));
+				var users = CrystalJson.LoadFrom<UserUnsealed[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"))!;
 				RunTestMethod(users[0]);
 				RunTestMethod(users.Take(7).ToArray());
 				RunTestMethod(users.Take(100).ToArray());
@@ -774,7 +769,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// abstract
 			{
-				var users = CrystalJson.LoadFrom<UserDerived[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json")).Cast<UserAbstract>().ToList();
+				var users = CrystalJson.LoadFrom<UserDerived[]>(MapPathRelativeToCallerSourcePath("Samples/Users.json"))!.Cast<UserAbstract>().ToList();
 				RunTestMethod(users[0]);
 				RunTestMethod(users.Take(7).ToArray());
 				RunTestMethod(users.Take(100).ToArray());
@@ -830,7 +825,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			//ASCII
 
-			string strAscii = bytesAscii.ToStringUtf8();
+			string strAscii = bytesAscii.ToStringUtf8() ?? "";
 			Trace("String:ASCII", Run_Bench_Utf8_ViaString(strAscii, iterations));
 			FullGc();
 
@@ -842,7 +837,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// UTF8
 
-			string strUtf8 = bytesUtf8.ToStringUtf8();
+			string strUtf8 = bytesUtf8.ToStringUtf8() ?? "";
 			Trace("String:UTF8", Run_Bench_Utf8_ViaString(strUtf8, iterations));
 			FullGc();
 
@@ -896,10 +891,12 @@ namespace Doxense.Serialization.Json.Tests
 
 	public sealed class MediaContent : IEquatable<MediaContent>
 	{
-		public Media Media;
-		public List<Image> Images;
 
-		public bool Equals(MediaContent other)
+		public required Media Media { get; init; }
+
+		public List<Image>? Images { get; init; }
+
+		public bool Equals(MediaContent? other)
 		{
 			if (ReferenceEquals(other, this)) return true;
 			if (other == null) return false;
@@ -909,25 +906,23 @@ namespace Doxense.Serialization.Json.Tests
 			return this.Images.Zip(other.Images, (left, right) => left.Equals(right)).All(b => b);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is MediaContent content && Equals(content);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			return base.GetHashCode();
+			return this.Media.GetHashCode();
 		}
 
 		public void Manual(CrystalJsonWriter writer)
 		{
 			var state = writer.BeginObject();
 
-			if (this.Media != null)
-			{
-				writer.WriteName("Media");
-				this.Media.Manual(writer);
-			}
+			writer.WriteName("Media");
+			this.Media.Manual(writer);
 
 			if (this.Images != null && this.Images.Count > 0)
 			{
@@ -952,20 +947,20 @@ namespace Doxense.Serialization.Json.Tests
 			Java, Flash
 		}
 
-		public String Uri;
-		public String Title;        // Can be unset.
-		public int Width;
-		public int Height;
-		public String Format;
-		public long Duration;
-		public long Size;
-		public int Bitrate;         // Can be unset.
-		public bool HasBitrate;
-		public List<String> Persons;
-		public PlayerType Player;
-		public String Copyright;    // Can be unset.
+		public required string Uri { get; init; }
+		public string? Title { get; init; }
+		public required int Width { get; init; }
+		public required int Height { get; init; }
+		public required string Format { get; init; }
+		public required long Duration { get; init; }
+		public required long Size { get; init; }
+		public int Bitrate { get; init; }
+		public bool HasBitrate { get; init; }
+		public List<string>? Persons { get; init; }
+		public PlayerType Player { get; init; }
+		public string? Copyright { get; init; }
 
-		public bool Equals(Media other)
+		public bool Equals(Media? other)
 		{
 			if (ReferenceEquals(other, this)) return true;
 			return other != null
@@ -978,19 +973,20 @@ namespace Doxense.Serialization.Json.Tests
 				&& this.Size == other.Size
 				&& this.Bitrate == other.Bitrate
 				&& this.HasBitrate == other.HasBitrate
-				&& this.Persons.Zip(other.Persons, (left, right) => left == right).All(b => b)
+				&& (this.Persons ?? []).Zip(other.Persons ?? [], (left, right) => left == right).All(b => b)
 				&& this.Player == other.Player
 				&& this.Copyright == other.Copyright;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is Media media && Equals(media);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			return base.GetHashCode();
+			return this.Uri.GetHashCode();
 		}
 
 		public void Manual(CrystalJsonWriter writer)
@@ -1019,13 +1015,13 @@ namespace Doxense.Serialization.Json.Tests
 			Small, Large
 		}
 
-		public String Uri;
-		public String Title;  // Can be null
-		public int Width;
-		public int Height;
-		public ImageSize Size;
+		public required string Uri { get; init; }
+		public string? Title { get; init; }  // Can be null
+		public required int Width { get; init; }
+		public required int Height { get; init; }
+		public required ImageSize Size { get; init; }
 
-		public bool Equals(Image other)
+		public bool Equals(Image? other)
 		{
 			return other != null
 				&& this.Uri == other.Uri
@@ -1035,14 +1031,14 @@ namespace Doxense.Serialization.Json.Tests
 				&& this.Size == other.Size;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is Image img && Equals(img);
 		}
 
 		public override int GetHashCode()
 		{
-			return base.GetHashCode();
+			return this.Uri.GetHashCode();
 		}
 
 		public void Manual(CrystalJsonWriter writer)
@@ -1059,38 +1055,38 @@ namespace Doxense.Serialization.Json.Tests
 
 	public sealed class UserSealed
 	{
-		public Guid Id { get; set; }
-		public string FirstName { get; set; }
-		public string LastName { get; set; }
-		public string Email { get; set; }
-		public string Country { get; set; }
-		public string IpAddress { get; set; }
-		public bool IsActive { get; set; }
-		public DateTime Joined { get; set; }
+		public required Guid Id { get; init; }
+		public required string FirstName { get; init; }
+		public required string LastName { get; init; }
+		public required string Email { get; init; }
+		public required string Country { get; init; }
+		public required string IpAddress { get; init; }
+		public required bool IsActive { get; init; }
+		public required DateTime Joined { get; init; }
 	}
 
 	public class UserUnsealed
 	{
-		public Guid Id { get; set; }
-		public string FirstName { get; set; }
-		public string LastName { get; set; }
-		public string Email { get; set; }
-		public string Country { get; set; }
-		public string IpAddress { get; set; }
-		public bool IsActive { get; set; }
-		public DateTime Joined { get; set; }
+		public required Guid Id { get; init; }
+		public required string FirstName { get; init; }
+		public required string LastName { get; init; }
+		public required string Email { get; init; }
+		public required string Country { get; init; }
+		public required string IpAddress { get; init; }
+		public required bool IsActive { get; init; }
+		public required DateTime Joined { get; init; }
 	}
 
 	public abstract class UserAbstract
 	{
-		public Guid Id { get; set; }
-		public string FirstName { get; set; }
-		public string LastName { get; set; }
-		public string Email { get; set; }
-		public string Country { get; set; }
-		public string IpAddress { get; set; }
-		public bool IsActive { get; set; }
-		public DateTime Joined { get; set; }
+		public required Guid Id { get; init; }
+		public required string FirstName { get; init; }
+		public required string LastName { get; init; }
+		public required string Email { get; init; }
+		public required string Country { get; init; }
+		public required string IpAddress { get; init; }
+		public required bool IsActive { get; init; }
+		public required DateTime Joined { get; init; }
 	}
 
 	public class UserDerived : UserAbstract

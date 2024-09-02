@@ -73,7 +73,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			Assert.That(cmp.GetHashCode(Slice.Nil), Is.EqualTo(Slice.Nil.GetHashCode()));
 			Assert.That(cmp.GetHashCode(Slice.Empty), Is.EqualTo(Slice.Empty.GetHashCode()));
-			Assert.That(cmp.GetHashCode(Slice.Nil), Is.Not.EqualTo(Slice.Empty));
+			Assert.That(cmp.GetHashCode(Slice.Nil), Is.Not.EqualTo(Slice.Empty.GetHashCode()));
 
 			var rnd = new Random(123456);
 			for (int i = 0; i < 100; i++)

@@ -31,7 +31,6 @@ namespace Doxense.Linq.Tests
 	using System.Linq;
 	using System.Runtime.InteropServices;
 	using Doxense.Memory;
-	using ZstdSharp.Unsafe;
 
 	[TestFixture]
 	[Category("Core-SDK")]

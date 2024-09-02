@@ -126,7 +126,7 @@ namespace Doxense.Serialization.Json.Tests
 			Log("? " + query);
 			Log("* " + JPathQuery.ParseExpression(query));
 			Assert.That(node, Is.Not.Null);
-			var res = node!.FindAll(query);
+			var res = node.FindAll(query);
 			Assert.That(res, Is.Not.Null);
 			if (res.Count == 0)
 			{

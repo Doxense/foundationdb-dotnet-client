@@ -77,8 +77,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 				PerformWriterTest(Test, default(byte[]), "");
 				PerformWriterTest(Test, Array.Empty<byte>(), "");
-				PerformWriterTest(Test, new byte[] {66}, "42");
-				PerformWriterTest(Test, new byte[] {65, 66, 67}, "41 42 43");
+				PerformWriterTest(Test, "B"u8.ToArray(), "42");
+				PerformWriterTest(Test, "ABC"u8.ToArray(), "41 42 43");
 			}
 			{
 				static void Test(ref SliceWriter writer, Slice value) => writer.WriteBytes(value);
@@ -86,8 +86,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 				PerformWriterTest(Test, Slice.Nil, "");
 				PerformWriterTest(Test, Slice.Empty, "");
 				PerformWriterTest(Test, Slice.FromByte(66), "42");
-				PerformWriterTest(Test, new byte[] { 65, 66, 67 }.AsSlice(), "41 42 43");
-				PerformWriterTest(Test, new byte[] { 65, 66, 67, 68, 69 }.AsSlice(1, 3), "42 43 44");
+				PerformWriterTest(Test, "ABC"u8.ToArray().AsSlice(), "41 42 43");
+				PerformWriterTest(Test, "ABCDE"u8.ToArray().AsSlice(1, 3), "42 43 44");
 			}
 		}
 

@@ -32,10 +32,12 @@ namespace Doxense.Web
 	using System.Text;
 	using Doxense.Serialization;
 
-	/// <summary>Classe helper pour l'encode/décodage d'URLs</summary>
-	/// <remarks>Elle a pour but de simuler HttpUtility définie dans System.Web.dll qui n'est pas accessible dans le .NET Client Profile</remarks>
+	/// <summary>Helper for encoding/decoding URIs</summary>
+	/// <remarks>This method is intended to be used when System.Web.HttpUtility.dll is not available</remarks>
+	[PublicAPI]
 	public static class UrlEncoding
 	{
+
 		private static class Tokens
 		{
 			public const string True = "true";
@@ -332,7 +334,7 @@ namespace Doxense.Web
 			int p = value.IndexOf('?');
 			if (p >= 0)
 			{ // appel récursif pour n'encoder que le path, en recollant la QueryString
-				return EncodeUri(value.Substring(0, p)) + value.Substring(p);
+				return EncodeUri(value[..p]) + value[p..];
 			}
 
 			if (!NeedsEncoding(value))
@@ -634,18 +636,28 @@ namespace Doxense.Web
 			var map = new byte[256];
 			for (int i = 0; i < map.Length; i++)
 			{
-				char c = (char)i;
+				char c = (char) i;
 
 				if (IsNeverEncoded(c))
+				{
 					map[i] = CLEAN;
+				}
 				else if (IsPathDelimOrSpecial(c))
+				{
 					map[i] = DELIM;
+				}
 				else if (IsValidOnlyInPath(c))
+				{
 					map[i] = PATH;
+				}
 				else if (c == ' ')
+				{
 					map[i] = SPACE;
+				}
 				else
+				{
 					map[i] = INVALID;
+				}
 			}
 			return map;
 		}
@@ -653,8 +665,12 @@ namespace Doxense.Web
 		[Pure]
 		private static bool IsNeverEncoded(char c)
 		{
-			// ces caractères ne seront JAMAIS encodés !
-			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~';
+#if NET9_0_OR_GREATER
+			//note: starting from .NET9+, HttpUtility.UrlPathEncode() does not escape \x7F anymore
+			return char.IsLetter(c) || char.IsDigit(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '\x7F';
+#else
+			return char.IsLetter(c) || char.IsDigit(c) || c == '-' || c == '_' || c == '.' || c == '~';
+#endif
 		}
 
 		[Pure]
