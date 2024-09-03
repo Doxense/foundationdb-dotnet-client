@@ -10,12 +10,11 @@ namespace Aspire.Hosting
 {
 	using System.Globalization;
 	using System.Net;
-	using System.Net.Sockets;
 	using System.Text;
 	using Aspire.Hosting.ApplicationModel;
 	using Aspire.Hosting.Publishing;
 
-	/// <summary>Provides extension methods for adding FoundationDB resources to an <see cref="IDistributedApplicationBuilder"/>.</summary>
+	/// <summary>Provides extension methods for adding FoundationDB resources to the application model.</summary>
 	[PublicAPI]
 	public static class FdbAspireHostingExtensions
 	{
@@ -138,7 +137,7 @@ namespace Aspire.Hosting
 
 		#region Locally hosted FDB Cluster using Docker containers...
 
-		/// <summary>Add a FoundationDB resource to the application. A container is used for local development.</summary>
+		/// <summary>Adds a FoundationDB container to application model.</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
@@ -151,7 +150,7 @@ namespace Aspire.Hosting
 			return AddFoundationDb(builder, name, apiVersion, FdbPath.Parse(root), port, clusterVersion, rollForward);
 		}
 
-		/// <summary>Add a FoundationDB resource to the application. A container is used for local development.</summary>
+		/// <summary>Adds a FoundationDB container to application model.</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
@@ -218,7 +217,7 @@ namespace Aspire.Hosting
 				Root = root,
 				ClusterVersion = ver,
 				RollForward = rollForward.Value,
-				DockerTag = dockerTag, 
+				DockerTag = dockerTag,
 			};
 
 			//note: Aspire wants to allocate random ports to ensure that there is not conflict with any local versions of the resources,
