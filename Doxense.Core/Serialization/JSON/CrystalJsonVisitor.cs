@@ -573,8 +573,8 @@ namespace Doxense.Serialization.Json
 				return CreateVisitorForSTupleType(type);
 			}
 
-			if (type.IsAssignableTo<System.Runtime.CompilerServices.ITuple>())
-			{ // Value-Tuple
+			if (type.IsAssignableTo<ITuple>())
+			{ // ValueTuple, Tuple, ...
 				return CreateVisitorForITupleType(type);
 			}
 
@@ -1459,7 +1459,7 @@ namespace Doxense.Serialization.Json
 			if (type.IsValueType && type.IsGenericType && type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal))
 			{
 				var args = type.GetGenericArguments();
-				if (args.Length <= 6)
+				if (args.Length <= 7)
 				{
 					// lookup the corresponding VisitSTuple#N# method
 					MethodInfo m;
@@ -1471,13 +1471,20 @@ namespace Doxense.Serialization.Json
 						case 4: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple4))!; break;
 						case 5: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple5))!; break;
 						case 6: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple6))!; break;
+						case 7: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple7))!; break;
 						default: throw new InvalidOperationException();
 					}
 					Contract.Debug.Assert(m != null, "Missing method to serialize generic tuple");
 					// convert to a delegate
-					return (CrystalJsonTypeVisitor)m.MakeGenericMethod(args).CreateDelegate(typeof(CrystalJsonTypeVisitor));
+					return (CrystalJsonTypeVisitor) m.MakeGenericMethod(args).CreateDelegate(typeof(CrystalJsonTypeVisitor));
 				}
 			}
+
+			if (type == typeof(STuple))
+			{ // the empty tuple is serialized as an empty array
+				return (_, _, _, writer) => writer.WriteEmptyArray();
+			}
+			
 			// if not, use a slower version that will inspect each item, one by one
 			return VisitSTupleGeneric;
 		}
@@ -1491,7 +1498,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			var tuple = (IVarTuple)value;
+			var tuple = (IVarTuple) value;
 			int n = tuple.Count;
 			if (n == 0)
 			{
@@ -1516,7 +1523,8 @@ namespace Doxense.Serialization.Json
 		public static void VisitSTuple1<T1>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (tuple == null) { writer.WriteNull(); return; }
-			var t = (STuple<T1>)tuple;
+
+			var t = (STuple<T1>) tuple;
 			var state = writer.BeginInlineArray();
 			writer.WriteHeadSeparator();
 			writer.VisitValue(t.Item1);
@@ -1527,7 +1535,8 @@ namespace Doxense.Serialization.Json
 		public static void VisitSTuple2<T1, T2>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (tuple == null) { writer.WriteNull(); return; }
-			var t = (STuple<T1, T2>)tuple;
+
+			var t = (STuple<T1, T2>) tuple;
 			var state = writer.BeginArray();
 			writer.WriteHeadSeparator();
 			writer.VisitValue(t.Item1);
@@ -1540,7 +1549,8 @@ namespace Doxense.Serialization.Json
 		public static void VisitSTuple3<T1, T2, T3>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (tuple == null) { writer.WriteNull(); return; }
-			var t = (STuple<T1, T2, T3>)tuple;
+
+			var t = (STuple<T1, T2, T3>) tuple;
 			var state = writer.BeginArray();
 			writer.WriteHeadSeparator();
 			writer.VisitValue(t.Item1);
@@ -1555,7 +1565,8 @@ namespace Doxense.Serialization.Json
 		public static void VisitSTuple4<T1, T2, T3, T4>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (tuple == null) { writer.WriteNull(); return; }
-			var t = (STuple<T1, T2, T3, T4>)tuple;
+
+			var t = (STuple<T1, T2, T3, T4>) tuple;
 			var state = writer.BeginArray();
 			writer.WriteHeadSeparator();
 			writer.VisitValue(t.Item1);
@@ -1572,7 +1583,8 @@ namespace Doxense.Serialization.Json
 		public static void VisitSTuple5<T1, T2, T3, T4, T5>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (tuple == null) { writer.WriteNull(); return; }
-			var t = (STuple<T1, T2, T3, T4, T5>)tuple;
+
+			var t = (STuple<T1, T2, T3, T4, T5>) tuple;
 			var state = writer.BeginArray();
 			writer.WriteHeadSeparator();
 			writer.VisitValue(t.Item1);
@@ -1591,7 +1603,8 @@ namespace Doxense.Serialization.Json
 		public static void VisitSTuple6<T1, T2, T3, T4, T5, T6>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (tuple == null) { writer.WriteNull(); return; }
-			var t = (STuple<T1, T2, T3, T4, T5, T6>)tuple;
+
+			var t = (STuple<T1, T2, T3, T4, T5, T6>) tuple;
 			var state = writer.BeginArray();
 			writer.WriteHeadSeparator();
 			writer.VisitValue(t.Item1);
@@ -1605,6 +1618,30 @@ namespace Doxense.Serialization.Json
 			writer.VisitValue(t.Item5);
 			writer.WriteTailSeparator();
 			writer.VisitValue(t.Item6);
+			writer.EndArray(state);
+		}
+
+		/// <summary>Visit a tuple of length 7</summary>
+		public static void VisitSTuple7<T1, T2, T3, T4, T5, T6, T7>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (tuple == null) { writer.WriteNull(); return; }
+
+			var t = (STuple<T1, T2, T3, T4, T5, T6, T7>) tuple;
+			var state = writer.BeginArray();
+			writer.WriteHeadSeparator();
+			writer.VisitValue(t.Item1);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item2);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item3);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item4);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item5);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item6);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item7);
 			writer.EndArray(state);
 		}
 
