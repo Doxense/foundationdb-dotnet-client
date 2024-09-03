@@ -228,14 +228,17 @@ namespace Aspire.Hosting
 			// which will initially be proxied to the port 4550 inside the container (so far so good), but the fdb node will return addresses to other "agents" using "127.0.0.1:4550" because it does not know of the port 12345
 			// The application will think that we are pointed to a different node, and attempt to connect to 127.0.0.1:4550 which would not exist on the host!
 
-			//WORKAROUND: for now, we must FORCE both the "apire port" and the "container port" to be the same, so that it "just works".
-			// we will use the port 4550 which is outside the typical range of 4500+ for default fdb installations (unless there are more than 50 processes on the same box??)
+			// => To work around this problem, we must FORCE both the "apire port" and the "container port" to be the same, as well as disable the Aspire proxy.
+
+			// In order to prevent any conflict with any natively installed FoundationDB server, we will we will use the port 4550,
+			// which is outside the typical range of 4500+ for default fdb installations (unless there are more than 50 processes on the same box??)
+
 			int nodePort = port ?? 4550;
 
 			var cluster = builder
 				.AddResource(fdbCluster)
 				.WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbClusterToManifest(ctx, fdbCluster)))
-				.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: nodePort, targetPort: nodePort)) // note: both ports MUST be the same (see above)
+				.WithEndpoint(port: nodePort, targetPort: nodePort, name: "tcp", isProxied: false) // note: both ports MUST be the same (see above)
 				.WithImage(image: "foundationdb/foundationdb", tag: fdbCluster.DockerTag)
 				.WithImageRegistry(imageRegistry)
 				.WithVolume("fdb_data", "/var/fdb/data", isReadOnly: false) //HACKHACK: TODO: make this configurable!
