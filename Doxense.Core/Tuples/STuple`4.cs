@@ -88,6 +88,12 @@ namespace Doxense.Collections.Tuples
 			_  => TupleHelpers.FailIndexOutOfRange<object>(index, 4)
 		};
 
+		/// <inheritdoc />
+		int ITuple.Length => 4;
+
+		/// <inheritdoc />
+		object? ITuple.this[int index] => ((IVarTuple) this)[index];
+
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -251,7 +257,7 @@ namespace Doxense.Collections.Tuples
 			yield return this.Item4;
 		}
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}

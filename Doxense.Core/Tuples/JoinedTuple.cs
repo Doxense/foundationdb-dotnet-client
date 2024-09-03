@@ -62,7 +62,11 @@ namespace Doxense.Collections.Tuples
 			return STuple.Formatter.ToString(this);
 		}
 
+		/// <inheritdoc />
 		public int Count { get; }
+
+		/// <inheritdoc />
+		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
 
 		public object? this[int index]
 		{

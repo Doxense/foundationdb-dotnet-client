@@ -48,11 +48,17 @@ namespace Doxense.Collections.Tuples
 
 		#region Empty Tuple
 
+		/// <inheritdoc />
 		public int Count => 0;
 
 		object IReadOnlyList<object?>.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		object IVarTuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
+
+		/// <inheritdoc />
+		int System.Runtime.CompilerServices.ITuple.Length => 0;
+
+		object? System.Runtime.CompilerServices.ITuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
 		IVarTuple IVarTuple.this[int? from, int? to] => this;

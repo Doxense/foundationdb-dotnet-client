@@ -74,6 +74,13 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
+
+		/// <inheritdoc />
+		int ITuple.Length => 2;
+
+		/// <inheritdoc />
+		object? ITuple.this[int index] => ((IVarTuple) this)[index];
+
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -228,7 +235,7 @@ namespace Doxense.Collections.Tuples
 			yield return this.Item2;
 		}
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}

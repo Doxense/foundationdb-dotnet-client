@@ -69,7 +69,11 @@ namespace Doxense.Collections.Tuples.Encoding
 			return writer.Output.ToSlice();
 		}
 
+		/// <inheritdoc />
 		public int Count => m_items.Count;
+
+		/// <inheritdoc />
+		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
 
 		public object? this[int index] => m_items[index];
 
