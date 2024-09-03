@@ -156,9 +156,20 @@ namespace Aspire.Hosting
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
+		/// <param name="port">The host port to bind the underlying container to (defaults to <c>4550</c>)</param>
 		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
-		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, int? port = null, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
+		/// <param name="imageRegistry">Specifies a custom image registry for the container (defaults to <c>"docker.io"</c>)</param>
+		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(
+			this IDistributedApplicationBuilder builder,
+			string name,
+			int apiVersion,
+			FdbPath root,
+			int? port = null,
+			string? clusterVersion = null,
+			FdbVersionPolicy? rollForward = null,
+			string? imageRegistry = null
+		)
 		{
 			Contract.NotNull(builder);
 			Contract.NotNullOrWhiteSpace(name);
@@ -193,6 +204,11 @@ namespace Aspire.Hosting
 				rollForward ??= FdbVersionPolicy.Exact;
 			}
 
+			if (string.IsNullOrWhiteSpace(imageRegistry))
+			{
+				imageRegistry = "docker.io";
+			}
+
 			// select the docker image tag that corresponds to the version and specified rollforward policy
 			var dockerTag = ComputeDockerTagFromVersion(ver, rollForward.Value);
 
@@ -220,7 +236,8 @@ namespace Aspire.Hosting
 				.AddResource(fdbCluster)
 				.WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbClusterToManifest(ctx, fdbCluster)))
 				.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: nodePort, targetPort: nodePort)) // note: both ports MUST be the same (see above)
-				.WithAnnotation(new ContainerImageAnnotation { Image = "foundationdb/foundationdb", Tag = fdbCluster.DockerTag })
+				.WithImage(image: "foundationdb/foundationdb", tag: fdbCluster.DockerTag)
+				.WithImageRegistry(imageRegistry)
 				.WithVolume("fdb_data", "/var/fdb/data", isReadOnly: false) //HACKHACK: TODO: make this configurable!
 				.WithEnvironment((context) =>
 				{
