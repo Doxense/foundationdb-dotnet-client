@@ -124,6 +124,21 @@ namespace Doxense.Tools.Tests
 			Assert.That(StringConverters.ToBoolean("1", false), Is.True);
 			Assert.That(StringConverters.ToBoolean("0", true), Is.False);
 
+			Assert.That(StringConverters.ToBoolean("true"), Is.True);
+			Assert.That(StringConverters.ToBoolean("false"), Is.False);
+			Assert.That(StringConverters.ToBoolean("True"), Is.True);
+			Assert.That(StringConverters.ToBoolean("False"), Is.False);
+			Assert.That(StringConverters.ToBoolean("TRUE"), Is.True);
+			Assert.That(StringConverters.ToBoolean("FALSE"), Is.False);
+			Assert.That(StringConverters.ToBoolean("tRuE"), Is.True);
+			Assert.That(StringConverters.ToBoolean("FaLsE"), Is.False);
+			Assert.That(StringConverters.ToBoolean("on"), Is.True);
+			Assert.That(StringConverters.ToBoolean("off"), Is.False);
+			Assert.That(StringConverters.ToBoolean("yes"), Is.True);
+			Assert.That(StringConverters.ToBoolean("no"), Is.False);
+			Assert.That(StringConverters.ToBoolean("1"), Is.True);
+			Assert.That(StringConverters.ToBoolean("0"), Is.False);
+
 			// failures
 			Assert.That(StringConverters.ToBoolean(null, true), Is.True);
 			Assert.That(StringConverters.ToBoolean("", true), Is.True);
@@ -131,12 +146,21 @@ namespace Doxense.Tools.Tests
 			Assert.That(StringConverters.ToBoolean("a", false), Is.False);
 			Assert.That(StringConverters.ToBoolean("666", true), Is.True);
 			Assert.That(StringConverters.ToBoolean("666", false), Is.False);
+
+			Assert.That(StringConverters.ToBoolean(null), Is.Null);
+			Assert.That(StringConverters.ToBoolean(""), Is.Null);
+			Assert.That(StringConverters.ToBoolean("a"), Is.Null);
+			Assert.That(StringConverters.ToBoolean("a"), Is.Null);
+			Assert.That(StringConverters.ToBoolean("666"), Is.Null);
+			Assert.That(StringConverters.ToBoolean("666"), Is.Null);
+
 		}
 
 		[Test]
 		public void Test_ToDouble()
 		{
-			// "int" success
+			// success
+
 			Assert.That(StringConverters.ToDouble("0", 666), Is.EqualTo(0.0));
 			Assert.That(StringConverters.ToDouble("1", 666), Is.EqualTo(1.0));
 			Assert.That(StringConverters.ToDouble("777", 666), Is.EqualTo(777.0));
@@ -147,10 +171,6 @@ namespace Doxense.Tools.Tests
 			Assert.That(StringConverters.ToDouble("+273", 666), Is.EqualTo(273.0));
 			Assert.That(StringConverters.ToDouble("-0", 666), Is.EqualTo(0.0));
 			Assert.That(StringConverters.ToDouble("+0", 666), Is.EqualTo(0.0));
-			Assert.That(StringConverters.ToDouble(" 456", 666), Is.EqualTo(456.0));
-			Assert.That(StringConverters.ToDouble("456 ", 666), Is.EqualTo(456.0));
-			Assert.That(StringConverters.ToDouble(" 456 ", 666), Is.EqualTo(456.0));
-			// "dec" success
 			Assert.That(StringConverters.ToDouble("3.14", 666), Is.EqualTo(3.14));
 			Assert.That(StringConverters.ToDouble("3.1415", 666), Is.EqualTo(3.1415));
 			Assert.That(StringConverters.ToDouble("12.34", 666), Is.EqualTo(12.34));
@@ -159,18 +179,155 @@ namespace Doxense.Tools.Tests
 			Assert.That(StringConverters.ToDouble("1.2345E4", 666), Is.EqualTo(12345));
 			Assert.That(StringConverters.ToDouble("1.2345e4", 666), Is.EqualTo(12345));
 			Assert.That(StringConverters.ToDouble("123E-3", 666), Is.EqualTo(0.123));
-			Assert.That(StringConverters.ToDouble("3,1415", 666), Is.EqualTo(3.1415));
+			Assert.That(StringConverters.ToDouble("NaN", 666), Is.EqualTo(double.NaN));
+			Assert.That(StringConverters.ToDouble("Infinity", 666), Is.EqualTo(double.PositiveInfinity));
+			Assert.That(StringConverters.ToDouble("-Infinity", 666), Is.EqualTo(double.NegativeInfinity));
+			Assert.That(StringConverters.ToDouble("∞", 666), Is.EqualTo(double.PositiveInfinity));
+			Assert.That(StringConverters.ToDouble("-∞", 666), Is.EqualTo(double.NegativeInfinity));
+			Assert.That(StringConverters.ToDouble(" 456", 666), Is.EqualTo(456.0));
+			Assert.That(StringConverters.ToDouble("456 ", 666), Is.EqualTo(456.0));
+			Assert.That(StringConverters.ToDouble(" 456 ", 666), Is.EqualTo(456.0));
+			Assert.That(StringConverters.ToDouble("3.1415 ", 666), Is.EqualTo(3.1415));
 			Assert.That(StringConverters.ToDouble("  3.1415", 666), Is.EqualTo(3.1415));
 
+			Assert.That(StringConverters.ToDouble("0"), Is.EqualTo(0.0));
+			Assert.That(StringConverters.ToDouble("1"), Is.EqualTo(1.0));
+			Assert.That(StringConverters.ToDouble("777"), Is.EqualTo(777.0));
+			Assert.That(StringConverters.ToDouble("22091978"), Is.EqualTo(22091978.0));
+			Assert.That(StringConverters.ToDouble("09221978"), Is.EqualTo(9221978.0));
+			Assert.That(StringConverters.ToDouble("10737418235"), Is.EqualTo(10737418235.0));
+			Assert.That(StringConverters.ToDouble("-273"), Is.EqualTo(-273.0));
+			Assert.That(StringConverters.ToDouble("+273"), Is.EqualTo(273.0));
+			Assert.That(StringConverters.ToDouble("-0"), Is.EqualTo(0.0));
+			Assert.That(StringConverters.ToDouble("+0"), Is.EqualTo(0.0));
+			Assert.That(StringConverters.ToDouble("3.14"), Is.EqualTo(3.14));
+			Assert.That(StringConverters.ToDouble("3.1415"), Is.EqualTo(3.1415));
+			Assert.That(StringConverters.ToDouble("12.34"), Is.EqualTo(12.34));
+			Assert.That(StringConverters.ToDouble("123.0"), Is.EqualTo(123.0));
+			Assert.That(StringConverters.ToDouble("0.0000"), Is.EqualTo(0.0));
+			Assert.That(StringConverters.ToDouble("1.2345E4"), Is.EqualTo(12345));
+			Assert.That(StringConverters.ToDouble("1.2345e4"), Is.EqualTo(12345));
+			Assert.That(StringConverters.ToDouble("123E-3"), Is.EqualTo(0.123));
+			Assert.That(StringConverters.ToDouble("NaN"), Is.EqualTo(double.NaN));
+			Assert.That(StringConverters.ToDouble("∞"), Is.EqualTo(double.PositiveInfinity));
+			Assert.That(StringConverters.ToDouble("-∞"), Is.EqualTo(double.NegativeInfinity));
+			Assert.That(StringConverters.ToDouble("Infinity"), Is.EqualTo(double.PositiveInfinity));
+			Assert.That(StringConverters.ToDouble("-Infinity"), Is.EqualTo(double.NegativeInfinity));
+			Assert.That(StringConverters.ToDouble(" 456"), Is.EqualTo(456.0));
+			Assert.That(StringConverters.ToDouble("456 "), Is.EqualTo(456.0));
+			Assert.That(StringConverters.ToDouble(" 456 "), Is.EqualTo(456.0));
+			Assert.That(StringConverters.ToDouble("3.1415 "), Is.EqualTo(3.1415));
+			Assert.That(StringConverters.ToDouble("  3.1415"), Is.EqualTo(3.1415));
+
 			// failures
-			Assert.That(StringConverters.ToDouble(null, 666.0), Is.EqualTo(666.0));
-			Assert.That(StringConverters.ToDouble("", 666.0), Is.EqualTo(666.0));
-			Assert.That(StringConverters.ToDouble("A", 666.0), Is.EqualTo(666.0));
-			Assert.That(StringConverters.ToDouble(".", 666.0), Is.EqualTo(666.0));
-			Assert.That(StringConverters.ToDouble(",", 666.0), Is.EqualTo(666.0));
-			Assert.That(StringConverters.ToDouble("-", 666.0), Is.EqualTo(666.0));
-			Assert.That(StringConverters.ToDouble("+", 666.0), Is.EqualTo(666.0));
-			Assert.That(StringConverters.ToDouble("E", 666.0), Is.EqualTo(666.0));
+
+			Assert.That(StringConverters.ToDouble(null, 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble("", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble("E", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble("A", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble(".", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble(",", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble("-", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble("+", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble("E", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToDouble("3,1415", 666), Is.EqualTo(666));
+
+			Assert.That(StringConverters.ToDouble(null), Is.Null);
+			Assert.That(StringConverters.ToDouble(""), Is.Null);
+			Assert.That(StringConverters.ToDouble("A"), Is.Null);
+			Assert.That(StringConverters.ToDouble("hello"), Is.Null);
+			Assert.That(StringConverters.ToDouble("."), Is.Null);
+			Assert.That(StringConverters.ToDouble(","), Is.Null);
+			Assert.That(StringConverters.ToDouble("-"), Is.Null);
+			Assert.That(StringConverters.ToDouble("+"), Is.Null);
+			Assert.That(StringConverters.ToDouble("E"), Is.Null);
+			Assert.That(StringConverters.ToDouble("3,1415"), Is.Null);
+		}
+
+		[Test]
+		public void Test_ToSingle()
+		{
+			// success
+
+			Assert.That(StringConverters.ToSingle("0", 666), Is.EqualTo(0.0f));
+			Assert.That(StringConverters.ToSingle("1", 666), Is.EqualTo(1.0f));
+			Assert.That(StringConverters.ToSingle("777", 666), Is.EqualTo(777.0f));
+			Assert.That(StringConverters.ToSingle("0123", 666), Is.EqualTo(123.0f));
+			Assert.That(StringConverters.ToSingle("12345678", 666), Is.EqualTo(12345678.0f));
+			Assert.That(StringConverters.ToSingle("-273", 666), Is.EqualTo(-273.0f));
+			Assert.That(StringConverters.ToSingle("+273", 666), Is.EqualTo(273.0f));
+			Assert.That(StringConverters.ToSingle("-0", 666), Is.EqualTo(0.0));
+			Assert.That(StringConverters.ToSingle("+0", 666), Is.EqualTo(0.0));
+			Assert.That(StringConverters.ToSingle("3.14", 666), Is.EqualTo(3.14f));
+			Assert.That(StringConverters.ToSingle("3.1415", 666), Is.EqualTo(3.1415f));
+			Assert.That(StringConverters.ToSingle("12.34", 666), Is.EqualTo(12.34f));
+			Assert.That(StringConverters.ToSingle("123.0", 666), Is.EqualTo(123.0f));
+			Assert.That(StringConverters.ToSingle("0.0000", 666), Is.EqualTo(0.0f));
+			Assert.That(StringConverters.ToSingle("1.2345E4", 666), Is.EqualTo(12345f));
+			Assert.That(StringConverters.ToSingle("1.2345e4", 666), Is.EqualTo(12345f));
+			Assert.That(StringConverters.ToSingle("123E-3", 666), Is.EqualTo(0.123f));
+			Assert.That(StringConverters.ToSingle("NaN", 666), Is.EqualTo(float.NaN));
+			Assert.That(StringConverters.ToSingle("Infinity", 666), Is.EqualTo(float.PositiveInfinity));
+			Assert.That(StringConverters.ToSingle("-Infinity", 666), Is.EqualTo(float.NegativeInfinity));
+			Assert.That(StringConverters.ToSingle("∞", 666), Is.EqualTo(float.PositiveInfinity));
+			Assert.That(StringConverters.ToSingle("-∞", 666), Is.EqualTo(float.NegativeInfinity));
+			Assert.That(StringConverters.ToSingle(" 456", 666), Is.EqualTo(456.0f));
+			Assert.That(StringConverters.ToSingle("456 ", 666), Is.EqualTo(456.0f));
+			Assert.That(StringConverters.ToSingle(" 456 ", 666), Is.EqualTo(456.0f));
+			Assert.That(StringConverters.ToSingle("3.1415 ", 666), Is.EqualTo(3.1415f));
+			Assert.That(StringConverters.ToSingle("  3.1415", 666), Is.EqualTo(3.1415f));
+
+			Assert.That(StringConverters.ToSingle("0"), Is.EqualTo(0.0f));
+			Assert.That(StringConverters.ToSingle("1"), Is.EqualTo(1.0f));
+			Assert.That(StringConverters.ToSingle("777"), Is.EqualTo(777.0f));
+			Assert.That(StringConverters.ToSingle("0123"), Is.EqualTo(123.0f));
+			Assert.That(StringConverters.ToSingle("12345678"), Is.EqualTo(12345678.0f));
+			Assert.That(StringConverters.ToSingle("-273"), Is.EqualTo(-273.0f));
+			Assert.That(StringConverters.ToSingle("+273"), Is.EqualTo(273.0f));
+			Assert.That(StringConverters.ToSingle("-0"), Is.EqualTo(0.0f));
+			Assert.That(StringConverters.ToSingle("+0"), Is.EqualTo(0.0f));
+			Assert.That(StringConverters.ToSingle("3.14"), Is.EqualTo(3.14f));
+			Assert.That(StringConverters.ToSingle("3.1415"), Is.EqualTo(3.1415f));
+			Assert.That(StringConverters.ToSingle("12.34"), Is.EqualTo(12.34f));
+			Assert.That(StringConverters.ToSingle("123.0"), Is.EqualTo(123.0f));
+			Assert.That(StringConverters.ToSingle("0.0000"), Is.EqualTo(0.0f));
+			Assert.That(StringConverters.ToSingle("1.2345E4"), Is.EqualTo(12345f));
+			Assert.That(StringConverters.ToSingle("1.2345e4"), Is.EqualTo(12345f));
+			Assert.That(StringConverters.ToSingle("123E-3"), Is.EqualTo(0.123f));
+			Assert.That(StringConverters.ToSingle("NaN"), Is.EqualTo(float.NaN));
+			Assert.That(StringConverters.ToSingle("∞"), Is.EqualTo(float.PositiveInfinity));
+			Assert.That(StringConverters.ToSingle("-∞"), Is.EqualTo(float.NegativeInfinity));
+			Assert.That(StringConverters.ToSingle("Infinity"), Is.EqualTo(float.PositiveInfinity));
+			Assert.That(StringConverters.ToSingle("-Infinity"), Is.EqualTo(float.NegativeInfinity));
+			Assert.That(StringConverters.ToSingle(" 456"), Is.EqualTo(456.0f));
+			Assert.That(StringConverters.ToSingle("456 "), Is.EqualTo(456.0f));
+			Assert.That(StringConverters.ToSingle(" 456 "), Is.EqualTo(456.0f));
+			Assert.That(StringConverters.ToSingle("3.1415 "), Is.EqualTo(3.1415f));
+			Assert.That(StringConverters.ToSingle("  3.1415"), Is.EqualTo(3.1415f));
+
+			// failures
+
+			Assert.That(StringConverters.ToSingle(null, 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle("", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle("E", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle("A", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle(".", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle(",", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle("-", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle("+", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle("E", 666), Is.EqualTo(666));
+			Assert.That(StringConverters.ToSingle("3,1415", 666), Is.EqualTo(666));
+
+			Assert.That(StringConverters.ToSingle(null), Is.Null);
+			Assert.That(StringConverters.ToSingle(""), Is.Null);
+			Assert.That(StringConverters.ToSingle("A"), Is.Null);
+			Assert.That(StringConverters.ToSingle("hello"), Is.Null);
+			Assert.That(StringConverters.ToSingle("."), Is.Null);
+			Assert.That(StringConverters.ToSingle(","), Is.Null);
+			Assert.That(StringConverters.ToSingle("-"), Is.Null);
+			Assert.That(StringConverters.ToSingle("+"), Is.Null);
+			Assert.That(StringConverters.ToSingle("E"), Is.Null);
+			Assert.That(StringConverters.ToSingle("3,1415"), Is.Null);
 		}
 
 		[Test]

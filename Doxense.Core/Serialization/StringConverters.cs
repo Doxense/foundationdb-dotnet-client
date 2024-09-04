@@ -35,139 +35,153 @@ namespace Doxense.Serialization
 	{
 		#region Numbers...
 
-		//NOTE: ces méthodes ont été importées de KTL/Sioux
-		//REVIEW: je ne sais pas si c'est la meilleure place pour ce code?
-
-		/// <summary>Table de lookup pour les nombres entre 0 et 99, afin d'éviter d'allouer une string inutilement</summary>
-		//note: vu que ce sont des literals, ils sont interned automatiquement
-		private static readonly string[] SmallNumbers =
-		[
-			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-			"10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
-			"20", "21", "22", "23", "24", "25", "26", "27", "28", "29",
-			"30", "31", "32", "33", "34", "35", "36", "37", "38", "39",
-			"40", "41", "42", "43", "44", "45", "46", "47", "48", "49",
-			"50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
-			"60", "61", "62", "63", "64", "65", "66", "67", "68", "69",
-			"70", "71", "72", "73", "74", "75", "76", "77", "78", "79",
-			"80", "81", "82", "83", "84", "85", "86", "87", "88", "89",
-			"90", "91", "92", "93", "94", "95", "96", "97", "98", "99"
-		];
-
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeur entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'éviter le plus possibles des allocations mémoire</remarks>
+		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
 		[Pure]
 		public static string ToString(int value)
 		{
-			var cache = SmallNumbers;
-			return value >= 0 && value < cache.Length ? cache[value] : value.ToString(NumberFormatInfo.InvariantInfo);
+			//perf: as of .NET 8, Int32.ToString(null) calls Number.UInt32ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			if (value >= 0)
+			{
+				return value.ToString(default(IFormatProvider));
+			}
+			// for negative numbers, we have to pass an invariant culture, otherwise it will use the NegativeSign of the current culture
+			return value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeur entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'éviter le plus possibles des allocations mémoire</remarks>
-		[Pure]
+		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToString(uint value)
 		{
-			var cache = SmallNumbers;
-			return value < cache.Length ? cache[value] : value.ToString(NumberFormatInfo.InvariantInfo);
+			//perf: as of .NET 8, UInt32.ToString(null) calls Number.UInt32ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			return value.ToString(default(IFormatProvider));
 		}
 
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeur entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'éviter le plus possibles des allocations mémoire</remarks>
+		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
 		[Pure]
 		public static string ToString(long value)
 		{
-			var cache = SmallNumbers;
-			return value >= 0 && value < cache.Length ? cache[(int) value] : value.ToString(NumberFormatInfo.InvariantInfo);
+			//perf: as of .NET 8, Int64.ToString(null) calls Number.UInt64ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			if (value >= 0)
+			{
+				return value.ToString(default(IFormatProvider));
+			}
+
+			// for negative numbers, we have to pass an invariant culture, otherwise it will use the NegativeSign of the current culture
+			return value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeur entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'éviter le plus possibles des allocations mémoire</remarks>
-		[Pure]
+		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToString(ulong value)
 		{
-			var cache = SmallNumbers;
-			return value < (ulong) cache.Length ? cache[(int) value] : value.ToString(NumberFormatInfo.InvariantInfo);
+			//perf: as of .NET 8, UInt64.ToString(null) calls Number.UInt64ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			return value.ToString(default(IFormatProvider));
 		}
 
-		/// <summary>Convertit un décimal en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeur décimale à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'éviter le plus possibles des allocations mémoire</remarks>
+		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
 		[Pure]
 		public static string ToString(float value)
 		{
 			long x = unchecked((long) value);
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			return x != value
-				? value.ToString("R", CultureInfo.InvariantCulture)
-				: (x >= 0 && x < SmallNumbers.Length ? SmallNumbers[(int) x] : x.ToString(NumberFormatInfo.InvariantInfo));
+				? value.ToString("R", NumberFormatInfo.InvariantInfo)
+				: x >= 0 ? x.ToString(default(IFormatProvider))
+				: x.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit un décimal en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeur décimale à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'éviter le plus possibles des allocations mémoire</remarks>
+		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
 		[Pure]
 		public static string ToString(double value)
 		{
-			long x = unchecked((long)value);
+			long x = unchecked((long) value);
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			return x != value
-				? value.ToString("R", CultureInfo.InvariantCulture)
-				: (x >= 0 && x < SmallNumbers.Length ? SmallNumbers[(int)x] : x.ToString(NumberFormatInfo.InvariantInfo));
+				? value.ToString("R", NumberFormatInfo.InvariantInfo)
+				: x >= 0 ? x.ToString(default(IFormatProvider))
+				: x.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit une chaîne en booléen</summary>
-		/// <param name="value">Chaîne de texte (ex: "true")</param>
-		/// <param name="dflt">Valeur par défaut si vide ou invalide</param>
-		/// <returns>Valeur booléenne correspondant (ex: true) ou valeur par défaut</returns>
-		/// <remarks>Les valeurs pour true sont "true", "yes", "on", "1".
-		/// Les valeurs pour false sont "false", "no", "off", "0", ou tout le reste
-		/// null et chaîne vide sont considérés comme false
+		/// <summary>Converts a string literal into a boolean, using relaxed rules</summary>
+		/// <param name="value">String literal containing either a "truthy" or "falsy" boolean (ex: "true", "on", "1" vs "false", "off", "0", ...)</param>
+		/// <param name="dflt">Default value, if the string is empty or not recognized</param>
+		/// <returns>Corresponding boolean value if it matches the set of recognized tokens; otherwise, <paramref name="dflt"/>.</returns>
+		/// <remarks>
+		/// <para>The recognized "truthy" literals are: <c>"true"</c>, <c>"yes"</c>, <c>"on"</c>, <c>"1"</c>.</para>
+		/// <para>The recognized "falsy" literals are: <c>"false"</c>, <c>"no"</c>, <c>"off"</c>, <c>"0"</c>, the null or empty string.</para>
 		/// </remarks>
 		[Pure]
 		public static bool ToBoolean(string? value, bool dflt)
 		{
-			if (string.IsNullOrEmpty(value)) return dflt;
-			char c = value[0];
-			if (c == 't' || c == 'T') return true;
-			if (c == 'f' || c == 'F') return false;
-			if (c == 'y' || c == 'Y') return true;
-			if (c == 'n' || c == 'N') return false;
-			if ((c == 'o' || c == 'O') && value.Length > 1) { c = value[1]; return c == 'n' || c == 'N'; }
-			if (c == '1') return true;
-			if (c == '0') return false;
-			return dflt;
+			if (string.IsNullOrEmpty(value))
+			{
+				return dflt;
+			}
+
+			return char.ToLowerInvariant(value[0]) switch
+			{
+				't' => true,  // "true"
+				'f' => false, // "false"
+				'y' => true,  // "yes"
+				'n' => false, // "no"
+				'o' => value.Length switch
+				{
+					2 => (char.ToLowerInvariant(value[1]) == 'n' || dflt), // "on"
+					3 => ((char.ToLowerInvariant(value[1]) != 'f' || char.ToLowerInvariant(value[2]) != 'f') && dflt), // "off"
+					_ => dflt
+				},
+				'1' => true, // "1"
+				'0' => false, // "0"
+				_ => dflt
+			};
 		}
 
-		/// <summary>Convertit une chaîne en booléen</summary>
-		/// <param name="value">Chaîne de texte (ex: "true")</param>
-		/// <returns>Valeur booléenne correspondant (ex: true) ou null</returns>
-		/// <remarks>Les valeurs pour true sont "true", "yes", "on", "1".
-		/// Les valeurs pour false sont "false", "no", "off", "0"
+		/// <summary>Converts a string literal into its boolean equivalent, using relaxed rules</summary>
+		/// <param name="value">String literal containing either a "truthy" or "falsy" boolean (ex: "true", "on", "1" vs "false", "off", "0", ...)</param>
+		/// <returns>Corresponding boolean value if it matches the set of recognized tokens; otherwise, <see langword="null"/>.</returns>
+		/// <remarks>
+		/// <para>The recognized "truthy" literals are: <c>"true"</c>, <c>"yes"</c>, <c>"on"</c>, <c>"1"</c>.</para>
+		/// <para>The recognized "falsy" literals are: <c>"false"</c>, <c>"no"</c>, <c>"off"</c>, <c>"0"</c>.</para>
+		/// <para>The null and empty strings will return <see langword="null"/>.</para>
 		/// </remarks>
+		/// <example>
+		/// <code>StringConverters.ToBoolean("true", false) == true</code>
+		/// <code>StringConverters.ToBoolean("false", true) == false</code>
+		/// <code>StringConverters.ToBoolean("hello", false) == false</code>
+		/// </example>
 		[Pure]
 		public static bool? ToBoolean(string? value)
 		{
 			if (string.IsNullOrEmpty(value)) return null;
 			char c = value[0];
-			if (c == 't' || c == 'T') return true;
-			if (c == 'f' || c == 'F') return false;
-			if (c == 'y' || c == 'Y') return true;
-			if (c == 'n' || c == 'N') return false;
-			if ((c == 'o' || c == 'O') && value.Length > 1) { c = value[1]; return c == 'n' || c == 'N'; }
-			if (c == '1') return true;
-			if (c == '0') return false;
-			return null;
+			return char.ToLowerInvariant(c) switch
+			{
+				't' => true,  // "true"
+				'f' => false, // "false"
+				'y' => true,  // "yes"
+				'n' => false, // "no"
+				'o' => value.Length switch
+				{
+					2 => (char.ToLowerInvariant(value[1]) == 'n' ? true : null), // "on"
+					3 => (char.ToLowerInvariant(value[1]) == 'f' && char.ToLowerInvariant(value[2]) == 'f' ? false : null), // "off"
+					_ => null
+				},
+				'1' => true,
+				'0' => false,
+				_ => null
+			};
 		}
 
 		/// <summary>Convertit un entier jusqu'au prochain séparateur (ou fin de buffer). A utilisé pour simuler un Split</summary>
@@ -180,6 +194,7 @@ namespace Doxense.Serialization
 		/// <param name="newpos">Récupère la nouvelle position (après le séparateur)</param>
 		/// <returns>true si int chargé, false si erreur (plus de place, incorrect, ...)</returns>
 		/// <exception cref="System.ArgumentNullException">Si buffer est null</exception>
+		[Obsolete("Use int.TryParse(ReadOnlySpan<char>, ...) instead!")]
 		public static unsafe bool FastTryGetInt(char* buffer, int offset, int length, char separator, int defaultValue, out int result, out int newpos)
 		{
 			Contract.PointerNotNull(buffer);
@@ -235,6 +250,7 @@ namespace Doxense.Serialization
 		/// <param name="newpos">Récupère la nouvelle position (après le séparateur)</param>
 		/// <returns>true si int chargé, false si erreur (plus de place, incorrect, ...)</returns>
 		/// <exception cref="System.ArgumentNullException">Si buffer est null</exception>
+		[Obsolete("Use long.TryParse(ReadOnlySpan<char>, ...) instead!")]
 		public static unsafe bool FastTryGetLong(char* buffer, int offset, int length, char separator, long defaultValue, out long result, out int newpos)
 		{
 			Contract.PointerNotNull(buffer);
@@ -280,24 +296,43 @@ namespace Doxense.Serialization
 			return true;
 		}
 
-		/// <summary>Convertit une chaîne en entier (int)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <param name="defaultValue">Valeur par défaut si vide ou invalide</param>
-		/// <returns>Entier correspondant ou valeur par défaut si pb (ex: 1234)</returns>
+		/// <summary>Converts a string literal into its 32-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid integer</param>
+		/// <returns>Corresponding integer value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt32("1234", 0) == 1234</code>
+		/// <code>StringConverters.ToInt32("hello", 0) == 0</code>
+		/// </example>
 		[Pure]
 		public static int ToInt32(string? value, int defaultValue)
 		{
-			if (string.IsNullOrEmpty(value)) return defaultValue;
-			// optimisation: si premier caractère pas chiffre, exit
+			if (string.IsNullOrEmpty(value))
+			{
+				return defaultValue;
+			}
+
 			char c = value[0];
-			if (value.Length == 1) return char.IsDigit(c) ? c - 48 : defaultValue;
-			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return defaultValue;
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? c - 48 : defaultValue;
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return defaultValue;
+			}
+			
 			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : defaultValue;
 		}
 
-		/// <summary>Convertit une chaîne en entier (int)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <returns>Entier correspondant ou null si pb (ex: 1234)</returns>
+		/// <summary>Converts a string literal into its 32-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <returns>Corresponding integer value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt32("1234") == 1234</code>
+		/// <code>StringConverters.ToInt32("hello") == null</code>
+		/// </example>
 		[Pure]
 		public static int? ToInt32(string? value)
 		{
@@ -309,10 +344,14 @@ namespace Doxense.Serialization
 			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : default(int?);
 		}
 
-		/// <summary>Convertit une chaîne en entier (long)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <param name="defaultValue">Valeur par défaut si vide ou invalide</param>
-		/// <returns>Entier correspondant ou valeur par défaut si pb (ex: 1234)</returns>
+		/// <summary>Converts a string literal into its 64-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid integer</param>
+		/// <returns>Corresponding integer value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt64("1234", 0) == 1234</code>
+		/// <code>StringConverters.ToInt64("hello", 0) == 0</code>
+		/// </example>
 		[Pure]
 		public static long ToInt64(string? value, long defaultValue)
 		{
@@ -324,66 +363,159 @@ namespace Doxense.Serialization
 			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : defaultValue;
 		}
 
-		/// <summary>Convertit une chaîne en entier (long)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <returns>Entier correspondant ou null si pb (ex: 1234)</returns>
+		/// <summary>Converts a string literal into its 64-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <returns>Corresponding integer value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt64("1234") == 1234</code>
+		/// <code>StringConverters.ToInt64("hello") == null</code>
+		/// </example>
 		[Pure]
 		public static long? ToInt64(string? value)
 		{
-			if (string.IsNullOrEmpty(value)) return default;
-			// optimisation: si premier caractère pas chiffre, exit
+			if (string.IsNullOrEmpty(value))
+			{
+				return default;
+			}
+
 			char c = value[0];
-			if (value.Length == 1) return char.IsDigit(c) ? ((long) c - 48) : default(long?);
-			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return default;
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? ((long) c - 48) : default(long?);
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return default;
+			}
+
 			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : default(long?);
 		}
 
-		/// <summary>Convertit une chaîne de caractère en double, quelque soit la langue locale (utilise le '.' comme séparateur décimal)</summary>
-		/// <param name="value">Chaîne (ex: "1.0", "123.456e7")</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <param name="culture">Culture (par défaut InvariantCulture)</param>
-		/// <returns>Double correspondant</returns>
+		/// <summary>Converts a string literal into its 64-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
+		/// <returns>Corresponding double value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToDouble("1.23", 0) => 1.23d</code>
+		/// <code>StringConverters.ToDouble("hello", 0) => 0</code>
+		/// <code>StringConverters.ToDouble("NaN", 0)) => double.NaN</code>
+		/// <code>StringConverters.ToDouble("∞", 0)) => double.PositiveInfinity</code>
+		/// <code>StringConverters.ToDouble("-∞", 0)) => double.NegativeInfinity</code>
+		/// </example>
 		[Pure]
-		public static double ToDouble(string? value, double defaultValue, IFormatProvider? culture = null)
+		public static double ToDouble(string? value, double defaultValue)
 		{
-			if (string.IsNullOrEmpty(value)) return defaultValue;
+			if (string.IsNullOrEmpty(value))
+			{ // empty
+				return defaultValue;
+			}
+
 			char c = value[0];
-			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			culture ??= CultureInfo.InvariantCulture;
-			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
-			return double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double result) ? result : defaultValue;
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? double.PositiveInfinity : defaultValue;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
+				? result
+				: value == "-∞" ? double.NegativeInfinity
+				: defaultValue;
 		}
 
+		/// <summary>Converts a string literal into its 64-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <returns>Corresponding double value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToDouble("1.23") => 1.23d</code>
+		/// <code>StringConverters.ToDouble("hello") => null</code>
+		/// <code>StringConverters.ToDouble("NaN")) => double.NaN</code>
+		/// <code>StringConverters.ToDouble("∞")) => double.PositiveInfinity</code>
+		/// <code>StringConverters.ToDouble("-∞")) => double.NegativeInfinity</code>
+		/// </example>
 		[Pure]
-		public static double? ToDouble(string? value, IFormatProvider? culture = null)
+		public static double? ToDouble(string? value)
 		{
-			if (value == null) return default(double?);
-			double result = ToDouble(value, double.NaN, culture);
-			return double.IsNaN(result) ? default(double?) : result;
-		}
+			if (string.IsNullOrEmpty(value))
+			{ // empty
+				return null;
+			}
 
-		/// <summary>Convertit une chaîne de caractère en float, quelque soit la langue locale (utilise le '.' comme séparateur décimal)</summary>
-		/// <param name="value">Chaîne (ex: "1.0", "123.456e7")</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <param name="culture">Culture (par défaut InvariantCulture)</param>
-		/// <returns>Float correspondant</returns>
-		[Pure]
-		public static float ToSingle(string? value, float defaultValue, IFormatProvider? culture = null)
-		{
-			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
-			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			culture ??= CultureInfo.InvariantCulture;
-			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
-			return float.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float result) ? result : defaultValue;
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? double.PositiveInfinity : null;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
+				? result
+				: value == "-∞" ? double.NegativeInfinity
+				: null;
 		}
 
+		/// <summary>Converts a string literal into its 32-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
+		/// <returns>Corresponding single value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToSingle("1.23", 0) => 1.23d</code>
+		/// <code>StringConverters.ToSingle("hello", 0) => 0</code>
+		/// <code>StringConverters.ToSingle("NaN", 0)) => float.NaN</code>
+		/// <code>StringConverters.ToSingle("∞", 0)) => float.PositiveInfinity</code>
+		/// <code>StringConverters.ToSingle("-∞", 0)) => float.NegativeInfinity</code>
+		/// </example>
 		[Pure]
-		public static float? ToSingle(string? value, IFormatProvider? culture = null)
+		public static float ToSingle(string? value, float defaultValue)
 		{
-			if (value == null) return default(float?);
-			float result = ToSingle(value, float.NaN, culture);
-			return double.IsNaN(result) ? default(float?) : result;
+			if (string.IsNullOrEmpty(value))
+			{ // empty
+				return defaultValue;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? float.PositiveInfinity : defaultValue;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result)
+				? result
+				: value == "-∞" ? float.NegativeInfinity
+				: defaultValue;
+		}
+
+		/// <summary>Converts a string literal into its 32-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <returns>Corresponding single value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToSingle("1.23") => 1.23d</code>
+		/// <code>StringConverters.ToSingle("hello") => null</code>
+		/// <code>StringConverters.ToSingle("NaN")) => float.NaN</code>
+		/// <code>StringConverters.ToSingle("∞")) => float.PositiveInfinity</code>
+		/// <code>StringConverters.ToSingle("-∞")) => float.NegativeInfinity</code>
+		/// </example>
+		[Pure]
+		public static float? ToSingle(string? value)
+		{
+			if (string.IsNullOrEmpty(value))
+			{ // empty
+				return null;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? float.PositiveInfinity : null;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result)
+				? result
+				: value == "-∞" ? float.NegativeInfinity
+				: null;
 		}
 
 		/// <summary>Convertit une chaîne de caractère en double, quelque soit la langue locale (utilise le '.' comme séparateur décimal)</summary>
