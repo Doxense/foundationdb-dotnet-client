@@ -41,8 +41,11 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Linq;
+	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading.Tasks;
+	using Doxense.Memory;
 	using static Doxense.Testing.TestVariables;
 
 	[TestFixture]
@@ -2899,6 +2902,206 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			buffer[4] = (byte) '3';
 			Assert.That(span.ToArray(), Is.EqualTo("H3llo"u8.ToArray()));
 		}
+
+		[Test]
+		public void Test_Slice_Copy()
+		{
+			// byte[]
+			Assert.That(Slice.Copy(null), Is.EqualTo(Slice.Nil));
+			Assert.That(Slice.Copy(Array.Empty<byte>()), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Copy("hello world"u8.ToArray()), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+
+			// byte[], int, int
+			Assert.That(Slice.Copy(null, 0, 0), Is.EqualTo(Slice.Nil));
+			Assert.That(Slice.Copy(Array.Empty<byte>(), 0, 0), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Copy("xxxhello worldxxx"u8.ToArray(), 3, 11), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+
+			// ReadOnlySpan<byte>
+			Assert.That(Slice.Copy([]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Copy(""u8), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Copy("xxxhello worldxxx"u8[3..^3]), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+
+			// Span<byte>
+			Assert.That(Slice.Copy(Array.Empty<byte>().AsSpan()), Is.EqualTo(Slice.Empty));
+			{ // stackalloc'ed buffer
+				Span<byte> span = stackalloc byte[11];
+				"hello world"u8.CopyTo(span);
+				Assert.That(Slice.Copy(span), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+			}
+
+			// ReadOnlySpan<byte> with external buffer
+			{
+				// buffer is initially empty
+				byte[]? buffer = null;
+				var slice = Slice.Copy("hello world"u8, ref buffer);
+				Assert.That(slice, Is.EqualTo(Value("hello world")));
+				Assert.That(buffer, Is.Not.Null);
+				Assert.That(slice.Array, Is.SameAs(buffer));
+				Assert.That(slice.Offset, Is.EqualTo(0));
+
+				// reuse the buffer (with a smaller message)
+				var prev = buffer;
+				var slice2 = Slice.Copy("foobar"u8, ref buffer);
+				Assert.That(slice2, Is.EqualTo(Value("foobar")));
+				Assert.That(buffer, Is.SameAs(prev), "Should have reused the same buffer");
+				Assert.That(slice2.Array, Is.SameAs(buffer));
+				Assert.That(slice2.Offset, Is.EqualTo(0));
+				
+				//note: the previous slice should be overwritten !
+				Assert.That(slice, Is.EqualTo(Value("foobarworld")));
+
+				// replace the buffer if it is too small
+				Span<byte> big = stackalloc byte[256];
+				big.Fill((byte) '!');
+				var slice3 = Slice.Copy(big, ref buffer);
+				Assert.That(slice3, Is.EqualTo(big.ToArray().AsSlice()));
+				Assert.That(buffer, Is.Not.SameAs(prev), "Should have use a bigger buffer");
+				Assert.That(slice3.Array, Is.SameAs(buffer));
+				Assert.That(slice3.Offset, Is.EqualTo(0));
+
+				// previous slices should be left unchanged
+				Assert.That(slice, Is.EqualTo(Value("foobarworld")));
+				Assert.That(slice2, Is.EqualTo(Value("foobar")));
+			}
+
+			// (ReadOnlySpan<byte>).ToSlice()
+			Assert.That(""u8.ToSlice(), Is.EqualTo(Slice.Empty));
+			Assert.That("hello world"u8.ToSlice(), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+			Assert.That("xxxhello worldxxx"u8[3..^3].ToSlice(), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+
+			// (Span<byte>).ToSlice()
+			Assert.That(""u8.ToArray().AsSpan().ToSlice(), Is.EqualTo(Slice.Empty));
+			Assert.That("hello world"u8.ToArray().AsSpan().ToSlice(), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+		}
+
+#if NET8_0_OR_GREATER
+
+		[Test]
+		public void Test_Slice_Marshal()
+		{
+			{ // TryGetSlice
+				var data = "hello world"u8.ToArray();
+
+				var memory = data.AsMemory();
+				Assert.That(SliceMarshal.TryGetSlice(memory, out var slice), Is.True);
+				Assert.That(slice.Count, Is.EqualTo(11));
+				Assert.That(slice.Array, Is.SameAs(data));
+				Assert.That(slice.Offset, Is.EqualTo(0));
+				Assert.That(slice.ToStringUtf8(), Is.EqualTo("hello world"));
+
+				memory = data.AsMemory(6);
+				Assert.That(SliceMarshal.TryGetSlice(memory, out slice), Is.True);
+				Assert.That(slice.Count, Is.EqualTo(5));
+				Assert.That(slice.Array, Is.SameAs(data));
+				Assert.That(slice.Offset, Is.EqualTo(6));
+				Assert.That(slice.ToStringUtf8(), Is.EqualTo("world"));
+
+				memory = default;
+				Assert.That(SliceMarshal.TryGetSlice(memory, out slice), Is.True);
+				Assert.That(slice, Is.EqualTo(Slice.Empty));
+
+				memory = data.AsMemory(11, 0);
+				Assert.That(SliceMarshal.TryGetSlice(memory, out slice), Is.True);
+				Assert.That(slice, Is.EqualTo(Slice.Empty));
+			}
+
+			{ // AsRef<int> / Read<int>
+				var bytes = Slice.FromFixed32(0x1234);
+				ref readonly int ptr = ref SliceMarshal.AsRef<int>(bytes);
+				Assert.That(ptr, Is.EqualTo(0x1234));
+				// mutate buffer
+				bytes.Array[bytes.Offset]++;
+				Assert.That(ptr, Is.EqualTo(0x1235));
+				// read
+				Assert.That(SliceMarshal.Read<int>(bytes), Is.EqualTo(0x1235));
+			}
+			{ // AsRef<Guid>
+				var value = Guid.NewGuid();
+				var bytes = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref value, 1)).ToSlice();
+				ref readonly Guid ptr = ref SliceMarshal.AsRef<Guid>(bytes);
+				Assert.That(ptr, Is.EqualTo(value));
+				// read
+				Assert.That(SliceMarshal.Read<Guid>(bytes), Is.EqualTo(value));
+			}
+			{ // AsRef<int> in sub-slice
+				Span<int> items = [ 123, 456, 789 ];
+				var bytes = MemoryMarshal.AsBytes(items).Slice(4).ToSlice();
+				ref readonly int ptr = ref SliceMarshal.AsRef<int>(bytes);
+				Assert.That(ptr, Is.EqualTo(456));
+				ref readonly int next = ref Unsafe.Add(ref Unsafe.AsRef(in ptr), 1);
+				Assert.That(next, Is.EqualTo(789));
+				// read
+				Assert.That(SliceMarshal.Read<int>(bytes), Is.EqualTo(456));
+				Assert.That(SliceMarshal.ReadAt<int>(bytes, 0), Is.EqualTo(456));
+				Assert.That(SliceMarshal.ReadAt<int>(bytes, 4), Is.EqualTo(789));
+			}
+
+			{ // (Try)GetReference(At|ToLast)
+				var bytes = "hello world"u8.ToSlice();
+
+				ref readonly byte start = ref SliceMarshal.GetReference(bytes);
+				Assert.That(Unsafe.AreSame(in start, in bytes.Span[0]), Is.True, "start ref should match the start of the slice");
+				Assert.That(start, Is.EqualTo('h'));
+				Assert.That(SliceMarshal.IsAddressInside(bytes, in start), Is.True);
+
+				ref readonly byte end = ref SliceMarshal.GetReferenceToLast(bytes);
+				Assert.That(Unsafe.AreSame(in end, in bytes.Span[^1]), Is.True, "end ref should match the start of the slice");
+				Assert.That(end, Is.EqualTo('d'));
+				Assert.That(SliceMarshal.IsAddressInside(bytes, in end), Is.True);
+
+				ref readonly byte ptr = ref SliceMarshal.GetReferenceAt(bytes, 6);
+				Assert.That(Unsafe.AreSame(in ptr, in bytes.Span[6]), Is.True, "ref should be inside the slice");
+				Assert.That(ptr, Is.EqualTo('w'));
+				Assert.That(SliceMarshal.IsAddressInside(bytes, in ptr), Is.True);
+
+				ptr = ref SliceMarshal.TryGetReferenceAt(bytes, 6, out var valid);
+				Assert.That(valid, Is.True, "Ref should be valid");
+				Assert.That(Unsafe.AreSame(in ptr, in bytes.Span[6]), Is.True, "ref should be inside the slice");
+
+				ptr = ref SliceMarshal.TryGetReferenceAt(bytes, 11, out valid);
+				Assert.That(valid, Is.False, "Ref should be valid");
+				Assert.That(Unsafe.IsNullRef(in ptr), Is.True, "invalid ref should be null");
+				Assert.That(SliceMarshal.IsAddressInside(bytes, in Unsafe.Add(ref Unsafe.AsRef(in ptr), 11)), Is.False);
+
+				ptr = ref SliceMarshal.TryGetReferenceAt(bytes, -1, out valid);
+				Assert.That(valid, Is.False, "Ref should be valid");
+				Assert.That(Unsafe.IsNullRef(in ptr), Is.True, "invalid ref should be null");
+				Assert.That(SliceMarshal.IsAddressInside(bytes, in Unsafe.Add(ref Unsafe.AsRef(in ptr), -1)), Is.False);
+
+				Assert.That(() => _ = ref SliceMarshal.GetReferenceAt("hello"u8.ToSlice(), 5), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => _ = ref SliceMarshal.GetReferenceAt("hello"u8.ToSlice(), -1), Throws.InstanceOf<ArgumentException>());
+
+				Assert.That(() => _ = ref SliceMarshal.GetReference(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => _ = ref SliceMarshal.GetReference(Slice.Empty), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => _ = ref SliceMarshal.GetReferenceAt(Slice.Nil, 0), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => _ = ref SliceMarshal.GetReferenceAt(Slice.Empty, 0), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => _ = ref SliceMarshal.GetReferenceToLast(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => _ = ref SliceMarshal.GetReferenceToLast(Slice.Empty), Throws.InstanceOf<ArgumentException>());
+			}
+
+			{ // Cast<int>
+				Span<int> items = [ 123, 456, 789 ];
+				var bytes = MemoryMarshal.AsBytes(items).ToSlice();
+				var span = SliceMarshal.Cast<int>(bytes);
+				Assert.That(span.Length, Is.EqualTo(3));
+				Assert.That(span[0], Is.EqualTo(123));
+				Assert.That(span[1], Is.EqualTo(456));
+				Assert.That(span[2], Is.EqualTo(789));
+			}
+
+			{ // CopyAsBytes
+				Span<int> items = [ 123, 456, 789 ];
+				var bytes = SliceMarshal.CopyAsBytes(items);
+				Assert.That(bytes.Count, Is.EqualTo(3 * 4));
+				DumpHexa(bytes);
+				Assert.That(SliceMarshal.ReadAt<int>(bytes, 0), Is.EqualTo(123));
+				Assert.That(SliceMarshal.ReadAt<int>(bytes, 4), Is.EqualTo(456));
+				Assert.That(SliceMarshal.ReadAt<int>(bytes, 8), Is.EqualTo(789));
+			}
+
+		}
+
+#endif
 
 		[Test]
 		public void Test_Slice_ReadExactly_MemoryStream()

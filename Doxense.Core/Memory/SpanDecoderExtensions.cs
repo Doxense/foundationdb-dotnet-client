@@ -314,8 +314,21 @@ namespace System
 		/// <para>This method has some overhead and should only be used if there is a high probability that the segment is usually exposing the entire string.</para>
 		/// <para>If not, this will always end up allocating a new string anyway, and will be slower than simply calling <c>literal.ToString()</c></para>.
 		/// </remarks>
-		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static string GetStringOrCopy(this ReadOnlyMemory<char> memory) => TryGetString(memory, out var text) ? text : memory.ToString();
+		[MustUseReturnValue]
+		public static string GetStringOrCopy(this ReadOnlyMemory<char> memory)
+		{
+			if (memory.Length == 0)
+			{
+				return string.Empty;
+			}
+
+			if (MemoryMarshal.TryGetString(memory, out var text, out var start, out var length) && start == 0 && length == text.Length)
+			{
+				return text;
+			}
+
+			return memory.ToString();
+		}
 
 		/// <summary>Attempt to return the original string, if it is the same size as the segment. </summary>
 		/// <param name="memory">Read-only memory containing a block of characters.</param>
