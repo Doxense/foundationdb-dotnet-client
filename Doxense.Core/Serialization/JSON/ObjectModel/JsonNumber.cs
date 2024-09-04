@@ -86,7 +86,8 @@ namespace Doxense.Serialization.Json
 			var cache = new JsonNumber[CACHED_SIGNED_MAX - CACHED_SIGNED_MIN + 1];
 			for (int i = 0; i < cache.Length; i++)
 			{
-				cache[i] = new JsonNumber(new Number(i + CACHED_SIGNED_MIN), Kind.Signed, StringConverters.ToString(i + CACHED_SIGNED_MIN));
+				int x = i + CACHED_SIGNED_MIN;
+				cache[i] = new JsonNumber(new Number(x), Kind.Signed, StringConverters.ToString(x));
 			}
 			return cache;
 		}
@@ -1152,6 +1153,7 @@ namespace Doxense.Serialization.Json
 
 		#region Constructors...
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private JsonNumber(Number value, Kind kind, string? literal)
 		{
 			m_value = value;
@@ -1160,59 +1162,53 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(sbyte value) => SmallNumbers[value - CACHED_SIGNED_MIN];
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(sbyte? value) =>
-			value.HasValue
-				? Return(value.Value)
-				: JsonNull.Null;
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(string value) => CrystalJsonParser.ParseJsonNumber(value) ?? Zero;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(byte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(byte? value) =>
-			value.HasValue
-				? SmallNumbers[value.Value + CACHED_OFFSET_ZERO]
-				: JsonNull.Null;
-
-		[Pure]
-		public static JsonNumber Return(short value) =>
-			value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
-				? SmallNumbers[value - CACHED_SIGNED_MIN]
-				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
+		public static JsonValue Return(byte? value) => value.HasValue ? SmallNumbers[value.Value + CACHED_OFFSET_ZERO] : JsonNull.Null;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(short? value) =>
-			value.HasValue
-				? Return(value.Value)
-				: JsonNull.Null;
-
-		[Pure]
-		public static JsonNumber Return(ushort value) =>
-			value <= CACHED_SIGNED_MAX
-				? SmallNumbers[value + CACHED_OFFSET_ZERO]
-				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
+		public static JsonNumber Return(sbyte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(ushort? value) =>
-			value.HasValue
-				? Return(value.Value)
-				: JsonNull.Null;
+		public static JsonValue Return(sbyte? value) => value.HasValue ? SmallNumbers[value.Value + CACHED_OFFSET_ZERO] : JsonNull.Null;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber Return(short value) => Return((int) value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(short? value) => value.HasValue ? Return((int) value.Value) : JsonNull.Null;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonNumber Return(ushort value) => Return((uint) value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(ushort? value) => value.HasValue ? Return((uint) value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
-		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(int value) =>
-			value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX
-				? SmallNumbers[value - CACHED_SIGNED_MIN]
-				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
+		public static JsonNumber Return(int value)
+		{
+			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
+
+			// check if this is a cached number, removing an extra bound check
+			var xs = SmallNumbers;
+			uint p = unchecked((uint) (value - CACHED_SIGNED_MIN));
+			if (p < xs.Length)
+			{
+				return xs[p];
+			}
+
+			// Currently, value.ToString(null) is inlined for positive numbers, but will use the CurrentCulture for the negative sign,
+			// so we have to pre-check and either call with a null provider if positive, or NumberFormatInfo.InvariantInfo if negative.
+			return new JsonNumber(new Number(value), Kind.Signed, value < 0 ? value.ToString(NumberFormatInfo.InvariantInfo) : value.ToString(default(IFormatProvider)));
+		}
 
 		/// <summary>Returns a singleton from the small numbers cache</summary>
 		/// <param name="value">Value that must be in the range [-128, +255]</param>
@@ -1227,38 +1223,59 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
 		/// <param name="value">Integer value, that can be null.</param>
 		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
-		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(int? value) =>
-			value.HasValue
-				? Return(value.Value)
-				: JsonNull.Null;
+		public static JsonValue Return(int? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
-		/// <remarks>For small values (between 0 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(uint value) =>
-			value <= CACHED_SIGNED_MAX
-				? SmallNumbers[value + CACHED_OFFSET_ZERO]
-				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
+		public static JsonNumber Return(uint value)
+		{
+			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
 
+			// check if this is a cached number, removing an extra bound check
+			var xs = SmallNumbers;
+			long p = (long) value + CACHED_OFFSET_ZERO;
+			if (p < xs.Length)
+			{
+				return xs[p];
+			}
+
+			// Currently, value.ToString(null) is inlined for positive numbers
+			return new JsonNumber(new Number(value), Kind.Signed, value.ToString(default(IFormatProvider)));
+		}
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <param name="value">Integer value, that can be null.</param>
+		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(uint? value) =>
-			value.HasValue
-				? Return(value.Value)
-				: JsonNull.Null;
+		public static JsonValue Return(uint? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static JsonNumber Return(long value) =>
-			value >= CACHED_SIGNED_MIN && value <= CACHED_SIGNED_MAX
-				? SmallNumbers[value - CACHED_SIGNED_MIN]
-				: new JsonNumber(new Number(value), Kind.Signed, CrystalJsonFormatter.NumberToString(value));
+		public static JsonNumber Return(long value)
+		{
+			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
+
+			// check if this is a cached number, removing an extra bound check
+			var xs = SmallNumbers;
+			long p = unchecked(value - CACHED_SIGNED_MIN);
+			if (p >= 0 && p < xs.Length)
+			{
+				return xs[p];
+			}
+
+			// Currently, value.ToString(null) is inlined for positive numbers, but will use the CurrentCulture for the negative sign,
+			// so we have to pre-check and either call with a null provider if positive, or NumberFormatInfo.InvariantInfo if negative.
+			return new JsonNumber(new Number(value), Kind.Signed, value < 0 ? value.ToString(NumberFormatInfo.InvariantInfo) : value.ToString(default(IFormatProvider)));
+		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1272,10 +1289,21 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values (between 0 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure]
-		public static JsonNumber Return(ulong value) =>
-			value <= CACHED_SIGNED_MAX
-				? SmallNumbers[value + CACHED_OFFSET_ZERO]
-				: new JsonNumber(new Number(value), value <= long.MaxValue ? Kind.Signed : Kind.Unsigned, CrystalJsonFormatter.NumberToString(value));
+		public static JsonNumber Return(ulong value)
+		{
+			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
+
+			// check if this is a cached number, removing an extra bound check
+			var xs = SmallNumbers;
+			if (value < CACHED_SIGNED_MAX)
+			{
+				return xs[value + CACHED_OFFSET_ZERO];
+			}
+
+			// Currently, value.ToString(null) is inlined for positive numbers, but will use the CurrentCulture for the negative sign,
+			// so we have to pre-check and either call with a null provider if positive, or NumberFormatInfo.InvariantInfo if negative.
+			return new JsonNumber(new Number(value), Kind.Unsigned, value.ToString(default(IFormatProvider)));
+		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
