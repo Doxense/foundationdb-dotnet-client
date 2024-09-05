@@ -31,19 +31,14 @@ namespace Doxense.Diagnostics.Contracts.Tests
 {
 	using System.IO;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
 
 	/// <summary>Tests sur la classe statique ThrowHelper</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
+	[SetInvariantCulture]
+	[Parallelizable(ParallelScope.All)]
 	public class ThrowHelperTests : SimpleTest
 	{
-
-		protected override void OnBeforeEverything()
-		{
-			Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-			Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
-		}
 
 		private static class TrustButVerify
 		{

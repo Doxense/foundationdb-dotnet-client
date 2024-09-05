@@ -53,9 +53,11 @@ namespace Doxense.Serialization.Json.Tests
 	[Parallelizable(ParallelScope.None)]
 	public class CrystalJsonBenchmarks : SimpleTest
 	{
-		protected override void OnBeforeEverything()
+
+		static CrystalJsonBenchmarks()
 		{
-			PlatformHelpers.PreJit(this.GetType());
+			CrystalJson.Warmup();
+			PlatformHelpers.PreJit(typeof(CrystalJsonBenchmarks));
 #if DEBUG
 			Log("WARNING: benchmark compilé en mode DEBUG! Ne pas tenir compte des temps ci-dessous qui ne sont pas représentatifs !");
 #endif

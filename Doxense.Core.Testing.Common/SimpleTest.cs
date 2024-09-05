@@ -52,6 +52,7 @@ namespace SnowBank.Testing
 	/// <summary>Base class for simple unit tests. Provides a set of usefull services (logging, cancellation, async helpers, ...)</summary>
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 	public abstract class SimpleTest
 	{
 		private Stopwatch? m_testTimer;
@@ -81,47 +82,16 @@ namespace SnowBank.Testing
 		}
 
 		[OneTimeSetUp][DebuggerNonUserCode]
-		public void BeforeEverything()
+		public static void BeforeEverything()
 		{
-			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-			Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
-
-			WriteToLog($"### {this.GetType().FullName} [START] @ {DateTime.Now.TimeOfDay}");
-			try
-			{
-				OnBeforeEverything();
-			}
-			catch (Exception e)
-			{
-				LogError($"#### {this.GetType().FullName} [SETUP CRASH] => " + e);
-				throw;
-			}
+			WriteToLog($"### {TestContext.CurrentContext.Test.ClassName} [START] @ {DateTime.Now.TimeOfDay}");
 		}
-
-		protected virtual void OnBeforeEverything()
-		{ }
 
 		[OneTimeTearDown][DebuggerNonUserCode]
-		public void AfterEverything()
+		public static void AfterEverything()
 		{
-			//WriteToLog($"### {this.GetType().FullName} [TEARDOWN] @ {DateTime.Now.TimeOfDay}");
-			try
-			{
-				OnAfterEverything();
-			}
-			catch (Exception e) when (!e.IsFatalError())
-			{
-				LogError($"#### {this.GetType().FullName} [CLEANUP CRASH] => {e}");
-				throw;
-			}
-			finally
-			{
-				WriteToLog($"### {this.GetType().FullName} [{TestContext.CurrentContext.Result.Outcome}] ({TestContext.CurrentContext.Result.FailCount} failed) @ {DateTime.Now.TimeOfDay}");
-			}
+			WriteToLog($"### {TestContext.CurrentContext.Test.ClassName} [{TestContext.CurrentContext.Result.Outcome}] ({TestContext.CurrentContext.Result.FailCount} failed) @ {DateTime.Now.TimeOfDay}");
 		}
-
-		protected virtual void OnAfterEverything()
-		{ }
 
 		[SetUp]
 		public void BeforeEachTest()
@@ -731,7 +701,15 @@ namespace SnowBank.Testing
 			}
 
 			// Grab the name of the current test
-			string path = Path.Combine(basePath, this.GetType().Name.Replace(".", "_").Replace("`", "_"));
+
+			string className = context?.Test.ClassName ?? GetType().Name;
+			string? testName = context?.Test.MethodName;
+
+			string path = Path.Combine(basePath, className.Replace(".", "_").Replace("`", "_"));
+			if (!string.IsNullOrEmpty(testName))
+			{
+				path = Path.Combine(basePath, testName.Replace(".", "_").Replace("`", "_"));
+			}
 
 			if (!string.IsNullOrEmpty(relative))
 			{

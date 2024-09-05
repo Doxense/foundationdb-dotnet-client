@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json.Tests
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.Self)]
+	[SetInvariantCulture]
 	public class JPathFacts : SimpleTest
 	{
 

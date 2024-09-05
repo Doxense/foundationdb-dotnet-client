@@ -39,15 +39,11 @@ namespace Doxense.Diagnostics.Contracts.Tests
 	/// <summary>Tests sur la classe statique Doxense.Diagnostics.Contracts.Contract</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
+	[SetInvariantCulture]
+	[Parallelizable(ParallelScope.None)]
 	public class ContractTests : SimpleTest
 	{
 		private bool m_status;
-
-		protected override void OnBeforeEverything()
-		{
-			Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-			Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
-		}
 
 		[SetUp]
 		public void Before()

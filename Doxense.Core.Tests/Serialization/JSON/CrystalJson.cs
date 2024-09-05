@@ -88,6 +88,7 @@ namespace Doxense.Serialization.Json.Tests
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.Self)]
+	[SetInvariantCulture]
 	public class CrystalJsonTest : SimpleTest
 	{
 
@@ -347,6 +348,11 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		#endregion
+
+		static CrystalJsonTest()
+		{
+			CrystalJson.Warmup();
+		}
 
 		#region Serialization...
 
