@@ -276,7 +276,7 @@ namespace Doxense.Diagnostics.Contracts
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception? TryMapToKnownException(Type exceptionType, string message, string? paramName)
+		public static Exception? TryMapToKnownException(Type exceptionType, string message, string? paramName, object? details)
 		{
 			// first check if this is a "simple" type
 			if (exceptionType == typeof(ArgumentNullException))
@@ -293,7 +293,7 @@ namespace Doxense.Diagnostics.Contracts
 			}
 			if (exceptionType == typeof(ArgumentOutOfRangeException))
 			{
-				return new ArgumentOutOfRangeException(paramName, message);
+				return new ArgumentOutOfRangeException(paramName, details, message);
 			}
 			if (exceptionType == typeof(ObjectDisposedException))
 			{
