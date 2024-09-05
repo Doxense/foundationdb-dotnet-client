@@ -27,7 +27,10 @@
 namespace Doxense.Serialization
 {
 	using System.Globalization;
+	using System.Numerics;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
+
 	using NodaTime;
 
 	[PublicAPI]
@@ -622,6 +625,106 @@ namespace Doxense.Serialization
 		{
 			if (string.IsNullOrEmpty(value)) return default(TEnum?);
 			return Enum.TryParse(value, true, out TEnum result) ? result : default(TEnum?);
+		}
+
+		/// <summary>Maximum number of characters required to format any signed 32-bit integer in base 10</summary>
+		/// <remarks><see cref="int.MinValue"/> needs 11 characters in base 10 (including the negative sign)</remarks>
+		public const int Base10MaxCapacityInt32 = 11;
+
+		/// <summary>Maximum number of characters required to format any unsigned 32-bit integer in base 10</summary>
+		/// <remarks><see cref="uint.MaxValue"/> needs 10 characters in base 10</remarks>
+		public const int Base10MaxCapacityUInt32 = 10;
+
+		/// <summary>Maximum number of characters required to format any signed 64-bit integer in base 10</summary>
+		/// <remarks><see cref="long.MinValue"/> needs 20 characters in base 10 (including the negative sign)</remarks>
+		/// 
+		public const int Base10MaxCapacityInt64 = 20;
+
+		/// <summary>Maximum number of characters required to format any unsigned 64-bit integer in base 10</summary>
+		/// <remarks><see cref="ulong.MaxValue"/> needs 20 characters in base 10</remarks>
+		public const int Base10MaxCapacityUInt64 = 20;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CountDigits(long value)
+		{
+			return value >= 0 ? CountDigits((ulong) value) : value != long.MinValue ? (1 + CountDigits((ulong)(-value))) : Base10MaxCapacityInt64;
+		}
+
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CountDigits(ulong value)
+		{
+			// Copied from System.Buffers.Text.FormattingHelpers.CountDigits(ulong) that is marked internal
+			// Based on do_count_digits from https://github.com/fmtlib/fmt/blob/662adf4f33346ba9aba8b072194e319869ede54a/include/fmt/format.h#L1124
+
+			if (value < 10) return 1;
+
+			// Map the log2(value) to a power of 10.
+			ReadOnlySpan<byte> log2ToPow10 =
+			[
+				1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  4,  5,  5,  5,
+				6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9,  10, 10, 10,
+				10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 15, 15,
+				15, 16, 16, 16, 16, 17, 17, 17, 18, 18, 18, 19, 19, 19, 19, 20
+			];
+
+			uint index = Unsafe.Add(ref MemoryMarshal.GetReference(log2ToPow10), BitOperations.Log2(value));
+
+			// Read the associated power of 10.
+			ReadOnlySpan<ulong> powersOf10 =
+			[
+				0, // unused entry to avoid needing to subtract
+				0, 10, 100,
+				1_000, 10_000, 100_000,
+				1_000_000, 10_000_000, 100_000_000,
+				1_000_000_000, 10_000_000_000, 100_000_000_000,
+				1_000_000_000_000, 10_000_000_000_000, 100_000_000_000_000,
+				1_000_000_000_000_000, 10_000_000_000_000_000, 100_000_000_000_000_000,
+				1_000_000_000_000_000_000, 10_000_000_000_000_000_000,
+			];
+			ulong powerOf10 = Unsafe.Add(ref MemoryMarshal.GetReference(powersOf10), index);
+
+			// Return the number of digits based on the power of 10, shifted by 1 if it falls below the threshold.
+			bool lessThan = value < powerOf10;
+			return (int) (index - Unsafe.As<bool, byte>(ref lessThan)); // while arbitrary bools may be non-0/1, comparison operators are expected to return 0/1
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CountDigits(int value)
+		{
+			return value >= 0 ? CountDigits((uint) value) : value != int.MinValue ? (1 + CountDigits((uint) (-value))) : Base10MaxCapacityInt32;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CountDigits(uint value)
+		{
+
+			if (value < 10) return 1;
+#if NET8_0_OR_GREATER
+			// Copied from System.Buffers.Text.FormattingHelpers.CountDigits(ulong) that is marked internal
+			// Algorithm based on https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster.
+			ReadOnlySpan<long> table =
+			[
+				4294967296, 8589934582, 8589934582, 8589934582, 12884901788, 12884901788, 12884901788, 17179868184,
+				17179868184, 17179868184, 21474826480, 21474826480, 21474826480, 21474826480, 25769703776, 25769703776,
+				25769703776, 30063771072, 30063771072, 30063771072, 34349738368, 34349738368, 34349738368, 34349738368,
+				38554705664, 38554705664, 38554705664, 41949672960, 41949672960, 41949672960, 42949672960, 42949672960,
+			];
+
+			long tableValue = Unsafe.Add(ref MemoryMarshal.GetReference(table), uint.Log2(value));
+			return (int) ((value + tableValue) >> 32);
+#else
+			// slow path for .NET 6
+			if (value < 100) return 2;
+			if (value < 1000) return 3;
+			if (value < 10000) return 4;
+			if (value < 100000) return 5;
+			if (value < 1000000) return 6;
+			if (value < 10000000) return 7;
+			if (value < 100000000) return 8;
+			if (value < 1000000000) return 9;
+			return 10;
+#endif
 		}
 
 		#endregion
