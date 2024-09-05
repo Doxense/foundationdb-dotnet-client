@@ -33,7 +33,7 @@ namespace Doxense.Tools.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
 	public class StringConvertersFacts : SimpleTest
 	{
 
@@ -356,7 +356,132 @@ namespace Doxense.Tools.Tests
 			Assert.That(StringConverters.ToDateTimeString(new DateTime(1978, 09, 22, 23, 59, 59, 999)), Is.EqualTo("19780922235959")); // presque jour suivant
 			Assert.That(StringConverters.ToDateTimeString(DateTime.MinValue), Is.EqualTo("00010101000000"));
 			Assert.That(StringConverters.ToDateTimeString(DateTime.MaxValue), Is.EqualTo("99991231235959"));
+		}
 
+		[Test]
+		public void Test_CountDigits_Int32()
+		{
+			Assert.That(StringConverters.CountDigits(0), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(1), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(9), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(10), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(100), Is.EqualTo(3));
+			Assert.That(StringConverters.CountDigits(1_000), Is.EqualTo(4));
+			Assert.That(StringConverters.CountDigits(10_000), Is.EqualTo(5));
+			Assert.That(StringConverters.CountDigits(100_000), Is.EqualTo(6));
+			Assert.That(StringConverters.CountDigits(1_000_000), Is.EqualTo(7));
+			Assert.That(StringConverters.CountDigits(10_000_000), Is.EqualTo(8));
+			Assert.That(StringConverters.CountDigits(100_000_000), Is.EqualTo(9));
+			Assert.That(StringConverters.CountDigits(1_000_000_000), Is.EqualTo(10));
+			Assert.That(StringConverters.CountDigits(int.MaxValue), Is.EqualTo(10));
+			Assert.That(StringConverters.CountDigits(-1), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(-9), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(-10), Is.EqualTo(3));
+			Assert.That(StringConverters.CountDigits(-100), Is.EqualTo(4));
+			Assert.That(StringConverters.CountDigits(-1_000), Is.EqualTo(5));
+			Assert.That(StringConverters.CountDigits(-10_000), Is.EqualTo(6));
+			Assert.That(StringConverters.CountDigits(-100_000), Is.EqualTo(7));
+			Assert.That(StringConverters.CountDigits(-1_000_000), Is.EqualTo(8));
+			Assert.That(StringConverters.CountDigits(-10_000_000), Is.EqualTo(9));
+			Assert.That(StringConverters.CountDigits(-100_000_000), Is.EqualTo(10));
+			Assert.That(StringConverters.CountDigits(-1_000_000_000), Is.EqualTo(11));
+			Assert.That(StringConverters.CountDigits(int.MinValue), Is.EqualTo(11));
+		}
+
+		[Test]
+		public void Test_CountDigits_UInt32()
+		{
+			Assert.That(StringConverters.CountDigits(0U), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(1U), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(9U), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(10U), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(100U), Is.EqualTo(3));
+			Assert.That(StringConverters.CountDigits(1_000U), Is.EqualTo(4));
+			Assert.That(StringConverters.CountDigits(10_000U), Is.EqualTo(5));
+			Assert.That(StringConverters.CountDigits(100_000U), Is.EqualTo(6));
+			Assert.That(StringConverters.CountDigits(1_000_000U), Is.EqualTo(7));
+			Assert.That(StringConverters.CountDigits(10_000_000U), Is.EqualTo(8));
+			Assert.That(StringConverters.CountDigits(100_000_000U), Is.EqualTo(9));
+			Assert.That(StringConverters.CountDigits(1_000_000_000U), Is.EqualTo(10));
+			Assert.That(StringConverters.CountDigits(uint.MaxValue), Is.EqualTo(10));
+		}
+
+		[Test]
+		public void Test_CountDigits_Int64()
+		{
+
+			Assert.That(StringConverters.CountDigits(0L), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(1L), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(9L), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(10L), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(100L), Is.EqualTo(3));
+			Assert.That(StringConverters.CountDigits(1_000L), Is.EqualTo(4));
+			Assert.That(StringConverters.CountDigits(10_000L), Is.EqualTo(5));
+			Assert.That(StringConverters.CountDigits(100_000L), Is.EqualTo(6));
+			Assert.That(StringConverters.CountDigits(1_000_000L), Is.EqualTo(7));
+			Assert.That(StringConverters.CountDigits(10_000_000L), Is.EqualTo(8));
+			Assert.That(StringConverters.CountDigits(100_000_000L), Is.EqualTo(9));
+			Assert.That(StringConverters.CountDigits(1_000_000_000L), Is.EqualTo(10));
+			Assert.That(StringConverters.CountDigits(10_000_000_000L), Is.EqualTo(11));
+			Assert.That(StringConverters.CountDigits(100_000_000_000L), Is.EqualTo(12));
+			Assert.That(StringConverters.CountDigits(1_000_000_000_000L), Is.EqualTo(13));
+			Assert.That(StringConverters.CountDigits(10_000_000_000_000L), Is.EqualTo(14));
+			Assert.That(StringConverters.CountDigits(100_000_000_000_000L), Is.EqualTo(15));
+			Assert.That(StringConverters.CountDigits(1_000_000_000_000_000L), Is.EqualTo(16));
+			Assert.That(StringConverters.CountDigits(10_000_000_000_000_000L), Is.EqualTo(17));
+			Assert.That(StringConverters.CountDigits(100_000_000_000_000_000L), Is.EqualTo(18));
+			Assert.That(StringConverters.CountDigits(1_000_000_000_000_000_000L), Is.EqualTo(19));
+			Assert.That(StringConverters.CountDigits(10_000_000_000_000_000_000L), Is.EqualTo(20));
+			Assert.That(StringConverters.CountDigits(long.MaxValue), Is.EqualTo(19));
+			Assert.That(StringConverters.CountDigits(-1L), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(-9L), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(-10L), Is.EqualTo(3));
+			Assert.That(StringConverters.CountDigits(-100L), Is.EqualTo(4));
+			Assert.That(StringConverters.CountDigits(-1_000L), Is.EqualTo(5));
+			Assert.That(StringConverters.CountDigits(-10_000L), Is.EqualTo(6));
+			Assert.That(StringConverters.CountDigits(-100_000L), Is.EqualTo(7));
+			Assert.That(StringConverters.CountDigits(-1_000_000L), Is.EqualTo(8));
+			Assert.That(StringConverters.CountDigits(-10_000_000L), Is.EqualTo(9));
+			Assert.That(StringConverters.CountDigits(-100_000_000L), Is.EqualTo(10));
+			Assert.That(StringConverters.CountDigits(-1_000_000_000L), Is.EqualTo(11));
+			Assert.That(StringConverters.CountDigits(-10_000_000_000L), Is.EqualTo(12));
+			Assert.That(StringConverters.CountDigits(-100_000_000_000L), Is.EqualTo(13));
+			Assert.That(StringConverters.CountDigits(-1_000_000_000_000L), Is.EqualTo(14));
+			Assert.That(StringConverters.CountDigits(-10_000_000_000_000L), Is.EqualTo(15));
+			Assert.That(StringConverters.CountDigits(-100_000_000_000_000L), Is.EqualTo(16));
+			Assert.That(StringConverters.CountDigits(-1_000_000_000_000_000L), Is.EqualTo(17));
+			Assert.That(StringConverters.CountDigits(-10_000_000_000_000_000L), Is.EqualTo(18));
+			Assert.That(StringConverters.CountDigits(-100_000_000_000_000_000L), Is.EqualTo(19));
+			Assert.That(StringConverters.CountDigits(-1_000_000_000_000_000_000L), Is.EqualTo(20));
+			Assert.That(StringConverters.CountDigits(long.MinValue), Is.EqualTo(20));
+		}
+
+		[Test]
+		public void Test_CountDigits_UInt64()
+		{
+			Assert.That(StringConverters.CountDigits(0UL), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(1UL), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(9UL), Is.EqualTo(1));
+			Assert.That(StringConverters.CountDigits(10UL), Is.EqualTo(2));
+			Assert.That(StringConverters.CountDigits(100UL), Is.EqualTo(3));
+			Assert.That(StringConverters.CountDigits(1_000UL), Is.EqualTo(4));
+			Assert.That(StringConverters.CountDigits(10_000UL), Is.EqualTo(5));
+			Assert.That(StringConverters.CountDigits(100_000UL), Is.EqualTo(6));
+			Assert.That(StringConverters.CountDigits(1_000_000UL), Is.EqualTo(7));
+			Assert.That(StringConverters.CountDigits(10_000_000UL), Is.EqualTo(8));
+			Assert.That(StringConverters.CountDigits(100_000_000UL), Is.EqualTo(9));
+			Assert.That(StringConverters.CountDigits(1_000_000_000UL), Is.EqualTo(10));
+			Assert.That(StringConverters.CountDigits(10_000_000_000UL), Is.EqualTo(11));
+			Assert.That(StringConverters.CountDigits(100_000_000_000UL), Is.EqualTo(12));
+			Assert.That(StringConverters.CountDigits(1_000_000_000_000UL), Is.EqualTo(13));
+			Assert.That(StringConverters.CountDigits(10_000_000_000_000UL), Is.EqualTo(14));
+			Assert.That(StringConverters.CountDigits(100_000_000_000_000UL), Is.EqualTo(15));
+			Assert.That(StringConverters.CountDigits(1_000_000_000_000_000UL), Is.EqualTo(16));
+			Assert.That(StringConverters.CountDigits(10_000_000_000_000_000UL), Is.EqualTo(17));
+			Assert.That(StringConverters.CountDigits(100_000_000_000_000_000UL), Is.EqualTo(18));
+			Assert.That(StringConverters.CountDigits(1_000_000_000_000_000_000UL), Is.EqualTo(19));
+			Assert.That(StringConverters.CountDigits(10_000_000_000_000_000_000UL), Is.EqualTo(20));
+			Assert.That(StringConverters.CountDigits(ulong.MaxValue), Is.EqualTo(20));
 		}
 
 		[Test]

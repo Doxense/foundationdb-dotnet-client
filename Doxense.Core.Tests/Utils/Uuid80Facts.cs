@@ -33,7 +33,7 @@ namespace Doxense.Core.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
 	public class Uuid80Facts : SimpleTest
 	{
 

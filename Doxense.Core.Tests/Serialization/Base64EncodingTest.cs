@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
 	public class Base64EncodingTest : SimpleTest
 	{
 

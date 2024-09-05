@@ -37,7 +37,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
 	public class JsonPackFacts : SimpleTest
 	{
 

@@ -34,7 +34,7 @@ namespace Doxense.Linq.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
 	public class BufferFacts : SimpleTest
 	{
 

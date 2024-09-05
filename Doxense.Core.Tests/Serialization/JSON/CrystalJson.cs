@@ -87,7 +87,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
 	[SetInvariantCulture]
 	public class CrystalJsonTest : SimpleTest
 	{
@@ -556,6 +556,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute(w => w.WriteValue((double?) 42)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue(default(decimal?))), Is.EqualTo("null"));
 			Assert.That(Execute(w => w.WriteValue((decimal?) 42)), Is.EqualTo("42"));
+
+			Assert.That(Execute(w => w.WriteEnumInteger(DummyJsonEnumInt32.Two)), Is.EqualTo("2"));
+			Assert.That(Execute(w => w.WriteEnumString(DummyJsonEnumInt32.Two)), Is.EqualTo("\"Two\""));
+			Assert.That(Execute(w => w.WriteEnumInteger(DummyJsonEnumShort.Two)), Is.EqualTo("2"));
+			Assert.That(Execute(w => w.WriteEnumString(DummyJsonEnumShort.Two)), Is.EqualTo("\"Two\""));
+			Assert.That(Execute(w => w.WriteEnumInteger(DummyJsonEnumInt64.Two)), Is.EqualTo("2"));
+			Assert.That(Execute(w => w.WriteEnumString(DummyJsonEnumInt64.Two)), Is.EqualTo("\"Two\""));
 
 #if NET8_0_OR_GREATER
 			Assert.That(Execute(w => w.WriteValue((Half) Math.PI)), Is.EqualTo("3.14"));
@@ -9901,12 +9908,28 @@ namespace Doxense.Serialization.Json.Tests
 		Narf = 4
 	}
 
+	enum DummyJsonEnumInt32
+	{
+		None,
+		One = 1,
+		Two = 2,
+		MaxValue = 65535
+	}
+
 	enum DummyJsonEnumShort : ushort
 	{
 		None,
 		One = 1,
 		Two = 2,
 		MaxValue = 65535
+	}
+
+	enum DummyJsonEnumInt64 : long
+	{
+		None,
+		One = 1,
+		Two = 2,
+		MaxValue = long.MaxValue
 	}
 
 	enum DummyJsonEnumTypo

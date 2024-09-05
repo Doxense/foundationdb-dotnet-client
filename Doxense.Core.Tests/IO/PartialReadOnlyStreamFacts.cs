@@ -15,6 +15,9 @@ namespace Doxense.IO.Tests
 	using System.Threading.Tasks;
 	using Doxense.IO;
 
+	[TestFixture]
+	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class PartialReadOnlyStreamFacts : SimpleTest
 	{
 

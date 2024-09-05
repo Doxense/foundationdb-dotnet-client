@@ -35,7 +35,7 @@ namespace Doxense.IO.Tests
 	/// <summary>Actor that pushes messages around until a counter reaches 0</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
 	public class BitMapFacts : SimpleTest
 	{
 

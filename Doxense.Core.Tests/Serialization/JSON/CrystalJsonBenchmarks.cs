@@ -50,7 +50,7 @@ namespace Doxense.Serialization.Json.Tests
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Category("Benchmark")]
-	[Parallelizable(ParallelScope.None)]
+	[Parallelizable(ParallelScope.All)]
 	public class CrystalJsonBenchmarks : SimpleTest
 	{
 

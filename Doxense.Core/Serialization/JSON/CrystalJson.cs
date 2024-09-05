@@ -55,9 +55,9 @@ namespace Doxense.Serialization.Json
 		{
 			PlatformHelpers.PreJit(
 				typeof(CrystalJsonSettings), typeof(CrystalJsonNodaPatterns),
-				typeof(JsonNull), typeof(JsonBoolean), typeof(JsonString), typeof(JsonNumber), typeof(JsonArray), typeof(JsonObject), typeof(JsonNull), typeof(JsonValue),
+				typeof(JsonNull), typeof(JsonBoolean), typeof(JsonString), typeof(JsonNumber), typeof(JsonArray), typeof(JsonObject), typeof(JsonNull), typeof(JsonValue), typeof(JsonDateTime),
 				typeof(CrystalJsonVisitor), typeof(CrystalJsonTypeVisitor), 
-				typeof(CrystalJsonStreamReader), typeof(CrystalJsonStreamWriter), typeof(CrystalJsonParser), typeof(CrystalJsonDomWriter),
+				typeof(CrystalJsonStreamReader), typeof(CrystalJsonStreamWriter), typeof(CrystalJsonParser), typeof(CrystalJsonDomWriter), typeof(CrystalJsonFormatter),
 				typeof(CrystalJson)
 			);
 		}
