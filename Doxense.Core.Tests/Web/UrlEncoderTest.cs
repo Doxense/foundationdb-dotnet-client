@@ -35,7 +35,8 @@ namespace Doxense.Web.Tests
 	/// <summary>Tests sur la classe statique KTL</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
-	[Parallelizable(ParallelScope.Self)]
+	[Parallelizable(ParallelScope.All)]
+	[SetInvariantCulture]
 	public class UrlEncoderTest : SimpleTest
 	{
 
@@ -44,20 +45,23 @@ namespace Doxense.Web.Tests
 		{
 			// Cette fonction encode les valeur en query string (ie, ce qu'il y a après le '?')
 
-			Assert.That(UrlEncoding.EncodeData(null), Is.EqualTo(String.Empty));
-			Assert.That(UrlEncoding.EncodeData(string.Empty), Is.EqualTo(String.Empty));
-			Assert.That(UrlEncoding.EncodeData(" "), Is.EqualTo("+"), "' ' -> '+'");
-			Assert.That(UrlEncoding.EncodeData("+"), Is.EqualTo("%2b"), "'+' -> '%2b'");
-			Assert.That(UrlEncoding.EncodeData("%"), Is.EqualTo("%25"), "'%' -> '%25'");
-			Assert.That(UrlEncoding.EncodeData("/"), Is.EqualTo("%2f"), "'/' -> '%2f'");
+			Assert.Multiple(() =>
+			{
+				Assert.That(UrlEncoding.EncodeData(null), Is.EqualTo(String.Empty));
+				Assert.That(UrlEncoding.EncodeData(string.Empty), Is.EqualTo(String.Empty));
+				Assert.That(UrlEncoding.EncodeData(" "), Is.EqualTo("+"), "' ' -> '+'");
+				Assert.That(UrlEncoding.EncodeData("+"), Is.EqualTo("%2b"), "'+' -> '%2b'");
+				Assert.That(UrlEncoding.EncodeData("%"), Is.EqualTo("%25"), "'%' -> '%25'");
+				Assert.That(UrlEncoding.EncodeData("/"), Is.EqualTo("%2f"), "'/' -> '%2f'");
 
-			Assert.That(UrlEncoding.EncodeData("fooBAR"), Is.EqualTo("fooBAR"));
-			Assert.That(UrlEncoding.EncodeData("All Your Bases Are Belong To Us"), Is.EqualTo("All+Your+Bases+Are+Belong+To+Us"));
+				Assert.That(UrlEncoding.EncodeData("fooBAR"), Is.EqualTo("fooBAR"));
+				Assert.That(UrlEncoding.EncodeData("All Your Bases Are Belong To Us"), Is.EqualTo("All+Your+Bases+Are+Belong+To+Us"));
 
-			Assert.That(UrlEncoding.EncodeData("http://foobar.com/path to/the file.ext"), Is.EqualTo("http%3a%2f%2ffoobar.com%2fpath+to%2fthe+file.ext"));
-			Assert.That(UrlEncoding.EncodeData("a + b = c"), Is.EqualTo("a+%2b+b+%3d+c"));
-			Assert.That(UrlEncoding.EncodeData("!.:$^*@="), Is.EqualTo("%21.%3a%24%5e%2a%40%3d"));
-			Assert.That(UrlEncoding.EncodeData("%%2%z"), Is.EqualTo("%25%252%25z"));
+				Assert.That(UrlEncoding.EncodeData("http://foobar.com/path to/the file.ext"), Is.EqualTo("http%3a%2f%2ffoobar.com%2fpath+to%2fthe+file.ext"));
+				Assert.That(UrlEncoding.EncodeData("a + b = c"), Is.EqualTo("a+%2b+b+%3d+c"));
+				Assert.That(UrlEncoding.EncodeData("!.:$^*@="), Is.EqualTo("!.%3a%24%5e*%40%3d"));
+				Assert.That(UrlEncoding.EncodeData("%%2%z"), Is.EqualTo("%25%252%25z"));
+			});
 		}
 
 		[Test]
@@ -79,9 +83,6 @@ namespace Doxense.Web.Tests
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.Unicode), Is.EqualTo("%e9%00"), "UTF-16");
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.GetEncoding("iso-8859-1")), Is.EqualTo("%e9"), "Latin-1");
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.GetEncoding(437)), Is.EqualTo("%82"), "OEM United States");
-#pragma warning disable SYSLIB0001
-			Assert.That(UrlEncoding.EncodeData("é", Encoding.UTF7), Is.EqualTo("%2bAOk-"), "UTF-7");
-#pragma warning restore SYSLIB0001
 
 			// lossy
 			Assert.That(UrlEncoding.EncodeData("é", Encoding.ASCII), Is.EqualTo("%3f"), "ASCII changes 'é' to '?'");
@@ -93,6 +94,11 @@ namespace Doxense.Web.Tests
 			// Unicode languages
 			// note: obtenu en copiant collant le texte unicode dans le champ de recherche de Google, et extrayant le paramètre 'q=' dans l'url de recherche produite (via "Page Info"), convertit en LowerCase (CTRL-U)
 			// ATTENTION: ffox remplace les ' ' en '%20' dans le cas d'auto-encodage unicode !
+			Log(HttpUtility.UrlPathEncode("الصفحة الرئيسية"));
+			Log(HttpUtility.UrlEncode("الصفحة الرئيسية"));
+			Log(Uri.EscapeDataString("الصفحة الرئيسية"));
+			Log(UrlEncoding.EncodeData("الصفحة الرئيسية"));
+
 			Assert.That(UrlEncoding.EncodeData("الصفحة الرئيسية"), Is.EqualTo("%d8%a7%d9%84%d8%b5%d9%81%d8%ad%d8%a9+%d8%a7%d9%84%d8%b1%d8%a6%d9%8a%d8%b3%d9%8a%d8%a9")); // Arabe
 			Assert.That(UrlEncoding.EncodeData("メインページ"), Is.EqualTo("%e3%83%a1%e3%82%a4%e3%83%b3%e3%83%9a%e3%83%bc%e3%82%b8")); // Japonais
 			Assert.That(UrlEncoding.EncodeData("首页"), Is.EqualTo("%e9%a6%96%e9%a1%b5")); // Chinois
@@ -207,37 +213,41 @@ namespace Doxense.Web.Tests
 			// Cette fonction encode les données utilisées pour constuire le PATH d'une URI (ie, ce qui est avant le '?'). Par exemple elle encode les '/', les '.', etc...
 			// C'est celle qui est utilisée dans le cas des URL qui contienent un paramètre
 
-			// Vérifie des samples
-			Assert.That(UrlEncoding.EncodePath(null), Is.EqualTo(string.Empty));
-			Assert.That(UrlEncoding.EncodePath(string.Empty), Is.EqualTo(string.Empty));
-			Assert.That(UrlEncoding.EncodePath(" "), Is.EqualTo("%20"), "' ' -> '%20'");
-			Assert.That(UrlEncoding.EncodePath("+"), Is.EqualTo("+"), "'+' -> '%2b'");
-			Assert.That(UrlEncoding.EncodePath("%"), Is.EqualTo("%25"), "'%' -> '%25'");
-			Assert.That(UrlEncoding.EncodePath("/"), Is.EqualTo("%2f"), "'/' -> '%2f'");
+			Assert.Multiple(() =>
+			{
 
-			Assert.That(UrlEncoding.EncodePath("fooBAR"), Is.EqualTo("fooBAR"));
-			Assert.That(UrlEncoding.EncodeUri("All Your Bases Are Belong To Us"), Is.EqualTo("All%20Your%20Bases%20Are%20Belong%20To%20Us"));
+				// Vérifie des samples
+				Assert.That(UrlEncoding.EncodePath(null), Is.EqualTo(string.Empty));
+				Assert.That(UrlEncoding.EncodePath(string.Empty), Is.EqualTo(string.Empty));
+				Assert.That(UrlEncoding.EncodePath(" "), Is.EqualTo("%20"), "' ' -> '%20'");
+				Assert.That(UrlEncoding.EncodePath("+"), Is.EqualTo("%2B"), "'+' -> '%2B'");
+				Assert.That(UrlEncoding.EncodePath("%"), Is.EqualTo("%25"), "'%' -> '%'");
+				Assert.That(UrlEncoding.EncodePath("/"), Is.EqualTo("%2F"), "'/' -> '%2F'");
 
-			Assert.That(UrlEncoding.EncodePath("http://foobar.com/"), Is.EqualTo("http%3a%2f%2ffoobar.com%2f"));
-			Assert.That(UrlEncoding.EncodePath("/path to/the file.ext"), Is.EqualTo("%2fpath%20to%2fthe%20file.ext"));
-			Assert.That(UrlEncoding.EncodePath("a + b = c"), Is.EqualTo("a%20+%20b%20=%20c"));
-			Assert.That(UrlEncoding.EncodePath("!.:$^*@="), Is.EqualTo("!.%3a$^*%40="));
-			Assert.That(UrlEncoding.EncodePath("%%2%z"), Is.EqualTo("%25%252%25z"));
+				Assert.That(UrlEncoding.EncodePath("fooBAR"), Is.EqualTo("fooBAR"));
+				Assert.That(UrlEncoding.EncodeUri("All Your Bases Are Belong To Us"), Is.EqualTo("All%20Your%20Bases%20Are%20Belong%20To%20Us"));
 
-			// l'UTF-8 est encodé sur 2 octets (ou plus)
-			// cf http://www.ltg.ed.ac.uk/~richard/utf-8.cgi
-			Assert.That(UrlEncoding.EncodePath("á"), Is.EqualTo("%c3%a1"));
-			Assert.That(UrlEncoding.EncodePath("ن"), Is.EqualTo("%d9%86"), "ن, U0646 (1606), 'ARABIC LETTER NOON'");
-			Assert.That(UrlEncoding.EncodePath("€"), Is.EqualTo("%e2%82%ac"), "€, U20AC (8364), 'EURO SIGN'");
-			Assert.That(UrlEncoding.EncodePath("思"), Is.EqualTo("%e6%80%9d"), "思, U601D (24605), Kanji for OMOU (think)");
+				Assert.That(UrlEncoding.EncodePath("http://foobar.com/"), Is.EqualTo("http%3A%2F%2Ffoobar.com%2F"));
+				Assert.That(UrlEncoding.EncodePath("/path to/the file.ext"), Is.EqualTo("%2Fpath%20to%2Fthe%20file.ext"));
+				Assert.That(UrlEncoding.EncodePath("a + b = c"), Is.EqualTo("a%20%2B%20b%20%3D%20c"));
+				Assert.That(UrlEncoding.EncodePath("!.:$^*@="), Is.EqualTo("!.%3A$%5E*@%3D"));
+				Assert.That(UrlEncoding.EncodePath("%%2%z"), Is.EqualTo("%25%252%25z"));
 
-			// Unicode languages
-			// note: obtenu en copiant collant le texte unicode dans le champ de recherche de Google, et extrayant le paramètre 'q=' dans l'url de recherche produite (via "Page Info"), convertit en LowerCase (CTRL-U)
-			Assert.That(UrlEncoding.EncodePath("الصفحة الرئيسية"), Is.EqualTo("%d8%a7%d9%84%d8%b5%d9%81%d8%ad%d8%a9%20%d8%a7%d9%84%d8%b1%d8%a6%d9%8a%d8%b3%d9%8a%d8%a9")); // Arabe
-			Assert.That(UrlEncoding.EncodePath("メインページ"), Is.EqualTo("%e3%83%a1%e3%82%a4%e3%83%b3%e3%83%9a%e3%83%bc%e3%82%b8")); // Japonais
-			Assert.That(UrlEncoding.EncodePath("首页"), Is.EqualTo("%e9%a6%96%e9%a1%b5")); // Chinois
-			Assert.That(UrlEncoding.EncodePath("대문"), Is.EqualTo("%eb%8c%80%eb%ac%b8")); // Corréen
-			Assert.That(UrlEncoding.EncodePath("Κύρια Σελίδα"), Is.EqualTo("%ce%9a%cf%8d%cf%81%ce%b9%ce%b1%20%ce%a3%ce%b5%ce%bb%ce%af%ce%b4%ce%b1")); // Ellenika
+				// l'UTF-8 est encodé sur 2 octets (ou plus)
+				// cf http://www.ltg.ed.ac.uk/~richard/utf-8.cgi
+				Assert.That(UrlEncoding.EncodePath("á"), Is.EqualTo("%C3%A1"));
+				Assert.That(UrlEncoding.EncodePath("ن"), Is.EqualTo("%D9%86"), "ن, U0646 (1606), 'ARABIC LETTER NOON'");
+				Assert.That(UrlEncoding.EncodePath("€"), Is.EqualTo("%E2%82%AC"), "€, U20AC (8364), 'EURO SIGN'");
+				Assert.That(UrlEncoding.EncodePath("思"), Is.EqualTo("%E6%80%9D"), "思, U601D (24605), Kanji for OMOU (think)");
+
+				// Unicode languages
+				// note: obtenu en copiant collant le texte unicode dans le champ de recherche de Google, et extrayant le paramètre 'q=' dans l'url de recherche produite (via "Page Info"), convertit en LowerCase (CTRL-U)
+				Assert.That(UrlEncoding.EncodePath("الصفحة الرئيسية"), Is.EqualTo("%D8%A7%D9%84%D8%B5%D9%81%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%D8%A9")); // Arabe
+				Assert.That(UrlEncoding.EncodePath("メインページ"), Is.EqualTo("%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8")); // Japonais
+				Assert.That(UrlEncoding.EncodePath("首页"), Is.EqualTo("%E9%A6%96%E9%A1%B5")); // Chinois
+				Assert.That(UrlEncoding.EncodePath("대문"), Is.EqualTo("%EB%8C%80%EB%AC%B8")); // Corréen
+				Assert.That(UrlEncoding.EncodePath("Κύρια Σελίδα"), Is.EqualTo("%CE%9A%CF%8D%CF%81%CE%B9%CE%B1%20%CE%A3%CE%B5%CE%BB%CE%AF%CE%B4%CE%B1")); // Ellenika
+			});
 		}
 
 		[Test]
@@ -257,6 +267,8 @@ namespace Doxense.Web.Tests
 				}
 			}
 
+			Check("\u0080");
+
 			// Vérifie TOUS les caracètres UNICODEs !
 			for (int i = 0; i < 65536; i++)
 			{
@@ -271,7 +283,7 @@ namespace Doxense.Web.Tests
 			{
 				for (int j = 0; j < chars.Length; j++)
 				{
-					chars[j] = (char)rnd.Next(65536);
+					chars[j] = (char) rnd.Next(65536);
 				}
 
 				Check(new string(chars));

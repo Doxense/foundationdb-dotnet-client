@@ -2,6 +2,7 @@
 
 namespace Doxense.Text
 {
+	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	[StructLayout(LayoutKind.Explicit)]
@@ -25,30 +26,18 @@ namespace Doxense.Text
 		public Utf8EncodedCodePoint(char character)
 			: this()
 		{
-			unsafe
+			if (!Utf8Encoder.TryEncodeCodePoint(character, ref this.Byte0, 4, out this.Length))
 			{
-				fixed (byte* ptr = &this.Byte0)
-				{
-					if (!Utf8Encoder.TryEncodeEncodePoint((UnicodeCodePoint) character, ptr, ptr + 4, out this.Length))
-					{
-						throw new InvalidOperationException("TODO: Invalid code point");
-					}
-				}
+				throw new InvalidOperationException("TODO: Invalid code point");
 			}
 		}
 
 		public Utf8EncodedCodePoint(char highSurrogate, char lowSurrogate)
 			: this()
 		{
-			unsafe
+			if (!Utf8Encoder.TryEncodeCodePoint((uint) char.ConvertToUtf32(highSurrogate, lowSurrogate), ref this.Byte0, 4, out this.Length))
 			{
-				fixed (byte* ptr = &this.Byte0)
-				{
-					if (!Utf8Encoder.TryEncodeEncodePoint((UnicodeCodePoint) char.ConvertToUtf32(highSurrogate, lowSurrogate), ptr, ptr + 4, out this.Length))
-					{
-						throw new InvalidOperationException("TODO: Invalid code point");
-					}
-				}
+				throw new InvalidOperationException("TODO: Invalid code point");
 			}
 		}
 

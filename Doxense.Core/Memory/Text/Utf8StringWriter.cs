@@ -56,7 +56,7 @@ namespace Doxense.Memory.Text
 			{
 				this.Writer.WriteByte((byte) value);
 			}
-			else if (!Utf8Encoder.TryWriteUnicodeCodePoint(ref this.Writer, (UnicodeCodePoint) value))
+			else if (!Utf8Encoder.TryWriteCodePoint(ref this.Writer, (UnicodeCodePoint) value))
 			{
 				throw new DecoderFallbackException("Failed to encode invalid Unicode CodePoint into UTF-8");
 			}

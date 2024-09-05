@@ -1650,7 +1650,7 @@ namespace Doxense.Memory
 		private int WriteStringUtf8Slow(char value)
 		{
 			int p = this.Position;
-			if (!Utf8Encoder.TryWriteUnicodeCodePoint(ref this, (UnicodeCodePoint)value))
+			if (!Utf8Encoder.TryWriteCodePoint(ref this, (UnicodeCodePoint)value))
 			{
 				throw FailInvalidUtf8CodePoint();
 			}

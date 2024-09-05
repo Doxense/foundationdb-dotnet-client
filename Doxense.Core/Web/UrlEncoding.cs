@@ -28,8 +28,9 @@ namespace Doxense.Web
 {
 	using System.Collections.Specialized;
 	using System.Globalization;
-	using System.IO;
 	using System.Text;
+	using System.Text.Encodings.Web;
+	using System.Web;
 	using Doxense.Serialization;
 
 	/// <summary>Helper for encoding/decoding URIs</summary>
@@ -51,16 +52,12 @@ namespace Doxense.Web
 
 		#region Static Members...
 
-		/// <summary>Map qui contient la catégorie de chaque caractère d'une URL</summary>
-		private static readonly byte[] s_charMap = InitializeCharMap();
-
-		private static readonly char[] s_charHex = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' ];
-
 		private const byte CLEAN = 0; // Jamais modifié
 		private const byte PATH = 1; // Normalement encodé en Percent, mais traitement spécial ?
 		private const byte SPACE = 2; // Soit '+', soit '%20'
 		private const byte DELIM = 3; // Délimiteur de chemin ('/', ':', ...)
 		private const byte INVALID = 4; // "%XX"
+		private const byte UNICODE = 5;
 
 		#endregion
 
@@ -323,8 +320,9 @@ namespace Doxense.Web
 		/// <remarks>Ne touche pas à la query string s'il y en a une !</remarks>
 		/// <example>EncodeUri("http://server/path to the/file.ext?blah=xxxx") => "http://server/path%20to%20the/file.ext?blah=xxx"</example>
 		[Pure]
-		public static string EncodeUri(string? value, Encoding? encoding = null)
+		public static string EncodeUri(string? value)
 		{
+
 			if (string.IsNullOrEmpty(value))
 			{
 				return string.Empty;
@@ -337,80 +335,7 @@ namespace Doxense.Web
 				return EncodeUri(value[..p]) + value[p..];
 			}
 
-			if (!NeedsEncoding(value))
-			{ // pas besoin d'encoder
-				return value;
-			}
-
-			return EncodeString(value, encoding, true, true);
-		}
-
-		/// <summary>Ajoute une URI à un StringBuilder, en l'encodant correctement</summary>
-		/// <param name="builder">Builder où ajoute l'URI encodée</param>
-		/// <param name="value">Uri à encoder correctement</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
-		/// <returns>StringBuilder, pour chaînage</returns>
-		/// <example>AppendUriTo(sb, "http://server/path to the/file.ext?blah=xxxx") ~= sb.Append("http://server/path%20to%20the/file.ext?blah=xxx")</example>
-		public static StringBuilder AppendUriTo(StringBuilder builder, string? value, Encoding? encoding = null)
-		{
-			if (!string.IsNullOrEmpty(value))
-			{
-				// ATTENTION: on ne doit pas toucher à la QueryString !
-				int p = value.IndexOf('?');
-				string? suffix = null;
-				if (p >= 0)
-				{ // appel récursif pour n'encoder que le path, en recollant la QueryString
-					suffix = value.Substring(p);
-					value = value.Substring(0, p);
-				}
-
-				if (!NeedsEncoding(value))
-				{ // pas besoin d'encoder
-					builder.Append(value);
-				}
-				else
-				{
-					builder.Append(EncodeString(value, encoding, true, true));
-				}
-
-				// rajoutes la querystring s'il y en avait une
-				if (suffix != null) builder.Append(suffix);
-			}
-			return builder;
-		}
-
-		/// <summary>Ecrit une URI dans un TextWriter, en l'encodant proprement</summary>
-		/// <param name="writer">Writer où écrire l'URI encodée</param>
-		/// <param name="value">Uri à encoder correctement</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
-		/// <returns>TextWriter, pour chaînage</returns>
-		/// <example>WriteUriTo(writer, "http://server/path to the/file.ext?blah=xxxx") ~= writer.Write("http://server/path%20to%20the/file.ext?blah=xxx")</example>
-		public static TextWriter WriteUriTo(TextWriter writer, string? value, Encoding? encoding = null)
-		{
-			if (!string.IsNullOrEmpty(value))
-			{
-				// ATTENTION: on ne doit pas toucher à la QueryString !
-				int p = value.IndexOf('?');
-				string? suffix = null;
-				if (p >= 0)
-				{ // appel récursif pour n'encoder que le path, en recollant la QueryString
-					suffix = value.Substring(p);
-					value = value.Substring(0, p);
-				}
-
-				if (!NeedsEncoding(value))
-				{ // pas besoin d'encoder
-					writer.Write(value);
-				}
-				else
-				{
-					writer.Write(EncodeString(value, encoding, true, true));
-				}
-
-				// rajoutes la querystring s'il y en avait une
-				if (suffix != null) writer.Write(suffix);
-			}
-			return writer;
+			return HttpUtility.UrlPathEncode(value);
 		}
 
 		#endregion
@@ -423,67 +348,20 @@ namespace Doxense.Web
 		/// <returns>Texte pouvant être intégré dans le chemin d'une URI</returns>
 		/// <example>EncodePath("foo bar/baz") => "foo%20bar%2fbaz"</example>
 		[Pure]
-		public static string EncodePath(string? value, Encoding? encoding = null)
+		public static string EncodePath(string? value)
 		{
 			if (string.IsNullOrEmpty(value))
 			{
 				return string.Empty;
 			}
-			if (!NeedsEncoding(value))
-			{ // pas besoin d'encoder
-				return value;
-			}
-			return EncodeString(value, encoding, true, false);
+
+			return UrlEncoder.Default.Encode(value);
 		}
 
 		[Pure]
-		public static string EncodePathObject(object? value, Encoding? encoding = null)
+		public static string EncodePathObject(object? value)
 		{
-			return EncodePath(ObjectToString(value), encoding);
-		}
-
-		/// <summary>Concatène une valeur qui sera utilisée comme segment du chemin d'une URI</summary>
-		/// <param name="builder">Builder où ajouter la valeur encodée</param>
-		/// <param name="value">Valeur à encoder correctement (' ' => '%20')</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
-		/// <returns>StringBuilder, pour chaînage</returns>
-		/// <example>AppendPathTo(sb, "foo bar/baz") ~= sb.Append("foo%20bar%2fbaz")</example>
-		public static StringBuilder AppendPathTo(StringBuilder builder, string? value, Encoding? encoding = null)
-		{
-			if (!string.IsNullOrEmpty(value))
-			{
-				if (!NeedsEncoding(value))
-				{ // pas besoin d'encoder
-					builder.Append(value);
-				}
-				else
-				{
-					builder.Append(EncodeString(value, encoding, true, false));
-				}
-			}
-			return builder;
-		}
-
-		/// <summary>Ecrit une valeur qui sera utilisée comme segment du chemin d'une URI</summary>
-		/// <param name="writer">Writer où écrire la valeur encodée</param>
-		/// <param name="value">Valeur à encoder correctement (' ' => '%20')</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
-		/// <returns>TextWriter, pour chaînage</returns>
-		/// <example>WritePathTo(writer, "foo bar/baz") ~= writer.Write("foo%20bar%2fbaz")</example>
-		public static TextWriter WritePathTo(TextWriter writer, string? value, Encoding? encoding = null)
-		{
-			if (!string.IsNullOrEmpty(value))
-			{
-				if (!NeedsEncoding(value))
-				{ // pas besoin d'encoder
-					writer.Write(value);
-				}
-				else
-				{
-					writer.Write(EncodeString(value, encoding, true, false));
-				}
-			}
-			return writer;
+			return EncodePath(ObjectToString(value));
 		}
 
 		#endregion
@@ -563,11 +441,8 @@ namespace Doxense.Web
 			{
 				return string.Empty;
 			}
-			if (!NeedsEncoding(value))
-			{ // pas besoin d'encoder
-				return value;
-			}
-			return EncodeString(value, encoding, path: false, delims: false);
+
+			return HttpUtility.UrlEncode(value, encoding ?? Encoding.UTF8);
 		}
 
 		[Pure]
@@ -576,284 +451,7 @@ namespace Doxense.Web
 			return EncodeData(ObjectToString(value), encoding);
 		}
 
-		/// <summary>Concatène une valeur qui sera utilisée comme valeur dans une QueryString</summary>
-		/// <param name="builder">Builder où ajouter la valeur encodée</param>
-		/// <param name="value">Valeur à encoder correctement (' ' => '+')</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
-		/// <returns>StringBuilder, pour chaînage</returns>
-		/// <example>AppendDataTo(sb, "foo bar/baz") ~= sb.Append("foo+bar%2fbaz")</example>
-		public static StringBuilder AppendDataTo(StringBuilder builder, string? value, Encoding? encoding = null)
-		{
-			if (!string.IsNullOrEmpty(value))
-			{
-				if (!NeedsEncoding(value))
-				{ // pas besoin d'encoder
-					builder.Append(value);
-				}
-				else
-				{
-					//REVIEW: PERF: écrire une version de EncodeString qui append directement dans un StringBuilder (sans allouer de string)
-					builder.Append(EncodeString(value, encoding, path: false, delims: false));
-				}
-			}
-			return builder;
-		}
-
-		/// <summary>Ecrit une valeur qui sera utilisée comme valeur dans une QueryString</summary>
-		/// <param name="writer">Writer où écrire la valeur encodée</param>
-		/// <param name="value">Valeur à encoder correctement (' ' => '+')</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
-		/// <returns>TextWriter, pour chaînage</returns>
-		/// <example>WriteDataTo(writer, "foo bar/baz") ~= writer.Write("foo+bar%2fbaz")</example>
-		public static TextWriter WriteDataTo(TextWriter writer, string? value, Encoding? encoding = null)
-		{
-			if (!string.IsNullOrEmpty(value))
-			{
-				if (!NeedsEncoding(value))
-				{ // pas besoin d'encoder
-					writer.Write(value);
-				}
-				else
-				{
-					//REVIEW: PERF: écrire une version de EncodeString qui append directement dans un TextWriter (sans allouer de string)
-					writer.Write(EncodeString(value, encoding, path: false, delims: false));
-				}
-			}
-			return writer;
-		}
-
 		#endregion
-
-		#endregion
-
-		#region Internal Helpers...
-
-		/// <summary>Génère la map de conversion des caractères</summary>
-		[Pure]
-		private static byte[] InitializeCharMap()
-		{
-			// Note: vu qu'on encode la version UTF-8 (bytes), on ne travaille que sur des octets !
-			var map = new byte[256];
-			for (int i = 0; i < map.Length; i++)
-			{
-				char c = (char) i;
-
-				if (IsNeverEncoded(c))
-				{
-					map[i] = CLEAN;
-				}
-				else if (IsPathDelimOrSpecial(c))
-				{
-					map[i] = DELIM;
-				}
-				else if (IsValidOnlyInPath(c))
-				{
-					map[i] = PATH;
-				}
-				else if (c == ' ')
-				{
-					map[i] = SPACE;
-				}
-				else
-				{
-					map[i] = INVALID;
-				}
-			}
-			return map;
-		}
-
-		[Pure]
-		private static bool IsNeverEncoded(char c)
-		{
-#if NET9_0_OR_GREATER
-			//note: starting from .NET9+, HttpUtility.UrlPathEncode() does not escape \x7F anymore
-			return char.IsLetter(c) || char.IsDigit(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '\x7F';
-#else
-			return char.IsLetter(c) || char.IsDigit(c) || c == '-' || c == '_' || c == '.' || c == '~';
-#endif
-		}
-
-		[Pure]
-		private static bool IsValidOnlyInPath(char c)
-		{
-			// ces caractères ne sont pas encodés dans une URI
-			return c == '!' || c == '*' || c == '\'' || c == '(' || c == ')' || c == ';' || c == ':' || c == '@' || c == '&' || c == '=' || c == '+' || c == '$' || c == ',' || c == '/' || c == '?' || c == '#' || c == '[' || c == ']'
-				|| c == '\\' || c == '"' || c == '<' || c == '>' || c == '^' || c == '`' || c == '{' || c == '|' || c == '}';
-		}
-
-		[Pure]
-		private static bool IsPathDelimOrSpecial(char c)
-		{
-			// ces caractères correspondant a des séparateurs de path (qui sont encodés si on génère un path)
-			return c == ':' || c == '/' || c == '?' || c == '#' || c == '[' || c == ']' || c == '@' || c == '%';
-		}
-
-		/// <summary>Détermine si la chaîne nécessite d'être encodée (de manière pessimiste)</summary>
-		/// <param name="value">Chaîne de texte à insérer dans une URL</param>
-		/// <returns>True si la chaîne contient (éventuellement) des caractères à encoder, false si elle est propre.</returns>
-		[Pure, ContractAnnotation("null => false")]
-		private static bool NeedsEncoding(string? value)
-		{
-			if (value != null)
-			{
-				byte[] map = s_charMap;
-				int n = value.Length;
-				for (int i = 0; i < n; i++)
-				{
-					char c = value[i];
-					if (c > 255 || map[c] != CLEAN) return true;
-				}
-			}
-			return false;
-		}
-
-		/// <summary>Encode une chaîne de texte</summary>
-		/// <param name="value">Chaîne de texte à encoder</param>
-		/// <param name="encoding">Encoding à utiliser (UTF-8 par défaut)</param>
-		/// <param name="path">Indique si on est dans la section 'PATH' (true) d'une URI (ou false si on est dans la Query String)</param>
-		/// <param name="delims">Indique si on doit laisser passer les délimiteurs de path</param>
-		/// <returns>Chaîne encodée</returns>
-		private static unsafe string EncodeString(string value, Encoding? encoding, bool path, bool delims)
-		{
-			var bytes = (encoding ?? Encoding.UTF8).GetBytes(value);
-			int size = ComputeEncodedSize(bytes, path, delims);
-
-			// on alloue directement la chaîne, en modifiant "in place" son contenu
-			var result = new string('\0', size);
-			fixed (char* chars = result)
-			{
-				EncodeChars(bytes, 0, bytes.Length, chars, 0, path, delims);
-			}
-			return result;
-		}
-
-		/// <summary>Calcule la taille (en caractères) nécessaire pour encoder une chaîne de texte</summary>
-		/// <param name="bytes">Octets représentant la chaîne de texte initiale (en UTF-8 par exemple)</param>
-		/// <param name="path">Indique si on est dans la section 'PATH' (true) d'une URI (ou false si on est dans la Query String)</param>
-		/// <param name="delims">Indique si on doit laisser passer les délimiteurs de path</param>
-		/// <returns></returns>
-		[Pure]
-		private static int ComputeEncodedSize(byte[] bytes, bool path, bool delims)
-		{
-			int extra = 0;
-			byte[] map = s_charMap;
-			foreach (byte b in bytes) {
-				byte category;
-				//note: comme la valeur est un octet, elle est forcément <= 255, donc pas la peine de faire de bound-check sur map !
-				if ((category = map[b]) != CLEAN)
-				{
-					switch (category)
-					{
-						case PATH:
-						{
-							// il n'est pas modifié dans un PATH
-							if (!path) ++extra;
-							break;
-						}
-						case SPACE:
-						{
-							// dans la querystring, on n'augmente pas la taille !
-							if (path) ++extra;  // %20
-							break;
-						}
-						case DELIM:
-						{
-							// il n'est pas modifié si on sanitize
-							if (!delims) ++extra; // %25
-							break;
-						}
-						case INVALID:
-						{ // passe de 1 à 3 ("%XX")
-							++extra;
-							break;
-						}
-					}
-				}
-			}
-			return bytes.Length + (extra << 1);
-		}
-
-		/// <summary>Encode un buffer contenant du texte UTF-8 vers un tableau de chars</summary>
-		/// <returns>Offset dans le buffer suivant le dernier caractère encodé</returns>
-		private static unsafe void EncodeChars(byte[]? value, int offset, int count, char* chars, int index, bool path, bool delims)
-		{
-			if (value == null || value.Length == 0)
-			{
-				return;
-			}
-
-			char[] hexes = s_charHex; // en encode en minuscules
-			byte[] map = s_charMap;
-
-			int p = index;
-			for (int i = 0; i < count; i++)
-			{
-				byte c = value[offset + i];
-				//note: comme la valeur est un octet, elle est forcément <= 255, donc pas la peine de faire de bound-check sur map !
-				switch (map[c])
-				{
-					case CLEAN:
-					{ // caractère qui n'est jamais encodé
-						chars[p++] = (char) c;
-						break;
-					}
-					case PATH:
-					{ // caractère qui n'est autorisé que dans un path
-						if (path)
-						{ // on ne laisse passer que dans le path
-							chars[p++] = (char) c;
-						}
-						else
-						{ // sinon on encode
-							chars[p] = '%';
-							chars[p + 1] = hexes[(c >> 4) & 0xF];
-							chars[p + 2] = hexes[c & 0xF];
-							p += 3;
-						}
-						break;
-					}
-					case SPACE:
-					{ // Espace
-						if (path)
-						{ // dans le path
-							chars[p] = '%';
-							chars[p + 1] = '2';
-							chars[p + 2] = '0';
-							p += 3;
-						}
-						else
-						{ // dans la query string
-							chars[p++] = '+';
-						}
-						break;
-					}
-					case DELIM:
-					{ // délimiteur de path
-						if (delims)
-						{ // on ne laisse passer que si on nettoie une URI
-							chars[p++] = (char) c;
-						}
-						else
-						{ // sinon on encode
-							chars[p] = '%';
-							chars[p + 1] = hexes[(c >> 4) & 0xF];
-							chars[p + 2] = hexes[c & 0xF];
-							p += 3;
-						}
-						break;
-					}
-					case INVALID:
-					{ // caractère encodé quoi qu'il arrive
-						// '%xx' (en minuscules!)
-						chars[p] = '%';
-						chars[p + 1] = hexes[(c >> 4) & 0xF];
-						chars[p + 2] = hexes[c & 0xF];
-						p += 3;
-						break;
-					}
-				}
-			}
-		}
 
 		#endregion
 
