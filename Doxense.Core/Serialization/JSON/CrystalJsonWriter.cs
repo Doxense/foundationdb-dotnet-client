@@ -1281,7 +1281,7 @@ namespace Doxense.Serialization.Json
 
 			static void WriteValueSlow(TextWriter buffer, int value)
 			{
-				Span<char> buf = stackalloc char[12]; // max 11 for int.MinValue
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityInt32];
 				value.TryFormat(buf, out int n);
 
 				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
@@ -1303,7 +1303,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value < 10U)
 			{ // single char
-				m_buffer.Write((char) (48 + (int) value));
+				m_buffer.Write((char) ('0' + (int) value));
 				return;
 			}
 
@@ -1319,7 +1319,7 @@ namespace Doxense.Serialization.Json
 
 			static void WriteValueSlow(TextWriter buffer, uint value)
 			{
-				Span<char> buf = stackalloc char[10]; // max 11 for uint.MaxValue
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityUInt32];
 				value.TryFormat(buf, out int n);
 				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
 				// => for legacy streams, this will fallback into copying into a pooled buffer !
@@ -1340,7 +1340,7 @@ namespace Doxense.Serialization.Json
 		{
 			if ((ulong) value < 10UL)
 			{ // single char
-				m_buffer.Write((char)(48 + (int) value));
+				m_buffer.Write((char)('0' + (int) value));
 				return;
 			}
 
@@ -1356,7 +1356,7 @@ namespace Doxense.Serialization.Json
 
 			static void WriteValueSlow(TextWriter buffer, long value)
 			{
-				Span<char> buf = stackalloc char[20]; // max 20 for long.MinValue
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityInt64];
 				value.TryFormat(buf, out int n);
 
 				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
@@ -1378,7 +1378,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value < 10UL)
 			{ // single char
-				m_buffer.Write((char)(48 + (int)value));
+				m_buffer.Write((char) ('0' + (int) value));
 				return;
 			}
 
@@ -1394,7 +1394,7 @@ namespace Doxense.Serialization.Json
 
 			static void WriteValueSlow(TextWriter buffer, ulong value)
 			{
-				Span<char> buf = stackalloc char[20]; // max 20 for ulong.MaxValue
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityUInt64];
 				value.TryFormat(buf, out int n);
 				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
 				// => for legacy streams, this will fallback into copying into a pooled buffer !
@@ -1422,7 +1422,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-#if NET9_0_OR_GREATER
+#if NET8_0_OR_GREATER
 
 			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
 			if (!float.IsFinite(value))
@@ -1435,9 +1435,9 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			// note: current implementation in .NET 9 seems to allocate 32 chars ?
+			// note: current Number.TryFormatFloat(...) implementation in .NET 9 seems to allocate 32 chars ?
 			Span<char> buf = stackalloc char[32];
-			if (!value.TryFormat(buf, out int n))
+			if (!value.TryFormat(buf, out int n, "R", NumberFormatInfo.InvariantInfo))
 			{
 				// if, for whatever reason, this is not enough, we fallback to the previous verison
 				m_buffer.Write(value.ToString("R", NumberFormatInfo.InvariantInfo));
@@ -1467,7 +1467,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-#if NET9_0_OR_GREATER
+#if NET8_0_OR_GREATER
 
 			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
 			if (!double.IsFinite(value))
@@ -1480,9 +1480,9 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			// note: current implementation in .NET 9 seems to allocate 32 chars ?
+			// note: current Number.TryFormatDouble(...) implementation in .NET 9 seems to allocate 32 chars ?
 			Span<char> buf = stackalloc char[32];
-			if (!value.TryFormat(buf, out int n))
+			if (!value.TryFormat(buf, out int n, "R", NumberFormatInfo.InvariantInfo))
 			{
 				// if, for whatever reason, this is not enough, we fallback to the previous verison
 				m_buffer.Write(value.ToString("R", NumberFormatInfo.InvariantInfo));
@@ -1512,7 +1512,14 @@ namespace Doxense.Serialization.Json
 			where TEnum : struct, System.Enum
 		{
 			//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
-			m_buffer.Write(value.ToString("D"));
+			if (Unsafe.SizeOf<TEnum>() == 4)
+			{
+				WriteValue((int) (object) value);
+			}
+			else
+			{
+				m_buffer.Write(value.ToString("D"));
+			}
 		}
 
 		public void WriteEnumInteger(Enum? value)
@@ -1522,6 +1529,7 @@ namespace Doxense.Serialization.Json
 				WriteNull();
 				return;
 			}
+
 			//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
 			m_buffer.Write(value.ToString("D"));
 		}
