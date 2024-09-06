@@ -386,32 +386,30 @@ namespace Doxense.Serialization.Json.Binary
 		{
 			Contract.Debug.Requires(value != null);
 
-			switch (value.Type)
+			switch (value)
 			{
-				case JsonType.Null:
+				case JsonNull:
 				{
 					writer.WriteByte((byte) TypeTokens.Null);
 					break;
 				}
-				case JsonType.Boolean:
+				case JsonBoolean b:
 				{
-					writer.WriteByte(value.ToBoolean() ? (byte) TypeTokens.True : (byte) TypeTokens.False);
+					writer.WriteByte(b.Value ? (byte) TypeTokens.True : (byte) TypeTokens.False);
 					break;
 				}
-				case JsonType.DateTime:
+				case JsonDateTime dt:
 				{
-					WriteSmallString(ref writer, value.ToString());
+					WriteSmallString(ref writer, dt.ToString());
 					break;
 				}
-				case JsonType.String:
+				case JsonString str:
 				{
-					var str = (JsonString) value;
 					WriteSmallString(ref writer, str.Value);
 					break;
 				}
-				case JsonType.Number:
+				case JsonNumber num:
 				{
-					var num = (JsonNumber) value;
 					if (!num.IsDecimal)
 					{
 						if (num.IsBetween(long.MinValue, long.MaxValue))
@@ -434,14 +432,14 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					break;
 				}
-				case JsonType.Array:
+				case JsonArray arr:
 				{
-					WriteArray(ref writer, (JsonArray) value, settings);
+					WriteArray(ref writer, arr, settings);
 					break;
 				}
-				case JsonType.Object:
+				case JsonObject obj:
 				{
-					WriteObject(ref writer, (JsonObject) value, settings);
+					WriteObject(ref writer, obj, settings);
 					break;
 				}
 				default:
