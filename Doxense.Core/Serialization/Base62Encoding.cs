@@ -234,10 +234,29 @@ namespace Doxense.Serialization
 			return checked((uint) Decode64(value, 32, options));
 		}
 
+		/// <summary>Decodes a 32-bits unsigned integer from a previously encoded base62 string literal</summary>
+		public static bool TryDecodeUInt32(ReadOnlySpan<char> value, out uint decoded, Base62FormattingOptions options = default)
+		{
+			if (!TryDecode64(value, out var x, 32, options) && x > uint.MaxValue)
+			{
+				decoded = 0;
+				return false;
+			}
+
+			decoded = unchecked((uint) x);
+			return true;
+		}
+
 		/// <summary>Decodes a 64-bits unsigned integer from a previously encoded base62 string literal</summary>
 		public static ulong DecodeUInt64(ReadOnlySpan<char> value, Base62FormattingOptions options = default)
 		{
 			return Decode64(value, 64, options);
+		}
+
+		/// <summary>Decodes a 64-bits unsigned integer from a previously encoded base62 string literal</summary>
+		public static bool TryDecodeUInt64(ReadOnlySpan<char> value, out ulong decoded, Base62FormattingOptions options = default)
+		{
+			return TryDecode64(value, out decoded, 64, options);
 		}
 
 #if NET8_0_OR_GREATER
@@ -246,6 +265,12 @@ namespace Doxense.Serialization
 		public static UInt128 DecodeUInt128(ReadOnlySpan<char> value, Base62FormattingOptions options = default)
 		{
 			return Decode128(value, 128, options);
+		}
+
+		/// <summary>Decodes a 128-bits unsigned integer from a previously encoded base62 string literal</summary>
+		public static bool TryDecodeUInt128(ReadOnlySpan<char> value, out UInt128 decoded, Base62FormattingOptions options = default)
+		{
+			return TryDecode128(value, out decoded, 128, options);
 		}
 
 #endif
@@ -344,6 +369,36 @@ namespace Doxense.Serialization
 			throw new ArgumentException("Malformed base62 literal");
 		}
 
+		private static bool TryDecode64(ReadOnlySpan<char> literal, out ulong decoded, int bits, Base62FormattingOptions options)
+		{
+			int maxSize = GetMaxSize(bits);
+			if (literal.Length > maxSize)
+			{
+				goto invalid;
+			}
+
+			ref int map = ref Unsafe.AsRef(in MemoryMarshal.GetReference(GetDecodeMap(options)));
+
+			ulong acc = 0;
+			foreach (var c in literal)
+			{
+				int x = c - DecodeMapOffset;
+				x = (uint) x < DecodeMapSize ? Unsafe.Add(ref map, x) : -1;
+				if (x < 0)
+				{
+					goto invalid;
+				}
+
+				acc = checked(acc * 62 + (uint) x);
+			}
+			decoded = acc;
+			return true;
+
+		invalid:
+			decoded = 0;
+			return false;
+		}
+
 #if NET8_0_OR_GREATER
 
 		private static UInt128 Decode128(ReadOnlySpan<char> literal, int bits, Base62FormattingOptions options)
@@ -372,6 +427,37 @@ namespace Doxense.Serialization
 
 		invalid:
 			throw new ArgumentException("Malformed base62 literal");
+
+		}
+
+		private static bool TryDecode128(ReadOnlySpan<char> literal, out UInt128 decoded, int bits, Base62FormattingOptions options)
+		{
+			int maxSize = GetMaxSize(bits);
+			if (literal.Length > maxSize)
+			{
+				goto invalid;
+			}
+
+			ref int map = ref Unsafe.AsRef(ref MemoryMarshal.GetReference(GetDecodeMap(options)));
+
+			UInt128 acc = 0;
+			foreach (var c in literal)
+			{
+				int x = c - DecodeMapOffset;
+				x = (uint) x < DecodeMapSize ? Unsafe.Add(ref map, x) : -1;
+				if (x < 0)
+				{
+					goto invalid;
+				}
+
+				acc = checked(acc * 62 + (uint) x);
+			}
+			decoded = acc;
+			return true;
+
+		invalid:
+			decoded = 0;
+			return false;
 
 		}
 

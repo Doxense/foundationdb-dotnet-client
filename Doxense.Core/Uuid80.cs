@@ -144,7 +144,7 @@ namespace System
 			}
 
 			Span<byte> tmp = stackalloc byte[16];
-			BinaryPrimitives.WriteUInt128BigEndian(tmp, value);
+			System.Buffers.Binary.BinaryPrimitives.WriteUInt128BigEndian(tmp, value);
 			// [0..5] must be ZERO !
 			// [6..15] contains the valid bits
 			ReadUnsafe(tmp, out var res);
@@ -704,7 +704,7 @@ namespace System
 			Span<byte> tmp = stackalloc byte[16];
 			tmp.Fill(0);
 			WriteUnsafe(this.Hi, this.Lo, tmp);
-			return BinaryPrimitives.ReadUInt128BigEndian(tmp);
+			return System.Buffers.Binary.BinaryPrimitives.ReadUInt128BigEndian(tmp);
 		}
 
 		/// <summary>Return the equivalent <see cref="Int128"/></summary>
@@ -714,7 +714,7 @@ namespace System
 			Span<byte> tmp = stackalloc byte[16];
 			tmp.Fill(0);
 			WriteUnsafe(this.Hi, this.Lo, tmp);
-			return BinaryPrimitives.ReadInt128BigEndian(tmp);
+			return System.Buffers.Binary.BinaryPrimitives.ReadInt128BigEndian(tmp);
 		}
 
 #endif

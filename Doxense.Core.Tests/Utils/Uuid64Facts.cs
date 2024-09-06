@@ -201,7 +201,7 @@ namespace Doxense.Core.Tests
 		[Test]
 		public void Test_Uuid64_ToString_Base62()
 		{
-			char[] chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".ToCharArray();
+			ReadOnlySpan<char> chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 			Assert.That(chars.Length, Is.EqualTo(62));
 
 			// single digit

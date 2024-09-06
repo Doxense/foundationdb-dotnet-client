@@ -226,14 +226,13 @@ namespace Doxense.Serialization.Json
 
 #else
 
-		private static readonly char[] MustEscapeCharacters = "\\.[]".ToArray();
-
 		/// <summary>Tests if a field name needs to be escaped</summary>
 		/// <param name="name">Name of a field</param>
 		/// <returns><see langword="true"/> if name contains at least one of '<c>\</c>', '<c>.</c>' or '<c>[</c>'</returns>
 		private static bool RequiresEscaping(ReadOnlySpan<char> name)
 		{
-			return name.IndexOfAny(JsonPath.MustEscapeCharacters) >= 0;
+			ReadOnlySpan<char> mustEscapeCharacters = "\\.[]";
+			return name.IndexOfAny(mustEscapeCharacters) >= 0;
 		}
 
 #endif

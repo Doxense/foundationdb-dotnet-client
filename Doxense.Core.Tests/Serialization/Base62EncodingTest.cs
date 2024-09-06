@@ -156,11 +156,39 @@ namespace Doxense.Serialization.Tests
 			Assert.Multiple(() =>
 			{
 				Assert.That(Base62Encoding.Encode(Guid.Empty), Is.EqualTo("a"));
+				Assert.That(Base62Encoding.Encode(Guid.Empty, Base62FormattingOptions.Lexicographic), Is.EqualTo("0"));
 				Assert.That(Base62Encoding.Encode(Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")), Is.EqualTo("hNecnqwf3FLKjNiMThpHCh"));
+				Assert.That(Base62Encoding.Encode(Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff"), Base62FormattingOptions.Lexicographic), Is.EqualTo("7n42DGM5Tflk9n8mt7Fhc7"));
 
 				Assert.That(Base62Encoding.Encode(Guid.Parse("00000000-0000-0000-0000-000000000001")), Is.EqualTo("b"));
+				Assert.That(Base62Encoding.Encode(Guid.Parse("00000000-0000-0000-0000-000000000001"), Base62FormattingOptions.Lexicographic), Is.EqualTo("1"));
+
 				Assert.That(Base62Encoding.Encode(Guid.Parse("00112233-4455-6677-8899-AABBCCDDEEFF")), Is.EqualTo("hP2OcBj3xGbCEDAVmEhZ"));
+				Assert.That(Base62Encoding.Encode(Guid.Parse("00112233-4455-6677-8899-AABBCCDDEEFF"), Base62FormattingOptions.Lexicographic), Is.EqualTo("7pSo2b9TNg1cedavCe7z"));
+
 				Assert.That(Base62Encoding.Encode(Guid.Parse("FFEEDDCC-BBAA-9988-7766-554433221100")), Is.EqualTo("hMWmK2t4umyeik4jsmdd4i"));
+				Assert.That(Base62Encoding.Encode(Guid.Parse("FFEEDDCC-BBAA-9988-7766-554433221100"), Base62FormattingOptions.Lexicographic), Is.EqualTo("7mwCkSJUKCO48AU9IC33U8"));
+			});
+		}
+
+		[Test]
+		public void Test_Known_Ids_Uuid128()
+		{
+			Assert.Multiple(() =>
+			{
+				Assert.That(Base62Encoding.Encode(Uuid128.Empty), Is.EqualTo("a"));
+				Assert.That(Base62Encoding.Encode(Uuid128.Empty, Base62FormattingOptions.Lexicographic), Is.EqualTo("0"));
+				Assert.That(Base62Encoding.Encode(Uuid128.MaxValue), Is.EqualTo("hNecnqwf3FLKjNiMThpHCh"));
+				Assert.That(Base62Encoding.Encode(Uuid128.MaxValue, Base62FormattingOptions.Lexicographic), Is.EqualTo("7n42DGM5Tflk9n8mt7Fhc7"));
+
+				Assert.That(Base62Encoding.Encode(Uuid128.Empty + 1), Is.EqualTo("b"));
+				Assert.That(Base62Encoding.Encode(Uuid128.Empty + 1, Base62FormattingOptions.Lexicographic), Is.EqualTo("1"));
+
+				Assert.That(Base62Encoding.Encode(Uuid128.Parse("00112233-4455-6677-8899-AABBCCDDEEFF")), Is.EqualTo("hP2OcBj3xGbCEDAVmEhZ"));
+				Assert.That(Base62Encoding.Encode(Uuid128.Parse("00112233-4455-6677-8899-AABBCCDDEEFF"), Base62FormattingOptions.Lexicographic), Is.EqualTo("7pSo2b9TNg1cedavCe7z"));
+
+				Assert.That(Base62Encoding.Encode(Uuid128.Parse("FFEEDDCC-BBAA-9988-7766-554433221100")), Is.EqualTo("hMWmK2t4umyeik4jsmdd4i"));
+				Assert.That(Base62Encoding.Encode(Uuid128.Parse("FFEEDDCC-BBAA-9988-7766-554433221100"), Base62FormattingOptions.Lexicographic), Is.EqualTo("7mwCkSJUKCO48AU9IC33U8"));
 			});
 		}
 
