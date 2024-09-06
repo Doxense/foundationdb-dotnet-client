@@ -201,54 +201,6 @@ namespace Doxense.Memory.Tests
 		#region VarInt
 
 		[Test]
-		public void Test_UnsafeHelpers_VarInt16()
-		{
-			void Verify(ushort value, int size, string expected)
-			{
-				Assert.That(expected.Length, Is.EqualTo(size * 3 - 1));
-
-				byte[] data = new byte[8];
-				fixed (byte* ptr = data)
-				{
-					byte* ptr2;
-					Wipe(data);
-					ptr2 = UnsafeHelpers.WriteVarInt16Unsafe(ptr, value);
-					Assert.That(ToHex(data), Is.EqualTo(expected + string.Join("", Enumerable.Repeat(" 58", data.Length - size))));
-					Assert.That(ptr2 - ptr, Is.EqualTo(size));
-
-					ushort decoded;
-					ptr2 = UnsafeHelpers.ReadVarint16(ptr, ptr + data.Length, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"Read({value} => {expected}) size");
-					Assert.That(decoded, Is.EqualTo(value), $"Read({value} => {expected}) value");
-
-					ptr2 = UnsafeHelpers.ReadVarint16Unsafe(ptr, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"ReadUnsafe({value} => {expected}) size");
-					Assert.That(decoded, Is.EqualTo(value), $"ReadUnsafe({value} => {expected}) value");
-
-					Wipe(data);
-					ptr2 = UnsafeHelpers.WriteVarInt16(ptr, ptr + size, value);
-					Assert.That(ToHex(data), Is.EqualTo(expected + string.Join("", Enumerable.Repeat(" 58", data.Length - size))));
-					Assert.That(ptr2 - ptr, Is.EqualTo(size));
-				}
-			}
-
-			Verify(0, 1, "00");
-			Verify(1, 1, "01");
-
-			Verify(127, 1, "7F");
-
-			Verify(1 << 7, 2, "80 01");
-			Verify(255, 2, "FF 01");
-			Verify(0x1234, 2, "B4 24");
-
-			Verify(1 << 14, 3, "80 80 01");
-			Verify(0xDEAD, 3, "AD BD 03");
-			Verify(ushort.MaxValue, 3, "FF FF 03");
-
-			//TODO: verify throws if value > 5 bytes
-		}
-
-		[Test]
 		public void Test_UnsafeHelpers_VarInt32()
 		{
 			void Verify(uint value, int size, string expected)
@@ -256,27 +208,15 @@ namespace Doxense.Memory.Tests
 				Assert.That(expected.Length, Is.EqualTo(size * 3 - 1));
 
 				byte[] data = new byte[16];
-				fixed (byte* ptr = data)
 				{
-					byte* ptr2;
 					Wipe(data);
-					ptr2 = UnsafeHelpers.WriteVarInt32Unsafe(ptr, value);
+					int cursor = UnsafeHelpers.WriteVarInt32(data, value);
 					Assert.That(ToHex(data), Is.EqualTo(expected + string.Join("", Enumerable.Repeat(" 58", data.Length - size))));
-					Assert.That(ptr2 - ptr, Is.EqualTo(size));
+					Assert.That(cursor, Is.EqualTo(size));
 
-					uint decoded;
-					ptr2 = UnsafeHelpers.ReadVarint32(ptr, ptr + data.Length, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"Read({value} => {expected}) size");
+					cursor = UnsafeHelpers.ReadVarint32(data, out uint decoded);
+					Assert.That(cursor, Is.EqualTo(size), $"Read({value} => {expected}) size");
 					Assert.That(decoded, Is.EqualTo(value), $"Read({value} => {expected}) value");
-
-					ptr2 = UnsafeHelpers.ReadVarint32Unsafe(ptr, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"ReadUnsafe({value} => {expected}) size");
-					Assert.That(decoded, Is.EqualTo(value), $"ReadUnsafe({value} => {expected}) value");
-
-					Wipe(data);
-					ptr2 = UnsafeHelpers.WriteVarInt32(ptr, ptr + size, value);
-					Assert.That(ToHex(data), Is.EqualTo(expected + string.Join("", Enumerable.Repeat(" 58", data.Length - size))));
-					Assert.That(ptr2 - ptr, Is.EqualTo(size));
 				}
 			}
 
@@ -312,27 +252,16 @@ namespace Doxense.Memory.Tests
 				Assert.That(expected.Length, Is.EqualTo(size * 3 - 1));
 
 				byte[] data = new byte[16];
-				fixed (byte* ptr = data)
 				{
-					byte* ptr2;
 					Wipe(data);
-					ptr2 = UnsafeHelpers.WriteVarInt64Unsafe(ptr, value);
+					int cursor = UnsafeHelpers.WriteVarInt64(data, value);
 					Assert.That(ToHex(data), Is.EqualTo(expected + string.Join("", Enumerable.Repeat(" 58", data.Length - size))));
-					Assert.That(ptr2 - ptr, Is.EqualTo(size));
+					Assert.That(cursor, Is.EqualTo(size));
 
-					ulong decoded;
-					ptr2 = UnsafeHelpers.ReadVarint64(ptr, ptr + data.Length, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"Read({value} => {expected}) size");
+					cursor = UnsafeHelpers.ReadVarint64(data, out var decoded);
+					Assert.That(cursor, Is.EqualTo(size), $"Read({value} => {expected}) size");
 					Assert.That(decoded, Is.EqualTo(value), $"Read({value} => {expected}) value");
 
-					ptr2 = UnsafeHelpers.ReadVarint64Unsafe(ptr, out decoded);
-					Assert.That(ptr2 - ptr, Is.EqualTo(size), $"ReadUnsafe({value} => {expected}) size");
-					Assert.That(decoded, Is.EqualTo(value), $"ReadUnsafe({value} => {expected}) value");
-
-					Wipe(data);
-					ptr2 = UnsafeHelpers.WriteVarInt64(ptr, ptr + size, value);
-					Assert.That(ToHex(data), Is.EqualTo(expected + string.Join("", Enumerable.Repeat(" 58", data.Length - size))));
-					Assert.That(ptr2 - ptr, Is.EqualTo(size));
 				}
 			}
 
@@ -450,57 +379,53 @@ namespace Doxense.Memory.Tests
 		{
 			const int CAPA = 1024;
 			byte[] data = new byte[CAPA];
-			fixed (byte* buf = &data[0])
 			{
 				{
 					const string TXT = "Hello, world!";
 					var bytes = Encoding.UTF8.GetBytes(TXT);
-					fixed (byte* pBytes = &bytes[0])
 					{
 						Wipe(data);
-						byte* ptr2;
-						ptr2 = UnsafeHelpers.WriteVarBytes(buf, buf + CAPA, pBytes, bytes.Length);
-						Assert.That((ptr2 - buf), Is.EqualTo(1 + bytes.Length));
-						Assert.That(buf[0], Is.EqualTo(bytes.Length));
-						Assert.That(Encoding.UTF8.GetString(buf + 1, bytes.Length), Is.EqualTo(TXT));
 
-						ptr2 = UnsafeHelpers.ReadVarBytes(buf, buf + CAPA, out byte* resPtr, out uint resLen);
-						Assert.That(resLen, Is.EqualTo(bytes.Length));
-						Assert.That(resPtr - buf, Is.EqualTo(1));
-						Assert.That((ptr2 - buf), Is.EqualTo(1 + bytes.Length));
-						Assert.That(new ReadOnlySpan<byte>(resPtr, (int) resLen).ToStringUnicode(), Is.EqualTo(TXT));
+						int cursor = UnsafeHelpers.WriteVarBytes(data, bytes);
+						Assert.That(cursor, Is.EqualTo(1 + bytes.Length));
+						Assert.That(data[0], Is.EqualTo(bytes.Length));
+						Assert.That(Encoding.UTF8.GetString(data.AsSpan(1, cursor - 1)), Is.EqualTo(TXT));
+
+						var encoded = data.AsSpan(0, cursor);
+						cursor = UnsafeHelpers.ReadVarBytes(encoded, out var res);
+						Assert.That(cursor, Is.EqualTo(1 + bytes.Length));
+						Assert.That(res.Length, Is.EqualTo(bytes.Length));
+						Assert.That(res.ToStringUnicode(), Is.EqualTo(TXT));
 
 						Wipe(data);
-						ptr2 = UnsafeHelpers.WriteZeroTerminatedVarBytes(buf, buf + CAPA, pBytes, bytes.Length);
-						Assert.That((ptr2 - buf), Is.EqualTo(1 + bytes.Length + 1));
-						Assert.That(buf[0], Is.EqualTo(bytes.Length + 1));
-						Assert.That(Encoding.UTF8.GetString(buf + 1, bytes.Length + 1), Is.EqualTo(TXT + '\0'));
+						cursor = UnsafeHelpers.WriteZeroTerminatedVarBytes(data, bytes);
+						Assert.That(cursor, Is.EqualTo(1 + bytes.Length + 1));
+						Assert.That(data[0], Is.EqualTo(bytes.Length + 1));
+						Assert.That(Encoding.UTF8.GetString(data.AsSpan(1, cursor - 1)), Is.EqualTo(TXT + '\0'));
 					}
 				}
 				{
 					const string TXT = "This is a test of the emergency broadcast system to check if it is larger than 128 characters in order to have its length be encoded as a 2-byte VarInt. kthnxbye.";
 					var bytes = Encoding.UTF8.GetBytes(TXT);
-					fixed (byte* pBytes = &bytes[0])
 					{
 						Wipe(data);
-						byte* ptr2;
-						ptr2 = UnsafeHelpers.WriteVarBytes(buf, buf + CAPA, pBytes, bytes.Length);
-						Assert.That((ptr2 - buf), Is.EqualTo(2 + bytes.Length));
-						Assert.That(buf[0], Is.EqualTo(0x80 | (bytes.Length & 0x7F)));
-						Assert.That(buf[1], Is.EqualTo((bytes.Length >> 7)));
-						Assert.That(Encoding.UTF8.GetString(buf + 2, bytes.Length), Is.EqualTo(TXT));
+						int cursor = UnsafeHelpers.WriteVarBytes(data, bytes);
+						Assert.That(cursor, Is.EqualTo(2 + bytes.Length));
+						Assert.That(data[0], Is.EqualTo(0x80 | (bytes.Length & 0x7F)));
+						Assert.That(data[1], Is.EqualTo((bytes.Length >> 7)));
+						Assert.That(Encoding.UTF8.GetString(data.AsSpan(2, cursor - 2)), Is.EqualTo(TXT));
 
-						ptr2 = UnsafeHelpers.ReadVarBytes(buf, buf + CAPA, out byte* resPtr, out uint resLen);
-						Assert.That(resLen, Is.EqualTo(bytes.Length));
-						Assert.That(resPtr - buf, Is.EqualTo(2));
-						Assert.That((ptr2 - buf), Is.EqualTo(2 + bytes.Length));
-						Assert.That(new ReadOnlySpan<byte>(resPtr, (int) resLen).ToStringUtf8(), Is.EqualTo(TXT));
+						var encoded = data.AsSpan(0, cursor);
+						cursor = UnsafeHelpers.ReadVarBytes(encoded, out var res);
+						Assert.That(res.Length, Is.EqualTo(bytes.Length));
+						Assert.That(cursor, Is.EqualTo(2 + bytes.Length));
+						Assert.That(res.ToStringUtf8(), Is.EqualTo(TXT));
 
 						Wipe(data);
-						ptr2 = UnsafeHelpers.WriteZeroTerminatedVarBytes(buf, buf + CAPA, pBytes, bytes.Length);
-						Assert.That((ptr2 - buf), Is.EqualTo(2 + bytes.Length + 1));
-						Assert.That(buf[0], Is.EqualTo(bytes.Length + 1));
-						Assert.That(Encoding.UTF8.GetString(buf + 2, bytes.Length + 1), Is.EqualTo(TXT + '\0'));
+						cursor = UnsafeHelpers.WriteZeroTerminatedVarBytes(data, bytes);
+						Assert.That(cursor, Is.EqualTo(2 + bytes.Length + 1));
+						Assert.That(data[0], Is.EqualTo(bytes.Length + 1));
+						Assert.That(Encoding.UTF8.GetString(data.AsSpan(2, cursor - 2)), Is.EqualTo(TXT + '\0'));
 					}
 				}
 			}
