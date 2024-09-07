@@ -83,14 +83,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override string ToString() => this.Value.ToString();
+		public override string ToString() => this.Value.GetStringOrCopy();
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string ToString(string? format, IFormatProvider? formatProvider)
-		{
-			//TODO: what kind of formats should be allow?
-			return this.Value.ToString();
-		}
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Value.GetStringOrCopy();
 
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
@@ -136,8 +132,10 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(JsonPath left, string? right) => !left.Equals(right);
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ReadOnlySpan<char> AsSpan() => this.Value.Span;
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ReadOnlyMemory<char> AsMemory() => this.Value;
 
 		/// <summary>Tests if this the empty path (root of the document)</summary>
@@ -145,10 +143,73 @@ namespace Doxense.Serialization.Json
 		public bool IsEmpty() => this.Value.Length == 0;
 
 		/// <summary>Appends an index to this path (ex: <c>JsonPath.Return("tags")[1]</c> => "tags[1]")</summary>
-		public JsonPath this[int index] => new(new StringBuilder().Append(this.Value.Span.ToString()).Append("[").Append(index.ToString(CultureInfo.InvariantCulture)).Append("]").ToString().AsMemory());
+		public JsonPath this[int index]
+		{
+			get
+			{
+				Contract.Positive(index);
+
+				if (index < 10)
+				{ // "PATH[#]"
+					return AppendOneDigit(this.Value.Span, index);
+				}
+
+				if (index < 100)
+				{ // "PATH[##]"
+					return AppendTwoDigits(this.Value.Span, index);
+				}
+
+				return AppendIndexSlow(this.Value.Span, index);
+
+				static JsonPath AppendOneDigit(ReadOnlySpan<char> span, int index)
+				{
+					int len = span.Length;
+					var buf = new char[len + 3];
+					span.CopyTo(buf);
+					buf[len + 0] = '[';
+					buf[len + 1] = (char) ('0' + index);
+					buf[len + 2] = ']';
+					return new(buf);
+				}
+
+				static JsonPath AppendTwoDigits(ReadOnlySpan<char> span, int index)
+				{
+					int len = span.Length;
+					var buf = new char[len + 4];
+					span.CopyTo(buf);
+					buf[len + 0] = '[';
+					buf[len + 1] = (char) ('0' + (index / 10));
+					buf[len + 2] = (char) ('0' + (index % 10));
+					buf[len + 3] = ']';
+					return new(buf);
+				}
+
+				static JsonPath AppendIndexSlow(ReadOnlySpan<char> span, int index)
+				{
+					return new($"{span}[{index}]");
+				}
+			}
+		}
 
 		/// <summary>Appends an index to this path (ex: <c>JsonPath.Return("tags")[^1]</c> => "tags[^1]")</summary>
-		public JsonPath this[Index index] => new($"{this.Value.Span}[{index}]");
+		public JsonPath this[Index index]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get
+			{
+				if (!index.IsFromEnd)
+				{
+					return this[index.Value];
+				}
+
+				return AppendIndexSlow(this.Value.Span, index);
+
+				static JsonPath AppendIndexSlow(ReadOnlySpan<char> span, Index index)
+				{
+					return new($"{span}[{index}]");
+				}
+			}
+		}
 
 #if NET8_0_OR_GREATER
 
@@ -157,6 +218,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if a field name needs to be escaped</summary>
 		/// <param name="name">Name of a field</param>
 		/// <returns><see langword="true"/> if name contains at least one of '<c>\</c>', '<c>.</c>' or '<c>[</c>'</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool RequiresEscaping(ReadOnlySpan<char> name)
 		{
 			return name.ContainsAny(Needle);
@@ -164,14 +226,13 @@ namespace Doxense.Serialization.Json
 
 #else
 
-		private static readonly char[] MustEscapeCharacters = "\\.[]".ToArray();
-
 		/// <summary>Tests if a field name needs to be escaped</summary>
 		/// <param name="name">Name of a field</param>
 		/// <returns><see langword="true"/> if name contains at least one of '<c>\</c>', '<c>.</c>' or '<c>[</c>'</returns>
 		private static bool RequiresEscaping(ReadOnlySpan<char> name)
 		{
-			return name.IndexOfAny(JsonPath.MustEscapeCharacters) >= 0;
+			ReadOnlySpan<char> mustEscapeCharacters = "\\.[]";
+			return name.IndexOfAny(mustEscapeCharacters) >= 0;
 		}
 
 #endif
@@ -209,20 +270,107 @@ namespace Doxense.Serialization.Json
 
 		private static string Escape(ReadOnlySpan<char> name)
 		{
-			var tmp = ArrayPool<char>.Shared.Rent(name.Length * 2);
-			Span<char> buf = tmp.AsSpan();
-			int p = 0;
-			foreach (var c in name)
+			return name.Length switch
 			{
-				if (c is '.' or '\\' or '[' or ']')
+				0 => string.Empty,
+				<= 64 => EscapeSmallString(name),
+				_ => EscapeLargeString(name)
+			};
+
+			static string EscapeSmallString(ReadOnlySpan<char> name)
+			{
+				// can take up to twice the size (if all characters must be escaped)
+				Span<char> buf = stackalloc char[name.Length * 2];
+				int p = 0;
+				foreach (var c in name)
 				{
-					buf[p++] = '\\';
+					if (c is '.' or '\\' or '[' or ']')
+					{
+						buf[p++] = '\\';
+					}
+
+					buf[p++] = c;
 				}
-				buf[p++] = c;
+
+				return buf[..p].ToString();
 			}
-			var s = new string(tmp, 0, p);
-			ArrayPool<char>.Shared.Return(tmp, clearArray: true);
-			return s;
+
+			static string EscapeLargeString(ReadOnlySpan<char> name)
+			{
+				var tmp = ArrayPool<char>.Shared.Rent(name.Length * 2);
+				Span<char> buf = tmp.AsSpan();
+				int p = 0;
+				foreach (var c in name)
+				{
+					if (c is '.' or '\\' or '[' or ']')
+					{
+						buf[p++] = '\\';
+					}
+
+					buf[p++] = c;
+				}
+
+				var s = new string(tmp, 0, p);
+				ArrayPool<char>.Shared.Return(tmp, clearArray: true);
+				return s;
+			}
+		}
+
+		private static string EscapeWithPrefix(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
+		{
+			if (prefix.Length == 0)
+			{
+				return Escape(name);
+			}
+
+			return name.Length switch
+			{
+				0 => string.Concat(prefix, "."),
+				<= 64 => EscapeSmallString(prefix, name),
+				_ => EscapeLargeString(prefix, name)
+			};
+
+			static string EscapeSmallString(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
+			{
+				// can take up to twice the size (if all characters must be escaped)
+				Span<char> buf = stackalloc char[checked(prefix.Length + 1 + name.Length * 2)];
+				prefix.CopyTo(buf);
+				buf[prefix.Length] = '.';
+				int p = prefix.Length + 1;
+				foreach (var c in name)
+				{
+					if (c is '.' or '\\' or '[' or ']')
+					{
+						buf[p++] = '\\';
+					}
+
+					buf[p++] = c;
+				}
+
+				return buf[..p].ToString();
+			}
+
+			static string EscapeLargeString(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
+			{
+				var tmp = ArrayPool<char>.Shared.Rent(name.Length * 2);
+				Span<char> buf = tmp.AsSpan();
+				prefix.CopyTo(buf);
+				buf[prefix.Length] = '.';
+				int p = prefix.Length + 1;
+				foreach (var c in name)
+				{
+					if (c is '.' or '\\' or '[' or ']')
+					{
+						buf[p++] = '\\';
+					}
+
+					buf[p++] = c;
+				}
+
+				var s = new string(tmp, 0, p);
+				ArrayPool<char>.Shared.Return(tmp, clearArray: true);
+				return s;
+			}
 		}
 
 		/// <summary>Appends an field to this path (ex: <c>JsonPath.Return("user")["id"]</c> => "user.id")</summary>
@@ -234,12 +382,15 @@ namespace Doxense.Serialization.Json
 
 				if (RequiresEscaping(key))
 				{
-					key = Escape(key);
+					return new (EscapeWithPrefix(this.Value.Span, key));
 				}
 
-				// we may need to encode the key if it contains any of '\', '.' or '['
 				int l = this.Value.Length;
-				if (l == 0) return new(key.AsMemory());
+				if (l == 0)
+				{
+					return new(key.AsMemory());
+				}
+
 				l = checked(l + 1 + key.Length);
 				return new(string.Create(l, (Path: this.Value, Key: key), ((span, state) =>
 				{
@@ -275,18 +426,14 @@ namespace Doxense.Serialization.Json
 		{
 			get
 			{
-				int l = this.Value.Length;
 
 				// we may need to encode the key if it contains any of '\', '.' or '['
 				if (RequiresEscaping(key))
 				{
-					if (l == 0)
-					{
-						return new(Escape(key));
-					}
-					key = Escape(key);
+					return new (EscapeWithPrefix(this.Value.Span, key));
 				}
 
+				int l = this.Value.Length;
 				if (l == 0)
 				{
 					return new (key.ToString());
@@ -963,19 +1110,33 @@ namespace Doxense.Serialization.Json
 			return new Index(result, fromEnd);
 		}
 
-		/// <summary>Returns a path from the slice of the </summary>
-		/// <param name="start"></param>
-		/// <returns></returns>
+		/// <summary>Returns a the sub-section of this path, beginning at a specified position and continuing to its end.</summary>
+		/// <param name="start">Number of segments to skip</param>
+		/// <returns>Slice of the path</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPath Slice(int start) => new(this.Value.Slice(start));
 
+		/// <summary>Returns a the sub-section of this path, starting at <paramref name="start" /> position for <paramref name="length" /> segments.</summary>
+		/// <param name="start">Number of segments to skip</param>
+		/// <param name="length">Number of segments to include</param>
+		/// <returns>Slice of the path</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPath Slice(int start, int length) => new(this.Value.Slice(start, length));
 
-		/// <summary></summary>
-		public JsonPath this[Range range] => new(this.Value[range]);
+		/// <summary>Returns a the sub-section of this path, corresponding to the specified range.</summary>
+		/// <param name="range">Range of the path to return</param>
+		/// <returns>Slice of the path</returns>
+		public JsonPath this[Range range]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => new(this.Value[range]);
+		}
+
+		public JsonValue ToJson() => JsonString.Return(this.Value.GetStringOrCopy());
 
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => writer.WriteValue(this.Value.Span);
 
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => JsonString.Return(this.Value.Span);
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => ToJson();
 
 		static JsonPath IJsonDeserializer<JsonPath>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver)
 		{

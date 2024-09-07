@@ -320,12 +320,12 @@ namespace Doxense.Messaging
 
 		public void Dispatch(TMessage message)
 		{
-			if (this.Ready) this.DispatchOne(message, State);
+			if (this.Ready) this.DispatchOne(message, this.State);
 		}
 
 		public void Dispatch(ReadOnlyMemory<TMessage> batch)
 		{
-			if (this.Ready) this.DispatchMany(batch, State);
+			if (this.Ready) this.DispatchMany(batch, this.State);
 		}
 
 		public Task DrainAsync(bool final, CancellationToken ct)

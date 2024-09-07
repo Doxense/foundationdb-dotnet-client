@@ -160,7 +160,6 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, LinqTunnel]
-		[Obsolete]
 		IFdbRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null);
 
 		/// <summary>
@@ -172,7 +171,6 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, LinqTunnel]
-		[Obsolete]
 		IFdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null);
 
 		/// <summary>

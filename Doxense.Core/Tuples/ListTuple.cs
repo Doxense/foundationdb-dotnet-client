@@ -100,9 +100,14 @@ namespace Doxense.Collections.Tuples
 
 		public int Count => m_items.Length;
 
+		/// <inheritdoc />
+		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
+
 		object? IReadOnlyList<object?>.this[int index] => this[index];
 
 		object? IVarTuple.this[int index] => this[index];
+
+		object? System.Runtime.CompilerServices.ITuple.this[int index] => this[index];
 
 		public T this[int index] => m_items.Span[TupleHelpers.MapIndex(index, m_items.Length)];
 

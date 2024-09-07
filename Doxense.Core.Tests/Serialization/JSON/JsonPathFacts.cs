@@ -24,11 +24,15 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable NUnit2009
+
 namespace Doxense.Serialization.Json.Tests
 {
 	using JetBrains.Annotations;
 
 	[TestFixture]
+	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public sealed class JsonPathFacts : SimpleTest
 	{
 
@@ -121,12 +125,12 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(path.GetParent().GetParent(), Is.EqualTo(JsonPath.Empty));
 			}
 			{ // escaping
-				Assert.That(JsonPath.Create(@"foo\.bar.baz").GetParts(), Is.EqualTo((new[] { "foo.bar", "baz" })));
-				Assert.That(JsonPath.Create(@"hosts.192\.168\.1\.23.name").GetParts(), Is.EqualTo((new[] { "hosts", "192.168.1.23", "name" })));
-				Assert.That(JsonPath.Create(@"users.DOMACME\\j\.smith.groups").GetParts(), Is.EqualTo((new[] { "users", @"DOMACME\j.smith", "groups" })));
-				Assert.That(JsonPath.Create(@"domains.\[::1\].allowed").GetParts(), Is.EqualTo((new[] { "domains", "[::1]", "allowed" })));
-				Assert.That(JsonPath.Create(@"foos.foo\.0.bars.bar\.1\.2.baz").GetParts(), Is.EqualTo((new[] { "foos", "foo.0", "bars", "bar.1.2", "baz" })));
-				Assert.That(JsonPath.Create(@"foos.foo\[0\].bars.bar\[1\]\[2\].baz").GetParts(), Is.EqualTo((new[] { "foos", "foo[0]", "bars", "bar[1][2]", "baz" })));
+				Assert.That(JsonPath.Create(@"foo\.bar.baz").GetParts(), Is.EqualTo((string[]) [ "foo.bar", "baz" ]));
+				Assert.That(JsonPath.Create(@"hosts.192\.168\.1\.23.name").GetParts(), Is.EqualTo((string[]) [ "hosts", "192.168.1.23", "name" ]));
+				Assert.That(JsonPath.Create(@"users.DOMACME\\j\.smith.groups").GetParts(), Is.EqualTo((string[]) [ "users", @"DOMACME\j.smith", "groups" ]));
+				Assert.That(JsonPath.Create(@"domains.\[::1\].allowed").GetParts(), Is.EqualTo((string[]) [ "domains", "[::1]", "allowed" ]));
+				Assert.That(JsonPath.Create(@"foos.foo\.0.bars.bar\.1\.2.baz").GetParts(), Is.EqualTo((string[]) [ "foos", "foo.0", "bars", "bar.1.2", "baz" ]));
+				Assert.That(JsonPath.Create(@"foos.foo\[0\].bars.bar\[1\]\[2\].baz").GetParts(), Is.EqualTo((string[]) [ "foos", "foo[0]", "bars", "bar[1][2]", "baz" ]));
 			}
 
 		}
@@ -134,28 +138,35 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonPath_Concat()
 		{
-			var root = JsonPath.Empty;
-			Assert.That(root["foo"], Is.EqualTo((JsonPath) "foo"));
-			Assert.That(root["foo"]["bar"], Is.EqualTo((JsonPath) "foo.bar"));
-			Assert.That(root["foo"]["bar"]["baz"], Is.EqualTo((JsonPath) "foo.bar.baz"));
-			Assert.That(root["foo"][42], Is.EqualTo((JsonPath) "foo[42]"));
-			Assert.That(root["foo"][42]["bar"], Is.EqualTo((JsonPath) "foo[42].bar"));
-			Assert.That(root["foo"][42][^1], Is.EqualTo((JsonPath) "foo[42][^1]"));
-			Assert.That(root[42], Is.EqualTo((JsonPath) "[42]"));
-			Assert.That(root[42]["foo"], Is.EqualTo((JsonPath) "[42].foo"));
-			Assert.That(root[42][^1], Is.EqualTo((JsonPath) "[42][^1]"));
+			Assert.That(JsonPath.Empty["foo"], Is.EqualTo(JsonPath.Create("foo")));
+			Assert.That(JsonPath.Empty["foo"]["bar"], Is.EqualTo(JsonPath.Create("foo.bar")));
+			Assert.That(JsonPath.Empty["foo"]["bar"]["baz"], Is.EqualTo(JsonPath.Create("foo.bar.baz")));
+			Assert.That(JsonPath.Empty["foo"][1], Is.EqualTo(JsonPath.Create("foo[1]")));
+			Assert.That(JsonPath.Empty["foo"][42], Is.EqualTo(JsonPath.Create("foo[42]")));
+			Assert.That(JsonPath.Empty["foo"][1234], Is.EqualTo(JsonPath.Create("foo[1234]")));
+			Assert.That(JsonPath.Empty["foo"][42]["bar"], Is.EqualTo(JsonPath.Create("foo[42].bar")));
+			Assert.That(JsonPath.Empty["foo"][42][^1], Is.EqualTo(JsonPath.Create("foo[42][^1]")));
+			Assert.That(JsonPath.Empty[42], Is.EqualTo(JsonPath.Create("[42]")));
+			Assert.That(JsonPath.Empty[42]["foo"], Is.EqualTo(JsonPath.Create("[42].foo")));
+			Assert.That(JsonPath.Empty[42][^1], Is.EqualTo(JsonPath.Create("[42][^1]")));
+			Assert.That(JsonPath.Empty["thisisaverylargestringthatwilltakemorethansixtyfourcharacterstoencodewithnoinvalidchars"], Is.EqualTo(JsonPath.Create("thisisaverylargestringthatwilltakemorethansixtyfourcharacterstoencodewithnoinvalidchars")));
+			Assert.That(JsonPath.Empty["foo"]["thisisaverylargestringthatwilltakemorethansixtyfourcharacterstoencodewithnoinvalidchars"], Is.EqualTo(JsonPath.Create("foo.thisisaverylargestringthatwilltakemorethansixtyfourcharacterstoencodewithnoinvalidchars")));
 
 			// test that we can index an object with weird keys like "foo bar" or "foo.bar" or "foo\bar" are escaped properly
-			// We use a similar encoding as json string where '\' is escape as '\\', and '.' or ' ' is encoded as '\.' and '\ ' respectively.
+			// We use a similar encoding as json string where '\' is encoded as '\\', '.' as '\.', '[' as '\[' and ']' as '\]'
 
-			Assert.That(root["foo"]["bar.baz"].ToString(), Is.EqualTo(@"foo.bar\.baz"));
-			Assert.That(root["foo"]["bar[baz"].ToString(), Is.EqualTo(@"foo.bar\[baz"));
-			Assert.That(root["foo"]["bar]baz"].ToString(), Is.EqualTo(@"foo.bar\]baz"));
-			Assert.That(root["foo"]["bar\\baz"].ToString(), Is.EqualTo(@"foo.bar\\baz"));
-			Assert.That(root["foo"]["[42]"].ToString(), Is.EqualTo(@"foo.\[42\]"));
+			Assert.That(JsonPath.Empty["foo"]["bar.baz"].ToString(), Is.EqualTo(@"foo.bar\.baz"));
+			Assert.That(JsonPath.Empty["foo"]["bar[baz"].ToString(), Is.EqualTo(@"foo.bar\[baz"));
+			Assert.That(JsonPath.Empty["foo"]["bar]baz"].ToString(), Is.EqualTo(@"foo.bar\]baz"));
+			Assert.That(JsonPath.Empty["foo"]["bar\\baz"].ToString(), Is.EqualTo(@"foo.bar\\baz"));
+			Assert.That(JsonPath.Empty["foo"]["192.168.1.23"].ToString(), Is.EqualTo(@"foo.192\.168\.1\.23"));
+			Assert.That(JsonPath.Empty["foo"]["[42]"].ToString(), Is.EqualTo(@"foo.\[42\]"));
 
-			Assert.That(root["foo"]["bar baz"].ToString(), Is.EqualTo("foo.bar baz")); // space should NOT be escaped
-			Assert.That(root["foo"]["bar/baz"].ToString(), Is.EqualTo("foo.bar/baz")); // '/' should NOT be escaped
+			Assert.That(JsonPath.Empty["foo"]["bar baz"].ToString(), Is.EqualTo("foo.bar baz")); // space should NOT be escaped
+			Assert.That(JsonPath.Empty["foo"]["bar/baz"].ToString(), Is.EqualTo("foo.bar/baz")); // '/' should NOT be escaped
+
+			Assert.That(JsonPath.Empty["""this.is.a[very.large]string.that.will\take.more.than.sixty.four.characters.to.encode.with.invalid.chars"""], Is.EqualTo(JsonPath.Create("""this\.is\.a\[very\.large\]string\.that\.will\\take\.more\.than\.sixty\.four\.characters\.to\.encode\.with\.invalid\.chars""")));
+			Assert.That(JsonPath.Empty["foo"]["""this.is.a[very.large]string.that.will\take.more.than.sixty.four.characters.to.encode.with.invalid.chars"""], Is.EqualTo(JsonPath.Create("""foo.this\.is\.a\[very\.large\]string\.that\.will\\take\.more\.than\.sixty\.four\.characters\.to\.encode\.with\.invalid\.chars""")));
 		}
 
 		[Test]
@@ -330,7 +341,7 @@ namespace Doxense.Serialization.Json.Tests
 				Log($"# '{child}'.IsChildOf('{parent}') => false");
 				Assert.That(childPath.IsChildOf(parentPath), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
 				Assert.That(childPath.IsChildOf(parent.AsSpan()), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
-				Assert.That(childPath.IsChildOf(parentPath, out var rp), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
+				Assert.That(childPath.IsChildOf(parentPath, out _), Is.False, $"Path '{child}' should NOT be a child of '{parent}'");
 			}
 
 			// PARENT

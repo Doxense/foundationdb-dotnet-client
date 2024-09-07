@@ -28,6 +28,8 @@
 // ReSharper disable PossibleMultipleEnumeration
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable MethodSupportsCancellation
+// ReSharper disable MethodHasAsyncOverload
+
 namespace Doxense.Linq.Async.Tests
 {
 	using System.Collections.Generic;
@@ -42,6 +44,7 @@ namespace Doxense.Linq.Async.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class AsyncEnumerableFacts : SimpleTest
 	{
 
@@ -856,7 +859,7 @@ namespace Doxense.Linq.Async.Tests
 			Assert.That(min, Is.EqualTo(items.Min()));
 
 			// if min is the last
-			items[items.Count - 1] = min - 1;
+			items[^1] = min - 1;
 			source = items.ToAsyncEnumerable();
 			min = await source.MinAsync();
 			Assert.That(min, Is.EqualTo(items.Min()));
@@ -1634,7 +1637,7 @@ namespace Doxense.Linq.Async.Tests
 
 			// note: we will also create a third LINQ query using lambda expressions, just to be able to have a nicer ToString() in case of errors
 
-			int[] sourceOfInts = { 1, 7, 42, -456, 123, int.MaxValue, -1, 1023, 0, short.MinValue, 5, 13, -273, 2013, 4534, -999 };
+			int[] sourceOfInts = [ 1, 7, 42, -456, 123, int.MaxValue, -1, 1023, 0, short.MinValue, 5, 13, -273, 2013, 4534, -999 ];
 
 			const int N = 1000;
 
@@ -1697,9 +1700,9 @@ namespace Doxense.Linq.Async.Tests
 					}
 
 					// convert back
-					query = sq.Select(x => Int32.Parse(x));
-					reference = sr.Select(x => Int32.Parse(x));
-					witness = sw.Select(x => Int32.Parse(x));
+					query = sq.Select(x => int.Parse(x));
+					reference = sr.Select(x => int.Parse(x));
+					witness = sw.Select(x => int.Parse(x));
 				}
 
 				// optional Skip

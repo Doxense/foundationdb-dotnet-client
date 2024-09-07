@@ -43,7 +43,7 @@ namespace Doxense.Serialization
 
 		private const int CHARMAP_PAGE_SIZE = 256;
 
-		#region Base64 Generic
+		#region Encoding Maps...
 
 		private const char Base64PadChar = '=';
 
@@ -104,10 +104,6 @@ namespace Doxense.Serialization
 			'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5',
 			'6', '7', '8', '9', '+', '/'
 		];
-
-		#endregion
-
-		#region Base64 URL
 
 		private const char Base64UrlPadChar = '*';
 
@@ -324,7 +320,7 @@ namespace Doxense.Serialization
 			Contract.Debug.Requires(charCount >= 0);
 
 			char padChar = padded ? (urlSafe ? Base64UrlPadChar : Base64PadChar) : '\0';
-			char[] charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
+			var charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
 
 #if USE_FAST_STRING_ALLOCATOR
 			// alloue directement la string, avec la bonne taille
@@ -382,7 +378,7 @@ namespace Doxense.Serialization
 
 			int size = GetCharsCount(source.Length, padded);
 			char padChar = !padded ? '\0' : urlSafe ? Base64UrlPadChar : Base64PadChar;
-			char[] charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
+			var charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
 
 			//TODO: if StringWriter, extraire le StringBuilder, et faire une version qui écrit directement dedans !
 

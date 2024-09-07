@@ -28,6 +28,7 @@ namespace Doxense.Runtime.Converters.Tests
 {
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class TypeConvertersFacts : SimpleTest
 	{
 
@@ -167,4 +168,5 @@ namespace Doxense.Runtime.Converters.Tests
 		}
 
 	}
+
 }

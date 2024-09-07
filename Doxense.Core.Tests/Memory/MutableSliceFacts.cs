@@ -35,79 +35,89 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class MutableSliceFacts : SimpleTest
 	{
 
 		[Test]
 		public void Test_MutableSlice_Nil()
 		{
-			// MutableSlice.Nil is the equivalent of 'default(byte[])'
+			// MutableSlice.Nil is the equivalent of 'default(byte[])' or 'null'
 
-			Assert.That(MutableSlice.Nil.Count, Is.EqualTo(0));
-			Assert.That(MutableSlice.Nil.Offset, Is.EqualTo(0));
-			Assert.That(MutableSlice.Nil.Array, Is.Null);
+			Assert.Multiple(() =>
+			{
+				Assert.That(MutableSlice.Nil.Count, Is.EqualTo(0));
+				Assert.That(MutableSlice.Nil.Offset, Is.EqualTo(0));
+				Assert.That(MutableSlice.Nil.Array, Is.Null);
 
-			Assert.That(MutableSlice.Nil.IsNull, Is.True);
-			Assert.That(MutableSlice.Nil.HasValue, Is.False);
-			Assert.That(MutableSlice.Nil.IsEmpty, Is.False);
-			Assert.That(MutableSlice.Nil.IsNullOrEmpty, Is.True);
-			Assert.That(MutableSlice.Nil.IsPresent, Is.False);
+				Assert.That(MutableSlice.Nil.IsNull, Is.True);
+				Assert.That(MutableSlice.Nil.HasValue, Is.False);
+				Assert.That(MutableSlice.Nil.IsEmpty, Is.False);
+				Assert.That(MutableSlice.Nil.IsNullOrEmpty, Is.True);
+				Assert.That(MutableSlice.Nil.IsPresent, Is.False);
 
-			Assert.That(MutableSlice.Nil.GetBytes(), Is.Null);
-			Assert.That(MutableSlice.Nil.GetBytesOrEmpty(), Has.Length.Zero);
+				Assert.That(MutableSlice.Nil.GetBytes(), Is.Null);
+				Assert.That(MutableSlice.Nil.GetBytesOrEmpty(), Has.Length.Zero);
 
-			Assert.That(MutableSlice.Nil.Slice.Array, Is.Null);
-			Assert.That(MutableSlice.Nil.Slice.Offset, Is.Zero);
-			Assert.That(MutableSlice.Nil.Slice.Count, Is.Zero);
-			Assert.That(MutableSlice.Nil.Slice, Is.EqualTo(Slice.Nil));
+				Assert.That(MutableSlice.Nil.Slice.Array, Is.Null);
+				Assert.That(MutableSlice.Nil.Slice.Offset, Is.Zero);
+				Assert.That(MutableSlice.Nil.Slice.Count, Is.Zero);
+				Assert.That(MutableSlice.Nil.Slice, Is.EqualTo(Slice.Nil));
+			});
+
 		}
 
 		[Test]
 		public void Test_MutableSlice_Empty()
 		{
 			// MutableSlice.Empty is the equivalent of 'new byte[0]'
+			Assert.Multiple(() =>
+			{
+				Assert.That(MutableSlice.Empty.Count, Is.EqualTo(0));
+				Assert.That(MutableSlice.Empty.Offset, Is.EqualTo(0));
+				Assert.That(MutableSlice.Empty.Array, Is.Not.Null);
+				Assert.That(MutableSlice.Empty.Array?.Length, Is.GreaterThan(0), "The backing array for MutableSlice.Empty should not be empty, in order to work properly with the fixed() operator!");
 
-			Assert.That(MutableSlice.Empty.Count, Is.EqualTo(0));
-			Assert.That(MutableSlice.Empty.Offset, Is.EqualTo(0));
-			Assert.That(MutableSlice.Empty.Array, Is.Not.Null);
-			Assert.That(MutableSlice.Empty.Array?.Length, Is.GreaterThan(0), "The backing array for MutableSlice.Empty should not be empty, in order to work properly with the fixed() operator!");
+				Assert.That(MutableSlice.Empty.IsNull, Is.False);
+				Assert.That(MutableSlice.Empty.HasValue, Is.True);
+				Assert.That(MutableSlice.Empty.IsEmpty, Is.True);
+				Assert.That(MutableSlice.Empty.IsNullOrEmpty, Is.True);
+				Assert.That(MutableSlice.Empty.IsPresent, Is.False);
 
-			Assert.That(MutableSlice.Empty.IsNull, Is.False);
-			Assert.That(MutableSlice.Empty.HasValue, Is.True);
-			Assert.That(MutableSlice.Empty.IsEmpty, Is.True);
-			Assert.That(MutableSlice.Empty.IsNullOrEmpty, Is.True);
-			Assert.That(MutableSlice.Empty.IsPresent, Is.False);
+				Assert.That(MutableSlice.Empty.GetBytes(), Has.Length.Zero);
+				Assert.That(MutableSlice.Empty.GetBytesOrEmpty(), Has.Length.Zero);
 
-			Assert.That(MutableSlice.Empty.GetBytes(), Has.Length.Zero);
-			Assert.That(MutableSlice.Empty.GetBytesOrEmpty(), Has.Length.Zero);
-
-			Assert.That(MutableSlice.Empty.Slice.Array, Is.Not.Null);
-			Assert.That(MutableSlice.Empty.Slice.Offset, Is.Zero);
-			Assert.That(MutableSlice.Empty.Slice.Count, Is.Zero);
-			Assert.That(MutableSlice.Empty.Slice, Is.EqualTo(Slice.Empty));
+				Assert.That(MutableSlice.Empty.Slice.Array, Is.Not.Null);
+				Assert.That(MutableSlice.Empty.Slice.Offset, Is.Zero);
+				Assert.That(MutableSlice.Empty.Slice.Count, Is.Zero);
+				Assert.That(MutableSlice.Empty.Slice, Is.EqualTo(Slice.Empty));
+			});
 		}
 
 		[Test]
 		public void Test_MutableSlice_With_Content()
 		{
-			var slice = MutableSlice.Create("ABC"u8.ToArray());
+			Assert.Multiple(() =>
+			{
+				var slice = MutableSlice.Create("ABC"u8.ToArray());
 
-			Assert.That(slice.Count, Is.EqualTo(3));
-			Assert.That(slice.Offset, Is.EqualTo(0));
-			Assert.That(slice.Array, Is.Not.Null);
-			Assert.That(slice.Array?.Length, Is.GreaterThanOrEqualTo(3));
+				Assert.That(slice.Count, Is.EqualTo(3));
+				Assert.That(slice.Offset, Is.EqualTo(0));
+				Assert.That(slice.Array, Is.Not.Null);
+				Assert.That(slice.Array?.Length, Is.GreaterThanOrEqualTo(3));
 
-			Assert.That(slice.IsNull, Is.False);
-			Assert.That(slice.HasValue, Is.True);
-			Assert.That(slice.IsEmpty, Is.False);
-			Assert.That(slice.IsNullOrEmpty, Is.False);
-			Assert.That(slice.IsPresent, Is.True);
+				Assert.That(slice.IsNull, Is.False);
+				Assert.That(slice.HasValue, Is.True);
+				Assert.That(slice.IsEmpty, Is.False);
+				Assert.That(slice.IsNullOrEmpty, Is.False);
+				Assert.That(slice.IsPresent, Is.True);
 
-			Assert.That(slice.GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
-			Assert.That(slice.GetBytesOrEmpty(), Is.EqualTo("ABC"u8.ToArray()));
-			Assert.That(slice.Slice.ToByteString(), Is.EqualTo("ABC"));
-			Assert.That(slice.Slice.ToUnicode(), Is.EqualTo("ABC"));
-			Assert.That(slice.Slice.PrettyPrint(), Is.EqualTo("'ABC'"));
+				Assert.That(slice.GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
+				Assert.That(slice.GetBytesOrEmpty(), Is.EqualTo("ABC"u8.ToArray()));
+				Assert.That(slice.Slice.ToByteString(), Is.EqualTo("ABC"));
+				Assert.That(slice.Slice.ToUnicode(), Is.EqualTo("ABC"));
+				Assert.That(slice.Slice.PrettyPrint(), Is.EqualTo("'ABC'"));
+			});
 		}
 
 		[Test]
@@ -197,7 +207,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
 
 			Assert.That(default(ArraySegment<byte>).AsMutableSlice(), Is.EqualTo(MutableSlice.Nil));
-			Assert.That(new ArraySegment<byte>(Array.Empty<byte>()).AsMutableSlice(), Is.EqualTo(MutableSlice.Empty));
+			Assert.That(new ArraySegment<byte>([ ]).AsMutableSlice(), Is.EqualTo(MutableSlice.Empty));
 		}
 
 		[Test]
@@ -257,6 +267,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_MutableSlice_Equality()
 		{
 #pragma warning disable 1718
+#pragma warning disable NUnit2009
 			// a == b == c && x != y && a != x
 			var a = new byte[] { 1, 2, 3 }.AsMutableSlice();
 			var b = new byte[] { 1, 2, 3 }.AsMutableSlice();
@@ -280,6 +291,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(a, Is.Not.EqualTo(x));
 			Assert.That(a, Is.Not.EqualTo(y));
 			Assert.That(a, Is.Not.EqualTo(z));
+#pragma warning restore NUnit2009
 #pragma warning restore 1718
 		}
 

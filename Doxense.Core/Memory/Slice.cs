@@ -173,20 +173,18 @@ namespace System
 			return new Slice(tmp, 0, length);
 		}
 
-
 		/// <summary>Creates a new slice with a copy of the array</summary>
 		[Pure]
-		public static Slice Copy(byte[] source)
+		public static Slice Copy(byte[]? source)
 		{
-			Contract.NotNull(source);
-			return Copy(new ReadOnlySpan<byte>(source));
+			return source != null ? Copy(new ReadOnlySpan<byte>(source)) : Slice.Nil;
 		}
 
 		/// <summary>Creates a new slice with a copy of the array segment</summary>
 		[Pure]
-		public static Slice Copy(byte[] source, int offset, int count)
+		public static Slice Copy(byte[]? source, int offset, int count)
 		{
-			return Copy(new ReadOnlySpan<byte>(source, offset, count));
+			return count == 0  && source == null && offset == 0 ? Slice.Nil : Copy(source.AsSpan(offset, count));
 		}
 
 		/// <summary>Creates a new slice with a copy of the span</summary>
@@ -211,84 +209,16 @@ namespace System
 			return new Slice(tmp, 0, source.Length);
 		}
 
-		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
-		/// <param name="source">Pointer to unmanaged buffer</param>
-		/// <param name="count">Number of bytes in the buffer</param>
-		/// <returns>Slice with a managed copy of the data</returns>
+		/// <summary>Creates a new slice with a copy of the span</summary>
 		[Pure]
-		public static Slice Copy(IntPtr source, int count)
+		public static Slice Copy(Span<byte> source)
 		{
-			unsafe
+			return source.Length switch
 			{
-				return Copy((byte*) source.ToPointer(), count);
-			}
-		}
-
-		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
-		/// <param name="source">Pointer to unmanaged buffer</param>
-		/// <param name="count">Number of bytes in the buffer</param>
-		/// <returns>Slice with a managed copy of the data</returns>
-		[Pure]
-		public static unsafe Slice Copy(void * source, int count)
-		{
-			return Copy((byte*) source, count);
-		}
-
-		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
-		/// <param name="source">Pointer to unmanaged buffer</param>
-		/// <param name="count">Number of bytes in the buffer</param>
-		/// <returns>Slice with a managed copy of the data</returns>
-		[Pure]
-		public static unsafe Slice Copy(byte* source, int count)
-		{
-			if (count == 0)
-			{
-				return source == null ? default : Empty;
-			}
-			Contract.PointerNotNull(source);
-			Contract.Positive(count);
-
-			if (count == 1)
-			{ // Use the sprite cache
-				return FromByte(*source);
-			}
-
-			var bytes = new byte[count];
-			new ReadOnlySpan<byte>(source, count).CopyTo(bytes);
-			return new Slice(bytes);
-		}
-
-		/// <summary>Return a copy of the memory content of an array of item</summary>
-		public static Slice CopyMemory<T>(ReadOnlySpan<T> items)
-			where T : struct
-		{
-			return Copy(MemoryMarshal.AsBytes(items));
-		}
-
-		/// <summary>Return a copy of the memory content of an array of item</summary>
-		public static Slice CopyMemory<T>(ReadOnlySpan<T> items, ref byte[]? buffer)
-			where T : struct
-		{
-			return Copy(MemoryMarshal.AsBytes(items), ref buffer);
-		}
-
-		/// <summary>Try to convert a <see cref="ReadOnlyMemory{T}"/> into a Slice if it is backed by a managed byte array.</summary>
-		/// <param name="buffer">Buffer that maps a region of memory</param>
-		/// <param name="slice">If the methods returns <c>true</c>, a slice that maps the same region of managed memory.</param>
-		/// <returns>True if the memory was backed by a managed array; otherwise, false.</returns>
-		public static bool TryGetSlice(ReadOnlyMemory<byte> buffer, out Slice slice)
-		{
-			if (!MemoryMarshal.TryGetArray(buffer, out var segment))
-			{
-				slice = default;
-				return false;
-			}
-
-			slice = segment.Count == 0
-				? Slice.Empty
-				: new Slice(segment.Array!, segment.Offset, segment.Count);
-
-			return true;
+				0 => Slice.Empty,
+				1 => FromByte(source[0]),
+				_ => new Slice(source.ToArray())
+			};
 		}
 
 		/// <summary>Implicitly converts a <see cref="Slice"/> into an <see cref="ArraySegment{T}">ArraySegment&lt;byte&gt;</see></summary>
@@ -627,33 +557,6 @@ namespace System
 		public bool TryCopyTo(byte[] buffer, int offset)
 		{
 			return this.Span.TryCopyTo(buffer.AsSpan(offset));
-		}
-
-		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
-		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
-		/// <remarks>Copy will fail if there is not enough space in the output buffer (ie: if it would writer at or after <paramref name="end"/>)</remarks>
-		public unsafe byte* CopyToUnsafe(byte* ptr, byte* end)
-		{
-			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
-			if (!this.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue))))
-			{
-				throw UnsafeHelpers.Errors.SliceBufferTooSmall();
-			}
-			return ptr + this.Count;
-		}
-
-		/// <summary>Try to copy this slice into memory and return the advanced cursor, if the destination is large enough</summary>
-		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
-		/// <returns>Pointer to the advanced memory position, or null if the destination buffer was too small</returns>
-		[return:MaybeNull]
-		public unsafe byte* TryCopyToUnsafe(byte* ptr, byte* end)
-		{
-			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
-			return this.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue)))
-				? ptr + this.Count
-				: null;
 		}
 
 		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
@@ -2989,14 +2892,14 @@ namespace System
 			return Slice.Empty;
 		}
 
-		/// <summary>Return a slice that wraps the whole array</summary>
+		/// <summary>Returns a slice that wraps the whole array</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes)
 		{
 			return bytes != null && bytes.Length > 0 ? new Slice(bytes, 0, bytes.Length) : EmptyOrNil(bytes);
 		}
 
-		/// <summary>Return the tail of the array, starting from the specified offset</summary>
+		/// <summary>Returns the tail of the array, starting from the specified offset</summary>
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="offset">Offset to the first byte of the slice</param>
 		/// <returns></returns>
@@ -3009,7 +2912,7 @@ namespace System
 			return bytes.Length != 0 ? new Slice(bytes, offset, bytes.Length - offset) : Slice.Empty;
 		}
 
-		/// <summary>Return a slice from the sub-section of the byte array</summary>
+		/// <summary>Returns a slice from the sub-section of the byte array</summary>
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="offset">Offset to the first element of the slice (if not empty)</param>
 		/// <param name="count">Number of bytes to take</param>
@@ -3030,7 +2933,7 @@ namespace System
 			return new Slice(bytes, offset, count);
 		}
 
-		/// <summary>Return a slice from the sub-section of the byte array</summary>
+		/// <summary>Returns a slice from the sub-section of the byte array</summary>
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="offset">Offset to the first element of the slice (if not empty)</param>
 		/// <param name="count">Number of bytes to take</param>
@@ -3050,7 +2953,7 @@ namespace System
 			return new Slice(bytes, (int) offset, (int) count);
 		}
 
-		/// <summary>Return a slice from the sub-section of the byte array</summary>
+		/// <summary>Returns a slice from the sub-section of the byte array</summary>
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="range">Range of the array to return</param>
 		/// <returns>
@@ -3077,6 +2980,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns a slice that is the wraps the same memory region as this <see cref="ArraySegment{T}"/></summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self)
 		{
@@ -3087,18 +2991,24 @@ namespace System
 			return self.Count != 0 ? new Slice(self.Array!, self.Offset, self.Count) : EmptyOrNil(self.Array, self.Count);
 		}
 
-		/// <summary>Return a slice from the sub-section of an array segment</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice(this ArraySegment<byte> self, int offset, int count)
+		/// <summary>Copies the content of this span into a new Slice</summary>
+		/// <param name="span">Span to copy</param>
+		/// <returns>Slice with a copy of the span content</returns>
+		/// <remarks>Any future change to either span or resulting slice will not impact the other.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice ToSlice(this ReadOnlySpan<byte> span)
 		{
-			return AsSlice(self).Substring(offset, count);
+			return Slice.Copy(span);
 		}
 
-		/// <summary>Return a slice from the sub-section of an array segment</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice(this ArraySegment<byte> self, Range range)
+		/// <summary>Copies the content of this span into a new Slice</summary>
+		/// <param name="span">Span to copy</param>
+		/// <returns>Slice with a copy of the span content</returns>
+		/// <remarks>Any future change to either span or resulting slice will not impact the other.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice ToSlice(this Span<byte> span)
 		{
-			return AsSlice(self).Substring(range);
+			return Slice.Copy(span);
 		}
 
 		/// <summary>Return a <see cref="SliceReader"/> that will expose the content of a buffer</summary>
@@ -3370,5 +3280,324 @@ namespace System
 		}
 
 	}
+
+#if NET8_0_OR_GREATER
+
+	[PublicAPI]
+	public static class SliceMarshal
+	{
+
+		/// <summary>Try to convert a <see cref="ReadOnlyMemory{T}"/> into a Slice if it is backed by a managed byte array.</summary>
+		/// <param name="buffer">Buffer that maps a region of memory</param>
+		/// <param name="slice">If the methods returns <c>true</c>, a slice that maps the same region of managed memory.</param>
+		/// <returns>True if the memory was backed by a managed array; otherwise, false.</returns>
+		[Pure]
+		public static bool TryGetSlice(ReadOnlyMemory<byte> buffer, out Slice slice)
+		{
+			if (!MemoryMarshal.TryGetArray(buffer, out var segment))
+			{
+				slice = default;
+				return false;
+			}
+
+			slice = segment.Count == 0
+				? Slice.Empty
+				: new Slice(segment.Array!, segment.Offset, segment.Count);
+
+			return true;
+		}
+
+		/// <summary>Returns a copy of the memory content of an array of item</summary>
+		[Pure]
+		public static Slice CopyAsBytes<T>(ReadOnlySpan<T> items)
+			where T : struct
+		{
+			return Slice.Copy(MemoryMarshal.AsBytes(items));
+		}
+
+		/// <summary>Returns a copy of the memory content of an array of item</summary>
+		[Pure]
+		public static Slice CopyAsBytes<T>(Span<T> items)
+			where T : struct
+		{
+			return Slice.Copy(MemoryMarshal.AsBytes(items));
+		}
+
+		/// <summary>Returns a copy of the memory content of an array of item</summary>
+		[Pure]
+		public static Slice CopyAsBytes<T>(ReadOnlySpan<T> items, ref byte[]? buffer)
+			where T : struct
+		{
+			return Slice.Copy(MemoryMarshal.AsBytes(items), ref buffer);
+		}
+
+		/// <summary>Returns a copy of the memory content of an array of item</summary>
+		[Pure]
+		public static Slice CopyAsBytes<T>(Span<T> items, ref byte[]? buffer)
+			where T : struct
+		{
+			return Slice.Copy(MemoryMarshal.AsBytes(items), ref buffer);
+		}
+
+		/// <summary>Returns a valid reference to the first byte in the slice</summary>
+		/// <param name="buffer">Slice</param>
+		/// <returns>Reference to the first byte, or where it would be if the slice is empty</returns>
+		/// <exception cref="ArgumentException">If the slice if empty.</exception>
+		public static ref readonly byte GetReference(Slice buffer)
+		{
+			if (buffer.Count <= 0)
+			{
+				throw new ArgumentException(nameof(buffer));
+			}
+			return ref MemoryMarshal.GetReference(buffer.Span);
+		}
+
+		/// <summary>Returns a valid reference to a byte at the given location in the slice</summary>
+		/// <param name="buffer">Slice</param>
+		/// <param name="index">Index in the slice.</param>
+		/// <returns>Reference to the corresponding byte</returns>
+		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		public static ref readonly byte GetReferenceAt(Slice buffer, int index)
+		{
+			if (buffer.Count <= 0)
+			{
+				throw new ArgumentException(nameof(buffer));
+			}
+			if ((uint) index >= buffer.Count)
+			{
+				throw new ArgumentOutOfRangeException(nameof(index));
+			}
+			return ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer.Span), index);
+		}
+
+		/// <summary>Returns a valid reference to a byte at the given location in the slice</summary>
+		/// <param name="buffer">Slice</param>
+		/// <param name="index">Index in the slice.</param>
+		/// <returns>Reference to the corresponding byte</returns>
+		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		public static ref readonly byte GetReferenceAt(Slice buffer, Index index)
+			=> ref GetReferenceAt(buffer, index.GetOffset(buffer.Count));
+
+		/// <summary>Returns a valid reference to the last byte in the slice</summary>
+		/// <param name="buffer">Slice</param>
+		/// <returns>Reference to the corresponding byte</returns>
+		/// <exception cref="ArgumentException">If the slice if empty.</exception>
+		public static ref readonly byte GetReferenceToLast(Slice buffer)
+		{
+			if (buffer.Count <= 0)
+			{
+				throw new ArgumentException(nameof(buffer));
+			}
+			return ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer.Span), buffer.Count - 1);
+		}
+
+		/// <summary>Returns a reference to a byte at the given location in the slice, or <see langword="null"/> if it is outside</summary>
+		/// <param name="buffer">Slice</param>
+		/// <param name="index">Index in the slice.</param>
+		/// <param name="valid">Receives <see langword="true"/> if <paramref name="index"/> is inside the slice; otherwise, <see langword="false"/>.</param>
+		/// <returns>Reference to the corresponding byte, or <see langword="null"/> if <paramref name="index"/> is outside the bounds of the slice.</returns>
+		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		public static ref readonly byte TryGetReferenceAt(Slice buffer, int index, out bool valid)
+		{
+			if ((uint) index >= buffer.Count)
+			{
+				valid = false;
+				return ref Unsafe.NullRef<byte>();
+			}
+
+			valid = true;
+			return ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer.Span), index);
+		}
+
+		/// <summary>Returns a reference to a byte at the given location in the slice, or <see langword="null"/> if it is outside</summary>
+		/// <param name="buffer">Slice</param>
+		/// <param name="index">Index in the slice.</param>
+		/// <param name="valid">Receives <see langword="true"/> if <paramref name="index"/> is inside the slice; otherwise, <see langword="false"/>.</param>
+		/// <returns>Reference to the corresponding byte, or <see langword="null"/> if <paramref name="index"/> is outside the bounds of the slice.</returns>
+		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		public static ref readonly byte TryGetReferenceAt(Slice buffer, Index index, out bool valid)
+			=> ref TryGetReferenceAt(buffer, index.GetOffset(buffer.Count), out valid);
+
+		/// <summary>Tests if a reference points inside the corresponding slice</summary>
+		/// <returns><see langword="true"/> if <param name="ptr"> points to a byte inside the slice, or <see langword="false"/> if it is outside the slice</param></returns>
+		[Pure]
+		public static bool IsAddressInside(Slice buffer, ref readonly byte ptr)
+		{
+			var span = buffer.Span;
+			if (span.Length == 0) return false;
+			ref readonly byte start = ref buffer.Array[buffer.Offset];
+			ref readonly byte end = ref Unsafe.Add(ref Unsafe.AsRef(in start), span.Length);
+			return !Unsafe.IsAddressLessThan(in ptr, in start) && Unsafe.IsAddressLessThan(in ptr, in end);
+		}
+
+		/// <summary>Returns the offset of an unmanaged pointer inside the slice</summary>
+		/// <param name="ptr">Unamanged pointer</param>
+		/// <param name="buffer">Slice to compare</param>
+		/// <param name="offset">If the pointer is inside the slice, receives the offset from the start of the slice</param>
+		/// <returns><see langword="true"/> if the pointer is contained inside the slice (or after the end).</returns>
+		/// <returns>
+		/// <para>If <paramref name="ptr"/> points to where the next byte after the last byte of the slice, then the method will still return true, and offset will be equal to the length of the slice.</para>
+		/// <para>This simplifies the logic of cursor management when writing inside a pre-allocated buffer.</para>
+		/// </returns>
+		[Pure]
+		public static bool TryGetOffset(ref byte ptr, Slice buffer, out int offset)
+		{
+			var span = buffer.Span;
+			ref byte start = ref MemoryMarshal.GetReference(span);
+			if (Unsafe.IsAddressLessThan(ref ptr, ref start))
+			{ // before the end
+				goto invalid;
+			}
+
+			ref byte end = ref Unsafe.Add(ref start, span.Length);
+			if (Unsafe.IsAddressGreaterThan(ref ptr, ref end))
+			{ // after the end
+				goto invalid;
+			}
+
+			// we are inside (or right at the end of) the slice
+			offset = Unsafe.ByteOffset(ref start, ref ptr).ToInt32();
+			return true;
+
+		invalid:
+			offset = 0;
+			return false;
+
+		}
+
+		/// <summary>Reinterprets a Slice of bytes as a read-only reference to the structure of type <typeparamref name="T" />.</summary>
+		/// <param name="buffer">The Slice to reinterpret.</param>
+		/// <typeparam name="T">The type of the returned reference.</typeparam>
+		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
+		/// <returns>The read-only reference to the structure of type <typeparamref name="T" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ref readonly T AsRef<T>(Slice buffer) where T : struct
+		{
+			return ref MemoryMarshal.AsRef<T>(buffer.Span);
+		}
+
+		/// <summary>Casts a Slice to a read-only span of another primitive type.</summary>
+		/// <param name="buffer">The source slice to convert.</param>
+		/// <typeparam name="TTo">The type of the target span.</typeparam>
+		/// <exception cref="T:System.ArgumentException"> <typeparamref name="TTo" /> contains managed object references.</exception>
+		/// <returns>The converted read-only span.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<TTo> Cast<TTo>(Slice buffer)
+			where TTo : struct
+		{
+			return MemoryMarshal.Cast<byte, TTo>(buffer.Span);
+		}
+
+		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
+		/// <param name="source">A slice.</param>
+		/// <typeparam name="T">The type of the item to retrieve from the slice.</typeparam>
+		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="source" /> is smaller than <typeparamref name="T" />'s length in bytes.</exception>
+		/// <returns>The structure retrieved from the read-only span.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T Read<T>(Slice source) where T : struct
+		{
+			return MemoryMarshal.Read<T>(source.Span);
+		}
+
+		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
+		/// <param name="source">A slice.</param>
+		/// <typeparam name="T">The type of the item to retrieve from the slice.</typeparam>
+		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="source" /> is smaller than <typeparamref name="T" />'s length in bytes.</exception>
+		/// <returns>The structure retrieved from the read-only span.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T ReadAt<T>(Slice source, int index) where T : struct
+		{
+			return MemoryMarshal.Read<T>(source.Span.Slice(index));
+		}
+
+		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
+		/// <param name="source">A slice.</param>
+		/// <typeparam name="T">The type of the item to retrieve from the slice.</typeparam>
+		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="source" /> is smaller than <typeparamref name="T" />'s length in bytes.</exception>
+		/// <returns>The structure retrieved from the read-only span.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T ReadAt<T>(Slice source, Index index) where T : struct
+		{
+			return MemoryMarshal.Read<T>(source.Span.Slice(index.GetOffset(source.Count)));
+		}
+
+		/// <summary>Tries to read a structure of type <paramref name="T" /> from a <see cref="Slice"/>.</summary>
+		/// <param name="source">A slice.</param>
+		/// <param name="value">When the method returns, an instance of <typeparamref name="T" />.</param>
+		/// <typeparam name="T">The type of the structure to retrieve.</typeparam>
+		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
+		/// <returns> <see langword="true" /> if the method succeeds in retrieving an instance of the structure; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryRead<T>(Slice source, out T value) where T : struct
+		{
+			return MemoryMarshal.TryRead<T>(source.Span, out value);
+		}
+
+
+		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
+		/// <param name="source">Pointer to unmanaged buffer</param>
+		/// <param name="count">Number of bytes in the buffer</param>
+		/// <returns>Slice with a managed copy of the data</returns>
+		[Pure]
+		public static unsafe Slice Copy(IntPtr source, int count)
+		{
+			return Slice.Copy(new ReadOnlySpan<byte>(source.ToPointer(), count));
+		}
+
+		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
+		/// <param name="source">Pointer to unmanaged buffer</param>
+		/// <param name="count">Number of bytes in the buffer</param>
+		/// <returns>Slice with a managed copy of the data</returns>
+		[Pure]
+		public static unsafe Slice Copy(void* source, int count)
+		{
+			return Slice.Copy(new ReadOnlySpan<byte>(source, count));
+		}
+
+		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
+		/// <param name="source">Pointer to unmanaged buffer</param>
+		/// <param name="count">Number of bytes in the buffer</param>
+		/// <returns>Slice with a managed copy of the data</returns>
+		[Pure]
+		public static unsafe Slice Copy(byte* source, int count)
+		{
+			return Slice.Copy(new ReadOnlySpan<byte>(source, count));
+		}
+
+		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
+		/// <param name="buffer">Slice to copy</param>
+		/// <param name="ptr">Pointer where to copy this slice</param>
+		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
+		/// <remarks>Copy will fail if there is not enough space in the output buffer (ie: if it would writer at or after <paramref name="end"/>)</remarks>
+		public static unsafe byte* CopyTo(Slice buffer, byte* ptr, byte* end)
+		{
+			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
+			if (!buffer.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue))))
+			{
+				throw UnsafeHelpers.Errors.SliceBufferTooSmall();
+			}
+			return ptr + buffer.Count;
+		}
+
+		/// <summary>Try to copy this slice into memory and return the advanced cursor, if the destination is large enough</summary>
+		/// <param name="buffer">Slice to copy</param>
+		/// <param name="ptr">Pointer where to copy this slice</param>
+		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
+		/// <returns>Pointer to the advanced memory position, or null if the destination buffer was too small</returns>
+		[return:MaybeNull]
+		public static unsafe byte* TryCopyTo(Slice buffer, byte* ptr, byte* end)
+		{
+			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
+			return buffer.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue)))
+				? ptr + buffer.Count
+				: null;
+		}
+
+	}
+
+#endif
 
 }

@@ -39,15 +39,11 @@ namespace Doxense.Diagnostics.Contracts.Tests
 	/// <summary>Tests sur la classe statique Doxense.Diagnostics.Contracts.Contract</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
+	[SetInvariantCulture]
+	[Parallelizable(ParallelScope.None)]
 	public class ContractTests : SimpleTest
 	{
 		private bool m_status;
-
-		protected override void OnBeforeEverything()
-		{
-			Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-			Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
-		}
 
 		[SetUp]
 		public void Before()
@@ -211,108 +207,122 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		[SuppressMessage("ReSharper", "NotResolvedInText")]
 		public void Test_Contract_GreaterThan_Throws_ArgumentException()
 		{
+			Assert.Multiple(() =>
+			{
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(1, 0, "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(66, 42, "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(1L, 0, "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(1L + int.MaxValue, int.MaxValue, "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(int.MaxValue, int.MaxValue - 1, "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(0, int.MinValue, "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(long.MaxValue, long.MaxValue - 1, "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterThan(0, long.MinValue, "foo"); });
 
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(1, 0, "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(66, 42, "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(1L, 0, "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(1L + int.MaxValue, int.MaxValue, "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(int.MaxValue, int.MaxValue - 1, "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(0, int.MinValue, "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(long.MaxValue, long.MaxValue - 1, "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterThan(0, long.MinValue, "foo"); });
-
-			{
-				Assert.That(() => { int foo = 0; Contract.GreaterThan(foo, 1); }, Throws.InstanceOf<ArgumentException>().Catch<ArgumentException>(out var aex));
-				Assert.That(aex.Exception.Message, Is.EqualTo("Precondition failed: foo > 1  The specified value is too small. (Parameter 'foo')"));
-				Assert.That(aex.Exception.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				Assert.That(() => { long foo = 0; Contract.GreaterThan(foo, 0L); }, Throws.InstanceOf<ArgumentException>().Catch<ArgumentException>(out var aex));
-				Assert.That(aex.Exception.Message, Is.EqualTo("Precondition failed: foo > 0L  Non-Zero Positive number required. (Parameter 'foo')"));
-				Assert.That(aex.Exception.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				Assert.That(() => { int foo = 0; Contract.GreaterThan(foo, 1, "le message"); }, Throws.InstanceOf<ArgumentException>().Catch<ArgumentException>(out var aex));
-				Assert.That(aex.Exception.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.Exception.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				Assert.That(() => { long foo = 0; Contract.GreaterThan(foo, 0L, "le message"); }, Throws.InstanceOf<ArgumentException>().Catch<ArgumentException>(out var aex));
-				Assert.That(aex.Exception.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.Exception.ParamName, Is.EqualTo("foo"));
-			}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { int foo = 0; Contract.GreaterThan(foo, 1); });
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo > 1  The specified value is too small. (Parameter 'foo')\r\nActual value was 0."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { long foo = 0; Contract.GreaterThan(foo, 0L); });
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo > 0L  Non-Zero Positive number required. (Parameter 'foo')\r\nActual value was 0."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { int foo = 0; Contract.GreaterThan(foo, 1, "le message"); });
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was 0."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { long foo = 0; Contract.GreaterThan(foo, 0L, "le message"); });
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was 0."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+			});
 		}
 
 		[Test]
 		[SuppressMessage("ReSharper", "NotResolvedInText")]
 		public void Test_Contract_GreaterOrEqual_Throws_ArgumentException()
 		{
+			Assert.Multiple(() =>
+			{
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(1, 0, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(66, 42, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(1L, 0, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(1L + int.MaxValue, int.MaxValue, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(int.MaxValue, int.MaxValue - 1, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(0, int.MinValue, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(long.MaxValue, long.MaxValue - 1, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(0, long.MinValue, valueExpression: "foo"); });
 
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(1, 0, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(66, 42, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(1L, 0, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(1L + int.MaxValue, int.MaxValue, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(int.MaxValue, int.MaxValue - 1, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(0, int.MinValue, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(long.MaxValue, long.MaxValue - 1, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.GreaterOrEqual(0, long.MinValue, valueExpression: "foo"); });
-
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.GreaterOrEqual(0, 1, valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo >= 1  The specified value is too small. (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.GreaterOrEqual(-1L, 0L, valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo >= 0L  Positive number required. (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.GreaterOrEqual(0, 1, message: "le message", valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.GreaterOrEqual(-1L, 0L, message: "le message", valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { int foo = 0; Contract.GreaterOrEqual(foo, 1); });
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo >= 1  The specified value is too small. (Parameter 'foo')\r\nActual value was 0."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(0));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { long foo = -1L; Contract.GreaterOrEqual(foo, 0L); });
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo >= 0L  Positive number required. (Parameter 'foo')\r\nActual value was -1."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(-1L));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { int foo = 0; Contract.GreaterOrEqual(foo, 1, message: "le message"); });
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was 0."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(0));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { long foo = -1L; Contract.GreaterOrEqual(foo, 0L, message: "le message"); });
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was -1."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(-1L));
+				}
+			});
 		}
 
 		[Test]
 		[SuppressMessage("ReSharper", "NotResolvedInText")]
 		public void Test_Contract_LessThan_Throws_ArgumentException()
 		{
+			Assert.Multiple(() =>
+			{
+				Assert.DoesNotThrow(() => { Contract.LessThan(0, 1, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessThan(42, 66, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessThan(-1, 0, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessThan(-1L, 0, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessThan(int.MaxValue - 1, int.MaxValue, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessThan(long.MaxValue - 1, long.MaxValue, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessThan(int.MinValue, 0, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessThan(long.MinValue, 0, valueExpression: "foo"); });
 
-			Assert.DoesNotThrow(() => { Contract.LessThan(0, 1, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessThan(42, 66, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessThan(-1, 0, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessThan(-1L, 0, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessThan(int.MaxValue - 1, int.MaxValue, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessThan(long.MaxValue - 1, long.MaxValue, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessThan(int.MinValue, 0, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessThan(long.MinValue, 0, valueExpression: "foo"); });
-
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessThan(1, 0, valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo < 0  The specified value is too big. (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessThan(1L, 0L, valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo < 0L  The specified value is too big. (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessThan(2, 1, message: "le message", valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessThan(2L, 0L, message: "le message", valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => Contract.LessThan(1, 0, valueExpression: "foo"));
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo < 0  The specified value is too big. (Parameter 'foo')\r\nActual value was 1."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(1));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => Contract.LessThan(1L, 0L, valueExpression: "foo"));
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo < 0L  The specified value is too big. (Parameter 'foo')\r\nActual value was 1."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(1));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => Contract.LessThan(2, 1, message: "le message", valueExpression: "foo"));
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was 2."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(2));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => Contract.LessThan(2L, 0L, message: "le message", valueExpression: "foo"));
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was 2."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+					Assert.That(aex.ActualValue, Is.EqualTo(2));
+				}
+			});
 		}
 
 		[Test]
@@ -320,35 +330,38 @@ namespace Doxense.Diagnostics.Contracts.Tests
 		public void Test_Contract_LessOrEqual_Throws_ArgumentException()
 		{
 
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(1, 2, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(42, 66, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(0L, 1L, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(int.MaxValue, 1L + int.MaxValue, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(int.MaxValue - 1, int.MaxValue, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(int.MinValue, 0, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(long.MaxValue - 1, long.MaxValue, valueExpression: "foo"); });
-			Assert.DoesNotThrow(() => { Contract.LessOrEqual(long.MinValue, 0, valueExpression: "foo"); });
+			Assert.Multiple(() =>
+			{
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(1, 2, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(42, 66, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(0L, 1L, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(int.MaxValue, 1L + int.MaxValue, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(int.MaxValue - 1, int.MaxValue, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(int.MinValue, 0, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(long.MaxValue - 1, long.MaxValue, valueExpression: "foo"); });
+				Assert.DoesNotThrow(() => { Contract.LessOrEqual(long.MinValue, 0, valueExpression: "foo"); });
 
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessOrEqual(2, 1, valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo <= 1  The specified value is too big. (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessOrEqual(1L, 0L, valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo <= 0L  The specified value is too big. (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessOrEqual(2, 1, message: "le message", valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
-			{
-				var aex = Assert.Throws<ArgumentException>(() => { Contract.LessOrEqual(1L, 0L, message: "le message", valueExpression: "foo"); });
-				Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')"));
-				Assert.That(aex.ParamName, Is.EqualTo("foo"));
-			}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { Contract.LessOrEqual(2, 1, valueExpression: "foo"); });
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo <= 1  The specified value is too big. (Parameter 'foo')\r\nActual value was 2."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { Contract.LessOrEqual(1L, 0L, valueExpression: "foo"); });
+					Assert.That(aex.Message, Is.EqualTo("Precondition failed: foo <= 0L  The specified value is too big. (Parameter 'foo')\r\nActual value was 1."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { Contract.LessOrEqual(2, 1, message: "le message", valueExpression: "foo"); });
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was 2."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+				{
+					var aex = Assert.Throws<ArgumentOutOfRangeException>(() => { Contract.LessOrEqual(1L, 0L, message: "le message", valueExpression: "foo"); });
+					Assert.That(aex.Message, Is.EqualTo("le message (Parameter 'foo')\r\nActual value was 1."));
+					Assert.That(aex.ParamName, Is.EqualTo("foo"));
+				}
+			});
 		}
 
 		[Test]

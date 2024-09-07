@@ -31,6 +31,7 @@ namespace Doxense.Runtime.Comparison.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class ModelComparerFacts : SimpleTest
 	{
 

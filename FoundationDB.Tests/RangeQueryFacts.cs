@@ -181,12 +181,12 @@ namespace FoundationDB.Client.Tests
 				Log($"Inserting {N:N0} keys...");
 				var insert = Stopwatch.StartNew();
 
-				var data = Enumerable.Range(0, N).Select(i => (i, "SomeValue:" + i.ToString("D08"))).ToArray();
+				var data = Enumerable.Range(0, N).Select(i => (Key: i, Value: "SomeValue:" + i.ToString("D08"))).ToArray();
 
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = (await location.Resolve(tr))!;
-					tr.SetValues(data.Select(kv => KeyValuePair.Create(subspace.Encode(kv.Item1), Slice.FromStringUtf8(kv.Item2))));
+					tr.SetValues(data.Select(kv => KeyValuePair.Create(subspace.Encode(kv.Key), Slice.FromStringUtf8(kv.Value))));
 				}, this.Cancellation);
 
 				insert.Stop();

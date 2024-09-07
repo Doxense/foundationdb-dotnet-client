@@ -32,6 +32,7 @@ namespace System
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Security.Cryptography;
+	using Doxense.Serialization;
 
 	/// <summary>Represents a 64-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
@@ -300,6 +301,13 @@ namespace System
 			return TryParseBase62(buffer.AsSpan(), out var value) ? value : throw FailInvalidFormat();
 		}
 
+		/// <summary>Parse a Base62 encoded string representation of an UUid64</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromBase62(ReadOnlySpan<char> buffer)
+		{
+			return TryParseBase62(buffer, out var value) ? value : throw FailInvalidFormat();
+		}
+
 		/// <summary>Tries to parse a string into a <see cref="Uuid64"/></summary>
 		/// <param name="input">The string to parse.</param>
 		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
@@ -413,7 +421,7 @@ namespace System
 				return true;
 			}
 
-			if (input.Length <= 11 && Base62.TryDecode(input, out ulong x))
+			if (input.Length <= 11 && Base62Encoding.TryDecodeUInt64(input, out ulong x, Base62FormattingOptions.Lexicographic))
 			{
 				result = new Uuid64(x);
 				return true;
@@ -524,12 +532,12 @@ namespace System
 				case "C":
 				case "c":
 				{ // base 62, compact, no padding
-					return Base62.Encode(m_value, padded: false);
+					return ToBase62(padded: false);
 				}
 				case "Z":
 				case "z":
 				{ // base 62, padded with '0' up to 11 chars
-					return Base62.Encode(m_value, padded: true);
+					return ToBase62(padded: true);
 				}
 
 				case "R":
@@ -581,6 +589,11 @@ namespace System
 					throw new FormatException("Invalid " + nameof(Uuid64) + " format specification.");
 				}
 			}
+		}
+
+		public string ToBase62(bool padded = false)
+		{
+			return Base62Encoding.Encode(m_value, padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
 		}
 
 		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
@@ -950,8 +963,6 @@ namespace System
 		{
 			//note: nested static class, so that we only allocate the internal buffers if Base62 encoding is actually used
 
-			private static readonly char[] Base62LexicographicChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".ToCharArray();
-
 			private static readonly int[] Base62Values =
 			[
 				/* 32.. 63 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1, -1,
@@ -970,42 +981,12 @@ namespace System
 			/// </sample>
 			public static string Encode(ulong value, bool padded)
 			{
-				// special case for default(Uuid64) which may be more frequent than others
-				if (value == 0) return padded ? "00000000000" : "0";
-
-				// encoding a 64 bits value in Base62 yields 10.75 "digits", which is rounded up to 11 chars.
-				const int MAX_SIZE = 11;
-
-				unsafe
-				{
-					// The maximum size is 11 chars, but we will allocate 64 bytes on the stack to keep alignment.
-					char* chars = stackalloc char[16];
-					char[] bc = Base62LexicographicChars;
-
-					// start from the last "digit"
-					char* pc = chars + (MAX_SIZE - 1);
-
-					while (pc >= chars)
-					{
-						ulong r = value % 62L;
-						value /= 62L;
-						*pc-- = bc[(int) r];
-						if (!padded && value == 0)
-						{ // the rest will be all zeroes
-							break;
-						}
-					}
-
-					++pc;
-					int count = MAX_SIZE - (int) (pc - chars);
-					Contract.Debug.Assert(count > 0 && count <= 11);
-					return count <= 0 ? string.Empty : new string(pc, 0, count);
-				}
+				return Base62Encoding.Encode(value, padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic | Base62FormattingOptions.None);
 			}
 
 			public static bool TryDecode(ReadOnlySpan<char> s, out ulong value)
 			{
-				if (s == null || s.Length == 0 || s.Length > 11)
+				if (s.Length == 0 || s.Length > 11)
 				{ // fail: too small/too big
 					value = 0;
 					return false;

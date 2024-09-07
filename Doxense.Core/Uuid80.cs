@@ -124,6 +124,35 @@ namespace System
 			this.Lo = ((ulong) b) << 48 | ((ulong) c) << 32 | ((ulong) d) << 16 | e;
 		}
 
+		public static Uuid80 FromUInt32(uint value)
+		{
+			return new(0, value);
+		}
+
+		public static Uuid80 FromUInt64(ulong value)
+		{
+			return new(0, value);
+		}
+
+#if NET8_0_OR_GREATER
+
+		public static Uuid80 FromUInt128(UInt128 value)
+		{
+			if (value >= UInt128.One << 80)
+			{
+				throw new ArgumentOutOfRangeException(nameof(value), "Value must be less than 2^80");
+			}
+
+			Span<byte> tmp = stackalloc byte[16];
+			System.Buffers.Binary.BinaryPrimitives.WriteUInt128BigEndian(tmp, value);
+			// [0..5] must be ZERO !
+			// [6..15] contains the valid bits
+			ReadUnsafe(tmp, out var res);
+			return res;
+		}
+
+#endif
+
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg)
 		{
@@ -612,13 +641,26 @@ namespace System
 
 		#region Unsafe I/O...
 
-		internal static unsafe void ReadUnsafe(ReadOnlySpan<byte> src, out Uuid80 result)
+		internal static void ReadUnsafe(ReadOnlySpan<byte> src, out Uuid80 result)
 		{
-			//Paranoid.Requires(src.Length >= 10);
-			fixed (byte* ptr = &MemoryMarshal.GetReference(src))
+			//Paranoid.Requires(src.Length >= 10)
+#if NET8_0_OR_GREATER
+			result = new Uuid80(
+				UnsafeHelpers.ReadUInt16BE(in src[0]),
+				UnsafeHelpers.ReadUInt64BE(in src[2])
+			);
+#else
+			unsafe
 			{
-				result = new Uuid80(UnsafeHelpers.LoadUInt16BE(ptr), UnsafeHelpers.LoadUInt64BE(ptr + 2));
+				fixed (byte* ptr = src)
+				{
+					result = new Uuid80(
+						UnsafeHelpers.LoadUInt16BE(ptr),
+						UnsafeHelpers.LoadUInt64BE(ptr + 2)
+					);
+				}
 			}
+#endif
 		}
 
 		internal static void WriteUnsafe(ushort hi, ulong lo, Span<byte> buffer)
@@ -652,6 +694,30 @@ namespace System
 			WriteUnsafe(this.Hi, this.Lo, destination);
 			return true;
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Return the equivalent <see cref="UInt128"/></summary>
+		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		public UInt128 ToUInt128()
+		{
+			Span<byte> tmp = stackalloc byte[16];
+			tmp.Fill(0);
+			WriteUnsafe(this.Hi, this.Lo, tmp);
+			return System.Buffers.Binary.BinaryPrimitives.ReadUInt128BigEndian(tmp);
+		}
+
+		/// <summary>Return the equivalent <see cref="Int128"/></summary>
+		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		public Int128 ToInt128()
+		{
+			Span<byte> tmp = stackalloc byte[16];
+			tmp.Fill(0);
+			WriteUnsafe(this.Hi, this.Lo, tmp);
+			return System.Buffers.Binary.BinaryPrimitives.ReadInt128BigEndian(tmp);
+		}
+
+#endif
 
 		#endregion
 

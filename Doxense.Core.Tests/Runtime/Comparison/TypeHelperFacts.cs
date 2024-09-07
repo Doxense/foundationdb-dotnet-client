@@ -33,6 +33,7 @@ namespace Doxense.Runtime.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class TypeHelperFacts
 	{
 

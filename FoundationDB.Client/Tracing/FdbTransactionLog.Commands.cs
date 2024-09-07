@@ -888,7 +888,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
 
-			public override int? ResultBytes => this.Result.HasValue ? this.Result.Value.TotalBytes : null;
+			public override int? ResultBytes => this.Result.GetValueOrDefault()?.TotalBytes;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -949,7 +949,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
 
-			public override int? ResultBytes => this.Result.HasValue ? this.Result.Value.TotalBytes : null;
+			public override int? ResultBytes => this.Result.GetValueOrDefault()?.TotalBytes;
 
 			public override string GetArguments(KeyResolver resolver)
 			{

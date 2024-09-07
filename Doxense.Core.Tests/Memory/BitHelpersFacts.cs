@@ -24,14 +24,15 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Unsafe.Tests //IMPORTANT: don't rename or else we loose all perf history in TeamCity !
+namespace Doxense.Memory.Tests
 {
-	using Doxense.Memory;
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class BitHelpersFacts : SimpleTest
 	{
+
 		[Test]
 		public void Test_BitHelpers_NextPowerOfTwo()
 		{

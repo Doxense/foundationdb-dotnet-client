@@ -107,6 +107,12 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
+		/// <inheritdoc />
+		int ITuple.Length => 7;
+
+		/// <inheritdoc />
+		object? ITuple.this[int index] => ((IVarTuple) this)[index];
+
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]

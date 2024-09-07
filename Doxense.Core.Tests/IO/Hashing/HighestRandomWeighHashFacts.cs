@@ -32,6 +32,7 @@ namespace Doxense.IO.Hashing.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class HighestRandomWeightHashFacts : SimpleTest
 	{
 
@@ -40,7 +41,7 @@ namespace Doxense.IO.Hashing.Tests
 		{
 			// Best_Girl_Selector
 
-			var girls = new[] {"ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", "ROBERTA", "SABRINA", "VERONICA"};
+			string[] girls = [ "ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", "ROBERTA", "SABRINA", "VERONICA" ];
 
 			var loveMachine = new HighestRandomWeightHash<Slice, string>(
 				// list of "nodes"
@@ -177,10 +178,10 @@ namespace Doxense.IO.Hashing.Tests
 			const int KEYS = 10_000;
 
 			Log("Before: 7 candidates");
-			var keys1 = Compute(KEYS, new[] {"ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", "MARCELUS", "SABRINA", "VERONICA"}); // one is not like the others... :/
+			var keys1 = Compute(KEYS, [ "ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", "MARCELUS", "SABRINA", "VERONICA" ]); // one is not like the others... :/
 			// remove "MARCELUS" from the pool!!!!
 			Log("After : 6 candidates");
-			var keys2 = Compute(KEYS, new[] {"ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", /*-------*/ "SABRINA", "VERONICA"}); // much better!
+			var keys2 = Compute(KEYS, [ "ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", /*-------*/ "SABRINA", "VERONICA" ]); // much better!
 
 			// Check all keys that only the keys assign previously to MARCELUS have been "reassigned"
 			int changed = 0;
@@ -228,10 +229,10 @@ namespace Doxense.IO.Hashing.Tests
 			const int KEYS = 10_000;
 
 			Log("Before: 6 candidates");
-			var keys1 = Compute(KEYS, new[] {"ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", /*------*/ "SABRINA", "VERONICA"}); // something is missing....
+			var keys1 = Compute(KEYS, [ "ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", /*------*/ "SABRINA", "VERONICA" ]); // something is missing....
 			// remove "MARCELUS" from the pool!!!!
 			Log("After : 7 candidates");
-			var keys2 = Compute(KEYS, new[] {"ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", "ROBERTA", "SABRINA", "VERONICA"}); // much better!
+			var keys2 = Compute(KEYS, [ "ANGELICA", "LAETICIA", "PATRICIA", "MATHILDA", "ROBERTA", "SABRINA", "VERONICA" ]); // much better!
 
 			var stolen = new Dictionary<string, int>(StringComparer.Ordinal);
 

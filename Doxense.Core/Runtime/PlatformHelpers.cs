@@ -57,7 +57,10 @@ namespace Doxense.Runtime
 
 		public static void PreJit(params Type[] types)
 		{
-			foreach (var type in types) PreJit(type);
+			foreach (var type in types)
+			{
+				PreJit(type);
+			}
 		}
 
 		/// <summary>JIT all the methods of the specified type</summary>

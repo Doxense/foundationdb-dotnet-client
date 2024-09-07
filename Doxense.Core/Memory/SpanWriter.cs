@@ -26,6 +26,7 @@
 
 namespace Doxense.Memory
 {
+	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
@@ -96,7 +97,7 @@ namespace Doxense.Memory
 			return this.Buffer.Slice(pos, count);
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)][StackTraceHidden]
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		private static Span<byte> ThrowBufferTooSmall(string paramName)
 		{
 			throw new ArgumentException("Buffer is too small", paramName);
@@ -135,31 +136,31 @@ namespace Doxense.Memory
 		public void WriteInt16(short value)
 		{
 			var chunk = EnsureBytes(2);
-			chunk[0] = (byte)value;
-			chunk[1] = (byte)(value >> 8);
+			chunk[0] = (byte) value;
+			chunk[1] = (byte) (value >> 8);
 			this.Position += 2;
 		}
 
 		public static void WriteInt16(in Span<byte> span, short value)
 		{
 			if (span.Length < 2) throw new ArgumentException();
-			span[0] = (byte)value;
-			span[1] = (byte)(value >> 8);
+			span[0] = (byte) value;
+			span[1] = (byte) (value >> 8);
 		}
 
 		public void WriteUInt16(ushort value)
 		{
 			var chunk = EnsureBytes(2);
-			chunk[0] = (byte)value;
-			chunk[1] = (byte)(value >> 8);
+			chunk[0] = (byte) value;
+			chunk[1] = (byte) (value >> 8);
 			this.Position += 2;
 		}
 
 		public static void WriteUInt16(in Span<byte> span, ushort value)
 		{
 			if (span.Length < 2) throw new ArgumentException();
-			span[0] = (byte)value;
-			span[1] = (byte)(value >> 8);
+			span[0] = (byte) value;
+			span[1] = (byte) (value >> 8);
 		}
 
 		public void WriteInt16BE(short value)
@@ -394,7 +395,7 @@ namespace Doxense.Memory
 		{
 			if (value < (1 << 7))
 			{
-				WriteByte((byte)value);
+				WriteByte((byte) value);
 			}
 			else
 			{
@@ -409,16 +410,16 @@ namespace Doxense.Memory
 			if (value < (1 << 14))
 			{
 				WriteBytes(
-					(byte)(value | MASK),
-					(byte)(value >> 7)
+					(byte) (value | MASK),
+					(byte) (value >> 7)
 				);
 			}
 			else
 			{
 				WriteBytes(
-					(byte)(value | MASK),
-					(byte)((value >> 7) | MASK),
-					(byte)(value >> 14)
+					(byte) (value | MASK),
+					(byte) ((value >> 7) | MASK),
+					(byte) (value >> 14)
 				);
 			}
 
@@ -446,35 +447,35 @@ namespace Doxense.Memory
 			if (value < (1 << 14))
 			{
 				WriteBytes(
-					(byte)(value | MASK),
-					(byte)(value >> 7)
+					(byte) (value | MASK),
+					(byte) (value >> 7)
 				);
 			}
 			else if (value < (1 << 21))
 			{
 				WriteBytes(
-					(byte)(value | MASK),
-					(byte)((value >> 7) | MASK),
-					(byte)(value >> 14)
+					(byte) (value | MASK),
+					(byte) ((value >> 7) | MASK),
+					(byte) (value >> 14)
 				);
 			}
 			else if (value < (1 << 28))
 			{
 				WriteBytes(
-					(byte)(value | MASK),
-					(byte)((value >> 7) | MASK),
-					(byte)((value >> 14) | MASK),
-					(byte)(value >> 21)
+					(byte) (value | MASK),
+					(byte) ((value >> 7) | MASK),
+					(byte) ((value >> 14) | MASK),
+					(byte) (value >> 21)
 				);
 			}
 			else
 			{
 				WriteBytes(
-					(byte)(value | MASK),
-					(byte)((value >> 7) | MASK),
-					(byte)((value >> 14) | MASK),
-					(byte)((value >> 21) | MASK),
-					(byte)(value >> 28)
+					(byte) (value | MASK),
+					(byte) ((value >> 7) | MASK),
+					(byte) ((value >> 14) | MASK),
+					(byte) ((value >> 21) | MASK),
+					(byte) (value >> 28)
 				);
 			}
 		}
@@ -637,5 +638,4 @@ namespace Doxense.Memory
 		}
 
 	}
-
 }

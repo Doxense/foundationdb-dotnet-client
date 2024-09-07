@@ -34,15 +34,16 @@
 // - the ctor Vector<byte>(byte* ptr, int offset) is currently private, which means that we cannot use it with unsafe pointers yet
 // - there does not seem to be any SIMD way to implement memcmp with the current Vector<T> API, unless doing some trickery with substracting and looking for 0s
 
+// ReSharper disable HeuristicUnreachableCode
+
 namespace Doxense.Memory
 {
+	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Runtime.CompilerServices;
-#if NET8_0_OR_GREATER
-	using System.ComponentModel;
-#endif
+	using System.Runtime.InteropServices;
 
 	/// <summary>Helper methods for dealing with unmanaged memory. HANDLE WITH CARE!</summary>
 	/// <remarks>Use of this class is unsafe. YOU HAVE BEEN WARNED!</remarks>
@@ -198,18 +199,6 @@ namespace Doxense.Memory
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteBytes(byte* cursor, byte* stop, byte* data, uint count)
-		{
-			Contract.Debug.Requires(cursor != null && stop != null && data != null);
-			if (count > 0)
-			{
-				if (cursor + count > stop) throw Errors.BufferOutOfBound();
-				System.Buffer.MemoryCopy(data, cursor, count, count);
-			}
-			return cursor + count;
-		}
-
 		#region VarInt Encoding...
 
 		// VarInt encoding uses 7-bit per byte for the value, and uses the 8th bit as a "continue" (1) or "stop" (0) bit.
@@ -301,728 +290,295 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Append a variable sized number to the output buffer</summary>
-		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
-		/// <param name="value">Value of the number to output</param>
-		/// <returns>Pointer updated with the number of bytes written</returns>
-		/// <remarks>Will write between 1 and 3 bytes</remarks>
+		/// <param name="destination">Buffer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Number of bytes written</returns>
+		/// <remarks>Will write between 1 and 5 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteVarInt16Unsafe(byte* cursor, uint value)
+		public static int WriteVarInt32(Span<byte> destination, uint value)
 		{
-			Contract.Debug.Requires(cursor != null);
+			Contract.Debug.Requires(destination.Length != 0);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (value < 0x80)
 			{
-				*cursor = (byte) value;
-				return cursor + 1;
+				destination[0] = (byte) value;
+				return 1;
 			}
-			return WriteVarInt32UnsafeSlow(cursor, value);
-		}
+			return WriteSlow(destination, value);
 
-		/// <summary>Append a variable sized number to the output buffer</summary>
-		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
-		/// <param name="stop"></param>
-		/// <param name="value">Value of the number to output</param>
-		/// <returns>Pointer updated with the number of bytes written</returns>
-		/// <remarks>Will write between 1 and 3 bytes</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteVarInt16(byte* cursor, byte* stop, ushort value)
-		{
-			Contract.Debug.Requires(cursor != null && stop != null);
-			//note: use of '&' is intentional (prevent a branch in the generated code)
-			if (cursor < stop & value < 0x80)
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static int WriteSlow(Span<byte> destination, uint value)
 			{
-				*cursor = (byte) value;
-				return cursor + 1;
-			}
-			return WriteVarInt32Slow(cursor, stop, value);
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 3 bytes from the input</remarks>
-		public static unsafe byte* ReadVarint16(byte* cursor, byte* stop, out ushort value)
-		{
-			Contract.Debug.Requires(cursor != null && stop != null);
-			if (cursor < stop && (value = *cursor) < 0x80)
-			{
-				return cursor + 1;
-			}
-			return ReadVarint16Slow(cursor, stop, out value);
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 5 bytes from the input</remarks>
-		private static unsafe byte* ReadVarint16Slow(byte* cursor, byte* stop, out ushort value)
-		{
-			uint n;
-
-			// unless  cursor >= stop, we already know that the first byte has the MSB set
-			if (cursor >= stop) goto overflow;
-			uint b = cursor[0];
-			Contract.Debug.Assert(b >= 0x80);
-			uint res = b & 0x7F;
-
-			if (cursor + 1 >= stop) goto overflow;
-			b = cursor[1];
-			res |= (b & 0x7F) << 7;
-			if (b < 0x80)
-			{
-				n = 2;
-				goto done;
-			}
-
-			if (cursor + 2 >= stop) goto overflow;
-			b = cursor[2];
-			// third should only have 2 bits worth of data
-			if (b >= 0x04) throw Errors.VarIntOverflow();
-			res |= (b & 0x3) << 14;
-			n = 3;
-			//TODO: check overflow bits?
-
-		done:
-			value = (ushort) res;
-			return cursor + n;
-
-		overflow:
-			value = 0;
-			throw Errors.VarIntTruncated();
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 3 bytes from the input</remarks>
-		public static ReadOnlySpan<byte> ReadVarint16(ReadOnlySpan<byte> buffer, out ushort value)
-		{
-			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
-			{
-				return buffer.Slice(1);
-			}
-			return ReadVarint16Slow(buffer, out value);
-		}
-
-		private static ReadOnlySpan<byte> ReadVarint16Slow(ReadOnlySpan<byte> buffer, out ushort value)
-		{
-			if (buffer.Length == 0)
-			{
-				value = 0;
-				throw Errors.VarIntTruncated();
-			}
-			unsafe
-			{
-				fixed (byte* cursor = buffer)
+				//note: we know that value >= 128 (or that cursor is >= stop, in which case we will immediately fail below)
+				int ptr = 0;
+				do
 				{
-					byte* next = ReadVarint16Slow(cursor, cursor + buffer.Length, out value);
-					return buffer.Slice(checked((int) (next - cursor)));
-				}
-			}
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 3 bytes from the input</remarks>
-		public static unsafe byte* ReadVarint16Unsafe(byte* cursor, out ushort value)
-		{
-			Contract.Debug.Requires(cursor != null);
-			uint n = 1;
-
-			//TODO: we expect most values to be small (count or array length), so we should optimize for single byte varints where byte[0] <= 127 should be inlined, and defer to a slower method if >= 128.
-
-			uint b = cursor[0];
-			uint res = b & 0x7F;
-			if (b < 0x80)
-			{
-				goto done;
-			}
-
-			b = cursor[1];
-			res |= (b & 0x7F) << 7;
-			if (b < 0x80)
-			{
-				n = 2;
-				goto done;
-			}
-
-			b = cursor[2];
-			// third should only have 2 bits worth of data
-			if (b >= 0x04) throw Errors.VarIntOverflow();
-			res |= (b & 0x3) << 14;
-			n = 3;
-
-		done:
-			value = (ushort) res;
-			return cursor + n;
-		}
-
-		/// <summary>Append a variable sized number to the output buffer</summary>
-		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
-		/// <param name="value">Value of the number to output</param>
-		/// <returns>Pointer updated with the number of bytes written</returns>
-		/// <remarks>Will write between 1 and 5 bytes</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteVarInt32Unsafe(byte* cursor, uint value)
-		{
-			Contract.Debug.Requires(cursor != null);
-			if (value < 0x80)
-			{
-				*cursor = (byte) value;
-				return cursor + 1;
-			}
-			return WriteVarInt32UnsafeSlow(cursor, value);
-		}
-
-		/// <summary>Append a variable sized number to the output buffer</summary>
-		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
-		/// <param name="value">Value of the number to output</param>
-		/// <returns>Pointer updated with the number of bytes written</returns>
-		/// <remarks>Will write between 1 and 5 bytes</remarks>
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static unsafe byte* WriteVarInt32UnsafeSlow(byte* cursor, uint value)
-		{
-			byte* ptr = cursor;
-			while (value >= 0x80)
-			{
-				*ptr = (byte)(value | 0x80);
-				value >>= 7;
-				++ptr;
-			}
-			*ptr = (byte)value;
-			return ptr + 1;
-		}
-
-		/// <summary>Append a variable sized number to the output buffer</summary>
-		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
-		/// <param name="stop"></param>
-		/// <param name="value">Value of the number to output</param>
-		/// <returns>Pointer updated with the number of bytes written</returns>
-		/// <remarks>Will write between 1 and 5 bytes</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteVarInt32(byte* cursor, byte* stop, uint value)
-		{
-			Contract.Debug.Requires(cursor != null && stop != null);
-			//note: use of '&' is intentional (prevent a branch in the generated code)
-			if (cursor < stop & value < 0x80)
-			{
-				*cursor = (byte)value;
-				return cursor + 1;
-			}
-			return WriteVarInt32Slow(cursor, stop, value);
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static unsafe byte* WriteVarInt32Slow(byte* cursor, byte* stop, uint value)
-		{
-			//note: we know that value >= 128 (or that cursor is >= stop, in which case we will immediately fail below)
-			byte* ptr = cursor;
-			do
-			{
-				if (ptr >= stop) throw Errors.BufferOutOfBound();
-				*ptr = (byte) (value | 0x80);
-				value >>= 7;
-				++ptr;
-			} while (value >= 0x80);
-
-			if (ptr >= stop) throw Errors.BufferOutOfBound();
-			*ptr = (byte) value;
-			return ptr + 1;
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 5 bytes from the input</remarks>
-		public static unsafe byte* ReadVarint32Unsafe(byte* cursor, out uint value)
-		{
-			Contract.Debug.Requires(cursor != null);
-			uint n = 1;
-
-			//TODO: we expect most values to be small (count or array length), so we should optimize for single byte varints where byte[0] <= 127 should be inlined, and defer to a slower method if >= 128.
-
-			uint b = cursor[0];
-			uint res = b & 0x7F;
-			if (b < 0x80)
-			{
-				goto done;
-			}
-
-			b = cursor[1];
-			res |= (b & 0x7F) << 7;
-			if (b < 0x80)
-			{
-				n = 2;
-				goto done;
-			}
-
-			b = cursor[2];
-			res |= (b & 0x7F) << 14;
-			if (b < 0x80)
-			{
-				n = 3;
-				goto done;
-			}
-
-			b = cursor[3];
-			res |= (b & 0x7F) << 21;
-			if (b < 0x80)
-			{
-				n = 4;
-				goto done;
-			}
-
-			// the fifth byte should only have 4 bits worth of data
-			b = cursor[4];
-			if (b >= 0x20) throw Errors.VarIntOverflow();
-			res |= (b & 0x1F) << 28;
-			n = 5;
-
-		done:
-			value = res;
-			return cursor + n;
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 5 bytes from the input</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* ReadVarint32(byte* cursor, byte* stop, out uint value)
-		{
-			Contract.Debug.Requires(cursor != null && stop != null);
-			if (cursor < stop && (value = *cursor) < 0x80)
-			{
-				return cursor + 1;
-			}
-			return ReadVarint32Slow(cursor, stop, out value);
-		}
-
-		private static unsafe byte* ReadVarint32Slow(byte* cursor, byte* stop, out uint value)
-		{
-			uint n;
-
-			// unless  cursor >= stop, we already know that the first byte has the MSB set
-			if (cursor >= stop) goto overflow;
-			uint b = cursor[0];
-			Contract.Debug.Assert(b >= 0x80);
-			uint res = b & 0x7F;
-
-			if (cursor + 1 >= stop) goto overflow;
-			b = cursor[1];
-			res |= (b & 0x7F) << 7;
-			if (b < 0x80)
-			{
-				n = 2;
-				goto done;
-			}
-
-			if (cursor + 2 >= stop) goto overflow;
-			b = cursor[2];
-			res |= (b & 0x7F) << 14;
-			if (b < 0x80)
-			{
-				n = 3;
-				goto done;
-			}
-
-			if (cursor + 3 >= stop) goto overflow;
-			b = cursor[3];
-			res |= (b & 0x7F) << 21;
-			if (b < 0x80)
-			{
-				n = 4;
-				goto done;
-			}
-
-			// the fifth byte should only have 4 bits worth of data
-			if (cursor + 4 >= stop) goto overflow;
-			b = cursor[4];
-			if (b >= 0x20) throw Errors.VarIntOverflow();
-			res |= (b & 0x1F) << 28;
-			n = 5;
-
-		done:
-			value = res;
-			return cursor + n;
-
-		overflow:
-			value = 0;
-			throw Errors.VarIntTruncated();
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 5 bytes from the input</remarks>
-		public static ReadOnlySpan<byte> ReadVarint32(ReadOnlySpan<byte> buffer, out uint value)
-		{
-			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
-			{
-				return buffer.Slice(1);
-			}
-			return ReadVarint32Slow(buffer, out value);
-		}
-
-		private static ReadOnlySpan<byte> ReadVarint32Slow(ReadOnlySpan<byte> buffer, out uint value)
-		{
-			if (buffer.Length == 0)
-			{
-				value = 0;
-				throw Errors.VarIntTruncated();
-			}
-
-			unsafe
-			{
-				fixed (byte* cursor = buffer)
-				{
-					byte* next = ReadVarint32Slow(cursor, cursor + buffer.Length, out value);
-					return buffer.Slice(checked((int) (next - cursor)));
-				}
-			}
-		}
-
-		/// <summary>Append a variable sized number to the output buffer</summary>
-		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
-		/// <param name="value">Value of the number to output</param>
-		/// <returns>Pointer updated with the number of bytes written</returns>
-		/// <remarks>Will write between 1 and 10 bytes</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteVarInt64Unsafe(byte* cursor, ulong value)
-		{
-			Contract.Debug.Requires(cursor != null);
-			if (value < 0x80)
-			{
-				*cursor = (byte)value;
-				return cursor + 1;
-			}
-			return WriteVarInt64UnsafeSlow(cursor, value);
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static unsafe byte* WriteVarInt64UnsafeSlow(byte* cursor, ulong value)
-		{
-			//note: we know that value >= 128
-			byte* ptr = cursor;
-			do
-			{
-				*ptr = (byte) (value | 0x80);
-				value >>= 7;
-				++ptr;
-			} while (value >= 0x80);
-			*ptr = (byte)value;
-			return ptr + 1;
-		}
-
-		/// <summary>Append a variable sized number to the output buffer</summary>
-		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
-		/// <param name="stop">Stop address (to prevent overflow)</param>
-		/// <param name="value">Value of the number to output</param>
-		/// <returns>Pointer updated with the number of bytes written</returns>
-		/// <remarks>Will write between 1 and 10 bytes</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteVarInt64(byte* cursor, byte* stop, ulong value)
-		{
-			Contract.Debug.Requires(cursor != null && stop != null);
-			//note: use of '&' is intentional (prevent a branch in the generated code)
-			if (cursor < stop & value < 0x80)
-			{
-				*cursor = (byte) value;
-				return cursor + 1;
-			}
-			return WriteVarInt64Slow(cursor, stop, value);
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static unsafe byte* WriteVarInt64Slow(byte* cursor, byte* stop, ulong value)
-		{
-			//note: we know that value >= 128 (or that cursor is >= stop, in which case we will immediately fail below)
-			byte* ptr = cursor;
-			do
-			{
-				if (ptr >= stop) throw Errors.BufferOutOfBound();
-				*ptr = (byte) (value | 0x80);
-				value >>= 7;
-				++ptr;
-			} while (value >= 0x80);
-
-			if (ptr >= stop) throw Errors.BufferOutOfBound();
-			*ptr = (byte)value;
-			return ptr + 1;
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 10 bytes from the input</remarks>
-		public static unsafe byte* ReadVarint64Unsafe(byte* cursor, out ulong value)
-		{
-			Contract.Debug.Requires(cursor != null);
-			uint n = 1;
-
-			//note: we expect the value to be large (most frequent use it to decode a Sequence Number), so there is no point in optimizing for single byte varints...
-
-			ulong b = cursor[0];
-			ulong res = b & 0x7F;
-			if (b < 0x80)
-			{
-				goto done;
-			}
-
-			b = cursor[1];
-			res |= (b & 0x7F) << 7;
-			if (b < 0x80)
-			{
-				n = 2;
-				goto done;
-			}
-
-			b = cursor[2];
-			res |= (b & 0x7F) << 14;
-			if (b < 0x80)
-			{
-				n = 3;
-				goto done;
-			}
-
-			b = cursor[3];
-			res |= (b & 0x7F) << 21;
-			if (b < 0x80)
-			{
-				n = 4;
-				goto done;
-			}
-
-			b = cursor[4];
-			res |= (b & 0x7F) << 28;
-			if (b < 0x80)
-			{
-				n = 5;
-				goto done;
-			}
-
-			b = cursor[5];
-			res |= (b & 0x7F) << 35;
-			if (b < 0x80)
-			{
-				n = 6;
-				goto done;
-			}
-
-			b = cursor[6];
-			res |= (b & 0x7F) << 42;
-			if (b < 0x80)
-			{
-				n = 7;
-				goto done;
-			}
-
-			b = cursor[7];
-			res |= (b & 0x7F) << 49;
-			if (b < 0x80)
-			{
-				n = 8;
-				goto done;
-			}
-
-			b = cursor[8];
-			res |= (b & 0x7F) << 56;
-			if (b < 0x80)
-			{
-				n = 9;
-				goto done;
-			}
-
-			// the tenth byte should only have 1 bit worth of data
-			b = cursor[9];
-			if (b > 1) throw Errors.VarIntOverflow();
-			res |= (b & 0x1) << 63;
-			n = 10;
-
-		done:
-			value = res;
-			return cursor + n;
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint64') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 10 bytes from the input</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* ReadVarint64(byte* cursor, byte* stop, out ulong value)
-		{
-			Contract.Debug.Requires(cursor != null && stop != null);
-			if (cursor < stop && (value = *cursor) < 0x80)
-			{
-				return cursor + 1;
-			}
-			else
-			{
-				return ReadVarint64Slow(cursor, stop, out value);
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static unsafe byte* ReadVarint64Slow(byte* cursor, byte* stop, out ulong value)
-		{
-			uint n;
-
-			// unless cursor >= stop, we already know that the first byte has the MSB set
-			if (cursor >= stop) goto overflow;
-			ulong b = cursor[0];
-			Contract.Debug.Assert(b >= 0x80);
-			ulong res = b & 0x7F;
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[1];
-			res |= (b & 0x7F) << 7;
-			if (b < 0x80)
-			{
-				n = 2;
-				goto done;
-			}
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[2];
-			res |= (b & 0x7F) << 14;
-			if (b < 0x80)
-			{
-				n = 3;
-				goto done;
-			}
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[3];
-			res |= (b & 0x7F) << 21;
-			if (b < 0x80)
-			{
-				n = 4;
-				goto done;
-			}
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[4];
-			res |= (b & 0x7F) << 28;
-			if (b < 0x80)
-			{
-				n = 5;
-				goto done;
-			}
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[5];
-			res |= (b & 0x7F) << 35;
-			if (b < 0x80)
-			{
-				n = 6;
-				goto done;
-			}
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[6];
-			res |= (b & 0x7F) << 42;
-			if (b < 0x80)
-			{
-				n = 7;
-				goto done;
-			}
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[7];
-			res |= (b & 0x7F) << 49;
-			if (b < 0x80)
-			{
-				n = 8;
-				goto done;
-			}
-
-			if (cursor >= stop) goto overflow;
-			b = cursor[8];
-			res |= (b & 0x7F) << 56;
-			if (b < 0x80)
-			{
-				n = 9;
-				goto done;
-			}
-
-			// the tenth byte should only have 1 bit worth of data
-			if (cursor >= stop) goto overflow;
-			b = cursor[9];
-			if (b > 1) throw Errors.VarIntOverflow();
-			res |= (b & 0x1) << 63;
-			n = 10;
-
-		done:
-			value = res;
-			return cursor + n;
-
-		overflow:
-			value = 0;
-			throw Errors.VarIntTruncated();
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint64') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 10 bytes from the input</remarks>
-		public static ReadOnlySpan<byte> ReadVarint64(ReadOnlySpan<byte> buffer, out ulong value)
-		{
-			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
-			{
-				return buffer.Slice(1);
-			}
-			return ReadVarint64Slow(buffer, out value);
-		}
-
-		private static ReadOnlySpan<byte> ReadVarint64Slow(ReadOnlySpan<byte> buffer, out ulong value)
-		{
-			if (buffer.Length == 0)
-			{
-				value = 0;
-				throw Errors.VarIntTruncated();
-			}
-
-			unsafe
-			{
-				fixed (byte* cursor = buffer)
-				{
-					byte* next = ReadVarint64Slow(cursor, cursor + buffer.Length, out value);
-					return buffer.Slice(checked((int) (next - cursor)));
-				}
-			}
-		}
-
-		/// <summary>Append a variable size byte sequence, using the VarInt encoding</summary>
-		/// <remarks>This method performs bound checking.</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteVarBytes(byte* ptr, byte* stop, byte* data, int count)
-		{
-			return WriteVarBytes(ptr, stop, data, checked((uint) count));
-		}
-
-		/// <summary>Append a variable size byte sequence, using the VarInt encoding</summary>
-		/// <remarks>This method performs bound checking.</remarks>
-		public static unsafe byte* WriteVarBytes(byte* ptr, byte* stop, byte* data, uint count)
-		{
-			if (count == 0)
-			{ // "Nil"
-				if (ptr >= stop) throw Errors.BufferOutOfBound();
-				*ptr = 0;
+					destination[ptr] = (byte) (value | 0x80);
+					value >>= 7;
+					++ptr;
+				} while (value >= 0x80);
+
+				destination[ptr] = (byte) value;
 				return ptr + 1;
 			}
-			var cursor = WriteVarInt32(ptr, stop, count);
-			return WriteBytes(cursor, stop, data, count);
 		}
 
-		/// <summary>Append a variable size byte sequence with an extra 0 at the end, using the VarInt encoding</summary>
-		/// <remarks>This method performs bound checking.</remarks>
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 5 bytes from the input</remarks>
+		public static int ReadVarint32(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
+			{
+				return 1;
+			}
+			return ReadSlow(buffer, out value);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static int ReadSlow(ReadOnlySpan<byte> source, out uint value)
+			{
+				int len = source.Length;
+				int n;
+
+				// unless  cursor >= stop, we already know that the first byte has the MSB set
+				if (len <= 0) goto overflow;
+				uint b = source[0];
+				Contract.Debug.Assert(b >= 0x80);
+				uint res = b & 0x7F;
+
+				if (len <= 1) goto overflow;
+				b = source[1];
+				res |= (b & 0x7F) << 7;
+				if (b < 0x80)
+				{
+					n = 2;
+					goto done;
+				}
+
+				if (len <= 2) goto overflow;
+				b = source[2];
+				res |= (b & 0x7F) << 14;
+				if (b < 0x80)
+				{
+					n = 3;
+					goto done;
+				}
+
+				if (len <= 3) goto overflow;
+				b = source[3];
+				res |= (b & 0x7F) << 21;
+				if (b < 0x80)
+				{
+					n = 4;
+					goto done;
+				}
+
+				// the fifth byte should only have 4 bits worth of data
+				if (len <= 4) goto overflow;
+				b = source[4];
+				if (b >= 0x20) throw Errors.VarIntOverflow();
+				res |= (b & 0x1F) << 28;
+				n = 5;
+
+			done:
+				value = res;
+				return n;
+			
+			overflow:
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+
+		}
+
+		/// <summary>Append a variable sized number to the output buffer</summary>
+		/// <param name="destination">Buffer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Number of bytes written</returns>
+		/// <remarks>Will write between 1 and 10 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe byte* WriteZeroTerminatedVarBytes(byte* ptr, byte* stop, byte* data, int count)
+		public static int WriteVarInt64(Span<byte> destination, ulong value)
 		{
-			return WriteZeroTerminatedVarBytes(ptr, stop, data, checked((uint) count));
+			//note: use of '&' is intentional (prevent a branch in the generated code)
+			if (destination.Length > 0 && value < 0x80)
+			{
+				destination[0] = (byte) value;
+				return 1;
+			}
+			return WriteSlow(destination, value);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static int WriteSlow(Span<byte> destination, ulong value)
+			{
+				//note: we know that value >= 128 (or that cursor is >= stop, in which case we will immediately fail below)
+				int ptr = 0;
+				int stop = destination.Length;
+				do
+				{
+					if (ptr >= stop) throw Errors.BufferOutOfBound();
+					destination[ptr] = (byte) (value | 0x80);
+					value >>= 7;
+					++ptr;
+				} while (value >= 0x80);
+
+				if (ptr >= stop) throw Errors.BufferOutOfBound();
+				destination[ptr] = (byte)value;
+				return ptr + 1;
+			}
+		}
+
+		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint64') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 10 bytes from the input</remarks>
+		public static int ReadVarint64(ReadOnlySpan<byte> source, out ulong value)
+		{
+			if (source.Length != 0 && (value = source[0]) < 0x80)
+			{
+				return 1;
+			}
+
+			return ReadSlow(source, out value);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static int ReadSlow(ReadOnlySpan<byte> source, out ulong value)
+			{
+				int n;
+
+				int stop = source.Length;
+
+				// unless cursor >= stop, we already know that the first byte has the MSB set
+				if (0 >= stop) goto overflow;
+				ulong b = source[0];
+				Contract.Debug.Assert(b >= 0x80);
+				ulong res = b & 0x7F;
+
+				if (1 >= stop) goto overflow;
+				b = source[1];
+				res |= (b & 0x7F) << 7;
+				if (b < 0x80)
+				{
+					n = 2;
+					goto done;
+				}
+
+				if (2 >= stop) goto overflow;
+				b = source[2];
+				res |= (b & 0x7F) << 14;
+				if (b < 0x80)
+				{
+					n = 3;
+					goto done;
+				}
+
+				if (3 >= stop) goto overflow;
+				b = source[3];
+				res |= (b & 0x7F) << 21;
+				if (b < 0x80)
+				{
+					n = 4;
+					goto done;
+				}
+
+				if (4 >= stop) goto overflow;
+				b = source[4];
+				res |= (b & 0x7F) << 28;
+				if (b < 0x80)
+				{
+					n = 5;
+					goto done;
+				}
+
+				if (5 >= stop) goto overflow;
+				b = source[5];
+				res |= (b & 0x7F) << 35;
+				if (b < 0x80)
+				{
+					n = 6;
+					goto done;
+				}
+
+				if (6 >= stop) goto overflow;
+				b = source[6];
+				res |= (b & 0x7F) << 42;
+				if (b < 0x80)
+				{
+					n = 7;
+					goto done;
+				}
+
+				if (7 >= stop) goto overflow;
+				b = source[7];
+				res |= (b & 0x7F) << 49;
+				if (b < 0x80)
+				{
+					n = 8;
+					goto done;
+				}
+
+				if (8 >= stop) goto overflow;
+				b = source[8];
+				res |= (b & 0x7F) << 56;
+				if (b < 0x80)
+				{
+					n = 9;
+					goto done;
+				}
+
+				// the tenth byte should only have 1 bit worth of data
+				if (9 >= stop) goto overflow;
+				b = source[9];
+				if (b > 1) throw Errors.VarIntOverflow();
+				res |= (b & 0x1) << 63;
+				n = 10;
+
+			done:
+				value = res;
+				return n;
+
+			overflow:
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+		}
+
+		/// <summary>Append a variable size byte sequence, using the VarInt encoding</summary>
+		/// <remarks>This method performs bound checking.</remarks>
+		public static int WriteVarBytes(Span<byte> destination, ReadOnlySpan<byte> data)
+		{
+			if (data.Length == 0)
+			{
+				destination[0] = 0;
+				return 1;
+			}
+
+			int cursor = WriteVarInt32(destination, (uint) data.Length);
+			data.CopyTo(destination.Slice(cursor));
+			return cursor + data.Length;
 		}
 
 		/// <summary>Append a variable size byte sequence with an extra 0 at the end, using the VarInt encoding</summary>
 		/// <remarks>This method performs bound checking.</remarks>
-		public static unsafe byte* WriteZeroTerminatedVarBytes(byte* ptr, byte* stop, byte* data, uint count)
+		public static int WriteZeroTerminatedVarBytes(Span<byte> destination, ReadOnlySpan<byte> data)
 		{
-			var cursor = WriteVarInt32(ptr, stop, count + 1);
-			cursor = WriteBytes(cursor, stop, data, count);
-			if (cursor >= stop) throw Errors.BufferOutOfBound();
-			*cursor = 0;
-			return cursor + 1;
+			if (data.Length == 0)
+			{
+				destination[0] = 0;
+				destination[1] = 0;
+				return 2;
+			}
+
+			int cursor = WriteVarInt32(destination, 1U + (uint) data.Length);
+			data.CopyTo(destination.Slice(cursor));
+			destination[cursor + data.Length] = 0;
+			return cursor + data.Length + 1;
 		}
 
 		/// <summary>Read a variable size byte sequence</summary>
 		/// <remarks>This method performs bound checking.</remarks>
-		public static unsafe byte* ReadVarBytes(byte* ptr, byte* stop, out byte* data, out uint count)
+		public static int ReadVarBytes(ReadOnlySpan<byte> source, out ReadOnlySpan<byte> data)
 		{
-			var cursor = ReadVarint32(ptr, stop, out var len);
-			if (cursor + len > stop) throw Errors.VarIntTruncated();
-			data = cursor;
-			count = len;
-			return cursor + len;
+			var cursor = ReadVarint32(source, out var len);
+			if (source.Length - len < cursor) throw Errors.VarIntTruncated();
+			data = source.Slice(cursor, (int) len);
+			return cursor + data.Length;
 		}
 
 		#endregion
@@ -1043,7 +599,7 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort ByteSwap16(ushort value)
 		{
-			return (ushort) ((value << 8) | (value >> 8));
+			return BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Swap the order of the bytes in a 16-bit word</summary>
@@ -1052,88 +608,249 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static short ByteSwap16(short value)
 		{
-			//note: masking is required to get rid of the sign bit
-			return (short) ((value << 8) | ((value >> 8) & 0xFF));
+			return BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of a 2-byte location</param>
 		/// <returns>Logical value in host order</returns>
-		/// <remarks><see cref="LoadInt16LE"/>([ 0x34, 0x12) => 0x1234</remarks>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe short LoadInt16LE(void* ptr)
 		{
-			return IsLittleEndian ? *(short*)ptr : ByteSwap16(*(short*)ptr);
+			var value = Unsafe.ReadUnaligned<short>(ptr);
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of a 2-byte location</param>
 		/// <returns>Logical value in host order</returns>
-		/// <remarks><see cref="LoadUInt16LE"/>([ 0x34, 0x12) => 0x1234</remarks>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe ushort LoadUInt16LE(void* ptr)
 		{
-			return IsLittleEndian ? *(ushort*) ptr : ByteSwap16(*(ushort*) ptr);
-		}
-
-		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
-		/// <param name="ptr">Memory address of a 2-byte location</param>
-		/// <param name="value">Logical value to store in the buffer</param>
-		/// <remarks><see cref="StoreInt16LE"/>(ptr, 0x1234) => ptr[0] == 0x34, ptr[1] == 0x12</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe void StoreInt16LE(void* ptr, short value)
-		{
-			*(short*)ptr = IsLittleEndian ? value : ByteSwap16(value);
-		}
-
-		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
-		/// <param name="ptr">Memory address of a 2-byte location</param>
-		/// <param name="value">Logical value to store in the buffer</param>
-		/// <remarks><see cref="StoreUInt16LE"/>(ptr, 0x1234) => ptr[0] == 0x34, ptr[1] == 0x12</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe void StoreUInt16LE(void* ptr, ushort value)
-		{
-			*(ushort*) ptr = IsLittleEndian ? value : ByteSwap16(value);
+			var value = Unsafe.ReadUnaligned<ushort>(ptr);
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of a 2-byte location</param>
 		/// <returns>Logical value in host order</returns>
-		/// <remarks><see cref="LoadInt16BE"/>([ 0x34, 0x12) => 0x1234</remarks>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static short ReadInt16LE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<short>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<short>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+		}
+
+		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ReadUInt16LE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<ushort>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void StoreInt16LE(void* ptr, short value)
+		{
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt16LE(ref byte ptr, short value)
+		{
+			Unsafe.WriteUnaligned(ref ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void StoreUInt16LE(void* ptr, ushort value)
+		{
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>[ 0x34, 0x12 ]</c> == <c>0x1234</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt16LE(ref byte ptr, ushort value)
+		{
+			Unsafe.WriteUnaligned(ref ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+		}
+
+		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x12, 0x34 ]</c> == <c>0x1234</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe short LoadInt16BE(void* ptr)
 		{
-			return IsLittleEndian ? ByteSwap16(*(short*) ptr) : *(short*) ptr;
+			var value = Unsafe.ReadUnaligned<short>(ptr);
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
 		}
 
 		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
 		/// <param name="ptr">Memory address of a 2-byte location</param>
 		/// <returns>Logical value in host order</returns>
-		/// <remarks><see cref="LoadUInt16BE"/>([ 0x12, 0x34) => 0x1234</remarks>
+		/// <remarks><c>[ 0x12, 0x34 ]</c> == <c>0x1234</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe ushort LoadUInt16BE(void* ptr)
 		{
-			return IsLittleEndian ? ByteSwap16(*(ushort*) ptr) : *(ushort*) ptr;
+			var value = Unsafe.ReadUnaligned<ushort>(ptr);
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
+		}
+
+		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x12, 0x34 ]</c> == <c>0x1234</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static short ReadInt16BE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<short>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<short>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
+		}
+
+		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x12, 0x34 ]</c> == <c>0x1234</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ReadUInt16BE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<ushort>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<ushort>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
+		}
+
+		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="bytes">Span of at least 2-bytes</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x12, 0x34 ]</c> == <c>0x1234</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static short ReadInt16BE(ReadOnlySpan<byte> bytes)
+		{
+			var value = MemoryMarshal.Read<short>(bytes);
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
+		}
+
+		/// <summary>Load a 16-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="bytes">Span of at least 2-bytes</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x12, 0x34 ]</c> == <c>0x1234</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ReadUInt16BE(ReadOnlySpan<byte> bytes)
+		{
+			var value = MemoryMarshal.Read<ushort>(bytes);
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
 		}
 
 		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
 		/// <param name="ptr">Memory address of a 2-byte location</param>
 		/// <param name="value">Logical value to store in the buffer</param>
-		/// <remarks><see cref="StoreUInt16BE"/>(ptr, 0x1234) => ptr[0] == 0x12, ptr[1] == 0x34</remarks>
+		/// <remarks><c>0x1234</c> => <c>[ 0x12, 0x34 ]</c></remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreInt16BE(void* ptr, short value)
 		{
-			*(short*) ptr = IsLittleEndian ? ByteSwap16(value) : value;
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
 		}
 
 		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
 		/// <param name="ptr">Memory address of a 2-byte location</param>
 		/// <param name="value">Logical value to store in the buffer</param>
-		/// <remarks><see cref="StoreUInt16BE"/>(ptr, 0x1234) => ptr[0] == 0x12, ptr[1] == 0x34</remarks>
+		/// <remarks><c>0x1234</c> => <c>[ 0x12, 0x34 ]</c></remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreUInt16BE(void* ptr, ushort value)
 		{
-			*(ushort*) ptr = IsLittleEndian ? ByteSwap16(value) : value;
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>0x1234</c> => <c>[ 0x12, 0x34 ]</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt16BE(ref byte ptr, short value)
+		{
+			Unsafe.WriteUnaligned(ref ptr, IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="ptr">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>0x1234</c> => <c>[ 0x12, 0x34 ]</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt16BE(ref byte ptr, ushort value)
+		{
+			Unsafe.WriteUnaligned(ref ptr, IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="destination">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>0x1234</c> => <c>[ 0x12, 0x34 ]</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt16BE(Span<byte> destination, short value)
+		{
+			if (UnsafeHelpers.IsLittleEndian)
+			{
+				value = BinaryPrimitives.ReverseEndianness(value);
+			}
+#if NET8_0_OR_GREATER
+			MemoryMarshal.Write<short>(destination, value);
+#else
+			MemoryMarshal.Write<short>(destination, ref value);
+#endif
+		}
+
+		/// <summary>Store a 16-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="destination">Memory address of a 2-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>0x1234</c> => <c>[ 0x12, 0x34 ]</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt16BE(Span<byte> destination, ushort value)
+		{
+			if (UnsafeHelpers.IsLittleEndian)
+			{
+				value = BinaryPrimitives.ReverseEndianness(value);
+			}
+#if NET8_0_OR_GREATER
+			MemoryMarshal.Write<ushort>(destination, value);
+#else
+			MemoryMarshal.Write<ushort>(destination, ref value);
+#endif
 		}
 
 		#endregion
@@ -1265,11 +982,7 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint ByteSwap32(uint value)
 		{
-			const uint MASK1_HI = 0xFF00FF00;
-			const uint MASK1_LO = 0x00FF00FF;
-			//PERF: do not remove the local 'tmp' variable (reusing 'value' is 4X slower with RyuJit64 than introducing a tmp variable)
-			uint tmp = ((value << 8) & MASK1_HI) | ((value >> 8) & MASK1_LO);
-			return (tmp << 16) | (tmp >> 16);
+			return BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Swap the order of the bytes in a 32-bit word</summary>
@@ -1278,11 +991,7 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int ByteSwap32(int value)
 		{
-			const int MASK1_HI = unchecked((int) 0xFF00FF00);
-			const int MASK1_LO = 0x00FF00FF;
-			//PERF: do not remove the local 'tmp' variable! Reusing 'value' is 4X slower with RyuJit64 than introducing a tmp variable
-			int tmp = ((value << 8) & MASK1_HI) | ((value >> 8) & MASK1_LO);
-			return (tmp << 16) | ((tmp >> 16) & 0xFFFF);
+			return BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Load a 32-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
@@ -1375,15 +1084,7 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong ByteSwap64(ulong value)
 		{
-			const ulong MASK1_HI = 0xFF00FF00FF00FF00UL;
-			const ulong MASK1_LO = 0x00FF00FF00FF00FFUL;
-			const ulong MASK2_HI = 0xFFFF0000FFFF0000UL;
-			const ulong MASK2_LO = 0x0000FFFF0000FFFFUL;
-
-			//PERF: do not remove the local 'tmp' variable! Reusing 'value' is 4X slower with RyuJit64 than introducing a tmp variable
-			ulong tmp = ((value << 8) & MASK1_HI) | ((value >> 8) & MASK1_LO); // swap pairs of 1 byte
-			tmp = ((tmp << 16) & MASK2_HI) | ((tmp >> 16) & MASK2_LO); // swap pairs of 2 bytes
-			return (tmp << 32) | (tmp >> 32); // swap pairs of 4 bytes
+			return BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Swap the order of the bytes in a 64-bit word</summary>
@@ -1392,55 +1093,79 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long ByteSwap64(long value)
 		{
-			const long MASK1_HI = unchecked((long) 0xFF00FF00FF00FF00L);
-			const long MASK1_LO = 0x00FF00FF00FF00FFL;
-			const long MASK2_HI = unchecked((long) 0xFFFF0000FFFF0000L);
-			const long MASK2_LO = 0x0000FFFF0000FFFFL;
-
-			//PERF: do not remove the local 'tmp' variable! Reusing 'value' is 4X slower with RyuJit64 than introducing a tmp variable
-			long tmp = ((value << 8) & MASK1_HI) | ((value >> 8) & MASK1_LO); // swap pairs of 1 byte
-			tmp = ((tmp << 16) & MASK2_HI) | ((tmp >> 16) & MASK2_LO); // swap pairs of 2 bytes
-			return (tmp << 32) | ((tmp >> 32) & 0xFFFFFFFFL); // swap pairs of 4 bytes
+			return BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of an 8-byte location</param>
 		/// <returns>Logical value in host order</returns>
-		/// <remarks><see cref="LoadInt64LE"/>([ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01) => 0x0123456789ABCDEF</remarks>
+		/// <remarks><c>[ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01)</c> => <c>0x0123456789ABCDEF</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe long LoadInt64LE(void* ptr)
 		{
-			return IsLittleEndian ? *(long*) ptr : ByteSwap64(*(long*) ptr);
+			var value = Unsafe.ReadUnaligned<long>(ptr);
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of an 8-byte location</param>
 		/// <returns>Logical value in host order</returns>
-		/// <remarks><see cref="LoadUInt64LE"/>([ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01) => 0x0123456789ABCDEF</remarks>
+		/// <remarks><c>[ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01)</c> => <c>0x0123456789ABCDEF</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe ulong LoadUInt64LE(void* ptr)
 		{
-			return IsLittleEndian ? *(ulong*) ptr : ByteSwap64(*(ulong*) ptr);
+			var value = Unsafe.ReadUnaligned<ulong>(ptr);
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+		}
+
+		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of an 8-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01)</c> => <c>0x0123456789ABCDEF</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static long ReadInt64LE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<long>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<long>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+		}
+
+		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of an 8-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01)</c> => <c>0x0123456789ABCDEF</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong ReadUInt64LE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<ulong>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<ulong>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
 		}
 
 		/// <summary>Store a 64-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of an 8-byte location</param>
 		/// <param name="value">Logical value to store in the buffer</param>
-		/// <remarks><see cref="StoreInt64LE"/>(0x0123456789ABCDEF) => ptr[0] == 0xEF, ptr[1] == 0xCD, ptr[2] == 0xAB, ptr[3] == 0x89, ..., ptr[7] == 0x01</remarks>
+		/// <remarks><c>0x0123456789ABCDEF</c> => <c>[ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01)</c></remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreInt64LE(void* ptr, long value)
 		{
-			*(long*) ptr = IsLittleEndian ? value : ByteSwap64(value);
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
 		}
 
 		/// <summary>Store a 64-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of an 8-byte location</param>
 		/// <param name="value">Logical value to store in the buffer</param>
-		/// <remarks><see cref="StoreUInt64LE"/>(0x0123456789ABCDEF) => ptr[0] == 0xEF, ptr[1] == 0xCD, ptr[2] == 0xAB, ptr[3] == 0x89, ..., ptr[7] == 0x01</remarks>
+		/// <remarks><c>0x0123456789ABCDEF</c> => <c>[ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01)</c></remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreUInt64LE(void* ptr, ulong value)
 		{
-			*(ulong*) ptr = IsLittleEndian ? value : ByteSwap64(value);
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
 		}
 
 		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
@@ -1450,7 +1175,8 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe long LoadInt64BE(void* ptr)
 		{
-			return IsLittleEndian ? ByteSwap64(*(long*) ptr) : *(long*) ptr;
+			var value = Unsafe.ReadUnaligned<long>(ptr);
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
 		}
 
 		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
@@ -1460,7 +1186,38 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe ulong LoadUInt64BE(void* ptr)
 		{
-			return IsLittleEndian ? ByteSwap64(*(ulong*) ptr) : *(ulong*) ptr;
+			var value = Unsafe.ReadUnaligned<ulong>(ptr);
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
+		}
+
+		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="ptr">Memory address of an 8-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><see cref="LoadInt64BE"/>([ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF) => 0x0123456789ABCDEF</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static long ReadInt64BE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<long>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<long>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
+		}
+
+		/// <summary>Load a 64-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
+		/// <param name="ptr">Memory address of an 8-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><see cref="LoadUInt64BE"/>([ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF) => 0x0123456789ABCDEF</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong ReadUInt64BE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<ulong>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<ulong>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
 		}
 
 		/// <summary>Store a 64-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
@@ -1470,7 +1227,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreInt64BE(void* ptr, long value)
 		{
-			*(long*) ptr = IsLittleEndian ? ByteSwap64(value) : value;
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
 		}
 
 		/// <summary>Store a 64-bit integer in an in-memory buffer that must hold a value in Big-Endian ordering (also known as Network Order)</summary>
@@ -1480,8 +1237,34 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreUInt64BE(void* ptr, ulong value)
 		{
-			*(ulong*) ptr = IsLittleEndian ? ByteSwap64(value) : value;
+			Unsafe.WriteUnaligned(ptr, IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
 		}
+
+		#endregion
+
+		#region 128-bits
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Swap the order of the bytes in a 64-bit word</summary>
+		/// <param name="value">0x0123456789ABCDEF</param>
+		/// <returns>0xEFCDAB8967452301</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static UInt128 ByteSwap128(UInt128 value)
+		{
+			return BinaryPrimitives.ReverseEndianness(value);
+		}
+
+		/// <summary>Swap the order of the bytes in a 64-bit word</summary>
+		/// <param name="value">0x0123456789ABCDEF</param>
+		/// <returns>0xEFCDAB8967452301</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Int128 ByteSwap128(Int128 value)
+		{
+			return BinaryPrimitives.ReverseEndianness(value);
+		}
+
+#endif
 
 		#endregion
 
@@ -1598,7 +1381,7 @@ namespace Doxense.Memory
 
 			if (value <= 0xFFFFFF)
 			{
-				StoreUInt16LE((ushort*) ptr, (ushort) value);
+				StoreUInt16LE((ushort*) ptr, unchecked((ushort) value));
 				ptr[2] = (byte) (value >> 16);
 				return ptr + 3;
 			}
@@ -1616,26 +1399,26 @@ namespace Doxense.Memory
 				ptr[0] = (byte) value;
 				return ptr + 1;
 			}
-			return WriteCompact32BEUnsafeSlow(ptr, value);
-		}
+			return WriteSlow(ptr, value);
 
-		private static unsafe byte* WriteCompact32BEUnsafeSlow(byte* ptr, uint value)
-		{
-			if (value <= 0xFFFF)
+			static byte* WriteSlow(byte* ptr, uint value)
 			{
-				StoreUInt16BE((ushort*) ptr, (ushort) value);
-				return ptr + 2;
-			}
+				if (value <= 0xFFFF)
+				{
+					StoreUInt16BE((ushort*) ptr, (ushort) value);
+					return ptr + 2;
+				}
 
-			if (value <= 0xFFFFFF)
-			{
-				ptr[0] = (byte) (value >> 16);
-				StoreUInt16BE((ushort*) (ptr + 1), (ushort) value);
-				return ptr + 3;
-			}
+				if (value <= 0xFFFFFF)
+				{
+					ptr[0] = (byte) (value >> 16);
+					StoreUInt16BE((ushort*) (ptr + 1), unchecked((ushort) value));
+					return ptr + 3;
+				}
 
-			StoreUInt32BE((uint*) ptr, value);
-			return ptr + 4;
+				StoreUInt32BE((uint*) ptr, value);
+				return ptr + 4;
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1654,54 +1437,55 @@ namespace Doxense.Memory
 				return ptr + 8;
 			}
 
-			return WriteCompact64UnsafeSlow(ptr, value);
-		}
+			return WriteSlow(ptr, value);
 
-		private static unsafe byte* WriteCompact64UnsafeSlow(byte* ptr, ulong value)
-		{
-			if (value <= 0xFFFFFFFF)
-			{ // 2 .. 4 bytes
+			static byte* WriteSlow(byte* ptr, ulong value)
+			{
+				if (value <= 0xFFFFFFFF)
+				{ // 2 .. 4 bytes
 
-				if (value >= 0x1000000)
-				{
-					// 4 bytes
-					StoreUInt32LE((uint*) ptr, (uint) value);
-					return ptr + 4;
+					if (value >= 0x1000000)
+					{
+						// 4 bytes
+						StoreUInt32LE((uint*) ptr, (uint) value);
+						return ptr + 4;
+					}
+
+					StoreUInt16LE((ushort*) ptr, (ushort) value);
+
+					if (value <= 0xFFFF)
+					{ // 2 bytes
+						return ptr + 2;
+					}
+
+					// 3 bytes
+					ptr[2] = (byte) (value >> 16);
+					return ptr + 3;
 				}
+				else
+				{ // 5 .. 7 bytes
+					StoreUInt32LE((uint*) ptr, unchecked((uint) value));
 
-				StoreUInt16LE((ushort*) ptr, (ushort) value);
+					if (value <= 0xFFFFFFFFFF)
+					{ // 5 bytes
+						ptr[4] = (byte) (value >> 32);
+						return ptr + 5;
+					}
 
-				if (value <= 0xFFFF)
-				{ // 2 bytes
-					return ptr + 2;
-				}
+					if (value <= 0xFFFFFFFFFFFF)
+					{ // 6 bytes
+						StoreUInt16LE((ushort*) (ptr + 4), (ushort) (value >> 32));
+						return ptr + 6;
+					}
 
-				// 3 bytes
-				ptr[2] = (byte) (value >> 16);
-				return ptr + 3;
-			}
-			else
-			{ // 5 .. 7 bytes
-				StoreUInt32LE((uint*) ptr, (uint) value);
-
-				if (value <= 0xFFFFFFFFFF)
-				{ // 5 bytes
-					ptr[4] = (byte) (value >> 32);
-					return ptr + 5;
-				}
-
-				if (value <= 0xFFFFFFFFFFFF)
-				{ // 6 bytes
+					// 7 bytes
+					Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
 					StoreUInt16LE((ushort*) (ptr + 4), (ushort) (value >> 32));
-					return ptr + 6;
+					ptr[6] = (byte) (value >> 48);
+					return ptr + 7;
 				}
-
-				// 7 bytes
-				Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
-				StoreUInt16LE((ushort*) (ptr + 4), (ushort) (value >> 32));
-				ptr[6] = (byte) (value >> 48);
-				return ptr + 7;
 			}
+
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1720,56 +1504,56 @@ namespace Doxense.Memory
 				return ptr + 8;
 			}
 
-			return WriteCompact64BEUnsafeSlow(ptr, value);
-		}
+			return WriteSlow(ptr, value);
 
-		private static unsafe byte* WriteCompact64BEUnsafeSlow(byte* ptr, ulong value)
-		{
-			if (value <= 0xFFFFFFFF)
-			{ // 2 .. 4 bytes
+			static byte* WriteSlow(byte* ptr, ulong value)
+			{
+				if (value <= 0xFFFFFFFF)
+				{ // 2 .. 4 bytes
 
-				if (value >= 0x1000000)
-				{
-					// 4 bytes
-					StoreUInt32BE((uint*) ptr, (uint) value);
-					return ptr + 4;
+					if (value >= 0x1000000)
+					{
+						// 4 bytes
+						StoreUInt32BE((uint*) ptr, (uint) value);
+						return ptr + 4;
+					}
+
+
+					if (value <= 0xFFFF)
+					{ // 2 bytes
+						StoreUInt16BE((ushort*) ptr, (ushort) value);
+						return ptr + 2;
+					}
+
+					// 3 bytes
+					StoreUInt16BE((ushort*) ptr, (ushort) (value >> 8));
+					ptr[2] = unchecked((byte) value);
+					return ptr + 3;
 				}
+				else
+				{ // 5 .. 7 bytes
 
+					if (value <= 0xFFFFFFFFFF)
+					{ // 5 bytes
+						StoreUInt32BE((uint*) ptr, (uint) (value >> 8));
+						ptr[4] = unchecked((byte) value);
+						return ptr + 5;
+					}
 
-				if (value <= 0xFFFF)
-				{ // 2 bytes
-					StoreUInt16BE((ushort*) ptr, (ushort) value);
-					return ptr + 2;
+					if (value <= 0xFFFFFFFFFFFF)
+					{ // 6 bytes
+						StoreUInt32BE((uint*) ptr, (uint) (value >> 16));
+						StoreUInt16BE((ushort*) (ptr + 4), unchecked((ushort) value));
+						return ptr + 6;
+					}
+
+					// 7 bytes
+					Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
+					StoreUInt32BE((uint*) ptr, (uint) (value >> 24));
+					StoreUInt16BE((ushort*) (ptr + 4), (ushort) (value >> 8));
+					ptr[6] = unchecked((byte) value);
+					return ptr + 7;
 				}
-
-				// 3 bytes
-				StoreUInt16BE((ushort*) ptr, (ushort) (value >> 8));
-				ptr[2] = (byte) value;
-				return ptr + 3;
-			}
-			else
-			{ // 5 .. 7 bytes
-
-				if (value <= 0xFFFFFFFFFF)
-				{ // 5 bytes
-					StoreUInt32BE((uint*) ptr, (uint) (value >> 8));
-					ptr[4] = (byte) value;
-					return ptr + 5;
-				}
-
-				if (value <= 0xFFFFFFFFFFFF)
-				{ // 6 bytes
-					StoreUInt32BE((uint*) ptr, (uint) (value >> 16));
-					StoreUInt16BE((ushort*) (ptr + 4), (ushort) value);
-					return ptr + 6;
-				}
-
-				// 7 bytes
-				Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
-				StoreUInt32BE((uint*) ptr, (uint) (value >> 24));
-				StoreUInt16BE((ushort*) (ptr + 4), (ushort) (value >> 8));
-				ptr[6] = (byte) value;
-				return ptr + 7;
 			}
 		}
 
@@ -1836,7 +1620,6 @@ namespace Doxense.Memory
 		private const ulong OCU_MAX6 = (1UL << (5 + 8 * 6)) - 1;
 		private const ulong OCU_MAX7 = (1UL << (5 + 8 * 7)) - 1;
 
-
 		/// <summary>Return the size (in bytes) that a 32-bit counter value would need with the Compact Order Unsigned encoding</summary>
 		/// <param name="value">Number that needs to be encoded</param>
 		/// <returns>Number of bytes needed (1-5)</returns>
@@ -1894,24 +1677,24 @@ namespace Doxense.Memory
 		{
 			if (value <= OCU_MAX2)
 			{ // < 2 MB
-				cursor[0] = (byte)(OCU_LEN2 | (value >> 16));
-				cursor[1] = (byte)(value >> 8);
-				cursor[2] = (byte)(value);
+				cursor[0] = (byte) (OCU_LEN2 | (value >> 16));
+				cursor[1] = (byte) (value >> 8);
+				cursor[2] = (byte) (value);
 				return cursor + 3;
 			}
 			if (value <= OCU_MAX3)
 			{ // < 512 MB
-				cursor[0] = (byte)(OCU_LEN3 | (value >> 24));
-				cursor[1] = (byte)(value >> 16);
-				cursor[2] = (byte)(value >> 8);
-				cursor[3] = (byte)(value);
+				cursor[0] = (byte) (OCU_LEN3 | (value >> 24));
+				cursor[1] = (byte) (value >> 16);
+				cursor[2] = (byte) (value >> 8);
+				cursor[3] = (byte) (value);
 				return cursor + 4;
 			}
 			cursor[0] = OCU_LEN4; // we waste a byte for values >= 512MB, which is unfortunate...
-			cursor[1] = (byte)(value >> 24);
-			cursor[2] = (byte)(value >> 16);
-			cursor[3] = (byte)(value >> 8);
-			cursor[4] = (byte)(value);
+			cursor[1] = (byte) (value >> 24);
+			cursor[2] = (byte) (value >> 16);
+			cursor[3] = (byte) (value >> 8);
+			cursor[4] = (byte) (value);
 			return cursor + 5;
 		}
 
@@ -1977,9 +1760,6 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Read an unsigned 32-bit counter value encoded using the Compact Ordered Unsigned encoding</summary>
-		/// <param name="cursor"></param>
-		/// <param name="value"></param>
-		/// <returns></returns>
 		public static unsafe byte* ReadOrderedUInt32Unsafe(byte* cursor, out uint value)
 		{
 			uint start = cursor[0];
@@ -2116,7 +1896,7 @@ namespace Doxense.Memory
 			//  0-9  : X + 54 + 1 - (1 x 7) = X + 48 = '0'-'9'
 			// 10-15 : X + 54 + 1 - (0 x 7) = X + 55 = 'A'-'F'
 			int tmp = ((x & 0xF) + 54);
-			return (char)(tmp + 1 - ((tmp & 32) >> 5) * 7);
+			return (char) (tmp + 1 - ((tmp & 32) >> 5) * 7);
 			//REVIEW: '* 7' could probably be replaced with some shift/add trickery... (but maybe the JIT will do it for us?)
 		}
 
@@ -2126,7 +1906,7 @@ namespace Doxense.Memory
 		[Pure]
 #if NET8_0_OR_GREATER
 		[Obsolete("System.Text.Ascii.IsValid(...) instead")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 #endif
 		public static bool IsAsciiString(ReadOnlySpan<char> value)
 		{
@@ -2257,7 +2037,7 @@ namespace Doxense.Memory
 		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
 #if NET8_0_OR_GREATER
 		[Obsolete("Use System.Text.Ascii.IsValid(...) instead")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 #endif
 		public static bool IsAsciiBytes(ReadOnlySpan<byte> buffer)
 		{

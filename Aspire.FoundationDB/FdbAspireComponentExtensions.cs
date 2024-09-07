@@ -23,7 +23,7 @@ namespace Microsoft.Extensions.Hosting
 	using Microsoft.Extensions.Diagnostics.HealthChecks;
 	using OpenTelemetry.Trace;
 
-	/// <summary>Provides extension methods for adding FoundationDB to the local DI container.</summary>
+	/// <summary>Provides extension methods for registering FoundationDB-related services in an <see cref="T:Microsoft.Extensions.Hosting.IHostApplicationBuilder" />.</summary>
 	[PublicAPI]
 	public static class FdbAspireComponentExtensions
 	{
@@ -31,11 +31,11 @@ namespace Microsoft.Extensions.Hosting
 		private const string DefaultConfigSectionName = "Aspire:FoundationDb:Client";
 
 		/// <summary>Add support for connecting to a FoundationDB cluster</summary>
-		/// <param name="builder">Application builder</param>
+		/// <param name="builder">The <see cref="T:Microsoft.Extensions.Hosting.IHostApplicationBuilder" /> to read config from and add services to.</param>
 		/// <param name="connectionName">Name of the FoundationDB cluster or connection resource, as defined in the Aspire AppHost.</param>
-		/// <param name="configureSettings">Optional callback used to configure the <see cref="FdbClientSettings">Aspire settings</see>.</param>
-		/// <param name="configureProvider">Optional callback used to configure the <see cref="FdbDatabaseProviderOptions"></see>.</param>
-		/// <remarks>This method is intended to be used in conjunction with the Aspire SDK.</remarks>
+		/// <param name="configureSettings">An optional method that can be used for customizing the <see cref="FdbClientSettings" />. It's invoked after the settings are read from the configuration.</param>
+		/// <param name="configureProvider">An optional method that can be used for customizing the <see cref="FdbDatabaseProviderOptions" />. It's invoked after the options are read from the configuration.</param>
+		/// <remarks>Reads the configuration from "Aspire:FoundationDb:Client" section.</remarks>
 		public static IHostApplicationBuilder AddFoundationDb(this IHostApplicationBuilder builder, string connectionName, Action<FdbClientSettings>? configureSettings = null, Action<FdbDatabaseProviderOptions>? configureProvider = null)
 		{
 			return AddFoundationDb(builder, connectionName, DefaultConfigSectionName, configureSettings, configureProvider);
@@ -308,4 +308,5 @@ namespace Microsoft.Extensions.Hosting
 		}
 
 	}
+
 }

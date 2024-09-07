@@ -33,6 +33,7 @@ namespace Doxense.Mathematics.Test
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class FastDtoaFacts : SimpleTest
 	{
 
@@ -305,19 +306,17 @@ namespace Doxense.Mathematics.Test
 				nums[i] = rnd.NextDouble() * 1000000;
 			}
 
-			RobustBenchmark.Report<double[]> report;
-
 			// Integer Baseline
-			report = RobustBenchmark.Run(
-				() => nums,
-				(t, i) =>
+			var report = RobustBenchmark.Run(
+				nums,
+				static (t, i) =>
 				{
-					var d = (long)t[i];
+					var d = (long) t[i];
 					_ = d.ToString(null, CultureInfo.InvariantCulture);
 					_ = d.ToString(null, CultureInfo.InvariantCulture);
 					_ = d.ToString(null, CultureInfo.InvariantCulture);
 					_ = d.ToString(null, CultureInfo.InvariantCulture);
-					_ = d.ToString(null, CultureInfo.InvariantCulture);
+					return d.ToString(null, CultureInfo.InvariantCulture);
 				},
 				(t) => t,
 				RUNS,
@@ -327,15 +326,15 @@ namespace Doxense.Mathematics.Test
 
 			// Double Baseline
 			report = RobustBenchmark.Run(
-				() => nums,
-				(t, i) =>
+				nums,
+				static (t, i) =>
 				{
 					var d = t[i];
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
-					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					return d.ToString("R", CultureInfo.InvariantCulture);
 				},
 				(t) => t,
 				RUNS,
@@ -345,15 +344,15 @@ namespace Doxense.Mathematics.Test
 
 			// Double Baseline (no decimals)
 			report = RobustBenchmark.Run(
-				() => nums,
-				(t, i) =>
+				nums,
+				static (t, i) =>
 				{
 					var d = Math.Floor(t[i]);
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
 					_ = d.ToString("R", CultureInfo.InvariantCulture);
-					_ = d.ToString("R", CultureInfo.InvariantCulture);
+					return d.ToString("R", CultureInfo.InvariantCulture);
 				},
 				(t) => t,
 				RUNS,
@@ -363,15 +362,15 @@ namespace Doxense.Mathematics.Test
 
 			// Grisu3 ToString()
 			report = RobustBenchmark.Run(
-				() => nums,
-				(t, i) =>
+				nums,
+				static (t, i) =>
 				{
 					var d = t[i];
 					_ = FastDtoa.FormatDouble(d);
 					_ = FastDtoa.FormatDouble(d);
 					_ = FastDtoa.FormatDouble(d);
 					_ = FastDtoa.FormatDouble(d);
-					_ = FastDtoa.FormatDouble(d);
+					return FastDtoa.FormatDouble(d);
 				},
 				(t) => t,
 				RUNS,
@@ -381,15 +380,15 @@ namespace Doxense.Mathematics.Test
 
 			// Grisu3 ToString() (no decimals)
 			report = RobustBenchmark.Run(
-				() => nums,
-				(t, i) =>
+				nums,
+				static (t, i) =>
 				{
 					var d = Math.Floor(t[i]);
 					_ = FastDtoa.FormatDouble(d);
 					_ = FastDtoa.FormatDouble(d);
 					_ = FastDtoa.FormatDouble(d);
 					_ = FastDtoa.FormatDouble(d);
-					_ = FastDtoa.FormatDouble(d);
+					return FastDtoa.FormatDouble(d);
 				},
 				(t) => t,
 				RUNS,
@@ -400,18 +399,19 @@ namespace Doxense.Mathematics.Test
 			// Grisu3 ToBuffer()
 			var chars = new char[32];
 			report = RobustBenchmark.Run(
-				() => nums,
-				(t, i) =>
+				(chars, nums),
+				static (g) => g.nums,
+				static (g, t, i) =>
 				{
 					var d = t[i];
-					var buf = chars;
+					var buf = g.chars;
 					_ = FastDtoa.FormatDouble(d, buf, 0);
 					_ = FastDtoa.FormatDouble(d, buf, 0);
 					_ = FastDtoa.FormatDouble(d, buf, 0);
 					_ = FastDtoa.FormatDouble(d, buf, 0);
-					_ = FastDtoa.FormatDouble(d, buf, 0);
+					return FastDtoa.FormatDouble(d, buf, 0);
 				},
-				(t) => t,
+				static (g, t) => t,
 				RUNS,
 				ITER
 			);
@@ -419,18 +419,19 @@ namespace Doxense.Mathematics.Test
 			// Grisu3 ToBuffer() (no decimals)
 			Log($"Grisu3 char[]       : Med={report.MedianIterationsNanos / 5:N1}, Best={report.BestIterationsNanos / 5:N1}, StdDev={report.StdDevIterationNanos / 5:N2}, GCs={report.GC0} / {report.GC1} / {report.GC2}");
 			report = RobustBenchmark.Run(
-				() => nums,
-				(t, i) =>
+				(chars, nums),
+				static (g) => g.nums,
+				static (g, t, i) =>
 				{
 					var d = Math.Floor(t[i]);
-					var buf = chars;
+					var buf = g.chars;
 					_ = FastDtoa.FormatDouble(d, buf, 0);
 					_ = FastDtoa.FormatDouble(d, buf, 0);
 					_ = FastDtoa.FormatDouble(d, buf, 0);
 					_ = FastDtoa.FormatDouble(d, buf, 0);
-					_ = FastDtoa.FormatDouble(d, buf, 0);
+					return FastDtoa.FormatDouble(d, buf, 0);
 				},
-				(t) => t,
+				(g, t) => t,
 				RUNS,
 				ITER
 			);

@@ -137,6 +137,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int Count => m_slices.Length;
 
+		/// <inheritdoc />
+		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
+
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSpan(index));
 

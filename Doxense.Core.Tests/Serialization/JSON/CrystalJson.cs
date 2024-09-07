@@ -87,6 +87,8 @@ namespace Doxense.Serialization.Json.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
+	[SetInvariantCulture]
 	public class CrystalJsonTest : SimpleTest
 	{
 
@@ -347,6 +349,11 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
+		static CrystalJsonTest()
+		{
+			CrystalJson.Warmup();
+		}
+
 		#region Serialization...
 
 		/// <summary>Helper to wrap calls to SerializeTo(..), using a StringWriter, and returning the generated string</summary>
@@ -451,6 +458,7 @@ namespace Doxense.Serialization.Json.Tests
 				var sb = new StringBuilder();
 				var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
 				handler(writer);
+				Log(sb.ToString());
 				return sb.ToString();
 			}
 
@@ -497,20 +505,42 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.That(Execute(w => w.WriteValue(0)), Is.EqualTo("0"));
 			Assert.That(Execute(w => w.WriteValue(1)), Is.EqualTo("1"));
+			Assert.That(Execute(w => w.WriteValue(10)), Is.EqualTo("10"));
+			Assert.That(Execute(w => w.WriteValue(-1)), Is.EqualTo("-1"));
 			Assert.That(Execute(w => w.WriteValue(42)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue(42U)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue(42L)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue(42UL)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue((byte) 42)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue((short) 42)), Is.EqualTo("42"));
+
+			Assert.That(Execute(w => w.WriteValue(-42)), Is.EqualTo("-42"));
+			Assert.That(Execute(w => w.WriteValue(-42L)), Is.EqualTo("-42"));
+			Assert.That(Execute(w => w.WriteValue((sbyte) -42)), Is.EqualTo("-42"));
+			Assert.That(Execute(w => w.WriteValue((short) -42)), Is.EqualTo("-42"));
+
+			Assert.That(Execute(w => w.WriteValue(1234)), Is.EqualTo("1234"));
+			Assert.That(Execute(w => w.WriteValue(1234U)), Is.EqualTo("1234"));
+			Assert.That(Execute(w => w.WriteValue(1234L)), Is.EqualTo("1234"));
+			Assert.That(Execute(w => w.WriteValue(1234UL)), Is.EqualTo("1234"));
+
+			Assert.That(Execute(w => w.WriteValue(-1234)), Is.EqualTo("-1234"));
+			Assert.That(Execute(w => w.WriteValue(-1234L)), Is.EqualTo("-1234"));
+
 			Assert.That(Execute(w => w.WriteValue(int.MaxValue)), Is.EqualTo("2147483647"));
 			Assert.That(Execute(w => w.WriteValue(int.MinValue)), Is.EqualTo("-2147483648"));
 			Assert.That(Execute(w => w.WriteValue(uint.MaxValue)), Is.EqualTo("4294967295"));
 			Assert.That(Execute(w => w.WriteValue(long.MaxValue)), Is.EqualTo("9223372036854775807"));
 			Assert.That(Execute(w => w.WriteValue(long.MinValue)), Is.EqualTo("-9223372036854775808"));
-			Assert.That(Execute(w => w.WriteValue(Math.PI)), Is.EqualTo("3.141592653589793"));
+
+			Assert.That(Execute(w => w.WriteValue(1f)), Is.EqualTo("1"));
 			Assert.That(Execute(w => w.WriteValue((float) Math.PI)), Is.EqualTo("3.1415927"));
-			Assert.That(Execute(w => w.WriteValue((Half) Math.PI)), Is.EqualTo("3.14"));
+
+			Assert.That(Execute(w => w.WriteValue(1d)), Is.EqualTo("1"));
+			Assert.That(Execute(w => w.WriteValue(Math.PI)), Is.EqualTo("3.141592653589793"));
+			Assert.That(Execute(w => w.WriteValue(double.MinValue)), Is.EqualTo("-1.7976931348623157E+308"));
+			Assert.That(Execute(w => w.WriteValue(double.MaxValue)), Is.EqualTo("1.7976931348623157E+308"));
+			Assert.That(Execute(w => w.WriteValue(double.Epsilon)), Is.EqualTo("5E-324"));
 
 			Assert.That(Execute(w => w.WriteValue(default(int?))), Is.EqualTo("null"));
 			Assert.That(Execute(w => w.WriteValue((int?) 42)), Is.EqualTo("42"));
@@ -526,8 +556,19 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute(w => w.WriteValue((double?) 42)), Is.EqualTo("42"));
 			Assert.That(Execute(w => w.WriteValue(default(decimal?))), Is.EqualTo("null"));
 			Assert.That(Execute(w => w.WriteValue((decimal?) 42)), Is.EqualTo("42"));
+
+			Assert.That(Execute(w => w.WriteEnumInteger(DummyJsonEnumInt32.Two)), Is.EqualTo("2"));
+			Assert.That(Execute(w => w.WriteEnumString(DummyJsonEnumInt32.Two)), Is.EqualTo("\"Two\""));
+			Assert.That(Execute(w => w.WriteEnumInteger(DummyJsonEnumShort.Two)), Is.EqualTo("2"));
+			Assert.That(Execute(w => w.WriteEnumString(DummyJsonEnumShort.Two)), Is.EqualTo("\"Two\""));
+			Assert.That(Execute(w => w.WriteEnumInteger(DummyJsonEnumInt64.Two)), Is.EqualTo("2"));
+			Assert.That(Execute(w => w.WriteEnumString(DummyJsonEnumInt64.Two)), Is.EqualTo("\"Two\""));
+
+#if NET8_0_OR_GREATER
+			Assert.That(Execute(w => w.WriteValue((Half) Math.PI)), Is.EqualTo("3.14"));
 			Assert.That(Execute(w => w.WriteValue(default(Half?))), Is.EqualTo("null"));
 			Assert.That(Execute(w => w.WriteValue((Half?) 42)), Is.EqualTo("42"));
+#endif
 
 			#endregion
 		}
@@ -600,7 +641,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute(w => w.WriteField("foo", long.MinValue)), Is.EqualTo(@"{ ""foo"": -9223372036854775808 }"));
 			Assert.That(Execute(w => w.WriteField("foo", Math.PI)), Is.EqualTo(@"{ ""foo"": 3.141592653589793 }"));
 			Assert.That(Execute(w => w.WriteField("foo", (float) Math.PI)), Is.EqualTo(@"{ ""foo"": 3.1415927 }"));
-			Assert.That(Execute(w => w.WriteField("foo", (Half) Math.PI)), Is.EqualTo(@"{ ""foo"": 3.14 }"));
 
 			Assert.That(Execute(w => w.WriteField("foo", default(int?))), Is.EqualTo(@"{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (int?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
@@ -617,7 +657,11 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute(w => w.WriteField("foo", default(decimal?))), Is.EqualTo(@"{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (decimal?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
 			Assert.That(Execute(w => w.WriteField("foo", default(Half?))), Is.EqualTo(@"{ }"));
+
+#if NET8_0_OR_GREATER
+			Assert.That(Execute(w => w.WriteField("foo", (Half) Math.PI)), Is.EqualTo(@"{ ""foo"": 3.14 }"));
 			Assert.That(Execute(w => w.WriteField("foo", (Half?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
+#endif
 
 			#endregion
 
@@ -2174,7 +2218,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			{ // Deserialize<T> should invoke the ctor(JsonObject,...)
 				var x = CrystalJson.Deserialize<DummyCtorBasedJsonSerializableStruct>("""{ "Id":123,"Name":"Bob","XY":"5:7" }""");
-				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
 				Assert.That(x.X, Is.EqualTo(5));
@@ -2183,7 +2226,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			{ // As<...> should also use the ctor(JsonObject)
 				var x = JsonValue.ParseObject(json).Required<DummyCtorBasedJsonSerializableStruct>();
-				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
 				Assert.That(x.X, Is.EqualTo(5));
@@ -2360,7 +2402,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonSerialize_STuples()
 		{
 			// STuple<...>
-			Assert.That(CrystalJson.Serialize(STuple.Empty), Is.EqualTo("[ ]"));
+			Assert.That(CrystalJson.Serialize(new STuple()), Is.EqualTo("[ ]"));
 			Assert.That(CrystalJson.Serialize(STuple.Create(123)), Is.EqualTo("[ 123 ]"));
 			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello")), Is.EqualTo("""[ 123, "Hello" ]"""));
 			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello", true)), Is.EqualTo("""[ 123, "Hello", true ]"""));
@@ -2403,14 +2445,14 @@ namespace Doxense.Serialization.Json.Tests
 
 			// (ITuple) STuple<...>
 			Log("ITuple...");
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create()), Is.EqualTo("[ ]"));
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123)), Is.EqualTo("[ 123 ]"));
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello")), Is.EqualTo("""[ 123, "Hello" ]"""));
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true)), Is.EqualTo("""[ 123, "Hello", true ]"""));
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5)), Is.EqualTo("""[ 123, "Hello", true, -1.5 ]"""));
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z')), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z" ]"""));
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]"""));
-			Assert.That(CrystalJson.Serialize((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World")), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]"""));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create()), Is.EqualTo("[ ]"));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123)), Is.EqualTo("[ 123 ]"));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello")), Is.EqualTo("""[ 123, "Hello" ]"""));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true)), Is.EqualTo("""[ 123, "Hello", true ]"""));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5)), Is.EqualTo("""[ 123, "Hello", true, -1.5 ]"""));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z')), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z" ]"""));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]"""));
+			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World")), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]"""));
 		}
 
 		[Test]
@@ -3704,8 +3746,8 @@ namespace Doxense.Serialization.Json.Tests
 				JsonValue ja = JsonString.Return(a);
 				JsonValue jb = JsonString.Return(b);
 
-				Assert.That(Math.Sign(ja.CompareTo(jb)), Is.EqualTo(Math.Sign(string.CompareOrdinal(a, b))), "'{0}' cmp '{1}'", a, b);
-				Assert.That(Math.Sign(jb.CompareTo(ja)), Is.EqualTo(Math.Sign(string.CompareOrdinal(b, a))), "'{0}' cmp '{1}'", b, a);
+				Assert.That(Math.Sign(ja.CompareTo(jb)), Is.EqualTo(Math.Sign(string.CompareOrdinal(a, b))), $"'{a}' cmp '{b}'");
+				Assert.That(Math.Sign(jb.CompareTo(ja)), Is.EqualTo(Math.Sign(string.CompareOrdinal(b, a))), $"'{b}' cmp '{a}'");
 			}
 
 			Compare("", "");
@@ -3907,7 +3949,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonNumber()
 		{
-			{
+			{ // 0 (singleton)
 				var value = JsonNumber.Zero;
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
@@ -3921,7 +3963,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("0")));
 			}
 
-			{
+			{ // 1 (singleton)
 				var value = JsonNumber.One;
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
@@ -3935,7 +3977,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("1")));
 			}
 
-			{
+			{ // -1 (singleton)
 				var value = JsonNumber.MinusOne;
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
@@ -3949,21 +3991,71 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("-1")));
 			}
 
-			{
+			{ // 123 (cached)
 				var value = JsonNumber.Return(123);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
 				Assert.That(value.IsReadOnly, Is.True);
+				Assert.That(value.ToInt32(), Is.EqualTo(123));
 				Assert.That(value.ToObject(), Is.EqualTo(123));
 				Assert.That(value.ToObject(), Is.InstanceOf<long>());
 				Assert.That(value.IsDecimal, Is.False);
 				Assert.That(value.IsNegative, Is.False);
+				Assert.That(value.Literal, Is.EqualTo("123"));
 				Assert.That(value.ToString(), Is.EqualTo("123"));
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("123")));
 			}
 
-			{
+			{ // -123 (cached)
+				var value = JsonNumber.Return(-123);
+				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsReadOnly, Is.True);
+				Assert.That(value.ToInt32(), Is.EqualTo(-123));
+				Assert.That(value.ToObject(), Is.EqualTo(-123));
+				Assert.That(value.ToObject(), Is.InstanceOf<long>());
+				Assert.That(value.IsDecimal, Is.False);
+				Assert.That(value.IsNegative, Is.True);
+				Assert.That(value.Literal, Is.EqualTo("-123"));
+				Assert.That(value.ToString(), Is.EqualTo("-123"));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("-123")));
+			}
+
+			{ // 123456 (not cached)
+				var value = JsonNumber.Return(123456);
+				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsReadOnly, Is.True);
+				Assert.That(value.ToInt32(), Is.EqualTo(123456));
+				Assert.That(value.ToObject(), Is.EqualTo(123456));
+				Assert.That(value.ToObject(), Is.InstanceOf<long>());
+				Assert.That(value.IsDecimal, Is.False);
+				Assert.That(value.IsNegative, Is.False);
+				Assert.That(value.Literal, Is.EqualTo("123456"));
+				Assert.That(value.ToString(), Is.EqualTo("123456"));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("123456")));
+			}
+
+			{ // -123456 (not cached)
+				var value = JsonNumber.Return(-123456);
+				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsReadOnly, Is.True);
+				Assert.That(value.ToInt32(), Is.EqualTo(-123456));
+				Assert.That(value.ToObject(), Is.EqualTo(-123456));
+				Assert.That(value.ToObject(), Is.InstanceOf<long>());
+				Assert.That(value.IsDecimal, Is.False);
+				Assert.That(value.IsNegative, Is.True);
+				Assert.That(value.Literal, Is.EqualTo("-123456"));
+				Assert.That(value.ToString(), Is.EqualTo("-123456"));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("-123456")));
+			}
+
+			{ // int.MaxValue + 1 (long)
 				var value = JsonNumber.Return(1L + int.MaxValue); // outside the range of Int32, so should be stored as an unsigned long
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
@@ -3977,7 +4069,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("2147483648")));
 			}
 
-			{
+			{ // 123UL (cached)
 				var value = JsonNumber.Return(123UL);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
@@ -3989,6 +4081,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.IsNegative, Is.False);
 				Assert.That(value.ToString(), Is.EqualTo("123"));
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("123")));
+
+				Assert.That(value, Is.SameAs(JsonNumber.Return(123)), "should return the same cached instance");
 			}
 
 			{
@@ -4198,81 +4292,71 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.Return(Math.PI).Bind<string>(), Is.EqualTo(Math.PI.ToString("R")));
 
 			// auto cast
-			JsonValue v;
-			JsonNumber j;
+			JsonNumber v;
 
-			v = int.MaxValue;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = JsonNumber.Return(int.MaxValue);
+			Assert.That(v, Is.Not.Null);
+			Assert.That(v.IsDecimal, Is.False);
+			Assert.That(v.IsUnsigned, Is.False);
 			Assert.That(v.ToInt32(), Is.EqualTo(int.MaxValue));
 			Assert.That(v.Required<int>(), Is.EqualTo(int.MaxValue));
 			Assert.That((int) v, Is.EqualTo(int.MaxValue));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.False);
-			Assert.That(j.IsUnsigned, Is.False);
 
-			v = uint.MaxValue;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = JsonNumber.Return(uint.MaxValue);
+			Assert.That(v.IsUnsigned, Is.False, "uint.MaxValue is small enough to fit in a long");
+			Assert.That(v.IsDecimal, Is.False);
+			Assert.That(v, Is.Not.Null);
 			Assert.That(v.ToUInt32(), Is.EqualTo(uint.MaxValue));
 			Assert.That(v.Required<uint>(), Is.EqualTo(uint.MaxValue));
 			Assert.That((uint) v, Is.EqualTo(uint.MaxValue));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.False);
-			Assert.That(j.IsUnsigned, Is.False, "uint.MaxValue is small enough to fit in a long");
 
-			v = long.MaxValue;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = JsonNumber.Return(long.MaxValue);
+			Assert.That(v, Is.Not.Null);
+			Assert.That(v.IsDecimal, Is.False);
+			Assert.That(v.IsUnsigned, Is.False);
 			Assert.That(v.ToInt64(), Is.EqualTo(long.MaxValue));
 			Assert.That(v.Required<long>(), Is.EqualTo(long.MaxValue));
 			Assert.That((long) v, Is.EqualTo(long.MaxValue));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.False);
-			Assert.That(j.IsUnsigned, Is.False);
 
-			v = ulong.MaxValue;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = JsonNumber.Return(ulong.MaxValue);
+			Assert.That(v, Is.Not.Null);
+			Assert.That(v.IsDecimal, Is.False);
+			Assert.That(v.IsUnsigned, Is.True);
 			Assert.That(v.ToUInt64(), Is.EqualTo(ulong.MaxValue));
 			Assert.That(v.Required<ulong>(), Is.EqualTo(ulong.MaxValue));
 			Assert.That((ulong) v, Is.EqualTo(ulong.MaxValue));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.False);
-			Assert.That(j.IsUnsigned, Is.True);
 
-			v = Math.PI;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = JsonNumber.Return(Math.PI);
+			Assert.That(v, Is.Not.Null);
+			Assert.That(v.IsDecimal, Is.True);
+			Assert.That(v.IsUnsigned, Is.False);
 			Assert.That(v.ToDouble(), Is.EqualTo(Math.PI));
 			Assert.That(v.Required<double>(), Is.EqualTo(Math.PI));
 			Assert.That((double) v, Is.EqualTo(Math.PI));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.True);
-			Assert.That(j.IsUnsigned, Is.False);
 
-			v = 1.234f;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = JsonNumber.Return(1.234f);
+			Assert.That(v, Is.Not.Null);
+			Assert.That(v.IsDecimal, Is.True);
+			Assert.That(v.IsUnsigned, Is.False);
 			Assert.That(v.ToSingle(), Is.EqualTo(1.234f));
 			Assert.That(v.Required<float>(), Is.EqualTo(1.234f));
 			Assert.That((float) v, Is.EqualTo(1.234f));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.True);
-			Assert.That(j.IsUnsigned, Is.False);
 
-			v = (int?) 123;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = (JsonNumber) JsonNumber.Return((int?) 123);
+			Assert.That(v, Is.Not.Null);
+			Assert.That(v.IsDecimal, Is.False);
+			Assert.That(v.IsUnsigned, Is.False);
 			Assert.That(v.ToInt32OrDefault(), Is.EqualTo(123));
 			Assert.That(v.As<int?>(), Is.EqualTo(123));
 			Assert.That((int?) v, Is.EqualTo(123));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.False);
-			Assert.That(j.IsUnsigned, Is.False);
 
-			v = (uint?) 123;
-			Assert.That(v, Is.Not.Null.And.InstanceOf<JsonNumber>());
+			v = (JsonNumber) JsonNumber.Return((uint?) 123);
+			Assert.That(v, Is.Not.Null);
+			Assert.That(v.IsDecimal, Is.False);
+			Assert.That(v.IsUnsigned, Is.False, "123u fits in a long");
 			Assert.That(v.ToUInt32OrDefault(), Is.EqualTo(123));
 			Assert.That(v.As<uint?>(), Is.EqualTo(123));
 			Assert.That((uint?) v, Is.EqualTo(123));
-			j = (JsonNumber) v;
-			Assert.That(j.IsDecimal, Is.False);
-			Assert.That(j.IsUnsigned, Is.False, "123u fits in a long");
-
 		}
 
 		[Test]
@@ -5996,13 +6080,15 @@ namespace Doxense.Serialization.Json.Tests
 			static void Check(
 				JsonArray actual,
 				IResolveConstraint expression,
-				NUnitString message = default(NUnitString),
+				NUnitString message = default,
 				[CallerArgumentExpression(nameof(actual))] string actualExpression = "",
 				[CallerArgumentExpression(nameof(expression))]
 				string constraintExpression = "")
 			{
 				Dump(actualExpression, actual);
+#pragma warning disable NUnit2050
 				Assert.That(actual, expression, message, actualExpression, constraintExpression);
+#pragma warning restore NUnit2050
 			}
 
 			Check(JsonArray.EmptyReadOnly.CopyAndAdd("hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
@@ -6841,10 +6927,10 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			static void Merge(JsonObject root, JsonObject obj)
 			{
-				Log("  " + root.ToString());
-				Log("+ " + obj.ToString());
+				Log($"  {root}");
+				Log($"+ {obj}");
 				root.MergeWith(obj);
-				Log("= " + root.ToString());
+				Log($"= {root}");
 				Log();
 			}
 
@@ -6931,17 +7017,17 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			static void Verify(JsonObject a, JsonObject b, JsonObject expected)
 			{
-				Log("before: " + a.ToString());
-				Log("after : " + b.ToString());
+				Log($"before: {a}");
+				Log($"after : {b}");
 				var patch = a.ComputePatch(b);
-				Log("patch : " + patch.ToString());
+				Log($"patch : {patch}");
 
 				Assert.That(patch, Is.EqualTo(expected), "Patch does not match expected value");
 
 				// applying the diff on 'a' should produce 'b'!
 				var b2 = a.Copy();
 				b2.ApplyPatch(patch);
-				Log("merged: " + b2.ToString());
+				Log("merged: " + b2);
 				Assert.That(b2, IsJson.EqualTo(b));
 
 				Log();
@@ -7234,10 +7320,10 @@ namespace Doxense.Serialization.Json.Tests
 			void Check(JsonValue o, string name, string expectedType, IResolveConstraint valueConstraint)
 			{
 				var arr = o[name].AsArray();
-				Assert.That(arr, Is.Not.Null, "Property '{0}' is missing", name);
+				Assert.That(arr, Is.Not.Null, $"Property '{name}' is missing");
 				Assert.That(arr.Count, Is.EqualTo(2), $"Array should have exactly 2 elements: {arr:P}");
-				Assert.That(arr[0].ToStringOrDefault(), Is.EqualTo(expectedType), "Item type does not match for {0}", name);
-				Assert.That(arr[1], valueConstraint, "Value does not match for {0}", name);
+				Assert.That(arr[0].ToStringOrDefault(), Is.EqualTo(expectedType), $"Item type does not match for {name}");
+				Assert.That(arr[1], valueConstraint, $"Value does not match for {name}");
 			}
 
 			//note: throw and catch the exception to have an actual StackTrace
@@ -9185,8 +9271,10 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonDeserialize_ValueTuples()
 		{
+			// ValueTuple
+			Assert.That(CrystalJson.Deserialize<ValueTuple>("[ ]").Equals(ValueTuple.Create()), Is.True);
+
 			// ValueTuple<...>
-			Assert.That(CrystalJson.Deserialize<ValueTuple>("[ ]"), Is.EqualTo(ValueTuple.Create()));
 			Assert.That(CrystalJson.Deserialize<ValueTuple<int>>("[ 123 ]"), Is.EqualTo(ValueTuple.Create(123)));
 			Assert.That(CrystalJson.Deserialize<ValueTuple<int, string>>("[ 123, \"Hello\" ]"), Is.EqualTo(ValueTuple.Create(123, "Hello")));
 			Assert.That(CrystalJson.Deserialize<ValueTuple<int, string, bool>>("[ 123, \"Hello\", true ]"), Is.EqualTo(ValueTuple.Create(123, "Hello", true)));
@@ -9307,7 +9395,6 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			string jsonText = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"DateOfBirth\": \"1920-11-11\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
 			var x = CrystalJson.Deserialize<DummyJsonStruct>(jsonText);
-			Assert.That(x, Is.Not.Null, jsonText);
 			Assert.That(x, Is.InstanceOf<DummyJsonStruct>());
 
 			Assert.That(x.Valid, Is.True, "x.Valid");
@@ -9821,12 +9908,28 @@ namespace Doxense.Serialization.Json.Tests
 		Narf = 4
 	}
 
+	enum DummyJsonEnumInt32
+	{
+		None,
+		One = 1,
+		Two = 2,
+		MaxValue = 65535
+	}
+
 	enum DummyJsonEnumShort : ushort
 	{
 		None,
 		One = 1,
 		Two = 2,
 		MaxValue = 65535
+	}
+
+	enum DummyJsonEnumInt64 : long
+	{
+		None,
+		One = 1,
+		Two = 2,
+		MaxValue = long.MaxValue
 	}
 
 	enum DummyJsonEnumTypo

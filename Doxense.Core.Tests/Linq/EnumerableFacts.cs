@@ -34,6 +34,7 @@ namespace Doxense.Linq.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class EnumerableFacts : SimpleTest
 	{
 
@@ -93,6 +94,7 @@ namespace Doxense.Linq.Tests
 			Assert.That(results, Is.EqualTo(Enumerable.Range(1, 5).Select(x => x * 2).ToList()));
 
 		}
+
 	}
 
 }

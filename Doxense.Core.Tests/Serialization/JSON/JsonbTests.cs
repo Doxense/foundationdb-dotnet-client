@@ -37,6 +37,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class JsonbTest : SimpleTest
 	{
 
@@ -126,14 +127,17 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				// 4 bits par caractère
 				res <<= 4;
 				int c = hexa[i];
-				if (c >= 48 && c <= 57) // '0'..'9'
-					res += c - 48;
-				else if (c >= 65 && c <= 90) // 'A'..'F'
-					res += c - 55;
-				else if (c >= 97 && c <= 102) // 'a'..'f'
-					res += c - 87;
-				else
-					return res >> 4; // ERREUR !
+				switch (c)
+				{
+					// '0'..'9'
+					case >= 48 and <= 57: res += c - 48; break;
+					// 'A'..'F'
+					case >= 65 and <= 90: res += c - 55; break;
+					// 'a'..'f'
+					case >= 97 and <= 102: res += c - 87; break;
+					// invalid
+					default: return res >> 4;
+				}
 			}
 			return res;
 		}
@@ -143,7 +147,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		{
 			if (string.IsNullOrEmpty(value))
 			{
-				return value == null ? null : Array.Empty<byte>();
+				return value == null ? null : [ ];
 			}
 			value = value.Trim().Replace(" ", string.Empty);
 			int n = value.Length;
@@ -523,8 +527,8 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				var fooDb = new FooDb()
 				{
 					Version = 1,
-					Vendors = new List<Vendor>
-					{
+					Vendors =
+					[
 						new()
 						{
 							Id = Guid.NewGuid(),
@@ -573,8 +577,8 @@ namespace Doxense.Serialization.Json.Binary.Tests
 							Label = "tosh",
 							Name = "Toshiba",
 							Models = Enumerable.Range(0, 500).Select(_ => Model.MakeRandom(rnd)).ToDictionary(x => x.Id)
-						}
-					}
+						},
+					]
 				};
 
 

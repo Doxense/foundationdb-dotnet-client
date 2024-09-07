@@ -314,8 +314,21 @@ namespace System
 		/// <para>This method has some overhead and should only be used if there is a high probability that the segment is usually exposing the entire string.</para>
 		/// <para>If not, this will always end up allocating a new string anyway, and will be slower than simply calling <c>literal.ToString()</c></para>.
 		/// </remarks>
-		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static string GetStringOrCopy(this ReadOnlyMemory<char> memory) => TryGetString(memory, out var text) ? text : memory.ToString();
+		[MustUseReturnValue]
+		public static string GetStringOrCopy(this ReadOnlyMemory<char> memory)
+		{
+			if (memory.Length == 0)
+			{
+				return string.Empty;
+			}
+
+			if (MemoryMarshal.TryGetString(memory, out var text, out var start, out var length) && start == 0 && length == text.Length)
+			{
+				return text;
+			}
+
+			return memory.ToString();
+		}
 
 		/// <summary>Attempt to return the original string, if it is the same size as the segment. </summary>
 		/// <param name="memory">Read-only memory containing a block of characters.</param>
@@ -553,18 +566,13 @@ namespace System
 		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the span</exception>
 		[Pure]
-		public static ushort ToUInt16(this ReadOnlySpan<byte> span)
+		public static ushort ToUInt16(this ReadOnlySpan<byte> span) => span.Length switch
 		{
-			switch (span.Length)
-			{
-				case 0: return 0;
-				case 1: return span[0];
-				case 2: return MemoryMarshal.Read<ushort>(span);
-				default:
-				if (span.Length < 0) throw UnsafeHelpers.Errors.SliceCountNotNeg();
-				return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2);
-			}
-		}
+			0 => 0,
+			1 => span[0],
+			2 => MemoryMarshal.Read<ushort>(span),
+			_ => throw (span.Length < 0 ? UnsafeHelpers.Errors.SliceCountNotNeg() : UnsafeHelpers.Errors.SliceTooLargeForConversion<ushort>(2))
+		};
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort ToUInt16(this Span<byte> span) => ToUInt16((ReadOnlySpan<byte>) span);
@@ -573,19 +581,13 @@ namespace System
 		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the span</exception>
 		[Pure]
-		public static ushort ToUInt16BE(this ReadOnlySpan<byte> span)
+		public static ushort ToUInt16BE(this ReadOnlySpan<byte> span) => span.Length switch
 		{
-			switch (span.Length)
-			{
-				case 0: return 0;
-				case 1: return span[0];
-				case 2: return (ushort) (span[1] | (span[0] << 8));
-				default:
-				if (span.Length < 0) throw UnsafeHelpers.Errors.SliceCountNotNeg();
-				return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2);
-
-			}
-		}
+			0 => 0,
+			1 => span[0],
+			2 => (ushort) (span[1] | (span[0] << 8)),
+			_ => throw (span.Length < 0 ? UnsafeHelpers.Errors.SliceCountNotNeg() : UnsafeHelpers.Errors.SliceTooLargeForConversion<ushort>(2))
+		};
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort ToUInt16BE(this Span<byte> span) => ToUInt16BE((ReadOnlySpan<byte>) span);

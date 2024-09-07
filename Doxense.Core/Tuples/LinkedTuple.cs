@@ -65,6 +65,9 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Returns the number of elements in this tuple</summary>
 		public int Count => this.HeadCount + 1;
 
+		/// <inheritdoc />
+		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
+
 		public object? this[int index]
 		{
 			get

@@ -33,8 +33,10 @@ namespace Doxense.Core.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class Uuid80Facts : SimpleTest
 	{
+
 		[Test]
 		public void Test_Uuid80_Empty()
 		{
@@ -390,6 +392,7 @@ namespace Doxense.Core.Tests
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
 
 		}
+
 	}
 
 }

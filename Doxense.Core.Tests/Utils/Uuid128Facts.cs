@@ -33,8 +33,10 @@ namespace Doxense.Core.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class UuidFacts : SimpleTest
 	{
+
 		[Test]
 		public void Test_Uuid_Empty()
 		{
@@ -359,6 +361,159 @@ namespace Doxense.Core.Tests
 			}
 
 		}
+
+#if NET8_0_OR_GREATER
+
+		[Test]
+		public void Test_Uuid_ToString_Base62()
+		{
+			ReadOnlySpan<char> chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+			Assert.That(chars.Length, Is.EqualTo(62));
+
+			// single digit
+			for (int i = 0; i < 62;i++)
+			{
+				Assert.That(new Uuid128(i).ToString("C"), Is.EqualTo(chars[i].ToString()));
+				Assert.That(new Uuid128(i).ToString("Z"), Is.EqualTo("000000000000000000000" + chars[i]));
+			}
+
+			// two digits
+			for (int j = 1; j < 62; j++)
+			{
+				var prefix = chars[j].ToString();
+				for (int i = 0; i < 62; i++)
+				{
+					Assert.That(new Uuid128(j * 62 + i).ToString("C"), Is.EqualTo(prefix + chars[i]));
+					Assert.That(new Uuid128(j * 62 + i).ToString("Z"), Is.EqualTo("00000000000000000000" + prefix + chars[i]));
+				}
+			}
+
+			// 4 digits
+			var rnd = new Random();
+			for (int i = 0; i < 100_000; i++)
+			{
+				var a = rnd.Next(2) == 0 ? 0 : rnd.Next(62);
+				var b = rnd.Next(2) == 0 ? 0 : rnd.Next(62);
+				var c = rnd.Next(2) == 0 ? 0 : rnd.Next(62);
+				var d = rnd.Next(62);
+
+				ulong x = (ulong)a;
+				x += 62 * (ulong)b;
+				x += 62 * 62 * (ulong)c;
+				x += 62 * 62 * 62 * (ulong)d;
+				var uuid = Uuid128.FromUInt64(x);
+
+				// no padding
+				string expected =
+					d > 0 ? ("" + chars[d] + chars[c] + chars[b] + chars[a]) :
+					c > 0 ? ("" + chars[c] + chars[b] + chars[a]) :
+					b > 0 ? ("" + chars[b] + chars[a]) :
+					("" + chars[a]);
+				Assert.That(uuid.ToString("C"), Is.EqualTo(expected));
+
+				// padding
+				Assert.That(uuid.ToString("Z"), Is.EqualTo("000000000000000000" + chars[d] + chars[c] + chars[b] + chars[a]));
+			}
+
+			// Numbers of the form 62^n should be encoded as '1' followed by n x '0', for n from 0 to 10
+			ulong val = 1;
+			for (int i = 0; i <= 10; i++)
+			{
+				Assert.That(Uuid128.FromUInt64(val).ToString("C"), Is.EqualTo("1" + new string('0', i)), $"62^{i}");
+				val *= 62;
+			}
+
+			// Numbers of the form 62^n - 1 should be encoded as n x 'z', for n from 1 to 10
+			val = 0;
+			for (int i = 1; i <= 10; i++)
+			{
+				val += 61;
+				Assert.That(Uuid128.FromUInt64(val).ToString("C"), Is.EqualTo(new string('z', i)), $"62^{i} - 1");
+				val *= 62;
+			}
+
+			// well known values
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid128.Empty.ToString("C"), Is.EqualTo("0"));
+				Assert.That(Uuid128.Empty.ToString("Z"), Is.EqualTo("0000000000000000000000"));
+				Assert.That(Uuid128.MaxValue.ToString("C"), Is.EqualTo("7n42DGM5Tflk9n8mt7Fhc7"));
+				Assert.That(Uuid128.MaxValue.ToString("Z"), Is.EqualTo("7n42DGM5Tflk9n8mt7Fhc7"));
+				Assert.That(Uuid128.FromUInt64(0xB45B07).ToString("C"), Is.EqualTo("narf"));
+				Assert.That(Uuid128.FromUInt64(0xE0D0ED).ToString("C"), Is.EqualTo("zort"));
+				Assert.That(Uuid128.FromUInt64(0xDEADBEEF).ToString("C"), Is.EqualTo("44pZgF"));
+				Assert.That(Uuid128.FromUInt64(0xDEADBEEF).ToString("Z"), Is.EqualTo("000000000000000044pZgF"));
+				Assert.That(Uuid128.FromUInt64(0xBADC0FFEE0DDF00DUL).ToString("C"), Is.EqualTo("G2eGAUq82Hd"));
+				Assert.That(Uuid128.FromUInt64(0xBADC0FFEE0DDF00DUL).ToString("Z"), Is.EqualTo("00000000000G2eGAUq82Hd"));
+
+				Assert.That(Uuid128.FromUInt32(255).ToString("C"), Is.EqualTo("47"));
+				Assert.That(Uuid128.FromUInt32(ushort.MaxValue).ToString("C"), Is.EqualTo("H31"));
+				Assert.That(Uuid128.FromUInt32(uint.MaxValue).ToString("C"), Is.EqualTo("4gfFC3"));
+				Assert.That(Uuid128.FromUInt64(ulong.MaxValue - 1).ToString("C"), Is.EqualTo("LygHa16AHYE"));
+				Assert.That(Uuid128.FromUInt64(ulong.MaxValue).ToString("C"), Is.EqualTo("LygHa16AHYF"));
+
+				Assert.That(Uuid128.Parse("00112233-4455-6677-8899-AABBCCDDEEFF").ToString("C"), Is.EqualTo("7pSo2b9TNg1cedavCe7z"));
+				Assert.That(Uuid128.Parse("c46f15e3-a389-4fd6-bc4b-3718ec3cbfe9").ToString("C"), Is.EqualTo("5yfGGJ5WrviUM0D5Y3KNZ3"));
+				Assert.That(Uuid128.Parse("680e98d4-a35a-40b6-9870-e55821e5c618").ToString("C"), Is.EqualTo("3ALs7F1Ki9Sm26snO9IFRI"));
+				Assert.That(Uuid128.Parse("3469ed5b-917c-460a-9cac-76901371f2dc").ToString("C"), Is.EqualTo("1au0btiNg6WMhGPKoJDYYG"));
+			});
+		}
+
+		[Test]
+		public void Test_Uuid_Parse_Base62()
+		{
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid128.FromBase62(""), Is.EqualTo(Uuid128.Empty));
+				Assert.That(Uuid128.FromBase62("0"), Is.EqualTo(Uuid128.Empty));
+				Assert.That(Uuid128.FromBase62("9"), Is.EqualTo(Uuid128.FromUInt32(9)));
+				Assert.That(Uuid128.FromBase62("A"), Is.EqualTo(Uuid128.FromUInt32(10)));
+				Assert.That(Uuid128.FromBase62("Z"), Is.EqualTo(Uuid128.FromUInt32(35)));
+				Assert.That(Uuid128.FromBase62("a"), Is.EqualTo(Uuid128.FromUInt32(36)));
+				Assert.That(Uuid128.FromBase62("z"), Is.EqualTo(Uuid128.FromUInt32(61)));
+				Assert.That(Uuid128.FromBase62("10"), Is.EqualTo(Uuid128.FromUInt32(62)));
+				Assert.That(Uuid128.FromBase62("zz"), Is.EqualTo(Uuid128.FromUInt32(3843)));
+				Assert.That(Uuid128.FromBase62("100"), Is.EqualTo(Uuid128.FromUInt32(3844)));
+				Assert.That(Uuid128.FromBase62("narf"), Is.EqualTo(Uuid128.FromUInt32(0xB45B07)));
+				Assert.That(Uuid128.FromBase62("zort"), Is.EqualTo(Uuid128.FromUInt32(0xE0D0ED)));
+				Assert.That(Uuid128.FromBase62("44pZgF"), Is.EqualTo(Uuid128.FromUInt32(0xDEADBEEF)));
+				Assert.That(Uuid128.FromBase62("4gfFC3"), Is.EqualTo(Uuid128.FromUInt32(uint.MaxValue)));
+				Assert.That(Uuid128.FromBase62("zzzzzzzzzz"), Is.EqualTo(Uuid128.FromUInt64(839299365868340223UL)));
+				Assert.That(Uuid128.FromBase62("10000000000"), Is.EqualTo(Uuid128.FromUInt64(839299365868340224UL)));
+				Assert.That(Uuid128.FromBase62("LygHa16AHYF"), Is.EqualTo(Uuid128.FromUInt64(ulong.MaxValue)), "ulong.MaxValue in base 62");
+				Assert.That(Uuid128.FromBase62("G2eGAUq82Hd"), Is.EqualTo(Uuid128.FromUInt64(0xBADC0FFEE0DDF00DUL)));
+				Assert.That(Uuid128.FromBase62("0000044pZgF"), Is.EqualTo(Uuid128.FromUInt32(0xDEADBEEF)));
+				Assert.That(Uuid128.FromBase62("G2eGAUq82Hd"), Is.EqualTo(Uuid128.FromUInt64(0xBADC0FFEE0DDF00DUL)));
+				Assert.That(Uuid128.FromBase62("000004gfFC3"), Is.EqualTo(Uuid128.FromUInt32(uint.MaxValue)));
+				Assert.That(Uuid128.FromBase62("LygHa16AHYF"), Is.EqualTo(Uuid128.FromUInt64(ulong.MaxValue)));
+				Assert.That(Uuid128.FromBase62("7pSo2b9TNg1cedavCe7z"), Is.EqualTo(Uuid128.Parse("00112233-4455-6677-8899-aabbccddeeff")));
+				Assert.That(Uuid128.FromBase62("5yfGGJ5WrviUM0D5Y3KNZ3"), Is.EqualTo(Uuid128.Parse("c46f15e3-a389-4fd6-bc4b-3718ec3cbfe9")));
+				Assert.That(Uuid128.FromBase62("3ALs7F1Ki9Sm26snO9IFRI"), Is.EqualTo(Uuid128.Parse("680e98d4-a35a-40b6-9870-e55821e5c618")));
+				Assert.That(Uuid128.FromBase62("1au0btiNg6WMhGPKoJDYYG"), Is.EqualTo(Uuid128.Parse("3469ed5b-917c-460a-9cac-76901371f2dc")));
+				Assert.That(Uuid128.FromBase62("7n42DGM5Tflk9n8mt7Fhc7"), Is.EqualTo(Uuid128.MaxValue));
+
+				// invalid chars
+				Assert.That(() => Uuid128.FromBase62("/"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.FromBase62("@"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.FromBase62("["), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.FromBase62("`"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.FromBase62("{"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.FromBase62("zaz/"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.FromBase62("z/o&r=g"), Throws.InstanceOf<FormatException>());
+
+				// overflow
+				Assert.That(() => Uuid128.FromBase62("zzzzzzzzzzzzzzzzzzzzzz"), Throws.InstanceOf<OverflowException>(), "62^22 - 1 => OVERFLOW");
+				Assert.That(() => Uuid128.FromBase62("7n42DGM5Tflk9n8mt7Fhc8"), Throws.InstanceOf<OverflowException>(), "MaxValue + 1 => OVERFLOW");
+
+				// invalid length
+				Assert.That(() => Uuid128.FromBase62(default(string)!), Throws.ArgumentNullException);
+				Assert.That(() => Uuid128.FromBase62("10000000000000000000000"), Throws.InstanceOf<FormatException>(), "62^22 => TOO BIG");
+			});
+
+		}
+
+#endif
 
 	}
 

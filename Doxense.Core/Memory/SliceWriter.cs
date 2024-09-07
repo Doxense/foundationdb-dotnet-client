@@ -1454,7 +1454,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Writes a variable string that is known to only contain ASCII characters</summary>
-		private unsafe void WriteVarAsciiInternal(ReadOnlySpan<char> value)
+		private void WriteVarAsciiInternal(ReadOnlySpan<char> value)
 		{
 			// Caller must ensure that string is ASCII only! (otherwise it will be corrupted)
 			Contract.Debug.Requires(value.Length > 0);
@@ -1463,20 +1463,18 @@ namespace Doxense.Memory
 			var buffer = EnsureBytes(len + UnsafeHelpers.SizeOfVarBytes(len));
 			int p = this.Position;
 
-			fixed (byte* bytes = &buffer[p])
-			fixed (char* chars = value)
+			p += UnsafeHelpers.WriteVarInt32(buffer.AsSpan(p), (uint) value.Length);
+
+			ref byte ptr = ref buffer[p];
+			int mask = 0;
+			foreach(var c in value)
 			{
-				var outp = UnsafeHelpers.WriteVarInt32Unsafe(bytes, (uint) value.Length);
-				p += (int) (outp - bytes);
-				int mask = 0;
-				for (int i = 0; i < len; i++)
-				{
-					var c = chars[i];
-					mask |= c;
-					outp[i] = (byte)c;
-				}
-				if (mask >= 128) throw ThrowHelper.ArgumentException(nameof(value), "The specified string must only contain ASCII characters.");
+				mask |= c;
+				ptr = (byte) c;
+				ptr = ref Unsafe.Add(ref ptr, 1);
 			}
+			if (mask >= 128) throw ThrowHelper.ArgumentException(nameof(value), "The specified string must only contain ASCII characters.");
+
 			this.Position = checked(p + value.Length);
 		}
 
@@ -1650,7 +1648,7 @@ namespace Doxense.Memory
 		private int WriteStringUtf8Slow(char value)
 		{
 			int p = this.Position;
-			if (!Utf8Encoder.TryWriteUnicodeCodePoint(ref this, (UnicodeCodePoint)value))
+			if (!Utf8Encoder.TryWriteCodePoint(ref this, (UnicodeCodePoint)value))
 			{
 				throw FailInvalidUtf8CodePoint();
 			}

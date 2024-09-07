@@ -24,74 +24,30 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Memory.Text
+namespace SnowBank.Testing
 {
 	using System.Globalization;
-	using System.IO;
-	using System.Text;
-	using Doxense.Text;
+	using NUnit.Framework.Interfaces;
+	using NUnit.Framework.Internal;
 
-	[PublicAPI]
-	public sealed class Utf8StringWriter : TextWriter
+	/// <summary>
+	/// Sets the both current and current UI Culture to Invariant on an assembly, test fixture or test method for the duration of a test.
+	/// The culture remains set until the test or fixture completes and is then reset to its original value.
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
+	public class SetInvariantCultureAttribute : PropertyAttribute, IApplyToContext
 	{
 
-		public override Encoding Encoding => Encoding.UTF8;
-
-		private SliceWriter Writer;
-
-		public Utf8StringWriter(SliceWriter writer)
-			: base(CultureInfo.InvariantCulture)
+		public SetInvariantCultureAttribute()
+			: base("SetInvariantCulture", "")
 		{
-			this.Writer = writer;
 		}
 
-		public Utf8StringWriter(int capacity)
+		void IApplyToContext.ApplyToContext(TestExecutionContext context)
 		{
-			this.Writer = new SliceWriter(capacity);
+			context.CurrentCulture = CultureInfo.InvariantCulture;
+			context.CurrentUICulture = CultureInfo.InvariantCulture;
 		}
-
-		public override void Write(char value)
-		{
-			if (value < 0x80)
-			{
-				this.Writer.WriteByte((byte) value);
-			}
-			else if (!Utf8Encoder.TryWriteCodePoint(ref this.Writer, (UnicodeCodePoint) value))
-			{
-				throw new DecoderFallbackException("Failed to encode invalid Unicode CodePoint into UTF-8");
-			}
-		}
-
-		public override void Write(char[]? buffer)
-		{
-			if (buffer != null)
-			{
-				this.Writer.WriteStringUtf8(buffer);
-			}
-		}
-
-		public override void Write(string? value)
-		{
-			if (value != null)
-			{
-				this.Writer.WriteStringUtf8(value);
-			}
-		}
-
-		public override void Write(int value) => this.Writer.WriteBase10(value);
-
-		public override void Write(long value) => this.Writer.WriteBase10(value);
-
-		public override void Write(uint value) => this.Writer.WriteBase10(value);
-
-		public override void Write(ulong value) => this.Writer.WriteBase10(value);
-
-		[Pure]
-		public byte[] ToArray() => this.Writer.GetBytes();
-
-		[Pure]
-		public Slice GetBuffer() => this.Writer.ToSlice();
-
 	}
 
 }

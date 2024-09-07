@@ -420,34 +420,69 @@ namespace Doxense.Text
 			return 0;
 		}
 
-		public static bool TryEncodeEncodePoint(UnicodeCodePoint cp, byte* buffer, byte* stop, out int length)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static int GetNumberOfEncodedBytes(uint codePoint)
 		{
-			Contract.Debug.Requires(buffer != null);
+			if (codePoint <= 0x7F)
+			{
+				return 1;
+			}
+
+			if (codePoint <= 0x7FF)
+			{
+				return 2;
+			}
+
+			if (codePoint <= 0xFFFF)
+			{
+				return 3;
+			}
+
+			if (codePoint <= 0x1FFFFF)
+			{
+				return 4;
+			}
+
+			return 0;
+		}
+
+		public static bool TryEncodeCodePoint(UnicodeCodePoint cp, ref byte buffer, int capacity, out int length)
+		{
+			return TryEncodeCodePoint(cp.Value, ref buffer, capacity, out length);
+		}
+
+		public static bool TryEncodeCodePoint(uint cp, ref byte buffer, int capacity, out int length)
+		{
+			Contract.Debug.Requires(!Unsafe.IsNullRef(ref buffer));
 
 			length = GetNumberOfEncodedBytes(cp);
-			if (buffer + length > stop) goto fail;
+			if (capacity < length)
+			{
+				goto fail;
+			}
+
 			switch (length)
 			{
 				case 1:
-					buffer[0] = (byte) (cp.Value & 0x7F);
+					buffer = (byte) (cp & 0x7F);
 					return true;
 				case 2:
-					byte b0 = (byte) (((cp.Value >> 6) & 0x1F) | 0xC0);
-					byte b1 = (byte) (((cp.Value >> 0) & 0x3F) | 0x80);
-					*((ushort*) buffer) = (ushort) (b0 | (b1 << 8));
+					byte b0 = (byte) (((cp >> 6) & 0x1F) | 0xC0);
+					byte b1 = (byte) (((cp >> 0) & 0x3F) | 0x80);
+					Unsafe.WriteUnaligned(ref buffer, (ushort) (b0 | (b1 << 8)));
 					return true;
 				case 3:
-					b0 = (byte) (((cp.Value >> 12) & 0xF) | 0xE0);
-					b1 = (byte) (((cp.Value >> 6) & 0x3F) | 0x80);
-					*((ushort*) buffer) = (ushort) (b0 | (b1 << 8));
-					buffer[2] = (byte) (((cp.Value >> 0) & 0x3F) | 0x80);
+					b0 = (byte) (((cp >> 12) & 0xF) | 0xE0);
+					b1 = (byte) (((cp >> 6) & 0x3F) | 0x80);
+					Unsafe.WriteUnaligned(ref buffer, (ushort) (b0 | (b1 << 8)));
+					Unsafe.Add(ref buffer, 2) = (byte) (((cp >> 0) & 0x3F) | 0x80);
 					return true;
 				case 4:
-					b0 = (byte) (((cp.Value >> 18) & 0x7) | 0xE0);
-					b1 = (byte) (((cp.Value >> 12) & 0x3F) | 0x80);
-					byte b2 = (byte) (((cp.Value >> 6) & 0x3F) | 0x80);
-					byte b3 = (byte) (((cp.Value >> 0) & 0x3F) | 0x80);
-					*((ushort*) buffer) = (ushort) (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
+					b0 = (byte) (((cp >> 18) & 0x7) | 0xE0);
+					b1 = (byte) (((cp >> 12) & 0x3F) | 0x80);
+					byte b2 = (byte) (((cp >> 6) & 0x3F) | 0x80);
+					byte b3 = (byte) (((cp >> 0) & 0x3F) | 0x80);
+					Unsafe.WriteUnaligned(ref buffer, (uint) (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)));
 					return true;
 				default:
 					return false;
@@ -456,7 +491,7 @@ namespace Doxense.Text
 			throw new IndexOutOfRangeException(); //TODO: better error msg (BufferOverflowException ?)
 		}
 
-		public static bool TryWriteUnicodeCodePoint(ref SliceWriter writer, UnicodeCodePoint cp)
+		public static bool TryWriteCodePoint(ref SliceWriter writer, UnicodeCodePoint cp)
 		{
 			uint value = cp.Value;
 			switch (GetNumberOfEncodedBytes(cp))
@@ -513,5 +548,20 @@ namespace Doxense.Text
 			//TODO: optimize this?
 			return text.Length != 0 ? Slice.Utf8NoBomEncoding.GetBytes(text) : [ ];
 		}
+
+		[Pure]
+		public static byte[] GetBytes(ReadOnlySpan<char> text)
+		{
+			if (text.Length == 0)
+			{
+				return [ ];
+			}
+
+			//TODO: optimize this?
+			byte[] bytes = new byte[Slice.Utf8NoBomEncoding.GetByteCount(text)];
+			Slice.Utf8NoBomEncoding.GetBytes(text, bytes);
+			return bytes;
+		}
+
 	}
 }

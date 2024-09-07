@@ -70,26 +70,16 @@ namespace SnowBank.Testing
 			}
 		}
 
-		private static string GetLogLevelString(LogLevel logLevel)
+		private static string GetLogLevelString(LogLevel logLevel) => logLevel switch
 		{
-			switch (logLevel)
-			{
-				case LogLevel.Trace:
-					return "  ~~~~~";
-				case LogLevel.Debug:
-					return "  =====";
-				case LogLevel.Information:
-					return "  INFO ";
-				case LogLevel.Warning:
-					return "! WARN ";
-				case LogLevel.Error:
-					return "* ERROR";
-				case LogLevel.Critical:
-					return "**FATAL";
-				default:
-					throw new ArgumentOutOfRangeException(nameof(logLevel));
-			}
-		}
+			LogLevel.Trace => "  ~~~~~",
+			LogLevel.Debug => "  =====",
+			LogLevel.Information => "  INFO ",
+			LogLevel.Warning => "! WARN ",
+			LogLevel.Error => "* ERROR",
+			LogLevel.Critical => "**FATAL",
+			_ => throw new ArgumentOutOfRangeException(nameof(logLevel))
+		};
 
 		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string?> formatter)
 		{

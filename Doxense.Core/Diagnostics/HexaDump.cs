@@ -31,6 +31,7 @@ namespace Doxense.Diagnostics
 	using System.Globalization;
 	using System.Text;
 	using Doxense.IO.Hashing;
+	using Doxense.Memory;
 
 	/// <summary>Helper class for formatting binary blobs into hexadecimal for logging or troubleshooting</summary>
 	[PublicAPI]
@@ -57,20 +58,25 @@ namespace Doxense.Diagnostics
 			OmmitLastNewLine = 32,
 		}
 
-		private static void DumpHexaLine(StringBuilder sb, ReadOnlySpan<byte> bytes)
+		private static void DumpHexaLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
 		{
-			Contract.Debug.Requires(sb != null && bytes.Length <= 16);
+			Contract.Debug.Requires(bytes.Length <= 16);
 
 			foreach (byte b in bytes)
 			{
-				sb.Append(' ').Append(b.ToString("X2"));
+				sb.Append(' ');
+				sb.AppendHex(b, 2);
 			}
-			if (bytes.Length < 16) sb.Append(' ', (16 - bytes.Length) * 3);
+
+			if (bytes.Length < 16)
+			{
+				sb.Append(' ', (16 - bytes.Length) * 3);
+			}
 		}
 
-		private static void DumpRawLine(StringBuilder sb, ReadOnlySpan<byte> bytes)
+		private static void DumpRawLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
 		{
-			Contract.Debug.Requires(sb != null && bytes.Length <= 16);
+			Contract.Debug.Requires(bytes.Length <= 16);
 
 			foreach (byte b in bytes)
 			{
@@ -94,9 +100,9 @@ namespace Doxense.Diagnostics
 			if (bytes.Length < 16) sb.Append(' ', (16 - bytes.Length));
 		}
 
-		private static void DumpTextLine(StringBuilder sb, ReadOnlySpan<byte> bytes)
+		private static void DumpTextLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
 		{
-			Contract.Debug.Requires(sb != null && bytes.Length <= 16);
+			Contract.Debug.Requires(bytes.Length <= 16);
 
 			foreach (byte b in bytes)
 			{
@@ -133,7 +139,7 @@ namespace Doxense.Diagnostics
 		/// <summary>Dump a byte span into hexadecimal, formatted as 16 bytes per lines</summary>
 		public static string Format(ReadOnlySpan<byte> bytes, Options options = Options.Default, int indent = 0)
 		{
-			var sb = new StringBuilder();
+			var sb = new FastStringBuilder();
 			bool preview = (options & Options.NoPreview) == 0;
 
 			string prefix = indent == 0 ? string.Empty : new string('\t', indent); // tabs ftw
@@ -153,16 +159,17 @@ namespace Doxense.Diagnostics
 			{
 				int n = Math.Min(count, 16);
 				sb.Append(prefix);
-				sb.Append(p.ToString("X4")).Append(" |");
+				sb.AppendHex(p, 4);
+				sb.Append(" |");
 				var chunk = bytes.Slice(offset, n);
-				DumpHexaLine(sb, chunk);
+				DumpHexaLine(ref sb, chunk);
 				if (preview)
 				{
 					sb.Append(" | ");
 					if ((options & Options.Text) == 0)
-						DumpRawLine(sb, chunk);
+						DumpRawLine(ref sb, chunk);
 					else
-						DumpTextLine(sb, chunk);
+						DumpTextLine(ref sb, chunk);
 					sb.Append(" |");
 				}
 				sb.AppendLine();
@@ -175,7 +182,6 @@ namespace Doxense.Diagnostics
 			{
 				sb.Append(prefix);
 				sb.AppendFormat(
-					CultureInfo.InvariantCulture,
 					"---- : Size = {0:N0} / 0x{0:X} : Hash = 0x{1:X8}",
 					bytes.Length,
 					XxHash32.Compute(bytes)
@@ -234,7 +240,7 @@ namespace Doxense.Diagnostics
 		/// <summary>Dump two byte spans, side-by-side, formatted as 16 bytes per line</summary>
 		public static string Versus(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right, Options options = Options.Default)
 		{
-			var sb = new StringBuilder();
+			var sb = new FastStringBuilder();
 
 			bool preview = (options & Options.NoPreview) == 0;
 
@@ -251,7 +257,8 @@ namespace Doxense.Diagnostics
 			int count = Math.Max(lr, rr);
 			while (count > 0)
 			{
-				sb.Append((p >> 4).ToString("X3")).Append("x |");
+				sb.AppendHex(p >> 4, 3);
+				sb.Append("x |");
 
 				int ln = Math.Min(lr, 16);
 				int rn = Math.Min(rr, 16);
@@ -260,16 +267,18 @@ namespace Doxense.Diagnostics
 				var rChunk = rn > 0 ? right.Slice(p, rn) : Span<byte>.Empty;
 
 				bool same = !preview || lChunk.SequenceEqual(rChunk);
-				DumpHexaLine(sb, lChunk);
+				DumpHexaLine(ref sb, lChunk);
 				sb.Append(" |");
-				DumpHexaLine(sb, rChunk);
+				DumpHexaLine(ref sb, rChunk);
 
 				if (preview)
 				{
-					sb.Append(" ║ ").Append((p >> 4).ToString("X3")).Append("x | ");
-					DumpRawLine(sb, lChunk);
+					sb.Append(" ║ ");
+					sb.AppendHex(p >> 4, 3);
+					sb.Append("x | ");
+					DumpRawLine(ref sb, lChunk);
 					sb.Append(" | ");
-					DumpRawLine(sb, rChunk);
+					DumpRawLine(ref sb, rChunk);
 					if (!same) sb.Append(" *");
 				}
 
@@ -285,14 +294,12 @@ namespace Doxense.Diagnostics
 				if ((options & Options.ShowBytesDistribution) == 0)
 				{
 					sb.AppendFormat(
-						CultureInfo.InvariantCulture,
 						"<<<< {0:N0} bytes; 0x{1:X8}",
 						left.Length,
 						XxHash32.Compute(left)
 					);
 					sb.AppendLine();
 					sb.AppendFormat(
-						CultureInfo.InvariantCulture,
 						">>>> {0:N0} bytes; 0x{1:X8}",
 						right.Length,
 						XxHash32.Compute(right)
@@ -302,7 +309,6 @@ namespace Doxense.Diagnostics
 				else
 				{
 					sb.AppendFormat(
-						CultureInfo.InvariantCulture,
 						"<<<< [{2}] {0:N0} bytes; 0x{1:X8}",
 						left.Length,
 						XxHash32.Compute(left),
@@ -310,7 +316,6 @@ namespace Doxense.Diagnostics
 					);
 					sb.AppendLine();
 					sb.AppendFormat(
-						CultureInfo.InvariantCulture,
 						">>>> [{2}] {0:N0} bytes; 0x{1:X8}",
 						right.Length,
 						XxHash32.Compute(right),
@@ -352,50 +357,55 @@ namespace Doxense.Diagnostics
 			if (shrink < 0 || shrink > 8) throw new ArgumentOutOfRangeException(nameof(shrink));
 
 #if DEBUG_ASCII_PALETTE
-			var brush = "0123456789ABCDE".ToCharArray();
+			ReadOnlySpan<char> brush = "0123456789ABCDE";
 #else
-			var brush = " .-:;~+=omMB$#@".ToCharArray();
+			ReadOnlySpan<char> brush = " .-:;~+=omMB$#@";
 			//note: tweaked to get a better result when using Consolas (VS output, notepad, ...)
 #endif
 
-			var sb = new StringBuilder();
-			if (bytes.Length > 0)
+			if (bytes.Length <= 0)
 			{
-				int[] counters = new int[256 >> shrink];
-				foreach(var b in bytes)
-				{
-					++counters[b >> shrink];
-				}
-				int[] cpy = counters.Where(c => c > 0).ToArray();
-				Array.Sort(cpy);
-				int max = cpy[^1];
-				int half = cpy.Length >> 1;
-				int med = cpy[half];
-				if (cpy.Length % 2 == 1)
-				{
-					med = cpy.Length == 1 ? cpy[0] : (med + cpy[half + 1]) / 2;
-				}
+				return string.Empty;
+			}
 
-				foreach (var c in counters)
+
+			int[] counters = new int[256 >> shrink];
+
+			var sb = new FastStringBuilder(counters.Length);
+
+			foreach(var b in bytes)
+			{
+				++counters[b >> shrink];
+			}
+			int[] cpy = counters.Where(c => c > 0).ToArray();
+			Array.Sort(cpy);
+			int max = cpy[^1];
+			int half = cpy.Length >> 1;
+			int med = cpy[half];
+			if (cpy.Length % 2 == 1)
+			{
+				med = cpy.Length == 1 ? cpy[0] : (med + cpy[half + 1]) / 2;
+			}
+
+			foreach (var c in counters)
+			{
+				if (c == 0)
 				{
-					if (c == 0)
-					{
-						sb.Append(brush[0]);
-					}
-					else if (c == max)
-					{
-						sb.Append(brush[14]);
-					}
-					else if (c >= med)
-					{ // 8..15
-						double p = (c - med) * 6.5 / (max - med);
-						sb.Append(brush[(int) Math.Round(p + 7, MidpointRounding.AwayFromZero)]);
-					}
-					else
-					{ // 0..7
-						double p = (c * 6.5) / med;
-						sb.Append(brush[(int) Math.Round(p + 0.5, MidpointRounding.AwayFromZero)]);
-					}
+					sb.Append(brush[0]);
+				}
+				else if (c == max)
+				{
+					sb.Append(brush[14]);
+				}
+				else if (c >= med)
+				{ // 8..15
+					double p = (c - med) * 6.5 / (max - med);
+					sb.Append(brush[(int) Math.Round(p + 7, MidpointRounding.AwayFromZero)]);
+				}
+				else
+				{ // 0..7
+					double p = (c * 6.5) / med;
+					sb.Append(brush[(int) Math.Round(p + 0.5, MidpointRounding.AwayFromZero)]);
 				}
 			}
 			return sb.ToString();

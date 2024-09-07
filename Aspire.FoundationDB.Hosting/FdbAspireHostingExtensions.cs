@@ -10,12 +10,11 @@ namespace Aspire.Hosting
 {
 	using System.Globalization;
 	using System.Net;
-	using System.Net.Sockets;
 	using System.Text;
 	using Aspire.Hosting.ApplicationModel;
 	using Aspire.Hosting.Publishing;
 
-	/// <summary>Provides extension methods for adding FoundationDB resources to an <see cref="IDistributedApplicationBuilder"/>.</summary>
+	/// <summary>Provides extension methods for adding FoundationDB resources to the application model.</summary>
 	[PublicAPI]
 	public static class FdbAspireHostingExtensions
 	{
@@ -138,7 +137,7 @@ namespace Aspire.Hosting
 
 		#region Locally hosted FDB Cluster using Docker containers...
 
-		/// <summary>Add a FoundationDB resource to the application. A container is used for local development.</summary>
+		/// <summary>Adds a FoundationDB container to application model.</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
@@ -151,14 +150,25 @@ namespace Aspire.Hosting
 			return AddFoundationDb(builder, name, apiVersion, FdbPath.Parse(root), port, clusterVersion, rollForward);
 		}
 
-		/// <summary>Add a FoundationDB resource to the application. A container is used for local development.</summary>
+		/// <summary>Adds a FoundationDB container to application model.</summary>
 		/// <param name="builder">Builder for the distributed application</param>
 		/// <param name="name">Name of the FoundationDB cluster resource (ex: "fdb")</param>
 		/// <param name="apiVersion">API version that is requested by the application</param>
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
+		/// <param name="port">The host port to bind the underlying container to (defaults to <c>4550</c>)</param>
 		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
-		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, FdbPath root, int? port = null, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
+		/// <param name="imageRegistry">Specifies a custom image registry for the container (defaults to <c>"docker.io"</c>)</param>
+		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(
+			this IDistributedApplicationBuilder builder,
+			string name,
+			int apiVersion,
+			FdbPath root,
+			int? port = null,
+			string? clusterVersion = null,
+			FdbVersionPolicy? rollForward = null,
+			string? imageRegistry = null
+		)
 		{
 			Contract.NotNull(builder);
 			Contract.NotNullOrWhiteSpace(name);
@@ -193,6 +203,11 @@ namespace Aspire.Hosting
 				rollForward ??= FdbVersionPolicy.Exact;
 			}
 
+			if (string.IsNullOrWhiteSpace(imageRegistry))
+			{
+				imageRegistry = "docker.io";
+			}
+
 			// select the docker image tag that corresponds to the version and specified rollforward policy
 			var dockerTag = ComputeDockerTagFromVersion(ver, rollForward.Value);
 
@@ -202,7 +217,7 @@ namespace Aspire.Hosting
 				Root = root,
 				ClusterVersion = ver,
 				RollForward = rollForward.Value,
-				DockerTag = dockerTag, 
+				DockerTag = dockerTag,
 			};
 
 			//note: Aspire wants to allocate random ports to ensure that there is not conflict with any local versions of the resources,
@@ -212,15 +227,19 @@ namespace Aspire.Hosting
 			// which will initially be proxied to the port 4550 inside the container (so far so good), but the fdb node will return addresses to other "agents" using "127.0.0.1:4550" because it does not know of the port 12345
 			// The application will think that we are pointed to a different node, and attempt to connect to 127.0.0.1:4550 which would not exist on the host!
 
-			//WORKAROUND: for now, we must FORCE both the "apire port" and the "container port" to be the same, so that it "just works".
-			// we will use the port 4550 which is outside the typical range of 4500+ for default fdb installations (unless there are more than 50 processes on the same box??)
+			// => To work around this problem, we must FORCE both the "apire port" and the "container port" to be the same, as well as disable the Aspire proxy.
+
+			// In order to prevent any conflict with any natively installed FoundationDB server, we will we will use the port 4550,
+			// which is outside the typical range of 4500+ for default fdb installations (unless there are more than 50 processes on the same box??)
+
 			int nodePort = port ?? 4550;
 
 			var cluster = builder
 				.AddResource(fdbCluster)
 				.WithAnnotation(new ManifestPublishingCallbackAnnotation((ctx) => WriteFdbClusterToManifest(ctx, fdbCluster)))
-				.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: nodePort, targetPort: nodePort)) // note: both ports MUST be the same (see above)
-				.WithAnnotation(new ContainerImageAnnotation { Image = "foundationdb/foundationdb", Tag = fdbCluster.DockerTag })
+				.WithEndpoint(port: nodePort, targetPort: nodePort, name: "tcp", isProxied: false) // note: both ports MUST be the same (see above)
+				.WithImage(image: "foundationdb/foundationdb", tag: fdbCluster.DockerTag)
+				.WithImageRegistry(imageRegistry)
 				.WithVolume("fdb_data", "/var/fdb/data", isReadOnly: false) //HACKHACK: TODO: make this configurable!
 				.WithEnvironment((context) =>
 				{

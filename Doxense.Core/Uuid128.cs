@@ -162,6 +162,24 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Uuid128(UInt128 a) => new(a);
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUInt32(uint value)
+		{
+			return new Uuid128(0, value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUInt64(ulong value)
+		{
+			return new Uuid128(0, value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUInt128(UInt128 value)
+		{
+			return new Uuid128(value);
+		}
+
 #endif
 
 		/// <summary>Uuid128 with all bits set to zero: <c>00000000-0000-0000-0000-000000000000</c></summary>
@@ -172,6 +190,10 @@ namespace System
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static Exception FailInvalidFormat() => ThrowHelper.FormatException($"Invalid {nameof(Uuid128)} format");
+
 
 		/// <summary>Generate a new random 128-bit UUID.</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -287,6 +309,21 @@ namespace System
 		public static Uuid128 Parse(ReadOnlySpan<char> input, IFormatProvider? provider) => new(Guid.Parse(input));
 
 #if NET8_0_OR_GREATER
+
+		/// <summary>Parse a Base62 encoded string representation of an UUid64</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromBase62(string buffer)
+		{
+			Contract.NotNull(buffer);
+			return TryParseBase62(buffer.AsSpan(), out var value) ? value : throw FailInvalidFormat();
+		}
+
+		/// <summary>Parse a Base62 encoded string representation of an UUid64</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromBase62(ReadOnlySpan<char> buffer)
+		{
+			return TryParseBase62(buffer, out var value) ? value : throw FailInvalidFormat();
+		}
 
 		/// <summary>Parses a span of UTF-8 characters into a <see cref="Uuid128"/></summary>
 		/// <param name="utf8Text">The span of UTF-8 characters to parse.</param>
@@ -433,6 +470,38 @@ namespace System
 			result = new Uuid128(guid);
 			return true;
 		}
+
+#if NET8_0_OR_GREATER
+
+		public static bool TryParseBase62(string? input, out Uuid128 result)
+		{
+			if (input == null)
+			{
+				result = default;
+				return false;
+			}
+			return TryParseBase62(input.AsSpan(), out result);
+		}
+
+		public static bool TryParseBase62(ReadOnlySpan<char> input, out Uuid128 result)
+		{
+			if (input.Length == 0)
+			{
+				result = default;
+				return true;
+			}
+
+			if (input.Length <= 22 && Base62Encoding.TryDecodeUInt128(input, out UInt128 x, Base62FormattingOptions.Lexicographic))
+			{
+				result = new Uuid128(x);
+				return true;
+			}
+
+			result = default;
+			return false;
+		}
+
+#endif
 
 		#endregion
 
@@ -732,10 +801,29 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string ToString(
 #if NET8_0_OR_GREATER
-			[StringSyntax("GuidFormat")]
+			[StringSyntax(StringSyntaxAttribute.GuidFormat)]
 #endif
 			string? format
-		) => m_packed.ToString(format);
+		)
+		{
+#if NET8_0_OR_GREATER
+			return format switch
+			{
+				"C" or "c" => ToBase62(padded: false), // base 62, compact, up to 22 characters
+				"Z" or "z" => ToBase62(padded: true),  // base 62, padded to 22 characters
+				_ => m_packed.ToString(format)
+			};
+#else
+			return m_packed.ToString(format);
+#endif
+		}
+
+#if NET8_0_OR_GREATER
+		public string ToBase62(bool padded = false)
+		{
+			return Base62Encoding.Encode(ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
+		}
+#endif
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string ToString(

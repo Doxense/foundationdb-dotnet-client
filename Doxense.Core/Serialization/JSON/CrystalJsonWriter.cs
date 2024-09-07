@@ -1266,12 +1266,31 @@ namespace Doxense.Serialization.Json
 		{
 			if ((uint) value < 10U)
 			{ // single char
-				m_buffer.Write((char) (48 + value));
+				m_buffer.Write((char) ('0' + value));
+				return;
 			}
-			else
+#if NET9_0_OR_GREATER
+
+			if ((uint) value < 300)
+			{ // small integers from 0 to 299 are cached by the runtime
+				m_buffer.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+
+			WriteValueSlow(m_buffer, value);
+
+			static void WriteValueSlow(TextWriter buffer, int value)
 			{
-				CrystalJsonFormatter.WriteSignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityInt32];
+				value.TryFormat(buf, out int n);
+
+				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
+				// => for legacy streams, this will fallback into copying into a pooled buffer !
+				buffer.Write(buf[..n]);
 			}
+#else
+			CrystalJsonFormatter.WriteSignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+#endif
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1284,12 +1303,31 @@ namespace Doxense.Serialization.Json
 		{
 			if (value < 10U)
 			{ // single char
-				m_buffer.Write((char) (48 + (int) value));
+				m_buffer.Write((char) ('0' + (int) value));
+				return;
 			}
-			else
+
+#if NET9_0_OR_GREATER
+
+			if (value < 300U)
+			{ // small integers from 0 to 299 are cached by the runtime
+				m_buffer.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+
+			WriteValueSlow(m_buffer, value);
+
+			static void WriteValueSlow(TextWriter buffer, uint value)
 			{
-				CrystalJsonFormatter.WriteUnsignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityUInt32];
+				value.TryFormat(buf, out int n);
+				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
+				// => for legacy streams, this will fallback into copying into a pooled buffer !
+				buffer.Write(buf[..n]);
 			}
+#else
+			CrystalJsonFormatter.WriteUnsignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+#endif
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1302,12 +1340,32 @@ namespace Doxense.Serialization.Json
 		{
 			if ((ulong) value < 10UL)
 			{ // single char
-				m_buffer.Write((char)(48 + (int) value));
+				m_buffer.Write((char)('0' + (int) value));
+				return;
 			}
-			else
+
+#if NET9_0_OR_GREATER
+
+			if ((ulong) value < 300UL)
+			{ // small integers from 0 to 299 are cached by the runtime
+				m_buffer.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+
+			WriteValueSlow(m_buffer, value);
+
+			static void WriteValueSlow(TextWriter buffer, long value)
 			{
-				CrystalJsonFormatter.WriteSignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityInt64];
+				value.TryFormat(buf, out int n);
+
+				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
+				// => for legacy streams, this will fallback into copying into a pooled buffer !
+				buffer.Write(buf[..n]);
 			}
+#else
+			CrystalJsonFormatter.WriteSignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+#endif
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1320,12 +1378,31 @@ namespace Doxense.Serialization.Json
 		{
 			if (value < 10UL)
 			{ // single char
-				m_buffer.Write((char)(48 + (int)value));
+				m_buffer.Write((char) ('0' + (int) value));
+				return;
 			}
-			else
+
+#if NET9_0_OR_GREATER
+
+			if (value < 300UL)
+			{ // small integers from 0 to 299 are cached by the runtime
+				m_buffer.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+
+			WriteValueSlow(m_buffer, value);
+
+			static void WriteValueSlow(TextWriter buffer, ulong value)
 			{
-				CrystalJsonFormatter.WriteUnsignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+				Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityUInt64];
+				value.TryFormat(buf, out int n);
+				//note: Write(ReadOnlySpan<char>) is properly implemented on StringWriter, StreamWriter and others
+				// => for legacy streams, this will fallback into copying into a pooled buffer !
+				buffer.Write(buf[..n]);
 			}
+#else
+			CrystalJsonFormatter.WriteUnsignedIntegerUnsafe(m_buffer, value, GetTempBuffer());
+#endif
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1336,7 +1413,41 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(float value)
 		{
+			long x = unchecked((long) value);
+
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (x == value)
+			{
+				WriteValue(x);
+				return;
+			}
+
+#if NET8_0_OR_GREATER
+
+			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
+			if (!float.IsFinite(value))
+			{
+				m_buffer.Write(
+					  float.IsNaN(value) ? CrystalJsonFormatter.GetNaNToken(m_floatFormat)
+					: value > 0 ? CrystalJsonFormatter.GetPositiveInfinityToken(m_floatFormat)
+					: CrystalJsonFormatter.GetNegativeInfinityToken(m_floatFormat)
+				);
+				return;
+			}
+
+			// note: current Number.TryFormatFloat(...) implementation in .NET 9 seems to allocate 32 chars ?
+			Span<char> buf = stackalloc char[32];
+			if (!value.TryFormat(buf, out int n, "R", NumberFormatInfo.InvariantInfo))
+			{
+				// if, for whatever reason, this is not enough, we fallback to the previous verison
+				m_buffer.Write(value.ToString("R", NumberFormatInfo.InvariantInfo));
+				return;
+			}
+
+			m_buffer.Write(buf[..n]);
+#else
 			CrystalJsonFormatter.WriteSingleUnsafe(m_buffer, value, GetTempBuffer(), m_floatFormat);
+#endif
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1347,7 +1458,41 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(double value)
 		{
+			long x = unchecked((long) value);
+
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (x == value)
+			{
+				WriteValue(x);
+				return;
+			}
+
+#if NET8_0_OR_GREATER
+
+			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
+			if (!double.IsFinite(value))
+			{
+				m_buffer.Write(
+					  double.IsNaN(value) ? CrystalJsonFormatter.GetNaNToken(m_floatFormat)
+					: value > 0 ? CrystalJsonFormatter.GetPositiveInfinityToken(m_floatFormat)
+					: CrystalJsonFormatter.GetNegativeInfinityToken(m_floatFormat)
+				);
+				return;
+			}
+
+			// note: current Number.TryFormatDouble(...) implementation in .NET 9 seems to allocate 32 chars ?
+			Span<char> buf = stackalloc char[32];
+			if (!value.TryFormat(buf, out int n, "R", NumberFormatInfo.InvariantInfo))
+			{
+				// if, for whatever reason, this is not enough, we fallback to the previous verison
+				m_buffer.Write(value.ToString("R", NumberFormatInfo.InvariantInfo));
+				return;
+			}
+
+			m_buffer.Write(buf[..n]);
+#else
 			CrystalJsonFormatter.WriteDoubleUnsafe(m_buffer, value, GetTempBuffer(), m_floatFormat);
+#endif
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1367,7 +1512,14 @@ namespace Doxense.Serialization.Json
 			where TEnum : struct, System.Enum
 		{
 			//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
-			m_buffer.Write(value.ToString("D"));
+			if (Unsafe.SizeOf<TEnum>() == 4)
+			{
+				WriteValue((int) (object) value);
+			}
+			else
+			{
+				m_buffer.Write(value.ToString("D"));
+			}
 		}
 
 		public void WriteEnumInteger(Enum? value)
@@ -1377,6 +1529,7 @@ namespace Doxense.Serialization.Json
 				WriteNull();
 				return;
 			}
+
 			//note: we could cast to int and call WriteInt32(...), but some enums do not derive from Int32 :(
 			m_buffer.Write(value.ToString("D"));
 		}

@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable InconsistentNaming
+
 namespace Doxense.Testing
 {
 	using System.Diagnostics;
