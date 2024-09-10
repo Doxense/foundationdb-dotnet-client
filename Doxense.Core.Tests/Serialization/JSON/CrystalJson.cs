@@ -61,6 +61,7 @@
 #pragma warning disable CA1861 // Avoid constant arrays as arguments
 #pragma warning disable 618
 #pragma warning disable NUnit2021
+#pragma warning disable NUnit2009
 
 namespace Doxense.Serialization.Json.Tests
 {
@@ -7389,7 +7390,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(p["Id"], IsJson.EqualTo(1));
 			Assert.That(p["Name"], IsJson.EqualTo("Walter White"));
 			Assert.That(p.Count, Is.EqualTo(2));
-			// l'original ne doit pas être modifié
+			Assert.That(p, IsJson.Mutable);
+			// the original should not be changed
 			Assert.That(obj.Count, Is.EqualTo(5));
 
 			p = obj.Pick([ "Id" ]);
@@ -7424,6 +7426,15 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(p.ContainsKey("NotFound"), Is.True);
 			Assert.That(p["NotFound"], IsJson.Missing);
 			Assert.That(p.Count, Is.EqualTo(1));
+
+
+			{ // test that we keep the "readonly-ness" or the original
+				var source = JsonObject.CreateReadOnly([("foo", 123), ("bar", 456)]);
+				Assume.That(source, IsJson.ReadOnly);
+				p = source.Pick(["bar"]);
+				Assert.That(p, IsJson.ReadOnly);
+				Assert.That(source, IsJson.ReadOnly);
+			}
 		}
 
 		[Test]
