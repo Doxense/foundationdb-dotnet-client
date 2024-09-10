@@ -60,6 +60,7 @@
 #pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
 #pragma warning disable CA1861 // Avoid constant arrays as arguments
 #pragma warning disable 618
+#pragma warning disable NUnit2021
 
 namespace Doxense.Serialization.Json.Tests
 {
