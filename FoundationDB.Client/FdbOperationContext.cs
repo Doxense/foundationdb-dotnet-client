@@ -1445,7 +1445,7 @@ namespace FoundationDB.Client
 							//TODO: REVIEW: how can we distinguish between errors that are caused by the bad assumption of a failed value check, and errors that are completely unrelated?
 
 							bool shouldThrow = true;
-							if (!hasRunValueChecks)
+							if (!hasRunValueChecks && !context.Cancellation.IsCancellationRequested)
 							{
 								context.FailedValueCheckTags?.Clear();
 								if (!await context.ValidateValueChecks(ignoreFailedTasks: false).ConfigureAwait(false))
@@ -1524,7 +1524,10 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-				Contract.Debug.Assert(!reportOpStarted);
+				if (reportOpStarted)
+				{
+					FdbClientInstrumentation.ReportOperationCompleted(context, null, context.PreviousError);
+				}
 
 				if (reportTransStarted)
 				{
