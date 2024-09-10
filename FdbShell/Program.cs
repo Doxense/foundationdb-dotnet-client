@@ -150,7 +150,6 @@ namespace FdbShell
 
 			try
 			{
-				Fdb.Start(620);
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();
@@ -173,6 +172,7 @@ namespace FdbShell
 			bool showHelp = false;
 			int timeout = 30;
 			int maxRetries = 10;
+			int? apiVersion = null;
 			string? execCommand = null;
 
 			var opts = new OptionSet()
@@ -186,6 +186,11 @@ namespace FdbShell
 					"connStr=",
 					"The connection string for the FoundationDB cluster.",
 					v => connectionString = v
+				},
+				{
+					"api=",
+					"The API version level that should be used.",
+					(int v) => apiVersion = v
 				},
 				{ 
 					"p|partition=",
@@ -234,6 +239,13 @@ namespace FdbShell
 			}
 
 			#endregion
+
+			if (apiVersion == null)
+			{
+				apiVersion = !string.IsNullOrEmpty(connectionString) ? 720 : 620;
+			}
+
+			Fdb.Start(apiVersion.Value);
 
 			bool stop = false;
 			Db = null;

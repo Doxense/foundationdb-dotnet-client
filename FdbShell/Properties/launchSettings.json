@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FdbShell": {
+      "commandName": "Project",
+      "commandLineArgs": "--connStr=docker:docker@127.0.0.1:4550"
+    }
+  }
+}
