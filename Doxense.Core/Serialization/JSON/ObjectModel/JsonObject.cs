@@ -1053,7 +1053,7 @@ namespace Doxense.Serialization.Json
 		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
 		{
 #if NET9_0_OR_GREATER
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryGetValue(key, out value);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(key, out value);
 #else
 			// We cannot use span lookups so we may need to allocate the string in order to find it :(
 			// - if the object is _small_ (1 or 2 keys?) AND uses the ordinal comparer, then simply enumerating the key/value pairs and calling SequenceEqual would be quicker (in theoriy no allocation)
@@ -1096,7 +1096,7 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
 		{
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryGetValue(key, out actualKey, out value);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(key, out actualKey, out value);
 		}
 
 #endif
@@ -1107,7 +1107,7 @@ namespace Doxense.Serialization.Json
 		public override bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
 		{
 #if NET9_0_OR_GREATER
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryGetValue(key.Span, out value);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(key.Span, out value);
 #else
 			if (key.TryGetString(out var k))
 			{ // we have the whole string, we can do the standard lookup
@@ -1145,7 +1145,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 #if NET9_0_OR_GREATER
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().TryAdd(key, value ?? JsonNull.Null);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(key, value ?? JsonNull.Null);
 #else
 			return m_items.TryAdd(key.ToString(), value ?? JsonNull.Null);
 #endif
@@ -2102,7 +2102,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
 #if NET9_0_OR_GREATER
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().Remove(key);
 #else
 			// we have to allocate the string here :(
 			return m_items.Remove(key.ToString());
@@ -2119,7 +2119,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
 #if NET9_0_OR_GREATER
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key.Span);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().Remove(key.Span);
 #else
 			// we may have to allocate the string here :(
 			return m_items.Remove(key.GetStringOrCopy());
@@ -2148,7 +2148,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 #if NET9_0_OR_GREATER
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key, out _, out value);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().Remove(key, out _, out value);
 #else
 			// we have to allocate the string here :(
 			return m_items.Remove(key.ToString(), out value);
@@ -2167,7 +2167,7 @@ namespace Doxense.Serialization.Json
 		public bool Remove(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key, out actualKey, out value);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().Remove(key, out actualKey, out value);
 		}
 
 		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
@@ -2180,7 +2180,7 @@ namespace Doxense.Serialization.Json
 		public bool Remove(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			return m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>().Remove(key.Span, out actualKey, out value);
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().Remove(key.Span, out actualKey, out value);
 		}
 
 #endif
@@ -2593,7 +2593,7 @@ namespace Doxense.Serialization.Json
 		public JsonObject Set<TValue>(ReadOnlySpan<char> key, TValue? value)
 		{
 #if NET9_0_OR_GREATER
-			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			var items = m_items.GetAlternateLookup<ReadOnlySpan<char>>();
 			items[key] = FromValue(value);
 #else
 			m_items[key.ToString()] = FromValue(value);
@@ -2613,7 +2613,7 @@ namespace Doxense.Serialization.Json
 
 #if NET9_0_OR_GREATER
 			// won't allocate if the key already exists
-			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			var items = m_items.GetAlternateLookup<ReadOnlySpan<char>>();
 			items[key.Span] = FromValue(value);
 #else
 			// we need to allocate in all cases, even if the key already exists
@@ -2637,7 +2637,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
 #if NET9_0_OR_GREATER
-			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			var items = m_items.GetAlternateLookup<ReadOnlySpan<char>>();
 			//note: this will not allocate if the key already exists
 			items[key] = value ?? JsonNull.Null;
 #else
@@ -2657,7 +2657,7 @@ namespace Doxense.Serialization.Json
 				return this;
 			}
 #if NET9_0_OR_GREATER
-			var items = m_items.GetAlternateLookup<string, JsonValue, ReadOnlySpan<char>>();
+			var items = m_items.GetAlternateLookup<ReadOnlySpan<char>>();
 			//note: this will not allocate if the key already exists
 			items[key.Span] = value ?? JsonNull.Null;
 #else
