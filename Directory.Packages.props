@@ -22,7 +22,6 @@
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
     <PackageVersion Include="protobuf-net" Version="3.2.30" />
     <PackageVersion Include="System.Memory" Version="4.5.5" />
-    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.0-preview.18571.3" />
     <PackageVersion Include="ZstdSharp.Port" Version="0.8.1" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
