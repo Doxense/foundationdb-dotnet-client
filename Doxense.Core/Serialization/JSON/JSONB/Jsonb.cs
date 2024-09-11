@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json.Binary
 {
 	using System.Buffers;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Memory;
@@ -377,10 +378,8 @@ namespace Doxense.Serialization.Json.Binary
 				throw new InvalidOperationException("Invalid jsonb container");
 			}
 
-			public unsafe bool GetEntryByName(JLookupKey* key, out JValue result)
+			public bool GetEntryByName(scoped JLookupKey key, out JValue result)
 			{
-				Contract.Debug.Requires(key != null);
-
 				if (!this.IsObject) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an object.");
 
 				int numPairs = this.Count;
@@ -549,13 +548,16 @@ namespace Doxense.Serialization.Json.Binary
 				}
 			}
 
-			public unsafe bool Equals(JLookupKey* key)
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Equals(JLookupKey key)
 			{
-				Contract.Debug.Requires(key != null);
 				// for now, we only support string comparison
-				if (this.Type != JType.String) throw ThrowHelper.InvalidOperationException($"Cannot compare objet key with entry of type {this.Type}");
+				if (this.Type != JType.String)
+				{
+					throw ThrowHelper.InvalidOperationException($"Cannot compare objet key with entry of type {this.Type}");
+				}
 
-				return new ReadOnlySpan<byte>(key->KeyBytes, key->KeyLength).SequenceEqual(this.Value);
+				return key.Bytes.SequenceEqual(this.Value);
 			}
 
 			public bool Equals(JsonValue value)
@@ -604,20 +606,14 @@ namespace Doxense.Serialization.Json.Binary
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
-		private unsafe struct JLookupKey
+		private readonly ref struct JLookupKey
 		{
 			/// <summary>Key encoded as bytes (UTF-8)</summary>
-			public readonly byte* KeyBytes;
-			/// <summary>Size of the encoded key (UTF-8)</summary>
-			public readonly int KeyLength;
-			/// <summary>Hashcode of the key</summary>
-			public readonly int HashCode;
+			public readonly ReadOnlySpan<byte> Bytes;
 
-			public JLookupKey(byte* keyBytes, int keyLength, int hashCode)
+			public JLookupKey(ReadOnlySpan<byte> bytes)
 			{
-				this.KeyBytes = keyBytes;
-				this.KeyLength = keyLength;
-				this.HashCode = hashCode;
+				this.Bytes = bytes;
 			}
 
 		}
@@ -720,18 +716,18 @@ namespace Doxense.Serialization.Json.Binary
 
 				unsafe
 				{
+					// compute the required capacity, and allocate a buffer
 					var enc = CrystalJson.Utf8NoBom;
 					int maxKeyBytes = (enc.GetMaxByteCount(path.Length) + 7) & ~7;
-					byte* keyBytes = stackalloc byte[maxKeyBytes];
-					int keyLen;
-					fixed (char* chars = path)
-					{
-						keyLen = enc.GetBytes(chars, path.Length, keyBytes, maxKeyBytes);
-					}
-					var key = new JLookupKey(keyBytes, keyLen, 1234); //TODO: hashcode!
+					Span<byte> keyBytes = stackalloc byte[maxKeyBytes];
+
+					// encode the path
+					int keyLen = enc.GetBytes(path, keyBytes);
+
+					var key = new JLookupKey(keyBytes.Slice(0, keyLen));
 
 					//TODO: utiliser un JPathTokenizer!
-					if (!root.GetEntryByName(&key, out value))
+					if (!root.GetEntryByName(key, out value))
 					{
 						return false;
 					}
@@ -855,19 +851,7 @@ namespace Doxense.Serialization.Json.Binary
 		public static bool Test(ReadOnlyMemory<byte> buffer, string path, Guid value) => buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) && j.Equals(value);
 
 		/// <summary>Encodes a <see cref="JsonValue"/> into a jsonb binary blob</summary>
-		public static byte[] Encode(JsonValue value, int capacity = 0)
-		{
-			Contract.NotNull(value);
-
-			using (var writer = new Writer(capacity <= 0 ? 4096 : capacity))
-			{
-				writer.WriteDocument(value);
-				return writer.GetBytes();
-			}
-		}
-
-		/// <summary>Encodes a <see cref="JsonValue"/> into a jsonb binary blob</summary>
-		public static Slice EncodeBuffer(JsonValue value, int capacity = 0)
+		public static Slice Encode(JsonValue value, int capacity = 0)
 		{
 			Contract.NotNull(value);
 
@@ -879,7 +863,7 @@ namespace Doxense.Serialization.Json.Binary
 		}
 
 		/// <summary>Encodes a <see cref="JsonValue"/> into a jsonb binary blob</summary>
-		public static Slice EncodeBuffer(JsonValue value, ref byte[]? buffer, int capacity = 0)
+		public static Slice Encode(JsonValue value, [NotNull] ref byte[]? buffer, int capacity = 0)
 		{
 			Contract.NotNull(value);
 
@@ -889,6 +873,19 @@ namespace Doxense.Serialization.Json.Binary
 				var res = writer.GetBuffer();
 				buffer = res.Array;
 				return res;
+			}
+		}
+
+		/// <summary>Encodes a <see cref="JsonValue"/> into a jsonb binary blob</summary>
+		public static Slice EncodeTo(ref SliceWriter output, JsonValue value)
+		{
+			Contract.NotNull(value);
+
+			using (var writer = new Writer(output))
+			{
+				writer.WriteDocument(value);
+				output = writer.GetWriterAndClear();
+				return output.ToSlice();
 			}
 		}
 
@@ -938,6 +935,11 @@ namespace Doxense.Serialization.Json.Binary
 				m_output = new SliceWriter(buffer);
 			}
 
+			public Writer(SliceWriter buffer)
+			{
+				m_output = buffer;
+			}
+
 			public void Dispose()
 			{
 				//TODO?
@@ -953,6 +955,13 @@ namespace Doxense.Serialization.Json.Binary
 			public Slice GetBuffer()
 			{
 				return m_output.ToSlice();
+			}
+
+			internal SliceWriter GetWriterAndClear()
+			{
+				var output = m_output;
+				m_output = default;
+				return output;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]

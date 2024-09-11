@@ -46,7 +46,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			Log("-----------------");
 
 			DumpCompact("ORIGINAL", value);
-			var bytes = Jsonb.EncodeBuffer(value);
+			var bytes = Jsonb.Encode(value);
 			//Log("RAW: ({0}) {1}", bytes.Length, bytes.AsSlice().ToString("X"));
 			DumpHexa(bytes);
 
@@ -81,7 +81,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
 			{
-				_ = Jsonb.EncodeBuffer(value);
+				_ = Jsonb.Encode(value);
 			}
 			sw.Stop();
 			Log($"Bench: jsonb encode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
@@ -418,36 +418,31 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		}
 
 		[Test, Category("Benchmark")]
-		public void Test_Generate_Large_DataSet()
+		public void Test_Compress_Large_DataSet_Jsonb()
 		{
 			var db = FooDb.CreateTestData();
 			var obj = JsonValue.FromValue(db);
 
-			var json = obj.ToJsonBytes(CrystalJsonSettings.JsonCompact);
-			Log($"JSON : {json.Length:N0} bytes");
-			Log($"JSON : {json.AsSlice().ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
-			Log($"JSON : {json.AsSlice().ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
-			Log($"JSON : {json.AsSlice().ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
-			Log($"JSON : {json.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
-			Log($"JSON : {json.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
+			var json = obj.ToJsonSlice(CrystalJsonSettings.JsonCompact);
+			Log($"JSON : {json.Count:N0} bytes, uncompressed");
 
 			// jsonb raw
 			var jsonb = Jsonb.Encode(obj);
-			Log($"JSONB: {jsonb.Length:N0} bytes");
+			Log($"JSONB: {jsonb.Count:N0} bytes, uncompressed, {100.0 * jsonb.Count / json.Count:N1}%");
 
 			// jsonb compressed
-			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
-			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
-			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
-			Log($"JSONB: {jsonb.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
-			Log($"JSONB: {jsonb.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
+			Log($"JSONB: {jsonb.ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
+			Log($"JSONB: {jsonb.ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
+			Log($"JSONB: {jsonb.ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
+			Log($"JSONB: {jsonb.DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
+			Log($"JSONB: {jsonb.DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
 		}
 
-		public sealed class FooDb
+		public sealed record FooDb
 		{
-			public required int Version { get; set; }
+			public required int Version { get; init; }
 
-			public required List<Vendor> Vendors { get; set; }
+			public required List<Vendor> Vendors { get; init; }
 
 			public enum DeviceType
 			{
@@ -457,38 +452,38 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				Plotter
 			}
 
-			public sealed class Vendor
+			public sealed record Vendor
 			{
-				public required Guid Id { get; set; }
-				public required string Label { get; set; }
-				public required string Name { get; set; }
+				public required Guid Id { get; init; }
+				public required string Label { get; init; }
+				public required string Name { get; init; }
 
-				public required Dictionary<Guid, Model> Models { get; set; }
+				public required Dictionary<Guid, Model> Models { get; init; }
 
 			}
 
-			public sealed class Model
+			public sealed record Model
 			{
-				public required Guid Id { get; set; }
+				public required Guid Id { get; init; }
 
-				public required string Name { get; set; }
+				public required string Name { get; init; }
 
-				public required DeviceType Type { get; set; }
+				public required DeviceType Type { get; init; }
 
-				public required bool ColorCapable { get; set; }
+				public required bool ColorCapable { get; init; }
 
-				public required bool DuplexCapable { get; set; }
+				public required bool DuplexCapable { get; init; }
 
-				public required DateTime Updated { get; set; }
+				public required DateTime Updated { get; init; }
 
-				public required List<Rule> Rules { get; set; }
+				public required List<Rule> Rules { get; init; }
 
 				public static Model MakeRandom(Random rnd)
 				{
 					return new Model
 					{
 						Id = Guid.NewGuid(),
-						Name = String.Join(" ", Enumerable.Range(0, rnd.Next(1, 5)).Select(_ => new string('M', rnd.Next(4, 32)))),
+						Name = string.Join(" ", Enumerable.Range(0, rnd.Next(1, 5)).Select(_ => new string('M', rnd.Next(4, 32)))),
 						Type = (DeviceType) rnd.Next((int) DeviceType.Printer, 1 + (int) DeviceType.Plotter),
 						ColorCapable = rnd.Next(2) == 1,
 						DuplexCapable = rnd.Next(2) == 1,
@@ -498,15 +493,15 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				}
 			}
 
-			public sealed class Rule
+			public sealed record Rule
 			{
-				public required Guid Id { get; set; }
+				public required Guid Id { get; init; }
 
-				public required List<Guid> Parents { get; set; }
+				public required List<Guid> Parents { get; init; }
 
-				public required int Level { get; set; }
+				public required int Level { get; init; }
 
-				public required string Expression { get; set; }
+				public required string Expression { get; init; }
 
 				public static Rule MakeRandom(Random rnd)
 				{
@@ -515,7 +510,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 						Id = Guid.NewGuid(),
 						Parents = Enumerable.Range(0, rnd.Next(3)).Select(_ => Guid.NewGuid()).ToList(),
 						Level = rnd.Next(100),
-						Expression = String.Join(" ", Enumerable.Range(0, rnd.Next(1, 4)).Select(_ => new string('X', rnd.Next(4, 32))))
+						Expression = string.Join(" ", Enumerable.Range(0, rnd.Next(1, 4)).Select(_ => new string('X', rnd.Next(4, 32))))
 					};
 				}
 			}
@@ -581,11 +576,11 @@ namespace Doxense.Serialization.Json.Binary.Tests
 					]
 				};
 
-
 				return fooDb;
 			}
 
 		}
+
 	}
 
 }

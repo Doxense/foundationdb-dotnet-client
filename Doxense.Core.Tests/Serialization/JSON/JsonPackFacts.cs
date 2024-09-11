@@ -440,24 +440,19 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		}
 
 		[Test, Category("Benchmark")]
-		public void Test_Generate_Large_DataSet()
+		public void Test_Compress_Large_DataSet_JsonPack()
 		{
+			// this test is here to compare the results with JsonPack (in another test)
+
 			var db = FooDb.CreateTestData();
 			var obj = JsonValue.FromValue(db);
 
-			var json = obj.ToJsonBytes(CrystalJsonSettings.JsonCompact).AsSlice();
-			Log($"JSON    : {json.Count:N0} bytes");
-			Log($"JSON    : {json.ZstdCompress(1).Count:N0} bytes, compressed with Zstd (1)");
-			Log($"JSON    : {json.ZstdCompress(3).Count:N0} bytes, compressed with Zstd (3)");
-			Log($"JSON    : {json.ZstdCompress(9).Count:N0} bytes, compressed with Zstd (9)");
-			Log($"JSON    : {json.ZstdCompress(20).Count:N0} bytes, compressed with Zstd (20)");
-			Log($"JSON    : {json.DeflateCompress(CompressionLevel.Fastest).Count:N0} bytes, compressed with Deflate (1)");
-			Log($"JSON    : {json.DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
-			Log($"JSON    : {json.DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
+			var json = obj.ToJsonSlice(CrystalJsonSettings.JsonCompact);
+			Log($"JSON    : {json.Count:N0} bytes, uncompressed");
 
 			// JsonPack raw
 			Slice bytes = JsonPack.Encode(obj);
-			Log($"JsonPack: {bytes.Count:N0} bytes");
+			Log($"JsonPack: {bytes.Count:N0} bytes, uncompressed, {100.0 * bytes.Count / json.Count:N1}%");
 
 			// JsonPack compressed (lz4)
 			Log($"JsonPack: {bytes.ZstdCompress(1).Count:N0} bytes, compressed with Zstd (1)");
@@ -469,10 +464,28 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			Log($"JsonPack: {bytes.DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
 		}
 
-		public sealed class FooDb
+		[Test, Category("Benchmark")]
+		public void Test_Compress_Large_DataSet_Json()
 		{
-			public int Version { get; set; }
-			public List<Vendor> Vendors { get; set; }
+			var db = FooDb.CreateTestData();
+			var obj = JsonValue.FromValue(db);
+
+			var json = obj.ToJsonBytes(CrystalJsonSettings.JsonCompact).AsSlice();
+			Log($"JSON    : {json.Count:N0} bytes, uncompressed");
+			Log($"JSON    : {json.ZstdCompress(1).Count:N0} bytes, compressed with Zstd (1)");
+			Log($"JSON    : {json.ZstdCompress(3).Count:N0} bytes, compressed with Zstd (3)");
+			Log($"JSON    : {json.ZstdCompress(9).Count:N0} bytes, compressed with Zstd (9)");
+			Log($"JSON    : {json.ZstdCompress(20).Count:N0} bytes, compressed with Zstd (20)");
+			Log($"JSON    : {json.DeflateCompress(CompressionLevel.Fastest).Count:N0} bytes, compressed with Deflate (1)");
+			Log($"JSON    : {json.DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
+			Log($"JSON    : {json.DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
+		}
+
+		public sealed record FooDb
+		{
+			public int Version { get; init; }
+
+			public List<Vendor> Vendors { get; init; }
 
 			public enum DeviceType
 			{
@@ -482,31 +495,33 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				Plotter
 			}
 
-			public sealed class Vendor
+			public sealed record Vendor
 			{
-				public Guid Id { get; set; }
-				public string Label { get; set; }
-				public string Name { get; set; }
+				public Guid Id { get; init; }
 
-				public Dictionary<Guid, Model> Models { get; set; }
+				public string Label { get; init; }
+
+				public string Name { get; init; }
+
+				public Dictionary<Guid, Model> Models { get; init; }
 
 			}
 
-			public sealed class Model
+			public sealed record Model
 			{
-				public Guid Id { get; set; }
+				public Guid Id { get; init; }
 
-				public string Name { get; set; }
+				public string Name { get; init; }
 
-				public DeviceType Type { get; set; }
+				public DeviceType Type { get; init; }
 
-				public bool ColorCapable { get; set; }
+				public bool ColorCapable { get; init; }
 
-				public bool DuplexCapable { get; set; }
+				public bool DuplexCapable { get; init; }
 
-				public DateTime Updated { get; set; }
+				public DateTime Updated { get; init; }
 
-				public List<Rule> Rules { get; set; }
+				public List<Rule> Rules { get; init; }
 
 				public static Model MakeRandom(Random rnd)
 				{
@@ -523,15 +538,15 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				}
 			}
 
-			public sealed class Rule
+			public sealed record Rule
 			{
-				public Guid Id { get; set; }
+				public Guid Id { get; init; }
 
-				public List<Guid> Parents { get; set; }
+				public List<Guid> Parents { get; init; }
 
-				public int Level { get; set; }
+				public int Level { get; init; }
 
-				public string Expression { get; set; }
+				public string Expression { get; init; }
 
 				public static Rule MakeRandom(Random rnd)
 				{
