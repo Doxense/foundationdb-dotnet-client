@@ -398,6 +398,7 @@ namespace Doxense.Serialization
 		/// <summary>Converts a string literal into its 64-bit floating-point number equivalent, using invariant-culture format</summary>
 		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
 		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
+		/// <param name="provider">Optional Format provider</param>
 		/// <returns>Corresponding double value, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToDouble("1.23", 0) => 1.23d</code>
@@ -407,7 +408,7 @@ namespace Doxense.Serialization
 		/// <code>StringConverters.ToDouble("-∞", 0)) => double.NegativeInfinity</code>
 		/// </example>
 		[Pure]
-		public static double ToDouble(string? value, double defaultValue)
+		public static double ToDouble(string? value, double defaultValue, IFormatProvider? provider = null)
 		{
 			if (string.IsNullOrEmpty(value))
 			{ // empty
@@ -421,7 +422,7 @@ namespace Doxense.Serialization
 			}
 
 			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
-			return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
+			return double.TryParse(value, NumberStyles.Float, provider ?? CultureInfo.InvariantCulture, out double result)
 				? result
 				: value == "-∞" ? double.NegativeInfinity
 				: defaultValue;
@@ -461,6 +462,7 @@ namespace Doxense.Serialization
 		/// <summary>Converts a string literal into its 32-bit floating-point number equivalent, using invariant-culture format</summary>
 		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
 		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
+		/// <param name="provider">Optional Format provider</param>
 		/// <returns>Corresponding single value, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToSingle("1.23", 0) => 1.23d</code>
@@ -470,7 +472,7 @@ namespace Doxense.Serialization
 		/// <code>StringConverters.ToSingle("-∞", 0)) => float.NegativeInfinity</code>
 		/// </example>
 		[Pure]
-		public static float ToSingle(string? value, float defaultValue)
+		public static float ToSingle(string? value, float defaultValue, IFormatProvider? provider = null)
 		{
 			if (string.IsNullOrEmpty(value))
 			{ // empty
@@ -484,7 +486,7 @@ namespace Doxense.Serialization
 			}
 
 			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
-			return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result)
+			return float.TryParse(value, NumberStyles.Float, provider ?? CultureInfo.InvariantCulture, out float result)
 				? result
 				: value == "-∞" ? float.NegativeInfinity
 				: defaultValue;
