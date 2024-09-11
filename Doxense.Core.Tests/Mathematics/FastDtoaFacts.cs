@@ -296,8 +296,13 @@ namespace Doxense.Mathematics.Test
 		[Test]
 		public void Bench_Comparison()
 		{
-			const int ITER = 10 * 1000;
+#if DEBUG
+			const int ITER = 1_000;
 			const int RUNS = 20;
+#else
+			const int ITER = 10_000;
+			const int RUNS = 20;
+#endif
 
 			double[] nums = new double[ITER];
 			var rnd = new Random(1234567);

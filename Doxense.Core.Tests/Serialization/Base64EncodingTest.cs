@@ -94,8 +94,14 @@ namespace Doxense.Serialization.Tests
 			TimeSpan durB = TimeSpan.Zero;
 
 
+#if DEBUG
+			const int R = 5;
+			const int N = 25 * 1000;
+#else
 			const int R = 5;
 			const int N = 250 * 1000;
+#endif
+
 			for (int r = -1; r < R; r++)
 			{
 				var gc = GC.CollectionCount(0);
@@ -154,7 +160,11 @@ namespace Doxense.Serialization.Tests
 			//WARMUP + JIT
 			Assume.That(Base64Encoding.ToBase64String(data.AsSlice(0, 1024)), Is.EqualTo(Convert.ToBase64String(data, 0, 1024)));
 
-			const int N = 10 * 1000;
+#if DEBUG
+			const int N = 1_000;
+#else
+			const int N = 10_000;
+#endif
 
 			GC.Collect();
 			GC.WaitForPendingFinalizers();

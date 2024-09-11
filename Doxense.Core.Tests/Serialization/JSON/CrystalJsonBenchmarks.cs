@@ -264,8 +264,13 @@ namespace Doxense.Serialization.Json.Tests
 		// note: dans le code Java d'origine les données sont des public fields, alors qu'en C# on serait plutot passé par des auto-properties
 		// pour rester comparable, j'utilise aussi des public fields en C# ce qui n'est pas forcément représentatif...
 
+#if DEBUG
+		public const int BENCH_RUNS = 20; // (max 60 a cause du Pierce Criterion)
+		public const int BENCH_ITERS = 1_000;
+#else
 		public const int BENCH_RUNS = 40; // (max 60 a cause du Pierce Criterion)
-		public const int BENCH_ITERS = 2000; // 2000 !
+		public const int BENCH_ITERS = 2_000;
+#endif
 
 		public void Bench_Everything()
 		{
@@ -813,7 +818,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			FullGc();
 
-			int iterations = 1 * 1000 * 1000;
+			int iterations = 1_000_000;
 #if DEBUG
 			iterations /= 10;
 #endif

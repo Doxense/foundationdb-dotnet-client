@@ -36,6 +36,7 @@ namespace Doxense.Text.Utf8.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class Utf8StringFacts : SimpleTest
 	{
 
