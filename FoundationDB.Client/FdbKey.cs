@@ -68,8 +68,10 @@ namespace FoundationDB.Client
 		{
 			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", nameof(slice));
 
+			// ReSharper disable once InconsistentNaming
 			int lastNonFFByte;
-			var tmp = slice.GetBytesOrEmpty();
+
+			var tmp = slice.ToArray();
 			for (lastNonFFByte = tmp.Length - 1; lastNonFFByte >= 0; --lastNonFFByte)
 			{
 				if (tmp[lastNonFFByte] != 0xFF)

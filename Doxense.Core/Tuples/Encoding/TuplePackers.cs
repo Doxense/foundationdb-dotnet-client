@@ -2841,7 +2841,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				case TupleTypes.Bytes:
 				{
-					return new System.Net.IPAddress(TupleParser.ParseBytes(slice).GetBytesOrEmpty());
+					return new System.Net.IPAddress(TupleParser.ParseBytes(slice).ToArray());
 				}
 				case TupleTypes.Utf8:
 				{
@@ -2849,7 +2849,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 				case TupleTypes.Uuid128:
 				{ // could be an IPv6 encoded as a 128-bits UUID
-					return new System.Net.IPAddress(slice.GetBytesOrEmpty());
+					return new System.Net.IPAddress(slice.ToArray());
 				}
 			}
 
@@ -2879,7 +2879,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 				case TupleTypes.Bytes:
 				{
-					return new System.Net.IPAddress(TupleParser.ParseBytes(slice).GetBytesOrEmpty());
+					return new System.Net.IPAddress(TupleParser.ParseBytes(slice).ToArray());
 				}
 				case TupleTypes.Utf8:
 				{

@@ -642,7 +642,7 @@ namespace Doxense.Networking
 			Contract.NotNullOrEmpty(mac);
 			mac = mac.Replace("-", string.Empty).Replace(":", string.Empty);
 			if (mac.Length != 12) throw new ArgumentException("mac address length invalid", nameof(mac));
-			return Slice.FromHexa(mac).GetBytesOrEmpty();
+			return Slice.FromHexa(mac).ToArray();
 		}
 
 		/// <summary>Send a ping request to the specified target</summary>

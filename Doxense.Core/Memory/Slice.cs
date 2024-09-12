@@ -303,10 +303,26 @@ namespace System
 			return this.Count != 0? this : Empty;
 		}
 
-		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
-		/// <returns>Byte array with a copy of the slice, or null</returns>
+		/// <summary>Copies the contents of this slice into a new array.</summary>
+		/// <returns>An array containing the data in the current slice.</returns>
+		/// <remarks>
+		/// <para>This will return an empty array for both <see cref="Slice.Nil"/> and <see cref="Slice.Empty"/>.</para>
+		/// <para>If you need to distinguish between both, you can use <see cref="GetBytes()"/> which will return <see langword="null"/> for <see cref="Slice.Nil"/>.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] ToArray()
+		{
+			return this.Count != 0 ? this.Span.ToArray() : [ ];
+		}
+
+		/// <summary>Copies the contents of this slice into a new array.</summary>
+		/// <returns>An array containing the data in the current slice.</returns>
+		/// <remarks>
+		/// <para>This will return an empty array for both <see cref="Slice.Nil"/> and <see cref="Slice.Empty"/>.</para>
+		/// <para>If you need to distinguish between both, you can use <see cref="GetBytes()"/> which will return <see langword="null"/> for <see cref="Slice.Nil"/>.</para>
+		/// </remarks>
 		[Pure]
-		public byte[]? GetBytes() //REVIEW: should be called ToArray(), like Span<byte>.ToArray() ?
+		public byte[]? GetBytes()
 		{
 			return this.Count != 0 ? this.Span.ToArray() : this.Array != null ? [ ] : null;
 		}
@@ -314,11 +330,8 @@ namespace System
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
 		/// <returns>Byte array with a copy of the slice</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public byte[] GetBytesOrEmpty()
-		{
-			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
-			return this.Count != 0 ? this.Span.ToArray() : [ ];
-		}
+		[Obsolete("Use Slice.ToArray() instead")]
+		public byte[] GetBytesOrEmpty() => ToArray();
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
@@ -557,34 +570,6 @@ namespace System
 		public bool TryCopyTo(byte[] buffer, int offset)
 		{
 			return this.Span.TryCopyTo(buffer.AsSpan(offset));
-		}
-
-		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
-		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="count">Capacity of the output buffer</param>
-		/// <remarks>Copy will fail if there is not enough space in the output buffer</remarks>
-		public IntPtr CopyTo(IntPtr ptr, long count)
-		{
-			unsafe
-			{
-				if (!this.Span.TryCopyTo(new Span<byte>(ptr.ToPointer(), (int) Math.Min(count, int.MaxValue))))
-				{
-					throw UnsafeHelpers.Errors.SliceBufferTooSmall();
-				}
-			}
-			return IntPtr.Add(ptr, this.Count);
-		}
-
-		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
-		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="count">Capacity of the output buffer</param>
-		/// <return>Updated pointer after the copy, of <see cref="IntPtr.Zero"/> if the destination buffer was too small</return>
-		public bool TryCopyTo(IntPtr ptr, long count)
-		{
-			unsafe
-			{
-				return this.Span.TryCopyTo(new Span<byte>(ptr.ToPointer(), (int) Math.Min(count, int.MaxValue)));
-			}
 		}
 
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position.</summary>
@@ -1658,7 +1643,7 @@ namespace System
 			if (slice.IsNull) throw ThrowHelper.ArgumentException(nameof(slice), "Cannot increment null buffer");
 
 			int lastNonFfByte;
-			var tmp = slice.GetBytesOrEmpty();
+			var tmp = slice.ToArray();
 			for (lastNonFfByte = tmp.Length - 1; lastNonFfByte >= 0; --lastNonFfByte)
 			{
 				if (tmp[lastNonFfByte] != 0xFF)
@@ -3303,7 +3288,6 @@ namespace System
 
 	}
 
-#if NET8_0_OR_GREATER
 
 	[PublicAPI]
 	public static class SliceMarshal
@@ -3446,10 +3430,18 @@ namespace System
 		public static bool IsAddressInside(Slice buffer, ref readonly byte ptr)
 		{
 			var span = buffer.Span;
-			if (span.Length == 0) return false;
+			if (span.Length == 0)
+			{
+				return false;
+			}
+
 			ref readonly byte start = ref buffer.Array[buffer.Offset];
 			ref readonly byte end = ref Unsafe.Add(ref Unsafe.AsRef(in start), span.Length);
+#if NET8_0_OR_GREATER
 			return !Unsafe.IsAddressLessThan(in ptr, in start) && Unsafe.IsAddressLessThan(in ptr, in end);
+#else
+			return !Unsafe.IsAddressLessThan(ref Unsafe.AsRef(in ptr), ref Unsafe.AsRef(in start)) && Unsafe.IsAddressLessThan(ref Unsafe.AsRef(in ptr), ref Unsafe.AsRef(in end));
+#endif
 		}
 
 		/// <summary>Returns the offset of an unmanaged pointer inside the slice</summary>
@@ -3524,6 +3516,7 @@ namespace System
 
 		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
 		/// <param name="source">A slice.</param>
+		/// <param name="index">Offset (in bytes) from the start of the slice</param>
 		/// <typeparam name="T">The type of the item to retrieve from the slice.</typeparam>
 		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
 		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="source" /> is smaller than <typeparamref name="T" />'s length in bytes.</exception>
@@ -3536,6 +3529,7 @@ namespace System
 
 		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
 		/// <param name="source">A slice.</param>
+		/// <param name="index">Offset (in bytes) in the slice</param>
 		/// <typeparam name="T">The type of the item to retrieve from the slice.</typeparam>
 		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
 		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="source" /> is smaller than <typeparamref name="T" />'s length in bytes.</exception>
@@ -3546,7 +3540,7 @@ namespace System
 			return MemoryMarshal.Read<T>(source.Span.Slice(index.GetOffset(source.Count)));
 		}
 
-		/// <summary>Tries to read a structure of type <paramref name="T" /> from a <see cref="Slice"/>.</summary>
+		/// <summary>Tries to read a structure of type <typeparamref name="T" /> from a <see cref="Slice"/>.</summary>
 		/// <param name="source">A slice.</param>
 		/// <param name="value">When the method returns, an instance of <typeparamref name="T" />.</param>
 		/// <typeparam name="T">The type of the structure to retrieve.</typeparam>
@@ -3618,8 +3612,37 @@ namespace System
 				: null;
 		}
 
+		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
+		/// <param name="buffer">Slice to copy</param>
+		/// <param name="destination">Pointer where to copy this slice</param>
+		/// <param name="capacity">Capacity of the output buffer</param>
+		/// <remarks>Copy will fail if there is not enough space in the output buffer</remarks>
+		public static IntPtr CopyTo(Slice buffer, IntPtr destination, nuint capacity)
+		{
+			unsafe
+			{
+				if (!buffer.Span.TryCopyTo(new Span<byte>(destination.ToPointer(), checked((int) capacity))))
+				{
+					throw UnsafeHelpers.Errors.SliceBufferTooSmall();
+				}
+			}
+			return IntPtr.Add(destination, buffer.Count);
+		}
+
+		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
+		/// <param name="buffer">Slice to copy</param>
+		/// <param name="destination">Pointer where to copy this slice</param>
+		/// <param name="capacity">Capacity of the output buffer</param>
+		/// <return>Updated pointer after the copy, of <see cref="IntPtr.Zero"/> if the destination buffer was too small</return>
+		public static bool TryCopyTo(Slice buffer, IntPtr destination, nuint capacity)
+		{
+			unsafe
+			{
+				return buffer.Span.TryCopyTo(new Span<byte>(destination.ToPointer(), checked((int) capacity)));
+			}
+		}
+
 	}
 
-#endif
 
 }

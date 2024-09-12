@@ -532,7 +532,7 @@ namespace Doxense.Memory.Text
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] GetBytes()
 		{
-			return this.Buffer.GetBytesOrEmpty();
+			return this.Buffer.ToArray();
 		}
 
 		/// <summary>Return a span over the UTF-8 encoded bytes of this string</summary>

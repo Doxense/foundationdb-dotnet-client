@@ -431,7 +431,7 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<Slice, Uuid80>((value) => value.ToUuid80());
 			RegisterUnsafe<Slice, Uuid64>((value) => value.ToUuid64());
 			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
-			RegisterUnsafe<Slice, System.Net.IPAddress?>((value) => !value.IsNullOrEmpty ? new System.Net.IPAddress(value.GetBytesOrEmpty()) : null);
+			RegisterUnsafe<Slice, System.Net.IPAddress?>((value) => !value.IsNullOrEmpty ? new System.Net.IPAddress(value.ToArray()) : null);
 		}
 
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
