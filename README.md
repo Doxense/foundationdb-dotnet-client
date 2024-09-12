@@ -5,16 +5,23 @@ C#/.NET binding for the [FoundationDB](https://www.foundationdb.org/) client lib
 
 [![.NET Build](https://github.com/Doxense/foundationdb-dotnet-client/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/Doxense/foundationdb-dotnet-client/actions/workflows/dotnetcore.yml)
 
-How to use
-----------
+# How to use
 
 You will need to install two things:
 - A copy of the FoundationDB client library, available at https://github.com/apple/foundationdb/releases
-- A reference to the `FoundationDB.Client` package.
+- A reference to the `FoundationDB.Client` package, and supporting packages.
 
-### Using Dependency Injection
+For local development, using [.NET Aspire](https://learn.microsoft.com/en-us/dotnet/aspire/) will also make it easier to spin up a working environment in a few minutes using a locally hosted Docker container (requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Windows)
 
-#### Manual configuration
+## Using Dependency Injection
+
+Even though it is possible to use the driver without dependency injection, the main way to use the binding is by registering the `IFdbDatabaseProvider` service with the DI, an inject this service into any controller, razor pages or any other service that will need to query the database.
+
+You can either manually setup the services, in which case you will need to provide a valid set of settings (API level, root path, ...) as well as copy a valid `fdb.cluster` file so that the process can connect to an existing FoundationDB cluster.
+
+You can also use .NET Aspire to automatically setup a local FoundationDB docker container, and automatically generate valid connection strings.
+
+### Manual configuration
 
 In your Program.cs, you should register FoundationDB with the DI container:
 
@@ -45,7 +52,7 @@ app.Run();
 
 ```
 
-This will register an instance of the `IFdbDatabaseProvider` singleton, that you can then inject into your controllers, razor pages or any other services.
+This will register an instance of the `IFdbDatabaseProvider` singleton, that you can then inject into other types.
 
 Let say, for example, that we have a `Books` Razor Page, that is reachable via the `/Books/{id}` route:
 
@@ -60,8 +67,7 @@ Let say, for example, that we have a `Books` Razor Page, that is reachable via t
   - if the key does exist, then `GetAsync(...)` returns a Slice containing the bytes of the value (which are expected to be a JSON encoded document)
 - We de-serialize the JSON document into a `Book` record, that we can then pass to the Razor Template to be rendered into an HTML page.
 
-```CSharp
-
+```c#
 namespace MyWebApp.Pages
 {
 
@@ -132,7 +138,7 @@ namespace MyWebApp.Pages
 }
 ```
 
-#### Using Aspire
+### Using Aspire
 
 ***Note: Aspire is currently in preview, so things may change at any time!***
 
@@ -203,12 +209,12 @@ builder.AddFoundationDb("fdb"); // "fdb" is the same name we used in AddFoundati
 
 This will automatically register an instance of the `IFdbDatabaseProvider` service, automatically configured to connect the FDB local or external cluster defined in the AppHost.
 
-### Using the Directory Layer
+## Using the Directory Layer
 
 Please note that in real use case, it is highly encourage to use the Directory Layer to generate a prefix for the keys, instead of simply using the `("Books", ...)` prefix.
 
 In your startup logic:
-```CSharp
+```c#
 
 public sealed class BookOptions
 {
@@ -230,7 +236,7 @@ builder.Services.Configure<BookOptions>(options =>
 
 In your Razor Page:
 
-```CSharp
+```c#
 public class BooksModel : PageModel
 {
 
@@ -268,11 +274,11 @@ public class BooksModel : PageModel
 }
 ```
 
-### Access the underlying `IFdbDatabase` singleton
+## Access the underlying `IFdbDatabase` singleton
 
 The `IFdbDatabaseProvider` also has a `GetDatabase(...)` method that can be used to obtain an instance of the `IFdbDatabase` singleton, that can then be used directly, or passed to any other Layer or library.
 
-```
+```c#
 public class FooBarModel : PageModel
 {
 
@@ -304,20 +310,19 @@ public class FooBarModel : PageModel
 }
 ```
 
-Hosting
--------
+# Deployment
 
-### Hosting on ASP.NET Core / Kestrel
+## Docker containers
 
-* The simplest solution is to inject an instance of `IFdbDatabaseProvider` in all your controllers, pages and services.
-* The .NET Binding can be configured from your Startup or Program class, by reading configuration from your `appsettings.json` or by environment variable at runtime.
-* If you are publishing your web application as Docker images, you have to inject the `fdb_c.dll` or `libfdb_c.so` binary in your docket image.
+The easiest way to deploy is to use one of the [ASP.NET Core Runtime docker images](https://hub.docker.com/r/microsoft/dotnet-aspnet/) provided my microsoft, such as `mcr.microsoft.com/dotnet/aspnet:8.0` or newer.
 
-Here is an easy way to inject the client binary in a Dockerfile:
+In order to function, the FoundationDB Native client library (`fdb_c.dll` on Windows, `libfdb_c.so`) needs to be present in the container image. The easiest way is to simply copy them from the [FoundationDB Docker image](https://hub.docker.com/r/foundationdb/foundationdb) that contains these files.
 
-```
+Example of a `Dockerfile` that will grab v7.3.x binaries and inject them into you application container:
+
+```Dockerfile
 # Version of the FoundationDB Client Library
-ARG FDB_VERSION=7.2.9
+ARG FDB_VERSION=7.3.38
 
 # We will need the official fdb docker image to obtain the client binaries
 FROM foundationdb/foundationdb:${FDB_VERSION} as fdb
@@ -334,69 +339,48 @@ COPY . /App
 ENTRYPOINT ["dotnet", "MyWebApp.dll"]
 ```
 
-### Hosting on IIS
+## Manual deployment
 
+The easiest solution is to install the `foundationdb-clients-X.Y.Z` packages from `https://apple.github.io/foundationdb/downloads.html`. Only the client packages should be installed, unless you also intend to run the cluster locally.
 
-* The .NET API is async-only, and should only be called inside async methods. You should NEVER write something like `tr.GetAsync(...).Wait()` or `tr.GetAsync(...).Result` because it will GREATLY degrade performances and prevent you from scaling up past a few concurrent requests.
-* The underlying client library will not run on a 32-bit Application Pool. You will need to move your web application to a 64-bit Application Pool.
-* If you are using IIS Express with an ASP.NET or ASP.NET MVC application from Visual Studio, you need to configure your IIS Express instance to run in 64-bit. With Visual Studio 2013, this can be done by checking Tools | Options | Projects and Solutions | Web Projects | Use the 64 bit version of IIS Express for web sites and projects
-* The fdb_c.dll library can only be started once per process. This makes impractical to run an web application running inside a dedicated Application Domain alongside other application, on a shared host process. The only current workaround is to have a dedicated host process for this application, by making it run inside its own Application Pool.
-* If you don't use the host's CancellationToken for transactions and retry loops, deadlock can occur if the FoundationDB cluster is unavailable or under very heavy load. Please consider also using safe values for the DefaultTimeout and DefaultRetryLimit settings.
+If you are manually copying your application files to the destination, either by unzip into a folder, or using a single-exe deployment, it is still necessary to also copy the `fdb_c.dll` or `libfdb_c.so` binaries to the destination
 
-### Hosting on OWIN
+If, for any reason, you cannot copy the client binary to the default platform location (ex: `/usr/lib` on Linux), you can specify the full path to the library by settings the `NativeLibraryPath` option, or setting the `Aspire:FoundationDb:Client:NativeLibraryPath` key in the `appSettings.json` file (see the `FdbClientSettings` class other available settings).
 
-* There are no particular restrictions, apart from requiring a 64-bit OWIN host.
-* You should explicitly call Fdb.Stop() when your OWIN host process shuts down, in order to ensure that any pending transaction gets cancelled properly.
+If you need to troubleshoot the connection to the FoundationDB cluster, from the point of view of your application, it is also recommended to install `fdbcli` (comes with the `foundationdb-clients` package, needs to be manually deployed if not).
 
-How to build
-------------
+# How to build
 
-### Visual Studio Solution
+## Visual Studio Solution
 
-You will need Visual Studio 2022 version 17.5 or above to build the solution (C# 12 and .NET 8.0 support is required).
+You will need Visual Studio 2022 version 17.12 or above to build the solution (C# 13 and .NET 9.0 support is required).
 
-You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.org website, by installing the client SDK:
+### From the Command Line
 
-* Go to https://github.com/apple/foundationdb/releases and download the Windows x64 MSI for the corresponding version.
-* Install the MSI, selecting the default options.
-* Go to `C:\Program Files\foundationdb\bin\` and make sure that `fdb_c.dll` is there.
-* Open the FoundationDb.Client.sln file in Visual Studio 2022.
-* Choose the Release or Debug configuration, and rebuild the solution.
+You can also build, test and compile the NuGet packages from the command line using the `dotnet` CLI:
 
-#### From the Command Line
+- `dotnet build` to build (in DEBUG) all the projects in the solution
+- `dotnet test` to run the unit tests (requires a working local FoundationDB cluster).
 
-You can also build, test and compile the NuGet packages from the command line, using FAKE.
+# How to test
 
-You will need to perform the same steps as above (download and install FoundationDB)
+The test projects are using NUnit 4, and the test running must run as a 64-bit process (32-bit is not supported).
 
-In a new Command Prompt, go the root folder of the solution and run one of the following commands:
-- `build Test`: to build the solution (Debug) and run the unit tests.
-- `build Release`: to build the solution (Release) and the NuGet packages (which will be copied to `.\build\output\_packages\`)
-- `build BuildAppRelease`: only build the solution (Release)
-- `build BuildAppDebug`: only build the solution (Debug)
-- `build Clean`: clean the solution
- 
-If you get `System.UnauthorizedAccessException: Access to the path './build/output/FoundationDB.Tests\FoundationDB.Client.dll' is denied.` errors from time to time, you need to kill any `nunit-agent.exe` process that may have stuck around.
+> In order to run the tests, you will also need to obtain the 'fdb_c.dll'/`libfdb_c.so` native library.
 
-How to test
------------
+You can either run the tests from Visual Studio or Visual Studio Code, using any extension (like Resharper), or from the command line via `dotnet test`.
 
-The test project is using NUnit 3.x.
+> WARNING: All the tests try to run in a dedicated subspace, but there is a possibility of data corruption if they are running against a test or staging cluster! You should run the test against a local cluster where all the data is considered expandable!
 
-If you are using a custom runner or VS plugin (like TestDriven.net), make sure that it has the correct nunit version, and that it is configured to run the test using 64-bit process. The code will NOT work on 32 bit.
-
-WARNING: All the tests should work under the ('T',) subspace, but any bug or mistake could end up wiping or corrupting the global keyspace and you may lose all your data. You can specify an alternative cluster file to use in `TestHelper.cs` file.
-
-Implementation Notes
---------------------
+# Implementation Notes
 
 Please refer to https://apple.github.io/foundationdb/ to get an overview on the FoundationDB API, if you haven't already.
 
 This .NET binding has been modeled to be as close as possible to the other bindings (Python especially), while still having a '.NET' style API. 
 
 There were a few design goals, that you may agree with or not:
-* Reducing the need to allocate byte[] as much as possible. To achieve that, I'm using a 'Slice' struct that is a glorified `ArraySegment<byte>`. All allocations made during a request try to use a single underlying byte[] array, and split it into several chunks.
-* Mapping FoundationDB's Future into `Task<T>` to be able to use async/await. This means that .NET 4.5 is required to use this binding. It would be possible to port the binding to .NET 4.0 using the `Microsoft.Bcl.Async` nuget package.
+* Reducing the need to allocate `byte[]` as much as possible. To achieve that, I'm using a `Slice` struct that is the logical equivalent of `ReadOnlyMemory<byte>`, but more versatile.
+* Mapping FoundationDB's Future into `Task<T>` to be able to use async/await. 
 * Reducing the risks of memory leaks in long running server processes by wrapping all FDB_xxx handles with .NET `SafeHandle`. This adds a little overhead when P/Invoking into native code, but will guarantee that all handles get released at some time (during the next GC).
 * The Tuple layer has also been optimized to reduce the number of allocations required, and cache the packed bytes of oftenly used tuples (in subspaces, for example).
 
@@ -408,10 +392,9 @@ However, there are some key differences between Python and .NET that may cause p
 The following files will be required by your application
 * `FoundationDB.Client.dll` : Contains the core types (FdbDatabase, FdbTransaction, ...) and infrastructure to connect to a FoundationDB cluster and execute basic queries, as well as the Tuple and Subspace layers.
 * `FoundationDB.Layers.Commmon.dll` : Contains common Layers that emulates Tables, Indexes, Document Collections, Blobs, ...
-* `fdb_c.dll` : The native C client that you will need to obtain from the official FoundationDB windows setup.
+* `fdb_c.dll`/`libfdb_c.so` : The native C client that you will need to obtain from the official FoundationDB windows setup or linux client packages.
 
-Known Limitations
------------------
+# Known Limitations
 
 * Since the native FoundationDB client is 64-bit only, this .NET library is also for 64-bit only applications! Even though it targets AnyCPU, it would fail at runtime. _Don't forget to disable the `Prefer 32-bit` option in your project Build properties, that is enabled by default!_ 
 * You cannot unload the fdb C native client from the process once the network thread has started. You can stop the network thread once, but it does not support being restarted. This can cause problems when running under ASP.NET.
@@ -420,13 +403,11 @@ Known Limitations
 * FoundationDB has a maximum allowed size of 10,000,000 bytes for writes per transactions (some of all key+values that are mutated). You need multiple transaction if you need to store more data. There is a Bulk API (`Fdb.Bulk.*`) to help for the most common cases (import, export, backup/restore, ...)
 * See https://apple.github.io/foundationdb/known-limitations.html for other known limitations of the FoundationDB database.
 
-License
--------
+# License
 
 This code is licensed under the 3-clause BSD License.
 
-Contributing
-------------
+# Contributing
 
 * Yes, we use tabs! Get over it.
 * Style rules are encoded in `.editorconfig` which is supported by most IDEs (or via extensions).
