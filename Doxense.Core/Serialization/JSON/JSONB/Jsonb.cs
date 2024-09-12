@@ -27,9 +27,13 @@
 namespace Doxense.Serialization.Json.Binary
 {
 	using System.Buffers;
+	using System.Buffers.Binary;
+	using System.Buffers.Text;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
+	using System.Text;
+	using System.Text.Unicode;
 	using Doxense.Memory;
 	using Doxense.Text;
 
@@ -115,19 +119,19 @@ namespace Doxense.Serialization.Json.Binary
 			Reserved = 7,	// 111
 		}
 
-		[StructLayout(LayoutKind.Sequential)]
 		private readonly ref struct JContainer
 		{
-			private readonly ReadOnlySpan<byte> Data;
 
 			public JContainer(ReadOnlySpan<byte> data)
 			{
-				uint header = data.ReadFixedUInt32(0);
+				uint header = BinaryPrimitives.ReadUInt32LittleEndian(data);
 
 				this.Data = data;
 				this.Header = header;
 				this.BaseAddress = GetBaseAddress(header);
 			}
+
+			private readonly ReadOnlySpan<byte> Data;
 
 			private readonly uint Header; // 4 flags + 28 bit count
 
@@ -201,8 +205,8 @@ namespace Doxense.Serialization.Json.Binary
 				int offset = GetJsonbOffset(index);
 				int len = GetJsonbLength(index, offset);
 
-				int child = checked(JCONTAINER_CHILDREN_OFFSET + index * JENTRY_SIZEOF);
-				uint entry = this.Data.ReadFixedUInt32(child);
+				int childOffset = checked(JCONTAINER_CHILDREN_OFFSET + index * JENTRY_SIZEOF);
+				uint entry = BinaryPrimitives.ReadUInt32LittleEndian(this.Data.Slice(childOffset));
 
 				GetEntryAt(index, entry, offset, len, out result);
 			}
@@ -216,7 +220,10 @@ namespace Doxense.Serialization.Json.Binary
 			private void GetEntryAt(int index, uint entry, int dataOffset, int dataLen, out JValue result)
 			{
 				int baseAddr = this.BaseAddress;
-				if (!this.Data.Fits(baseAddr + dataOffset, dataLen)) throw ThrowHelper.FormatException($"Malformed jsonb entry: data for entry {index} would be outside of the bounds of the container");
+				if (!Fits(this.Data, baseAddr + dataOffset, dataLen))
+				{
+					throw ThrowHelper.FormatException($"Malformed jsonb entry: data for entry {index} would be outside of the bounds of the container");
+				}
 
 				JType type = GetEntryType(entry);
 				switch (type)
@@ -262,13 +269,18 @@ namespace Doxense.Serialization.Json.Binary
 				int offset = 0;
 				if (index > 0)
 				{
+					var data = Data;
 					int ptr = checked(JCONTAINER_CHILDREN_OFFSET + (index - 1) * JENTRY_SIZEOF);
 					for (int i = index - 1; i >= 0; i--)
 					{
-						uint value = this.Data.ReadFixedUInt32(ptr);
+						uint value = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(ptr));
 						int len = GetEntryOffsetOrLength(value);
 						offset = checked(offset + len);
-						if (GetEntryHasOffset(value)) break;
+						if (GetEntryHasOffset(value))
+						{
+							break;
+						}
+
 						ptr -= JENTRY_SIZEOF;
 					}
 				}
@@ -291,7 +303,7 @@ namespace Doxense.Serialization.Json.Binary
 				 * the stored end+1 offset.
 				 */
 
-				uint value = this.Data.ReadFixedUInt32(checked(JCONTAINER_CHILDREN_OFFSET + index * JENTRY_SIZEOF));
+				uint value = BinaryPrimitives.ReadUInt32LittleEndian(this.Data.Slice(checked(JCONTAINER_CHILDREN_OFFSET + index * JENTRY_SIZEOF)));
 				int len = GetEntryOffsetOrLength(value);
 				if (GetEntryHasOffset(value)) len = checked(len - offset);
 
@@ -302,8 +314,9 @@ namespace Doxense.Serialization.Json.Binary
 			{
 				if (!this.IsArray) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an array.");
 
+				var data = this.Data;
 				int numElems = this.Count;
-				if (this.Data.Length < checked(4 + numElems * 4)) throw ThrowHelper.FormatException($"Json container is too small for an array of size {numElems}.");
+				if (data.Length < checked(4 + numElems * 4)) throw ThrowHelper.FormatException($"Json container is too small for an array of size {numElems}.");
 
 				// decodes the items one by one
 				var arr = new JsonValue[numElems];
@@ -311,7 +324,7 @@ namespace Doxense.Serialization.Json.Binary
 				int dataOffset = 0;
 				for (int i = 0; i < numElems; i++)
 				{
-					uint entry = this.Data.ReadFixedUInt32(childOffset);
+					uint entry = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(childOffset));
 
 					int dataLen = (int) (entry & JENTRY_OFFLENMASK);
 					if ((entry & JENTRY_HAS_OFF) != 0)
@@ -378,23 +391,23 @@ namespace Doxense.Serialization.Json.Binary
 				throw new InvalidOperationException("Invalid jsonb container");
 			}
 
-			public bool GetEntryByName(scoped JLookupKey key, out JValue result)
+			public bool GetEntryByName(scoped JLookupKey key, out JValue value)
 			{
 				if (!this.IsObject) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an object.");
 
+				var data = this.Data;
 				int numPairs = this.Count;
-				if (this.Data.Length < 4 + numPairs * 2 * 4) throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
+				if (data.Length < 4 + numPairs * 2 * 4) throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
 
 				// the keys range from 0 to numPairs - 1
 
 				int childrenOffset = JCONTAINER_CHILDREN_OFFSET;
 				int dataOffset = 0;
 
-
 				//HACKHACK: TODO: binarysearch? hashmap?
 				for (int i = 0; i < numPairs; i++)
 				{
-					uint entry = this.Data.ReadFixedUInt32(childrenOffset);
+					uint entry = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(childrenOffset));
 					int dataLen = (int) (entry & JENTRY_OFFLENMASK);
 					if ((entry & JENTRY_HAS_OFF) != 0)
 					{
@@ -405,7 +418,7 @@ namespace Doxense.Serialization.Json.Binary
 
 					if (item.Equals(key))
 					{ // match
-						GetContainerEntry(i + numPairs, numPairs * 2, out result);
+						GetContainerEntry(i + numPairs, numPairs * 2, out value);
 						return true;
 					}
 
@@ -413,7 +426,7 @@ namespace Doxense.Serialization.Json.Binary
 					childrenOffset += JENTRY_SIZEOF;
 				}
 
-				result = default(JValue);
+				value = default;
 				return false;
 			}
 
@@ -464,7 +477,7 @@ namespace Doxense.Serialization.Json.Binary
 				{
 					case JType.String:
 					{ // String are encoded in UTF-8
-						return JsonString.Return(this.Value.DecodeUtf8String(table));
+						return JsonString.Return(DecodeUtf8String(this.Value, table));
 					}
 					case JType.Numeric:
 					{ // Integers are encoded as an ASCII string literal (in base 10)
@@ -514,7 +527,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					case JType.Integer:
 					{ // entier signé jusqu'à 64 bits
-						long x = this.Value.DecodeVarInt64();
+						long x = DecodeVarInt64(this.Value);
 						return JsonNumber.Return(x);
 					}
 					default:
@@ -524,22 +537,145 @@ namespace Doxense.Serialization.Json.Binary
 				}
 			}
 
+			public bool TryReadAsBoolean(out bool value)
+			{
+				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
+
+				switch (this.Type)
+				{
+					case JType.True:
+					{
+						value = true;
+						return true;
+					}
+					case JType.False:
+					{
+						value = false;
+						return true;
+					}
+				}
+
+				value = default;
+				return false;
+			}
+
+			public bool TryReadAsString(StringTable? table, out string? result)
+			{
+				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
+
+				switch (this.Type)
+				{
+					case JType.String:
+					{ // String are encoded in UTF-8
+						result = DecodeUtf8String(this.Value, table);
+						return true;
+					}
+					case JType.Null:
+					{
+						result = null;
+						return true;
+					}
+				}
+
+				result = null;
+				return false;
+			}
+
+			public bool TryReadAsUuid128(out Uuid128 result)
+			{
+				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
+
+				switch (this.Type)
+				{
+					case JType.String:
+					{ // Uuids are encoded as a string
+						if (Uuid128.TryParse(this.Value, out result))
+						{
+							return true;
+						}
+						break;
+					}
+				}
+
+				result = default;
+				return false;
+			}
+
+			public bool TryReadAsInteger(out long result)
+			{
+				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
+
+				switch (this.Type)
+				{
+					case JType.Numeric:
+					{ // Integers are encoded as an ASCII string literal (in base 10)
+
+						var value = this.Value;
+						int len = this.Value.Length;
+						if (len == 0)
+						{
+							result = 0;
+							return true;
+						}
+						return Utf8Parser.TryParse(value, out result, out int n) && n == value.Length;
+					}
+					case JType.Integer:
+					{ // entier signé jusqu'à 64 bits
+						result = DecodeVarInt64(this.Value);
+						return true;
+					}
+				}
+
+				result = default;
+				return false;
+			}
+
+			public bool TryReadAsDecimal(out double result)
+			{
+				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
+
+				switch (this.Type)
+				{
+					case JType.Numeric:
+					{ // Integers are encoded as an ASCII string literal (in base 10)
+
+						var value = this.Value;
+						int len = this.Value.Length;
+						if (len == 0)
+						{
+							result = 0;
+							return true;
+						}
+						return Utf8Parser.TryParse(value, out result, out int n) && n == value.Length;
+					}
+					case JType.Integer:
+					{ // entier signé jusqu'à 64 bits
+						result = DecodeVarInt64(this.Value);
+						return true;
+					}
+				}
+
+				result = default;
+				return false;
+			}
+
 			public string ToKey(StringTable? table)
 			{
 				switch (this.Type)
 				{
 					case JType.String:
 					{
-						return this.Value.DecodeUtf8String(table);
+						return DecodeUtf8String(this.Value, table);
 					}
 					case JType.Numeric:
 					{
 						//TODO: cache pour les petits entiers?
-						return this.Value.DecodeAsciiString(table);
+						return DecodeAsciiString(this.Value, table);
 					}
 					case JType.Integer:
 					{ // signed integer up to 64 bits
-						return CrystalJsonFormatter.NumberToString(this.Value.DecodeVarInt64());
+						long x = DecodeVarInt64(this.Value);
+						return CrystalJsonFormatter.NumberToString(x);
 					}
 					default:
 					{
@@ -560,47 +696,142 @@ namespace Doxense.Serialization.Json.Binary
 				return key.Bytes.SequenceEqual(this.Value);
 			}
 
-			public bool Equals(JsonValue value)
+			[Pure]
+			public JContainer ToContainer()
 			{
-				//TODO: OPTIMIZE!
-				return ToJsonValue(null).Equals(value);
+				if (this.Type != JType.Container)
+				{
+					throw ThrowHelper.InvalidOperationException("Value is not a container");
+				}
+				return new JContainer(this.Value);
 			}
 
-			public bool Equals(string? value)
+			public bool TextEquals(string? text)
 			{
-				if (value == null) return this.Type == JType.Null;
-				//TODO: optimize!
-				return this.Type == JType.String && this.Value.DecodeUtf8String() == value;
+				return text is not null ? TextEquals(text.AsSpan()) : this.Type == JType.Null;
 			}
 
-			public bool Equals(int value)
+			public bool TextEquals(ReadOnlySpan<char> text)
 			{
-				//TODO: optimize!
-				return ToJsonValue(null) is JsonNumber num && num.Equals(value);
+				if (this.Type != JType.String) return false;
+				if (text.Length == 0) return this.Value.Length == 0;
+
+				// we have to encode into a tmp buffer, and then compare the bytes
+				// => still faster than allocating a string!
+
+				return TextEqualsHelper(Value, text);
 			}
 
-			public bool Equals(long value)
+			public bool ValueEquals<TValue>(TValue? value)
 			{
-				//TODO: optimize!
-				return ToJsonValue(null) is JsonNumber num && num.Equals(value);
+				if (default(TValue) is null)
+				{ // ref type or Nulable<T> !
+
+					if (value is null) return this.Type == JType.Null;
+
+					if (typeof(TValue) == typeof(bool?)) return TryReadAsBoolean(out var b) && b == (bool) (object) value;
+					if (typeof(TValue) == typeof(int?)) return TryReadAsInteger(out var x) && x == (int) (object) value;
+					if (typeof(TValue) == typeof(long?)) return TryReadAsInteger(out var x) && x == (long) (object) value;
+					if (typeof(TValue) == typeof(float?)) return TryReadAsDecimal(out var x) && x == (float) (object) value;
+					if (typeof(TValue) == typeof(double?)) return TryReadAsDecimal(out var x) && x == (double) (object) value;
+					if (typeof(TValue) == typeof(Guid?)) return TryReadAsUuid128(out var x) && x == (Guid) (object) value;
+					if (typeof(TValue) == typeof(Uuid128?)) return TryReadAsUuid128(out var x) && x == (Uuid128) (object) value;
+
+					if (typeof(TValue) == typeof(string))
+					{
+						return TextEquals(Unsafe.As<string>(value));
+					}
+
+					if (value is JsonValue j)
+					{
+						return j switch
+						{
+							JsonNull => this.Type == JType.Null,
+							JsonString js => TextEquals(Unsafe.As<string>(js.Value)),
+							JsonBoolean jb => TryReadAsBoolean(out var b) && b == jb.Value,
+							JsonNumber jnum => jnum.IsDecimal ? TryReadAsDecimal(out var d) && jnum.Equals(d) : TryReadAsInteger(out var i) && jnum.Equals(i),
+							_ => ToJsonValue(null).Equals(j)
+						};
+					}
+
+				}
+				else
+				{ // value type!
+
+					if (typeof(TValue) == typeof(bool)) return TryReadAsBoolean(out var b) && b == (bool) (object) value!;
+					if (typeof(TValue) == typeof(int)) return TryReadAsInteger(out var x) && x == (int) (object) value!;
+					if (typeof(TValue) == typeof(long)) return TryReadAsInteger(out var x) && x == (long) (object) value!;
+					if (typeof(TValue) == typeof(float)) return TryReadAsDecimal(out var x) && x == (float) (object) value!;
+					if (typeof(TValue) == typeof(double)) return TryReadAsDecimal(out var x) && x == (double) (object) value!;
+					if (typeof(TValue) == typeof(Guid)) return TryReadAsUuid128(out var x) && x == (Guid) (object) value!;
+					if (typeof(TValue) == typeof(Uuid128)) return TryReadAsUuid128(out var x) && x == (Uuid128) (object) value!;
+
+					if (this.Type == JType.Null) return false;
+				}
+
+				//OH NOES!
+				return ToJsonValue(null).Equals(JsonValue.FromValue(value));
 			}
 
-			public bool Equals(float value)
+		}
+
+		public static JLookupSelector CreateSelector(string path)
+			=> CreateSelector(JsonPath.Create(path));
+
+		public static JLookupSelector CreateSelector(JsonPath path)
+		{
+
+			// we assume that the sum of encoded path segments will never be more than the encoded complete path,
+			// we may allocate a little bit more than necessary but it should only be one or two bytes per segments
+
+			var encoding = Encoding.UTF8;
+
+			var capacity = Encoding.UTF8.GetByteCount(path.Value.Span);
+			var tmp = new byte[capacity];
+			encoding.GetBytes(path.Value.Span, tmp);
+
+			int count = path.GetSegmentCount();
+			var xs = new (int KeyStart, int KeyLength, Index Index)[count];
+			int i = 0, p = 0;
+			var current = path.Value.Span;
+			while(current.Length > 0)
 			{
-				//TODO: optimize!
-				return ToJsonValue(null) is JsonNumber num && num.Equals(value);
+				int consumed = JsonPath.ParseNext(current, out var keyLength, out var index);
+				Contract.Debug.Assert(consumed > 0 && consumed >= keyLength);
+
+				xs[i++] = (p, keyLength, index);
+				if (keyLength > 0)
+				{
+					p += encoding.GetBytes(
+						JsonPath.DecodeKeyName(current[..keyLength]),
+						tmp.AsSpan(p)
+					);
+				}
+				current = current[consumed..];
 			}
 
-			public bool Equals(double value)
-			{
-				//TODO: optimize!
-				return ToJsonValue(null) is JsonNumber num && num.Equals(value);
-			}
+			return new JLookupSelector(path, tmp, xs);
+		}
 
-			public bool Equals(Guid value)
+		public readonly struct JLookupSelector
+		{
+
+			/// <summary>Path corresponding to this selector</summary>
+			public readonly JsonPath Path;
+
+			/// <summary>Internal buffer that contains the UTF-8 encoded field names (if there are any)</summary>
+			internal readonly byte[] Encoded;
+
+			/// <summary>List of the segments in this selector</summary>
+			internal readonly (int KeyStart, int KeyLength, Index Index)[] Segments;
+
+			public int Count => this.Segments.Length;
+
+			public JLookupSelector(JsonPath path, byte[] encoded, (int KeyStart, int KeyLength, Index Index)[] segments)
 			{
-				//TODO: optimize!
-				return ToJsonValue(null) is JsonString str && str.Equals(value);
+				this.Path = path;
+				this.Encoded = encoded;
+				this.Segments = segments;
 			}
 
 		}
@@ -619,12 +850,12 @@ namespace Doxense.Serialization.Json.Binary
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
-		private readonly struct JDocument
+		private ref struct JDocument
 		{
 
-			private readonly ReadOnlyMemory<byte> Data;
+			private readonly ReadOnlySpan<byte> Data;
 
-			private JDocument(ReadOnlyMemory<byte> data, uint header, uint extraFlags, int offset)
+			private JDocument(ReadOnlySpan<byte> data, uint header, uint extraFlags, int offset)
 			{
 				this.Data = data;
 				this.Header = header;
@@ -632,16 +863,14 @@ namespace Doxense.Serialization.Json.Binary
 				this.Offset = offset;
 			}
 
-			public static JDocument Parse(ReadOnlyMemory<byte> buffer)
+			public static JDocument Parse(ReadOnlySpan<byte> data)
 			{
-				var data = buffer.Span;
-
 				// ROOT_ENTRY + ROOT_HEADER = (empty array or object)
 				if (data.Length < 8) throw ThrowHelper.FormatException("Buffer is too small to be a valid jsonb document.");
 
 				int pos = 0;
 
-				uint header = data.ReadFixedUInt32(pos);
+				uint header = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(pos));
 				pos += 4;
 
 				int size = (int) (header & HEADER_SIZE_MASK);
@@ -656,11 +885,11 @@ namespace Doxense.Serialization.Json.Binary
 				uint extraFlags = 0;
 				if ((header & HEADER_FLAGS_EXTRA) != 0)
 				{ // the header is immediatly followed by 32 extra flags
-					extraFlags = data.ReadFixedUInt32(pos);
+					extraFlags = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(pos));
 					pos += 4;
 				}
 
-				return new JDocument(buffer, header, extraFlags, pos);
+				return new JDocument(data, header, extraFlags, pos);
 			}
 
 			private readonly uint Header;
@@ -678,7 +907,7 @@ namespace Doxense.Serialization.Json.Binary
 
 			private JContainer GetRoot()
 			{
-				return new JContainer(this.Data.Span.Slice(this.Offset));
+				return new JContainer(this.Data[this.Offset..]);
 			}
 
 			public JsonValue ToJsonValue(StringTable? table)
@@ -696,48 +925,168 @@ namespace Doxense.Serialization.Json.Binary
 				return root.ToJsonValue(table);
 			}
 
-			public bool TryLookup(string path, out JValue value)
+			public bool TryLookup(JsonPath path, out JValue value)
 			{
-				Contract.NotNull(path);
-
-				var root = GetRoot();
-
-				//HACKHACK: for now we only support direct property paths
-				// the container must be an object
-				Contract.Debug.Requires(root.IsObject,"Only object container supported for now!");
+				if (path.IsEmpty()) throw ThrowHelper.ArgumentException(nameof(path), "Path cannot be empty");
 
 				// to reduce allocations, we directly compare the key (string) with the encoded bytes in the jsonb blob (utf-8)
-				//HACKHACK: OPTIMIZE: code to compare a RoS<char> with a utf-8 RoS<byte> in a single pass ?
-				if (path.Length > 64 * 1024) throw ThrowHelper.InvalidOperationException("Key size is too large (> 64K)");
+				if (path.Value.Length > 16 * 1024) throw ThrowHelper.ArgumentException(nameof(path), "Path size is too large (> 16K)");
 
-				// note: Normalize() vérifie si la clé n'est pas en ASCII, et si oui retourne la référence elle-même, donc on ne devrait avoir d'allocation que si path contient une chaîne unicode non canonical (ie: jamais en théorie)
-				// de plus, la CLR a un flag dans les headers des COMString, qui est calculé lors du premier appel a COMString::IsASCII(), ce qui fait que Normalize() est virtuellement gratuit.
-				path = path.Normalize();
+				// the keys are encoded as UTF-8 in the document, so we will have to pre-encode the path into utf-8 bytes, and compare these bytes with the names in the document
+				// => pre-allocate a buffer with the proper capacity
+				// note: if the path is composed of smaller segments, we will allocate too much, but we expect most paths to be single segment anyway!
+				var enc = CrystalJson.Utf8NoBom;
+				Span<byte> keyBytes = stackalloc byte[enc.GetMaxByteCount(path.Value.Length)];
 
-				unsafe
+				var current = GetRoot();
+
+				foreach(var x in path)
 				{
-					// compute the required capacity, and allocate a buffer
-					var enc = CrystalJson.Utf8NoBom;
-					int maxKeyBytes = (enc.GetMaxByteCount(path.Length) + 7) & ~7;
-					Span<byte> keyBytes = stackalloc byte[maxKeyBytes];
+					JValue child;
 
-					// encode the path
-					int keyLen = enc.GetBytes(path, keyBytes);
-
-					var key = new JLookupKey(keyBytes.Slice(0, keyLen));
-
-					//TODO: utiliser un JPathTokenizer!
-					if (!root.GetEntryByName(key, out value))
+					if (x.Key.Length != 0)
 					{
-						return false;
+						if (!current.IsObject)
+						{ // current is not an object?
+							break;
+						}
+
+						// encode the path
+						int keyLen = enc.GetBytes(x.Key.Span, keyBytes);
+
+						var key = new JLookupKey(keyBytes.Slice(0, keyLen));
+
+						if (!current.GetEntryByName(key, out child))
+						{ // no field with this name
+							break;
+						}
 					}
-					return true;
+					else
+					{
+						if (!current.IsArray)
+						{ // current is not an array?
+							break;
+						}
+
+						int length = current.Count;
+						var index = x.Index.GetOffset(length);
+
+						if ((uint) index >= length)
+						{ // outside the bounds of the array!
+							break;
+						}
+
+						current.GetContainerEntry(index, length, out child);
+					}
+
+					if (x.Last)
+					{ // we found a value!
+						value = child;
+						return true;
+					}
+
+					if (child.Type != JType.Container)
+					{ // we need a container in order to continue!
+						break;
+					}
+
+					current = new JContainer(child.Value);
 				}
+
+				value = default;
+				return false;
+
+			}
+
+			public bool TryLookup(JLookupSelector path, out JValue value)
+			{
+				var segments = path.Segments;
+				if (segments.Length == 0)
+				{
+					throw ThrowHelper.ArgumentException(nameof(path), "Path cannot be empty");
+				}
+
+				var current = GetRoot();
+
+				for(int i = 0; i < segments.Length; i++)
+				{
+					ref readonly var seg = ref segments[i];
+
+					JValue child;
+					if (seg.KeyLength != 0)
+					{
+						if (!current.IsObject)
+						{ // current is not an object?
+							break;
+						}
+
+						var key = new JLookupKey(path.Encoded.AsSpan(seg.KeyStart, seg.KeyLength));
+
+						if (!current.GetEntryByName(key, out child))
+						{ // no field with this name
+							break;
+						}
+					}
+					else
+					{
+						if (!current.IsArray)
+						{ // current is not an array?
+							break;
+						}
+
+						int length = current.Count;
+						var index = seg.Index.GetOffset(length);
+
+						if ((uint) index >= length)
+						{ // outside the bounds of the array!
+							break;
+						}
+
+						current.GetContainerEntry(index, length, out child);
+					}
+
+					if (i + 1 == segments.Length)
+					{ // last segment, we found the value!
+						value = child;
+						return true;
+					}
+
+					if (child.Type != JType.Container)
+					{ // we need a container in order to continue!
+						break;
+					}
+
+					current = new JContainer(child.Value);
+				}
+
+				value = default;
+				return false;
+
 			}
 
 			public JsonValue Select(string path, StringTable? table = null)
 			{
+				Contract.NotNull(path);
+
+				if (!TryLookup(JsonPath.Create(path), out var value))
+				{
+					return JsonNull.Missing;
+				}
+				return value.ToJsonValue(table);
+			}
+
+			public JsonValue Select(JsonPath path, StringTable? table = null)
+			{
 				if (!TryLookup(path, out var value))
+				{
+					return JsonNull.Missing;
+				}
+				return value.ToJsonValue(table);
+			}
+
+			public JsonValue Select(JLookupSelector selector, StringTable? table = null)
+			{
+				if (!TryLookup(selector, out var value))
 				{
 					return JsonNull.Missing;
 				}
@@ -752,18 +1101,18 @@ namespace Doxense.Serialization.Json.Binary
 
 		/// <summary>Decodes a jsonb binary blob into the corresponding <see cref="JsonValue"/></summary>
 		[Pure]
-		public static JsonValue Decode(Slice buffer, StringTable? table = null)
+		public static JsonValue Decode(Slice data, StringTable? table = null)
 		{
-			if (buffer.Count == 0) return JsonNull.Missing;
-			return JDocument.Parse(buffer.Memory).ToJsonValue(table);
+			if (data.Count == 0) return JsonNull.Missing;
+			return JDocument.Parse(data.Span).ToJsonValue(table);
 		}
 
 		/// <summary>Decodes a jsonb binary blob into the corresponding <see cref="JsonValue"/></summary>
 		[Pure]
-		public static JsonValue Decode(ReadOnlyMemory<byte> buffer, StringTable? table = null)
+		public static JsonValue Decode(ReadOnlySpan<byte> data, StringTable? table = null)
 		{
-			if (buffer.Length == 0) return JsonNull.Missing;
-			return JDocument.Parse(buffer).ToJsonValue(table);
+			if (data.Length == 0) return JsonNull.Missing;
+			return JDocument.Parse(data).ToJsonValue(table);
 		}
 
 		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
@@ -771,84 +1120,61 @@ namespace Doxense.Serialization.Json.Binary
 		public static JsonValue Select(Slice buffer, string path, StringTable? table = null)
 		{
 			if (buffer.Count == 0) return JsonNull.Missing;
-			return JDocument.Parse(buffer.Memory).Select(path, table);
+			return JDocument.Parse(buffer.Span).Select(path, table);
 		}
 
 		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
-		public static JsonValue Select(ReadOnlyMemory<byte> buffer, string path, StringTable? table = null)
+		public static JsonValue Select(Slice buffer, JsonPath path, StringTable? table = null)
+		{
+			if (buffer.Count == 0) return JsonNull.Missing;
+			return JDocument.Parse(buffer.Span).Select(path, table);
+		}
+
+		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
+		[Pure]
+		public static JsonValue Select(Slice buffer, JLookupSelector selector, StringTable? table = null)
+		{
+			if (buffer.Count == 0) return JsonNull.Missing;
+			return JDocument.Parse(buffer.Span).Select(selector, table);
+		}
+
+		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
+		[Pure]
+		public static JsonValue Select(ReadOnlySpan<byte> buffer, string path, StringTable? table = null)
 		{
 			if (buffer.Length == 0) return JsonNull.Missing;
 			return JDocument.Parse(buffer).Select(path, table);
 		}
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
-		public static bool Test(Slice buffer, string path, JsonValue value)
+		public static JsonValue Select(ReadOnlySpan<byte> buffer, JsonPath path, StringTable? table = null)
 		{
-			if (buffer.Count == 0) return false;
-			//TODO: implementation that will not allocate and directly compare 'value' with the bytes in the buffer!
-			var doc = JDocument.Parse(buffer.Memory);
-			return doc.TryLookup(path, out var actual) && actual.Equals(value);
+			if (buffer.Length == 0) return JsonNull.Missing;
+			return JDocument.Parse(buffer).Select(path, table);
+		}
+
+		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
+		[Pure]
+		public static JsonValue Select(ReadOnlySpan<byte> buffer, JLookupSelector selector, StringTable? table = null)
+		{
+			if (buffer.Length == 0) return JsonNull.Missing;
+			return JDocument.Parse(buffer).Select(selector, table);
 		}
 
 		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
-		public static bool Test(ReadOnlyMemory<byte> buffer, string path, JsonValue value)
-		{
-			if (buffer.Length == 0) return false;
-			//TODO: implementation that will not allocate and directly compare 'value' with the bytes in the buffer!
-			var doc = JDocument.Parse(buffer);
-			return doc.TryLookup(path, out var actual) && actual.Equals(value);
-		}
+		public static bool Test<TValue>(Slice buffer, string path, TValue? value)
+			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(JsonPath.Create(path), out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
-		public static bool Test(Slice buffer, string path, string? value) => buffer.Count != 0 && (JDocument.Parse(buffer.Memory).TryLookup(path, out var j) ? j.Equals(value) : value == null);
+		public static bool Test<TValue>(Slice buffer, JsonPath path, TValue? value)
+			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(path, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
-		public static bool Test(ReadOnlyMemory<byte> buffer, string path, string? value) => buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(path, out var j) ? j.Equals(value) : value == null);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(Slice buffer, string path, int value) => buffer.Count != 0 && JDocument.Parse(buffer.Memory).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(ReadOnlyMemory<byte> buffer, string path, int value) => buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(Slice buffer, string path, long value) => buffer.Count != 0 && JDocument.Parse(buffer.Memory).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(ReadOnlyMemory<byte> buffer, string path, long value) => buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(Slice buffer, string path, float value) => buffer.Count != 0 && JDocument.Parse(buffer.Memory).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(ReadOnlyMemory<byte> buffer, string path, float value) => buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(Slice buffer, string path, double value) => buffer.Count != 0 && JDocument.Parse(buffer.Memory).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(ReadOnlyMemory<byte> buffer, string path, double value) => buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(Slice buffer, string path, Guid value) => buffer.Count != 0 && JDocument.Parse(buffer.Memory).TryLookup(path, out var j) && j.Equals(value);
-
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
-		[Pure]
-		public static bool Test(ReadOnlyMemory<byte> buffer, string path, Guid value) => buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) && j.Equals(value);
+		public static bool Test<TValue>(Slice buffer, JLookupSelector selector, TValue? value)
+			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(selector, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
 		/// <summary>Encodes a <see cref="JsonValue"/> into a jsonb binary blob</summary>
 		public static Slice Encode(JsonValue value, int capacity = 0)
@@ -1444,22 +1770,38 @@ namespace Doxense.Serialization.Json.Binary
 
 		#endregion
 
-	}
+		#region Decoding Helpers...
 
-	/// <summary>Provides random access to any part of a Slice</summary>
-	/// <remarks>Used to consume a Slice using random "seeks" instead of a linear scan (like <see cref="SliceWriter"/> for example)</remarks>
-	internal static class SliceIndexer
-	{
-		//REVIEW: this is somewhat like a SliceWriter except that it is used in a random seek fashion, instead of linear scanning (like SliceWriter)
+		internal static bool TextEqualsHelper(ReadOnlySpan<byte> token, ReadOnlySpan<char> text)
+		{
+			if (token.Length == 0) return text.Length == 0;
+			if (text.Length == 0) return false;
+
+			byte[]? array = null;
+			int maxLength = checked(text.Length * 3);
+			Span<byte> buf = maxLength > 256 ? (array = ArrayPool<byte>.Shared.Rent(maxLength)) : stackalloc byte[maxLength];
+
+			bool isEqual = 
+				Utf8.FromUtf16(text, buf, out int _, out int written, false) != OperationStatus.InvalidData
+				&& token.SequenceEqual(buf.Slice(0, written));
+
+			if (array != null)
+			{
+				buf.Slice(0, written).Clear();
+				ArrayPool<byte>.Shared.Return(array);
+			}
+
+			return isEqual;
+		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool Fits(this ReadOnlySpan<byte> data, int offset, int count)
+		private static bool Fits(ReadOnlySpan<byte> data, int offset, int count)
 		{
 			return checked(offset + count) <= data.Length;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static void BoundCheck(this ReadOnlySpan<byte> data, uint offset, uint count)
+		private static void BoundCheck(ReadOnlySpan<byte> data, uint offset, uint count)
 		{
 			uint end = checked(offset + count);
 			if (end > data.Length) throw FailDataOutOfBound(offset, count);
@@ -1471,17 +1813,8 @@ namespace Doxense.Serialization.Json.Binary
 			return new IndexOutOfRangeException($"Attempted to read outside of the data segment (@{offset:N0}+{count:N0})");
 		}
 
-		/// <summary>Reads the 4 bytes located at the specified <paramref name="offset"/> as an unsigned 32-bit Little-Endian</summary>
-		/// <param name="data">Span from which to read</param>
-		/// <param name="offset">Offset of the first byte to read</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint ReadFixedUInt32(this ReadOnlySpan<byte> data, int offset)
-		{
-			return MemoryMarshal.Read<uint>(data.Slice(offset, 4));
-		}
-
 		[Pure]
-		public static string DecodeUtf8String(this ReadOnlySpan<byte> data, StringTable? table = null)
+		private static string DecodeUtf8String(ReadOnlySpan<byte> data, StringTable? table = null)
 		{
 			if (data.Length == 0) return string.Empty;
 			unsafe
@@ -1498,7 +1831,7 @@ namespace Doxense.Serialization.Json.Binary
 		}
 
 		[Pure]
-		public static string DecodeAsciiString(this ReadOnlySpan<byte> data, StringTable? table = null)
+		private static string DecodeAsciiString(ReadOnlySpan<byte> data, StringTable? table = null)
 		{
 			if (data.Length == 0) return string.Empty;
 			unsafe
@@ -1515,24 +1848,30 @@ namespace Doxense.Serialization.Json.Binary
 			}
 		}
 
-		/// <summary>Decodes a slice that contains a variable-length signed 64-bit integer (0 to 8 bytes, little-endian)</summary>
-		public static long DecodeVarInt64(this ReadOnlySpan<byte> data)
+		[Pure]
+		private static long DecodeVarInt64(ReadOnlySpan<byte> data)
 		{
 			int len = data.Length;
-			if (len == 0) return 0;
-			if ((uint) len > 8) throw ThrowHelper.FormatException("Jsonb integer value is too big");
+			if (len == 0)
+			{ // empty means 0
+				return 0;
+			}
+
+			if ((uint) len > 8)
+			{ // too big!
+				throw ThrowHelper.FormatException("Jsonb integer value is too big");
+			}
 
 			long value;
-			unsafe
 			{
-				fixed (byte* ptr = data)
+				ref byte ptr = ref Unsafe.AsRef(in data[0]);
 				{
 					--len;
-					value = ptr[len];
+					value = Unsafe.Add(ref ptr, len);
 					while(len > 0)
 					{
 						--len;
-						value = (value << 8) | ptr[len];
+						value = (value << 8) | Unsafe.Add(ref ptr, len);
 					}
 				}
 			}
@@ -1555,6 +1894,8 @@ namespace Doxense.Serialization.Json.Binary
 			}
 			return value;
 		}
+
+		#endregion
 
 	}
 

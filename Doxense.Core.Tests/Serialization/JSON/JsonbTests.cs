@@ -110,7 +110,6 @@ namespace Doxense.Serialization.Json.Binary.Tests
 #endif
 		}
 
-
 		private static long HexDecode(string hexa)
 		{
 			if (string.IsNullOrEmpty(hexa)) return 0;
@@ -436,6 +435,217 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			Log($"JSONB: {jsonb.ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
 			Log($"JSONB: {jsonb.DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
 			Log($"JSONB: {jsonb.DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
+		}
+
+		[Test]
+		public void Test_Jsonb_Test()
+		{
+			var original = JsonObject.Create(
+				[
+					("Hello", "World!"),
+					("Foo", 123),
+					("Bar", true),
+					("Baz", false),
+					("Pi", Math.PI),
+					("Max", long.MaxValue),
+					("Nothing", null),
+					("Point", JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])),
+					("Items", JsonArray.Create([ "A", "B", "C" ])),
+				]
+			);
+
+			var packed = Jsonb.Encode(original);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Jsonb.Test(packed, "Hello", "World!"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Hello", JsonString.Return("World!")), Is.True);
+				Assert.That(Jsonb.Test(packed, "Hello", "Le Monde!"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", default(string)), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", 123), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Nothing", default(string)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", JsonNull.Null), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", JsonNull.Missing), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", JsonNull.Error), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(int?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(bool?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(Guid?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(Uuid128?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", "World!"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Nothing", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Nothing", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Nothing", 0), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Missing", default(string)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", JsonNull.Null), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", JsonNull.Missing), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", JsonNull.Error), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(int?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(bool?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(Guid?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(Uuid128?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", "World!"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Missing", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Missing", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Missing", 0), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Foo", 123), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", 123L), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", (int?) 123), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", (long?) 123L), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", JsonNumber.Return(123)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", 124), Is.False);
+				Assert.That(Jsonb.Test(packed, "Foo", 123.01), Is.False);
+				Assert.That(Jsonb.Test(packed, "Foo", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Bar", true), Is.True);
+				Assert.That(Jsonb.Test(packed, "Bar", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", "true"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", default(string)), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", 1), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Baz", false), Is.True);
+				Assert.That(Jsonb.Test(packed, "Baz", true), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", "false"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", default(string)), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", 0), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Pi", Math.PI), Is.True);
+				Assert.That(Jsonb.Test(packed, "Pi", (float) Math.PI), Is.False);
+				Assert.That(Jsonb.Test(packed, "Pi", 3.1415), Is.False);
+				Assert.That(Jsonb.Test(packed, "Pi", 3), Is.False);
+				Assert.That(Jsonb.Test(packed, "Pi", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Max", long.MaxValue), Is.True);
+				Assert.That(Jsonb.Test(packed, "Max", -1), Is.False);
+				Assert.That(Jsonb.Test(packed, "Max", "9223372036854775807"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Max", true), Is.False);
+				Assert.That(Jsonb.Test(packed, "Max", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Point.X", 1), Is.True);
+				Assert.That(Jsonb.Test(packed, "Point.X", 123), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Point.Y", 2), Is.True);
+				Assert.That(Jsonb.Test(packed, "Point.Y", 1), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Point.Z", 3), Is.True);
+				Assert.That(Jsonb.Test(packed, "Point.Z", -1), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Items[0]", "A"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Items[0]", 123), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Items[1]", "B"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Items[1]", true), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Items[2]", "C"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Items[2]", "c"), Is.False);
+			});
+		}
+		
+		[Test]
+		public void Test_Jsonb_Select()
+		{
+			var original = JsonObject.Create(
+				[
+					("Hello", "World!"),
+					("Foo", 123),
+					("Bar", true),
+					("Baz", Math.PI),
+					("Point", JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])),
+					("Items", JsonArray.Create([ "A", "B", "C" ])),
+				]
+			);
+
+			var packed = Jsonb.Encode(original);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Jsonb.Select(packed, "Hello"), IsJson.EqualTo("World!"));
+				Assert.That(Jsonb.Select(packed, "Foo"), IsJson.EqualTo(123));
+				Assert.That(Jsonb.Select(packed, "Bar"), IsJson.True);
+				Assert.That(Jsonb.Select(packed, "Baz"), IsJson.EqualTo(Math.PI));
+				Assert.That(Jsonb.Select(packed, "Point"), IsJson.EqualTo(JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])));
+				Assert.That(Jsonb.Select(packed, "Items"), IsJson.EqualTo(JsonArray.Create([ "A", "B", "C" ])));
+
+				Assert.That(Jsonb.Select(packed, "Point.X"), IsJson.EqualTo(1));
+				Assert.That(Jsonb.Select(packed, "Point.Y"), IsJson.EqualTo(2));
+				Assert.That(Jsonb.Select(packed, "Point.Z"), IsJson.EqualTo(3));
+
+				Assert.That(Jsonb.Select(packed, "Items[0]"), IsJson.EqualTo("A"));
+				Assert.That(Jsonb.Select(packed, "Items[1]"), IsJson.EqualTo("B"));
+				Assert.That(Jsonb.Select(packed, "Items[2]"), IsJson.EqualTo("C"));
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Hello")), IsJson.EqualTo("World!"));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Foo")), IsJson.EqualTo(123));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Bar")), IsJson.True);
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Baz")), IsJson.EqualTo(Math.PI));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Point")), IsJson.EqualTo(JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Items")), IsJson.EqualTo(JsonArray.Create([ "A", "B", "C" ])));
+
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Point"]["X"]), IsJson.EqualTo(1));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Point"]["Y"]), IsJson.EqualTo(2));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Point"]["Z"]), IsJson.EqualTo(3));
+
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Items"][0]), IsJson.EqualTo("A"));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Items"][1]), IsJson.EqualTo("B"));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Items"][2]), IsJson.EqualTo("C"));
+			});
+
+		}
+
+		[Test]
+		public void Test_Jsonb_Select_Compiled()
+		{
+			// these would be reused multiple times;
+			var selId = Jsonb.CreateSelector("Id");
+			var selX = Jsonb.CreateSelector("Points[0].X");
+			var selY = Jsonb.CreateSelector("Points[1].Y");
+			var selFooBarBaz = Jsonb.CreateSelector("Foo.Bar.Baz");
+
+			Assert.That(selId.Path, Is.EqualTo("Id"));
+			Assert.That(selX.Path, Is.EqualTo("Points[0].X"));
+			Assert.That(selY.Path, Is.EqualTo("Points[1].Y"));
+			Assert.That(selFooBarBaz.Path, Is.EqualTo("Foo.Bar.Baz"));
+
+			// generate a batch of random data
+			var data = Enumerable
+				.Range(0, 10)
+				.Select(i => JsonObject.Create(
+				[
+					("Id", Guid.NewGuid()),
+					("Points", JsonArray.Create(
+						null,
+						JsonObject.Create([
+							("X", 1),
+							("Y", -i),
+							("Z", 0)
+						])
+					)),
+					("Foo", JsonObject.Create("Bar", JsonObject.Create("Baz", "Hello, there!")))
+				]))
+				.ToArray();
+
+			var batch = data
+				.Select(o => Jsonb.Encode(o))
+				.ToArray();
+
+			// use these selectors on multiple different documents
+			for(int i = 0; i < batch.Length; i++)
+			{
+				Assert.That(Jsonb.Select(batch[i], selId), IsJson.EqualTo(data[i].Get<Guid>("Id")));
+				Assert.That(Jsonb.Select(batch[i], selX), IsJson.Missing);
+				Assert.That(Jsonb.Select(batch[i], selY), IsJson.EqualTo(-i));
+				Assert.That(Jsonb.Select(batch[i], selFooBarBaz), IsJson.EqualTo("Hello, there!"));
+			}
+
 		}
 
 		public sealed record FooDb
