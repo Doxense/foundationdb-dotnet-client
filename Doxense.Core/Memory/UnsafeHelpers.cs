@@ -2241,7 +2241,7 @@ namespace Doxense.Memory
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static InvalidOperationException BufferOutOfBound() => new("Attempt to write outside of the buffer, or at a position that would overflow past the end.");
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[DoesNotReturn]
 			public static void ThrowOffsetOutsideSlice() => throw OffsetOutsideSlice();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]

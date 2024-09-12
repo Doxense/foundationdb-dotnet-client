@@ -2611,7 +2611,7 @@ namespace System
 			if (count != 0)
 			{
 				var array = this.Array;
-				if (array == null || (uint) count > (long) array.Length - (uint) this.Offset)
+				if (array is null || (ulong) (uint) this.Offset + (ulong) (uint) count > (ulong) (uint) array.Length)
 				{
 					throw MalformedSlice(this);
 				}
@@ -2634,7 +2634,7 @@ namespace System
 			if (slice.Count > 0)
 			{
 				if (slice.Array == null!) return UnsafeHelpers.Errors.SliceBufferNotNull();
-				if (slice.Offset + slice.Count > slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
+				if ((ulong) (uint) slice.Offset + (ulong) (uint) slice.Count > (ulong) (uint) slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
 			}
 			// maybe it's Lupus ?
 			return UnsafeHelpers.Errors.SliceInvalid();
@@ -2896,19 +2896,29 @@ namespace System
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes)
 		{
-			return bytes != null && bytes.Length > 0 ? new Slice(bytes, 0, bytes.Length) : EmptyOrNil(bytes);
+			return bytes is not null && bytes.Length > 0 ? new Slice(bytes) : EmptyOrNil(bytes);
 		}
 
-		/// <summary>Returns the tail of the array, starting from the specified offset</summary>
+		/// <summary>Returns the tail of the array, starting from the specified <b>offset</b></summary>
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="offset">Offset to the first byte of the slice</param>
-		/// <returns></returns>
+		/// <remarks><b>REMINDER:</b> the parameter is the <b>offset</b>, and not the length !</remarks>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset)
 		{
-			//note: this method is DANGEROUS! Caller may thing that it is passing a count instead of an offset.
-			if (bytes == null) return offset == 0 ? Slice.Nil : throw UnsafeHelpers.Errors.BufferArrayNotNull();
-			if ((uint) offset > (uint) bytes.Length) throw UnsafeHelpers.Errors.BufferArrayToSmall();
+			//note: this method is DANGEROUS! Caller may thing it is passing a count instead of an offset.
+
+			if (bytes == null)
+			{
+				return offset == 0 ? Slice.Nil : throw UnsafeHelpers.Errors.BufferArrayNotNull();
+			}
+
+			// bound check
+			if ((uint) offset > (uint) bytes.Length)
+			{
+				throw UnsafeHelpers.Errors.BufferArrayToSmall();
+			}
+
 			return bytes.Length != 0 ? new Slice(bytes, offset, bytes.Length - offset) : Slice.Empty;
 		}
 
@@ -2924,11 +2934,17 @@ namespace System
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset, [Positive] int count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
-			if (bytes == null || count == 0) return EmptyOrNil(bytes, count);
+			if (bytes == null || count == 0)
+			{
+				return EmptyOrNil(bytes, count);
+			}
 
 			// bound check
-			// ReSharper disable once PossibleNullReferenceException
-			if ((uint) offset >= (uint) bytes.Length || (uint) count > (uint) (bytes.Length - offset)) UnsafeHelpers.Errors.ThrowOffsetOutsideSlice();
+			// ReSharper disable once RedundantCast
+			if ((ulong) (uint) offset + (ulong) (uint) count > (ulong) (uint) bytes.Length)
+			{
+				UnsafeHelpers.Errors.ThrowOffsetOutsideSlice();
+			}
 
 			return new Slice(bytes, offset, count);
 		}
@@ -2965,18 +2981,24 @@ namespace System
 		{
 			if (bytes == null)
 			{
+				return AsSliceNil(range);
+			}
+
+			(int offset, int count) = range.GetOffsetAndLength(bytes.Length);
+			return count != 0 ? new Slice(bytes, offset, count) : Slice.Empty;
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static Slice AsSliceNil(Range range)
+			{
 				var startIndex = range.Start;
 				var endIndex = range.End;
 
 				if (!startIndex.Equals(Index.Start) || !endIndex.Equals(Index.Start))
+				{
 					throw UnsafeHelpers.Errors.BufferArrayNotNull();
+				}
 
 				return Slice.Nil;
-			}
-			else
-			{
-				(int offset, int count) = range.GetOffsetAndLength(bytes.Length);
-				return count != 0 ? new Slice(bytes, offset, count) : Slice.Empty;
 			}
 		}
 
