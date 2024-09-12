@@ -395,23 +395,33 @@ namespace SnowBank.Testing
 					{
 						bool showType = value.Type != this.ExpectedValue.Type;
 
-						if (showType) writer.Write($"<{this.ExpectedValue.Type}> ");
+						if (showType && this.ExpectedValue is not JsonNull)
+						{
+							writer.Write($"<{this.ExpectedValue.Type}> ");
+						}
 						writer.WriteLine(Jsonify(this.ExpectedValue));
 
 						writer.Write(TextMessageWriter.Pfx_Actual);
-						if (showType) writer.Write($"<{value.Type}> ");
+						if (showType && value is not JsonNull)
+						{
+							writer.Write($"<{value.Type}> ");
+						}
 						writer.WriteLine(Jsonify(value));
 					}
 					else if (this.ActualValue is null)
 					{
 						writer.WriteLine(Jsonify(this.ExpectedValue));
 						writer.Write(TextMessageWriter.Pfx_Actual);
-						writer.WriteLine("<null>");
+						writer.WriteLine("null");
 					}
 					else
 					{
-						writer.Write($"<{this.ExpectedValue.Type}> ");
+						if (this.ExpectedValue is not JsonNull)
+						{
+							writer.Write($"<{this.ExpectedValue.Type}> ");
+						}
 						writer.WriteLine(Jsonify(this.ExpectedValue));
+
 						writer.Write(TextMessageWriter.Pfx_Actual);
 						writer.Write($"<{this.ActualValue.GetType().GetFriendlyName()}> ");
 						writer.WriteActualValue(this.ActualValue);
