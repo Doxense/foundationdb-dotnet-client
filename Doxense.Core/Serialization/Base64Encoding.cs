@@ -172,26 +172,37 @@ namespace Doxense.Serialization
 		public static string ToBase64String(byte[] buffer)
 		{
 			Contract.NotNull(buffer);
-			return EncodeBuffer(buffer.AsSpan(), padded:true, urlSafe: false);
+#if NET9_0_OR_GREATER
+			return Convert.ToBase64String(new ReadOnlySpan<byte>(buffer));
+#else
+			return EncodeBuffer(buffer.AsSpan(), padded: true, urlSafe: false);
+#endif
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToBase64String(Slice buffer)
 		{
+#if NET9_0_OR_GREATER
+			return Convert.ToBase64String(buffer.Span);
+#else
 			return EncodeBuffer(buffer.Span, padded: true, urlSafe: false);
+#endif
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToBase64String(ReadOnlySpan<byte> buffer)
 		{
+#if NET9_0_OR_GREATER
+			return Convert.ToBase64String(buffer);
+#else
 			return EncodeBuffer(buffer, padded: true, urlSafe: false);
+#endif
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] FromBase64String(string s)
 		{
 			Contract.NotNull(s);
-
 			return DecodeBuffer(s.AsSpan(), padded: true, urlSafe: false);
 		}
 
@@ -389,19 +400,22 @@ namespace Doxense.Serialization
 
 			int bufferSize = Math.Min(size, CHARSIZE);
 			bufferSize = (bufferSize + 7) & (~0x7); // arrondi a 8 supérieur, pour garder un alignement correct
-			var chars = ArrayPool<char>.Shared.Rent(bufferSize);
+			Span<char> chars = stackalloc char[bufferSize];
 
 			var remaining = source;
 			while (remaining.Length > 0)
 			{
 				int sz = Math.Min(remaining.Length, BYTESIZE);
+#if NET9_0_OR_GREATER
+				Convert.TryToBase64Chars(remaining[..sz], chars, out int n);
+#else
 				int n = EncodeBufferUnsafe(chars, remaining[..sz], charMap, remaining.Length > BYTESIZE ? '\0' : padChar);
+#endif
 				Contract.Debug.Assert(n <= bufferSize);
 				if (n <= 0) break; //REVIEW: dans quel cas on peut avoir <= 0 ???
-				output.Write(chars, 0, n);
+				output.Write(chars);
 				remaining = remaining[sz..];
 			}
-			ArrayPool<char>.Shared.Return(chars);
 			if (remaining.Length > 0)
 			{
 				throw new InvalidOperationException(); // ??
@@ -558,47 +572,40 @@ namespace Doxense.Serialization
 
 #endif
 
-		/// <summary>Détermine la taille de buffer nécessaire pour encoder un segment de text en Base64</summary>
-		/// <param name="s">Segment de texte</param>
-		/// <param name="padChar">Padding character (optionnel)</param>
-		public static int GetBytesCount(ReadOnlySpan<char> s, char padChar = '\0')
+		/// <summary>Computes the size of a buffer required to decode a Base64 string into bytes</summary>
+		/// <param name="src">Base64 string literal to decode</param>
+		/// <param name="padChar">Padding character (optional)</param>
+		public static int GetBytesCount(ReadOnlySpan<char> src, char padChar)
 		{
-			unsafe
+			int len = src.Length;
+			if (len == 0)
 			{
-				fixed (char* chars = &MemoryMarshal.GetReference(s))
-				{
-					return GetBytesCount(chars, s.Length, padChar);
-				}
+				return 0;
 			}
-		}
-
-		/// <summary>Détermine la taille de buffer nécessaire pour encoder un segment de text en Base64</summary>
-		/// <param name="src">Pointeur vers le début du segment de texte</param>
-		/// <param name="len">Taille du segment (en caractères)</param>
-		/// <param name="padChar">Padding character (optionnel)</param>
-		public static unsafe int GetBytesCount(char* src, int len, char padChar)
-		{
-			Contract.Debug.Requires(len >= 0 && (len == 0 || src != null));
-			if (len == 0) return 0;
 
 			int padding;
 			if (padChar != '\0')
 			{
+				ref char ptr = ref Unsafe.AsRef(in src[0]);
 				padding = 0;
 				while (len > 0)
 				{
-					if (src[len - 1] != padChar) break;
+					if (Unsafe.Add(ref ptr, len - 1) != padChar)
+					{
+						break;
+					}
+
 					++padding;
 					--len;
 				}
 				if (padding != 0)
 				{
-					if (padding == 1) { padding = 2; }
-					else if (padding == 2) { padding = 1; }
-					else
+					padding = padding switch
 					{
-						throw new FormatException("The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters.");
-					}
+						1 => 2,
+						2 => 1,
+						_ => throw ThrowHelper.FormatException("The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters.")
+					};
 				}
 			}
 			else
@@ -618,23 +625,14 @@ namespace Doxense.Serialization
 		{
 			if (encoded.Length == 0) return [ ];
 
-			unsafe
-			{
-				char padChar = padded ? (urlSafe ? Base64UrlPadChar : Base64PadChar) : '\0';
+			char padChar = padded ? (urlSafe ? Base64UrlPadChar : Base64PadChar) : '\0';
 
-				fixed (char* pSrc = &MemoryMarshal.GetReference(encoded))
-				{
-					int size = GetBytesCount(pSrc, encoded.Length, padChar); //TODO: padding + urlSafe ?
-					var dest = new byte[size];
+			int size = GetBytesCount(encoded, padChar); //TODO: padding + urlSafe ?
+			var dest = new byte[size];
 
-					fixed (byte* pDst = dest)
-					{
-						int p = DecodeBufferUnsafe(pDst, pSrc, encoded.Length, padChar);
-						if (p < 0) throw new FormatException("Malformed base64 string");
-						return dest;
-					}
-				}
-			}
+			int p = DecodeBufferUnsafe(dest, encoded, padChar);
+			if (p < 0) throw ThrowHelper.FormatException("Malformed base64 string");
+			return dest;
 		}
 
 		[Pure]
@@ -642,37 +640,27 @@ namespace Doxense.Serialization
 		{
 			if (encoded.Length == 0) return Slice.Empty;
 
-			unsafe
-			{
-				char padChar = padded ? (urlSafe ? Base64UrlPadChar : Base64PadChar) : '\0';
+			char padChar = padded ? (urlSafe ? Base64UrlPadChar : Base64PadChar) : '\0';
 
-				fixed (char* pSrc = &MemoryMarshal.GetReference(encoded))
-				{
-					int size = GetBytesCount(pSrc, encoded.Length, padChar); //TODO: padding + urlSafe ?
+			// compute the size of the decoded bytes
+			int size = GetBytesCount(encoded, padChar); //TODO: padding + urlSafe ?
+			var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, size);
 
-					var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, size);
-
-					fixed (byte* pDst = &tmp[0])
-					{
-						int p = DecodeBufferUnsafe(pDst, pSrc, encoded.Length, padChar);
-						if (p < 0) throw new FormatException("Malformed base64 string");
-						return new Slice(tmp, 0, p);
-					}
-				}
-			}
+			int p = DecodeBufferUnsafe(tmp, encoded, padChar);
+			if (p < 0) throw new FormatException("Malformed base64 string");
+			return new Slice(tmp, 0, p);
 		}
 
-		internal static unsafe int DecodeBufferUnsafe(byte* dest, char* src, int len, char padChar)
+		internal static int DecodeBufferUnsafe(Span<byte> dest, ReadOnlySpan<char> src, char padChar)
 		{
+			int len = src.Length;
 			if (len == 0) return 0;
-			Contract.PointerNotNull(dest);
-			Contract.PointerNotNull(src);
 
 			if (padChar != '\0')
 			{
 				if (len < 4 || len % 4 != 0)
 				{ // doit être un multiple de 4
-					throw new FormatException("Invalid padding");
+					throw ThrowHelper.FormatException("Invalid padding");
 				}
 				// ne doit pas y avoir plus de 2 pad chars a la fin
 				if (src[len - 1] == padChar)
@@ -688,43 +676,48 @@ namespace Doxense.Serialization
 			int leftOver = len % 4;
 			int chunks = leftOver == 0 ? (len / 4 - 1) : (len / 4);
 
-			byte* p = dest;
+			ref byte outp = ref dest[0];
+			ref byte inp = ref Unsafe.As<char, byte>(ref Unsafe.AsRef(in src[0])); //note: we will read 4 chars at a time (8 bytes), so treat the input as raw bytes
 			uint x;
-			ulong* srcInt = (ulong*)src;
-			ulong y = *srcInt++;
+			ulong y = Unsafe.ReadUnaligned<ulong>(ref inp);
+			inp = ref Unsafe.Add(ref inp, 8);
 
-			uint[] d0 = DecodeMap0;
-			uint[] d1 = DecodeMap1;
-			uint[] d2 = DecodeMap2;
-			uint[] d3 = DecodeMap3;
+			ref uint d0 = ref DecodeMap0[0];
+			ref uint d1 = ref DecodeMap1[0];
+			ref uint d2 = ref DecodeMap2[0];
+			ref uint d3 = ref DecodeMap3[0];
 
 			for (int i = 0; i < chunks; ++i)
 			{
-				x = d0[y & 0xff]
-				  | d1[(y >> 16) & 0xff]
-				  | d2[(y >> 32) & 0xff]
-				  | d3[(y >> 48) & 0xff];
+				x = Unsafe.Add(ref d0, (int) (y & 0xff))
+				  | Unsafe.Add(ref d1, (int) ((y >> 16) & 0xff))
+				  | Unsafe.Add(ref d2, (int) ((y >> 32) & 0xff))
+				  | Unsafe.Add(ref d3, (int) ((y >> 48) & 0xff));
 
 				if (x >= BADCHAR) return -1;
-				*((uint*)p) = x;
-				p += 3;
-				y = *srcInt++;
+				// note: we write 4 bytes instead of 3, but the last is 0 and we already made sure that we would not overflow
+				Unsafe.WriteUnaligned<uint>(ref outp, x);
+				outp = ref Unsafe.Add(ref outp, 3);
+
+				// read next 4 bytes from input
+				y = Unsafe.ReadUnaligned<ulong>(ref inp);
+				inp = ref Unsafe.Add(ref inp, 8);
 			}
 
 			switch(leftOver)
 			{
 				case 0:
 				{
-					x = d0[y & 0xff]
-					  | d1[(y >> 16) & 0xff]
-					  | d2[(y >> 32) & 0xff]
-					  | d3[(y >> 48) & 0xff];
+					x = Unsafe.Add(ref d0, (int) (y & 0xff))
+					  | Unsafe.Add(ref d1, (int) ((y >> 16) & 0xff))
+					  | Unsafe.Add(ref d2, (int) ((y >> 32) & 0xff))
+					  | Unsafe.Add(ref d3, (int) ((y >> 48) & 0xff));
 
 					if (x >= BADCHAR) return -1;
 
-					p[0] = (byte)x;
-					p[1] = (byte)(x >> 8);
-					p[2] = (byte)(x >> 16);
+					Unsafe.Add(ref outp, 0) = (byte) x;
+					Unsafe.Add(ref outp, 1) = (byte) (x >> 8);
+					Unsafe.Add(ref outp, 2) = (byte) (x >> 16);
 
 					return (chunks + 1) * 3;
 				}
@@ -732,24 +725,24 @@ namespace Doxense.Serialization
 				case 1:
 				{ // 1 output byte
 					if (padChar != '\0') return -1; //impossible avec du padding
-					x = d0[y & 0xFF];
-					*p = (byte)x;
+					x = Unsafe.Add(ref d0, (int) (y & 0xFF));
+					outp = (byte) x;
 					break;
 				}
 				case 2:
 				{ // 1 output byte
-					x = d0[y & 0xFF]
-					  | d1[(y >> 16) & 0xFF];
-					*p = (byte)x;
+					x = Unsafe.Add(ref d0, (int) (y & 0xFF))
+					  | Unsafe.Add(ref d1, (int) ((y >> 16) & 0xFF));
+					outp = (byte) x;
 					break;
 				}
 				default:
 				{ // 2 output byte
-					x = d0[y & 0xFF]
-					  | d1[(y >> 16) & 0xFF]
-					  | d2[(y >> 32) & 0xFF];
-					p[0] = (byte)x;
-					p[1] = (byte)(x >> 8);
+					x = Unsafe.Add(ref d0, (int) (y & 0xFF))
+					  | Unsafe.Add(ref d1, (int) ((y >> 16) & 0xFF))
+					  | Unsafe.Add(ref d2, (int) ((y >> 32) & 0xFF));
+					Unsafe.Add(ref outp, 0) = (byte) x;
+					Unsafe.Add(ref outp, 1) = (byte) (x >> 8);
 					break;
 				}
 			}
