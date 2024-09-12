@@ -325,6 +325,8 @@ namespace System
 			return TryParseBase62(buffer, out var value) ? value : throw FailInvalidFormat();
 		}
 
+#endif
+
 		/// <summary>Parses a span of UTF-8 characters into a <see cref="Uuid128"/></summary>
 		/// <param name="utf8Text">The span of UTF-8 characters to parse.</param>
 		/// <param name="provider">This argument is ignored.</param>
@@ -345,13 +347,27 @@ namespace System
 			}
 			if (utf8Text.Length == 36)
 			{
-				if (!Utf8Parser.TryParse(utf8Text, out Guid g, out int consumed) || consumed != utf8Text.Length)
+#if NET8_0_OR_GREATER
+				if (!Utf8Parser.TryParse(utf8Text, out Guid g, out int consumed) || consumed != 36)
 				{
-					throw new FormatException("Input is not a valid Uuid128 literal.");
+					throw ThrowHelper.FormatException("Input is not a valid Uuid128 literal.");
 				}
 				return new(g);
+#else
+				// copy to a tmp buf and parse as string!
+				if (UnsafeHelpers.IsAsciiBytes(utf8Text))
+				{
+					Span<char> tmp = stackalloc char[36];
+					System.Text.Encoding.ASCII.GetChars(utf8Text, tmp);
+					if (Guid.TryParse(tmp, out Guid g))
+					{
+						return new(g);
+					}
+				}
+				throw ThrowHelper.FormatException("Input is not a valid Uuid128 literal.");
+#endif
 			}
-			throw new FormatException("Unrecognized Uuid128 format");
+			throw ThrowHelper.FormatException("Unrecognized Uuid128 format");
 		}
 
 		/// <summary>Tries to parse a span of UTF-8 characters into a <see cref="Uuid128"/>.</summary>
@@ -379,16 +395,31 @@ namespace System
 			{
 				utf8Text = utf8Text[1..^1];
 			}
-			if (utf8Text.Length == 36 && Utf8Parser.TryParse(utf8Text, out Guid g, out int consumed) && consumed == utf8Text.Length)
+			if (utf8Text.Length == 36)
 			{
-				result = new(g);
-				return true;
+#if NET8_0_OR_GREATER
+				if (Utf8Parser.TryParse(utf8Text, out Guid g, out int consumed) && consumed == 36)
+				{
+					result = new(g);
+					return true;
+				}
+#else
+				// copy to a tmp buf and parse as string!
+				if (UnsafeHelpers.IsAsciiBytes(utf8Text))
+				{
+					Span<char> tmp = stackalloc char[36];
+					System.Text.Encoding.ASCII.GetChars(utf8Text, tmp);
+					if (Guid.TryParse(tmp, out Guid g))
+					{
+						result = new(g);
+						return true;
+					}
+				}
+#endif
 			}
 			result = default;
 			return false;
 		}
-
-#endif
 
 		/// <summary>Parses a string representation of an UUid128</summary>
 		public static Uuid128 ParseExact(string input, string format) => new(Guid.ParseExact(input, format));

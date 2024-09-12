@@ -103,8 +103,6 @@ namespace Doxense.Core.Tests
 				Assert.That(Uuid128.TryParse(literal.AsSpan(), CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
 				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
 
-#if NET8_0_OR_GREATER
-
 				// ReadOnlySpan<byte>
 				var bytes = Encoding.UTF8.GetBytes(literal).AsSpan();
 				Assert.That(Uuid128.Parse(bytes).ToByteArray(), Is.EqualTo(expected.ToByteArray()));
@@ -113,8 +111,6 @@ namespace Doxense.Core.Tests
 				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
 				Assert.That(Uuid128.TryParse(bytes, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
 				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
-
-#endif
 			}
 
 			CheckSuccess("00000000-0000-0000-0000-000000000000", Uuid128.Empty);
