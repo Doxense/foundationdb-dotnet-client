@@ -28,6 +28,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Collections.Frozen;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
@@ -191,6 +192,7 @@ namespace Doxense.Serialization.Json
 			null => StringComparer.Ordinal,
 			JsonObject obj => obj.m_items.Comparer,
 			Dictionary<string, JsonValue> dic => dic.Comparer,
+			FrozenDictionary<string, JsonValue> frz => frz.Comparer,
 			ImmutableDictionary<string, JsonValue> imm => imm.KeyComparer,
 			_ => StringComparer.Ordinal
 		}), readOnly: false);
@@ -418,27 +420,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject Create(JsonObject items)
-		{
-			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null, items).AddRange(items);
-		}
-
-		/// <summary>Create a new JSON object with the specified items</summary>
-		/// <param name="items">Map of key/values to copy</param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
-		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject Create(Dictionary<string, JsonValue> items)
-		{
-			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null, items).AddRange(items);
-		}
-
-		/// <summary>Create a new JSON object with the specified items</summary>
-		/// <param name="items">Map of key/values to copy</param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
-		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject Create(ImmutableDictionary<string, JsonValue> items)
+		public static JsonObject Create(IDictionary<string, JsonValue> items)
 		{
 			Contract.NotNull(items);
 			return CreateEmptyWithComparer(null, items).AddRange(items);
@@ -456,10 +438,22 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
+		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items)
+		{
+			//note: this overload without optional IEqualityComparer is required to resolve an overload amgibuity with the Create(ReadOnlySpan<KeyValuePair<string, JsonValue>>) variant when calling JsonObject.Create([])
+			// => it seems that if one of the two has an optional argument, it will have a lower priority.
+
+			return Create().AddRange(items);
+		}
+
+		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer"></param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items, IEqualityComparer<string>? comparer = null)
+		public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items, IEqualityComparer<string>? comparer)
 		{
 			return CreateEmptyWithComparer(comparer).AddRange(items);
 		}
@@ -469,7 +463,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="comparer"></param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject Create(KeyValuePair<string, JsonValue>[] items, IEqualityComparer<string>? comparer = null)
+		public static JsonObject Create(KeyValuePair<string, JsonValue>[] items, IEqualityComparer<string>? comparer)
 		{
 			Contract.NotNull(items);
 			return CreateEmptyWithComparer(comparer).AddRange(items.AsSpan());
@@ -589,26 +583,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject CreateReadOnly(JsonObject items)
-		{
-			return CreateEmptyWithComparer(null, items).AddRangeReadOnly(items).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new JSON object with the specified items</summary>
-		/// <param name="items">Map of key/values to copy</param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
-		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject CreateReadOnly(Dictionary<string, JsonValue> items)
-		{
-			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null, items).AddRangeReadOnly(items).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new JSON object with the specified items</summary>
-		/// <param name="items">Map of key/values to copy</param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
-		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
-		public static JsonObject CreateReadOnly(ImmutableDictionary<string, JsonValue> items)
+		public static JsonObject CreateReadOnly(IDictionary<string, JsonValue> items)
 		{
 			Contract.NotNull(items);
 			return CreateEmptyWithComparer(null, items).AddRangeReadOnly(items).FreezeUnsafe();
@@ -1516,82 +1491,92 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddRange(JsonObject items)
+		public JsonObject AddRange(IDictionary<string, JsonValue> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
-			var other = items.m_items;
-			if (other.Count == 0) return this;
-
-			var self = m_items;
-			self.EnsureCapacity(unchecked(self.Count + other.Count));
-
-			foreach (var item in other)
+			if (items.Count == 0)
 			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				self.Add(item.Key, item.Value ?? JsonNull.Null);
+				return this;
 			}
-
-			return this;
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddRange(Dictionary<string, JsonValue> items)
-		{
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (items.Count == 0) return this;
 
 			var self = m_items;
 			self.EnsureCapacity(unchecked(self.Count + items.Count));
 
-			foreach (var item in items)
+			switch (items)
 			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				self.Add(item.Key, item.Value ?? JsonNull.Null);
+				case JsonObject obj:
+				{
+					foreach (var item in obj.m_items)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						self.Add(item.Key, item.Value);
+					}
+
+					break;
+				}
+				case Dictionary<string, JsonValue> dict:
+				{
+					foreach (var item in dict)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, item.Value ?? JsonNull.Null);
+					}
+
+					break;
+				}
+				case FrozenDictionary<string, JsonValue> dict:
+				{
+					foreach (var item in dict)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, item.Value ?? JsonNull.Null);
+					}
+
+					break;
+				}
+				case ImmutableDictionary<string, JsonValue> immu:
+				{
+					foreach (var item in immu)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, item.Value ?? JsonNull.Null);
+					}
+
+					break;
+				}
+				default:
+				{
+					foreach (var item in items)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, item.Value ?? JsonNull.Null);
+					}
+
+					break;
+				}
 			}
 
 			return this;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddRange(ImmutableDictionary<string, JsonValue> items)
-		{
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (items.Count == 0) return this;
-
-			var self = m_items;
-			self.EnsureCapacity(unchecked(self.Count + items.Count));
-
-			foreach (var item in items)
-			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				self.Add(item.Key, item.Value ?? JsonNull.Null);
-			}
-
-			return this;
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(-1)]
+#endif
 		public JsonObject AddRange(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
 			switch (items)
 			{
-				case JsonObject obj:
-				{
-					return AddRange(obj);
-				}
-				case Dictionary<string, JsonValue> dict:
+				case IDictionary<string, JsonValue> dict:
 				{
 					return AddRange(dict);
-				}
-				case ImmutableDictionary<string, JsonValue> imm:
-				{
-					return AddRange(imm);
 				}
 				case KeyValuePair<string, JsonValue>[] arr:
 				{
@@ -1603,23 +1588,30 @@ namespace Doxense.Serialization.Json
 				}
 				default:
 				{
-					var self = m_items;
-					if (items.TryGetNonEnumeratedCount(out var count))
-					{
-						if (count == 0) return this;
-						self.EnsureCapacity(unchecked(self.Count + count));
-					}
-
-					foreach (var item in items)
-					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-						self.Add(item.Key, item.Value ?? JsonNull.Null);
-					}
-
-					return this;
+					return AddRangeSlow(this, items);
 				}
 			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static JsonObject AddRangeSlow(JsonObject obj, IEnumerable<KeyValuePair<string, JsonValue>> items)
+			{
+				var self = obj.m_items;
+				if (items.TryGetNonEnumeratedCount(out var count))
+				{
+					if (count == 0) return obj;
+					self.EnsureCapacity(unchecked(self.Count + count));
+				}
+
+				foreach (var item in items)
+				{
+					Contract.Debug.Requires(item.Key != null && !ReferenceEquals(obj, item.Value));
+					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+					self.Add(item.Key, item.Value ?? JsonNull.Null);
+				}
+
+				return obj;
+			}
+
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -1639,22 +1631,28 @@ namespace Doxense.Serialization.Json
 				}
 				default:
 				{
-					var self = m_items;
-					if (items.TryGetNonEnumeratedCount(out var count))
-					{
-						if (count == 0) return this;
-						self.EnsureCapacity(unchecked(self.Count + count));
-					}
-
-					foreach (var item in items)
-					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-						self.Add(item.Key, item.Value ?? JsonNull.Null);
-					}
-
-					return this;
+					return AddRangeSlow(this, items);
 				}
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static JsonObject AddRangeSlow(JsonObject obj, IEnumerable<(string Key, JsonValue Value)> items)
+			{
+				var self = obj.m_items;
+				if (items.TryGetNonEnumeratedCount(out var count))
+				{
+					if (count == 0) return obj;
+					self.EnsureCapacity(unchecked(self.Count + count));
+				}
+
+				foreach (var item in items)
+				{
+					Contract.Debug.Requires(item.Key != null && !ReferenceEquals(obj, item.Value));
+					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+					self.Add(item.Key, item.Value ?? JsonNull.Null);
+				}
+
+				return obj;
 			}
 		}
 
@@ -1714,63 +1712,85 @@ namespace Doxense.Serialization.Json
 			return AddRangeReadOnly(items.AsSpan());
 		}
 
+		/// <summary>Add multiple fields, converting them read-only if required</summary>
+		/// <param name="items">Set of elements to add. If some values are mutable, a read-only copy will be added instead.</param>
+		/// <returns>Same instance (for chaining)</returns>
+		/// <remarks>
+		/// <para>Fields that already exist will be overwritten.</para>
+		/// <para>For performance reasons, added JSON Objects or Arrays should already be read-only, otherwise a deep-copy will be performed.</para></remarks>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddRangeReadOnly(JsonObject items)
+		public JsonObject AddRangeReadOnly(IDictionary<string, JsonValue> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			if (items.Count == 0) return this;
 
-			var other = items.m_items;
-			if (other.Count != 0)
+			var self = m_items;
+
+			self.EnsureCapacity(unchecked(self.Count + items.Count));
+
+			switch (items)
 			{
-				var self = m_items;
-				self.EnsureCapacity(unchecked(self.Count + other.Count));
-
-				foreach (var item in other)
+				case JsonObject obj:
 				{
-					Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-					self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+					if (obj.IsReadOnly)
+					{
+						// we assume that the values are already guaranteed to be read-only, so we can skip the ToReadOnly() call!
+						foreach (var item in obj.m_items)
+						{
+							Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value) && item.Value.IsReadOnly);
+							self.Add(item.Key, item.Value);
+						}
+					}
+					else
+					{
+						foreach (var item in obj.m_items)
+						{
+							Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+							self.Add(item.Key, item.Value.ToReadOnly());
+						}
+					}
+					break;
 				}
-			}
-
-			return this;
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddRangeReadOnly(Dictionary<string, JsonValue> items)
-		{
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (items.Count == 0) return this;
-
-			var self = m_items;
-
-			self.EnsureCapacity(unchecked(self.Count + items.Count));
-
-			foreach (var item in items)
-			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
-			}
-
-			return this;
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddRangeReadOnly(ImmutableDictionary<string, JsonValue> items)
-		{
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			if (items.Count == 0) return this;
-
-			var self = m_items;
-
-			self.EnsureCapacity(unchecked(self.Count + items.Count));
-
-			foreach (var item in items)
-			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
-				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-				self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+				case Dictionary<string, JsonValue> dict:
+				{
+					foreach (var item in dict)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+					}
+					break;
+				}
+				case FrozenDictionary<string, JsonValue> dict:
+				{
+					foreach (var item in dict)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+					}
+					break;
+				}
+				case ImmutableDictionary<string, JsonValue> dict:
+				{
+					foreach (var item in dict)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+					}
+					break;
+				}
+				default:
+				{
+					foreach (var item in items)
+					{
+						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
+					}
+					break;
+				}
 			}
 
 			return this;
@@ -1783,17 +1803,9 @@ namespace Doxense.Serialization.Json
 
 			switch (items)
 			{
-				case JsonObject obj:
-				{
-					return AddRangeReadOnly(obj);
-				}
-				case Dictionary<string, JsonValue> dict:
+				case IDictionary<string, JsonValue> dict:
 				{
 					return AddRangeReadOnly(dict);
-				}
-				case ImmutableDictionary<string, JsonValue> imm:
-				{
-					return AddRangeReadOnly(imm);
 				}
 				case KeyValuePair<string, JsonValue>[] arr:
 				{
