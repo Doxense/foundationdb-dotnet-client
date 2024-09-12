@@ -1092,7 +1092,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			//note: DeserializeSlice(RoS<byte>) already creates a copy, hopefully with the correct size, so we can expose it safely
 			var decoded = DeserializeSlice(slice);
-			return decoded.TryGetBytesUnsafe(out var bytes) ? bytes : decoded.GetBytes();
+			return SliceMarshal.GetBytesOrCopy(decoded);
 		}
 
 		public static TuPackUserType? DeserializeUserType(Slice slice)

@@ -766,22 +766,23 @@ namespace FoundationDB.Client.Native
 		{
 			if (value.Length == 0) return Slice.Empty;
 
-			byte[] result;
+			int len = Encoding.Default.GetByteCount(value);
+
 			if (nullTerminated)
 			{ // NULL terminated ANSI string
-				result = new byte[value.Length + 1];
-			}
-			else
-			{
-				result = new byte[value.Length];
+				len = checked(len + 1);
 			}
 
-			fixed (char* inp = value)
-			fixed (byte* outp = &result[0])
+			var buffer = new byte[len];
+			Encoding.Default.GetBytes(value, buffer);
+
+			if (nullTerminated)
 			{
-				Encoding.Default.GetBytes(inp, value.Length, outp, result.Length);
+				//note: last byte should already be zero, but we want to be sure, in case the default encoding would somehow mess up!
+				buffer[^1] = 0;
 			}
-			return Slice.CreateUnsafe(result, 0, result.Length);
+
+			return buffer.AsSlice();
 		}
 
 

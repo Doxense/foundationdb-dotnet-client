@@ -126,6 +126,7 @@ namespace System
 		/// The caller is responsible for handle that scenario if it is important!
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This method will be removed soon", error: true)]
 		public static Slice CreateUnsafe(byte[] buffer, [Positive] int offset, [Positive] int count)
 		{
 			Contract.Debug.Requires(buffer != null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
@@ -146,6 +147,7 @@ namespace System
 		/// The caller is responsible for handle that scenario if it is important!
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This method will be removed soon", error: true)]
 		public static Slice CreateUnsafe(byte[] buffer, uint offset, uint count)
 		{
 			Contract.Debug.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
@@ -340,33 +342,6 @@ namespace System
 		{
 			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
 			return this.Span.Slice(offset, count).ToArray();
-		}
-
-		/// <summary>Expose the internal buffer, if it is perfectly covered by the slice</summary>
-		/// <param name="bytes">Receives the internal buffer</param>
-		/// <returns><see langword="true"/>> if the buffer is complete and is exposed in <paramref name="bytes"/>, or <see langword="false"/> if the slice only cover a part of the buffer.</returns>
-		/// <remarks>
-		/// Used to optimize the case when the caller needs to send the slice as a non-chunkable <c>byte[]</c> to a legacy API, without copying.
-		/// The pattern should be: <c>if (slice.TryGetBytesUnsafe(out var bytes)) { /* use bytes as readonly! */ } else { /* must copy the slice somehow, or use a memory pool! */ }</c>
-		/// </remarks>
-		[ContractAnnotation("=> true, bytes: notnull; => false, bytes: null")]
-		public bool TryGetBytesUnsafe([MaybeNullWhen(false)] out byte[] bytes)
-		{
-			var arr = this.Array;
-			if (arr == null)
-			{
-				bytes = [ ];
-				return true;
-			}
-
-			if (this.Offset != 0 || this.Count != arr.Length)
-			{
-				bytes = null;
-				return false;
-			}
-
-			bytes = arr;
-			return true;
 		}
 
 		/// <summary>Return a SliceReader that can decode this slice into smaller fields</summary>
@@ -3292,6 +3267,60 @@ namespace System
 	[PublicAPI]
 	public static class SliceMarshal
 	{
+
+		/// <summary>Exposes the internal buffer if it has the exact same size as the slice</summary>
+		/// <param name="buffer">Slice with some content</param>
+		/// <param name="bytes">Receives the internal buffer, or <see langword="null"/> if the buffer is larger than the slice</param>
+		/// <returns><see langword="true"/>> if the buffer is complete and is exposed in <paramref name="bytes"/>, or <see langword="false"/> if the slice only cover a part of the buffer.</returns>
+		/// <remarks>
+		/// <para>Used to optimize the case when the caller needs to pass the content of the slice to a legacy API that requires a <c>byte[]</c> without support for spans or specifying an offset or length,
+		/// and would like to avoid an extra copy, especially if the buffer is know to have the correct size.</para>
+		/// <para>The expected pattern is:
+		/// <code>if (SliceMarshal.TryGetBytes(slice, out var bytes))
+		/// { // no copy required
+		///     LegacyAPI.DoSomething(bytes);
+		/// }
+		/// else
+		/// { // need to allocate and copy!!!
+		///     LegacyAPI.DoSomething(slice.ToArray());
+		/// }
+		/// </code></para>
+		/// <para>CAUTION: Slice are expected to be read-only, but exposing the internal buffer may lead to unexpected mutations! Use with caution, and make sure that any consumer of the buffer only read and never write to it!</para>
+		/// </remarks>
+		public static bool TryGetBytes(Slice buffer, [MaybeNullWhen(false)] out byte[] bytes)
+		{
+			var arr = buffer.Array;
+			if (arr == null!)
+			{
+				bytes = [ ];
+				return true;
+			}
+
+			if (buffer.Offset != 0 || buffer.Count != arr.Length)
+			{
+				bytes = null;
+				return false;
+			}
+
+			bytes = arr;
+			return true;
+		}
+
+		/// <summary>Exposes the internal buffer if it has the exact same size as the slice; otherwise, returns a copy of the content</summary>
+		/// <param name="buffer">Slice with some content</param>
+		/// <returns>A byte array which is either the original buffer, or a copy.</returns>
+		/// <remarks>
+		/// <para>Used to optimize situations where the caller needs to pass the content of the slice to a legacy API that requires a <c>byte[]</c> without support for spans or specifying an offset or length,
+		/// and would like to avoid an extra copy, especially if the buffer is know to have the correct size.</para>
+		/// <para>The expected pattern is:
+		/// <code>LegacyAPI.DoSomething(SliceMarshal.GetBytesOrCopy()); // has a chance to skip an extra copy if the buffer has the correct size already</code>
+		/// </para>
+		/// <para><b>CAUTION</b>: Slice are expected to be read-only, but exposing the internal buffer may lead to unexpected mutations! Use with caution, and make sure that any consumer of the buffer only read and never write to it!</para>
+		/// </remarks>
+		public static byte[] GetBytesOrCopy(Slice buffer)
+		{
+			return TryGetBytes(buffer, out var bytes) ? bytes : buffer.ToArray();
+		}
 
 		/// <summary>Try to convert a <see cref="ReadOnlyMemory{T}"/> into a Slice if it is backed by a managed byte array.</summary>
 		/// <param name="buffer">Buffer that maps a region of memory</param>
