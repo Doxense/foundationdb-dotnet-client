@@ -48,23 +48,23 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonPath.Empty.IsParentOf(JsonPath.Empty), Is.False);
 			Assert.That(JsonPath.Empty.IsChildOf(JsonPath.Empty), Is.False);
 
-			Assert.That(JsonPath.Empty.TryGetKey(out var key), Is.False);
+			Assert.That(JsonPath.Empty.TryGetLastKey(out var key), Is.False);
 			Assert.That(key.Length, Is.Zero);
-			Assert.That(JsonPath.Empty.GetKey().Length, Is.Zero);
+			Assert.That(JsonPath.Empty.GetLastKey().Length, Is.Zero);
 
-			Assert.That(JsonPath.Empty.TryGetIndex(out var index), Is.False);
+			Assert.That(JsonPath.Empty.TryGetLastIndex(out var index), Is.False);
 			Assert.That(index, Is.EqualTo(default(Index)));
-			Assert.That(JsonPath.Empty.GetIndex(), Is.Null);
+			Assert.That(JsonPath.Empty.GetLastIndex(), Is.Null);
 
-			Assert.That(JsonPath.Empty.ParseNext(out var span, out var idx, out var consumed), Is.EqualTo(JsonPath.Empty));
-			Assert.That(span.Length, Is.Zero);
+			Assert.That(JsonPath.ParseNext(default, out var keyLength, out var idx), Is.EqualTo(0));
+			Assert.That(keyLength, Is.Zero);
 			Assert.That(idx, Is.Default);
-			Assert.That(consumed, Is.Zero);
 		}
 
 		[Test]
 		public void Test_JsonPath_Basics()
 		{
+			Assert.Multiple(() =>
 			{
 				var path = JsonPath.Create("foo");
 				Assert.That(path.IsEmpty(), Is.False);
@@ -72,10 +72,38 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(path, Is.EqualTo(path));
 				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
 				Assert.That(path.Equals("foo"), Is.True);
-				Assert.That(path.GetKey().ToString(), Is.EqualTo("foo"));
-				Assert.That(path.GetIndex(), Is.Null);
+
+				Assert.That(JsonPath.ParseNext("foo", out var keyLength, out var idx), Is.EqualTo(3));
+				Assert.That(keyLength, Is.EqualTo(3));
+				Assert.That(idx, Is.Default);
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo("foo"));
+				Assert.That(path.GetLastIndex(), Is.Null);
 				Assert.That(path.GetParent(), Is.EqualTo(JsonPath.Empty));
-			}
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(1));
+				Assert.That(path.GetSegments(), Is.EqualTo((string[]) [ "foo", ]));
+			});
+			Assert.Multiple(() =>
+			{
+				var path = JsonPath.Create("[42]");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("[42]"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
+				Assert.That(path.Equals("[42]"), Is.True);
+
+				Assert.That(JsonPath.ParseNext("[42]", out var keyLength, out var idx), Is.EqualTo(4));
+				Assert.That(keyLength, Is.EqualTo(0));
+				Assert.That(idx, Is.EqualTo(new Index(42)));
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo(""));
+				Assert.That(path.GetLastIndex(), Is.EqualTo(new Index(42)));
+				Assert.That(path.GetParent(), Is.EqualTo(JsonPath.Empty));
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(1));
+				Assert.That(path.GetSegments(), Is.EqualTo((string[]) [ "[42]", ]));
+
+			});
+			Assert.Multiple(() =>
 			{
 				var path = JsonPath.Create("foo.bar");
 				Assert.That(path.IsEmpty(), Is.False);
@@ -84,54 +112,131 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("foo")));
 				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
 				Assert.That(path.Equals("foo.bar"), Is.True);
-				Assert.That(path.GetKey().ToString(), Is.EqualTo("bar"));
-				Assert.That(path.GetIndex(), Is.Null);
+
+				Assert.That(JsonPath.ParseNext("foo.bar", out var keyLength, out var idx), Is.EqualTo(4));
+				Assert.That(keyLength, Is.EqualTo(3));
+				Assert.That(idx, Is.Default);
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo("bar"));
+				Assert.That(path.GetLastIndex(), Is.Null);
 				Assert.That(path.GetParent(), Is.EqualTo("foo"));
-			}
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(2));
+				Assert.That(path.GetSegments(), Is.EqualTo((string[]) [ "foo", "bar" ]));
+			});
+			Assert.Multiple(() =>
 			{
 				var path = JsonPath.Create("foo[42]");
 				Assert.That(path.IsEmpty(), Is.False);
 				Assert.That(path.ToString(), Is.EqualTo("foo[42]"));
 				Assert.That(path, Is.EqualTo(path));
-				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("foo.bar")));
+				Assert.That(path, Is.EqualTo(JsonPath.Empty["foo"][42]));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("[42]")));
 				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("foo")));
 				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
 				Assert.That(path.Equals("foo[42]"), Is.True);
-				Assert.That(path.GetKey().ToString(), Is.EqualTo(""));
-				Assert.That(path.GetIndex(), Is.EqualTo((Index) 42));
+
+				Assert.That(JsonPath.ParseNext("foo[42]", out var keyLength, out var idx), Is.EqualTo(3));
+				Assert.That(keyLength, Is.EqualTo(3));
+				Assert.That(idx, Is.Default);
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo(""));
+				Assert.That(path.GetLastIndex(), Is.EqualTo((Index) 42));
 				Assert.That(path.GetParent(), Is.EqualTo("foo"));
-			}
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(2));
+				Assert.That(path.GetSegments(), Is.EqualTo((string[]) [ "foo", "[42]" ]));
+			});
+			Assert.Multiple(() =>
+			{
+				var path = JsonPath.Create("[42].foo");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("[42].foo"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.EqualTo(JsonPath.Empty[42]["foo"]));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("foo")));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Create("[42]")));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
+				Assert.That(path.Equals("[42].foo"), Is.True);
+
+				Assert.That(JsonPath.ParseNext("[42].foo", out var keyLength, out var idx), Is.EqualTo(5));
+				Assert.That(keyLength, Is.EqualTo(0));
+				Assert.That(idx, Is.EqualTo(new Index(42)));
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo("foo"));
+				Assert.That(path.GetLastIndex(), Is.Default);
+				Assert.That(path.GetParent(), Is.EqualTo("[42]"));
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(2));
+				Assert.That(path.GetSegments(), Is.EqualTo((string[]) [ "[42]", "foo" ]));
+			});
+			Assert.Multiple(() =>
+			{
+				var path = JsonPath.Create("foo.bar.baz");
+				Assert.That(path.IsEmpty(), Is.False);
+				Assert.That(path.ToString(), Is.EqualTo("foo.bar.baz"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.EqualTo(JsonPath.Empty["foo"]["bar"]["baz"]));
+				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
+				Assert.That(path.Equals("foo.bar.baz"), Is.True);
+
+				Assert.That(JsonPath.ParseNext("foo.bar.bar", out var keyLength, out var idx), Is.EqualTo(4));
+				Assert.That(keyLength, Is.EqualTo(3));
+				Assert.That(idx, Is.Default);
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo("baz"));
+				Assert.That(path.GetLastIndex(), Is.Null);
+				Assert.That(path.GetParent(), Is.EqualTo("foo.bar"));
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(3));
+				Assert.That(path.GetSegments(), Is.EqualTo((string[]) [ "foo", "bar", "baz" ]));
+			});
+			Assert.Multiple(() =>
 			{
 				var path = JsonPath.Create("foo[42].bar");
 				Assert.That(path.IsEmpty(), Is.False);
 				Assert.That(path.ToString(), Is.EqualTo("foo[42].bar"));
 				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.EqualTo(JsonPath.Empty["foo"][42]["bar"]));
 				Assert.That(path, Is.Not.EqualTo(JsonPath.Empty));
 				Assert.That(path.Equals("foo[42].bar"), Is.True);
-				Assert.That(path.GetKey().ToString(), Is.EqualTo("bar"));
-				Assert.That(path.GetIndex(), Is.Null);
+
+				Assert.That(JsonPath.ParseNext("foo[42].bar", out var keyLength, out var idx), Is.EqualTo(3));
+				Assert.That(keyLength, Is.EqualTo(3));
+				Assert.That(idx, Is.Default);
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo("bar"));
+				Assert.That(path.GetLastIndex(), Is.Null);
 				Assert.That(path.GetParent(), Is.EqualTo("foo[42]"));
-			}
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(3));
+				Assert.That(path.GetSegments(), Is.EqualTo((string[]) [ "foo", "[42]", "bar" ]));
+			});
+			Assert.Multiple(() =>
 			{ // spaces are not special...
 				var path = JsonPath.Create("foo bar.baz");
 				Assert.That(path.IsEmpty(), Is.False);
 				Assert.That(path.ToString(), Is.EqualTo("foo bar.baz"));
+				Assert.That(path, Is.EqualTo(path));
+				Assert.That(path, Is.EqualTo(JsonPath.Empty["foo bar"]["baz"]));
 				Assert.That(path.Equals("foo bar.baz"), Is.True);
-				Assert.That(path.GetKey().ToString(), Is.EqualTo("baz"));
-				Assert.That(path.GetIndex(), Is.Null);
+
+				Assert.That(JsonPath.ParseNext("foo bar.baz", out var keyLength, out var idx), Is.EqualTo(8));
+				Assert.That(keyLength, Is.EqualTo(7));
+				Assert.That(idx, Is.Default);
+
+				Assert.That(path.GetLastKey().ToString(), Is.EqualTo("baz"));
+				Assert.That(path.GetLastIndex(), Is.Null);
 				Assert.That(path.GetParent(), Is.EqualTo("foo bar"));
-				Assert.That(path.GetParent().GetKey().ToString(), Is.EqualTo("foo bar"));
-				Assert.That(path.GetParent().GetIndex(), Is.Null);
+				Assert.That(path.GetParent().GetLastKey().ToString(), Is.EqualTo("foo bar"));
+				Assert.That(path.GetParent().GetLastIndex(), Is.Null);
 				Assert.That(path.GetParent().GetParent(), Is.EqualTo(JsonPath.Empty));
-			}
+				Assert.That(path.GetSegmentCount(), Is.EqualTo(2));
+			});
+			Assert.Multiple(() =>
 			{ // escaping
-				Assert.That(JsonPath.Create(@"foo\.bar.baz").GetParts(), Is.EqualTo((string[]) [ "foo.bar", "baz" ]));
-				Assert.That(JsonPath.Create(@"hosts.192\.168\.1\.23.name").GetParts(), Is.EqualTo((string[]) [ "hosts", "192.168.1.23", "name" ]));
-				Assert.That(JsonPath.Create(@"users.DOMACME\\j\.smith.groups").GetParts(), Is.EqualTo((string[]) [ "users", @"DOMACME\j.smith", "groups" ]));
-				Assert.That(JsonPath.Create(@"domains.\[::1\].allowed").GetParts(), Is.EqualTo((string[]) [ "domains", "[::1]", "allowed" ]));
-				Assert.That(JsonPath.Create(@"foos.foo\.0.bars.bar\.1\.2.baz").GetParts(), Is.EqualTo((string[]) [ "foos", "foo.0", "bars", "bar.1.2", "baz" ]));
-				Assert.That(JsonPath.Create(@"foos.foo\[0\].bars.bar\[1\]\[2\].baz").GetParts(), Is.EqualTo((string[]) [ "foos", "foo[0]", "bars", "bar[1][2]", "baz" ]));
-			}
+				Assert.That(JsonPath.Create(@"foo\.bar.baz").GetSegments(), Is.EqualTo((string[]) [ "foo.bar", "baz" ]));
+				Assert.That(JsonPath.Create(@"hosts.192\.168\.1\.23.name").GetSegments(), Is.EqualTo((string[]) [ "hosts", "192.168.1.23", "name" ]));
+				Assert.That(JsonPath.Create(@"users.DOMACME\\j\.smith.groups").GetSegments(), Is.EqualTo((string[]) [ "users", @"DOMACME\j.smith", "groups" ]));
+				Assert.That(JsonPath.Create(@"domains.\[::1\].allowed").GetSegments(), Is.EqualTo((string[]) [ "domains", "[::1]", "allowed" ]));
+				Assert.That(JsonPath.Create(@"foos.foo\.0.bars.bar\.1\.2.baz").GetSegments(), Is.EqualTo((string[]) [ "foos", "foo.0", "bars", "bar.1.2", "baz" ]));
+				Assert.That(JsonPath.Create(@"foos.foo\[0\].bars.bar\[1\]\[2\].baz").GetSegments(), Is.EqualTo((string[]) [ "foos", "foo[0]", "bars", "bar[1][2]", "baz" ]));
+			});
 
 		}
 
@@ -176,17 +281,17 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				var p = JsonPath.Create(path);
 				Log($"# '{p}'.GetIndex() => {(expected.Length > 0 ? expected :  "<null>")}");
-				var actual = p.GetKey();
+				var actual = p.GetLastKey();
 				Assert.That(actual.ToString(), Is.EqualTo(expected), $"Path '{p}' should end with key '{expected}'");
 
 				if (expected == "")
 				{
-					Assert.That(p.TryGetKey(out actual), Is.False, $"Path '{p}' should not end with a key");
+					Assert.That(p.TryGetLastKey(out actual), Is.False, $"Path '{p}' should not end with a key");
 					Assert.That(actual.Length, Is.Zero);
 				}
 				else
 				{
-					Assert.That(p.TryGetKey(out actual), Is.True, $"Path '{p}' should not end with a key");
+					Assert.That(p.TryGetLastKey(out actual), Is.True, $"Path '{p}' should not end with a key");
 					Assert.That(actual.ToString(), Is.EqualTo(expected), $"Path '{p}' should end with key '{expected}'");
 				}
 			}
@@ -214,17 +319,17 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				var p = JsonPath.Create(path);
 				Log($"# '{p}'.GetIndex() => {(expected?.ToString() ?? "<null>")}");
-				var actual = p.GetIndex();
+				var actual = p.GetLastIndex();
 				Assert.That(actual, Is.EqualTo(expected), $"Path '{p}' should end with index '{expected}'");
 
 				if (expected == null)
 				{
-					Assert.That(p.TryGetIndex(out var index), Is.False, $"Path '{p}' should not end with an index");
+					Assert.That(p.TryGetLastIndex(out var index), Is.False, $"Path '{p}' should not end with an index");
 					Assert.That(index, Is.Default);
 				}
 				else
 				{
-					Assert.That(p.TryGetIndex(out var index), Is.True, $"Path '{p}' should not end with an index");
+					Assert.That(p.TryGetLastIndex(out var index), Is.True, $"Path '{p}' should not end with an index");
 					Assert.That(index, Is.EqualTo(expected.Value), $"Path '{p}' should end with index '{expected}'");
 				}
 
