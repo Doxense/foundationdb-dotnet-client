@@ -36,6 +36,7 @@ namespace Doxense.Linq
 	/// <summary>Small buffer that keeps a list of chunks that are larger and larger</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
 	[DebuggerDisplay("Count={Count}, Chunks={Chunks.Length}, Current={Index}/{Current.Length}")]
+	[PublicAPI]
 	public sealed class Buffer<T> : IReadOnlyList<T>, IBufferWriter<T>
 	{
 		// We want to avoid growing the same array again and again !
