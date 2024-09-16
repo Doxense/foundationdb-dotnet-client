@@ -26,17 +26,13 @@
 
 namespace FoundationDB.Filters.Logging
 {
-	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 

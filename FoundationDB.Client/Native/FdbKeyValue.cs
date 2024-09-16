@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
 	using System.Diagnostics.Contracts;
 	using System.Runtime.InteropServices;
 

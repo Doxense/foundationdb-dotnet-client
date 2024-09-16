@@ -27,12 +27,10 @@
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;

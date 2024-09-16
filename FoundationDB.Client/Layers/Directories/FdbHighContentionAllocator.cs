@@ -26,10 +26,7 @@
 
 namespace FoundationDB.Layers.Allocators
 {
-	using System;
 	using System.Diagnostics;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
 

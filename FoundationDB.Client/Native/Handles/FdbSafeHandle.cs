@@ -28,7 +28,6 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
 	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
 

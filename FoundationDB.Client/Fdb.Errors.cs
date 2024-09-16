@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using Doxense.Diagnostics.Contracts;
-
 	public static partial class Fdb
 	{
 

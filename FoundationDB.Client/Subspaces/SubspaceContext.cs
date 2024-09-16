@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-
 	/// <summary>Represents the lifetime of a key subspace</summary>
 	public interface ISubspaceContext
 	{

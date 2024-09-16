@@ -26,12 +26,10 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Buffers;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>

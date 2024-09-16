@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client.Utils
 {
-	using System;
-
 	/// <summary>Simple debug counters container that is used to troubleshoot alloc/free problems...</summary>
 	public static class DebugCounters
 	{

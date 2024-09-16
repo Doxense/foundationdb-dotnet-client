@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client.Status
 {
-	using System;
 	using System.Linq;
 	using Doxense.Serialization.Json;
 

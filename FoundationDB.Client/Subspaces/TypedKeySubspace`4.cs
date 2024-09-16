@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;

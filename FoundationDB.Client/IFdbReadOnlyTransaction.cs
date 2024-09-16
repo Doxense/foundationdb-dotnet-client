@@ -27,10 +27,6 @@
 namespace FoundationDB.Client
 {
 	using JetBrains.Annotations;
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using FoundationDB.Filters.Logging;
 
 	/// <summary>Transaction that allows read operations</summary>

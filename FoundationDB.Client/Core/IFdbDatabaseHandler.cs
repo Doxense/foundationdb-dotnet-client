@@ -27,9 +27,6 @@
 namespace FoundationDB.Client.Core
 {
 	using JetBrains.Annotations;
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	/// <summary>Basic API for FoundationDB databases</summary>
 	[PublicAPI]

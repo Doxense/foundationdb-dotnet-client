@@ -26,7 +26,6 @@
 
 namespace FoundationDB.DependencyInjection
 {
-	using System;
 	using Microsoft.Extensions.DependencyInjection;
 
 	internal sealed class FdbDefaultDatabaseProviderBuilder : IFdbDatabaseProviderBuilder

@@ -26,10 +26,7 @@
 
 namespace FoundationDB.Client.Core
 {
-	using System;
 	using System.Buffers;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	/// <summary>Basic API for FoundationDB transactions</summary>

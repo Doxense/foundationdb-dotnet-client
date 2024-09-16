@@ -31,13 +31,8 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDB_TRANSACTION handle</summary>

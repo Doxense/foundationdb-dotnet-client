@@ -26,17 +26,12 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Buffers;
 	using System.Buffers.Binary;
-	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;

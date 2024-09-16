@@ -26,11 +26,7 @@
 
 namespace FoundationDB.DependencyInjection
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 
 	internal sealed class FdbDatabaseTombstoneProvider<TState> : IFdbDatabaseScopeProvider<TState>

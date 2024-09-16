@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Filters.Logging
 {
-	using System;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using FoundationDB.Client;

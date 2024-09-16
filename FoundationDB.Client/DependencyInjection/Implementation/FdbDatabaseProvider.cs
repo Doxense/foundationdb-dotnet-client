@@ -26,11 +26,7 @@
 
 namespace FoundationDB.DependencyInjection
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using Microsoft.Extensions.Options;

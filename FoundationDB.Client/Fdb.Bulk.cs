@@ -29,13 +29,8 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Filters.Logging;
 	using JetBrains.Annotations;
 

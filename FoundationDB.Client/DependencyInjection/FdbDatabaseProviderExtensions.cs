@@ -26,12 +26,8 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
 

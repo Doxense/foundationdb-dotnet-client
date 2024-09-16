@@ -28,11 +28,6 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-
 	/// <summary>FDBFuture[] wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
 	public sealed class FdbFutureArray<T> : FdbFuture<T[]>

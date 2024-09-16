@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using JetBrains.Annotations;
 
 	/// <summary>Represents a sub-partition of the global key space.</summary>
