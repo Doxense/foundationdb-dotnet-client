@@ -138,6 +138,49 @@ namespace Doxense.Serialization.Json
 			return base.Equals(value);
 		}
 
+		/// <inheritdoc />
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		{
+			if (default(TValue) is null)
+			{
+				if (value is null) return false;
+
+				if (typeof(TValue) == typeof(bool?)) return m_value == (bool) (object) value!;
+				if (typeof(TValue) == typeof(int?)) return ToInt32() == (int) (object) value!;
+				if (typeof(TValue) == typeof(long?)) return ToInt64() == (long) (object) value!;
+				if (typeof(TValue) == typeof(short?)) return ToInt16() == (short) (object) value!;
+				// ReSharper disable CompareOfFloatsByEqualityOperator
+				if (typeof(TValue) == typeof(float?)) return ToSingle() == (float) (object) value!;
+				if (typeof(TValue) == typeof(double?)) return ToDouble() == (double) (object) value!;
+				// ReSharper restore CompareOfFloatsByEqualityOperator
+				if (typeof(TValue) == typeof(uint?)) return ToUInt32() == (uint) (object) value!;
+				if (typeof(TValue) == typeof(ulong?)) return ToUInt64() == (ulong) (object) value!;
+				if (typeof(TValue) == typeof(ushort?)) return ToUInt16() == (ushort) (object) value!;
+				if (typeof(TValue) == typeof(byte?)) return ToInt32() == (byte) (object) value!;
+				if (typeof(TValue) == typeof(sbyte?)) return ToInt32() == (sbyte) (object) value!;
+
+				if (value is JsonValue j) return Equals(j);
+			}
+			else
+			{
+				if (typeof(TValue) == typeof(bool)) return m_value == (bool) (object) value!;
+				if (typeof(TValue) == typeof(int)) return ToInt32() == (int) (object) value!;
+				if (typeof(TValue) == typeof(long)) return ToInt64() == (long) (object) value!;
+				if (typeof(TValue) == typeof(short)) return ToInt16() == (short) (object) value!;
+				// ReSharper disable CompareOfFloatsByEqualityOperator
+				if (typeof(TValue) == typeof(float)) return ToSingle() == (float) (object) value!;
+				if (typeof(TValue) == typeof(double)) return ToDouble() == (double) (object) value!;
+				// ReSharper restore CompareOfFloatsByEqualityOperator
+				if (typeof(TValue) == typeof(uint)) return ToUInt32() == (uint) (object) value!;
+				if (typeof(TValue) == typeof(ulong)) return ToUInt64() == (ulong) (object) value!;
+				if (typeof(TValue) == typeof(ushort)) return ToUInt16() == (ushort) (object) value!;
+				if (typeof(TValue) == typeof(byte)) return ToInt32() == (byte) (object) value!;
+				if (typeof(TValue) == typeof(sbyte)) return ToInt32() == (sbyte) (object) value!;
+			}
+
+			return false;
+		}
+
 		public override bool Equals(JsonValue? value)
 		{
 			return value switch

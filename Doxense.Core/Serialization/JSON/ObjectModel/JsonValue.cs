@@ -279,6 +279,14 @@ namespace Doxense.Serialization.Json
 
 		public abstract bool Equals(JsonValue? other);
 
+		/// <summary>Tests if the current instance is equal to the specified value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="value">Value to test with the current instance</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
+		public virtual bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) => (comparer ?? EqualityComparer<TValue>.Default).Equals(Bind<TValue>(), value);
+
 		/// <summary>Tests if two JSON values are equivalent</summary>
 		public static bool Equals(JsonValue? left, JsonValue? right) => (left ?? JsonNull.Missing).Equals(right ?? JsonNull.Missing);
 

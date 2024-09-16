@@ -3339,6 +3339,21 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			Assert.That(SerializeToSlice(jnull), Is.EqualTo(Slice.FromString("null")));
+
+			Assert.That(value, Is.Not.EqualTo((object) 0));
+			Assert.That(value, Is.Not.EqualTo((object) false));
+			Assert.That(value, Is.Not.EqualTo(default(string)));
+			Assert.That(value, Is.Not.EqualTo((object) ""));
+
+			Assert.That(value.ValueEquals<int>(0), Is.False);
+			Assert.That(value.ValueEquals<bool>(false), Is.False);
+			Assert.That(value.ValueEquals<string>(null), Is.True);
+			Assert.That(value.ValueEquals<string>(""), Is.False);
+
+			Assert.That(value.ValueEquals<int?>(0), Is.False);
+			Assert.That(value.ValueEquals<int?>(null), Is.True);
+			Assert.That(value.ValueEquals<bool?>(false), Is.False);
+			Assert.That(value.ValueEquals<bool?>(null), Is.True);
 		}
 
 		[Test]
@@ -3380,6 +3395,21 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(jmissing.As<JsonNull>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
 
 			Assert.That(SerializeToSlice(jmissing), Is.EqualTo(Slice.FromString("null")));
+
+			Assert.That(value, Is.Not.EqualTo((object) 0));
+			Assert.That(value, Is.Not.EqualTo((object) false));
+			Assert.That(value, Is.Not.EqualTo(default(string)));
+			Assert.That(value, Is.Not.EqualTo((object) ""));
+
+			Assert.That(value.ValueEquals<int>(0), Is.False);
+			Assert.That(value.ValueEquals<bool>(false), Is.False);
+			Assert.That(value.ValueEquals<string>(null), Is.True);
+			Assert.That(value.ValueEquals<string>(""), Is.False);
+
+			Assert.That(value.ValueEquals<int?>(0), Is.False);
+			Assert.That(value.ValueEquals<int?>(null), Is.True);
+			Assert.That(value.ValueEquals<bool?>(false), Is.False);
+			Assert.That(value.ValueEquals<bool?>(null), Is.True);
 		}
 
 		[Test]
@@ -3405,6 +3435,21 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(value!.Equals(default(object)), Is.True);
 
 			Assert.That(SerializeToSlice(jerror), Is.EqualTo(Slice.FromString("null")));
+
+			Assert.That(value, Is.Not.EqualTo((object) 0));
+			Assert.That(value, Is.Not.EqualTo((object) false));
+			Assert.That(value, Is.Not.EqualTo(default(string)));
+			Assert.That(value, Is.Not.EqualTo((object) ""));
+
+			Assert.That(value.ValueEquals<int>(0), Is.False);
+			Assert.That(value.ValueEquals<bool>(false), Is.False);
+			Assert.That(value.ValueEquals<string>(null), Is.True);
+			Assert.That(value.ValueEquals<string>(""), Is.False);
+
+			Assert.That(value.ValueEquals<int?>(0), Is.False);
+			Assert.That(value.ValueEquals<int?>(null), Is.True);
+			Assert.That(value.ValueEquals<bool?>(false), Is.False);
+			Assert.That(value.ValueEquals<bool?>(null), Is.True);
 		}
 
 		#endregion
@@ -3845,6 +3890,21 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.Return(123).CompareTo(JsonString.Return("123")),  Is.EqualTo(0),     "123 cmp '123'");
 			Assert.That(JsonNumber.Return(123).CompareTo(JsonString.Return("100")),  Is.GreaterThan(0), "123 cmp '100'");
 			Assert.That(JsonNumber.Return(123).CompareTo(JsonString.Return("1000")), Is.LessThan(0),    "123 cmp '1000'");
+		}
+
+		[Test]
+		public void Test_JsonString_ValueEquals()
+		{
+			Assert.That(JsonString.Return("hello").ValueEquals<string>("hello"), Is.True);
+			Assert.That(JsonString.Return("hello").ValueEquals<string>(""), Is.False);
+			Assert.That(JsonString.Return("hello").ValueEquals<string>("hello"), Is.True);
+			Assert.That(JsonString.Return("").ValueEquals<string>(""), Is.True);
+			Assert.That(JsonString.Return("").ValueEquals<string>("hello"), Is.False);
+			Assert.That(JsonString.Return("").ValueEquals<string>(null), Is.False);
+
+			Assert.That(JsonString.Return("hello").ValueEquals<int>(123), Is.False);
+			Assert.That(JsonString.Return("123").ValueEquals<int>(123), Is.False);
+			Assert.That(JsonString.Return("").ValueEquals<bool>(false), Is.False);
 		}
 
 		[Test]
@@ -4496,6 +4556,98 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(j.IsBetween(100, 124), Is.True);
 			Assert.That(j.IsBetween(123, 150), Is.True);
 			Assert.That(j.IsBetween(124, 150), Is.False);
+		}
+
+		[Test]
+		public void Test_JsonNumber_ValueEquals()
+		{
+			// int
+			Assert.That(JsonNumber.Return(123).ValueEquals<int>(123), Is.True);
+			Assert.That(JsonNumber.Return(123).ValueEquals<int>(456), Is.False);
+			Assert.That(JsonNumber.Return(int.MaxValue).ValueEquals<int>(int.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(int.MinValue).ValueEquals<int>(int.MinValue), Is.True);
+			Assert.That(JsonNumber.Return(int.MaxValue).ValueEquals<int>(int.MinValue), Is.False);
+			Assert.That(JsonNumber.Return(123).ValueEquals<int?>(123), Is.True);
+			Assert.That(JsonNumber.Return(123).ValueEquals<int?>(456), Is.False);
+			Assert.That(JsonNumber.Return(123).ValueEquals<int?>(null), Is.False);
+
+			// uint
+			Assert.That(JsonNumber.Return(123U).ValueEquals<uint>(123), Is.True);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<uint>(456), Is.False);
+			Assert.That(JsonNumber.Return(uint.MaxValue).ValueEquals<uint>(uint.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<uint?>(123), Is.True);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<uint?>(456), Is.False);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<uint?>(null), Is.False);
+
+			// long
+			Assert.That(JsonNumber.Return(123L).ValueEquals<long>(123), Is.True);
+			Assert.That(JsonNumber.Return(123L).ValueEquals<long>(456), Is.False);
+			Assert.That(JsonNumber.Return(long.MaxValue).ValueEquals<long>(long.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(long.MinValue).ValueEquals<long>(long.MinValue), Is.True);
+			Assert.That(JsonNumber.Return(long.MaxValue).ValueEquals<long>(long.MinValue), Is.False);
+			Assert.That(JsonNumber.Return(123L).ValueEquals<long?>(123), Is.True);
+			Assert.That(JsonNumber.Return(123L).ValueEquals<long?>(456), Is.False);
+			Assert.That(JsonNumber.Return(123L).ValueEquals<long?>(null), Is.False);
+
+			// ulong
+			Assert.That(JsonNumber.Return(123UL).ValueEquals<ulong>(123), Is.True);
+			Assert.That(JsonNumber.Return(123UL).ValueEquals<ulong>(456), Is.False);
+			Assert.That(JsonNumber.Return(ulong.MaxValue).ValueEquals<ulong>(ulong.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(123UL).ValueEquals<ulong?>(123), Is.True);
+			Assert.That(JsonNumber.Return(123UL).ValueEquals<ulong?>(456), Is.False);
+			Assert.That(JsonNumber.Return(123UL).ValueEquals<ulong?>(null), Is.False);
+
+			// short
+			Assert.That(JsonNumber.Return(123).ValueEquals<short>(123), Is.True);
+			Assert.That(JsonNumber.Return(123).ValueEquals<short>(456), Is.False);
+			Assert.That(JsonNumber.Return(short.MaxValue).ValueEquals<short>(short.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(short.MinValue).ValueEquals<short>(short.MinValue), Is.True);
+			Assert.That(JsonNumber.Return(short.MaxValue).ValueEquals<short>(short.MinValue), Is.False);
+			Assert.That(JsonNumber.Return(123).ValueEquals<short?>(123), Is.True);
+			Assert.That(JsonNumber.Return(123).ValueEquals<short?>(456), Is.False);
+			Assert.That(JsonNumber.Return(123).ValueEquals<short?>(null), Is.False);
+
+			// ushort
+			Assert.That(JsonNumber.Return(123U).ValueEquals<ushort>(123), Is.True);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<ushort>(456), Is.False);
+			Assert.That(JsonNumber.Return(ushort.MaxValue).ValueEquals<ushort>(ushort.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<ushort?>(123), Is.True);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<ushort?>(456), Is.False);
+			Assert.That(JsonNumber.Return(123U).ValueEquals<ushort?>(null), Is.False);
+
+			// float
+			Assert.That(JsonNumber.Return(1.23f).ValueEquals<float>(1.23f), Is.True);
+			Assert.That(JsonNumber.Return(1.23f).ValueEquals<float>(4.56f), Is.False);
+			Assert.That(JsonNumber.Return(float.NaN).ValueEquals<float>(float.NaN), Is.True);
+			Assert.That(JsonNumber.Return(1.23f).ValueEquals<float>(float.NaN), Is.False);
+			Assert.That(JsonNumber.Return(float.MaxValue).ValueEquals<float>(float.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(float.MinValue).ValueEquals<float>(float.MinValue), Is.True);
+			Assert.That(JsonNumber.Return(float.MaxValue).ValueEquals<float>(float.MinValue), Is.False);
+			Assert.That(JsonNumber.Return(1.23f).ValueEquals<float?>(1.23f), Is.True);
+			Assert.That(JsonNumber.Return(1.23f).ValueEquals<float?>(4.56f), Is.False);
+			Assert.That(JsonNumber.Return(1.23f).ValueEquals<float?>(null), Is.False);
+
+			// double
+			Assert.That(JsonNumber.Return(Math.PI).ValueEquals<double>(Math.PI), Is.True);
+			Assert.That(JsonNumber.Return(Math.PI).ValueEquals<double>(3.14), Is.False);
+			Assert.That(JsonNumber.Return(double.NaN).ValueEquals<double>(double.NaN), Is.True);
+			Assert.That(JsonNumber.Return(Math.PI).ValueEquals<double>(double.NaN), Is.False);
+			Assert.That(JsonNumber.Return(double.MaxValue).ValueEquals<double>(double.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(double.MinValue).ValueEquals<double>(double.MinValue), Is.True);
+			Assert.That(JsonNumber.Return(double.MaxValue).ValueEquals<double>(double.MinValue), Is.False);
+			Assert.That(JsonNumber.Return(Math.PI).ValueEquals<double?>(Math.PI), Is.True);
+			Assert.That(JsonNumber.Return(Math.PI).ValueEquals<double?>(3.14), Is.False);
+			Assert.That(JsonNumber.Return(Math.PI).ValueEquals<double?>(null), Is.False);
+
+			// decimal
+			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal>(decimal.One), Is.True);
+			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal>(decimal.Zero), Is.False);
+			Assert.That(JsonNumber.Return(decimal.MaxValue).ValueEquals<decimal>(decimal.MaxValue), Is.True);
+			Assert.That(JsonNumber.Return(decimal.MinValue).ValueEquals<decimal>(decimal.MinValue), Is.True);
+			Assert.That(JsonNumber.Return(decimal.MaxValue).ValueEquals<decimal>(decimal.MinValue), Is.False);
+			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal?>(decimal.One), Is.True);
+			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal?>(decimal.Zero), Is.False);
+			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal?>(null), Is.False);
 		}
 
 		[Test]

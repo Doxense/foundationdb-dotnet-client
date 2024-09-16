@@ -2147,6 +2147,51 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		{
+			if (default(TValue) is null)
+			{
+				if (value == null) return false;
+
+				if (typeof(TValue) == typeof(int?)) return Equals((int) (object) value!);
+				if (typeof(TValue) == typeof(long?)) return Equals((long) (object) value!);
+				if (typeof(TValue) == typeof(uint?)) return Equals((uint) (object) value!);
+				if (typeof(TValue) == typeof(ulong?)) return Equals((ulong) (object) value!);
+				if (typeof(TValue) == typeof(float?)) return Equals((float) (object) value!);
+				if (typeof(TValue) == typeof(double?)) return Equals((double) (object) value!);
+				if (typeof(TValue) == typeof(short?)) return Equals((short) (object) value!);
+				if (typeof(TValue) == typeof(ushort?)) return Equals((ushort) (object) value!);
+				if (typeof(TValue) == typeof(decimal?)) return Equals((decimal) (object) value!);
+#if NET8_0_OR_GREATER
+				if (typeof(TValue) == typeof(Half?)) return Equals((Half) (object) value!);
+				if (typeof(TValue) == typeof(Int128?)) return Equals((Int128) (object) value!);
+				if (typeof(TValue) == typeof(UInt128?)) return Equals((UInt128) (object) value!);
+#endif
+
+				if (value is JsonValue j) return Equals(j);
+			}
+			else
+			{
+				if (typeof(TValue) == typeof(int)) return Equals((int) (object) value!);
+				if (typeof(TValue) == typeof(long)) return Equals((long) (object) value!);
+				if (typeof(TValue) == typeof(uint)) return Equals((uint) (object) value!);
+				if (typeof(TValue) == typeof(ulong)) return Equals((ulong) (object) value!);
+				if (typeof(TValue) == typeof(float)) return Equals((float) (object) value!);
+				if (typeof(TValue) == typeof(double)) return Equals((double) (object) value!);
+				if (typeof(TValue) == typeof(short)) return Equals((short) (object) value!);
+				if (typeof(TValue) == typeof(ushort)) return Equals((ushort) (object) value!);
+				if (typeof(TValue) == typeof(decimal)) return Equals((decimal) (object) value!);
+#if NET8_0_OR_GREATER
+				if (typeof(TValue) == typeof(Half)) return Equals((Half) (object) value!);
+				if (typeof(TValue) == typeof(Int128)) return Equals((Int128) (object) value!);
+				if (typeof(TValue) == typeof(UInt128)) return Equals((UInt128) (object) value!);
+#endif
+			}
+
+			return false;
+		}
+
 		public bool Equals(JsonNumber? value) => value is not null && Number.Equals(in m_value, m_kind, in value.m_value, value.m_kind);
 
 		public bool Equals(JsonString? value)

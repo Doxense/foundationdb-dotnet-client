@@ -267,6 +267,17 @@ namespace Doxense.Serialization.Json
 			return value == null || m_kind == value.m_kind;
 		}
 
+		/// <inheritdoc />
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		{
+			if (default(TValue) is null)
+			{
+				if (value is null) return true;
+				if (value is JsonNull jn) return m_kind == jn.m_kind;
+			}
+			return false;
+		}
+
 		public override int GetHashCode()
 		{
 			return 0;

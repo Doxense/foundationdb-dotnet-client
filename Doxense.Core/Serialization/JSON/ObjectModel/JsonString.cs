@@ -763,6 +763,7 @@ namespace Doxense.Serialization.Json
 				null               => false,
 				DateTime dt        => Equals(dt),
 				DateTimeOffset dto => Equals(dto),
+				NodaTime.Instant t => Equals(t),
 				_                  => false
 			};
 			//TODO: compare with int, long, ...?
@@ -784,6 +785,29 @@ namespace Doxense.Serialization.Json
 		public bool Equals(JsonString? obj)
 		{
 			return obj != null && string.Equals(m_value, obj.m_value, StringComparison.Ordinal);
+		}
+
+		/// <inheritdoc />
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		{
+			if (default(TValue) is null)
+			{
+				if (typeof(TValue) == typeof(DateTime?)) return Equals((DateTime) (object) value!);
+				if (typeof(TValue) == typeof(DateTimeOffset?)) return Equals((DateTimeOffset) (object) value!);
+				if (typeof(TValue) == typeof(NodaTime.Instant?)) return Equals((NodaTime.Instant) (object) value!);
+
+				if (typeof(TValue) == typeof(string)) return Equals(Unsafe.As<string>(value));
+
+				if (value is JsonValue j) return Equals(j);
+			}
+			else
+			{
+				if (typeof(TValue) == typeof(DateTime)) return Equals((DateTime) (object) value!);
+				if (typeof(TValue) == typeof(DateTimeOffset)) return Equals((DateTimeOffset) (object) value!);
+				if (typeof(TValue) == typeof(NodaTime.Instant)) return Equals((NodaTime.Instant) (object) value!);
+			}
+			
+			return false;
 		}
 
 		public bool Equals(string? obj)
