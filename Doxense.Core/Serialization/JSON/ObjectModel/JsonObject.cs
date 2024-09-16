@@ -28,6 +28,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Buffers;
 	using System.Collections.Frozen;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
@@ -3471,21 +3472,19 @@ namespace Doxense.Serialization.Json
 			Contract.Debug.Requires(items != null && comparer != null);
 			result = null!;
 
-			if (items.Count == 0)
+			int count = items.Count;
+			if (count == 0)
 			{ // nothing to do
 				return false;
 			}
 
-			//TODO: optimizer le cas Count == 1?
-
 			bool changed = false;
 
-			var keys = new string[items.Count];
-			var values = new JsonValue[items.Count];
-			items.Keys.CopyTo(keys, 0);
-			items.Values.CopyTo(values, 0);
-
 			// each value needs to be sorted recursively
+			var valuesArray = ArrayPool<JsonValue>.Shared.Rent(count);
+			items.Values.CopyTo(valuesArray, 0);
+			var values = valuesArray.AsSpan(0, count);
+
 			for (int i = 0; i < values.Length; i++)
 			{
 				if (TrySortValue(values[i], comparer, out var val))
@@ -3496,9 +3495,18 @@ namespace Doxense.Serialization.Json
 			}
 
 			// order by the keys
-			var indexes = new int[keys.Length];
-			for (int i = 0; i < indexes.Length; i++) indexes[i] = i;
-			Array.Sort(keys, indexes, comparer);
+			var keysArray = ArrayPool<string>.Shared.Rent(count);
+			items.Keys.CopyTo(keysArray, 0);
+			var keys = keysArray.AsSpan(0, count);
+
+			var indexesArray = ArrayPool<int>.Shared.Rent(count);
+			var indexes = indexesArray.AsSpan(0, count);
+			for (int i = 0; i < indexes.Length; i++)
+			{
+				indexes[i] = i;
+			}
+
+			keys.Sort(indexes, comparer);
 
 			if (!changed)
 			{
@@ -3521,10 +3529,17 @@ namespace Doxense.Serialization.Json
 				{
 					result[keys[i]] = values[indexes[i]];
 				}
-				return true;
 			}
 
-			return false;
+			// return the buffers to the pool
+			indexes.Clear();
+			ArrayPool<int>.Shared.Return(indexesArray);
+			keys.Clear();
+			ArrayPool<string>.Shared.Return(keysArray);
+			values.Clear();
+			ArrayPool<JsonValue>.Shared.Return(valuesArray);
+
+			return changed;
 		}
 
 		/// <summary>Order the keys of this object</summary>
