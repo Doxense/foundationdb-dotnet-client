@@ -131,13 +131,13 @@ namespace Doxense.Serialization.Json.Binary
 				this.BaseAddress = GetBaseAddress(header);
 			}
 
-			private readonly ReadOnlySpan<byte> Data;
+			public readonly ReadOnlySpan<byte> Data;
 
-			private readonly uint Header; // 4 flags + 28 bit count
+			public readonly uint Header; // 4 flags + 28 bit count
 
 			/// <summary>Offset (relative to the container) where the data starts (items, or key+values)</summary>
 			/// <remarks>If this is an Hashed Object, points directly to after the hashmap/idxmap</remarks>
-			private readonly int BaseAddress;
+			public readonly int BaseAddress;
 
 			public int Count
 			{
@@ -200,7 +200,7 @@ namespace Doxense.Serialization.Json.Binary
 			public void GetContainerEntry(int index, int numEntries, out JValue result)
 			{
 				// les données démarrent juste après les children
-				if (index < 0 || index >= numEntries) throw ThrowHelper.ArgumentOutOfRangeIndex(index);
+				if ((uint) index >= numEntries) throw ThrowHelper.ArgumentOutOfRangeIndex(index);
 
 				int offset = GetJsonbOffset(index);
 				int len = GetJsonbLength(index, offset);
@@ -269,11 +269,10 @@ namespace Doxense.Serialization.Json.Binary
 				int offset = 0;
 				if (index > 0)
 				{
-					var data = Data;
-					int ptr = checked(JCONTAINER_CHILDREN_OFFSET + (index - 1) * JENTRY_SIZEOF);
+					ref byte ptr = ref Unsafe.AsRef(in this.Data[checked(JCONTAINER_CHILDREN_OFFSET + (index - 1) * JENTRY_SIZEOF)]);
 					for (int i = index - 1; i >= 0; i--)
 					{
-						uint value = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(ptr));
+						uint value = UnsafeHelpers.ReadUInt32LE(in ptr);
 						int len = GetEntryOffsetOrLength(value);
 						offset = checked(offset + len);
 						if (GetEntryHasOffset(value))
@@ -281,7 +280,7 @@ namespace Doxense.Serialization.Json.Binary
 							break;
 						}
 
-						ptr -= JENTRY_SIZEOF;
+						ptr = ref Unsafe.Add(ref ptr, -JENTRY_SIZEOF);
 					}
 				}
 				return offset;
@@ -391,13 +390,127 @@ namespace Doxense.Serialization.Json.Binary
 				throw new InvalidOperationException("Invalid jsonb container");
 			}
 
+			private static int ReadIndexFromTable(int p, ReadOnlySpan<byte> table, int hashIdxLen)
+			{
+				switch (hashIdxLen)
+				{
+					case 1:
+					{
+						return table[p];
+					}
+					case 2:
+					{
+						return BinaryPrimitives.ReadUInt16LittleEndian(table.Slice(p * 2));
+					}
+					default:
+					{
+						var s = table.Slice(p * 3);
+						return s[0] | (s[1] << 8) | (s[2] << 16);
+					}
+				}
+			}
+
 			public bool GetEntryByName(scoped JLookupKey key, out JValue value)
 			{
-				if (!this.IsObject) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an object.");
+				if (!this.IsObject)
+				{
+					throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an object.");
+				}
 
 				var data = this.Data;
 				int numPairs = this.Count;
-				if (data.Length < 4 + numPairs * 2 * 4) throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
+				if (data.Length < 4 + numPairs * 2 * 4)
+				{
+					throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
+				}
+
+				if (IsHashed)
+				{
+					return GetEntryByNameHashed(key, out value);
+				}
+				else
+				{
+					return GetEntryByNameNonHashed(key, out value);
+				}
+			}
+
+			private bool GetEntryByNameHashed(scoped JLookupKey key, out JValue value)
+			{
+				var data = this.Data;
+				int numPairs = this.Count;
+
+				// the keys range from 0 to numPairs - 1
+
+				int childrenOffset = JCONTAINER_CHILDREN_OFFSET;
+
+				int entriesSize = checked(numPairs * 2 * JENTRY_SIZEOF);
+
+				// the size of the index depends on the number of items
+				int hashIdxLen = GetIndexMapStride(numPairs);
+				int hashMapSize = checked(numPairs * (4 + hashIdxLen)); // 32 bit hashcode + index per entry
+
+				int hashesOffset = childrenOffset + entriesSize;
+
+				var hashTable = data.Slice(hashesOffset, hashMapSize);
+				var hashes = MemoryMarshal.Cast<byte, int>(hashTable.Slice(0, numPairs * 4));
+				var indexes = hashTable.Slice(numPairs * 4);
+
+				// look for the index in the table!
+
+				var hash = ComputeKeyHash(key.Bytes);
+
+				int p = hashes.BinarySearch(hash);
+				if (p < 0 || p >= hashes.Length)
+				{ // no key found with the hash
+					value = default;
+					return false;
+				}
+
+				// if there are hash collisions, the binary search may not land on the very first, so we may need to move back a little bit
+				// ex: 1 2 3 4 5 5 5 5 5 6 7 8 9
+				//                 ^------------ binary search could land here when serach for '5'
+				//             ^---------------- we need to move to the left until we reach here!
+				while (p > 0 && hashes[p - 1] == hash)
+				{
+					--p;
+				}
+
+				while (p < hashes.Length)
+				{
+					int index = ReadIndexFromTable(p, indexes, hashIdxLen);
+
+					int offset = GetJsonbOffset(index);
+					int len = GetJsonbLength(index, offset);
+
+					int childOffset = checked(JCONTAINER_CHILDREN_OFFSET + index * JENTRY_SIZEOF);
+					uint entry = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(childOffset));
+
+					GetEntryAt(index, entry, offset, len, out var result);
+
+					if (result.Equals(key))
+					{
+						// match
+						GetContainerEntry(index + numPairs, numPairs * 2, out value);
+						return true;
+					}
+
+					// we may need to scan the next hash if it is the same
+					if (p + 1 >= numPairs || hashes[p + 1] != hash)
+					{ // reached the end, or a differnt hash
+						break;
+					}
+
+					++p;
+				}
+				// no match
+				value = default;
+				return false;
+			}
+
+			private bool GetEntryByNameNonHashed(scoped JLookupKey key, out JValue value)
+			{
+				var data = this.Data;
+				int numPairs = this.Count;
 
 				// the keys range from 0 to numPairs - 1
 
@@ -720,6 +833,50 @@ namespace Doxense.Serialization.Json.Binary
 				// => still faster than allocating a string!
 
 				return TextEqualsHelper(Value, text);
+			}
+
+			[Pure]
+			[return: NotNullIfNotNull(nameof(missing))]
+			public TValue? As<TValue>(TValue? missing = default)
+			{
+				if (default(TValue) is null)
+				{ // ref type or Nulable<T> !
+
+					if (typeof(TValue) == typeof(bool?)) return TryReadAsBoolean(out var x) ? (TValue?) (object?) x : missing;
+					if (typeof(TValue) == typeof(int?)) return TryReadAsInteger(out var x) ? (TValue?) (object?) checked((int) x) : missing;
+					if (typeof(TValue) == typeof(long?)) return TryReadAsInteger(out var x) ? (TValue?) (object?) x : missing;
+					if (typeof(TValue) == typeof(float?)) return TryReadAsDecimal(out var x) ? (TValue?) (object?) (float) x : missing;
+					if (typeof(TValue) == typeof(double?)) return TryReadAsDecimal(out var x) ? (TValue?) (object?) x : missing;
+					if (typeof(TValue) == typeof(Guid?)) return TryReadAsUuid128(out var x) ? (TValue?) (object?) x : missing;
+					if (typeof(TValue) == typeof(Uuid128?)) return TryReadAsUuid128(out var x) ? (TValue?) (object?) x : missing;
+
+					if (typeof(TValue) == typeof(string))
+					{
+						return TryReadAsString(null, out var x) ? (TValue?) (object?) x : missing;
+					}
+
+					if (typeof(TValue) == typeof(JsonValue))
+					{
+						var json = ToJsonValue(null);
+						return !json.IsNullOrMissing() ? (TValue) (object) json : missing is null ? (TValue) (object) JsonNull.Missing : missing;
+					}
+				}
+				else
+				{ // value type!
+
+					if (typeof(TValue) == typeof(bool)) return TryReadAsBoolean(out var x) ? (TValue) (object) x : missing;
+					if (typeof(TValue) == typeof(int)) return TryReadAsInteger(out var x) ? (TValue) (object) checked((int) x) : missing;
+					if (typeof(TValue) == typeof(long)) return TryReadAsInteger(out var x) ? (TValue) (object) x : missing;
+					if (typeof(TValue) == typeof(float)) return TryReadAsDecimal(out var x) ? (TValue) (object) (float) x : missing;
+					if (typeof(TValue) == typeof(double)) return TryReadAsDecimal(out var x) ? (TValue) (object) x : missing;
+					if (typeof(TValue) == typeof(Guid)) return TryReadAsUuid128(out var x) ? (TValue) (object) x : missing;
+					if (typeof(TValue) == typeof(Uuid128)) return TryReadAsUuid128(out var x) ? (TValue) (object) x : missing;
+				}
+
+				if (this.Type == JType.Null) return missing;
+
+				//OH NOES!
+				return ToJsonValue(null).As(missing);
 			}
 
 			public bool ValueEquals<TValue>(TValue? value)
@@ -1165,6 +1322,43 @@ namespace Doxense.Serialization.Json.Binary
 
 		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		public static TValue? Get<TValue>(Slice buffer, string path, TValue? missing = default)
+			=> buffer.Count != 0 && JDocument.Parse(buffer.Span).TryLookup(JsonPath.Create(path), out var j) ? j.As(missing) : missing;
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		public static TValue? Get<TValue>(Slice buffer, JsonPath path, TValue? missing = default)
+			=> buffer.Count != 0 && JDocument.Parse(buffer.Span).TryLookup(path, out var j) ? j.As(missing) : missing;
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		public static TValue? Get<TValue>(Slice buffer, JLookupSelector selector, TValue? missing = default)
+			=> buffer.Count != 0 && JDocument.Parse(buffer.Span).TryLookup(selector, out var j) ? j.As(missing) : missing;
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		public static TValue? Get<TValue>(ReadOnlySpan<byte> buffer, string path, TValue? missing = default)
+			=> buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(JsonPath.Create(path), out var j) ? j.As(missing) : missing;
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		public static TValue? Get<TValue>(ReadOnlySpan<byte> buffer, JsonPath path, TValue? missing = default)
+			=> buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) ? j.As(missing) : missing;
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		public static TValue? Get<TValue>(ReadOnlySpan<byte> buffer, JLookupSelector selector, TValue? missing = default)
+			=> buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(selector, out var j) ? j.As(missing) : missing;
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
 		public static bool Test<TValue>(Slice buffer, string path, TValue? value)
 			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(JsonPath.Create(path), out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
@@ -1176,12 +1370,25 @@ namespace Doxense.Serialization.Json.Binary
 		public static bool Test<TValue>(Slice buffer, JLookupSelector selector, TValue? value)
 			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(selector, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		public static bool Test<TValue>(ReadOnlySpan<byte> buffer, string path, TValue? value)
+			=> buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(JsonPath.Create(path), out var j) ? j.ValueEquals(value) : value is null or JsonNull);
+
+		[Pure]
+		public static bool Test<TValue>(ReadOnlySpan<byte> buffer, JsonPath path, TValue? value)
+			=> buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(path, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
+
+		[Pure]
+		public static bool Test<TValue>(ReadOnlySpan<byte> buffer, JLookupSelector selector, TValue? value)
+			=> buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(selector, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
+
 		/// <summary>Encodes a <see cref="JsonValue"/> into a jsonb binary blob</summary>
-		public static Slice Encode(JsonValue value, int capacity = 0)
+		public static Slice Encode(JsonValue value, JsonbWriterOptions options = default) //TODO: options!
 		{
 			Contract.NotNull(value);
 
-			using (var writer = new Writer(capacity <= 0 ? 4096 : capacity))
+			using (var writer = new Writer(options))
 			{
 				writer.WriteDocument(value);
 				return writer.GetBuffer();
@@ -1189,11 +1396,11 @@ namespace Doxense.Serialization.Json.Binary
 		}
 
 		/// <summary>Encodes a <see cref="JsonValue"/> into a jsonb binary blob</summary>
-		public static Slice Encode(JsonValue value, [NotNull] ref byte[]? buffer, int capacity = 0)
+		public static Slice Encode(JsonValue value, [NotNull] ref byte[]? buffer, JsonbWriterOptions options = default) //TODO: options!
 		{
 			Contract.NotNull(value);
 
-			using (var writer = new Writer(capacity <= 0 ? 4096 : capacity, buffer))
+			using (var writer = new Writer(options, buffer))
 			{
 				writer.WriteDocument(value);
 				var res = writer.GetBuffer();
@@ -1253,12 +1460,19 @@ namespace Doxense.Serialization.Json.Binary
 			const int HEADER_SIZE = 4;
 
 			private SliceWriter m_output;
+
+			private readonly int m_hashingThreshold;
+
 			//TODO: OPTIMZE: use a buffer pool?
 
-			public Writer(int capacity, byte[]? buffer = null)
+			public Writer(JsonbWriterOptions options, byte[]? buffer = null)
 			{
+				int capacity = options.Capacity ?? 0;
+				if (capacity <= 0) capacity = JsonbWriterOptions.DefaultCapacity;
+
 				buffer = buffer?.Length >= capacity ? buffer : new byte[capacity];
 				m_output = new SliceWriter(buffer);
+				m_hashingThreshold = options.HashingThreshold ?? JsonbWriterOptions.DefaultHashingThreshold;
 			}
 
 			public Writer(SliceWriter buffer)
@@ -1486,7 +1700,7 @@ namespace Doxense.Serialization.Json.Binary
 			{
 				int baseOffset = m_output.Position;
 
-				// An object is the equivalent of KeyValuePair<K,V>[] array, but is stored as deux arrays: one for the keys, followed by another for the values:
+				// An object is the equivalent of KeyValuePair<K,V>[] array, but is stored as two arrays: one for the keys, followed by another for the values:
 				// Object ~= Array<Pair<K,V>> => [ K0, K1, ..., KN-1, V0, V1, ..., VN-1 ]
 
 				// The maximum number of elements in an object is 2^24 - 1.
@@ -1501,8 +1715,8 @@ namespace Doxense.Serialization.Json.Binary
 				int numPairs = map.Count;
 				if ((uint) numPairs >= (1 << 24)) throw FailContainerTooManyElements(); // max 16 777 215 keys per object!
 
-				// objects with 8 elements or more also specify hashcode for each key
-				bool hashed = (numPairs >= 8);
+				// objects with 20 elements or more also specify hashcode for each key
+				bool hashed = numPairs >= m_hashingThreshold;
 				int hashIdxLen = 0, hashMapSize = 0;
 				if (hashed)
 				{
@@ -1539,11 +1753,14 @@ namespace Doxense.Serialization.Json.Binary
 
 				//TODO: OPTIMIZE: could we order the hash+idx "in place"
 				// => for now, we use Array.Sort(..) to sort the array of the array of hashes and indexes separately, so we need two arrays :(
-				int[]? hashes = null, indexes = null;
+				int[]? hashBuffer = null;
+				Span<int> hashes = default;
+				Span<int> indexes = default;
 				if (hashed)
 				{
-					hashes = ArrayPool<int>.Shared.Rent(numPairs);
-					indexes = ArrayPool<int>.Shared.Rent(numPairs);
+					hashBuffer = ArrayPool<int>.Shared.Rent(checked(numPairs * 2));
+					hashes = hashBuffer.AsSpan(0, numPairs);
+					indexes = hashBuffer.AsSpan(numPairs, numPairs);
 				}
 
 				// first copy all the keys
@@ -1559,7 +1776,7 @@ namespace Doxense.Serialization.Json.Binary
 					// compute the hashcode
 					if (hashed)
 					{
-						hashes![index] = StringTable.Hash.GetFnvHashCode(normalizedKey.AsSpan());
+						hashes[index] = ComputeKeyHash(normalizedKey.AsSpan());
 					}
 
 					//note: the source is any JsonObject arbitraire, which can contain UTF-8
@@ -1604,57 +1821,60 @@ namespace Doxense.Serialization.Json.Binary
 				// order+store the hashmap (optional)
 				if (hashed)
 				{
-					Contract.Debug.Assert(hashes != null && indexes != null);
+					Contract.Debug.Assert(hashes.Length > 0);
 
 					m_output.EnsureOffsetAndSize(hashesOffset, hashMapSize);
 
 					// sort the hashes (and idxmap)
-					for (int i = 0; i < numPairs; i++) indexes[i] = i;
-					Array.Sort(hashes, indexes, 0, numPairs, null);
-
-					// hashes (32 bits / entry)
-					var hashSpan = hashes.AsSpan(0, numPairs);
-					foreach(var h in hashSpan)
+					for (int i = 0; i < indexes.Length; i++)
 					{
-						m_output.PatchInt32(hashesOffset, h);
-						hashesOffset += 4;
+						indexes[i] = i;
 					}
 
-					var indexRange = indexes.AsSpan(0, numPairs);
+					hashes.Sort(indexes);
+
+					var spanHashes = m_output.ToSpan().Slice(hashesOffset, hashMapSize);
+					ref byte ptrHashes = ref MemoryMarshal.GetReference(spanHashes);
+
+					// hashes (32 bits / entry)
+					foreach(var h in hashes)
+					{
+						//m_output.PatchInt32(hashesOffset, h);
+						//hashesOffset += 4;
+						UnsafeHelpers.WriteInt32LE(ref ptrHashes, h);
+						ptrHashes = ref Unsafe.Add(ref ptrHashes, 4);
+					}
 
 					// idxmap (8-16-24 bits / entry)
 					switch (hashIdxLen)
 					{
 						case 1:
 						{
-							var array = m_output.GetBufferUnsafe();
-							foreach(var idx in indexRange)
+							foreach(var idx in indexes)
 							{
-								array[hashesOffset++] = (byte) idx;
+								//array[hashesOffset++] = (byte) idx;
+								ptrHashes = (byte) idx;
+								ptrHashes = ref Unsafe.Add(ref ptrHashes, 1);
+
 							}
 							break;
 						}
 						case 2:
 						{
-							var array = m_output.GetBufferUnsafe();
-							foreach(var idx in indexRange)
+							foreach(var idx in indexes)
 							{
-								array[hashesOffset] = (byte) idx;
-								array[hashesOffset + 1] = (byte) (idx >> 8);
-								hashesOffset += 2;
+								UnsafeHelpers.WriteUInt16LE(ref ptrHashes, (ushort) idx);
+								ptrHashes = ref Unsafe.Add(ref ptrHashes, 2);
 							}
 							break;
 						}
 						default:
 						{
 							Contract.Debug.Assert(hashIdxLen == 3);
-							var array = m_output.GetBufferUnsafe();
-							foreach(var idx in indexRange)
+							foreach(var idx in indexes)
 							{
-								array[hashesOffset] = (byte) idx;
-								array[hashesOffset + 1] = (byte) (idx >> 8);
-								array[hashesOffset + 2] = (byte) (idx >> 16);
-								hashesOffset += 3;
+								UnsafeHelpers.WriteInt24LE(ref ptrHashes, idx);
+								ptrHashes = ref Unsafe.Add(ref ptrHashes, 3);
 							}
 							break;
 						}
@@ -1663,10 +1883,15 @@ namespace Doxense.Serialization.Json.Binary
 
 				// update the total size (including all padding)
 				totalLen = m_output.Position - baseOffset;
-				if ((uint) totalLen > JENTRY_OFFLENMASK) throw FailContainerSizeTooBig();
+				if ((uint) totalLen > JENTRY_OFFLENMASK)
+				{
+					throw FailContainerSizeTooBig();
+				}
 
-				if (indexes != null) ArrayPool<int>.Shared.Return(indexes);
-				if (hashes != null) ArrayPool<int>.Shared.Return(hashes);
+				if (hashBuffer != null)
+				{
+					ArrayPool<int>.Shared.Return(hashBuffer);
+				}
 
 				//TODO: ajouter le flag HASHED !!!!
 				return JENTRY_TYPE_CONTAINER | (uint) totalLen;
@@ -1772,6 +1997,16 @@ namespace Doxense.Serialization.Json.Binary
 
 		#region Decoding Helpers...
 
+		private static int ComputeKeyHash(ReadOnlySpan<char> key)
+		{
+			return StringTable.Hash.GetFnvHashCode(key);
+		}
+
+		private static int ComputeKeyHash(ReadOnlySpan<byte> key)
+		{
+			return StringTable.Hash.GetFnvHashCode(key, out _);
+		}
+
 		internal static bool TextEqualsHelper(ReadOnlySpan<byte> token, ReadOnlySpan<char> text)
 		{
 			if (token.Length == 0) return text.Length == 0;
@@ -1797,7 +2032,7 @@ namespace Doxense.Serialization.Json.Binary
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool Fits(ReadOnlySpan<byte> data, int offset, int count)
 		{
-			return checked(offset + count) <= data.Length;
+			return (ulong) (uint) offset + (ulong) (uint) count <= (ulong) (uint) data.Length;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1896,6 +2131,28 @@ namespace Doxense.Serialization.Json.Binary
 		}
 
 		#endregion
+
+	}
+
+	public struct JsonbWriterOptions
+	{
+
+		public const int DefaultCapacity = 4096;
+
+		public const int DefaultHashingThreshold = 20;
+
+		/// <summary>Initial capacity (in bytes) allocated for the output buffer</summary>
+		/// <remarks>
+		/// <para>It is best to slightly overestimate the required size, since undershooting by even 1 byte would trigger an extra resize that would waste up to 50% of the allocated memory.</para></remarks>
+		public int? Capacity { get; set; }
+
+		/// <summary>All object with at least this number of elements will be hashed</summary>
+		/// <remarks>
+		/// <para>Object with an embedded hash table are faster when performing random key lookups, but will take more space (about 5 to 6 bytes per entry)</para>
+		/// <para>Since computing the hashcode as some overhead, this can be slower for small object. Empirical testing shows that the cross-over point for performance is around 20 items.</para>
+		/// <para>To completly disable hashing, set this value to <see cref="int.MaxValue"/>. To force hashing for all objects, set this value to <see langword="0"/></para>
+		/// </remarks>
+		public int? HashingThreshold { get; set; }
 
 	}
 

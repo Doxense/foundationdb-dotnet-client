@@ -31,15 +31,28 @@
 namespace Doxense.Serialization.Json.Binary.Tests
 {
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO.Compression;
 	using System.Linq;
+	using Doxense.Mathematics.Statistics;
+	using Doxense.Runtime;
 
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
+	[SetInvariantCulture]
 	public class JsonbTest : SimpleTest
 	{
+
+		static JsonbTest()
+		{
+			PlatformHelpers.PreJit(typeof(Jsonb));
+
+			try { _ = Jsonb.Decode(Jsonb.Encode(JsonObject.Create([ ("Hello", "World"), ("Foo", 123) ]))); }
+			// ReSharper disable once EmptyGeneralCatchClause
+			catch { }
+		}
 
 		private void VerifyRoundtrip(JsonValue value)
 		{
@@ -414,6 +427,92 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				Ten = 10,
 			}));
 
+		}
+
+		[Test]
+		public void Bench_Select_Objects_Hashed()
+		{
+			// verify that large object (with a lot of fields) are stored with a hashtable, that can be used to speed up future lookups
+#if DEBUG
+			const int RUNS = 3;
+			const int ITERATIONS = 100;
+#else
+			const int RUNS = 10;
+			const int ITERATIONS = 2_000;
+#endif
+
+			var rnd = new Random(123456);
+			var randomIds = Enumerable.Range(0, 1_000).Select(i => (Key: $"AAAAAAAAAAAAAAAAAA_{Guid.NewGuid()}_{rnd.Next():X}_{i}", Value: i)).ToArray();
+
+			RobustHistogram histo = new();
+			var min = histo.FromNanoseconds(100); // It is very unlikely to take less than 100ns to perform a lookup!
+
+			// perform a warmup run, so that the Tiered JIT does not interfer with us!
+			{
+				Log("Warming up...");
+				var tmp = PackObject(randomIds.AsSpan(0, 50), true);
+				for (int i = 0; i < 10; i++)
+				{
+					RunIteration(randomIds.AsSpan(0, 50), tmp, histo);
+					System.Threading.Thread.Sleep(25);
+				}
+				tmp = PackObject(randomIds.AsSpan(0, 50), false);
+				for (int i = 0; i < 10; i++)
+				{
+					RunIteration(randomIds.AsSpan(0, 50), tmp, histo);
+					System.Threading.Thread.Sleep(25);
+				}
+				Log("Ready to rumble!");
+			}
+
+			foreach(bool disableHashing in (bool[]) [ true, false ])
+			foreach (int numFields in (int[]) [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 22, 25, 33, 50, 66, 75, 100, 120, 150, 200, 250, 333, 500, 666, 750, 1_000 ])
+			{
+				rnd = new Random(123456);
+
+				var ids = randomIds.AsSpan(0, numFields).ToArray();
+				var packed = PackObject(ids, disableHashing);
+				Shuffle(rnd, ids);
+
+				histo.Clear();
+				for (int k = 0; k < RUNS; k++)
+				{
+					RunIteration(ids, packed, histo);
+				}
+				Log($"║ N={numFields,5} | SZ={packed.Count,7:N0} | {(disableHashing ? "NO_HASH" : "HASH   ")} ║ P05={histo.ToNanoseconds(histo.Percentile(5)),10:N1} ns | MED={histo.ToNanoseconds(histo.Median),10:N1} ns | P95={histo.ToNanoseconds(histo.Percentile(95)),10:N1} ns ║ {histo.GetDistribution(begin: min, end: 2_000)} ║");
+
+			}
+
+			static Slice PackObject(ReadOnlySpan<(string, int)> ids, bool noHash)
+			{
+				var obj = JsonObject.FromValues(ids);
+
+				return Jsonb.Encode(obj, new JsonbWriterOptions() { HashingThreshold = noHash ? int.MaxValue : 0 });
+			}
+
+			static void RunIteration(ReadOnlySpan<(string Key, int Value)> items, Slice packed, RobustHistogram histo)
+			{
+				var sw = new Stopwatch();
+				for (int i = 0; i < ITERATIONS; i++)
+				{
+					int idx = i % items.Length;
+					var k = items[idx].Key;
+					sw.Restart();
+					// we have an issue where it is "too fast" in Release and the stopwatch may or may not have enough precision pour measure the time taken
+					int x = Jsonb.Get<int>(packed, k, -1);
+					//int y = Jsonb.Get<int>(packed, k, x);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					histo.Add(sw.Elapsed);
+					if (x != idx) Assert.That(x, Is.EqualTo(items[idx].Value), "Found the wrong field!");
+				}
+			}
 		}
 
 		[Test, Category("Benchmark")]
