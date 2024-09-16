@@ -3070,28 +3070,28 @@ namespace Doxense.Serialization.Json
 			return (obj) => Project(obj, projections, removeFromSource);
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="fields">Liste des noms des champs à conserver</param>
-		/// <param name="keepMissing">Si false, les champs projetés qui n'existent pas dans l'objet source ne seront pas présent dans le résultat. Si true, les champs seront présents dans le résultat avec une valeur à 'null'</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
+		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
+		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
 		public JsonObject Pick(ReadOnlySpan<string> fields, bool keepMissing = false)
 		{
 			return Project(this, CheckProjectionFields(fields, keepMissing));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="fields">Liste des noms des champs à conserver</param>
-		/// <param name="keepMissing">Si false, les champs projetés qui n'existent pas dans l'objet source ne seront pas présent dans le résultat. Si true, les champs seront présents dans le résultat avec une valeur à 'null'</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
+		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
+		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
 		public JsonObject Pick(string[] fields, bool keepMissing = false)
 		{
 			return Project(this, CheckProjectionFields(fields, keepMissing));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="fields">Liste des noms des champs à conserver</param>
-		/// <param name="keepMissing">Si false, les champs projetés qui n'existent pas dans l'objet source ne seront pas présent dans le résultat. Si true, les champs seront présents dans le résultat avec une valeur à 'null'</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="fields"/></returns>
+		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
+		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
 		public JsonObject Pick(IEnumerable<string> fields, bool keepMissing = false)
 		{
 			return Project(this, CheckProjectionFields(fields as string[] ?? fields.ToArray(), keepMissing));
@@ -3114,8 +3114,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
-		/// <param name="keys">Liste de nom de champs à projeter</param>
-		/// <param name="keepMissing"></param>
+		/// <param name="keys">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMissing">If <see langword="true"/>, any field missing from the object will be present with value <see cref="JsonNull.Missing"/>; otherwise, they will be omitted.</param>
 		[ContractAnnotation("keys:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionFields(ReadOnlySpan<string> keys, bool keepMissing)
 		{
@@ -3635,22 +3635,8 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			// le hashcode de l'objet ne doit pas changer meme s'il est modifié (sinon on casse les hashtables!)
+			// the hashcode must NEVER change, even if the object is mutated!
 			return RuntimeHelpers.GetHashCode(this);
-
-			//TODO: si on jour on gère les Read-Only dictionaries, on peut utiliser ce code
-			//// on n'est pas obligé de calculer le hash code de tous les éléments de l'objet!
-			//var items = m_items;
-			//int h = 17;
-			//int n = 4;
-			//foreach(var kvp in items)
-			//{
-			//	h = (h * 31) + kvp.Key.GetHashCode();
-			//	h = (h * 31) + kvp.Value.GetHashCode();
-			//	if (n-- == 0) break;
-			//}
-			//h ^= items.Count;
-			//return h;
 		}
 
 		public override int CompareTo(JsonValue? other)

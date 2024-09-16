@@ -54,6 +54,7 @@
 // ReSharper disable FieldCanBeMadeReadOnly.Local
 // ReSharper disable ConvertToConstant.Local
 // ReSharper disable ConvertToAutoProperty
+// ReSharper disable VariableLengthStringHexEscapeSequence
 #pragma warning disable JSON001
 #pragma warning disable IDE0044
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -505,13 +506,13 @@ namespace Doxense.Serialization.Json.Tests
 			#region String-like
 
 			// WriteValue(string)
-			Assert.That(Execute((w) => w.WriteValue(default(string))), Is.EqualTo(@"null"));
+			Assert.That(Execute((w) => w.WriteValue(default(string))), Is.EqualTo("null"));
 			Assert.That(Execute((w) => w.WriteValue("")), Is.EqualTo(@""""""));
 			Assert.That(Execute((w) => w.WriteValue("Hello, World!")), Is.EqualTo(@"""Hello, World!"""));
 			Assert.That(Execute((w) => w.WriteValue("Hello, \"World\"!")), Is.EqualTo(@"""Hello, \""World\""!"""));
 			Assert.That(Execute((w) => w.WriteValue("\\o/")), Is.EqualTo(@"""\\o/"""));
 			// WriteValue(StringBuilder)
-			Assert.That(Execute((w) => w.WriteValue(default(StringBuilder))), Is.EqualTo(@"null"));
+			Assert.That(Execute((w) => w.WriteValue(default(StringBuilder))), Is.EqualTo("null"));
 			Assert.That(Execute((w) => w.WriteValue(new StringBuilder())), Is.EqualTo(@""""""));
 			Assert.That(Execute((w) => w.WriteValue(new StringBuilder().Append("Hello, ").Append("World!"))), Is.EqualTo(@"""Hello, World!"""));
 			Assert.That(Execute((w) => w.WriteValue(new StringBuilder().Append("Hello, ").Append("\"World\"!"))), Is.EqualTo(@"""Hello, \""World\""!"""));
@@ -525,7 +526,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute((w) => w.WriteValue("***Hello, \"World\"!***".AsMemory(3, 15))), Is.EqualTo(@"""Hello, \""World\""!"""));
 
 			// WriteValue(Guid)
-			Assert.That(Execute((w) => w.WriteValue(default(Guid))), Is.EqualTo(@"null")); // Guid.Empty is mapped to null/missing
+			Assert.That(Execute((w) => w.WriteValue(default(Guid))), Is.EqualTo("null")); // Guid.Empty is mapped to null/missing
 			Assert.That(Execute((w) => w.WriteValue(Guid.Parse("8d6643a7-a84d-4eab-8394-0b349798bee2"))), Is.EqualTo(@"""8d6643a7-a84d-4eab-8394-0b349798bee2"""));
 			Assert.That(Execute((w) => w.WriteValue((Guid?) Guid.Parse("8d6643a7-a84d-4eab-8394-0b349798bee2"))), Is.EqualTo(@"""8d6643a7-a84d-4eab-8394-0b349798bee2"""));
 
@@ -629,13 +630,13 @@ namespace Doxense.Serialization.Json.Tests
 			#region String-like
 
 			// string
-			Assert.That(Execute((w) => w.WriteField("foo", default(string))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute((w) => w.WriteField("foo", default(string))), Is.EqualTo("{ }"));
 			Assert.That(Execute((w) => w.WriteField("foo", "")), Is.EqualTo(@"{ ""foo"": """" }"));
 			Assert.That(Execute((w) => w.WriteField("foo", "Hello, World!")), Is.EqualTo(@"{ ""foo"": ""Hello, World!"" }"));
 			Assert.That(Execute((w) => w.WriteField("foo", "Hello, \"World\"!")), Is.EqualTo(@"{ ""foo"": ""Hello, \""World\""!"" }"));
 			Assert.That(Execute((w) => w.WriteField("foo", "\\o/")), Is.EqualTo(@"{ ""foo"": ""\\o/"" }"));
 			// StringBuilder
-			Assert.That(Execute((w) => w.WriteField("foo", default(StringBuilder))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute((w) => w.WriteField("foo", default(StringBuilder))), Is.EqualTo("{ }"));
 			Assert.That(Execute((w) => w.WriteField("foo", new StringBuilder())), Is.EqualTo(@"{ ""foo"": """" }"));
 			Assert.That(Execute((w) => w.WriteField("foo", new StringBuilder().Append("Hello, ").Append("World!"))), Is.EqualTo(@"{ ""foo"": ""Hello, World!"" }"));
 			Assert.That(Execute((w) => w.WriteField("foo", new StringBuilder().Append("Hello, ").Append("\"World\"!"))), Is.EqualTo(@"{ ""foo"": ""Hello, \""World\""!"" }"));
@@ -658,7 +659,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.That(Execute(w => w.WriteField("foo", true)), Is.EqualTo(@"{ ""foo"": true }"));
 			Assert.That(Execute(w => w.WriteField("foo", false)), Is.EqualTo(@"{ ""foo"": false }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(bool?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(bool?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (bool?) true)), Is.EqualTo(@"{ ""foo"": true }"));
 			Assert.That(Execute(w => w.WriteField("foo", (bool?) false)), Is.EqualTo(@"{ ""foo"": false }"));
 
@@ -682,21 +683,21 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(Execute(w => w.WriteField("foo", Math.PI)), Is.EqualTo(@"{ ""foo"": 3.141592653589793 }"));
 			Assert.That(Execute(w => w.WriteField("foo", (float) Math.PI)), Is.EqualTo(@"{ ""foo"": 3.1415927 }"));
 
-			Assert.That(Execute(w => w.WriteField("foo", default(int?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(int?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (int?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(uint?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(uint?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (uint?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(long?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(long?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (long?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(ulong?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(ulong?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (ulong?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(float?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(float?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (float?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(double?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(double?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (double?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(decimal?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(decimal?))), Is.EqualTo("{ }"));
 			Assert.That(Execute(w => w.WriteField("foo", (decimal?) 42)), Is.EqualTo(@"{ ""foo"": 42 }"));
-			Assert.That(Execute(w => w.WriteField("foo", default(Half?))), Is.EqualTo(@"{ }"));
+			Assert.That(Execute(w => w.WriteField("foo", default(Half?))), Is.EqualTo("{ }"));
 
 #if NET8_0_OR_GREATER
 			Assert.That(Execute(w => w.WriteField("foo", (Half) Math.PI)), Is.EqualTo(@"{ ""foo"": 3.14 }"));
@@ -707,7 +708,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Combo...
 
-			Assert.That(Execute((w) => { }), Is.EqualTo(@"{ }"));
+			Assert.That(Execute((w) => { }), Is.EqualTo("{ }"));
 
 			Assert.That(Execute((w) =>
 			{
@@ -902,11 +903,11 @@ namespace Doxense.Serialization.Json.Tests
 
 				int x = rnd.Next() * (rnd.Next(2) == 1 ? -1 : 1);
 				Assert.That(CrystalJson.Serialize(x), Is.EqualTo(x.ToString()));
-				Assert.That(CrystalJson.Serialize((uint)x), Is.EqualTo(((uint)x).ToString()));
+				Assert.That(CrystalJson.Serialize((uint) x), Is.EqualTo(((uint) x).ToString()));
 
 				long y = (long)x * rnd.Next() * (rnd.Next(2) == 1 ? -1L : 1L);
 				Assert.That(CrystalJson.Serialize(y), Is.EqualTo(y.ToString()));
-				Assert.That(CrystalJson.Serialize((ulong)y), Is.EqualTo(((ulong)y).ToString()));
+				Assert.That(CrystalJson.Serialize((ulong) y), Is.EqualTo(((ulong) y).ToString()));
 			}
 		}
 

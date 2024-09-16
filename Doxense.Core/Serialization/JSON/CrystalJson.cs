@@ -1197,7 +1197,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(
+		public static TValue? Deserialize<TValue>(
 #if NET8_0_OR_GREATER
 			[StringSyntax("json")]
 #endif
@@ -1217,7 +1217,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(
+		public static TValue? Deserialize<TValue>(
 #if NET8_0_OR_GREATER
 			[StringSyntax("json")]
 #endif
@@ -1262,7 +1262,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue)
+		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1277,7 +1277,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? Deserialize<TValue>(byte[] jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
@@ -1311,7 +1311,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
+		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1325,7 +1325,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
@@ -1349,7 +1349,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
+		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1363,7 +1363,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
@@ -1388,7 +1388,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
+		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
 		{
 			return Parse(jsonBytes).As(defaultValue);
 		}
@@ -1402,7 +1402,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
