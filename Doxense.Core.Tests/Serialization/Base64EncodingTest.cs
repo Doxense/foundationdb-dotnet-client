@@ -60,12 +60,10 @@ namespace Doxense.Serialization.Tests
 				Assert.That(Base64Encoding.FromBase64String("+Pn6+/z+/wA=").AsSlice(), Is.EqualTo(Slice.FromFixedU64(0xFFFEFCFBFAF9F8UL)));
 			});
 
-			int seed = Random.Shared.Next();
-			Log("Seed: " + seed);
+			var rnd = CreateRandomizer();
 
 			// generate some random data, but with first 256 bytes in ascending order
-			byte[] data = new byte[1024];
-			new Random(seed).NextBytes(data);
+			byte[] data = GetRandomData(rnd, 1024);
 			for (int i = 0; i < 256; i++) data[i] = (byte) i;
 
 			DumpHexa(data);
@@ -130,12 +128,10 @@ namespace Doxense.Serialization.Tests
 				Assert.That(Base64Encoding.FromBase64UrlString("-Pn6-_z-_wA").AsSlice(), Is.EqualTo(Slice.FromFixedU64(0xFFFEFCFBFAF9F8UL)));
 			});
 
-			int seed = Random.Shared.Next();
-			Log("Seed: " + seed);
+			var rnd = CreateRandomizer();
 
 			// generate some random data, but with first 256 bytes in ascending order
-			byte[] data = new byte[1024];
-			new Random(seed).NextBytes(data);
+			byte[] data = GetRandomData(rnd, 1024);
 			for (int i = 0; i < 256; i++) data[i] = (byte) i;
 
 			DumpHexa(data);

@@ -1396,10 +1396,101 @@ namespace SnowBank.Testing
 
 		#region Randomness...
 
+		private Random? m_rnd;
+
 		/// <summary>Returns the random generator used by this test run</summary>
-		protected Randomizer Rnd => TestContext.CurrentContext.Random;
+		protected Random Rnd
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => m_rnd ??= TestContext.CurrentContext.Random;
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			set => m_rnd = value;
+		}
+
+		protected Random CreateRandomizer(int? seed = null)
+		{
+			seed ??= new Random().Next();
+			var rnd = new Random(seed.Value);
+			Log($"# Using random seed {seed.Value}");
+			m_rnd = rnd;
+			return rnd;
+		}
+
+		protected void Shuffle<T>(T[] items) => Shuffle<T>(this.Rnd, items.AsSpan());
+
+		protected void Shuffle<T>(Span<T> items) => Shuffle<T>(this.Rnd, items);
+
+		protected static void Shuffle<T>(Random rnd, T[] items) => Shuffle(rnd, items.AsSpan());
+
+		protected static void Shuffle<T>(Random rnd, Span<T> items)
+		{
+#if NET8_0_OR_GREATER
+			rnd.Shuffle(items);
+#else
+			int length = items.Length;
+			for (int i = 0; i < length - 1; ++i)
+			{
+				int j = rnd.Next(i, length);
+				if (j != i)
+				{
+					(items[i], items[j]) = (items[j], items[i]);
+				}
+			}
+#endif
+		}
+
+		protected byte[] GetRandomData(int count) => GetRandomData(this.Rnd, count);
+
+		protected static byte[] GetRandomData(Random rnd, int count)
+		{
+			var tmp = new byte[count];
+			rnd.NextBytes(tmp);
+			return tmp;
+		}
+
+		protected Slice GetRandomSlice(int count) => GetRandomSlice(this.Rnd, count);
+
+		protected static Slice GetRandomSlice(Random rnd, int count) => Slice.Random(rnd, count);
+
+		/// <summary>Returns the next chunk with a random size</summary>
+		protected ReadOnlySpan<T> NextRandomChunk<T>(ReadOnlySpan<T> remaining, int? maxSize = null) => NextRandomChunk(this.Rnd, remaining, maxSize);
+
+		/// <summary>Returns the next chunk with a random size</summary>
+		protected static ReadOnlySpan<T> NextRandomChunk<T>(Random rnd, ReadOnlySpan<T> remaining, int? maxSize = null)
+		{
+			if (remaining.Length == 0) return default;
+
+			int sz = NextInt32(rnd, 1, Math.Min(remaining.Length, maxSize ?? remaining.Length));
+			return remaining.Slice(0, sz);
+		}
+
+		/// <summary>Returns the next chunk with a random size</summary>
+		protected Slice NextRandomChunk(Slice remaining, int? maxSize = null) => NextRandomChunk(this.Rnd, remaining, maxSize);
+
+		/// <summary>Returns the next chunk with a random size</summary>
+		protected static Slice NextRandomChunk(Random rnd, Slice remaining, int? maxSize = null)
+		{
+			if (remaining.Count == 0) return Slice.Nil;
+
+			int sz = NextInt32(rnd, 1, Math.Min(remaining.Count, maxSize ?? remaining.Count));
+			return remaining.Substring(0, sz);
+		}
 
 		#region 32-bit...
+
+		/// <summary>Returns a list of random 32-bit numbers</summary>
+		protected int[] GetRandomNumbers(int count, int min = 0, int max = int.MaxValue) => GetRandomNumbers(this.Rnd, count, min, max);
+
+		/// <summary>Returns a list of random 32-bit numbers</summary>
+		protected int[] GetRandomNumbers(Random rnd, int count, int min = 0, int max = int.MaxValue)
+		{
+			var numbers = new int[count];
+			for (int i = 0; i < numbers.Length; i++)
+			{
+				numbers[i] = rnd.Next(min, max);
+			}
+			return numbers;
+		}
 
 		/// <summary>Return a random 32-bit positive integer</summary>
 		/// <returns>Random value from <see langword="0"/> to <see langword="0xFFFFFFFFu"/> (included)</returns>
@@ -1417,15 +1508,15 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="int.MaxValue"/></summary>
 		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
-		protected int NextInt32() => NextInt32(TestContext.CurrentContext.Random);
+		protected int NextInt32() => NextInt32(this.Rnd);
 
 		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
 		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
-		protected int NextInt32(int max) => NextInt32(TestContext.CurrentContext.Random, max);
+		protected int NextInt32(int max) => NextInt32(this.Rnd, max);
 
 		/// <summary>Return a random 33-bit integer X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/>></summary>
 		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
-		protected int NextInt32(int min, int max) => NextInt32(TestContext.CurrentContext.Random, min, max);
+		protected int NextInt32(int min, int max) => NextInt32(this.Rnd, min, max);
 
 		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="int.MaxValue"/></summary>
 		/// <remarks>The result cannot be negative, and does not include <see cref="int.MaxValue"/></remarks>
@@ -1441,15 +1532,15 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random 31-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="uint.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="uint.MaxValue"/></remarks>
-		protected uint NextUInt32() => NextUInt32(TestContext.CurrentContext.Random);
+		protected uint NextUInt32() => NextUInt32(this.Rnd);
 
 		/// <summary>Return a random 32-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <paramref name="max"/></summary>
 		/// <remarks>The result does not include <paramref name="max"/></remarks>
-		protected uint NextUInt32(uint max) => NextUInt32(TestContext.CurrentContext.Random, max);
+		protected uint NextUInt32(uint max) => NextUInt32(this.Rnd, max);
 
 		/// <summary>Return a random 32-bit positive integer X, such that <paramref name="min"/> &lt;= X &lt; <paramref name="max"/></summary>
 		/// <remarks>The result does not include <paramref name="max"/></remarks>
-		protected uint NextUInt32(uint min, uint max) => NextUInt32(TestContext.CurrentContext.Random, min, max);
+		protected uint NextUInt32(uint min, uint max) => NextUInt32(this.Rnd, min, max);
 
 		/// <summary>Return a random 32-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="uint.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="uint.MaxValue"/></remarks>
@@ -1466,6 +1557,20 @@ namespace SnowBank.Testing
 		#endregion
 
 		#region 64-bit...
+
+		/// <summary>Returns a list of random 64-bit numbers</summary>
+		protected long[] GetRandomNumbers64(int count, long min = 0, long max = long.MaxValue) => GetRandomNumbers64(this.Rnd, count, min, max);
+
+		/// <summary>Returns a list of random 64-bit numbers</summary>
+		protected long[] GetRandomNumbers64(Random rnd, int count, long min = 0, long max = long.MaxValue)
+		{
+			var numbers = new long[count];
+			for (int i = 0; i < numbers.Length; i++)
+			{
+				numbers[i] = rnd.NextInt64(min, max);
+			}
+			return numbers;
+		}
 
 		/// <summary>Return a random 64-bit positive integer</summary>
 		/// <remarks>This method can return <see cref="ulong.MaxValue"/></remarks>
@@ -1491,7 +1596,7 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random 63-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="long.MaxValue"/></summary>
 		/// <remarks>The result cannot be negative, and does not include <see cref="long.MaxValue"/></remarks>
-		protected long NextInt64() => NextInt64(TestContext.CurrentContext.Random);
+		protected long NextInt64() => NextInt64(this.Rnd);
 
 		/// <summary>Return a random 63-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="long.MaxValue"/></summary>
 		/// <remarks>The result cannot be negative, and does not include <see cref="long.MaxValue"/></remarks>
@@ -1507,7 +1612,7 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random 63-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="ulong.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
-		protected ulong NextUInt64() => NextUInt64(TestContext.CurrentContext.Random);
+		protected ulong NextUInt64() => NextUInt64(this.Rnd);
 
 		/// <summary>Return a random 64-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="ulong.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
@@ -1561,7 +1666,7 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random 127-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="Int128.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="Int128.MaxValue"/></remarks>
-		protected Int128 NextInt128() => NextInt128(TestContext.CurrentContext.Random);
+		protected Int128 NextInt128() => NextInt128(this.Rnd);
 
 		/// <summary>Return a random 127-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="Int128.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="Int128.MaxValue"/></remarks>
@@ -1569,7 +1674,7 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random 128-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="UInt128.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
-		protected static UInt128 NextUInt128() => NextUInt128(TestContext.CurrentContext.Random);
+		protected UInt128 NextUInt128() => NextUInt128(this.Rnd);
 
 		/// <summary>Return a random 128-bit positive integer X, such that <see langword="0"/> &lt;= X &lt; <see cref="UInt128.MaxValue"/></summary>
 		/// <remarks>The result does not include <see cref="ulong.MaxValue"/></remarks>
@@ -1583,11 +1688,11 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random IEEE 32-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
 		/// <remarks>The result does not include <see langword="1.0"/></remarks>
-		protected float NextSingle() => NextSingle(TestContext.CurrentContext.Random);
+		protected float NextSingle() => NextSingle(this.Rnd);
 
 		/// <summary>Return a random IEEE 32-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <paramref name="max"/></summary>
 		/// <remarks>The result does not include <paramref name="max"/></remarks>
-		protected float NextSingle(float max) => NextSingle(TestContext.CurrentContext.Random, max);
+		protected float NextSingle(float max) => NextSingle(this.Rnd, max);
 
 		/// <summary>Return a random IEEE 32-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
 		/// <remarks>The result does not include <see langword="1.0"/></remarks>
@@ -1603,11 +1708,11 @@ namespace SnowBank.Testing
 
 		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
 		/// <remarks>The result does not include <see langword="1.0"/></remarks>
-		protected double NextDouble() => NextDouble(TestContext.CurrentContext.Random);
+		protected double NextDouble() => NextDouble(this.Rnd);
 
 		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <param name="max"></param></summary>
 		/// <remarks>The result does not include <see langword="1.0"/></remarks>
-		protected double NextDouble(double max) => NextDouble(TestContext.CurrentContext.Random, max);
+		protected double NextDouble(double max) => NextDouble(this.Rnd, max);
 
 		/// <summary>Return a random IEEE 64-bit floating point decimal number X, such that <see langword="0.0"/> &lt;= X &lt; <see langword="1.0"/></summary>
 		/// <remarks>The result does not include <see langword="1.0"/></remarks>
