@@ -580,17 +580,7 @@ namespace Doxense.Serialization.Json
 
 			if (type.IsEnum)
 			{ // Enum
-
-				if (!type.IsDefined(typeof(FlagsAttribute), false))
-				{ // for non-flag enums, we can use the cache
-#pragma warning disable CS0612 // Type or member is obsolete
-					return CreateCachedEnumVisitor(type);
-#pragma warning restore CS0612 // Type or member is obsolete
-				}
-				else
-				{ // for flag enums, use the slower path
-					return static (v, _, _, writer) => writer.WriteEnum((Enum) v!);
-				}
+				return static (v, _, _, writer) => writer.WriteEnum((Enum) v!);
 			}
 
 			if (type.IsGenericType)
@@ -659,13 +649,6 @@ namespace Doxense.Serialization.Json
 
 			// struct ?
 			return VisitCustomClassOrStruct;
-		}
-
-		[Obsolete]
-		private static CrystalJsonTypeVisitor CreateCachedEnumVisitor(Type type)
-		{
-			var cache = EnumStringTable.GetCacheForType(type);
-			return (v, _, _, writer) => writer.WriteEnum((Enum) v!, cache);
 		}
 
 		/// <summary>Create a visitor for enumerable types (arrays, lists, dictionaries, sets, ...)</summary>
