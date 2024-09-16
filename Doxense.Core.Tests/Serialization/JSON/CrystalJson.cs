@@ -923,7 +923,13 @@ namespace Doxense.Serialization.Json.Tests
 			JsonValue flag = true;
 			JsonValue txt = "Hello\"World";
 			JsonValue arr = JsonArray.FromValues(Enumerable.Range(1, 20));
-			JsonValue obj = new JsonObject { ["Foo"] = 123, ["Bar"] = "Narf Zort!", ["Baz"] =  JsonObject.Create("X", 1, "Y", 2, "Z", 3), ["Jazz"] = JsonArray.FromValues(Enumerable.Range(1, 5)) };
+			JsonValue obj = JsonObject.Create(
+			[
+				("Foo", 123),
+				("Bar", "Narf Zort!"),
+				("Baz", JsonObject.Create(("X", 1), ("Y", 2), ("Z", 3))),
+				("Jazz", JsonArray.FromValues(Enumerable.Range(1, 5)))
+			]);
 
 			// "D" = Default (=> ToJson)
 			Assert.That(num.ToString("D"), Is.EqualTo("123"));
@@ -1160,18 +1166,18 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonValue_GetObject()
 		{
 			var foo = JsonObject.Create();
-			var bar = JsonObject.Create("x", 1, "y", 2, "z", 3);
+			var bar = JsonObject.Create(("x", 1), ("y", 2), ("z", 3));
 			{
-				var obj = new JsonObject()
-				{
-					["foo"] = foo,
-					["bar"] = bar,
-					["baz"] = JsonNull.Null,
-					["other"] = JsonArray.Create("hello", "world"),
-					["text"] = "hello, there!",
-					["number"] = 123,
-					["boolean"] = true,
-				};
+				var obj = JsonObject.Create(
+				[
+					("foo", foo),
+					("bar", bar),
+					("baz", JsonNull.Null),
+					("other", JsonArray.Create([ "hello", "world" ])),
+					("text", "hello, there!"),
+					("number", 123),
+					("boolean", true),
+				]);
 
 				{ // GetObject()
 					Assert.That(obj.GetObject("foo"), Is.SameAs(foo));
@@ -3310,8 +3316,8 @@ namespace Doxense.Serialization.Json.Tests
 					/*Guid?*/ NullGuid = (Guid?) Guid.Parse("66666666-6666-6666-6666-666666666666"),
 					/*JsonValue*/ JsonValue = (JsonValue) "FAILED",
 					/*JsonNull*/ JsonString = (JsonString) "FAILED",
-					/*JsonNull*/ JsonArray = JsonArray.Create("FAILED"),
-					/*JsonNull*/ JsonObject = JsonObject.Create("FAILED", "EPIC"),
+					/*JsonNull*/ JsonArray = JsonArray.Create([ "FAILED" ]),
+					/*JsonNull*/ JsonObject = JsonObject.Create(("FAILED", "EPIC")),
 				};
 
 				// when deserializing an object with all members explicitly set to null, we should return the default of this type
@@ -6376,7 +6382,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456,\"Bar\":true}")));
 
 			// case sensitive! ('Bar' != 'BAR')
-			var sub = JsonObject.Create("Alpha", 111, "Omega", 999);
+			var sub = JsonObject.Create(("Alpha", 111), ("Omega", 999));
 			obj.Add("BAR", sub);
 			Assert.That(obj.Count, Is.EqualTo(4));
 			Assert.That(obj.ContainsKey("BAR"), Is.True);
@@ -6405,7 +6411,11 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("""{"Hello\\World":123,"Hello\"World":456,"\\\\?\\GLOBALROOT\\Device\\Foo\\Bar":789}""")));
 
 			//note: we do not deserialize JsonNull singletons "Missing"/"Error" by default
-			obj = JsonObject.Create("Foo", JsonNull.Null, "Bar", JsonNull.Missing, "Baz", JsonNull.Error);
+			obj = JsonObject.Create(
+				("Foo", JsonNull.Null),
+				("Bar", JsonNull.Missing),
+				("Baz", JsonNull.Error)
+			);
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Foo\": null }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Foo\":null}")));
 		}
@@ -6852,12 +6862,12 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			var obj = JsonObject.Create();
 
-			obj.SetPath("Foos[0]", JsonObject.Create("X", 1, "Y", 2, "Z", 3));
+			obj.SetPath("Foos[0]", JsonObject.Create(("X", 1), ("Y", 2), ("Z", 3)));
 			DumpCompact(obj);
 			Assert.That(obj, IsJson.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 } ] }""")));
 			Assert.That(obj.GetPathValueOrDefault("Foos[0]"), IsJson.EqualTo(JsonValue.Parse(@"{ ""X"": 1, ""Y"": 2, ""Z"": 3 }")));
 
-			obj.SetPath("Foos[2]", JsonObject.Create("X", 4, "Y", 5, "Z", 6));
+			obj.SetPath("Foos[2]", JsonObject.Create(("X", 4), ("Y", 5), ("Z", 6)));
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 }, null, { "X": 4, "Y": 5, "Z": 6 } ] }""")));
 			Assert.That(obj.GetPathValueOrDefault("Foos[1]"), IsJson.ExplicitNull);
@@ -7130,47 +7140,47 @@ namespace Doxense.Serialization.Json.Tests
 			{ // child objects changed
 				var a = new JsonObject()
 				{
-					["A"] = new JsonObject() { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
-					["B"] = new JsonObject() { ["x"] = 0, ["y"] = 1, ["z"] = 0 },
-					["C"] = new JsonObject() { ["x"] = 0, ["y"] = 0, ["z"] = 1 },
+					["A"] = JsonObject.Create([ ("x", 1), ("y", 0), ("z", 0) ]),
+					["B"] = JsonObject.Create([ ("x", 0), ("y", 1), ("z", 0) ]),
+					["C"] = JsonObject.Create([ ("x", 0), ("y", 0), ("z", 1) ]),
 				};
 				var b = new JsonObject()
 				{
-					["A"] = new JsonObject() { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
-					["B"] = new JsonObject() { ["x"] = 0, ["y"] = -1, ["z"] = 0 },
-					["D"] = new JsonObject() { ["x"] = -1, ["y"] = -1, ["z"] = -1 },
+					["A"] = JsonObject.Create([ ("x", 1), ("y",  0), ("z",  0) ]),
+					["B"] = JsonObject.Create([ ("x", 0), ("y", -1), ("z",  0) ]),
+					["D"] = JsonObject.Create([ ("x",-1), ("y", -1), ("z", -1) ]),
 				};
 				Verify(a, b, new JsonObject
 				{
-					["B"] = new JsonObject() { ["y"] = -1 },
+					["B"] = JsonObject.Create([ ("y", -1) ]),
 					["C"] = null,
-					["D"] = new JsonObject() { ["x"] = -1, ["y"] = -1, ["z"] = -1 },
+					["D"] = JsonObject.Create([ ("x", -1), ("y", -1), ("z", -1) ]),
 				});
 			}
 			{ // child arrays added
-				var a = new JsonObject { };
-				var b = new JsonObject
-				{
-					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
-				};
-				Verify(a, b, new JsonObject
-				{
-					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
-				});
+				var a = JsonObject.Create();
+				var b = JsonObject.Create(
+				[
+					("Foo", JsonArray.Create(1, 2, 3, 4, 5))
+				]);
+				Verify(a, b, JsonObject.Create(
+				[
+					("Foo", JsonArray.Create(1, 2, 3, 4, 5))
+				]));
 			}
 			{ // child arrays added (was empty before)
-				var a = new JsonObject
-				{
-					["Foo"] = JsonArray.EmptyReadOnly
-				};
-				var b = new JsonObject
-				{
-					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
-				};
-				Verify(a, b, new JsonObject
-				{
-					["Foo"] = JsonArray.Create(1, 2, 3, 4, 5)
-				});
+				var a = JsonObject.Create(
+				[
+					("Foo", JsonArray.EmptyReadOnly)
+				]);
+				var b = JsonObject.Create(
+				[
+					("Foo", JsonArray.Create(1, 2, 3, 4, 5))
+				]);
+				Verify(a, b, JsonObject.Create(
+				[
+					("Foo", JsonArray.Create(1, 2, 3, 4, 5))
+				]));
 			}
 			{ // child arrays cleared
 				var a = new JsonObject
@@ -7245,18 +7255,18 @@ namespace Doxense.Serialization.Json.Tests
 				var a = new JsonObject
 				{
 					["Foo"] = JsonArray.Create([
-						new JsonObject { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
-						new JsonObject { ["x"] = 0, ["y"] = 1, ["z"] = 0 },
-						new JsonObject { ["x"] = 0, ["y"] = 0, ["z"] = 1 },
+						JsonObject.Create([ ("x", 1), ("y", 0), ("z", 0) ]),
+						JsonObject.Create([ ("x", 0), ("y", 1), ("z", 0) ]),
+						JsonObject.Create([ ("x", 0), ("y", 0), ("z", 1) ]),
 					])
 				};
 				var b = new JsonObject
 				{ 
 					["Foo"] = JsonArray.Create([
-						new JsonObject { ["x"] = 1, ["y"] = 0, ["z"] = 0 }, // unchanged
-						new JsonObject { ["x"] = 0, ["y"] = -1, ["z"] = 0 }, // y changed
-						new JsonObject { ["x"] = 0, ["y"] = 0  }, // z removed
-						new JsonObject { ["x"] = -1, ["y"] = -1, ["z"] = -1 }, // added
+						JsonObject.Create([ ("x",  1), ("y",  0), ("z",  0) ]), // unchanged
+						JsonObject.Create([ ("x",  0), ("y", -1), ("z",  0) ]), // y changed
+						JsonObject.Create([ ("x",  0), ("y",  0) ]),            // z removed
+						JsonObject.Create([ ("x", -1), ("y", -1), ("z", -1) ]), // added
 					])
 				};
 				Verify(a, b, new JsonObject
@@ -7264,9 +7274,9 @@ namespace Doxense.Serialization.Json.Tests
 					["Foo"] = new JsonObject()
 					{
 						["__patch"] = 4,
-						["1"] = new JsonObject { ["y"] = -1 }, // y changed
-						["2"] = new JsonObject { ["z"] = null }, // z removed
-						["3"] = new JsonObject { ["x"] = -1, ["y"] = -1, ["z"] = -1 }, // added
+						["1"] = JsonObject.Create([ ("y", -1) ]), // y changed
+						["2"] = JsonObject.Create([ ("z", null) ]), // z removed
+						["3"] = JsonObject.Create([ ("x", -1), ("y", -1), ("z", -1) ]), // added
 					}
 				});
 			}
@@ -7507,13 +7517,16 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// creating a readonly object with only immutable values should produce an immutable object
 			AssertIsImmutable(JsonObject.CreateReadOnly("one", 1));
-			AssertIsImmutable(JsonObject.CreateReadOnly("one", 1, "two", 2));
-			AssertIsImmutable(JsonObject.CreateReadOnly("one", 1, "two", 2, "three", 3));
+			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1)));
+			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1), ("two", 2)));
+			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1), ("two", 2), ("three", 3)));
+			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1), ("two", 2), ("three", 3), ("four", 4)));
+			AssertIsImmutable(JsonObject.CreateReadOnly([ ("one", 1), ("two", 2), ("three", 3), ("four", 4), ("five", 5) ]));
 			AssertIsImmutable(JsonObject.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
 
 			// creating an immutable version of a writable object with only immutable should return an immutable object
 			AssertIsImmutable(JsonObject.Create("one", 1).ToReadOnly());
-			AssertIsImmutable(JsonObject.Create("one", 1, "two", 2, "three", 3).ToReadOnly());
+			AssertIsImmutable(JsonObject.Create(("one", 1), ("two", 2), ("three", 3)).ToReadOnly());
 
 			// parsing with JsonImmutable should return an already immutable object
 			var obj = JsonValue.ParseObject("""{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""", CrystalJsonSettings.JsonReadOnly);
@@ -10307,10 +10320,10 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// Don't try this at home!
 			return JsonObject.Create(
-				"Id", this.Id,
-				"Name", this.Name,
-				"Color", this.Color.Name,
-				"XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y)
+				("Id", this.Id),
+				("Name", this.Name),
+				("Color", this.Color.Name),
+				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y))
 			);
 		}
 
@@ -10472,9 +10485,9 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// Don't try this at home!
 			return JsonObject.Create(
-				"Id", this.Id,
-				"Name", this.Name,
-				"XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y)
+				("Id", this.Id),
+				("Name", this.Name),
+				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y))
 			);
 		}
 

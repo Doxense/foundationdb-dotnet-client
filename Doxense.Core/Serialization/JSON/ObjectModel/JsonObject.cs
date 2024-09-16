@@ -368,6 +368,15 @@ namespace Doxense.Serialization.Json
 			[key0] = value0 ?? JsonNull.Null
 		}, readOnly: false);
 
+		/// <summary>Create a new JSON object with a single field</summary>
+		/// <param name="item">Name and value of the field</param>
+		/// <returns>JSON object of size 1, that can be modified.</returns>
+		[Pure]
+		public static JsonObject Create((string Key, JsonValue? Value) item) => new(new Dictionary<string, JsonValue>(1, StringComparer.Ordinal)
+		{
+			[item.Key] = item.Value ?? JsonNull.Null
+		}, readOnly: false);
+
 		/// <summary>Create a new JSON object with 2 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
@@ -375,10 +384,25 @@ namespace Doxense.Serialization.Json
 		/// <param name="value1">Value of the second field</param>
 		/// <returns>JSON object of size 2, that can be modified.</returns>
 		[Pure]
+		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
 		{
-			{ key0, value0 ?? JsonNull.Null },
-			{ key1, value1 ?? JsonNull.Null },
+			[key0] = value0 ?? JsonNull.Null,
+			[key1] = value1 ?? JsonNull.Null,
+		}, readOnly: false);
+
+		/// <summary>Create a new JSON object with 2 fields</summary>
+		/// <param name="item1">Name and value of the first field</param>
+		/// <param name="item2">Name and value of the second field</param>
+		/// <returns>JSON object of size 2, that can be modified.</returns>
+		[Pure]
+		public static JsonObject Create(
+			(string Key, JsonValue? Value) item1,
+			(string Key, JsonValue? Value) item2
+		) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
+		{
+			[item1.Key] = item1.Value ?? JsonNull.Null,
+			[item2.Key] = item2.Value ?? JsonNull.Null,
 		}, readOnly: false);
 
 		/// <summary>Create a new JSON object with 3 fields</summary>
@@ -390,11 +414,29 @@ namespace Doxense.Serialization.Json
 		/// <param name="value2">Value of the third field</param>
 		/// <returns>JSON object of size 3, that can be modified.</returns>
 		[Pure]
+		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
 		{
 			{ key0, value0 ?? JsonNull.Null },
 			{ key1, value1 ?? JsonNull.Null },
 			{ key2, value2 ?? JsonNull.Null },
+		}, readOnly: false);
+
+		/// <summary>Create a new JSON object with 3 fields</summary>
+		/// <param name="item1">Name and value of the first field</param>
+		/// <param name="item2">Name and value of the second field</param>
+		/// <param name="item3">Name and value of the third field</param>
+		/// <returns>JSON object of size 3, that can be modified.</returns>
+		[Pure]
+		public static JsonObject Create(
+			(string Key, JsonValue? Value) item1,
+			(string Key, JsonValue? Value) item2,
+			(string Key, JsonValue? Value) item3
+		) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
+		{
+			[item1.Key] = item1.Value ?? JsonNull.Null,
+			[item2.Key] = item2.Value ?? JsonNull.Null,
+			[item3.Key] = item3.Value ?? JsonNull.Null,
 		}, readOnly: false);
 
 		/// <summary>Create a new JSON object with 4 fields</summary>
@@ -408,12 +450,33 @@ namespace Doxense.Serialization.Json
 		/// <param name="value3">Value of the fourth field</param>
 		/// <returns>JSON object of size 4, that can be modified.</returns>
 		[Pure]
+		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2, string key3, JsonValue? value3) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
 		{
 			{ key0, value0 ?? JsonNull.Null },
 			{ key1, value1 ?? JsonNull.Null },
 			{ key2, value2 ?? JsonNull.Null },
 			{ key3, value3 ?? JsonNull.Null },
+		}, readOnly: false);
+
+		/// <summary>Create a new JSON object with 4 fields</summary>
+		/// <param name="item1">Name and value of the first field</param>
+		/// <param name="item2">Name and value of the second field</param>
+		/// <param name="item3">Name and value of the third field</param>
+		/// <param name="item4">Name and value of the fourth field</param>
+		/// <returns>JSON object of size 4, that can be modified.</returns>
+		[Pure]
+		public static JsonObject Create(
+			(string Key, JsonValue? Value) item1,
+			(string Key, JsonValue? Value) item2,
+			(string Key, JsonValue? Value) item3,
+			(string Key, JsonValue? Value) item4
+		) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
+		{
+			[item1.Key] = item1.Value ?? JsonNull.Null,
+			[item2.Key] = item2.Value ?? JsonNull.Null,
+			[item3.Key] = item3.Value ?? JsonNull.Null,
+			[item4.Key] = item4.Value ?? JsonNull.Null,
 		}, readOnly: false);
 
 		/// <summary>Create a new JSON object with the specified items</summary>
@@ -446,6 +509,18 @@ namespace Doxense.Serialization.Json
 			// => it seems that if one of the two has an optional argument, it will have a lower priority.
 
 			return Create().AddRange(items);
+		}
+
+		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <param name="items">Map of key/values to copy</param>
+		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		public static JsonObject FromValues<TValue>(ReadOnlySpan<(string Key, TValue Value)> items)
+		{
+			//note: this overload without optional IEqualityComparer is required to resolve an overload amgibuity with the Create(ReadOnlySpan<KeyValuePair<string, JsonValue>>) variant when calling JsonObject.Create([])
+			// => it seems that if one of the two has an optional argument, it will have a lower priority.
+
+			return Create().AddValues(items);
 		}
 
 		/// <summary>Create a new JSON object with the specified items</summary>
@@ -531,6 +606,15 @@ namespace Doxense.Serialization.Json
 			[key0] = (value0 ?? JsonNull.Null).ToReadOnly()
 		}, readOnly: true);
 
+		/// <summary>Creates a new immutable JSON object with a single field</summary>
+		/// <param name="item">Name and value of the field</param>
+		/// <returns>JSON object of size 1, that cannot be modified.</returns>
+		[Pure]
+		public static JsonObject CreateReadOnly((string Key, JsonValue? Value) item) => new(new Dictionary<string, JsonValue>(1, StringComparer.Ordinal)
+		{
+			[item.Key] = (item.Value ?? JsonNull.Null).ToReadOnly()
+		}, readOnly: true);
+
 		/// <summary>Creates a new immutable JSON object with 2 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
@@ -538,10 +622,22 @@ namespace Doxense.Serialization.Json
 		/// <param name="value1">Value of the second field</param>
 		/// <returns>JSON object of size 2, that cannot be modified.</returns>
 		[Pure]
+		[Obsolete("Please use the JsonObject.CreateReadOnly([ (k, v), ... ]) instead.")]
 		public static JsonObject CreateReadOnly(string key0, JsonValue? value0, string key1, JsonValue? value1) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
 		{
 			{ key0, (value0 ?? JsonNull.Null).ToReadOnly() },
 			{ key1, (value1 ?? JsonNull.Null).ToReadOnly() },
+		}, readOnly: true);
+
+		/// <summary>Creates a new immutable JSON object with 2 fields</summary>
+		/// <param name="item1">Name and value of the first field</param>
+		/// <param name="item2">Name and value of the second field</param>
+		/// <returns>JSON object of size 2, that cannot be modified.</returns>
+		[Pure]
+		public static JsonObject CreateReadOnly((string Key, JsonValue? Value) item1, (string Key, JsonValue? Value) item2) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
+		{
+			[item1.Key] = (item1.Value ?? JsonNull.Null).ToReadOnly(),
+			[item2.Key] = (item2.Value ?? JsonNull.Null).ToReadOnly(),
 		}, readOnly: true);
 
 		/// <summary>Creates a new immutable JSON object with 3 fields</summary>
@@ -553,11 +649,29 @@ namespace Doxense.Serialization.Json
 		/// <param name="value2">Value of the third field</param>
 		/// <returns>JSON object of size 3, that cannot be modified.</returns>
 		[Pure]
+		[Obsolete("Please use the JsonObject.CreateReadOnly([ (k, v), ... ]) instead.")]
 		public static JsonObject CreateReadOnly(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
 		{
 			{ key0, (value0 ?? JsonNull.Null).ToReadOnly() },
 			{ key1, (value1 ?? JsonNull.Null).ToReadOnly() },
 			{ key2, (value2 ?? JsonNull.Null).ToReadOnly() },
+		}, readOnly: true);
+
+		/// <summary>Creates a new immutable JSON object with 3 fields</summary>
+		/// <param name="item1">Name and value of the first field</param>
+		/// <param name="item2">Name and value of the second field</param>
+		/// <param name="item3">Name and value of the third field</param>
+		/// <returns>JSON object of size 2, that cannot be modified.</returns>
+		[Pure]
+		public static JsonObject CreateReadOnly(
+			(string Key, JsonValue? Value) item1,
+			(string Key, JsonValue? Value) item2,
+			(string Key, JsonValue? Value) item3
+		) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
+		{
+			[item1.Key] = (item1.Value ?? JsonNull.Null).ToReadOnly(),
+			[item2.Key] = (item2.Value ?? JsonNull.Null).ToReadOnly(),
+			[item3.Key] = (item3.Value ?? JsonNull.Null).ToReadOnly(),
 		}, readOnly: true);
 
 		/// <summary>Creates an immutable new JSON object with 4 fields</summary>
@@ -571,6 +685,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value3">Value of the fourth field</param>
 		/// <returns>JSON object of size 4, that cannot be modified.</returns>
 		[Pure]
+		[Obsolete("Please use the JsonObject.CreateReadOnly([ (k, v), ... ]) instead.")]
 		public static JsonObject CreateReadOnly(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2, string key3, JsonValue? value3) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
 		{
 			{ key0, (value0 ?? JsonNull.Null).ToReadOnly() },
@@ -578,6 +693,26 @@ namespace Doxense.Serialization.Json
 			{ key2, (value2 ?? JsonNull.Null).ToReadOnly() },
 			{ key3, (value3 ?? JsonNull.Null).ToReadOnly() },
 		}, readOnly: false);
+
+		/// <summary>Creates a new immutable JSON object with 4 fields</summary>
+		/// <param name="item1">Name and value of the first field</param>
+		/// <param name="item2">Name and value of the second field</param>
+		/// <param name="item3">Name and value of the third field</param>
+		/// <param name="item4">Name and value of the fourth field</param>
+		/// <returns>JSON object of size 2, that cannot be modified.</returns>
+		[Pure]
+		public static JsonObject CreateReadOnly(
+			(string Key, JsonValue? Value) item1,
+			(string Key, JsonValue? Value) item2,
+			(string Key, JsonValue? Value) item3,
+			(string Key, JsonValue? Value) item4
+		) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
+		{
+			[item1.Key] = (item1.Value ?? JsonNull.Null).ToReadOnly(),
+			[item2.Key] = (item2.Value ?? JsonNull.Null).ToReadOnly(),
+			[item3.Key] = (item3.Value ?? JsonNull.Null).ToReadOnly(),
+			[item4.Key] = (item4.Value ?? JsonNull.Null).ToReadOnly(),
+		}, readOnly: true);
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
