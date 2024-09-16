@@ -382,6 +382,12 @@ namespace System
 			lower = (ulong) value;
 		}
 
+		private static void DeconstructUInt128(in UInt128 value, out ulong upper, out ulong lower)
+		{
+			upper = (ulong) (value >> 64);
+			lower = (ulong) value;
+		}
+
 		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -410,15 +416,60 @@ namespace System
 				return FromFixed128(value);
 			}
 
-			return FromFixed128Slow(in value);
+			return FromFixed128Slow(value);
 
-			static Slice FromFixed128Slow(in Int128 value)
+			static Slice FromFixed128Slow(Int128 value)
 			{
 				// we now that we need between 9 and 15 bytes
 				// we will write the full 16 bytes into the stack,
 				// find the highest non-zero byte, and return this chunk as a new slice
 				Span<byte> tmp = stackalloc byte[16];
 				BinaryPrimitives.WriteInt128LittleEndian(tmp, value);
+				int p = tmp.Length;
+				while (p-- > 0)
+				{
+					if (tmp[p] != 0)
+					{ // copy this into a slice
+						return new Slice(tmp[..(p + 1)].ToArray());
+					}
+				}
+				return FromByte(0);
+			}
+
+		}
+
+		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice FromUInt128(UInt128 value)
+		{
+			if (value == 0)
+			{
+				return FromByte(0);
+			}
+
+			// split into two 64-bit parts
+			DeconstructUInt128(in value, out var upper, out var lower);
+
+			if (upper == 0)
+			{ // only the lower 64-bits are used
+				return FromUInt64(lower);
+			}
+
+			if (upper > 0x00FFFFFFFFFFFFFFUL)
+			{ // 128 bits required
+				return FromFixedU128(value);
+			}
+
+			return FromFixedU128Slow(value);
+
+			static Slice FromFixedU128Slow(UInt128 value)
+			{
+				// we now that we need between 9 and 15 bytes
+				// we will write the full 16 bytes into the stack,
+				// find the highest non-zero byte, and return this chunk as a new slice
+				Span<byte> tmp = stackalloc byte[16];
+				BinaryPrimitives.WriteUInt128LittleEndian(tmp, value);
 				int p = tmp.Length;
 				while (p-- > 0)
 				{
@@ -574,15 +625,8 @@ namespace System
 		[Pure]
 		public static Slice FromSingle(float value)
 		{
-			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[4];
-			unsafe
-			{
-				fixed (byte* ptr = &tmp[0])
-				{
-					*((float*)ptr) = value;
-				}
-			}
+			BinaryPrimitives.WriteSingleLittleEndian(tmp, value);
 			return new Slice(tmp, 0, 4);
 		}
 
@@ -590,51 +634,48 @@ namespace System
 		[Pure]
 		public static Slice FromSingleBE(float value)
 		{
-			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[4];
-			unsafe
-			{
-				fixed (byte* ptr = &tmp[0])
-				{
-					*((uint*)ptr) = UnsafeHelpers.ByteSwap32(*(uint*) &value);
-				}
-			}
+			BinaryPrimitives.WriteSingleBigEndian(tmp, value);
 			return new Slice(tmp, 0, 4);
 		}
 
-		/// <summary>Encode a 64-bit decimal into an 8-byte slice</summary>
+		/// <summary>Encodes a 64-bit decimal into an 8-byte slice</summary>
 		[Pure]
 		public static Slice FromDouble(double value)
 		{
-			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[8];
-			unsafe
-			{
-				fixed (byte* ptr = &tmp[0])
-				{
-					*((double*) ptr) = value;
-				}
-			}
+			BinaryPrimitives.WriteDoubleLittleEndian(tmp, value);
 			return new Slice(tmp, 0, 8);
 		}
 
-		/// <summary>Encode a 64-bit decimal into an 8-byte slice (in network order)</summary>
+		/// <summary>Encodes a 64-bit decimal into an 8-byte slice (in network order)</summary>
 		[Pure]
 		public static Slice FromDoubleBE(double value)
 		{
-			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[8];
-			unsafe
-			{
-				fixed (byte* ptr = &tmp[0])
-				{
-					*((ulong*)ptr) = UnsafeHelpers.ByteSwap64(*(ulong*) &value);
-				}
-			}
+			BinaryPrimitives.WriteDoubleBigEndian(tmp, value);
 			return new Slice(tmp, 0, 8);
 		}
 
-		/// <summary>Encode a 128-bit decimal into an 16-byte slice</summary>
+		/// <summary>Encodes a 64-bit decimal into an 8-byte slice</summary>
+		[Pure]
+		public static Slice FromHalf(Half value)
+		{
+			byte[] tmp = new byte[2];
+			BinaryPrimitives.WriteHalfLittleEndian(tmp, value);
+			return new Slice(tmp, 0, 2);
+		}
+
+		/// <summary>Encodes a 64-bit decimal into an 8-byte slice (in network order)</summary>
+		[Pure]
+		public static Slice FromHalfBE(Half value)
+		{
+			byte[] tmp = new byte[2];
+			BinaryPrimitives.WriteHalfLittleEndian(tmp, value);
+			return new Slice(tmp, 0, 2);
+		}
+
+		/// <summary>Encodes a 128-bit decimal into an 16-byte slice</summary>
 		public static Slice FromDecimal(decimal value)
 		{
 			//TODO: may not work on BE platforms?
@@ -2193,7 +2234,7 @@ namespace System
 		#region Floating Point...
 
 		/// <summary>Converts a slice into a 32-bit IEEE floating point.</summary>
-		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 4 bytes</returns>
 		/// <exception cref="System.FormatException">If there are less or more than 4 bytes in the slice</exception>
 		[Pure]
 		public float ToSingle()
@@ -2207,7 +2248,7 @@ namespace System
 		}
 
 		/// <summary>Converts a slice into a 32-bit IEEE floating point (in network order).</summary>
-		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 4 bytes</returns>
 		/// <exception cref="System.FormatException">If there are less or more than 4 bytes in the slice</exception>
 		[Pure]
 		public float ToSingleBE()
@@ -2221,7 +2262,7 @@ namespace System
 		}
 
 		/// <summary>Converts a slice into a 64-bit IEEE floating point.</summary>
-		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
 		[Pure]
 		public double ToDouble()
@@ -2235,7 +2276,7 @@ namespace System
 		}
 
 		/// <summary>Converts a slice into a 64-bit IEEE floating point (in network order).</summary>
-		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
 		[Pure]
 		public double ToDoubleBE()
@@ -2248,8 +2289,40 @@ namespace System
 			throw new FormatException("Cannot convert slice into a Double because it is not exactly 8 bytes long.");
 		}
 
+#if NET8_0_OR_GREATER
+
+		/// <summary>Converts a slice into a 16-bit IEEE floating point.</summary>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
+		[Pure]
+		public Half ToHalf()
+		{
+			var span = this.Span;
+			if (span.Length == 0) return default;
+			if (span.Length != 2) goto fail;
+			return BinaryPrimitives.ReadHalfLittleEndian(span);
+		fail:
+			throw new FormatException("Cannot convert slice into a Half because it is not exactly 2 bytes long.");
+		}
+
+		/// <summary>Converts a slice into a 16-bit IEEE floating point (in network order).</summary>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
+		[Pure]
+		public Half ToHalfBE()
+		{
+			var span = this.Span;
+			if (span.Length == 0) return default;
+			if (span.Length != 2) goto fail;
+			return BinaryPrimitives.ReadHalfBigEndian(span);
+			fail:
+			throw new FormatException("Cannot convert slice into a Half because it is not exactly 2 bytes long.");
+		}
+
+#endif
+
 		/// <summary>Converts a slice into a 128-bit IEEE floating point.</summary>
-		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
 		[Pure]
 		public decimal ToDecimal()

@@ -26,19 +26,176 @@
 
 namespace Doxense.Serialization
 {
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-
 	using NodaTime;
 
 	[PublicAPI]
 	public static class StringConverters
 	{
-		#region Numbers...
 
-		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		#region Formatting...
+
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		private static void ReportInternalFormattingError()
+		{
+#if DEBUG
+			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+			throw ThrowHelper.InvalidOperationException("Internal formatting error");
+		}
+
+		#region 8-bits...
+
+		/// <summary>Converts a 16-bit signed integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure]
+		public static string ToString(sbyte value)
+		{
+			//perf: as of .NET 8, Int32.ToString(null) calls Number.UInt32ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			if (value >= 0)
+			{
+				return value.ToString(default(IFormatProvider));
+			}
+			// for negative numbers, we have to pass an invariant culture, otherwise it will use the NegativeSign of the current culture
+			return value.ToString(NumberFormatInfo.InvariantInfo);
+		}
+
+		/// <summary>Writes the text representation of a 16-bit signed integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, sbyte value)
+		{
+#if NET9_0_OR_GREATER
+			if (value >= 0)
+			{
+				// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+				output.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+#endif
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityInt8];
+
+			bool success = value.TryFormat(buf, out int written, default, NumberFormatInfo.InvariantInfo); // will be inlined as Number.TryNegativeInt32ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		/// <summary>Converts a 16-bit unsigned integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static string ToString(byte value)
+		{
+			//perf: as of .NET 8, UInt32.ToString(null) calls Number.UInt32ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			return value.ToString(default(IFormatProvider));
+		}
+
+		/// <summary>Writes the text representation of a 16-bit unsigned integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, byte value)
+		{
+#if NET9_0_OR_GREATER
+			// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+			output.Write(value.ToString(default(IFormatProvider)));
+#else
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityUInt8];
+
+			bool success = value.TryFormat(buf, out int written); // will be inlined as Number.TryUInt32ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+#endif
+		}
+
+		#endregion
+
+		#region 16-bits...
+
+		/// <summary>Converts a 16-bit signed integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure]
+		public static string ToString(short value)
+		{
+			//perf: as of .NET 8, Int32.ToString(null) calls Number.UInt32ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			if (value >= 0)
+			{
+				return value.ToString(default(IFormatProvider));
+			}
+			// for negative numbers, we have to pass an invariant culture, otherwise it will use the NegativeSign of the current culture
+			return value.ToString(NumberFormatInfo.InvariantInfo);
+		}
+
+		/// <summary>Writes the text representation of a 16-bit signed integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, short value)
+		{
+#if NET9_0_OR_GREATER
+			if ((uint) value < 300U)
+			{
+				// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+				output.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+#endif
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityInt16];
+
+			bool success = value >= 0
+				? value.TryFormat(buf, out var written) // will be inlined as Number.TryUInt32ToDecStr
+				: value.TryFormat(buf, out written, default, NumberFormatInfo.InvariantInfo); // will be inlined as Number.TryNegativeInt32ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		/// <summary>Converts a 16-bit unsigned integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static string ToString(ushort value)
+		{
+			//perf: as of .NET 8, UInt32.ToString(null) calls Number.UInt32ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			return value.ToString(default(IFormatProvider));
+		}
+
+		/// <summary>Writes the text representation of a 16-bit unsigned integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, ushort value)
+		{
+#if NET9_0_OR_GREATER
+			if (value < 300U)
+			{
+				// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+				output.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+#endif
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityUInt16];
+
+			bool success = value.TryFormat(buf, out int written); // will be inlined as Number.TryUInt32ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
+		#region 32-bits...
+
+		/// <summary>Converts a 32-bit signed integer into a decimal string literal, using the Invariant culture</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure]
@@ -53,7 +210,31 @@ namespace Doxense.Serialization
 			return value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <summary>Writes the text representation of a 32-bit signed integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, int value)
+		{
+#if NET9_0_OR_GREATER
+			if ((uint) value < 300U)
+			{
+				// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+				output.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+#endif
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityInt32];
+
+			bool success = value >= 0
+				? value.TryFormat(buf, out var written) // will be inlined as Number.TryUInt32ToDecStr
+				: value.TryFormat(buf, out written, default, NumberFormatInfo.InvariantInfo); // will be inlined as Number.TryNegativeInt32ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		/// <summary>Converts a 32-bit unsigned integer into a decimal string literal, using the Invariant culture</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,7 +244,33 @@ namespace Doxense.Serialization
 			return value.ToString(default(IFormatProvider));
 		}
 
-		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <summary>Writes the text representation of a 32-bit unsigned integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, uint value)
+		{
+#if NET9_0_OR_GREATER
+			if (value < 300U)
+			{
+				// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+				output.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+#endif
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityUInt32];
+
+			bool success = value.TryFormat(buf, out int written); // will be inlined as Number.TryUInt32ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
+		#region 64-bits...
+
+		/// <summary>Converts a 64-bit signed integer into a decimal string literal, using the Invariant culture</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure]
@@ -79,7 +286,31 @@ namespace Doxense.Serialization
 			return value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <summary>Writes the text representation of a 64-bit signed integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, long value)
+		{
+#if NET9_0_OR_GREATER
+			if ((ulong) value < 300UL)
+			{
+				// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+				output.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+#endif
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityInt64];
+
+			bool success = value >= 0
+				? value.TryFormat(buf, out var written) // will be inlined as Number.TryUInt64ToDecStr
+				: value.TryFormat(buf, out written, default, NumberFormatInfo.InvariantInfo); // will be inlined as Number.TryNegativeInt64ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		/// <summary>Converts a 64-bit unsigned integer into a decimal string literal, using the Invariant culture</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -89,7 +320,89 @@ namespace Doxense.Serialization
 			return value.ToString(default(IFormatProvider));
 		}
 
-		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <summary>Writes the text representation of a 64-bit unsigned integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, ulong value)
+		{
+#if NET9_0_OR_GREATER
+			if (value < 300UL)
+			{
+				// small integers from 0 to 299 are cached by the runtime, so there will be no string allocation
+				output.Write(value.ToString(default(IFormatProvider)));
+				return;
+			}
+#endif
+
+			Span<char> buf = stackalloc char[Base10MaxCapacityUInt64];
+
+			bool success = value.TryFormat(buf, out int written); // will be inlined as Number.TryUInt64ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
+		#region 128-bits...
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Converts a 64-bit signed integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure]
+		public static string ToString(Int128 value)
+		{
+			//perf: for positive numbers, Int128.ToString(null) calls Number.UInt128ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			return value.ToString(NumberFormatInfo.InvariantInfo);
+		}
+
+		/// <summary>Writes the text representation of a 64-bit signed integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, Int128 value)
+		{
+			Span<char> buf = stackalloc char[Base10MaxCapacityInt128];
+
+			bool success = value >= 0
+				? value.TryFormat(buf, out int written)
+				: value.TryFormat(buf, out written, default, NumberFormatInfo.InvariantInfo);
+			if (!success) ReportInternalFormattingError();
+			
+			output.Write(buf.Slice(0, written));
+		}
+
+		/// <summary>Converts a 64-bit unsigned integer into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static string ToString(UInt128 value)
+		{
+			//perf: UInt128.ToString(null) calls Number.UInt128ToDecStr(...) which already manage a cache for small numbers (less than 300)
+			return value.ToString(default(IFormatProvider));
+		}
+
+		/// <summary>Writes the text representation of a 64-bit unsigned integer, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, UInt128 value)
+		{
+			Span<char> buf = stackalloc char[Base10MaxCapacityUInt128];
+
+			bool success = value.TryFormat(buf, out int written); // will be inlined as Number.TryUInt128ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+#endif
+
+		#endregion
+
+		#region Single...
+
+		/// <summary>Converts a 32-bit IEEE floating point number into a decimal string literal, using the Invariant culture</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure]
@@ -103,7 +416,30 @@ namespace Doxense.Serialization
 				: x.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Converts an integer into a decimal string literal, using the Invariant culture</summary>
+		/// <summary>Writes the text representation of a 32-bit IEEE floating point number, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, float value)
+		{
+
+			Span<char> buf = stackalloc char[Base10MaxCapacitySingle];
+
+			long x = unchecked((long) value);
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			bool success = x != value
+				? value.TryFormat(buf, out var written, "R", NumberFormatInfo.InvariantInfo)
+				: x >= 0 ? x.TryFormat(buf, out written) // will be inlined as Number.TryUInt64ToDecStr
+					: x.TryFormat(buf, out written, default, NumberFormatInfo.InvariantInfo); // will be inlined as Number.TryNegativeInt64ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
+		#region Double...
+
+		/// <summary>Converts a 64-bit IEEE floating point number into a decimal string literal, using the Invariant culture</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure]
@@ -116,6 +452,88 @@ namespace Doxense.Serialization
 				: x >= 0 ? x.ToString(default(IFormatProvider))
 				: x.ToString(NumberFormatInfo.InvariantInfo);
 		}
+
+		/// <summary>Writes the text representation of a 64-bit IEEE floating point number, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, double value)
+		{
+			Span<char> buf = stackalloc char[Base10MaxCapacityDouble];
+
+			long x = unchecked((long) value);
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			bool success = x != value
+				? value.TryFormat(buf, out var written, "R", NumberFormatInfo.InvariantInfo)
+				: x >= 0 ? x.TryFormat(buf, out written) // will be inlined as Number.TryUInt64ToDecStr
+					: x.TryFormat(buf, out written, default, NumberFormatInfo.InvariantInfo); // will be inlined as Number.TryNegativeInt64ToDecStr
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
+		#region Decimal...
+
+		/// <summary>Converts a 64-bit IEEE floating point number into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure]
+		public static string ToString(decimal value)
+		{
+			return value.ToString("R", NumberFormatInfo.InvariantInfo);
+		}
+
+		/// <summary>Writes the text representation of a 128-bit decimal floating point number, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, decimal value)
+		{
+			Span<char> buf = stackalloc char[Base10MaxCapacityDecimal];
+
+			bool success = value.TryFormat(buf, out var written, default, NumberFormatInfo.InvariantInfo);
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
+		#region Half...
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Converts a 16-bit IEEE floating point number into a decimal string literal, using the Invariant culture</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure]
+		public static string ToString(Half value)
+		{
+			//note: I'm not sure how to optimize for this type...
+			return value.ToString(null, NumberFormatInfo.InvariantInfo);
+		}
+
+		/// <summary>Writes the text representation of a 16-bit IEEE floating point number, using the Invariant culture</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, Half value)
+		{
+			Span<char> buf = stackalloc char[Base10MaxCapacityHalf];
+
+			//note: I'm not sure how to optimize for this type...
+			bool success = value.TryFormat(buf, out var written, null, NumberFormatInfo.InvariantInfo);
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+#endif
+
+		#endregion
+
+		#endregion
+
+		#region Parsing...
 
 		/// <summary>Converts a string literal into a boolean, using relaxed rules</summary>
 		/// <param name="value">String literal containing either a "truthy" or "falsy" boolean (ex: "true", "on", "1" vs "false", "off", "0", ...)</param>
@@ -185,118 +603,6 @@ namespace Doxense.Serialization
 				'0' => false,
 				_ => null
 			};
-		}
-
-		/// <summary>Convertit un entier jusqu'au prochain séparateur (ou fin de buffer). A utilisé pour simuler un Split</summary>
-		/// <param name="buffer">Buffer de caractères</param>
-		/// <param name="offset">Offset courant dans le buffer</param>
-		/// <param name="length"></param>
-		/// <param name="separator">Séparateur attendu entre les entiers</param>
-		/// <param name="defaultValue">Valeur par défaut retournée si erreur</param>
-		/// <param name="result">Récupère le résultat de la conversion</param>
-		/// <param name="newpos">Récupère la nouvelle position (après le séparateur)</param>
-		/// <returns>true si int chargé, false si erreur (plus de place, incorrect, ...)</returns>
-		/// <exception cref="System.ArgumentNullException">Si buffer est null</exception>
-		[Obsolete("Use int.TryParse(ReadOnlySpan<char>, ...) instead!")]
-		public static unsafe bool FastTryGetInt(char* buffer, int offset, int length, char separator, int defaultValue, out int result, out int newpos)
-		{
-			Contract.PointerNotNull(buffer);
-			result = defaultValue;
-			newpos = offset;
-			if (offset < 0 || offset >= length) return false; // déjà a la fin !!
-
-			char c = buffer[offset];
-			if (c == separator) { newpos = offset + 1; return false; } // avance quand même le curseur
-			if (!char.IsDigit(c))
-			{ // c'est pas un nombre, va jusqu'au prochain séparateur
-				while (offset < length)
-				{
-					c = buffer[offset++];
-					if (c == separator) break;
-				}
-				newpos = offset;
-				return false; // déjà le séparateur, ou pas un digit == WARNING: le curseur ne sera pas avancé!
-			}
-			int res = c - 48;
-			offset++;
-			// il y a au moins 1 digit, parcourt les suivants
-			while (offset < length)
-			{
-				c = buffer[offset++];
-				if (c == separator) break;
-				if (!char.IsDigit(c))
-				{ // va jusqu'au prochain séparateur
-					while (offset < length)
-					{
-						c = buffer[offset++];
-						if (c == separator) break;
-					}
-					newpos = offset;
-					return false;
-				}
-				// accumule le digit
-				res = res * 10 + (c - 48);
-			}
-
-			result = res;
-			newpos = offset;
-			return true;
-		}
-
-		/// <summary>Convertit un entier jusqu'au prochain séparateur (ou fin de buffer). A utilisé pour simuler un Split</summary>
-		/// <param name="buffer">Buffer de caractères</param>
-		/// <param name="offset">Offset courant dans le buffer</param>
-		/// <param name="length"></param>
-		/// <param name="separator">Séparateur attendu entre les entiers</param>
-		/// <param name="defaultValue">Valeur par défaut retournée si erreur</param>
-		/// <param name="result">Récupère le résultat de la conversion</param>
-		/// <param name="newpos">Récupère la nouvelle position (après le séparateur)</param>
-		/// <returns>true si int chargé, false si erreur (plus de place, incorrect, ...)</returns>
-		/// <exception cref="System.ArgumentNullException">Si buffer est null</exception>
-		[Obsolete("Use long.TryParse(ReadOnlySpan<char>, ...) instead!")]
-		public static unsafe bool FastTryGetLong(char* buffer, int offset, int length, char separator, long defaultValue, out long result, out int newpos)
-		{
-			Contract.PointerNotNull(buffer);
-			result = defaultValue;
-			newpos = offset;
-			if (offset < 0 || offset >= length) return false; // déjà a la fin !!
-
-			char c = buffer[offset];
-			if (c == separator) { newpos = offset + 1; return false; } // avance quand même le curseur
-			if (!char.IsDigit(c))
-			{ // c'est pas un nombre, va jusqu'au prochain séparateur
-				while (offset < length)
-				{
-					c = buffer[offset++];
-					if (c == separator) break;
-				}
-				newpos = offset;
-				return false; // déjà le séparateur, ou pas un digit == WARNING: le curseur ne sera pas avancé!
-			}
-			int res = c - 48;
-			offset++;
-			// il y a au moins 1 digit, parcourt les suivants
-			while (offset < length)
-			{
-				c = buffer[offset++];
-				if (c == separator) break;
-				if (!char.IsDigit(c))
-				{ // va jusqu'au prochain séparateur
-					while (offset < length)
-					{
-						c = buffer[offset++];
-						if (c == separator) break;
-					}
-					newpos = offset;
-					return false;
-				}
-				// accumule le digit
-				res = res * 10 + (c - 48);
-			}
-
-			result = res;
-			newpos = offset;
-			return true;
 		}
 
 		/// <summary>Converts a string literal into its 32-bit signed integer equivalent, using invariant-culture format</summary>
@@ -629,22 +935,66 @@ namespace Doxense.Serialization
 			return Enum.TryParse(value, true, out TEnum result) ? result : default(TEnum?);
 		}
 
-		/// <summary>Maximum number of characters required to format any signed 32-bit integer in base 10</summary>
+		/// <summary>Maximum number of characters required to safely format any signed 8-bit integer in base 10</summary>
+		/// <remarks><see cref="sbyte.MinValue"/> needs 4 characters in base 10 (including the negative sign)</remarks>
+		public const int Base10MaxCapacityInt8 = 4;
+
+		/// <summary>Maximum number of characters required to safely format any unsigned 8-bit integer in base 10</summary>
+		/// <remarks><see cref="byte.MaxValue"/> needs 3 characters in base 10</remarks>
+		public const int Base10MaxCapacityUInt8 = 3;
+
+		/// <summary>Maximum number of characters required to safely format any signed 16-bit integer in base 10</summary>
+		/// <remarks><see cref="short.MinValue"/> needs 6 characters in base 10 (including the negative sign)</remarks>
+		public const int Base10MaxCapacityInt16 = 6;
+
+		/// <summary>Maximum number of characters required to safely format any unsigned 16-bit integer in base 10</summary>
+		/// <remarks><see cref="ushort.MaxValue"/> needs 5 characters in base 10</remarks>
+		public const int Base10MaxCapacityUInt16 = 5;
+
+		/// <summary>Maximum number of characters required to safely format any signed 32-bit integer in base 10</summary>
 		/// <remarks><see cref="int.MinValue"/> needs 11 characters in base 10 (including the negative sign)</remarks>
 		public const int Base10MaxCapacityInt32 = 11;
 
-		/// <summary>Maximum number of characters required to format any unsigned 32-bit integer in base 10</summary>
+		/// <summary>Maximum number of characters required to safely format any unsigned 32-bit integer in base 10</summary>
 		/// <remarks><see cref="uint.MaxValue"/> needs 10 characters in base 10</remarks>
 		public const int Base10MaxCapacityUInt32 = 10;
 
-		/// <summary>Maximum number of characters required to format any signed 64-bit integer in base 10</summary>
+		/// <summary>Maximum number of characters required to safely format any signed 64-bit integer in base 10</summary>
 		/// <remarks><see cref="long.MinValue"/> needs 20 characters in base 10 (including the negative sign)</remarks>
 		/// 
 		public const int Base10MaxCapacityInt64 = 20;
 
-		/// <summary>Maximum number of characters required to format any unsigned 64-bit integer in base 10</summary>
+		/// <summary>Maximum number of characters required to safely format any unsigned 64-bit integer in base 10</summary>
 		/// <remarks><see cref="ulong.MaxValue"/> needs 20 characters in base 10</remarks>
 		public const int Base10MaxCapacityUInt64 = 20;
+
+		/// <summary>Maximum number of characters required to safely format any 32-bit IEEE floating point number in base 10</summary>
+		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		public const int Base10MaxCapacitySingle = 32;
+
+		/// <summary>Maximum number of characters required to safely format any 64-bit IEEE floating point number in base 10</summary>
+		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		public const int Base10MaxCapacityDouble = 32;
+
+		/// <summary>Maximum number of characters required to safely format any 128-bit decimal floating point number in base 10</summary>
+		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		public const int Base10MaxCapacityDecimal = 32;
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Maximum number of characters required to safely format any 16-bit IEEE floating point number in base 10</summary>
+		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		public const int Base10MaxCapacityHalf = 32;
+
+		/// <summary>Maximum number of characters required to safely format any signed 64-bit integer in base 10</summary>
+		/// <remarks><see cref="Int128.MinValue"/> needs 40 characters in base 10 (including the negative sign)</remarks>
+		public const int Base10MaxCapacityInt128 = 40;
+
+		/// <summary>Maximum number of characters required to safely format any unsigned 64-bit integer in base 10</summary>
+		/// <remarks><see cref="UInt128.MaxValue"/> needs 39 characters in base 10</remarks>
+		public const int Base10MaxCapacityUInt128 = 39;
+
+#endif
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int CountDigits(long value)
@@ -690,6 +1040,12 @@ namespace Doxense.Serialization
 			bool lessThan = value < powerOf10;
 			return (int) (index - Unsafe.As<bool, byte>(ref lessThan)); // while arbitrary bools may be non-0/1, comparison operators are expected to return 0/1
 		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CountDigits(short value) => CountDigits((int) value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CountDigits(ushort value) => CountDigits((uint) value);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int CountDigits(int value)
@@ -1104,14 +1460,14 @@ namespace Doxense.Serialization
 			int p = time.IndexOf('h');
 			if (p > 0)
 			{
-				hour = short.Parse(time.AsSpan(0, p));
+				hour = short.Parse(time.AsSpan(0, p), NumberStyles.Integer, CultureInfo.InvariantCulture);
 				if (p + 1 >= time.Length)
 				{
 					minute = 0;
 				}
 				else
 				{
-					minute = short.Parse(time.AsSpan(p + 1));
+					minute = short.Parse(time.AsSpan(p + 1), NumberStyles.Integer, CultureInfo.InvariantCulture);
 				}
 			}
 			else
@@ -1119,19 +1475,19 @@ namespace Doxense.Serialization
 				p = time.IndexOf(':');
 				if (p > 0)
 				{
-					hour = short.Parse(time.AsSpan(0, p));
+					hour = short.Parse(time.AsSpan(0, p), NumberStyles.Integer, CultureInfo.InvariantCulture);
 					if (p + 1 >= time.Length)
 					{
 						minute = 0;
 					}
 					else
 					{
-						minute = short.Parse(time.AsSpan(p + 1));
+						minute = short.Parse(time.AsSpan(p + 1), NumberStyles.Integer, CultureInfo.InvariantCulture);
 					}
 				}
 				else
 				{
-					hour = short.Parse(time);
+					hour = short.Parse(time, NumberStyles.Integer, CultureInfo.InvariantCulture);
 				}
 			}
 			var d = DateTime.Today;
