@@ -552,7 +552,7 @@ namespace FoundationDB.Client
 				var prefixInParentPartition  = current;
 				while (i < path.Count)
 				{
-					if (AnnotateTransactions) tr.Annotate("Looking for child {0} under node {1}...", path[i], FdbKey.Dump(current));
+					if (AnnotateTransactions) tr.Annotate($"Looking for child {path[i]} under node {FdbKey.Dump(current)}...");
 
 					// maybe use the node cache, if allowed
 					var key = partition.Nodes.Encode(current, SUBDIRS, path[i].Name);
@@ -567,7 +567,7 @@ namespace FoundationDB.Client
 
 					// get the layer id of this node
 					layer = (await tr.GetAsync(partition.Nodes.Encode(current, LayerAttribute)).ConfigureAwait(false)).ToStringUtf8() ?? string.Empty;
-					if (AnnotateTransactions) tr.Annotate("Found subfolder '{0}' at {1} ({2})", path[i].Name, FdbKey.Dump(current), layer);
+					if (AnnotateTransactions) tr.Annotate($"Found subfolder '{path[i].Name}' at {FdbKey.Dump(current)} ({layer})");
 
 					parent = partition;
 
@@ -767,14 +767,14 @@ namespace FoundationDB.Client
 					prefix = partition.Content.Encode(id);
 
 					// ensure that there is no data already present under this prefix
-					if (AnnotateTransactions) trans.Annotate("Ensure that there is no data already present under prefix {0:K}", prefix);
+					if (AnnotateTransactions) trans.Annotate($"Ensure that there is no data already present under prefix {prefix:K}");
 					if (await trans.GetRange(KeyRange.StartsWith(prefix)).AnyAsync().ConfigureAwait(false))
 					{
 						throw new InvalidOperationException($"The database has keys stored at the prefix chosen by the automatic prefix allocator: {prefix:K}.");
 					}
 
 					// ensure that the prefix has not already been allocated
-					if (AnnotateTransactions) trans.Annotate("Ensure that the prefix {0:K} has not already been allocated", prefix);
+					if (AnnotateTransactions) trans.Annotate($"Ensure that the prefix {prefix:K} has not already been allocated");
 					if (!(await IsPrefixFree(trans.Snapshot, partition, prefix).ConfigureAwait(false)))
 					{
 						throw new InvalidOperationException("The directory layer has manually allocated prefixes that conflict with the automatic prefix allocator.");
@@ -782,7 +782,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{
-					if (AnnotateTransactions) trans.Annotate("Ensure that the prefix {0:K} hasn't already been allocated", prefix);
+					if (AnnotateTransactions) trans.Annotate($"Ensure that the prefix {prefix:K} hasn't already been allocated");
 					// ensure that the prefix has not already been allocated
 					if (!(await IsPrefixFree(trans, partition, prefix).ConfigureAwait(false)))
 					{
@@ -792,7 +792,7 @@ namespace FoundationDB.Client
 
 				// initialize the metadata for this new directory
 
-				if (AnnotateTransactions) trans.Annotate("Registering the new prefix {0:K} into the folder sub-tree", prefix);
+				if (AnnotateTransactions) trans.Annotate($"Registering the new prefix {prefix:K} into the folder sub-tree");
 				var key = partition.Nodes.Encode(parentPrefix, SUBDIRS, path.Name);
 				trans.Set(key, prefix);
 
@@ -877,7 +877,7 @@ namespace FoundationDB.Client
 					throw new InvalidOperationException($"Cannot move '{oldNode.Path}' to '{newNode.Path}' between partitions ('{oldNode.ParentPartition.Path}' != '{parentPartition.Path}').");
 				}
 
-				if (AnnotateTransactions) trans.Annotate("Register the prefix {0} to its new location in the folder sub-tree", oldNode.Prefix);
+				if (AnnotateTransactions) trans.Annotate($"Register the prefix {oldNode.Prefix} to its new location in the folder sub-tree");
 
 				// make sure that the transaction is safe for mutation, and update the global metadata version if required
 				if (EnsureCanMutate())
@@ -1100,7 +1100,7 @@ namespace FoundationDB.Client
 				var parent = await FindAsync(tr, this.Partition, path.GetParent()).ConfigureAwait(false);
 				if (parent.Exists)
 				{
-					if (AnnotateTransactions) tr.Annotate("Removing path {0} from its parent folder at {1}", path, parent.Prefix);
+					if (AnnotateTransactions) tr.Annotate($"Removing path {path} from its parent folder at {parent.Prefix}");
 					tr.Clear(GetSubDirKey(parent.Partition, parent.Prefix, path.Name));
 				}
 			}
@@ -1115,11 +1115,11 @@ namespace FoundationDB.Client
 				await Task.WhenAll(children.Select(child => RemoveRecursive(tr, partition, child.Prefix))).ConfigureAwait(false);
 
 				// remove ALL the contents
-				if (AnnotateTransactions) tr.Annotate("Removing all content located under {0}", KeyRange.StartsWith(prefix));
+				if (AnnotateTransactions) tr.Annotate($"Removing all content located under {KeyRange.StartsWith(prefix)}");
 				//TODO: REVIEW: we could get the prefix without calling ContentsOfNode here!
 				tr.ClearRange(KeyRange.StartsWith(prefix));
 				// and all the metadata for this folder
-				if (AnnotateTransactions) tr.Annotate("Removing all metadata for folder under {0}", partition.Nodes.EncodeRange(prefix));
+				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.EncodeRange(prefix)}");
 				tr.ClearRange(partition.Nodes.EncodeRange(prefix));
 			}
 

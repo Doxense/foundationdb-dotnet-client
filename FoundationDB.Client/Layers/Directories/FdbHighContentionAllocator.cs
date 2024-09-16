@@ -105,7 +105,7 @@ namespace FoundationDB.Layers.Allocators
 			int window = GetWindowSize(start);
 			if ((count + 1) * 2 >= window)
 			{ // advance the window
-				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Advance allocator window size to {0} starting at {1}", window, start + window);
+				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate($"Advance allocator window size to {window} starting at {start + window}");
 				trans.ClearRange(subspace[COUNTERS, 0], subspace[COUNTERS, start + 1]);
 				start += window;
 				count = 0;
@@ -137,7 +137,7 @@ namespace FoundationDB.Layers.Allocators
 
 					// mark as used
 					trans.Set(key, Slice.Empty);
-					if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Allocated prefix {0} from window [{1}..{2}] ({3} used)", candidate, start, start + window - 1, count + 1);
+					if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate($"Allocated prefix {candidate} from window [{start}..{start + window - 1}] ({count + 1} used)");
 					return candidate;
 				}
 

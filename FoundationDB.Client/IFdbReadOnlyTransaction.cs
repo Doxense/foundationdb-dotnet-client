@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.Runtime.CompilerServices;
 	using JetBrains.Annotations;
 	using FoundationDB.Filters.Logging;
 
@@ -270,7 +271,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// If logging is enabled, the transaction will track all the operations performed by this transaction until it completes.
 		/// The log can be accessed via the <see cref="Log"/> property.
-		/// Comments can be added via the <see cref="Annotate"/> method.
+		/// Comments can be added via the <see cref="Annotate(string)"/> method.
 		/// </remarks>
 		bool IsLogged();
 
@@ -279,6 +280,12 @@ namespace FoundationDB.Client
 		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
 		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
 		void Annotate(string comment);
+
+		/// <summary>Add a comment to the transaction log</summary>
+		/// <param name="comment">Line of text that will be added to the log</param>
+		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
+		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		void Annotate(ref DefaultInterpolatedStringHandler comment);
 
 		/// <summary>If logging was previously enabled on this transaction, clear the log and stop logging any new operations</summary>
 		/// <remarks>Any log handler attached to this transaction will not be called</remarks>

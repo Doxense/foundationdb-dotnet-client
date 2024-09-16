@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
+	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
 	using Doxense.Memory;
@@ -288,6 +289,16 @@ namespace FoundationDB.Client
 		public void Annotate(string comment)
 		{
 			m_log?.Annotate(comment);
+		}
+
+		/// <summary>Add a comment to the transaction log</summary>
+		/// <param name="comment">Line of text that will be added to the log</param>
+		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
+		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Annotate(ref DefaultInterpolatedStringHandler comment)
+		{
+			m_log?.Annotate(string.Create(CultureInfo.InvariantCulture, ref comment));
 		}
 
 		/// <summary>If logging was previously enabled on this transaction, clear the log and stop logging any new operations</summary>
