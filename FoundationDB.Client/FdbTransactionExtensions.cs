@@ -91,7 +91,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="state">State that will forwarded to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
@@ -103,7 +106,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="state">State that will forwarded to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
@@ -116,7 +122,9 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
@@ -129,7 +137,9 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
@@ -143,7 +153,9 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
@@ -212,6 +224,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
 		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
@@ -221,6 +234,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
 		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
@@ -231,6 +245,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
 		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
@@ -1620,6 +1635,8 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="state">State that will forwarded to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
@@ -1731,6 +1748,8 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
 		/// <param name="endExclusive">Key defining the end (exclusive) of the range</param>
+		/// <param name="state">State that will forwarded to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
