@@ -450,6 +450,44 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonEncoding.NeedsEscaping("aaaa\""), Is.True);
 			Assert.That(JsonEncoding.NeedsEscaping("aaaaa\""), Is.True);
 			Assert.That(JsonEncoding.NeedsEscaping("aaaaaa\""), Is.True);
+
+			// with capacity hint (note: may be too large!)
+			static void VerifyEscapingCapacity(string s)
+			{
+				string encoded = CrystalJson.Serialize(s);
+				bool required = JsonEncoding.NeedsEscaping(s, out int capacity);
+				if (!required)
+				{ // capacity should == s.Length, and encoding should return the same string
+					Assert.That(capacity, Is.EqualTo(s.Length), $"No escaping required for '{s}' => '{encoded}'");
+					Assert.That(encoded, Is.EqualTo("\"" + s + "\""), $"No escaping required for '{s}' => '{encoded}'");
+				}
+				else
+				{
+					Assert.That(capacity, Is.EqualTo(encoded.Length - 2), $"Escaping required for '{s}' => '{encoded}'");
+				}
+			}
+
+			VerifyEscapingCapacity("a");
+			VerifyEscapingCapacity("aaa");
+			VerifyEscapingCapacity("aaaaaaa");
+			VerifyEscapingCapacity("aaaaaaaa");
+			VerifyEscapingCapacity("aaaaaaaaa");
+			VerifyEscapingCapacity("aaaaaaaaaa");
+			VerifyEscapingCapacity("aaaaaaaaaaa");
+			VerifyEscapingCapacity("hello, world!");
+			VerifyEscapingCapacity("hello\"world\\!!!");
+			VerifyEscapingCapacity("A\0A");
+			VerifyEscapingCapacity("AAAAAAAA\0");
+			VerifyEscapingCapacity("AAAAAAAAA\0");
+			VerifyEscapingCapacity("AAAAAAAA\0\0");
+			VerifyEscapingCapacity("AAAAAAAAAA\0");
+			VerifyEscapingCapacity("AAAAAAAA\0\0\0");
+			VerifyEscapingCapacity("\0AAAAAAA");
+			VerifyEscapingCapacity("\0\0AAAAAA");
+			VerifyEscapingCapacity("\0\0\0AAAAA");
+			VerifyEscapingCapacity("\0\0\0\0AAAA");
+
+			VerifyEscapingCapacity("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F");
 		}
 
 		[Test]
