@@ -3113,6 +3113,24 @@ namespace Doxense.Serialization.Json
 			return Project(this, CheckProjectionFields(fields as string[] ?? fields.ToArray(), keepMissing));
 		}
 
+		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
+		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
+		public JsonObject Project(ReadOnlySpan<(string Name, JsonPath Path, JsonValue? Fallback)> fields, bool keepMissing = false)
+		{
+			return Project(this, fields);
+		}
+
+		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
+		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
+		public JsonObject Project(ReadOnlySpan<(string Name, JsonPath Path)> fields, bool keepMissing = false)
+		{
+			return Project(this, CheckProjectionFields(fields, keepMissing));
+		}
+
 		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
 		/// <param name="defaults">Liste des des champs à conserver, avec une éventuelle valeur par défaut</param>
 		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="defaults"/></returns>
@@ -3151,6 +3169,36 @@ namespace Doxense.Serialization.Json
 			if (set.Count != keys.Length)
 			{
 				throw ThrowHelper.InvalidOperationException($"Cannot project duplicate field name: [{string.Join(", ", keys.ToArray())}]");
+			}
+
+			return res;
+		}
+
+		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
+		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMissing">If <see langword="true"/>, any field missing from the object will be present with value <see cref="JsonNull.Missing"/>; otherwise, they will be omitted.</param>
+		internal static (string Name, JsonPath Path, JsonValue? Fallback)[] CheckProjectionFields(ReadOnlySpan<(string Name, JsonPath Path)> fields, bool keepMissing)
+		{
+			var res = new (string, JsonPath, JsonValue?)[fields.Length];
+			var set = new HashSet<string>(StringComparer.Ordinal);
+			int p = 0;
+
+			foreach (var field in fields)
+			{
+				if (string.IsNullOrEmpty(field.Name))
+				{
+					throw ThrowHelper.InvalidOperationException($"Cannot project empty or null field name: [{string.Join(", ", fields.ToArray())}]");
+				}
+				if (field.Path.IsEmpty())
+				{
+					throw ThrowHelper.InvalidOperationException($"Cannot project empty field path: [{string.Join(", ", fields.ToArray())}]");
+				}
+				set.Add(field.Name);
+				res[p++] = (field.Name, field.Path, keepMissing ? JsonNull.Missing : null);
+			}
+			if (set.Count != fields.Length)
+			{
+				throw ThrowHelper.InvalidOperationException($"Cannot project duplicate field name: [{string.Join(", ", fields.ToArray())}]");
 			}
 
 			return res;
@@ -3230,6 +3278,37 @@ namespace Doxense.Serialization.Json
 				else if (prop.Value != null)
 				{
 					obj[prop.Key] = prop.Value;
+				}
+			}
+
+			// keep the "readonly-ness" of the original, unless specified otherwise
+			if (item.IsReadOnly && !keepMutable)
+			{
+				obj.FreezeUnsafe();
+			}
+
+			return obj;
+		}
+
+		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
+		/// <param name="item">Source JSON object</param>
+		/// <param name="defaults">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMutable">If <see langword="false"/>, the created object will be marked as read-only if the source is already read-only; otherwise, it will be mutable.</param>
+		/// <returns>New object that contains the selected fields from the source, or their default values.</returns>
+		internal static JsonObject Project(JsonObject item, ReadOnlySpan<(string Name, JsonPath Path, JsonValue? Fallback)> defaults, bool keepMutable = false)
+		{
+			Contract.Debug.Requires(item != null);
+
+			var obj = new JsonObject(defaults.Length, item.Comparer);
+			foreach (var prop in defaults)
+			{
+				if (item.TryGetPathValue(prop.Path, out var value))
+				{
+					obj[prop.Name] = value;
+				}
+				else if (prop.Fallback != null)
+				{
+					obj[prop.Name] = prop.Fallback;
 				}
 			}
 
