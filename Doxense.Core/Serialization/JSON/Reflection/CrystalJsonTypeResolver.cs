@@ -69,6 +69,25 @@ namespace Doxense.Serialization.Json
 			return m_typeDefinitionCache.GetOrAdd(type, ResolveNewTypeHandler, this);
 		}
 
+		/// <inheritdoc />
+		public CrystalJsonMemberDefinition? ResolveMemberOfType(Type type, string memberName)
+		{
+			var typeDef = ResolveJsonType(type);
+			if (typeDef != null)
+			{
+				//HACKHACK: PERF: OPTIMZE: use a dictionary?
+				foreach (var def in typeDef.Members)
+				{
+					if (def.OriginalName == memberName || def.Name == memberName)
+					{
+						return def;
+					}
+				}
+			}
+
+			return null;
+		}
+
 		private static readonly Func<Type, CrystalJsonTypeResolver, CrystalJsonTypeDefinition?> ResolveNewTypeHandler = (t, self) => self.ResolveJsonTypeNoCache(t);
 
 		private CrystalJsonTypeDefinition? ResolveJsonTypeNoCache(Type type)

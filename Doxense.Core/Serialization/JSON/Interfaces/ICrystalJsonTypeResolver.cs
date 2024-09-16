@@ -38,6 +38,13 @@ namespace Doxense.Serialization.Json
 		/// <remarks>The list is computed on the first call for each type, and then cached in memory for subsequent calls</remarks>
 		CrystalJsonTypeDefinition? ResolveJsonType(Type type);
 
+		/// <summary>Returns the definition of a member of a type</summary>
+		/// <param name="type">Type that contains the member</param>
+		/// <param name="memberName">Name of the member</param>
+		/// <returns>If known, the definition for this member.</returns>
+		/// <remarks>This is usefull to inspect the custom serialization settings for a particular member of a type, that can be overriden, for example, by <see cref="JsonPropertyAttribute"/></remarks>
+		CrystalJsonMemberDefinition? ResolveMemberOfType(Type type, string memberName);
+
 		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		object? BindJsonValue(Type? type, JsonValue? value);
