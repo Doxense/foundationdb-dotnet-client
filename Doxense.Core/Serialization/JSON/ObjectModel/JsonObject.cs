@@ -2455,8 +2455,6 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
-		private static ArgumentException FailPathCannotBeEmpty(string paramName) => new("Path cannot be empty", paramName);
-
 		/// <summary>Returns a JSON Object at the given path, or create a new empty object if missing</summary>
 		/// <param name="path"><see cref="JsonPath">path</see> to the object</param>
 		/// <returns>Existing object, or a new empty object.</returns>
@@ -2469,7 +2467,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
 		public JsonObject GetOrCreateObject(string path)
 		{
-			if (string.IsNullOrEmpty(path)) throw FailPathCannotBeEmpty(nameof(path));
+			JsonPath.ThrowIfEmpty(path);
 			return (JsonObject) SetPathInternal(JsonPath.Create(path), null, JsonType.Object);
 		}
 
@@ -2485,7 +2483,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
 		public JsonObject GetOrCreateObject(JsonPath path)
 		{
-			if (path.IsEmpty()) throw FailPathCannotBeEmpty(nameof(path));
+			JsonPath.ThrowIfEmpty(path);
 			return (JsonObject) SetPathInternal(path, null, JsonType.Object);
 		}
 
@@ -2501,7 +2499,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
 		public JsonArray GetOrCreateArray(string path)
 		{
-			if (string.IsNullOrEmpty(path)) throw FailPathCannotBeEmpty(path);
+			JsonPath.ThrowIfEmpty(path);
 			return (JsonArray) SetPathInternal(JsonPath.Create(path), null, JsonType.Array);
 		}
 
@@ -2517,7 +2515,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
 		public JsonArray GetOrCreateArray(JsonPath path)
 		{
-			if (path.IsEmpty()) throw FailPathCannotBeEmpty(nameof(path));
+			JsonPath.ThrowIfEmpty(path);
 			return (JsonArray) SetPathInternal(path, null, JsonType.Array);
 		}
 
@@ -2527,7 +2525,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If any intermediate element in the traversed path is missing, it will be created as required (either as an object or an array)</remarks>
 		public void SetPath(string path, JsonValue? value)
 		{
-			if (string.IsNullOrEmpty(path)) throw FailPathCannotBeEmpty(nameof(path));
+			JsonPath.ThrowIfEmpty(path);
 			SetPathInternal(JsonPath.Create(path), value ?? JsonNull.Null);
 		}
 
@@ -2537,7 +2535,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If any intermediate element in the traversed path is missing, it will be created as required (either as an object or an array)</remarks>
 		public void SetPath(JsonPath path, JsonValue? value)
 		{
-			if (path.IsEmpty()) throw FailPathCannotBeEmpty(nameof(path));
+			JsonPath.ThrowIfEmpty(path);
 			SetPathInternal(path, value ?? JsonNull.Null);
 		}
 
@@ -2709,7 +2707,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		public bool RemovePath(string path)
 		{
-			if (string.IsNullOrEmpty(path)) throw FailPathCannotBeEmpty(nameof(path));
+			JsonPath.ThrowIfEmpty(path);
 			return !SetPathInternal(JsonPath.Create(path), null, JsonType.Null).IsNullOrMissing();
 		}
 
@@ -2721,7 +2719,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		public bool RemovePath(JsonPath path)
 		{
-			if (path.IsEmpty()) throw FailPathCannotBeEmpty(nameof(path));
+			JsonPath.ThrowIfEmpty(path);
 			return !SetPathInternal(path, null, JsonType.Null).IsNullOrMissing();
 		}
 

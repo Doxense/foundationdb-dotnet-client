@@ -39,7 +39,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a JsonPath that wraps a <see cref="string">ReadOnlySpan&lt;char&gt;</see> literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonPath Create(string? path) => path == null ? default : new(path.AsMemory());
+		public static JsonPath Create(string? path) => string.IsNullOrEmpty(path) ? default : new(path.AsMemory());
 
 		/// <summary>Returns a JsonPath that wraps an index</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -153,7 +153,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override int GetHashCode() => this.Value.GetHashCode();
+		public override int GetHashCode() => string.GetHashCode(this.Value.Span);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override bool Equals(object? obj) => obj switch
@@ -171,6 +171,9 @@ namespace Doxense.Serialization.Json
 		public bool Equals(string? other) => this.Value.Span.SequenceEqual(other); // null|"" == Empty
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<char> other) => this.Value.Span.SequenceEqual(other);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(JsonPath left, JsonPath right) => left.Equals(right);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -183,6 +186,12 @@ namespace Doxense.Serialization.Json
 		public static bool operator !=(JsonPath left, string? right) => !left.Equals(right);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(JsonPath left, ReadOnlySpan<char> right) => left.Equals(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(JsonPath left, ReadOnlySpan<char> right) => !left.Equals(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ReadOnlySpan<char> AsSpan() => this.Value.Span;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -191,6 +200,30 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if this the empty path (root of the document)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsEmpty() => this.Value.Length == 0;
+
+		/// <summary>Throws an exception if the specified path is empty</summary>
+		/// <param name="path">Path to check</param>
+		/// <param name="paramName">Name of the parameter that contains the path</param>
+		/// <exception cref="ArgumentException">if <paramref name="path"/> is empty</exception>
+		public static void ThrowIfEmpty(JsonPath path, [CallerArgumentExpression(nameof(path))] string? paramName = null)
+		{
+			if (path.Value.Length == 0)
+			{
+				throw ThrowHelper.ArgumentException(paramName ?? nameof(path), "Path cannot be empty");
+			}
+		}
+
+		/// <summary>Throws an exception if the specified path is empty</summary>
+		/// <param name="path">Path to check</param>
+		/// <param name="paramName">Name of the parameter that contains the path</param>
+		/// <exception cref="ArgumentException">if <paramref name="path"/> is empty</exception>
+		public static void ThrowIfEmpty(string path, [CallerArgumentExpression(nameof(path))] string? paramName = null)
+		{
+			if (string.IsNullOrEmpty(path))
+			{
+				throw ThrowHelper.ArgumentException(paramName ?? nameof(path), "Path cannot be empty");
+			}
+		}
 
 		/// <summary>Appends an index to this path (ex: <c>JsonPath.Return("tags")[1]</c> => "tags[1]")</summary>
 		public JsonPath this[int index]
@@ -260,6 +293,31 @@ namespace Doxense.Serialization.Json
 				}
 			}
 		}
+
+		public bool StartsWith(ReadOnlySpan<char> prefix) => this.Value.Span.StartsWith(prefix);
+
+		public bool EndsWith(ReadOnlySpan<char> suffix) => this.Value.Span.EndsWith(suffix);
+
+		public bool StartsWith(char prefix)
+#if NET9_0_OR_GREATER
+			=> this.Value.Span.Length > 0 && Value.Span[0] == prefix;
+#else
+		{
+			var span = this.Value.Span;
+			return span.Length > 0 && span[0] == prefix;
+		}
+#endif
+
+		public bool EndsWith(char suffix)
+#if NET9_0_OR_GREATER
+			=> this.Value.Span.EndsWith(suffix);
+#else
+		{
+			var span = this.Value.Span;
+			return span.Length > 0 && span[^1] == suffix;
+		}
+#endif
+
 
 #if NET8_0_OR_GREATER
 
@@ -1440,6 +1498,33 @@ namespace Doxense.Serialization.Json
 			{
 				sb.Append(CultureInfo.InvariantCulture, $"[{index}]");
 			}
+		}
+
+		public sealed class Comparer : IEqualityComparer<JsonPath>, IComparer<JsonPath>
+		{
+
+			public static readonly Comparer Default = new();
+
+			private Comparer() { }
+
+			/// <inheritdoc />
+			public bool Equals(JsonPath x, JsonPath y)
+			{
+				return x.Equals(y);
+			}
+
+			/// <inheritdoc />
+			public int GetHashCode(JsonPath obj)
+			{
+				return obj.GetHashCode();
+			}
+
+			/// <inheritdoc />
+			public int Compare(JsonPath x, JsonPath y)
+			{
+				return x.Value.Span.SequenceCompareTo(y.Value.Span);
+			}
+
 		}
 
 	}

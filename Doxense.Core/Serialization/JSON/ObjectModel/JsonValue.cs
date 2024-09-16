@@ -1360,6 +1360,24 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		/// <summary>Gets the value at the specified path, if it exists</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <param name="value">Receives the value found at this location, if it exists</param>
+		/// <returns><see langword="true"/> if the value was found and was not null or missing; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method will return <see langword="false"/> if a field is present but is explicitly set to <see langword="null"/>.</remarks>
+		public bool TryGetPathValue(string path, out JsonValue value) => TryGetPathValue(JsonPath.Create(path), out value);
+
+		/// <summary>Gets the value at the specified path, if it exists</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <param name="value">Receives the value found at this location, if it exists</param>
+		/// <returns><see langword="true"/> if the value was found and was not null or missing; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method will return <see langword="false"/> if a field is present but is explicitly set to <see langword="null"/>.</remarks>
+		public bool TryGetPathValue(JsonPath path, out JsonValue value)
+		{
+			value = GetPathCore(path, null, required: false);
+			return value is not null or JsonNull;
+		}
+
 		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
