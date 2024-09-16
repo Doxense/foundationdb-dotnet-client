@@ -1063,6 +1063,53 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region Int128
+
+#if NET8_0_OR_GREATER
+
+		public override Int128 ToInt128()
+		{
+			return string.IsNullOrEmpty(m_value) ? default : Int128.Parse(m_value, NumberFormatInfo.InvariantInfo);
+		}
+
+		public override Int128? ToInt128OrDefault(Int128? defaultValue = null)
+		{
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt128();
+		}
+
+		public bool TryConvertInt128(out Int128 value)
+		{
+			return Int128.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
+		}
+
+#endif
+
+		#endregion
+
+		#region UInt128
+
+#if NET8_0_OR_GREATER
+
+
+		public override UInt128 ToUInt128()
+		{
+			return string.IsNullOrEmpty(m_value) ? default : UInt128.Parse(m_value, NumberFormatInfo.InvariantInfo);
+		}
+
+		public override UInt128? ToUInt128OrDefault(UInt128? defaultValue = null)
+		{
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt128();
+		}
+
+		public bool TryConvertUInt128(out UInt128 value)
+		{
+			return UInt128.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
+		}
+
+#endif
+
+		#endregion
+
 		#region Single
 
 		public override float ToSingle()

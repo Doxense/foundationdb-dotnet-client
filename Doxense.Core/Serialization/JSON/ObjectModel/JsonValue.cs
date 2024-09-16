@@ -1659,6 +1659,24 @@ namespace Doxense.Serialization.Json
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual decimal? ToDecimalOrDefault(decimal? defaultValue = default) => ToDecimal();
 
+#if NET8_0_OR_GREATER
+
+		/// <summary>Returns the equivalent <see cref="System.Int128"/>, if there exists a valid conversion</summary>
+		public virtual Int128 ToInt128() => throw Errors.JsonConversionNotSupported(this, typeof(double));
+
+		/// <summary>Returns the equivalent <see cref="System.Int128"/>, if there exists a valid conversion</summary>
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public virtual Int128? ToInt128OrDefault(Int128? defaultValue = default) => ToInt128();
+
+		/// <summary>Returns the equivalent <see cref="System.UInt128"/>, if there exists a valid conversion</summary>
+		public virtual UInt128 ToUInt128() => throw Errors.JsonConversionNotSupported(this, typeof(double));
+
+		/// <summary>Returns the equivalent <see cref="System.UInt128"/>, if there exists a valid conversion</summary>
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public virtual UInt128? ToUInt128OrDefault(UInt128? defaultValue = default) => ToUInt128();
+
+#endif
+
 		/// <summary>Returns the equivalent <see cref="Guid"/>, if there exists a valid conversion</summary>
 		public virtual Guid ToGuid() => throw Errors.JsonConversionNotSupported(this, typeof(Guid));
 

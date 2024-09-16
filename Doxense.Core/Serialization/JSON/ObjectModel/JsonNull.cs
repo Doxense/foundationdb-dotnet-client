@@ -343,6 +343,18 @@ namespace Doxense.Serialization.Json
 
 		public override decimal? ToDecimalOrDefault(decimal? defaultValue = null) => defaultValue;
 
+#if NET8_0_OR_GREATER
+
+		public override Int128 ToInt128() => default;
+
+		public override Int128? ToInt128OrDefault(Int128? defaultValue = null) => defaultValue;
+
+		public override UInt128 ToUInt128() => default;
+
+		public override UInt128? ToUInt128OrDefault(UInt128? defaultValue = null) => defaultValue;
+
+#endif
+
 		public override Guid ToGuid() => default;
 
 		public override Guid? ToGuidOrDefault(Guid? defaultValue = null) => defaultValue;

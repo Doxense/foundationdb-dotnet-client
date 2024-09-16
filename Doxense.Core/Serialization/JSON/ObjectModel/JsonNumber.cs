@@ -43,8 +43,24 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
-	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>, IEquatable<JsonString>, IEquatable<JsonBoolean>, IEquatable<JsonDateTime>, IEquatable<int>, IEquatable<long>, IEquatable<uint>, IEquatable<ulong>, IEquatable<float>, IEquatable<double>, IEquatable<decimal>, IEquatable<TimeSpan>, IEquatable<Half>
+	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>
+		, IEquatable<JsonString>
+		, IEquatable<JsonBoolean>
+		, IEquatable<JsonDateTime>
+		, IEquatable<int>
+		, IEquatable<long>
+		, IEquatable<uint>
+		, IEquatable<ulong>
+		, IEquatable<float>
+		, IEquatable<double>
+		, IEquatable<decimal>
+		, IEquatable<short>
+		, IEquatable<ushort>
+		, IEquatable<TimeSpan>
+		, IEquatable<Half>
 #if NET8_0_OR_GREATER
+		, IEquatable<Int128>
+		, IEquatable<UInt128>
 		, System.Numerics.INumberBase<JsonNumber>
 		, System.Numerics.IComparisonOperators<JsonNumber, long, bool>
 		, System.Numerics.IComparisonOperators<JsonNumber, ulong, bool>
@@ -162,6 +178,8 @@ namespace Doxense.Serialization.Json
 
 			[FieldOffset(0)]
 			public readonly ulong Unsigned;
+
+			//TODO: another view for Int128/UInt28?
 
 			#endregion
 
@@ -399,6 +417,30 @@ namespace Doxense.Serialization.Json
 				Kind.Unsigned => this.Unsigned,
 				_ => 0
 			};
+
+#if NET8_0_OR_GREATER
+
+			[Pure]
+			public Int128 ToInt128(Kind kind) => kind switch
+			{
+				Kind.Decimal => (Int128)this.Decimal,
+				Kind.Double => checked((Int128) this.Double),
+				Kind.Signed => this.Signed,
+				Kind.Unsigned => this.Unsigned,
+				_ => 0
+			};
+
+			[Pure]
+			public UInt128 ToUInt128(Kind kind) => kind switch
+			{
+				Kind.Decimal => (UInt128) this.Decimal,
+				Kind.Double => checked((UInt128) this.Double),
+				Kind.Signed => checked((UInt128) this.Signed),
+				Kind.Unsigned => this.Unsigned,
+				_ => 0
+			};
+
+#endif
 
 			[Pure]
 			public float ToSingle(Kind kind) => kind switch
@@ -1926,6 +1968,14 @@ namespace Doxense.Serialization.Json
 
 		public override Half ToHalf() => m_value.ToHalf(m_kind);
 
+#if NET8_0_OR_GREATER
+
+		public override Int128 ToInt128() => m_value.ToInt128(m_kind);
+
+		public override UInt128 ToUInt128() => m_value.ToUInt128(m_kind);
+
+#endif
+
 		public override decimal ToDecimal() => m_value.ToDecimal(m_kind);
 
 		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTime (UTC)</summary>
@@ -2137,6 +2187,24 @@ namespace Doxense.Serialization.Json
 
 		public bool Equals(JsonDateTime? value) => value != null && ToDouble() == value.ToDouble();
 
+		public bool Equals(short value) => m_kind switch
+		{
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => value >= 0 && m_value.Unsigned == (ulong) value,
+			_ => false
+		};
+
+		public bool Equals(ushort value) => m_kind switch
+		{
+			Kind.Decimal => m_value.Decimal == new decimal(value),
+			Kind.Double => m_value.Double == value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => m_value.Unsigned == value,
+			_ => false
+		};
+
 		public bool Equals(int value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2172,6 +2240,28 @@ namespace Doxense.Serialization.Json
 			Kind.Unsigned => m_value.Unsigned == value,
 			_ => false
 		};
+
+#if NET8_0_OR_GREATER
+
+		public bool Equals(Int128 value) => m_kind switch
+		{
+			Kind.Decimal => m_value.Decimal == (decimal) value,
+			Kind.Double => m_value.Double == (double) value,
+			Kind.Signed => m_value.Signed == value,
+			Kind.Unsigned => value >= 0 && m_value.Unsigned == (ulong) value,
+			_ => false
+		};
+
+		public bool Equals(UInt128 value) => m_kind switch
+		{
+			Kind.Decimal => m_value.Decimal == (decimal) value,
+			Kind.Double => m_value.Double == (double) value,
+			Kind.Signed => m_value.Signed == (long) value,
+			Kind.Unsigned => m_value.Unsigned == value,
+			_ => false
+		};
+
+#endif
 
 		public bool Equals(float value) => m_kind switch
 		{

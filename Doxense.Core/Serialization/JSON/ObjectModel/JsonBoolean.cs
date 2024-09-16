@@ -218,6 +218,14 @@ namespace Doxense.Serialization.Json
 
 		public override ulong ToUInt64() => m_value ? 1UL : 0UL;
 
+#if NET8_0_OR_GREATER
+
+		public override Int128 ToInt128() => m_value ? Int128.One : Int128.Zero;
+
+		public override UInt128 ToUInt128() => m_value ? UInt128.One : UInt128.Zero;
+
+#endif
+
 		public override float ToSingle() => m_value ? 1f : 0f;
 
 		public override double ToDouble() => m_value ? 1d : 0d;
