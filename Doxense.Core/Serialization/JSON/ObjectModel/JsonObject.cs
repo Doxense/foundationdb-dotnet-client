@@ -1612,6 +1612,24 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject AddValues<TValue>(ReadOnlySpan<(string Key, TValue Value)> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			if (items.Length == 0) return this;
+
+			var self = m_items;
+			self.EnsureCapacity(unchecked(self.Count + items.Length));
+
+			foreach (var item in items)
+			{
+				Contract.Debug.Requires(item.Key != null);
+				self.Add(item.Key, FromValue<TValue>(item.Value));
+			}
+
+			return this;
+		}
+
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(KeyValuePair<string, JsonValue>[] items)
 		{
 			Contract.NotNull(items);
