@@ -2826,40 +2826,6 @@ namespace Doxense.Serialization.Json
 			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
 
-		/// <summary>Determines the index of a specific value in the <see cref="JsonArray">JSON Array</see>.</summary>
-		/// <param name="item">The value to locate in the array.</param>
-		/// <returns>The index of <paramref name="item" /> if found in the array; otherwise, <see langword="-1"/>.</returns>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		public int IndexOf(JsonValue item) => this.AsSpan().IndexOf(item);
-
-		/// <summary>Determines whether the <see cref="JsonArray">JSON Array</see> contains a specific JSON value.</summary>
-		/// <param name="item">The value to locate in the array.</param>
-		/// <returns> <see langword="true" /> if <paramref name="item" /> is found in the array; otherwise, <see langword="false" />.</returns>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override bool Contains(JsonValue? item)
-		{
-			var items = m_items;
-			var size = m_size;
-			if (item == null)
-			{
-				for (int i = 0; i < size; i++)
-				{
-					if (items[i].IsNullOrMissing()) return true;
-				}
-				return false;
-			}
-			else
-			{
-				for (int i = 0; i < size; i++)
-				{
-					if (item.Equals(items[i])) return true;
-				}
-				return false;
-			}
-		}
-
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Set(int index, JsonValue? item)
 		{
@@ -3068,6 +3034,99 @@ namespace Doxense.Serialization.Json
 		#endregion
 
 		#region Operators...
+
+		/// <summary>Determines the index of a specific value in the <see cref="JsonArray">JSON Array</see>.</summary>
+		/// <param name="item">The value to locate in the array.</param>
+		/// <returns>The index of <paramref name="item" /> if found in the array; otherwise, <see langword="-1"/>.</returns>
+		/// <remarks>If <paramref name="item"/> is <see langword="null"/>, it will match any null or missing entries. If it is any of <see cref="JsonNull.Null"/>, <see cref="JsonNull.Missing"/> or <see cref="JsonNull.Error"/>, it will only match the same singletons.</remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public int IndexOf(JsonValue? item)
+		{
+			return item != null
+				?  this.AsSpan().IndexOf(item)
+				: IndexOfNullLike(this.AsSpan());
+
+			static int IndexOfNullLike(ReadOnlySpan<JsonValue> items)
+			{
+				int i = 0;
+				foreach (var item in items)
+				{
+					if (item.IsNullOrMissing())
+					{
+						return i;
+					}
+					++i;
+				}
+
+				return -1;
+			}
+		}
+
+		/// <summary>Determines whether the <see cref="JsonArray">JSON Array</see> contains a specific JSON value.</summary>
+		/// <param name="item">The value to locate in the array.</param>
+		/// <returns> <see langword="true" /> if <paramref name="item" /> is found in the array; otherwise, <see langword="false" />.</returns>
+		/// <remarks>If <paramref name="item"/> is <see langword="null"/>, it will match any null or missing entries. If it is any of <see cref="JsonNull.Null"/>, <see cref="JsonNull.Missing"/> or <see cref="JsonNull.Error"/>, it will only match the same singletons.</remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override bool Contains(JsonValue? item)
+		{
+			// if item is null, we want _any_ types of null (Null, Missing, Error)
+			return item != null
+				? this.AsSpan().Contains(item)
+				: ContainsNullLike(this.AsSpan());
+
+			static bool ContainsNullLike(ReadOnlySpan<JsonValue> items)
+			{
+				foreach(var x in items)
+				{
+					if (x.IsNullOrMissing())
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+		}
+
+		/// <summary>Finds and returns the first element in the array that matches the given predicate</summary>
+		/// <param name="predicate">Predicate that will evaluate all the elements in the array, in order, until it returns either <see langword="true"/>, or there are no more elements</param>
+		/// <returns>First element where <paramref name="predicate"/> returned <see langword="true"/>, or <see langword="null"/> if the array is empty, or no element was matched.</returns>
+		public JsonValue? Find(Func<JsonValue, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			foreach (var item in AsSpan())
+			{
+				if (predicate(item))
+				{
+					return item;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>Finds and returns the first element in the array that matches the given predicate</summary>
+		/// <param name="predicate">Predicate that will evaluate all the elements in the array, in order, until it returns either <see langword="true"/>, or there are no more elements</param>
+		/// <param name="value">Receives the first element that matched</param>
+		/// <returns> <see langword="true"/> if <paramref name="predicate"/> matched an element, or <see langword="false"/> if the array is empty, or no element was matched.</returns>
+		public bool TryFind(Func<JsonValue, bool> predicate, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			Contract.NotNull(predicate);
+
+			foreach (var item in AsSpan())
+			{
+				if (predicate(item))
+				{
+					value = item;
+					return true;
+				}
+			}
+
+			value = null;
+			return false;
+		}
 
 		/// <summary>Keep only the elements that match a predicate</summary>
 		/// <param name="predicate">Predicate that should returns <see langword="true"/> for elements to keep, and <see langword="false"/> for elements to discard</param>

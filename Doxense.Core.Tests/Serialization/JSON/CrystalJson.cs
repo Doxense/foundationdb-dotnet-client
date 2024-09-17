@@ -6401,6 +6401,53 @@ namespace Doxense.Serialization.Json.Tests
 			Check(JsonArray.Create(["hello", "world"]).CopyAndRemove(2), IsJson.ReadOnly.And.EqualTo([ "hello", "world" ]));
 		}
 
+		[Test]
+		public void Test_JsonArray_IndexOf()
+		{
+			Assert.Multiple(() =>
+			{
+				// find string
+				Assert.That(JsonArray.Create().IndexOf("hello"), Is.EqualTo(-1));
+				Assert.That(JsonArray.Create("hello").IndexOf("hello"), Is.EqualTo(0));
+				Assert.That(JsonArray.Create("hello", 123).IndexOf("hello"), Is.EqualTo(0));
+				Assert.That(JsonArray.Create(123, "hello").IndexOf("hello"), Is.EqualTo(1));
+				Assert.That(JsonArray.Create("hello", "hello").IndexOf("hello"), Is.EqualTo(0));
+
+				// find number
+				Assert.That(JsonArray.Create(123).IndexOf(123), Is.EqualTo(0));
+				Assert.That(JsonArray.Create(123, "hello").IndexOf(123), Is.EqualTo(0));
+				Assert.That(JsonArray.Create("hello", 123).IndexOf(123), Is.EqualTo(1));
+				Assert.That(JsonArray.Create(123).IndexOf(123), Is.EqualTo(0));
+				Assert.That(JsonArray.Create(123, 123).IndexOf(123), Is.EqualTo(0));
+
+				// find number
+				Assert.That(JsonArray.Create(true).IndexOf(true), Is.EqualTo(0));
+				Assert.That(JsonArray.Create(true).IndexOf(false), Is.EqualTo(-1));
+				Assert.That(JsonArray.Create("hello", true).IndexOf(true), Is.EqualTo(1));
+				Assert.That(JsonArray.Create(JsonNull.Null).IndexOf(false), Is.EqualTo(-1));
+				Assert.That(JsonArray.Create("").IndexOf(false), Is.EqualTo(-1));
+				Assert.That(JsonArray.Create(0).IndexOf(false), Is.EqualTo(-1));
+
+				// find null-like
+				Assert.That(JsonArray.Create("hello", JsonNull.Null, "world").IndexOf(null), Is.EqualTo(1), "Null is null-like");
+				Assert.That(JsonArray.Create("hello", JsonNull.Null, "world").IndexOf(JsonNull.Null), Is.EqualTo(1));
+				Assert.That(JsonArray.Create("hello", JsonNull.Null, "world").IndexOf(JsonNull.Missing), Is.EqualTo(-1), "Missing does not equal Null");
+				Assert.That(JsonArray.Create("hello", JsonNull.Null, "world").IndexOf(JsonNull.Error), Is.EqualTo(-1), "Error does not equal Null");
+				Assert.That(JsonArray.Create("hello", JsonNull.Missing, "world").IndexOf(null), Is.EqualTo(1), "Missing is null-like");
+				Assert.That(JsonArray.Create("hello", JsonNull.Missing, "world").IndexOf(JsonNull.Null), Is.EqualTo(-1), "Null does not equal Missing");
+				Assert.That(JsonArray.Create("hello", JsonNull.Missing, "world").IndexOf(JsonNull.Missing), Is.EqualTo(1));
+
+				// find sub-object
+				var obj = JsonObject.Create([ ("hello", "there") ]);
+				Assert.That(JsonArray.Create("foo", obj, "bar").IndexOf(obj), Is.EqualTo(1));
+
+				// find sub-array
+				var arr = JsonArray.Create([ "hello", "there" ]);
+				Assert.That(JsonArray.Create("foo", arr, "bar").IndexOf(arr), Is.EqualTo(1));
+
+			});
+		}
+
 		#endregion
 
 		#region Checks...
@@ -8066,6 +8113,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
+		#region JsonValue.FromValue/FromObject...
+
 		[Test]
 		public void Test_JsonValue_FromValue_Basic_Types()
 		{
@@ -8454,6 +8503,8 @@ namespace Doxense.Serialization.Json.Tests
 			value = JsonNumber.Return(float.NaN);
 			Assert.That(JsonValue.FromValue(value), Is.SameAs(value));
 		}
+
+		#endregion
 
 		[Test]
 		public void Test_JsonValue_Equals()
