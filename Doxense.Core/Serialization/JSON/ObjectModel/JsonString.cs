@@ -550,9 +550,13 @@ namespace Doxense.Serialization.Json
 				return m_value;
 			}
 
-			if (type == typeof(JsonValue) || type == typeof(JsonString))
+			if (type.IsAssignableTo(typeof(JsonValue)))
 			{
-				return this;
+				if (type == typeof(JsonValue) || type == typeof(JsonString))
+				{
+					return this;
+				}
+				throw JsonBindingException.CannotBindJsonStringToThisType(this, type);
 			}
 
 			resolver ??= CrystalJson.DefaultResolver;

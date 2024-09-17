@@ -1697,33 +1697,64 @@ namespace Doxense.Serialization.Json
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
-#if !DEBUG
-			if (typeof(T) == typeof(bool)) return (T) (object) ToBoolean();
-			if (typeof(T) == typeof(byte)) return (T) (object) ToByte();
-			if (typeof(T) == typeof(sbyte)) return (T) (object) ToSByte();
-			if (typeof(T) == typeof(char)) return (T) (object) ToChar();
-			if (typeof(T) == typeof(short)) return (T) (object) ToInt16();
-			if (typeof(T) == typeof(ushort)) return (T) (object) ToUInt16();
-			if (typeof(T) == typeof(int)) return (T) (object) ToInt32();
-			if (typeof(T) == typeof(uint)) return (T) (object) ToUInt32();
-			if (typeof(T) == typeof(ulong)) return (T) (object) ToUInt64();
-			if (typeof(T) == typeof(long)) return (T) (object) ToInt64();
-			if (typeof(T) == typeof(float)) return (T) (object) ToSingle();
-			if (typeof(T) == typeof(double)) return (T) (object) ToDouble();
-			if (typeof(T) == typeof(decimal)) return (T) (object) ToDecimal();
-			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
-			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
-			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
-			if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
-			if (typeof(T) == typeof(TimeOnly)) return (T) (object) ToTimeOnly();
-			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
-			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
-			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
-			if (typeof(T) == typeof(Uuid80)) return (T) (object) ToUuid80();
-			if (typeof(T) == typeof(Uuid64)) return (T) (object) ToUuid64();
-			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
-			if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) ToDuration();
-#endif
+
+			if (default(T) is null)
+			{
+				if (typeof(T) == typeof(bool?)) return (T) (object) ToBoolean();
+				if (typeof(T) == typeof(byte?)) return (T) (object) ToByte();
+				if (typeof(T) == typeof(sbyte?)) return (T) (object) ToSByte();
+				if (typeof(T) == typeof(char?)) return (T) (object) ToChar();
+				if (typeof(T) == typeof(short?)) return (T) (object) ToInt16();
+				if (typeof(T) == typeof(ushort?)) return (T) (object) ToUInt16();
+				if (typeof(T) == typeof(int?)) return (T) (object) ToInt32();
+				if (typeof(T) == typeof(uint?)) return (T) (object) ToUInt32();
+				if (typeof(T) == typeof(ulong?)) return (T) (object) ToUInt64();
+				if (typeof(T) == typeof(long?)) return (T) (object) ToInt64();
+				if (typeof(T) == typeof(float?)) return (T) (object) ToSingle();
+				if (typeof(T) == typeof(double?)) return (T) (object) ToDouble();
+				if (typeof(T) == typeof(decimal?)) return (T) (object) ToDecimal();
+				if (typeof(T) == typeof(TimeSpan?)) return (T) (object) ToTimeSpan();
+				if (typeof(T) == typeof(DateTime?)) return (T) (object) ToDateTime();
+				if (typeof(T) == typeof(DateTimeOffset?)) return (T) (object) ToDateTimeOffset();
+				if (typeof(T) == typeof(DateOnly?)) return (T) (object) ToDateOnly();
+				if (typeof(T) == typeof(TimeOnly?)) return (T) (object) ToTimeOnly();
+				if (typeof(T) == typeof(Guid?)) return (T) (object) ToGuid();
+				if (typeof(T) == typeof(Uuid128?)) return (T) (object) ToUuid128();
+				if (typeof(T) == typeof(Uuid96?)) return (T) (object) ToUuid96();
+				if (typeof(T) == typeof(Uuid80?)) return (T) (object) ToUuid80();
+				if (typeof(T) == typeof(Uuid64?)) return (T) (object) ToUuid64();
+				if (typeof(T) == typeof(NodaTime.Instant?)) return (T) (object) ToInstant();
+				if (typeof(T) == typeof(NodaTime.Duration?)) return (T) (object) ToDuration();
+			}
+			else
+			{
+				if (typeof(T) == typeof(bool)) return (T) (object) ToBoolean();
+				if (typeof(T) == typeof(byte)) return (T) (object) ToByte();
+				if (typeof(T) == typeof(sbyte)) return (T) (object) ToSByte();
+				if (typeof(T) == typeof(char)) return (T) (object) ToChar();
+				if (typeof(T) == typeof(short)) return (T) (object) ToInt16();
+				if (typeof(T) == typeof(ushort)) return (T) (object) ToUInt16();
+				if (typeof(T) == typeof(int)) return (T) (object) ToInt32();
+				if (typeof(T) == typeof(uint)) return (T) (object) ToUInt32();
+				if (typeof(T) == typeof(ulong)) return (T) (object) ToUInt64();
+				if (typeof(T) == typeof(long)) return (T) (object) ToInt64();
+				if (typeof(T) == typeof(float)) return (T) (object) ToSingle();
+				if (typeof(T) == typeof(double)) return (T) (object) ToDouble();
+				if (typeof(T) == typeof(decimal)) return (T) (object) ToDecimal();
+				if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
+				if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
+				if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+				if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
+				if (typeof(T) == typeof(TimeOnly)) return (T) (object) ToTimeOnly();
+				if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
+				if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
+				if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
+				if (typeof(T) == typeof(Uuid80)) return (T) (object) ToUuid80();
+				if (typeof(T) == typeof(Uuid64)) return (T) (object) ToUuid64();
+				if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
+				if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) ToDuration();
+			}
+
 			#endregion
 
 			return (T?) Bind(typeof(T), resolver);
@@ -1734,6 +1765,20 @@ namespace Doxense.Serialization.Json
 			if (type == null || type == typeof(object))
 			{
 				return ToObject();
+			}
+
+			if (type == typeof(string))
+			{
+				return ToString();
+			}
+
+			if (type.IsAssignableTo(typeof(JsonValue)))
+			{
+				if (type == typeof(JsonValue) || type == typeof(JsonNumber))
+				{
+					return this;
+				}
+				throw JsonBindingException.CannotBindJsonNumberToThisType(this, type);
 			}
 
 			// On utilise le TypeCode
@@ -1838,12 +1883,7 @@ namespace Doxense.Serialization.Json
 				return def.CustomBinder(this, type, resolver);
 			}
 
-#if DEBUG
-			throw new InvalidOperationException($"Doesn't know how to bind a JsonNumber into a value of type {type.GetFriendlyName()}");
-#else
-			//TODO!?
-			return null;
-#endif
+			throw JsonBindingException.CannotBindJsonNumberToThisType(this, type);
 		}
 
 		internal override bool IsSmallValue() => true;

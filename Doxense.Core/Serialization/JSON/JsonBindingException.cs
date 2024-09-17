@@ -138,13 +138,16 @@ namespace Doxense.Serialization.Json
 		public static JsonBindingException CannotBindJsonObjectToThisType(JsonValue? value, Type type, Exception? innerException = null) => new($"Cannot bind a JSON Object to type '{type.GetFriendlyName()}'.", value, innerException);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static JsonBindingException CannotBindJsonArrayToThisType(JsonValue value, Type type, Exception? innerException = null) => new($"Cannot bind a JSON Array to type '{type.GetFriendlyName()}'.", value, innerException);
+		public static JsonBindingException CannotBindJsonArrayToThisType(JsonArray? value, Type type, Exception? innerException = null) => new($"Cannot bind a JSON Array to type '{type.GetFriendlyName()}'.", value, innerException);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonBindingException CannotBindJsonValueToArrayOfThisType(JsonValue value, Type type, Exception? innerException = null) => new($"Cannot bind a JSON {value.Type} to an array of '{type.GetFriendlyName()}'.", value, innerException);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static JsonBindingException CannotBindJsonStringToThisType(JsonValue value, Type type, Exception? innerException = null) => new($"Cannot convert JSON String to type '{type.GetFriendlyName()}'.", value, innerException);
+		public static JsonBindingException CannotBindJsonStringToThisType(JsonString value, Type type, Exception? innerException = null) => new($"Cannot convert JSON String to type '{type.GetFriendlyName()}'.", value, innerException);
+
+		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonBindingException CannotBindJsonNumberToThisType(JsonNumber value, Type type, Exception? innerException = null) => new($"Cannot convert JSON Number to type '{type.GetFriendlyName()}'.", value, innerException);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonBindingException CannotBindMalformedOrInvalidJsonValue(JsonValue value, Type type, string message, Exception? innerException = null) => new($"Cannot bind malformed JSON {value.Type} to type '{type.GetFriendlyName()}': {message}", value, innerException);
