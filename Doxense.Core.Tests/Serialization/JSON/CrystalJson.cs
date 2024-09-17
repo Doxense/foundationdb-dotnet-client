@@ -55,6 +55,8 @@
 // ReSharper disable ConvertToConstant.Local
 // ReSharper disable ConvertToAutoProperty
 // ReSharper disable VariableLengthStringHexEscapeSequence
+// ReSharper disable StringLiteralTypo
+// ReSharper disable IdentifierTypo
 #pragma warning disable JSON001
 #pragma warning disable IDE0044
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -359,7 +361,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region Serialization...
 
-		/// <summary>Helper to wrap calls to SerializeTo(..), using a StringWriter, and returning the generated string</summary>
+		/// <summary>Helper to wrap calls to SerializeTo(...), using a StringWriter, and returning the generated string</summary>
 		private static string SerializeToString(Func<TextWriter, TextWriter> action)
 		{
 			using (var sw = new StringWriter())
@@ -918,7 +920,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_JsonValue_ToString_Formattable()
+		public void Test_JsonValue_ToString_Formatable()
 		{
 			JsonValue num = 123;
 			JsonValue flag = true;
@@ -2104,8 +2106,8 @@ namespace Doxense.Serialization.Json.Tests
 			jsonText = CrystalJson.Serialize(agent);
 			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
 
-			// serilalize the container, which references this instance via the base type
-			// as it is no top-level, the _class property should be included!
+			// serialize the container, which references this instance via the base type
+			// as it is not top-level, the _class property should be included!
 			expectedAgent = """{ "_class": "Doxense.Serialization.Json.Tests.DummyDerivedJsonClass, Doxense.Core.Tests", "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
 			jsonText = CrystalJson.Serialize(x);
