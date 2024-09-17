@@ -5625,12 +5625,9 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // the second element is null
-				var arr = new JsonArray()
-				{
-					a, JsonNull.Null, c
-				};
+				var arr = JsonArray.Create(a, JsonNull.Null, c);
 
-				var cast = arr.AsObjects();
+				var cast = arr.AsObjectsOrDefault();
 				using (var it = cast.GetEnumerator())
 				{
 					Assert.That(it.Current, Is.Null, "Before first MoveNext");
@@ -5647,29 +5644,28 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject?> { a, null, c }));
 			}
 
-			{ // the second elements is null, but they are all required
-				var arr = new JsonArray()
-				{
-					a, null, c
-				};
+			{ // the second element is null
+				var arr = JsonArray.Create(a, JsonNull.Null, c);
 
-				var cast = arr.AsObjects(required: true);
+				var cast = arr.AsObjectsOrEmpty();
 				using (var it = cast.GetEnumerator())
 				{
 					Assert.That(it.Current, Is.Null, "Before first MoveNext");
 					Assert.That(it.MoveNext(), Is.True, "#1");
 					Assert.That(it.Current, Is.SameAs(a), "#1");
-					Assert.That(() => it.MoveNext(), Throws.InstanceOf<InvalidOperationException>(), "#2 should throw because null is not allowed");
+					Assert.That(it.MoveNext(), Is.True, "#2");
+					Assert.That(it.Current, Is.SameAs(JsonObject.EmptyReadOnly), "#2 should be empty singleton!");
+					Assert.That(it.MoveNext(), Is.True, "#3");
+					Assert.That(it.Current, Is.SameAs(c), "#3");
+					Assert.That(it.MoveNext(), Is.False, "Capacity = 4, mais Count = 3 !");
+					Assert.That(it.Current, Is.Null, "After last MoveNext");
 				}
-				Assert.That(() => cast.ToArray(), Throws.InstanceOf<InvalidOperationException>(), "ToArray() should throw because null is not allowed");
-				Assert.That(() => cast.ToList(), Throws.InstanceOf<InvalidOperationException>(), "ToList() should throw because null is not allowed");
+				Assert.That(cast.ToArray(), Is.EqualTo(new JsonObject?[] { a, JsonObject.EmptyReadOnly, c }));
+				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject?> { a, JsonObject.EmptyReadOnly, c }));
 			}
 
-			{ // the second element is not an object (and not null)
-				var arr = new JsonArray()
-				{
-					a, 123, c
-				};
+			{ // the second elements is null, but they are all required
+				var arr = JsonArray.Create(a, null, c);
 
 				var cast = arr.AsObjects();
 				using (var it = cast.GetEnumerator())
@@ -5677,10 +5673,25 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(it.Current, Is.Null, "Before first MoveNext");
 					Assert.That(it.MoveNext(), Is.True, "#1");
 					Assert.That(it.Current, Is.SameAs(a), "#1");
-					Assert.That(() => it.MoveNext(), Throws.InstanceOf<InvalidCastException>(), "#2 should throw because it is not an object");
+					Assert.That(() => it.MoveNext(), Throws.InstanceOf<JsonBindingException>(), "#2 should throw because null is not allowed");
 				}
-				Assert.That(() => cast.ToArray(), Throws.InstanceOf<InvalidCastException>(), "ToArray() should throw because it is not an object");
-				Assert.That(() => cast.ToList(), Throws.InstanceOf<InvalidCastException>(), "ToList() should throw because it is not an object");
+				Assert.That(() => cast.ToArray(), Throws.InstanceOf<JsonBindingException>(), "ToArray() should throw because null is not allowed");
+				Assert.That(() => cast.ToList(), Throws.InstanceOf<JsonBindingException>(), "ToList() should throw because null is not allowed");
+			}
+
+			{ // the second element is not an object (and not null)
+				var arr = JsonArray.Create(a, 123, c);
+
+				var cast = arr.AsObjects();
+				using (var it = cast.GetEnumerator())
+				{
+					Assert.That(it.Current, Is.Null, "Before first MoveNext");
+					Assert.That(it.MoveNext(), Is.True, "#1");
+					Assert.That(it.Current, Is.SameAs(a), "#1");
+					Assert.That(() => it.MoveNext(), Throws.InstanceOf<JsonBindingException>(), "#2 should throw because it is not an object");
+				}
+				Assert.That(() => cast.ToArray(), Throws.InstanceOf<JsonBindingException>(), "ToArray() should throw because it is not an object");
+				Assert.That(() => cast.ToList(), Throws.InstanceOf<JsonBindingException>(), "ToList() should throw because it is not an object");
 			}
 
 		}
@@ -5716,12 +5727,9 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // second element is null
-				var arr = new JsonArray()
-				{
-					a, JsonNull.Null, c
-				};
+				var arr = JsonArray.Create(a, JsonNull.Null, c);
 
-				var cast = arr.AsArrays();
+				var cast = arr.AsArraysOrDefault();
 				using (var it = cast.GetEnumerator())
 				{
 					Assert.That(it.Current, Is.Null, "Before first MoveNext");
@@ -5738,29 +5746,28 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonArray?> { a, null, c }));
 			}
 
-			{ // second element is null, and all are required
-				var arr = new JsonArray()
-				{
-					a, null, c
-				};
+			{ // second element is null
+				var arr = JsonArray.Create(a, JsonNull.Null, c);
 
-				var cast = arr.AsArrays(required: true);
+				var cast = arr.AsArraysOrEmpty();
 				using (var it = cast.GetEnumerator())
 				{
 					Assert.That(it.Current, Is.Null, "Before first MoveNext");
 					Assert.That(it.MoveNext(), Is.True, "#1");
 					Assert.That(it.Current, Is.SameAs(a), "#1");
-					Assert.That(() => it.MoveNext(), Throws.InstanceOf<InvalidOperationException>(), "#2 should throw because null is not allowed");
+					Assert.That(it.MoveNext(), Is.True, "#2");
+					Assert.That(it.Current, Is.SameAs(JsonArray.EmptyReadOnly), "#2 should be empty singleton!");
+					Assert.That(it.MoveNext(), Is.True, "#3");
+					Assert.That(it.Current, Is.SameAs(c), "#3");
+					Assert.That(it.MoveNext(), Is.False, "Capacity = 4, mais Count = 3 !");
+					Assert.That(it.Current, Is.Null, "After last MoveNext");
 				}
-				Assert.That(() => cast.ToArray(), Throws.InstanceOf<InvalidOperationException>(), "ToArray() should throw because null is not allowed");
-				Assert.That(() => cast.ToList(), Throws.InstanceOf<InvalidOperationException>(), "ToList() should throw because null is not allowed");
+				Assert.That(cast.ToArray(), Is.EqualTo(new JsonArray?[] { a, JsonArray.EmptyReadOnly, c }));
+				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonArray?> { a, JsonArray.EmptyReadOnly, c }));
 			}
 
-			{ // second element is not an array, and not null
-				var arr = new JsonArray()
-				{
-					a, 123, c
-				};
+			{ // second element is null, and all are required
+				var arr = JsonArray.Create(a, null, c);
 
 				var cast = arr.AsArrays();
 				using (var it = cast.GetEnumerator())
@@ -5768,12 +5775,184 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(it.Current, Is.Null, "Before first MoveNext");
 					Assert.That(it.MoveNext(), Is.True, "#1");
 					Assert.That(it.Current, Is.SameAs(a), "#1");
-					Assert.That(() => it.MoveNext(), Throws.InstanceOf<InvalidCastException>(), "#2 should throw because it is not an array");
+					Assert.That(() => it.MoveNext(), Throws.InstanceOf<JsonBindingException>(), "#2 should throw because null is not allowed");
 				}
-				Assert.That(() => cast.ToArray(), Throws.InstanceOf<InvalidCastException>(), "ToArray() should throw because it is not an array");
-				Assert.That(() => cast.ToList(), Throws.InstanceOf<InvalidCastException>(), "ToList() should throw because it is not an array");
+				Assert.That(() => cast.ToArray(), Throws.InstanceOf<JsonBindingException>(), "ToArray() should throw because null is not allowed");
+				Assert.That(() => cast.ToList(), Throws.InstanceOf<JsonBindingException>(), "ToList() should throw because null is not allowed");
 			}
 
+			{ // second element is not an array, and not null
+				var arr = JsonArray.Create(a, 123, c);
+
+				var cast = arr.AsArrays();
+				using (var it = cast.GetEnumerator())
+				{
+					Assert.That(it.Current, Is.Null, "Before first MoveNext");
+					Assert.That(it.MoveNext(), Is.True, "#1");
+					Assert.That(it.Current, Is.SameAs(a), "#1");
+					Assert.That(() => it.MoveNext(), Throws.InstanceOf<JsonBindingException>(), "#2 should throw because it is not an array");
+				}
+				Assert.That(() => cast.ToArray(), Throws.InstanceOf<JsonBindingException>(), "ToArray() should throw because it is not an array");
+				Assert.That(() => cast.ToList(), Throws.InstanceOf<JsonBindingException>(), "ToList() should throw because it is not an array");
+			}
+
+		}
+
+		[Test]
+		public void Test_JsonArray_Cast()
+		{
+
+			Assert.Multiple(() =>
+			{
+				var cast = JsonArray.Create().Cast<int>();
+				Assert.That(cast.Count, Is.EqualTo(0));
+				Assert.That(cast.ToArray(), Is.Empty);
+				Assert.That(cast.ToList(), Is.Empty);
+			});
+
+			Assert.Multiple(() =>
+			{
+				var arr = JsonArray.Create(123, 456, 789);
+
+				var cast = arr.Cast<int>();
+
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo(123));
+				Assert.That(cast[1], Is.EqualTo(456));
+				Assert.That(cast[2], Is.EqualTo(789));
+				Assert.That(cast[^1], Is.EqualTo(789));
+
+				Assert.That(cast.ToArray(), Is.EqualTo((int[]) [ 123, 456, 789 ]));
+				Assert.That(cast.ToList(), Is.EqualTo((List<int>) [ 123, 456, 789 ]));
+
+				int p = 0;
+				foreach (var x in cast)
+				{
+					switch (p)
+					{
+						case 0:
+						{
+							Assert.That(x, Is.EqualTo(123));
+							break;
+						}
+						case 1:
+						{
+							Assert.That(x, Is.EqualTo(456));
+							break;
+						}
+						case 2:
+						{
+							Assert.That(x, Is.EqualTo(789));
+							break;
+						}
+						default:
+						{
+							Assert.Fail("Should only iterate 3 items");
+							break;
+						}
+					}
+					++p;
+				}
+			});
+
+			Assert.Multiple(() =>
+			{ // should fail if no default and value if missing
+				var cast = JsonArray.Create(123, null, 789).Cast<int>();
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo(123));
+				Assert.That(() => cast[1], Throws.InstanceOf<JsonBindingException>());
+				Assert.That(cast[2], Is.EqualTo(789));
+				Assert.That(cast[^1], Is.EqualTo(789));
+				Assert.That(() => cast.ToArray(), Throws.InstanceOf<JsonBindingException>());
+				Assert.That(() => cast.ToList(), Throws.InstanceOf<JsonBindingException>());
+			});
+
+			Assert.Multiple(() =>
+			{ // should return default value if missing
+				var cast = JsonArray.Create(123, null, 789).Cast<int?>(null);
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo(123));
+				Assert.That(cast[1], Is.Null);
+				Assert.That(cast[2], Is.EqualTo(789));
+				Assert.That(cast[^1], Is.EqualTo(789));
+				Assert.That(cast.ToArray(), Is.EqualTo((int?[]) [ 123, null, 789 ]));
+				Assert.That(cast.ToList(), Is.EqualTo((List<int?>) [ 123, null, 789 ]));
+			});
+
+			Assert.Multiple(() =>
+			{
+				var cast = JsonArray.Create(123, null, 789).Cast<int>(-1);
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo(123));
+				Assert.That(cast[1], Is.EqualTo(-1));
+				Assert.That(cast[2], Is.EqualTo(789));
+				Assert.That(cast[^1], Is.EqualTo(789));
+				Assert.That(cast.ToArray(), Is.EqualTo((int[]) [ 123, -1, 789 ]));
+				Assert.That(cast.ToList(), Is.EqualTo((List<int>) [ 123, -1, 789 ]));
+			});
+
+			Assert.Multiple(() =>
+			{
+				var cast = JsonArray.Create("hello", "world", "!!!").Cast<string>();
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo("hello"));
+				Assert.That(cast[1], Is.EqualTo("world"));
+				Assert.That(cast[2], Is.EqualTo("!!!"));
+				Assert.That(cast[^1], Is.EqualTo("!!!"));
+				Assert.That(cast.ToArray(), Is.EqualTo((string[]) [ "hello", "world", "!!!" ]));
+				Assert.That(cast.ToList(), Is.EqualTo((List<string>) [ "hello", "world", "!!!" ]));
+			});
+
+			Assert.Multiple(() =>
+			{
+				var cast = JsonArray.Create("hello", null, "!!!").Cast<string?>("???");
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo("hello"));
+				Assert.That(cast[1], Is.EqualTo("???"));
+				Assert.That(cast[2], Is.EqualTo("!!!"));
+				Assert.That(cast[^1], Is.EqualTo("!!!"));
+				Assert.That(cast.ToArray(), Is.EqualTo((string[]) [ "hello", "???", "!!!" ]));
+				Assert.That(cast.ToList(), Is.EqualTo((List<string>) [ "hello", "???", "!!!" ]));
+			});
+
+			Assert.Multiple(() =>
+			{ // we can cast to tuples
+				var arr = JsonArray.Create([
+					JsonArray.Create("one", 111),
+					JsonArray.Create("two", 222),
+					JsonArray.Create("three", 333)
+				]);
+
+				var cast = arr.Cast<(string, int)>();
+
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo(("one", 111)));
+				Assert.That(cast[1], Is.EqualTo(("two", 222)));
+				Assert.That(cast[2], Is.EqualTo(("three", 333)));
+				Assert.That(cast[^1], Is.EqualTo(("three", 333)));
+				Assert.That(cast.ToArray(), Is.EqualTo(((string, int)[]) [ ("one", 111), ("two", 222), ("three", 333) ]));
+				Assert.That(cast.ToList(), Is.EqualTo((List<(string, int)>) [ ("one", 111), ("two", 222), ("three", 333) ]));
+			});
+
+			Assert.Multiple(() =>
+			{ // we can cast to anonymous types
+
+				var a = new { GivenName = "James", FamilyName = "Bond" };
+				var b = new { GivenName = "Hubert", FamilyName = "Bonisseur de La Bath" };
+				var c = new { GivenName = "Janov", FamilyName = "Bondovicz" };
+
+				var arr = JsonArray.FromValues([ a, b, c ]);
+
+				var cast = arr.Cast(new { GivenName = "", FamilyName = "" });
+
+				Assert.That(cast.Count, Is.EqualTo(3));
+				Assert.That(cast[0], Is.EqualTo(a));
+				Assert.That(cast[1], Is.EqualTo(b));
+				Assert.That(cast[2], Is.EqualTo(c));
+				Assert.That(cast[^1], Is.EqualTo(c));
+				Assert.That(cast.ToArray(), Is.EqualTo((object[]) [ a, b, c]));
+				Assert.That(cast.ToList(), Is.EqualTo((List<object>) [ a, b,c ]));
+			});
 		}
 
 		[Test]

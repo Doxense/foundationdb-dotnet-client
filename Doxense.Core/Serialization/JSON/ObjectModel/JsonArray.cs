@@ -3394,153 +3394,63 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Retourne une vue typée de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonObject"/>s</summary>
-		/// <param name="required">Si <see langword="true"/>, vérifie que chaque élément de l'array n'est pas null</param>
+		/// <summary>Returns a typed view of this <see cref="JsonArray">array</see> that is expected to only contain <see cref="JsonObject">JSON objects</see></summary>
 		/// <remarks>
-		/// Toute entrée contenant un <see cref="JsonNull"/> retournera <b>null</b>!
-		/// Si l'array contient autre chose que des <see cref="JsonObject"/>, une <see cref="InvalidCastException"/> sera générée au runtime lors de l'énumération!
+		/// <para>If the array contains any item that is either null or not an object, and exception will be thrown when iterating!</para>
+		/// <para>If null entries are allowed, use <see cref="AsObjectsOrDefault"/> instead</para>
 		/// </remarks>
-		public JsonArray<JsonObject> AsObjects(bool required = false)
-		{
-			return new JsonArray<JsonObject>(m_items, m_size, required);
-		}
+		public JsonArray<JsonObject> AsObjects() => new(this);
 
-		/// <summary>Retourne une vue typée de cette <see cref="JsonArray"/> comme si elle ne contenait que des <see cref="JsonArray"/>s</summary>
-		/// <param name="required">Si <see langword="true"/>, vérifie que chaque élément de l'array n'est pas null</param>
+		/// <summary>Returns a typed view of this <see cref="JsonArray">array</see> that is expected to only contain <see cref="JsonObject">JSON objects</see> or null entries</summary>
 		/// <remarks>
-		/// Toute entrée contenant un <see cref="JsonNull"/> retournera <b>null</b>!
-		/// Si l'array contient autre chose que des <see cref="JsonArray"/>, une <see cref="InvalidCastException"/> sera générée au runtime lors de l'énumération!
+		/// <para>If the array contains any item that is not null and not an object, and exception will be thrown when iterating!</para>
+		/// <para>If null entries are not allowed, use <see cref="AsObjects"/> instead</para>
+		/// </remarks>
+		public JsonArrayOrDefault<JsonObject> AsObjectsOrDefault() => new(this, null);
+
+		/// <summary>Returns a typed view of this <see cref="JsonArray">array</see> that is expected to only contain <see cref="JsonObject">JSON objects</see> or null entries</summary>
+		/// <remarks>
+		/// <para>If the array contains any item that is not null and not an object, and exception will be thrown when iterating!</para>
+		/// <para>If null entries are not allowed, use <see cref="AsObjects"/> instead</para>
+		/// </remarks>
+		public JsonArrayOrDefault<JsonObject> AsObjectsOrEmpty() => new(this, JsonObject.EmptyReadOnly);
+
+		/// <summary>Returns a typed view of this <see cref="JsonArray">array</see> that is expected to only contain <see cref="JsonObject">JSON arrays</see></summary>
+		/// <remarks>
+		/// <para>If the array contains any item that is either null or not an array, and exception will be thrown when iterating!</para>
+		/// <para>If null entries are allowed, use <see cref="AsArraysOrDefault"/> instead</para>
 		/// </remarks>
 		[Pure]
-		public JsonArray<JsonArray> AsArrays(bool required = false)
+		public JsonArray<JsonArray> AsArrays() => new(this);
+
+		/// <summary>Returns a typed view of this <see cref="JsonArray">array</see> that is expected to only contain <see cref="JsonObject">JSON arrays</see></summary>
+		/// <remarks>
+		/// <para>If the array contains any item that is either null or not an array, and exception will be thrown when iterating!</para>
+		/// <para>If null entries are allowed, use <see cref="AsArraysOrDefault"/> instead</para>
+		/// </remarks>
+		[Pure]
+		public JsonArrayOrDefault<JsonArray> AsArraysOrDefault() => new(this, null);
+
+		/// <summary>Returns a typed view of this <see cref="JsonArray">array</see> that is expected to only contain <see cref="JsonObject">JSON arrays</see></summary>
+		/// <remarks>
+		/// <para>If the array contains any item that is either null or not an array, and exception will be thrown when iterating!</para>
+		/// <para>If null entries are allowed, use <see cref="AsArraysOrDefault"/> instead</para>
+		/// </remarks>
+		[Pure]
+		public JsonArrayOrDefault<JsonArray> AsArraysOrEmpty() => new(this, JsonArray.EmptyReadOnly);
+
+		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
+		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a foreach loop, or used with LINQ.</para></remarks>
+		public JsonArray<TValue> Cast<TValue>() where TValue : notnull
 		{
-			return new JsonArray<JsonArray>(m_items, m_size, required);
+			return new(this);
 		}
 
-		/// <summary>Retourne une wrapper sur cette <see cref="JsonArray"/> qui convertit les éléments en <typeparamref name="TValue"/></summary>
-		/// <remarks>Cette version est optimisée pour réduire le nombre d'allocations mémoires</remarks>
-		public TypedEnumerable<TValue> Cast<TValue>(bool required = false)
+		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
+		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a foreach loop, or used with LINQ.</para></remarks>
+		public JsonArrayOrDefault<TValue> Cast<TValue>(TValue defaultValue)
 		{
-			//note: on ne peut pas appeler cette méthode "As<TValue>" a cause d'un conflit avec l'extension method As<TValue> sur les JsonValue!
-			//=> arr.As<int[]> retourne un int[], alors que arr.Cast<int[]> serait l'équivalent d'un IEnumerable<int[]> (~= int[][]) !
-
-			return new TypedEnumerable<TValue>(this, required);
-		}
-
-		/// <summary>Wrapper for a <see cref="JsonArray"/> that converts each element into a <typeparamref name="TValue"/>.</summary>
-		public readonly struct TypedEnumerable<TValue> : IEnumerable<TValue> //REVIEW:TODO: IList<TValue> ?
-		{
-			//note: this is to convert JsonValue into int, bool, string, ...
-
-			private readonly JsonArray m_array;
-			private readonly bool m_required;
-
-			internal TypedEnumerable(JsonArray array, bool required)
-			{
-				m_array = array;
-				m_required = required;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public readonly TypedEnumerator GetEnumerator()
-			{
-				return new TypedEnumerator(m_array, m_required);
-			}
-
-			IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
-			{
-				return GetEnumerator();
-			}
-
-			IEnumerator IEnumerable.GetEnumerator()
-			{
-				return GetEnumerator();
-			}
-
-			public TValue?[] ToArray()
-			{
-				//TODO:BUGBUG:m_required == true !?
-				return m_array.ToArray<TValue>();
-			}
-
-			public List<TValue?> ToList()
-			{
-				//TODO:BUGBUG:m_required == true !?
-				return m_array.ToList<TValue?>();
-			}
-
-			/// <summary>Enumerator that converts each element of a <see cref="JsonArray"/> into a TValue.</summary>
-			public struct TypedEnumerator : IEnumerator<TValue>
-			{
-				private readonly JsonArray m_array;
-				private int m_index;
-				private TValue? m_current;
-				private readonly bool m_required;
-
-				internal TypedEnumerator(JsonArray array, bool required)
-				{
-					m_array = array;
-					m_index = 0;
-					m_current = default;
-					m_required = required;
-				}
-
-				public readonly void Dispose()
-				{ }
-
-				public bool MoveNext()
-				{
-					var arr = m_array;
-					if ((uint) m_index < arr.m_size)
-					{
-
-						var val = arr.m_items[m_index];
-						if (m_required && val.IsNullOrMissing())
-						{
-							throw FailElementMissing();
-						}
-						m_current = val.As<TValue>();
-						m_index++;
-						return true;
-					}
-					return MoveNextRare();
-				}
-
-				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-				private readonly InvalidOperationException FailElementMissing()
-				{
-					return new InvalidOperationException($"The JSON element at index {m_index} is null or missing");
-				}
-
-				private bool MoveNextRare()
-				{
-					m_index = m_array.m_size + 1;
-					m_current = default;
-					return false;
-				}
-
-				readonly object IEnumerator.Current
-				{
-					get
-					{
-						if (m_index == 0 || m_index == m_array.m_size + 1)
-						{
-							throw ThrowHelper.InvalidOperationException("Operation cannot happen.");
-						}
-						return this.Current!;
-					}
-				}
-
-				void IEnumerator.Reset()
-				{
-					m_index = 0;
-					m_current = default;
-				}
-
-				public readonly TValue Current => m_current!;
-
-			}
-
+			return new(this, defaultValue);
 		}
 
 		#endregion
@@ -5332,104 +5242,72 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into a <typeparamref name="TJson"/>.</summary>
-	public readonly struct JsonArray<TJson> : IReadOnlyList<TJson>
-		where TJson : JsonValue
+	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into a required <typeparamref name="TValue"/>.</summary>
+	public readonly struct JsonArray<TValue> : IReadOnlyList<TValue>
+		where TValue : notnull
 	{
-		//note: this is to convert JsonValue into JsonArray, JsonObject, JsonType, ...
 
-		private readonly JsonValue[] m_items;
-		private readonly int m_size;
-		private readonly bool m_required;
+		private readonly JsonArray m_array;
 
-		internal JsonArray(JsonValue[] items, int size, bool required)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal JsonArray(JsonArray array)
 		{
-			m_items = items;
-			m_size = size;
-			m_required = required;
+			m_array = array;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Enumerator GetEnumerator() => new(m_items, m_size, m_required);
+		public Enumerator GetEnumerator() => new(m_array.AsMemory());
 
-		IEnumerator<TJson> IEnumerable<TJson>.GetEnumerator() => new Enumerator(m_items, m_size, m_required);
+		IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => new Enumerator(m_array.AsMemory());
 
-		IEnumerator IEnumerable.GetEnumerator() => new Enumerator(m_items, m_size, m_required);
+		IEnumerator IEnumerable.GetEnumerator() => new Enumerator(m_array.AsMemory());
 
 		/// <summary>Enumerator that casts each element of a <see cref="JsonArray"/> into a specified JSON type.</summary>
-		public struct Enumerator : IEnumerator<TJson>
+		public struct Enumerator : IEnumerator<TValue>
 		{
-			private readonly JsonValue[] m_items;
-			private readonly int m_size;
+			private readonly ReadOnlyMemory<JsonValue> m_items;
 			private int m_index;
-			private TJson? m_current;
-			private readonly bool m_required;
+			private TValue? m_current;
 
-			internal Enumerator(JsonValue[] items, int size, bool required)
+			internal Enumerator(ReadOnlyMemory<JsonValue> items)
 			{
 				m_items = items;
-				m_size = size;
 				m_index = 0;
 				m_current = default;
-				m_required = required;
 			}
 
 			public readonly void Dispose()
 			{ }
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool MoveNext()
 			{
 				//TODO: check versioning?
-				if ((uint) m_index < (uint) m_size)
-				{
-					if (m_items[m_index] is not TJson val)
-					{ // null or another type of JSON value
-						return MoveNextNullOrInvalidCast();
-					}
-					m_current = val;
-					m_index++;
-					return true;
-				}
-				return MoveNextRare();
-			}
-
-			private bool MoveNextNullOrInvalidCast()
-			{
-				// Called in the following cases:
-				// - the value is an instance of JsonNull: => we will return 'null')
-				// - the value is a JsonValue, but not of the one we are expecting: => we will throw
+				var items = m_items.Span;
 				int index = m_index;
-				var val = m_items[index];
-				if (!val.IsNullOrMissing())
-				{ // not compatible
-					throw FailElementAtIndexCannotBeConverted(index, val);
-				}
-
-				if (m_required)
+				if ((uint) index >= (uint) items.Length)
 				{
-					throw FailElementAtIndexNullOrMissing(index);
+					return MoveNextRare();
 				}
 
-				//note: we want to behave identically to code similar to "foreach(string s in new [] { "hello", null, "world" }) { ... }"
-				// => in this case, s will be 'null' for the second element, event though it is not a 'string'.
-				m_current = null;
-				m_index = index + 1;
+				m_current = items[index].RequiredIndex(index).Required<TValue>();
+				m_index++;
 				return true;
 			}
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			private bool MoveNextRare()
 			{
-				//TODO: check versioning?
-				m_index = m_size + 1;
+				m_index = m_items.Length + 1;
 				m_current = default;
 				return false;
 			}
 
-			readonly object IEnumerator.Current
+			readonly object? IEnumerator.Current
 			{
 				get
 				{
-					if (m_index == 0 || m_index == m_size + 1)
+					if (m_index == 0 || m_index > m_items.Length)
 					{
 						throw ThrowHelper.InvalidOperationException("Operation cannot happen.");
 					}
@@ -5439,94 +5317,203 @@ namespace Doxense.Serialization.Json
 
 			void IEnumerator.Reset()
 			{
-				//TODO: check versioning?
 				m_index = 0;
 				m_current = default;
 			}
 
-			public readonly TJson Current => m_current!;
+			public readonly TValue Current => m_current!;
 		}
 
-		public int Count => m_size;
+		public int Count => m_array.Count;
 
-		public TJson this[int index]
+		public TValue this[int index]
 		{
-			get
-			{
-				// Following trick can reduce the range check by one
-				if ((uint) index >= (uint) m_size) throw ThrowHelper.ArgumentOutOfRangeIndex(index);
-				//REVIEW: support negative indexing ?
-				return (m_items[index] as TJson) ?? GetNextNullOrInvalid(index)!;
-			}
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => m_array.Get<TValue>(index);
 		}
 
-		public TJson this[Index index] => this[index.GetOffset(m_size)];
-
-		private TJson? GetNextNullOrInvalid(int index)
+		public TValue? this[Index index]
 		{
-			var item = m_items[index];
-			if (!item.IsNullOrMissing()) throw FailElementAtIndexCannotBeConverted(index, item);
-			if (m_required) throw FailElementAtIndexNullOrMissing(index);
-			return null;
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => m_array.Get<TValue>(index);
 		}
-
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static InvalidCastException FailElementAtIndexCannotBeConverted(int index, JsonValue val) => new($"The JSON element at index {index} contains a {val.GetType().Name} that cannot be converted into a {typeof(TJson).Name}");
-
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static InvalidOperationException FailElementAtIndexNullOrMissing(int index) => new($"The JSON element at index {index} is null or missing");
 
 		[Pure]
-		public TJson[] ToArray()
+		public TValue?[] ToArray()
 		{
-			if (m_size == 0) return [];
-			var res = new TJson[m_size];
-			int p = 0;
-			foreach (var item in this)
+			var items = m_array.AsSpan();
+			if (items.Length == 0) return [];
+
+			var res = new TValue[items.Length];
+			for(int i = 0; i < items.Length; i++)
 			{
-				res[p++] = item;
+				res[i] = items[i].RequiredIndex(i).Required<TValue>();
 			}
-			if (p != res.Length) throw new InvalidOperationException();
 			return res;
 		}
 
 		[Pure]
-		public TValue[] ToArray<TValue>([InstantHandle] Func<TJson, TValue> transform)
+		public List<TValue?> ToList()
 		{
-			Contract.NotNull(transform);
+			var items = m_array.AsSpan();
+			if (items.Length == 0) return [];
 
-			if (m_size == 0) return [];
-			var res = new TValue[m_size];
-			int p = 0;
-			foreach (var item in this)
+			var res = new List<TValue?>(items.Length);
+			for(int i = 0; i < items.Length; i++)
 			{
-				res[p++] = transform(item);
+				res.Add(items[i].RequiredIndex(i).Required<TValue>());
 			}
-			if (p != res.Length) throw new InvalidOperationException();
+			return res;
+		}
+
+	}
+
+	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into an optional <typeparamref name="TValue"/>.</summary>
+	public readonly struct JsonArrayOrDefault<TValue> : IReadOnlyList<TValue?>
+	{
+		//note: this is to convert JsonValue into JsonArray, JsonObject, JsonType, ...
+
+		private readonly JsonArray m_array;
+
+		private readonly TValue? m_missing;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal JsonArrayOrDefault(JsonArray array, TValue? missing)
+		{
+			m_array = array;
+			m_missing = missing;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Enumerator GetEnumerator() => new(m_array.AsMemory(), m_missing);
+
+		IEnumerator<TValue> IEnumerable<TValue?>.GetEnumerator() => new Enumerator(m_array.AsMemory(), m_missing);
+
+		IEnumerator IEnumerable.GetEnumerator() => new Enumerator(m_array.AsMemory(), m_missing);
+
+		/// <summary>Enumerator that casts each element of a <see cref="JsonArray"/> into a specified type.</summary>
+		public struct Enumerator : IEnumerator<TValue?>
+		{
+			private readonly ReadOnlyMemory<JsonValue> m_items;
+			private int m_index;
+			private TValue? m_current;
+			private readonly TValue? m_missing;
+
+			internal Enumerator(ReadOnlyMemory<JsonValue> items, TValue? missing)
+			{
+				m_items = items;
+				m_index = 0;
+				m_current = default;
+				m_missing = missing;
+			}
+
+			public readonly void Dispose()
+			{ }
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool MoveNext()
+			{
+				//TODO: check versioning?
+				var items = m_items.Span;
+				int index = m_index;
+				if ((uint) index >= (uint) items.Length)
+				{
+					return MoveNextRare();
+				}
+
+				m_current = items[index].As<TValue?>(defaultValue: m_missing);
+				m_index++;
+				return true;
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private bool MoveNextRare()
+			{
+				m_index = m_items.Length + 1;
+				m_current = default;
+				return false;
+			}
+
+			readonly object? IEnumerator.Current
+			{
+				get
+				{
+					if (m_index == 0 || m_index > m_items.Length)
+					{
+						throw ThrowHelper.InvalidOperationException("Operation cannot happen.");
+					}
+					return this.Current;
+				}
+			}
+
+			void IEnumerator.Reset()
+			{
+				m_index = 0;
+				m_current = default;
+			}
+
+			public readonly TValue Current => m_current!;
+		}
+
+		public int Count => m_array.Count;
+
+		public TValue? this[int index]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => m_array.Get<TValue?>(index, m_missing);
+		}
+
+		public TValue? this[Index index]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => m_array.Get<TValue?>(index, m_missing);
+		}
+
+		[Pure]
+		public TValue?[] ToArray()
+		{
+			if (m_array.Count == 0)
+			{
+				return [ ];
+			}
+
+			if (m_missing is null || default(TValue) is not null && EqualityComparer<TValue>.Default.Equals(m_missing, default))
+			{ // use the optimized variant
+				return m_array.ToArray<TValue?>();
+			}
+
+			var items = m_array.AsSpan();
+			var res = new TValue?[items.Length];
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				res[i] = items[i].As<TValue>(m_missing);
+			}
+
 			return res;
 		}
 
 		[Pure]
-		public List<TJson> ToList()
+		public List<TValue?> ToList()
 		{
-			var res = new List<TJson>(m_size);
-			foreach(var item in this)
+			if (m_array.Count == 0)
 			{
-				res.Add(item);
+				return [];
 			}
-			if (m_size != res.Count) throw new InvalidOperationException();
-			return res;
-		}
 
-		[Pure]
-		public List<TValue> ToList<TValue>([InstantHandle] Func<TJson, TValue> transform)
-		{
-			var res = new List<TValue>(m_size);
-			foreach (var item in this)
-			{
-				res.Add(transform(item));
+			if (m_missing is null || default(TValue) is not null && EqualityComparer<TValue>.Default.Equals(m_missing, default))
+			{ // use the optimized variant
+				return m_array.ToList<TValue?>();
 			}
-			if (m_size != res.Count) throw new InvalidOperationException();
+
+			var items = m_array.AsSpan();
+			var res = new List<TValue?>(items.Length);
+
+			foreach (var item in items)
+			{
+				res.Add(item.As<TValue>(m_missing));
+			}
+
 			return res;
 		}
 
