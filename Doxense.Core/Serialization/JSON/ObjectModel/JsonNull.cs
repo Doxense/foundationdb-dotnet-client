@@ -216,6 +216,7 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable...
 
+		/// <inheritdoc />
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
 			writer.WriteNull(); // "null"
@@ -239,6 +240,7 @@ namespace Doxense.Serialization.Json
 
 		#region Equality Operators...
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			// default(object) and DBNull are both considered to be equal to a JsonNull instance
@@ -247,21 +249,24 @@ namespace Doxense.Serialization.Json
 			return base.Equals(obj);
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(JsonValue? value)
 		{
-			// default(object) ('null') est considéré comme égal à JsonNull
-			if (value == null) return true;
-
-			// si c'est un JsonNull, le type doit matcher
-			if (value is JsonNull jn)
-			{
-				return m_kind == jn.m_kind;
+			if (value == null)
+			{ // explicit null reference is considered equal to any kind of nulls
+				return true;
 			}
 
-			// sinon, il faut que ce soit un IsNull
-			return value.IsNull;
+			if (value is not JsonNull jn)
+			{ // non-null value
+				return false;
+			}
+
+			// if both are JsonNull, they must have the same kind
+			return m_kind == jn.m_kind;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(JsonNull? value)
 		{
 			return value == null || m_kind == value.m_kind;
@@ -278,15 +283,27 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return 0;
 		}
 
+		/// <inheritdoc />
 		public override int CompareTo(JsonValue? value)
 		{
-			// null est toujours plus petit que le reste, sauf lui même
-			return value == null || value.IsNull ? 0 : -1;
+			if (value is null)
+			{ // nullref is equal to all kind of nulls
+				return 0;
+			}
+
+			if (value is not JsonNull jn)
+			{ // null is always smaller than any other values
+				return -1;
+			}
+
+			// between nulls, the order is Null < Missing < Error, as ordered in the NullKind enum
+			return m_kind.CompareTo(jn.m_kind);
 		}
 
 		public static explicit operator bool(JsonNull obj)

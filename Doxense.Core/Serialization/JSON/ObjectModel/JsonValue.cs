@@ -315,8 +315,8 @@ namespace Doxense.Serialization.Json
 				throw ThrowHelper.InvalidOperationException($"Cannot compare a JSON value with another value of type {other.Type}");
 			}
 
-			// pas vraiment de solution magique, on va comparer les type et les hashcode (pas pire que mieux)
-			int c = ((int)this.Type).CompareTo((int)other.Type);
+			// no real silver bullet here, we will simple compare the hashcodes (which _MUST_ be constant, so at least the order will be deterministic)
+			int c = ((int) this.Type).CompareTo((int) other.Type);
 			if (c == 0)
 			{
 				c = this.GetHashCode().CompareTo(other.GetHashCode());
