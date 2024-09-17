@@ -180,7 +180,7 @@ namespace Doxense.Serialization.Tests
 		}
 
 		[Test, Category("Benchmark")]
-		//[Ignore("Super long")]
+		[Parallelizable(ParallelScope.None)]
 		public void Bench_Compare_ToString_With_BCL()
 		{
 #if DEBUG
@@ -255,7 +255,7 @@ namespace Doxense.Serialization.Tests
 		}
 
 		[Test, Category("Benchmark")]
-		//[Ignore("Super long")]
+		[Parallelizable(ParallelScope.None)]
 		public void Bench_Compare_TextWriter_Append_With_BCL()
 		{
 #if DEBUG
