@@ -906,15 +906,6 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc cref="JsonValue.IsReadOnly"/>
 		public override bool IsReadOnly => m_readOnly;
 
-		/// <summary>Indique si le tableau est vide</summary>
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("OLD_API: Use 'arr.Count == 0' instead.")]
-		public bool IsEmpty //REVIEW: remove this? (Count == 0)
-		{
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => m_size == 0;
-		}
-
 		#region List<T>...
 
 		/// <summary>Returns the number of items in the array.</summary>
