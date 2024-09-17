@@ -3315,6 +3315,26 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public ReadOnlySpan<JsonValue> GetSpan(Range range) => this.AsSpan()[range];
 
+		/// <summary>Returns a read-only span of all items in this array</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlyMemory<JsonValue> GetMemory() => this.AsMemory();
+
+		/// <summary>Returns a read-only span of the items in this array, starting from the specified index</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlyMemory<JsonValue> GetMemory(int start) => this.AsMemory().Slice(start);
+
+		/// <summary>Returns a read-only span of the items in this array, starting from the specified index for a specified length</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlyMemory<JsonValue> GetMemory(int start, int length) => this.AsMemory().Slice(start, length);
+
+		/// <summary>Returns a read-only span of the items in this array, for the specified range</summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public ReadOnlyMemory<JsonValue> GetMemory(Range range) => this.AsMemory()[range];
+
 		#endregion
 
 		#region Enumerator...
