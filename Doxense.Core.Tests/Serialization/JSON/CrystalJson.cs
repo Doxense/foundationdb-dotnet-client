@@ -2744,8 +2744,8 @@ namespace Doxense.Serialization.Json.Tests
 
 			var dicOfObjects = new Dictionary<string, Tuple<int, string>>
 			{
-				["foo"] = new Tuple<int, string>(123, "bar"),
-				["narf"] = new Tuple<int, string>(456, "zort")
+				["foo"] = new(123, "bar"),
+				["narf"] = new(456, "zort")
 			};
 			// JSON
 			Assert.That(CrystalJson.Serialize(dicOfObjects), Is.EqualTo("""{ "foo": { "Item1": 123, "Item2": "bar" }, "narf": { "Item1": 456, "Item2": "zort" } }"""));

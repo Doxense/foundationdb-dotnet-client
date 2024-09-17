@@ -340,7 +340,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public void Test_Encode_Arrays()
 		{
 			// empty array
-			VerifyRoundtrip(JsonArray.Empty);
+			VerifyRoundtrip(JsonArray.EmptyReadOnly);
 
 			// simple arrays
 			VerifyRoundtrip(JsonArray.FromValues([ "hello", "world" ]));
@@ -375,13 +375,13 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			//	["hello", "world"]
 			VerifyReferenceEncoding(
 				"1A 00 00 00 02 00 00 40 05 00 00 00 05 00 00 00 68 65 6C 6C 6F 77 6F 72 6C 64",
-				JsonArray.Create("hello", "world")
+				JsonArray.Create([ "hello", "world" ])
 			);
 
 			//	[]
 			VerifyReferenceEncoding(
 				"08 00 00 00 00 00 00 40",
-				JsonArray.Empty
+				JsonArray.EmptyReadOnly
 			);
 
 		}

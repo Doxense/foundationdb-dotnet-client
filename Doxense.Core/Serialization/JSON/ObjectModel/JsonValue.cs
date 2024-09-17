@@ -1178,7 +1178,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>();
+		public TValue Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1186,13 +1186,18 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public TValue Get<TValue>(Index index) where TValue : notnull => Get<TValue>(index, resolver: null, message: null);
+		public TValue Get<TValue>(Index index) where TValue : notnull => GetValue(index).Required<TValue>();
 
+		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <param name="message"></param>
+		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or an exception if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>();
+		public TValue Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>(resolver);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
