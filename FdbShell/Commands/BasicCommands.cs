@@ -38,6 +38,8 @@ namespace FdbShell
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Memory;
+	using FoundationDB.Client.Status;
 
 	public static class BasicCommands
 	{
@@ -660,7 +662,7 @@ namespace FdbShell
 					folder.ToRange(),
 					(batch, _, _) =>
 					{
-						if (progress) terminal.Progress($"\r{kr[(p++) % kr.Length]} {bytes:N0} bytes");
+						if (progress) terminal.Progress($"\r{kr[(p++) % kr.Length]} {FormatSize(bytes)}");
 						foreach (var kv in batch)
 						{
 							bytes += kv.Key.Count + kv.Value.Count;
@@ -674,7 +676,7 @@ namespace FdbShell
 				if (progress) terminal.Progress("\r");
 				if (count > 0)
 				{
-					terminal.Success($"Found {count:N0} keys ({bytes:N0} bytes)");
+					terminal.Success($"Found {count:N0} keys ({FormatSize(bytes)})");
 				}
 				else
 				{
@@ -860,16 +862,9 @@ namespace FdbShell
 			}
 		}
 
-		private static string FormatSize(long size, IFormatProvider? ci = null)
+		private static string FormatSize(long size)
 		{
-			ci ??= CultureInfo.InvariantCulture;
-			if (size < 2048) return size.ToString("N0", ci);
-			double x = size / 1024.0;
-			if (x < 800) return x.ToString("N1", ci) + " k";
-			x /= 1024.0;
-			if (x < 800) return x.ToString("N2", ci) + " M";
-			x /= 1024.0;
-			return x.ToString("N2", ci) + " G";
+			return ByteSize.Bytes(size).ToApproximateString();
 		}
 
 		/// <summary>Find the DCs, machines and processes in the cluster</summary>
@@ -878,118 +873,129 @@ namespace FdbShell
 			var coords = await Fdb.System.GetCoordinatorsAsync(db, ct);
 			terminal.StdOut($"[Cluster] {coords.Id}");
 
-			var servers = await db.QueryAsync(tr => tr
-				.WithOptions(options => options.WithReadAccessToSystemKeys())
-				.GetRange(KeyRange.StartsWith(Fdb.System.ServerList))
-				.Select(kvp => new
-				{
-					// Offsets		Size	Type	Name		Description
-					//    0			 2		Word	Version?	0100 (1.0 ?)
-					//    2			 4		DWord	???			0x00 0x20 0xA2 0x00
-					//    6			 2		Word	FDBMagic	0xDB 0x0F "FDB"
-					//    8			16		Guid	NodeId		Unique Process ID
-					//   24			16		Guid	Machine		"machine_id" field in foundationdb.conf (ends with 8x0 if manually specified)
-					//   40			16		Guid	DataCenter	"datacenter_id" field in foundationdb.conf (ends with 8x0 if manually specified)
-					//   56			 4		???		??			4 x 0
-					//   60			12 x24	ARRAY[] ??			array of 12x the same 24-byte struct defined below
+			// sample output:
+			//	[Cluster] UIlUIUmJGbxoJawtqPAieNnwXODIPtbO
+			//		`- [DataCenter] ..... (#0)
+			//		`- [Machine] 192.168.1.23, .....
+			//		|- [Process] 192.168.1.23:4500, .....
+			//		|- [Process] 192.168.1.23:4501, .....
+			//		|- [Process] 192.168.1.23:4502, .....
+			//		`- [Process] 192.168.1.23:4503, .....
 
-					// ...0			 4		DWord	IPAddress	01 00 00 7F => 127.0.0.1
-					// ...4			 4		DWord	Port		94 11 00 00 -> 4500
-					// ...8			 4		DWord	??			randomish, changes every reboot
-					// ..12			 4		DWord	??			randomish, changes every reboot
-					// ..16			 4		DWord	Size?		small L-E integer, usually between 0x20 and 0x40...
-					// ..20			 4		DWord	??			randmoish, changes every reboot
+			var status = await Fdb.System.GetStatusAsync(db, ct);
 
-					ProcessId = kvp.Value.Substring(8, 16).ToHexaString(),
-					MachineId = kvp.Value.Substring(24, 16).ToHexaString(),
-					DataCenterId = kvp.Value.Substring(40, 16).ToHexaString(),
+			var machinesByDatacenter = status.Cluster
+				.Machines.Values
+				.GroupBy(x => x.DataCenterId)
+				.ToDictionary(x => x.Key, x => x.ToArray())
+				;
 
-					Parts = Enumerable.Range(0, 12).Select(i =>
-					{
-						int p = 60 + 24 * i;
-						return new
-						{
-							Address = new IPAddress(kvp.Value.Substring(p, 4).ToArray().Reverse().ToArray()),
-							Port = kvp.Value.Substring(p + 4, 4).ToInt32(),
-							Unknown1 = kvp.Value.Substring(p + 8, 4).ToInt32(),
-							Unknown2 = kvp.Value.Substring(p + 12, 4).ToInt32(),
-							Unknown3 = kvp.Value.Substring(p + 16, 4).ToInt32(),
-							Unknown4 = kvp.Value.Substring(p + 20, 4).ToInt32(),
-						};
-					}).ToList(),
-					Raw = kvp.Value,
-				}),
-				ct
-			);
+			var processesByMachine = status.Cluster
+				.Processes.Values
+				.GroupBy(x => x.MachineId)
+				.ToDictionary(x => x.Key, x => x.ToArray());
 
-			var numNodes = servers.Select(s => s.ProcessId).Distinct().Count();
-			var numMachines = servers.Select(s => s.MachineId).Distinct().Count();
-			var numDCs = servers.Select(s => s.DataCenterId).Distinct().Count();
-
-			var dcs = servers.GroupBy(x => x.DataCenterId).ToArray();
-			for (int dcIndex = 0; dcIndex < dcs.Length;dcIndex++)
+			int numDataCenters = 0;
+			int numMachines = 0;
+			int numProcesses = 0;
+			foreach (var (dcId, machines) in machinesByDatacenter)
 			{
-				var dc = dcs[dcIndex];
-				bool lastDc = dcIndex == dcs.Length - 1;
+				++numDataCenters;
+				terminal.StdOut($"{(numDataCenters == machinesByDatacenter.Count ? "`-" : "|-")} [DataCenter] {dcId}");
 
-				string dcId = dc.Key.EndsWith("0000000000000000") ? dc.Key.Substring(0, 16) : dc.Key;
-				terminal.StdOut($"{(lastDc ? "`-" : "|-")} [DataCenter] {dcId} (#{dcIndex})");
+				string dcPrefix = numDataCenters == machinesByDatacenter.Count ? "   " : "|  ";
 
-				var machines = dc.GroupBy(x => x.MachineId).ToArray();
-				string dcPrefix = lastDc ? "   " : "|  ";
-				for (int machineIndex = 0; machineIndex < machines.Length; machineIndex++)
+				for(int machineIdx = 0; machineIdx < machines.Length; machineIdx++)
 				{
-					var machine = machines[machineIndex];
-					var lastMachine = machineIndex == machines.Length - 1;
+					var machine = machines[machineIdx];
+					++numMachines;
 
-					string machineId = machine.Key.EndsWith("0000000000000000") ? machine.Key.Substring(0, 16) : machine.Key;
-					terminal.StdOut($"{dcPrefix}{(lastMachine ? "`-" : "|-")} [Machine] {machine.First().Parts[0].Address}, {machineId}");
+					terminal.StdOut($"{dcPrefix}{(machineIdx + 1 == machines.Length ? "`-" : "|-")}", newLine: false);
+					terminal.StdOut($"{machine.Address}", machine.Excluded ? ConsoleColor.Red : ConsoleColor.Cyan, newLine: false);
+					terminal.StdOut($", {machine.ContributingWorkers} workers, {machine.Id}");
 
-					var procs = machine.ToArray();
-					string machinePrefix = dcPrefix + (lastMachine ? "   " : "|  ");
-					for (int procIndex = 0; procIndex < procs.Length; procIndex++)
+					string machinePrefix = dcPrefix + (machineIdx + 1 == machines.Length ? "   " : "|  ");
+					var processes = processesByMachine[machine.Id];
+
+					for(int procIdx = 0; procIdx < processes.Length; procIdx++)
 					{
-						var proc = procs[procIndex];
-						bool lastProc = procIndex == procs.Length - 1;
+						var process = processes[procIdx];
+						++numProcesses;
 
-						terminal.StdOut($"{machinePrefix}{(lastProc ? "`-" : "|-")} [Process] {proc.Parts[0].Address}:{proc.Parts[0].Port}, {proc.ProcessId}");
-						//foreach (var part in proc.Parts)
-						//{
-						//	terminal.StdOut(machinePrefix + "|  -> {0}, {1}, {2:X8}, {3:X8}, {4}, {5:X8}", part.Address, part.Port, part.Unknown1, part.Unknown2, part.Unknown3, part.Unknown4);
-						//}
+						terminal.StdOut($"{machinePrefix}{(procIdx + 1 == processes.Length ? "`-" : "|-")}", newLine: false);
+						terminal.StdOut($"{process.Address}", ConsoleColor.White, newLine: false);
+						terminal.StdOut($", v{process.Version}, {process.Id}");
+
+						string processPrefix = machinePrefix + (procIdx + 1 == processes.Length ? "   " : "|  ");
+
+						var roles = process.Roles;
+
+						for(int roleIdx = 0; roleIdx < roles.Length; roleIdx++)
+						{
+							var role = roles[roleIdx];
+
+							terminal.StdOut($"{processPrefix}{(roleIdx + 1 == roles.Length ? "`-" : "|-")}", newLine: false);
+							switch (role)
+							{ 
+								case StorageRoleMetrics storage:
+								{
+									terminal.StdOut($"{role.Role}", ConsoleColor.DarkCyan, newLine: false);
+									terminal.StdOut($", {FormatSize(storage.KVStoreUsedBytes)} / {FormatSize(storage.KVStoreTotalBytes)}, {storage.StorageMetadata?.StorageEngine}");
+									break;
+								}
+								case LogRoleMetrics log:
+								{
+									terminal.StdOut($"{role.Role}", ConsoleColor.DarkCyan, newLine: false);
+									terminal.StdOut($", {FormatSize(log.KVStoreTotalBytes)}");
+									break;
+								}
+								case CommitProxyRoleMetrics:
+								{
+									terminal.StdOut($"{role.Role}", ConsoleColor.DarkCyan);
+									break;
+								}
+								default:
+								{
+									terminal.StdOut($"{role.Role}", ConsoleColor.DarkGreen);
+									break;
+								}
+							}
+
+						}
 					}
 				}
 			}
+
 			terminal.StdOut();
-			terminal.StdOut($"Found {numNodes:N0} process(es) on {numMachines:N0} machine(s) in {numDCs:N0} datacenter(s)", ConsoleColor.White);
+			terminal.StdOut($"Found {numProcesses:N0} process(es) on {numMachines:N0} machine(s) in {numDataCenters:N0} datacenter(s)", ConsoleColor.White);
 			terminal.StdOut();
 		}
 
 		public static async Task Shards(FdbPath path, IVarTuple extras, IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
 		{
 			var ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue, ct);
-			Console.WriteLine($"Found {ranges.Count} shards in the whole cluster");
+			terminal.StdOut($"Found {ranges.Count} shards in the whole cluster");
 
 			// look if there is something under there
 			if ((await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct)) is FdbDirectorySubspace folder)
 			{
 				var r = KeyRange.StartsWith(folder.Copy().GetPrefix());
-				Console.WriteLine($"Searching for shards that intersect with {path} ...");
+				terminal.StdOut($"Searching for shards that intersect with {path} ...");
 				ranges = await Fdb.System.GetChunksAsync(db, r, ct);
-				Console.WriteLine($"> Found {ranges.Count} ranges intersecting {r}:");
+				terminal.StdOut($"> Found {ranges.Count} ranges intersecting {r}:");
 				var last = Slice.Empty;
 				foreach (var range in ranges)
 				{
 					Console.Write($"> {FdbKey.Dump(range.Begin)} ...");
 					long count = await Fdb.System.EstimateCountAsync(db, range, ct);
-					Console.WriteLine($" {count:N0}");
+					terminal.StdOut($" {count:N0}");
 					last = range.End;
 					//TODO: we can probably get more details on this shard looking in the system keyspace (where it is, how many replicas, ...)
 				}
-				Console.WriteLine($"> ... {FdbKey.Dump(last)}");
+				terminal.StdOut($"> ... {FdbKey.Dump(last)}");
 			}
 
-			//Console.WriteLine("Found " + ranges.Count + " shards in the cluster");
+			//terminal.StdOut("Found " + ranges.Count + " shards in the cluster");
 			//TODO: shards that intersect the current directory
 		}
 
@@ -1140,7 +1146,7 @@ namespace FdbShell
 						#region Method 2: estimate the count using key selectors...
 
 						//long counter = await Fdb.System.EstimateCountAsync(db, range, ct);
-						//Console.WriteLine("COUNT = " + counter.ToString("N0"));
+						//terminal.StdOut("COUNT = " + counter.ToString("N0"));
 
 						#endregion
 					}, ct));
