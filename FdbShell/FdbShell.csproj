@@ -41,7 +41,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" />
 	</ItemGroup>
 	
 	<ItemGroup>
