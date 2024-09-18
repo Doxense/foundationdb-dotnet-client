@@ -276,7 +276,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// If logging is enabled, the transaction will track all the operations performed by this transaction until it completes.
 		/// The log can be accessed via the <see cref="Log"/> property.
-		/// Comments can be added via the <see cref="Annotate"/> method.
+		/// Comments can be added via the <see cref="Annotate(string)"/> method.
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsLogged() => m_log != null;

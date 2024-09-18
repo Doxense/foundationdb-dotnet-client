@@ -299,7 +299,7 @@ namespace FoundationDB.Layers.Blobs
 				return buffer.AsSlice(0, buffer.Length);
 			}
 
-			/// <summary>Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
+			/// <summary>Write <paramref name="data"/> to the blob, starting at <paramref name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
 			public async Task WriteAsync(IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -323,7 +323,7 @@ namespace FoundationDB.Layers.Blobs
 				}
 			}
 
-			/// <summary>Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
+			/// <summary>Write <paramref name="data"/> to the blob, starting at <paramref name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
 			public Task WriteAsync(IFdbTransaction trans, long offset, Slice data)
 			{
 				return WriteAsync(trans, offset, data.Memory);

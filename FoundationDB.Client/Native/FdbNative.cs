@@ -306,7 +306,7 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
 
-			/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <see cref="keyName"/> and its associated value.</summary>
+			/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="keyName"/> and its associated value.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to an array of strings.</returns>
 			/// <remarks>
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_string_array"/> to extract the string array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
