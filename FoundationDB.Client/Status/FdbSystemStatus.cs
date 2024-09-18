@@ -1002,6 +1002,7 @@ namespace FoundationDB.Client.Status
 	{
 		internal StorageRoleMetrics(JsonObject? data) : base(data, "storage")
 		{
+			this.StorageMetadata = new StorageMetadataMetrics(GetObject("storage_metadata"));
 			this.BytesQueried = new RoughnessCounter(GetObject("bytes_queried"));
 			this.FinishedQueries = new RoughnessCounter(GetObject("finished_queries"));
 			this.KeysQueried = new RoughnessCounter(GetObject("keys_queried"));
@@ -1047,6 +1048,35 @@ namespace FoundationDB.Client.Status
 		public RoughnessCounter LowPriorityQueries { get; }
 
 		public MetricStatistics ReadLatencyStatistics { get; }
+
+		/// <summary></summary>
+		public StorageMetadataMetrics StorageMetadata { get; }
+
+	}
+
+	/// <summary>Measured quantity that changes over time</summary>
+	[DebuggerDisplay("StorageEngine={StorageEngine}")]
+	public sealed record StorageMetadataMetrics : MetricsBase
+	{
+
+		internal StorageMetadataMetrics(JsonObject? data)
+			: base(data)
+		{
+			this.StorageEngine = GetString("storage_engine");
+			this.CreatedTimeDateTime = GetString("created_time_datetime");
+			this.CreatedTimeStamp = GetDouble("created_time_timestamp");
+		}
+
+		/// <summary><c>storage_engine</c></summary>
+		public string? StorageEngine { get; }
+
+		/// <summary><c>created_time_datetime</c></summary>
+		/// <remarks>Use <see cref="DateTimeOffset.Parse(string)"/> to parse this string</remarks>
+		/// <example>"2023-10-14 17:12:53.128 +0000"</example>
+		public string? CreatedTimeDateTime { get; }
+
+		/// <summary><c>created_time_timestamp</c></summary>
+		public double? CreatedTimeStamp { get; }
 
 	}
 
