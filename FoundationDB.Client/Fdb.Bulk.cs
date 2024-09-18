@@ -1450,7 +1450,7 @@ namespace FoundationDB.Client
 					}
 
 #if DEBUG
-					tr.Annotate("Exported {0} items in {1} chunks ({2:N1}% network)", count, chunks, chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0);
+					tr.Annotate($"Exported {count} items in {chunks} chunks ({(chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0):N1}% network)");
 #endif
 
 					return count;
@@ -1603,7 +1603,7 @@ namespace FoundationDB.Client
 					}
 
 #if DEBUG
-					tr.Annotate("Exported {0} items in {1} chunks ({2:N1}% network)", count, chunks, chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0);
+					tr.Annotate($"Exported {count} items in {chunks} chunks ({(chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0):N1}% network)");
 #endif
 
 					return count;
