@@ -28,7 +28,6 @@ namespace FoundationDB.Client
 {
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	//note: there is a ValueStopwatch in dotnet/aspnetcore, but it is currently "internal"
 	// => maybe if at some point in time there is a public type for this in the BCL, we can remove this version!

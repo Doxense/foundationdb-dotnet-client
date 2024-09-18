@@ -39,7 +39,6 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>

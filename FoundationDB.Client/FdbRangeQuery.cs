@@ -29,7 +29,6 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using Doxense.Linq;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]

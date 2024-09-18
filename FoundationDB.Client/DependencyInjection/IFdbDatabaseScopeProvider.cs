@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System.Diagnostics.CodeAnalysis;
 
 	[PublicAPI]

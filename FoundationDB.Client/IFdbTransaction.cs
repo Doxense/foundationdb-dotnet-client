@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 
 	/// <summary>Transaction that allows read and write operations</summary>
 	[PublicAPI]

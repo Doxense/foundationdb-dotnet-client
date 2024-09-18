@@ -29,7 +29,6 @@ namespace FoundationDB.Filters.Logging
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Set of extension methods that add logging support on transactions</summary>
 	public static class FdbLoggingExtensions

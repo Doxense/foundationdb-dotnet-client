@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client.Core
 {
-	using JetBrains.Annotations;
 
 	/// <summary>Basic API for FoundationDB transactions</summary>
 	[PublicAPI]

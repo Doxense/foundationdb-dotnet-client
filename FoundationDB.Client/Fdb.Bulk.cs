@@ -31,8 +31,6 @@ namespace FoundationDB.Client
 {
 	using System.Diagnostics;
 	using System.Linq;
-	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{
@@ -1615,6 +1613,7 @@ namespace FoundationDB.Client
 			#endregion
 
 		}
+
 	}
 
 }

@@ -33,7 +33,6 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Serialization.Json;
 	using FoundationDB.Client.Status;
-	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{

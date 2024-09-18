@@ -28,7 +28,6 @@ namespace FoundationDB.DependencyInjection
 {
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public record FdbDatabaseProviderOptions

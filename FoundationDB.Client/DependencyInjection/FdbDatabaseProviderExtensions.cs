@@ -29,7 +29,6 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
 	using FoundationDB.DependencyInjection;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public static class FdbDatabaseProviderExtensions

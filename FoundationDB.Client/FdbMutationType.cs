@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 
 	/// <summary>Defines a type of mutation applied to a key</summary>
 	[PublicAPI]

@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
-	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB binding</summary>
 	[PublicAPI]

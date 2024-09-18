@@ -28,7 +28,6 @@ namespace FoundationDB.DependencyInjection
 {
 	using System.IO;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Options;
 

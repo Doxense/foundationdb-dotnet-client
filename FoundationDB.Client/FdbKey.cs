@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Factory class for keys</summary>
 	[PublicAPI]
@@ -318,7 +317,7 @@ namespace FoundationDB.Client
 										case 0xFF:
 										{
 											//***README*** if you break under here, see README in the last catch() block
-											if (TuPack.TryUnpack(span[0..^1], out tuple))
+											if (TuPack.TryUnpack(span[..^1], out tuple))
 											{
 												suffix = ".<FF>";
 											}
@@ -348,7 +347,7 @@ namespace FoundationDB.Client
 									if (span.Length > 2 && span[^1] == 0 && span[^2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										if (TuPack.TryUnpack(span[0..^1], out tuple))
+										if (TuPack.TryUnpack(span[..^1], out tuple))
 										{
 											suffix = ".<00>";
 										}

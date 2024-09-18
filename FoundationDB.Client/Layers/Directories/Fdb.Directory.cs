@@ -28,7 +28,6 @@ namespace FoundationDB.Client
 {
 	using System.Linq;
 	using Doxense.Linq;
-	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{

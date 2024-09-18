@@ -28,7 +28,6 @@ namespace FoundationDB.Client
 {
 	using Doxense.Linq;
 	using Doxense.Serialization.Json;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public enum FdbTenantMode

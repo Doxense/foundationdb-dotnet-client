@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 
 	/// <summary>Defines how the client would like the data in a range a returned</summary>
 	[PublicAPI]

@@ -31,10 +31,8 @@ namespace FoundationDB.Client
 	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
-	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Allocators;
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.

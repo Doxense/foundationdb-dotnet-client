@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System.Collections;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;

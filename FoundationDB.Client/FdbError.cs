@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB API Error Code</summary>
 	[PublicAPI]

@@ -27,7 +27,6 @@
 namespace FoundationDB.DependencyInjection
 {
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
 	[PublicAPI]

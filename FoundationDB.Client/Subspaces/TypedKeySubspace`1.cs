@@ -29,7 +29,6 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a key subspace than can statically typed values to and from their binary representation</summary>
 	/// <typeparam name="T1">Type of values</typeparam>

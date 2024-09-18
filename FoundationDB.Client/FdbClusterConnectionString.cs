@@ -29,8 +29,6 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
-	using System.Net;
-	using JetBrains.Annotations;
 
 	/// <summary>Class that exposes the content of a FoundationDB .cluster file</summary>
 	[DebuggerDisplay("{RawValue,nq}")]

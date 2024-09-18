@@ -28,7 +28,6 @@ namespace FoundationDB.Client
 {
 	using System.IO;
 	using FoundationDB.Client.Native;
-	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{

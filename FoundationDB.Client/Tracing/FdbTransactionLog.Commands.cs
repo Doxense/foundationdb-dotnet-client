@@ -32,7 +32,6 @@ namespace FoundationDB.Filters.Logging
 	using Doxense;
 	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public partial class FdbTransactionLog

@@ -28,7 +28,6 @@
 namespace FoundationDB.Client
 {
 	using Doxense.Linq;
-	using JetBrains.Annotations;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	/// <typeparam name="TResult">Type of the results decoded from the key/value pairs</typeparam>

@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 
 	/// <summary>Provides access to a FoundationDB database instance</summary>
 	/// <remarks>This class is intended to be used with dependency injection containers</remarks>

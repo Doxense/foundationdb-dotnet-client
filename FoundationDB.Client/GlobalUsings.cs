@@ -11,3 +11,13 @@ global using System.Collections.Generic;
 global using System.Threading;
 global using System.Threading.Tasks;
 global using Doxense.Diagnostics.Contracts;
+
+// JetBrains Annotations
+global using ContractAnnotationAttribute = JetBrains.Annotations.ContractAnnotationAttribute;
+global using LinqTunnelAttribute = JetBrains.Annotations.LinqTunnelAttribute;
+global using InstantHandleAttribute = JetBrains.Annotations.InstantHandleAttribute;
+global using MustUseReturnValueAttribute = JetBrains.Annotations.MustUseReturnValueAttribute;
+global using PositiveAttribute = JetBrains.Annotations.PositiveAttribute;
+global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;
+global using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
+global using StringFormatMethodAttribute = JetBrains.Annotations.StringFormatMethodAttribute;

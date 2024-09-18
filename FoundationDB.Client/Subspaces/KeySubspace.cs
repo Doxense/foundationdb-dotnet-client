@@ -30,7 +30,6 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
-	using JetBrains.Annotations;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	[PublicAPI]

@@ -28,7 +28,6 @@ namespace FoundationDB.Client
 {
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	/// <summary>Container class for options in a Range query</summary>
 	[DebuggerDisplay("Limit={Limit}, Reverse={Reverse}, TargetBytes={TargetBytes}, Mode={Mode}, Read={Read}")]

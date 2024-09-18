@@ -34,7 +34,6 @@ namespace FoundationDB.Filters.Logging
 	using System.Text;
 	using Doxense;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	[Flags]
 	[PublicAPI]

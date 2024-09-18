@@ -31,7 +31,6 @@ namespace FoundationDB.Client.Status
 	using System.Globalization;
 	using System.Linq;
 	using Doxense.Serialization.Json;
-	using JetBrains.Annotations;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>
 	[PublicAPI]
@@ -509,7 +508,7 @@ namespace FoundationDB.Client.Status
 		public string? StorageEngine => GetString("storage_engine");
 
 		[Obsolete("Deprecated, use RedundancyMode instead")]
-		public string? RedundancyFactor => GetString("redundancy", "factor") ?? string.Empty;
+		public string RedundancyFactor => GetString("redundancy", "factor") ?? string.Empty;
 
 		public string? RedundancyMode => GetString("redundancy_mode");
 

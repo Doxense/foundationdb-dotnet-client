@@ -29,7 +29,6 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using FoundationDB.Client.Native;
-	using JetBrains.Annotations;
 
 	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
 	[DebuggerDisplay("Status={Future.Task.Status}, Key={Key}")]

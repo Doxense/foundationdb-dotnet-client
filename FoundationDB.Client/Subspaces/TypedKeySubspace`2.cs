@@ -30,7 +30,6 @@ namespace FoundationDB.Client
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a key subspace than can encoded pairs of statically typed values to and from their binary representation</summary>
 	/// <typeparam name="T1">Type of the first element of the key</typeparam>

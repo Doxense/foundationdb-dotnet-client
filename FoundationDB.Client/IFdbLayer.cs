@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a FoundationDB Layer that uses a metadata cache to speed up operations</summary>
 	/// <typeparam name="TState">Type of the state that is linked to each transaction lifetime.</typeparam>
@@ -50,8 +49,8 @@ namespace FoundationDB.Client
 		/// Accessing the returned state instance outside of the <paramref name="tr">transaction</paramref> scope (after commit, in the next retry loop attempt, ...) has undefined behavior and should be avoided.
 		/// </remarks>
 		ValueTask<TState> Resolve(IFdbReadOnlyTransaction tr);
-	}
 
+	}
 
 	/// <summary>Set of helper methods for working with <see cref="IFdbLayer{TState}"/> instances</summary>
 	[PublicAPI]
