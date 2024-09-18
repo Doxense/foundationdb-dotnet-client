@@ -182,17 +182,21 @@ namespace Doxense.Memory
 
 		#endregion
 
-		public override string ToString()
+
+		public override string ToString() => this.ToString(null, null);
+
+		public string ToString(string? format, IFormatProvider? provider)
 		{
 			if (this.Unit == SizeUnit.Byte)
 			{
 				//TODO: try to "auto-detect" the natural unit if it is an exact multiple?)
-				return this.Value.ToString(CultureInfo.InvariantCulture);
+				return this.Value.ToString(provider ?? CultureInfo.InvariantCulture);
 			}
 			else
 			{
-				double x = this.Value * ByteSize.GetUnitRatio(this.Unit);
-				return x.ToString("R", CultureInfo.InvariantCulture) + " " + GetUnitLiteral(this.Unit);
+				double x = this.Value * GetUnitRatio(this.Unit);
+				var literal = GetUnitLiteral(this.Unit);
+				return string.Create(provider ?? CultureInfo.InvariantCulture, $"{x:R} {literal}");
 			}
 		}
 
@@ -558,6 +562,62 @@ namespace Doxense.Memory
 		public static implicit operator long(ByteSize size) => checked((long) size.Value);
 
 		public static implicit operator ulong(ByteSize size) => size.Value;
+
+		public string ToNaturalString(IFormatProvider? provider = null)
+		{
+			if (this.Unit == SizeUnit.Byte)
+			{ // respect the original unit
+
+				var unit = GetNaturalUnit(this.Value);
+				if (unit != SizeUnit.Byte)
+				{
+					return new ByteSize(this.Value, unit).ToString(null, provider);
+				}
+			}
+
+			return this.ToString(null, provider);
+		}
+
+		public string ToApproximateString(bool base2 = false, IFormatProvider? provider = null)
+		{
+			provider ??= CultureInfo.InvariantCulture;
+
+			SizeUnit unit;
+			if (base2)
+			{
+				unit = this.Value switch
+				{
+					< ByteSize.KiB => SizeUnit.Byte,
+					< ByteSize.MiB => SizeUnit.Kibi,
+					< ByteSize.GiB => SizeUnit.Mebi,
+					< ByteSize.TiB => SizeUnit.Gibi,
+					_ => SizeUnit.Tebi,
+				};
+			}
+			else
+			{
+				unit = this.Value switch
+				{
+					< ByteSize.KB => SizeUnit.Byte,
+					< ByteSize.MB => SizeUnit.Kilo,
+					< ByteSize.GB => SizeUnit.Mega,
+					< ByteSize.TB => SizeUnit.Giga,
+					_ => SizeUnit.Tera,
+				};
+			}
+
+			if (unit == SizeUnit.Byte)
+			{
+				return this.Value == 1 ? "1 byte" : (this.Value.ToString("N0") + " bytes");
+			}
+
+			var ratio = GetUnitRatio(unit);
+
+			string fmt = unit is SizeUnit.Kibi or SizeUnit.Kilo ? "N2" : "N1";
+
+			return (this.Value * ratio).ToString(fmt, provider) + " " + GetUnitLiteral(unit);
+
+		}
 
 		#endregion
 
