@@ -31,6 +31,8 @@
 namespace FdbShell
 {
 	using System.Collections.Generic;
+	using System.CommandLine;
+	using System.CommandLine.Invocation;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
@@ -40,7 +42,6 @@ namespace FdbShell
 	using System.Threading.Tasks;
 	using FoundationDB.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection;
-	using Mono.Options;
 	using Mono.Terminal;
 
 	public static class Program
@@ -69,124 +70,160 @@ namespace FdbShell
 			}
 		}
 
+
 		private static async Task MainAsync(string[] args, CancellationToken cancel)
 		{
 			#region Options Parsing...
 
-			string? clusterFile = null;
-			string? connectionString = null;
-			var partition = FdbPath.Root;
-			bool showHelp = false;
-			int timeout = 30;
-			int maxRetries = 10;
-			int? apiVersion = null;
-			string? execCommand = null;
+			var cmd = new FdbShellCommand(cancel);
 
-			var opts = new OptionSet()
+			try
 			{
-				{ 
-					"c|C|connfile=",
-					"The path of a file containing the connection string for the FoundationDB cluster.",
-					v => clusterFile = v
-				},
-				{ 
-					"connStr=",
-					"The connection string for the FoundationDB cluster.",
-					v => connectionString = v
-				},
-				{
-					"api=",
-					"The API version level that should be used.",
-					(int v) => apiVersion = v
-				},
-				{ 
-					"p|partition=",
-					"The name of the database partition to open.",
-					v => partition = FdbPath.Parse(v.Trim())
-				},
-				{
-					"t|timeout=",
-					"Default timeout (in seconds) for failed transactions.",
-					(int v) => timeout = v
-				},
-				{
-					"r|retries=",
-					"Default max retry count for failed transactions.",
-					(int v) => maxRetries = v
-				},
-				{
-					"exec=",
-					"Execute this command, and exits immediately.",
-					v => execCommand = v
-				},
-				{
-					"h|help",
-					"Show this help and exit.",
-					v => showHelp = v != null
-				}
-			};
-
-			var extra = opts.Parse(args);
-
-			if (showHelp)
-			{
-				//TODO!
-				opts.WriteOptionDescriptions(Console.Out);
-				return;
+				await cmd.InvokeAsync(args);
 			}
-
-			string? startCommand = null;
-			if (!string.IsNullOrEmpty(execCommand))
+			catch (Exception e)
 			{
-				startCommand = execCommand;
-			}
-			else if (extra.Count > 0)
-			{ // the remainder of the command line will be the first command to execute
-				startCommand = string.Join(" ", extra);
+				Console.Error.WriteLine("Crash: " + e);
 			}
 
 			#endregion
-
-			if (apiVersion == null)
-			{
-				apiVersion = !string.IsNullOrEmpty(connectionString) ? 720 : 620;
-			}
-
-			var builder = new ServiceCollection();
-
-			builder.AddFoundationDb(apiVersion.Value, options =>
-			{
-				options.ConnectionOptions.ClusterFile = clusterFile;
-				options.ConnectionOptions.ConnectionString = connectionString;
-				options.ConnectionOptions.Root = partition;
-
-				options.ConnectionOptions.DefaultTimeout = TimeSpan.FromSeconds(Math.Max(0, timeout));
-				options.ConnectionOptions.DefaultRetryLimit = Math.Max(0, maxRetries);
-			});
-
-			builder.AddSingleton<FdbShellRunner>();
-			builder.AddSingleton<IFdbShellTerminal, FdbShellConsoleTerminal>();
-
-			var services = builder.BuildServiceProvider();
-
-			var terminal = services.GetRequiredService<IFdbShellTerminal>();
-
-			if (terminal.IsInteractive)
-			{
-				terminal.SetWindowSize(160, 60);
-			}
-
-			var runner = services.GetRequiredService<FdbShellRunner>();
-
-			var shellArgs = new FdbShellRunnerArguments()
-			{
-				StartCommand = startCommand,
-				RunSingleCommand = execCommand != null,
-			};
-
-			await runner.RunAsync(shellArgs, cancel);
-
 		}
+
+		public class FdbShellCommand : RootCommand
+		{
+
+			public FdbShellCommand(CancellationToken cancel)
+				: base("Hello, there!")
+			{
+				this.AddGlobalOption(ClusterFileOption);
+				this.AddGlobalOption(ConnectionStringOption);
+				this.AddGlobalOption(ApiVersionOption);
+				this.AddGlobalOption(PartitionOption);
+				this.AddGlobalOption(TimeoutOption);
+				this.AddGlobalOption(RetriesOption);
+				this.AddGlobalOption(AspireOption);
+				this.AddOption(ExecOption);
+
+				this.SetHandler(RunShell);
+
+				this.Cancellation = cancel;
+			}
+
+			public CancellationToken Cancellation { get; }
+
+			private static readonly System.CommandLine.Option<string?> ClusterFileOption = new (
+				["--connfile", "-c", "-C"],
+				"The path of a file containing the connection string for the FoundationDB cluster."
+			);
+
+			private static readonly System.CommandLine.Option<string?> ConnectionStringOption = new (
+				["--connStr"],
+				"The connection string for the FoundationDB cluster."
+			);
+
+			private static readonly System.CommandLine.Option<int?> ApiVersionOption = new(
+				[ "--api" ],
+				"The API version level that should be used."
+			);
+
+			private static readonly System.CommandLine.Option<string?> PartitionOption = new(
+				[ "--partition", "-p" ],
+				"The name of the database partition to open."
+			);
+
+			private static readonly System.CommandLine.Option<int?> TimeoutOption = new(
+				[ "--timeout", "-t" ],
+				getDefaultValue: () => 30,
+				"Default timeout (in seconds) for failed transactions."
+			);
+
+			private static readonly System.CommandLine.Option<int?> RetriesOption = new(
+				[ "--retries", "-r" ],
+				getDefaultValue: () => 10,
+				"Default max retry count for failed transactions."
+			);
+
+			private static readonly System.CommandLine.Option<string?> ExecOption = new(
+				[ "--exec" ],
+				"Execute this command, and exits immediately."
+			);
+
+			private static readonly Option<bool> AspireOption = new(
+				[ "--aspire" ],
+				"Use the local docker instance managed by .NET Aspire"
+			);
+
+			private async Task RunShell(InvocationContext context)
+			{
+				var clusterFile = context.ParseResult.GetValueForOption(ClusterFileOption);
+				var connectionString = context.ParseResult.GetValueForOption(ConnectionStringOption);
+				var apiVersion = context.ParseResult.GetValueForOption(ApiVersionOption);
+				var partition = context.ParseResult.GetValueForOption(PartitionOption);
+				var timeout = context.ParseResult.GetValueForOption(TimeoutOption) ?? 30;
+				var maxRetries = context.ParseResult.GetValueForOption(RetriesOption) ?? 10;
+				var execCommand = context.ParseResult.GetValueForOption(ExecOption);
+				var aspire = context.ParseResult.GetValueForOption(AspireOption);
+
+				if (aspire)
+				{
+					clusterFile = null;
+					connectionString = "docker:docker@127.0.0.1:4550";
+				}
+
+				if (apiVersion == null)
+				{
+					apiVersion = !string.IsNullOrEmpty(connectionString) ? 720 : 620;
+				}
+
+				var rootPath = string.IsNullOrEmpty(partition) ? FdbPath.Root : FdbPath.Parse(partition);
+
+				string? startCommand = null;
+				if (!string.IsNullOrEmpty(execCommand))
+				{
+					startCommand = execCommand;
+				}
+				//else if (extra.Count > 0)
+				//{ // the remainder of the command line will be the first command to execute
+				//	startCommand = string.Join(" ", extra);
+				//}
+
+				var builder = new ServiceCollection();
+
+				builder.AddFoundationDb(apiVersion.Value, options =>
+				{
+					options.ConnectionOptions.ClusterFile = clusterFile;
+					options.ConnectionOptions.ConnectionString = connectionString;
+					options.ConnectionOptions.Root = rootPath;
+
+					options.ConnectionOptions.DefaultTimeout = TimeSpan.FromSeconds(Math.Max(0, timeout));
+					options.ConnectionOptions.DefaultRetryLimit = Math.Max(0, maxRetries);
+				});
+
+				builder.AddSingleton<FdbShellRunner>();
+				builder.AddSingleton<IFdbShellTerminal, FdbShellConsoleTerminal>();
+
+				var services = builder.BuildServiceProvider();
+
+				var terminal = services.GetRequiredService<IFdbShellTerminal>();
+
+				if (terminal.IsInteractive)
+				{
+					terminal.SetWindowSize(160, 60);
+				}
+
+				var runner = services.GetRequiredService<FdbShellRunner>();
+
+				var shellArgs = new FdbShellRunnerArguments()
+				{
+					StartCommand = startCommand,
+					RunSingleCommand = execCommand != null,
+				};
+
+				await runner.RunAsync(shellArgs, this.Cancellation);
+			}
+		}
+
+
 	}
 
 	public interface IFdbShellTerminal
@@ -372,6 +409,36 @@ namespace FdbShell
 
 		private void StdErr(ref DefaultInterpolatedStringHandler log, ConsoleColor color = ConsoleColor.DarkGray) => this.Terminal.StdErr(string.Create(CultureInfo.InvariantCulture, ref log), color);
 
+		private static readonly Dictionary<string, string> KnownCommands = new (StringComparer.OrdinalIgnoreCase)
+		{
+			["cd"] = "Change the current directory",
+			["clear"] = "Clear a key in the current directory",
+			["clearrange"] = "Clear a range of keys in the current directory",
+			["get"] = "Read the value of a key in the current directory",
+			["coordinators"] = "Display the list of current coordinators",
+			["count"] = "Count the number of keys in the current directory",
+			["dir"] = "Display the list of sub-directories",
+			["dump"] = "Dump the content of the current directory",
+			["quit"] = "Stop the shell",
+			["help"] = "Display this list",
+			["layer"] = "Display of change the layer id of the current directory",
+			["map"] = "Map the content of a directory and display a report",
+			["mkdir"] = "Create a new sub-directory",
+			["mv"] = "Move a directory to another location",
+			["pwd"] = "Prints the current path",
+			["ren"] = "Rename a directory",
+			["rmdir"] = "Remove a directory",
+			["sampling"] = "Perform a random sampling of the keys in a directory",
+			["shards"] = "Display the shards that intersect a directory",
+			["show"] = "List the keys and values in a directory",
+			["status"] = "Display the status of cluster",
+			["topology"] = "Display the topology of the cluster",
+			["tree"] = "Show all the directories under the current directory",
+			["version"] = "Display the version of the client and cluster",
+			["wide"] = "Switch to wide screen (only on Windows)",
+		};
+
+
 		public async Task RunAsync(FdbShellRunnerArguments args, CancellationToken cancel)
 		{
 			StdOut("Connecting to cluster...");
@@ -392,14 +459,10 @@ namespace FdbShell
 				}
 				StdOut("");
 				StdOut("FoundationDB Shell menu:");
-				StdOut("\tcd\tChange the current directory");
-				StdOut("\tdir\tList the sub-directories the current directory");
-				StdOut("\tshow\tShow the content of the current directory");
-				StdOut("\ttree\tShow all the directories under the current directory");
-				StdOut("\tsampling\tDisplay statistics on random shards from the database");
-				StdOut("\tcoordinators\tShow the current coordinators for the cluster");
-				//StdOut("\thelp\tShow all the commands");
-				StdOut("\tquit\tQuit");
+				foreach (var cmd in (string[]) ["cd", "dir", "show", "tree", "help", "quit"])
+				{
+					StdOut($"  {cmd,-8} {FdbShellRunner.KnownCommands[cmd]}");
+				}
 				StdOut("");
 
 				try
@@ -417,37 +480,6 @@ namespace FdbShell
 				StdOut("");
 
 				var le = new LineEditor("FDBShell");
-
-				string[] cmds =
-				[
-					"cd",
-					"clear",
-					"coordinators",
-					"count",
-					"dir",
-					"dump",
-					"exit",
-					"gc",
-					"help",
-					"layer",
-					"map",
-					"mem",
-					"mkdir",
-					"mv",
-					"partition",
-					"pwd",
-					"quit",
-					"ren",
-					"rmdir",
-					"sampling",
-					"shards",
-					"show",
-					"status",
-					"topology",
-					"tree",
-					"version",
-					"wide",
-				];
 
 				le.AutoCompleteEvent = (txt, _) =>
 				{
@@ -496,10 +528,10 @@ namespace FdbShell
 					}
 
 					// list of commands
-					res = cmds
-						.Where(cmd => cmd.StartsWith(txt, StringComparison.OrdinalIgnoreCase))
-						.Select(cmd => cmd.Substring(txt.Length))
-						.ToArray();
+					res = KnownCommands
+					      .Where(cmd => cmd.Key.StartsWith(txt, StringComparison.OrdinalIgnoreCase))
+					      .Select(cmd => cmd.Key.Substring(txt.Length))
+					      .ToArray();
 					return new LineEditor.Completion(txt, res);
 				};
 				le.TabAtStartCompletes = true;
@@ -548,6 +580,12 @@ namespace FdbShell
 								continue;
 							}
 
+							case "help":
+							{
+								ShowCommandHelp(this.Terminal);
+								break;
+							}
+
 							case "version":
 							{
 								//TODO: get the version from the client or status json
@@ -556,7 +594,7 @@ namespace FdbShell
 								//{
 								//	await VersionCommand(extras, clusterFile, Console.Out, cancel);
 								//}
-								break;
+								//break;
 							}
 
 							case "tree":
@@ -958,6 +996,14 @@ namespace FdbShell
 			}
 		}
 
+		private void ShowCommandHelp(IFdbShellTerminal terminal)
+		{
+			terminal.StdOut("List of supported commands:");
+			foreach (var (k, v) in FdbShellRunner.KnownCommands.OrderBy(kv => kv.Key))
+			{
+				terminal.StdOut($"  {k,-14} {v}");
+			}
+		}
 
 		public async Task RunAsyncCommand(Func<IFdbDatabase, IFdbShellTerminal, CancellationToken, Task> command, CancellationToken cancel)
 		{
