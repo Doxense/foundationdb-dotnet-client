@@ -30,7 +30,7 @@ namespace FoundationDB.DependencyInjection
 	using FoundationDB.Filters.Logging;
 
 	[PublicAPI]
-	public record FdbDatabaseProviderOptions
+	public sealed record FdbDatabaseProviderOptions
 	{
 
 		/// <summary>Selected API Version</summary>

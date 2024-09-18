@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.DependencyInjection;
 
 	/// <summary>Provides access to a FoundationDB database instance</summary>
 	/// <remarks>This class is intended to be used with dependency injection containers</remarks>
@@ -38,6 +39,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Abort all pending transactions using the current database instance</summary>
 		void Stop();
+
+		/// <summary>Options used to configure this provider</summary>
+		FdbDatabaseProviderOptions ProviderOptions { get; }
 
 	}
 

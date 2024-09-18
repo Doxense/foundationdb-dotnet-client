@@ -32,12 +32,8 @@ namespace FoundationDB.Client
 
 	/// <summary>Settings used when establishing the connection with a FoundationDB cluster</summary>
 	[DebuggerDisplay("{" + nameof(ToString) + "(),nq}")]
-	public sealed class FdbConnectionOptions
+	public sealed record FdbConnectionOptions
 	{
-		//REVIEW: rename this to "FdbConnectionString"? (so that it feels more like ADO.NET?)
-		
-		[Obsolete("This value should not be used anymore.")]
-		public const string DefaultDbName = "DB";
 
 		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
 		/// <remarks>
@@ -52,11 +48,6 @@ namespace FoundationDB.Client
 		/// <para>This property and <see cref="ClusterFile"/> are mutually exclusive.</para>
 		/// </remarks>
 		public string? ConnectionString { get; set; }
-
-		/// <summary>Default database name</summary>
-		/// <remarks>Only "DB" is supported for now</remarks>
-		[Obsolete("This property should not be used anymore, and its value will be ignored.", error: true)]
-		public string DbName { get; set; } = DefaultDbName;
 
 		/// <summary>If <see langword="true"/>, opens a read-only view of the database</summary>
 		/// <remarks>If set to <see langword="true"/>, only read-only transactions will be allowed on the database instance</remarks>
@@ -87,20 +78,34 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			var sb = new StringBuilder();
-			AddKeyValue(sb, "cluster_file", this.ClusterFile ?? "default");
-			if (this.Root != null) AddKeyValue(sb, "root", this.Root.ToString());
-			if (this.ReadOnly) AddKeyword(sb, "readonly");
-			if (this.DefaultTimeout > TimeSpan.Zero) AddKeyValue(sb, "timeout", this.DefaultTimeout.TotalSeconds);
-			if (this.DefaultRetryLimit > 0) AddKeyValue(sb, "retry_limit", this.DefaultRetryLimit);
-			if (this.DefaultMaxRetryDelay > 0) AddKeyValue(sb, "retry_delay", this.DefaultMaxRetryDelay);
-			if (this.DefaultTracing != FdbTracingOptions.Default) AddKeyValue(sb, "tracing", (int) this.DefaultTracing);
-			AddKeyValue(sb, "dc_id", this.DataCenterId);
-			AddKeyValue(sb, "machine_id", this.MachineId);
-			return sb.ToString();
+			var sb = new FdbConnectionStringBuilder();
+			sb.Add("cluster_file", this.ClusterFile ?? "default");
+			if (this.Root != null) sb.Add("root", this.Root.ToString());
+			if (this.ReadOnly) sb.Add("readonly");
+			if (this.DefaultTimeout > TimeSpan.Zero) sb.Add("timeout", this.DefaultTimeout.TotalSeconds);
+			if (this.DefaultRetryLimit > 0) sb.Add("retry_limit", this.DefaultRetryLimit);
+			if (this.DefaultMaxRetryDelay > 0) sb.Add("retry_delay", this.DefaultMaxRetryDelay);
+			if (this.DefaultTracing != FdbTracingOptions.Default) sb.Add("tracing", (int) this.DefaultTracing);
+			sb.Add("dc_id", this.DataCenterId);
+			sb.Add("machine_id", this.MachineId);
+			return sb.Build();
 		}
 
-		private static void AddKeyValue(StringBuilder sb, string key, string? value)
+	}
+
+	internal readonly struct FdbConnectionStringBuilder
+	{
+
+		public FdbConnectionStringBuilder(StringBuilder? text = null)
+		{
+			this.Text = text ?? new StringBuilder();
+		}
+
+		public readonly StringBuilder Text;
+
+		public string Build() => this.Text.ToString();
+
+		public void Add(string key, string? value)
 		{
 			if (value == null) return;
 			if (value.IndexOf(' ') >= 0 || value.IndexOf(';') >= 0)
@@ -108,27 +113,40 @@ namespace FoundationDB.Client
 				value = "\"" + value.Replace("\"", "\\\"") + "\"";
 			}
 
-			if (sb.Length > 0) sb.Append("; ");
-			sb.Append(key).Append('=').Append(value);
+			if (this.Text.Length > 0) this.Text.Append("; ");
+			this.Text.Append(key).Append('=').Append(value);
 		}
 
-		private static void AddKeyValue(StringBuilder sb, string key, long value)
+		public void Add(string key, bool value)
 		{
-			if (sb.Length > 0) sb.Append("; ");
-			sb.Append(key).Append('=').Append(value.ToString(CultureInfo.InvariantCulture));
+			if (this.Text.Length > 0) this.Text.Append("; ");
+			this.Text.Append(key).Append(value ? "=true" : "=false");
 		}
 
-		private static void AddKeyValue(StringBuilder sb, string key, double value)
+		public void Add(string key, long value)
 		{
-			if (sb.Length > 0) sb.Append("; ");
-			sb.Append(key).Append('=').Append(value.ToString("R", CultureInfo.InvariantCulture));
+			if (this.Text.Length > 0) this.Text.Append("; ");
+			this.Text.Append(key).Append('=').Append(value.ToString(CultureInfo.InvariantCulture));
 		}
 
-		private static void AddKeyword(StringBuilder sb, string key)
+		public void Add(string key, double value)
 		{
-			if (sb.Length > 0) sb.Append("; ");
-			sb.Append(key);
+			if (this.Text.Length > 0) this.Text.Append("; ");
+			this.Text.Append(key).Append('=').Append(value.ToString("R", CultureInfo.InvariantCulture));
 		}
+
+		public void Add(string key, TimeSpan value)
+		{
+			if (this.Text.Length > 0) this.Text.Append("; ");
+			this.Text.Append(key).Append('=').Append(value.TotalSeconds.ToString("R", CultureInfo.InvariantCulture));
+		}
+
+		public void Add(string key)
+		{
+			if (this.Text.Length > 0) this.Text.Append("; ");
+			this.Text.Append(key);
+		}
+
 
 	}
 

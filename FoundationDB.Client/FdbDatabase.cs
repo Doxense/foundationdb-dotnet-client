@@ -673,6 +673,15 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Provider Options...
+
+		//TODO: we don't currently have the provider options, and we could also have been created outside of a provider?
+		//TODO: maybe pass in the source provider to the ctor?
+
+		FdbDatabaseProviderOptions IFdbDatabaseProvider.ProviderOptions => throw new NotSupportedException();
+
+		#endregion
+
 		#region Key Space Management...
 
 		/// <summary>Returns the root path used by this database instance</summary>
