@@ -46,7 +46,7 @@ namespace FoundationDB.Client.Native
 
 		public override string ToString()
 		{
-			return $"FutureHandle[0x{this.Handle.ToString("x")}]";
+			return $"FutureHandle[0x{this.Handle:x}]";
 		}
 
 	}
