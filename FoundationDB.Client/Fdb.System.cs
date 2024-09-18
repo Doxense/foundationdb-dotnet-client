@@ -26,6 +26,7 @@
 
 //#define TRACE_COUNTING
 
+// ReSharper disable VariableLengthStringHexEscapeSequence
 namespace FoundationDB.Client
 {
 	using System.Diagnostics.CodeAnalysis;
@@ -114,7 +115,7 @@ namespace FoundationDB.Client
 				return new FdbSystemStatus(doc, rv, data);
 			}
 
-			/// <summary>Query the current status of the cluster</summary>
+			/// <summary>Queries the current status of the cluster</summary>
 			public static Task<FdbSystemStatus?> GetStatusAsync(IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db);
@@ -130,7 +131,13 @@ namespace FoundationDB.Client
 				}, ct);
 			}
 
-			/// <summary>Query the current status of the client</summary>
+			/// <summary>Queries the current status of the cluster</summary>
+			public static async Task<FdbSystemStatus?> GetStatusAsync(IFdbDatabaseProvider db, CancellationToken ct)
+			{
+				return await GetStatusAsync(await db.GetDatabase(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+			}
+
+			/// <summary>Queries the current status of the client</summary>
 			/// <remarks>
 			/// <para>Requires API version 730 or greater</para>
 			/// </remarks>
@@ -146,6 +153,15 @@ namespace FoundationDB.Client
 				var doc = CrystalJson.Parse(data).AsObject();
 
 				return new FdbClientStatus(doc, data);
+			}
+
+			/// <summary>Queries the current status of the client</summary>
+			/// <remarks>
+			/// <para>Requires API version 730 or greater</para>
+			/// </remarks>
+			public static async Task<FdbClientStatus> GetClientStatusAsync(IFdbDatabaseProvider db, CancellationToken ct)
+			{
+				return await GetClientStatusAsync(await db.GetDatabase(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
 			}
 
 			#endregion
@@ -170,6 +186,15 @@ namespace FoundationDB.Client
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
 
 				return FdbClusterConnectionString.Parse(coordinators.ToStringAscii()!);
+			}
+
+			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
+			public static async Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabaseProvider db, CancellationToken ct)
+			{
+				return await GetCoordinatorsAsync(await db.GetDatabase(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
 			}
 
 			public static bool TryParseAddress(ReadOnlySpan<char> address, [MaybeNullWhen(false)] out IPAddress host, out int port, out bool tls)
@@ -210,7 +235,7 @@ namespace FoundationDB.Client
 
 			#region Special Keys...
 
-			/// <summary>Return the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
+			/// <summary>Returns the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="name">Name of the special key (ex: <c>`/management/tenant_mode`</c>)</param>
 			/// <param name="ct">Token used to cancel the operation</param>
@@ -229,7 +254,17 @@ namespace FoundationDB.Client
 				}, ct);
 			}
 
-			/// <summary>Return the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
+			/// <summary>Returns the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the special key (ex: <c>`/management/tenant_mode`</c>)</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Value of <c>\xFF\xFF/management/tenant_mode</c></returns>
+			public static async Task<Slice> GetSpecialKeyAsync(IFdbDatabaseProvider db, Slice name, CancellationToken ct)
+			{
+				return await GetSpecialKeyAsync(await db.GetDatabase(ct).ConfigureAwait(false), name, ct).ConfigureAwait(false);
+			}
+
+			/// <summary>Returns the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="name">Name of the special key (ex: <c>"/management/tenant_mode"</c>)</param>
 			/// <param name="ct">Token used to cancel the operation</param>
@@ -248,7 +283,17 @@ namespace FoundationDB.Client
 				}, ct);
 			}
 
-			/// <summary>Return the corresponding key for a special key attribute</summary>
+			/// <summary>Returns the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the special key (ex: <c>`/management/tenant_mode`</c>)</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Value of <c>\xFF\xFF/management/tenant_mode</c></returns>
+			public static async Task<Slice> GetSpecialKeyAsync(IFdbDatabaseProvider db, string name, CancellationToken ct)
+			{
+				return await GetSpecialKeyAsync(await db.GetDatabase(ct).ConfigureAwait(false), name, ct).ConfigureAwait(false);
+			}
+
+			/// <summary>Returns the corresponding key for a special key attribute</summary>
 			/// <param name="name">Name of the special key, for example: <c>`/foo/bar`</c></param>
 			/// <returns>Name prefixed by <c>\xFF\xFF</c>, for example: <c>`\xFF\xFF/foo/bar`</c></returns>
 			/// <example><c>SpecialKey(Slice.FromString("/foo/bar"))</c> => <c>`\xFF\xFF/foo/bar`</c></example>
@@ -258,7 +303,7 @@ namespace FoundationDB.Client
 				return SpecialKeyPrefix + name;
 			}
 
-			/// <summary>Return the corresponding key for a special key attribute</summary>
+			/// <summary>Returns the corresponding key for a special key attribute</summary>
 			/// <param name="name">Name of the special key, for example: <c>"/foo/bar"</c></param>
 			/// <returns>Name prefixed by <c>\xFF\xFF</c>, for example: <c>"\xFF\xFF/foo/bar"</c></returns>
 			/// <example><c>SpecialKey("/foo/bar")</c> => <c>`\xFF\xFF/foo/bar`</c></example>
@@ -272,7 +317,7 @@ namespace FoundationDB.Client
 
 			#region Config Parameters...
 
-			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
+			/// <summary>Returns the value of a configuration parameter (located under '\xFF/conf/')</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
 			/// <param name="ct">Token used to cancel the operation</param>
@@ -292,7 +337,17 @@ namespace FoundationDB.Client
 				}, ct);
 			}
 
-			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
+			/// <summary>Returns the value of a configuration parameter (located under '\xFF/conf/')</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
+			public static async Task<Slice> GetConfigParameterAsync(IFdbDatabaseProvider db, Slice name, CancellationToken ct)
+			{
+				return await GetConfigParameterAsync(await db.GetDatabase(ct).ConfigureAwait(false), name, ct).ConfigureAwait(false);
+			}
+
+			/// <summary>Returns the value of a configuration parameter (located under '\xFF/conf/')</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
 			/// <param name="ct">Token used to cancel the operation</param>
@@ -310,6 +365,16 @@ namespace FoundationDB.Client
 
 					return tr.GetAsync(Fdb.System.ConfigKey(name));
 				}, ct);
+			}
+
+			/// <summary>Returns the value of a configuration parameter (located under '\xFF/conf/')</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
+			public static async Task<Slice> GetConfigParameterAsync(IFdbDatabaseProvider db, string name, CancellationToken ct)
+			{
+				return await GetConfigParameterAsync(await db.GetDatabase(ct).ConfigureAwait(false), name, ct).ConfigureAwait(false);
 			}
 
 			/// <summary>Return the corresponding key for a config attribute</summary>
@@ -381,6 +446,16 @@ namespace FoundationDB.Client
 				}
 			}
 
+			/// <summary>Returns the current storage engine mode of the cluster</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Returns either "memory" or "ssd"</returns>
+			/// <remarks>Will return a string starting with "unknown" if the storage engine mode is not recognized</remarks>
+			public static async Task<string> GetStorageEngineModeAsync(IFdbDatabaseProvider db, CancellationToken ct)
+			{
+				return await GetStorageEngineModeAsync(await db.GetDatabase(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+			}
+
 			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>
 			/// <param name="trans">Transaction to use for the operation</param>
 			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
@@ -405,7 +480,7 @@ namespace FoundationDB.Client
 				}, trans.Cancellation).ConfigureAwait(false);
 			}
 
-			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>
+			/// <summary>Returns a list of keys <c>k</c> such that <paramref name="beginInclusive"/> &lt;= <c>k</c> &lt; <paramref name="endExclusive"/> and <c>k</c> is located at the start of a contiguous range stored on a single server</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
 			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
@@ -417,6 +492,18 @@ namespace FoundationDB.Client
 				Contract.NotNull(db);
 
 				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), ct);
+			}
+
+			/// <summary>Returns a list of keys <c>k</c> such that <paramref name="beginInclusive"/> &lt;= <c>k</c> &lt; <paramref name="endExclusive"/> and <c>k</c> is located at the start of a contiguous range stored on a single server</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
+			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>List of keys that mark the start of a new chunk</returns>
+			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbDatabaseProvider db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
+			{
+				return await GetBoundaryKeysAsync(await db.GetDatabase(ct).ConfigureAwait(false), beginInclusive, endExclusive, ct).ConfigureAwait(false);
 			}
 
 			//REVIEW: should we call this chunks? shard? fragments? contiguous ranges?
@@ -431,6 +518,17 @@ namespace FoundationDB.Client
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 				return GetChunksAsync(db, range.Begin, range.End, ct);
+			}
+
+			/// <summary>Split a range of keys into smaller chunks where each chunk represents a contiguous range stored on a single server</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="range">Range of keys to split up into smaller chunks</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
+			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			public static async Task<List<KeyRange>> GetChunksAsync(IFdbDatabaseProvider db, KeyRange range, CancellationToken ct)
+			{
+				return await GetChunksAsync(await db.GetDatabase(ct).ConfigureAwait(false), range.Begin, range.End, ct).ConfigureAwait(false);
 			}
 
 			/// <summary>Split a range of keys into chunks representing a contiguous range stored on a single server</summary>
@@ -470,6 +568,18 @@ namespace FoundationDB.Client
 				if (k != endExclusive) chunks.Add(new KeyRange(k, endExclusive));
 
 				return chunks;
+			}
+
+			/// <summary>Split a range of keys into chunks representing a contiguous range stored on a single server</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
+			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
+			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			public static async Task<List<KeyRange>> GetChunksAsync(IFdbDatabaseProvider db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
+			{
+				return await GetChunksAsync(await db.GetDatabase(ct).ConfigureAwait(false), beginInclusive, endExclusive, ct).ConfigureAwait(false);
 			}
 
 			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync(IFdbReadOnlyTransaction trans, Slice begin, Slice end)
@@ -540,7 +650,7 @@ namespace FoundationDB.Client
 				return results;
 			}
 
-			/// <summary>Estimate the number of keys in the specified range.</summary>
+			/// <summary>Estimates the number of keys in the specified range.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="range">Range defining the keys to count</param>
 			/// <param name="ct">Token used to cancel the operation</param>
@@ -552,7 +662,19 @@ namespace FoundationDB.Client
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
 			}
 
-			/// <summary>Estimate the number of keys in the specified range.</summary>
+			/// <summary>Estimates the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="range">Range defining the keys to count</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static Task<long> EstimateCountAsync(IFdbDatabaseProvider db, KeyRange range, CancellationToken ct)
+			{
+				return EstimateCountAsync(db, range.Begin, range.End, null, ct);
+				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
+			}
+
+			/// <summary>Estimates the number of keys in the specified range.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="range">Range defining the keys to count</param>
 			/// <param name="onProgress">Optional callback called every time the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
@@ -565,7 +687,20 @@ namespace FoundationDB.Client
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
 			}
 
-			/// <summary>Estimate the number of keys in the specified range.</summary>
+			/// <summary>Estimates the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="range">Range defining the keys to count</param>
+			/// <param name="onProgress">Optional callback called every time the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static Task<long> EstimateCountAsync(IFdbDatabaseProvider db, KeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
+			{
+				return EstimateCountAsync(db, range.Begin, range.End, onProgress, ct);
+				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
+			}
+
+			/// <summary>Estimates the number of keys in the specified range.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="beginInclusive">Key defining the beginning of the range</param>
 			/// <param name="endExclusive">Key defining the end of the range</param>
@@ -717,6 +852,18 @@ namespace FoundationDB.Client
 				}
 			}
 
+			/// <summary>Estimates the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="beginInclusive">Key defining the beginning of the range</param>
+			/// <param name="endExclusive">Key defining the end of the range</param>
+			/// <param name="onProgress">Optional callback called every time the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static async Task<long> EstimateCountAsync(IFdbDatabaseProvider db, Slice beginInclusive, Slice endExclusive, IProgress<(long Count, Slice Current)>? onProgress, CancellationToken ct)
+			{
+				return await EstimateCountAsync(await db.GetDatabase(ct).ConfigureAwait(false), beginInclusive, endExclusive, onProgress, ct).ConfigureAwait(false);
+			}
 		}
 
 	}
