@@ -34,6 +34,7 @@ namespace Doxense.Serialization
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
+	using System.Runtime.CompilerServices;
 	using Doxense.Runtime;
 
 	[PublicAPI]
@@ -585,12 +586,36 @@ namespace Doxense.Serialization
 		/// <summary>Returns a "human readable" version of a type's name, including the generic arguments and nested types.</summary>
 		/// <returns>"string", "int", "FooBar", "FooBar.NestedBaz", "List&lt;int>", "Dictionary&lt;string, Something&lt;Foo, Bar>>"</returns>
 		/// <remarks>This name will NOT be in a format that easily allows retrieve it later, and should mostly be used in error message, logs or debug messages.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static string GetFriendlyName(this Type type) => GetCompilableTypeName(type, ommitNamespace: true, global: false);
+
+		/// <summary>Returns a "human readable" version of a type's name, including the generic arguments and nested types.</summary>
+		/// <returns>"string", "int", "FooBar", "FooBar.NestedBaz", "List&lt;int>", "Dictionary&lt;string, Something&lt;Foo, Bar>>"</returns>
+		/// <remarks>This name will NOT be in a format that easily allows retrieve it later, and should mostly be used in error message, logs or debug messages.</remarks>
 		[Pure]
-		public static string GetFriendlyName(this Type type)
+		public static string GetCompilableTypeName(Type type, bool ommitNamespace, bool global)
 		{
 			Contract.NotNull(type);
 
-			if (type.IsPrimitive || !type.IsEnum)
+			if (type.IsArray)
+			{ // => "Acme[]"
+
+				int rank = type.GetArrayRank();
+				var suffix = rank switch
+				{
+					1 => "[]",
+					2 => "[,]",
+					_ => type.Name[type.Name.IndexOf('[')..]
+				};
+				return GetCompilableTypeName(type.GetElementType()!, ommitNamespace, global) + suffix;
+			}
+
+			if (type == typeof(string))
+			{
+				return "string";
+			}
+
+			if (type.IsPrimitive)
 			{
 				switch (Type.GetTypeCode(type))
 				{
@@ -608,7 +633,6 @@ namespace Doxense.Serialization
 					case TypeCode.Double:   return "double";
 					case TypeCode.Decimal:  return "decimal";
 					case TypeCode.DateTime: return "DateTime";
-					case TypeCode.String:   return "string";
 				}
 			}
 
@@ -617,7 +641,14 @@ namespace Doxense.Serialization
 				return type.Name;
 			}
 
-			string? prefix = null;
+			string? globalPrefix = global ? "global::" : null;
+
+			if (type.IsNullableType())
+			{
+				return GetCompilableTypeName(type.GetGenericArguments()[0], ommitNamespace, global) + "?";
+			}
+
+			string? parentPrefix = null;
 			int outerOffset = 0;
 			if (type.IsNested)
 			{
@@ -645,14 +676,20 @@ namespace Doxense.Serialization
 
 				if (type.Name.StartsWith("<>"))
 				{
-					return GetFriendlyName(outer);
+					return GetCompilableTypeName(outer, ommitNamespace, global);
 				}
 
-				prefix = GetFriendlyName(outer) + ".";
+				parentPrefix = GetCompilableTypeName(outer, ommitNamespace, false) + ".";
+			}
+
+			if (!ommitNamespace)
+			{
+				parentPrefix = type.Namespace + "." + parentPrefix;
 			}
 
 			if (type.IsGenericType)
 			{ // => "Acme<string, bool>"
+
 
 				var args = type.GetGenericArguments();
 				if (outerOffset != 0)
@@ -679,32 +716,19 @@ namespace Doxense.Serialization
 				// we will recursively call GetFriendlyName on each generic argument types
 				if (args.Length == 0)
 				{
-					return prefix + baseName;
+					return globalPrefix + parentPrefix + baseName;
 				}
-				return $"{prefix}{baseName}<{string.Join(", ", args.Select(GetFriendlyName))}>";
-			}
-
-			if (type.IsArray)
-			{ // => "Acme[]"
-
-				string baseName = prefix + GetFriendlyName(type.GetElementType()!);
-				int rank = type.GetArrayRank();
-				return rank switch
-				{
-					1 => baseName + "[]",
-					2 => baseName + "[,]",
-					_ => baseName + type.Name[type.Name.IndexOf('[')..]
-				};
+				return $"{globalPrefix}{parentPrefix}{baseName}<{string.Join(", ", args.Select(arg => GetCompilableTypeName(arg, ommitNamespace, global)))}>";
 			}
 
 			if (type.IsPointer)
 			{ // => "Acme*"
-				string baseName = prefix + GetFriendlyName(type.GetElementType()!);
+				string baseName = globalPrefix + parentPrefix + GetCompilableTypeName(type.GetElementType()!, ommitNamespace, global);
 				return baseName + type.Name[type.Name.IndexOf('*')..];
 			}
 
 			// standard case
-			return prefix + type.Name;
+			return globalPrefix + parentPrefix + type.Name;
 		}
 
 		/// <summary>Returns the generic version of a method</summary>
@@ -764,6 +788,56 @@ namespace Doxense.Serialization
 		public static bool IsGenericInstanceOf([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, Type genericType)
 		{
 			return FindGenericType(type, genericType) != null;
+		}
+
+		/// <summary>Tests if a type is implements a generic type or interface</summary>
+		/// <param name="type">Type of the inspected instance (ex: <c>List&lt;string&gt;</c>)</param>
+		/// <param name="genericType">Type of the generic interface (ex: <c>IList&lt;T&gt;</c>)</param>
+		/// <returns><see langword="true"/> if the type implements the generic interface</returns>
+		/// <remarks>This method is required because <c>new List&lt;string>().GetType().IsAssignableTo(IList&lt;>)</c> returns false (the types implements <c>IList&lt;string&gt;</c> which is not the same as <c>IList&lt;&gt;</c>)</remarks>
+		/// <example><code>
+		/// typeof(List&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == true
+		/// typeof(HashSet&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == false
+		/// </code></example>
+		[Pure]
+		public static bool IsGenericInstanceOf([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, Type genericType, [MaybeNullWhen(false)] out Type elementType)
+		{
+			elementType = FindGenericType(type, genericType);
+			return elementType != null;
+		}
+
+		public static bool IsEnumerableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, [MaybeNullWhen(false)] out Type elementType)
+		{
+			if (type.IsArray)
+			{
+				elementType = type.GetElementType();
+				return elementType != null;
+			}
+
+			var enumerableType = FindGenericType(type, typeof(IEnumerable<>));
+			if (enumerableType != null)
+			{
+				elementType = enumerableType.GenericTypeArguments[0];
+				return true;
+			}
+
+			elementType = null;
+			return false;
+		}
+
+		public static bool IsDictionaryType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, [MaybeNullWhen(false)] out Type keyType, [MaybeNullWhen(false)] out Type valueType)
+		{
+			var dictionaryType = FindGenericType(type, typeof(IDictionary<,>));
+			if (dictionaryType != null)
+			{
+				keyType = dictionaryType.GenericTypeArguments[0];
+				valueType = dictionaryType.GenericTypeArguments[1];
+				return true;
+			}
+
+			keyType = null;
+			valueType = null;
+			return false;
 		}
 
 		/// <summary>Returns the closed version of the generic interface implemented by a type</summary>
