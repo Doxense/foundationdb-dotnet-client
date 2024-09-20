@@ -4298,7 +4298,7 @@ namespace Doxense.Serialization.Json
 			var list = ImmutableList.CreateBuilder<TValue?>();
 			foreach (var item in this.AsSpan())
 			{
-				list.Add(item.Bind<TValue>(resolver));
+				list.Add(item.As<TValue>(resolver));
 			}
 			return list.ToImmutable();
 		}

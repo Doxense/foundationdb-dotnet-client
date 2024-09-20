@@ -72,20 +72,6 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("=> null")]
 		public override string? ToStringOrDefault(string? defaultValue = null) => defaultValue;
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static T? Default<T>() => DefaultCache<T>.Instance;
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static T? Default<T>(JsonValue? value) => DefaultCache<T>.CanBeJsonNull && value is JsonNull jn ? (T) (object) jn : DefaultCache<T>.Instance;
-
-		[Pure, ContractAnnotation("=> null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static object? Default([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
-		{
-			return type.IsValueType ? ValueTypeDefault(type)
-				: typeof(JsonValue) == type || typeof(JsonNull) == type ? JsonNull.Null
-				: null;
-		}
-
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static object? ValueTypeDefault([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
 		{
@@ -100,27 +86,19 @@ namespace Doxense.Serialization.Json
 			return Activator.CreateInstance(type);
 		}
 
-		private static class DefaultCache<T>
-		{
-			// ReSharper disable once ExpressionIsAlwaysNull
-			public static readonly T? Instance = (T?) Default(typeof(T))!;
-
-			public static readonly bool CanBeJsonNull = default(T) == null && typeof(T) == typeof(JsonValue) || typeof(T) == typeof(JsonNull);
-		}
-
 		#region JsonValue Members
 
 		public override JsonType Type => JsonType.Null;
 
 		public override object? ToObject() => null;
 
-		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
-			if (default(T) == null && (typeof(T) == typeof(JsonValue) || typeof(T) == typeof(JsonNull)))
+			if (default(T) is null && (typeof(T) == typeof(JsonValue) || typeof(T) == typeof(JsonNull)))
 			{
-				return (T?) (object) this;
+				return defaultValue ?? (T?) (object) this;
 			}
-			return default;
+			return defaultValue;
 		}
 
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)

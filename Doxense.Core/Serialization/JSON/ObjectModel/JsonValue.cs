@@ -69,12 +69,17 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Bind this value into an instance of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
+		/// <param name="defaultValue">Default value to return if the current instance is null or missing</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>An instance of the type <typeparamref name="TValue"/> that is equivalent to the original JSON value, if there exists a valid conversion path. Otherwise, an exception will be thrown.</returns>
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target type <typeparamref name="TValue"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public virtual TValue? Bind<TValue>(ICrystalJsonTypeResolver? resolver = null) => (TValue?) Bind(typeof(TValue), resolver);
+		public virtual TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+		{
+			var res = Bind(typeof(TValue), resolver);
+			return res is not null ? (TValue?) res : defaultValue;
+		}
 
 		/// <summary>Tests if this value is null or missing</summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]

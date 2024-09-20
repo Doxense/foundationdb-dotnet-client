@@ -1693,7 +1693,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>For integers: If the value is between int.MinValue and int.MaxValue, it will be casted to <see cref="Int32"/>; otherwise, it will be casted to <see cref="Int64"/>.</remarks>
 		public override object? ToObject() => m_value.ToObject(m_kind);
 
-		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -1757,7 +1757,7 @@ namespace Doxense.Serialization.Json
 
 			#endregion
 
-			return (T?) Bind(typeof(T), resolver);
+			return (T?) Bind(typeof(T), resolver) ?? defaultValue;
 		}
 
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)

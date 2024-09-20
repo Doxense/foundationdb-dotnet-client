@@ -501,7 +501,7 @@ namespace Doxense.Serialization.Json
 			return m_value;
 		}
 
-		public override T? Bind<T>(ICrystalJsonTypeResolver? resolver = null) where T : default
+		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -537,7 +537,7 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion
 
-			return typeof(T) == typeof(string) ? (T) (object) m_value : (T?) Bind(typeof(T), resolver);
+			return typeof(T) == typeof(string) ? (T) (object) m_value : (T?) (Bind(typeof(T), resolver) ?? defaultValue);
 		}
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)

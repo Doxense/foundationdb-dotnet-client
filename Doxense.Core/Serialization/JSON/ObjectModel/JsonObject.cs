@@ -3652,10 +3652,16 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
 		}
 
-		public override TValue? Bind<TValue>(ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
 		{
 			var res = (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(TValue), this);
-			return default(TValue) == null && res == null ? JsonNull.Default<TValue>() : (TValue?) res;
+			if (res is null)
+			{
+				return default(TValue) is null && (typeof(TValue) == typeof(JsonValue) || typeof(TValue) == typeof(JsonNull))
+					? (defaultValue ?? (TValue?) (object?) JsonNull.Null)
+					: defaultValue;
+			}
+			return (TValue?) res;
 		}
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
