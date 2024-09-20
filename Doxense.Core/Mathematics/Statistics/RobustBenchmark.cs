@@ -162,6 +162,36 @@ namespace Doxense.Mathematics.Statistics
 
 		}
 
+		public static Report<long> Run(Action test, int runs, int iterations, RobustHistogram? histo = null)
+		{
+			return Run(
+				global: test,
+				setup: (_) => (long) iterations,
+				test: static (g, _, _) =>
+				{
+					g();
+					return 0;
+				},
+				cleanup: (_, _) => (long) iterations,
+				runs,
+				iterations,
+				histo
+			);
+		}
+
+		public static Report<long> Run<T>(Func<T> test, int runs, int iterations, RobustHistogram? histo = null)
+		{
+			return Run(
+				global: test,
+				setup: (_) => (long) iterations,
+				test: static (g, _, _) => g(),
+				cleanup: (_, _) => (long) iterations,
+				runs,
+				iterations,
+				histo
+			);
+		}
+
 		public static Report<long> Run(Action<int> test, int runs, int iterations, RobustHistogram? histo = null)
 		{
 			return Run(
