@@ -59,4 +59,33 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	/// <summary>Type that can serialize instances of <typeparamref name="T"/> into JSON</summary>
+	/// <typeparam name="T">Type of the values to serialize</typeparam>
+	/// <remarks>Types can serialize themselves, but this interface can also be used on "helper types" that are separate (manually written, or via source code generation)</remarks>
+	public interface IJsonSerializer<in T>
+	{
+
+		/// <summary>Writes a JSON representation of a value to the specified output</summary>
+		/// <param name="writer">Writer that will outputs the JSON in the desired format</param>
+		/// <param name="instance">Instance the will be serialized</param>
+		/// <exception cref="JsonSerializationException">If an error occured during the serialization</exception>
+		void JsonSerialize(CrystalJsonWriter writer, T? instance);
+
+	}
+
+	/// <summary>Type that can deserialize instances of <typeparamref name="T"/> from JSON</summary>
+	/// <typeparam name="T">Type of the values to deserialize</typeparam>
+	/// <remarks>Types can serialize themselves, but this interface can also be used on "helper types" that are separate (manually written, or via source code generation)</remarks>
+	public interface IJsonDeserializerFor<out T>
+	{
+
+		/// <summary>Deserializes a JSON value into an instance of type <typeparam name="T"></typeparam></summary>
+		/// <param name="value">JSON value to deserialize.</param>
+		/// <param name="resolver">Optional custom resolver</param>
+		/// <returns>Deserialized value</returns>
+		/// <exception cref="JsonBindingException">If an error occurred during the deserialization</exception>
+		T JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
+
+	}
+
 }

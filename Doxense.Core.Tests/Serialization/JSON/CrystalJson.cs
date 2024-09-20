@@ -10926,20 +10926,24 @@ namespace Doxense.Serialization.Json.Tests
 					new()
 					{
 						Name = "Foo",
+						OriginalName = "Foo",
+						EncodedName = new ("Foo"),
 						Type = typeof(string),
 						DefaultValue = null,
-						Getter = (instance) => "<" + (((DummyJsonClass)instance).Name ?? "nobody") + ">",
-						Setter = (instance, value) => { ((DummyJsonClass)instance).Name = ((value as string) ?? string.Empty).Replace("<","").Replace(">",""); },
+						Getter = (instance) => "<" + (((DummyJsonClass) instance).Name ?? "nobody") + ">",
+						Setter = (instance, value) => { ((DummyJsonClass) instance).Name = ((value as string) ?? string.Empty).Replace("<","").Replace(">",""); },
 						Binder = binder,
 						Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(string))
 					},
 					new()
 					{
 						Name = "Narf",
+						OriginalName = "Narf",
+						EncodedName = new ("Narf"),
 						Type = typeof(int),
 						DefaultValue = 42, // non-standard default value !
 						Getter = (instance) => 42 + ((DummyJsonClass)instance).Index,
-						Setter = (instance, value) => { ((DummyJsonClass)instance).Index = ((int) value!) - 42; },
+						Setter = (instance, value) => { ((DummyJsonClass) instance).Index = ((int) value!) - 42; },
 						Binder = binder,
 						Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(int))
 					}

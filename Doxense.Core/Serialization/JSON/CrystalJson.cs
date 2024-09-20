@@ -145,7 +145,49 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		private static readonly ObjectPool<FastStringWriter> WriterPool = new(() => new FastStringWriter(new StringBuilder(4096)));
+		/// <summary>Serializes a value (of any type)</summary>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="serializer">Custom serializer for this type</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		[Pure]
+		public static string Serialize<T>(T? value, IJsonSerializer<T>? serializer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (value == null)
+			{ // special case for null instances
+				return JsonTokens.Null;
+			}
+
+			FastStringWriter? fsw = null;
+			try
+			{
+				fsw = WriterPool.Allocate();
+				fsw.Reset();
+				var writer = new CrystalJsonWriter(fsw, settings, resolver);
+				if (serializer != null)
+				{
+					serializer.JsonSerialize(writer, value);
+				}
+				else
+				{
+					CrystalJsonVisitor.VisitValue<T>(value, writer);
+				}
+
+				return fsw.Buffer.ToString();
+			}
+			finally
+			{
+				if (fsw != null)
+				{
+					fsw.Reset();
+					WriterPool.Free(fsw);
+				}
+			}
+		}
+
+		private static readonly ObjectPool<FastStringWriter> WriterPool = new(() => new FastStringWriter(4096));
 
 		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>

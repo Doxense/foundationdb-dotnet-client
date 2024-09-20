@@ -522,7 +522,7 @@ namespace Doxense.Serialization.Json
 					{
 						e = tiex.InnerException ?? e;
 					}
-					var path = JsonPath.Create(member.OriginalName ?? member.Name);
+					var path = JsonPath.Create(member.OriginalName);
 					if (e is JsonBindingException jbex)
 					{
 						// we have to repeat the original reason and the original path!

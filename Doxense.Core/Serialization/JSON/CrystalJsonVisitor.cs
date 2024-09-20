@@ -904,53 +904,63 @@ namespace Doxense.Serialization.Json
 		public static void VisitValue<T>(T value, CrystalJsonWriter writer)
 		{
 			#region <JIT_HACK>
-#if !DEBUG
-			if (typeof(T) == typeof(bool)) { writer.WriteValue((bool) (object) value!); return; }
-			if (typeof(T) == typeof(char)) { writer.WriteValue((char) (object) value!); return; }
-			if (typeof(T) == typeof(int)) { writer.WriteValue((int) (object) value!); return; }
-			if (typeof(T) == typeof(long)) { writer.WriteValue((long) (object) value!); return; }
-			if (typeof(T) == typeof(uint)) { writer.WriteValue((uint) (object) value!); return; }
-			if (typeof(T) == typeof(ulong)) { writer.WriteValue((ulong) (object) value!); return; }
-			if (typeof(T) == typeof(double)) { writer.WriteValue((double) (object) value!); return; }
-			if (typeof(T) == typeof(float)) { writer.WriteValue((float) (object) value!); return; }
-			if (typeof(T) == typeof(Guid)) { writer.WriteValue((Guid) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid128)) { writer.WriteValue((Uuid128) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid96)) { writer.WriteValue((Uuid96) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid80)) { writer.WriteValue((Uuid80) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid64)) { writer.WriteValue((Uuid64) (object) value!); return; }
-			if (typeof(T) == typeof(TimeSpan)) { writer.WriteValue((TimeSpan) (object) value!); return; }
-			if (typeof(T) == typeof(DateTime)) { writer.WriteValue((DateTime) (object) value!); return; }
-			if (typeof(T) == typeof(DateTimeOffset)) { writer.WriteValue((DateTimeOffset) (object) value!); return; }
-			if (typeof(T) == typeof(DateOnly)) { writer.WriteValue((DateOnly) (object) value!); return; }
-			if (typeof(T) == typeof(TimeOnly)) { writer.WriteValue((TimeOnly) (object) value!); return; }
-			if (typeof(T) == typeof(NodaTime.Duration)) { writer.WriteValue((NodaTime.Duration) (object) value!); return; }
-			if (typeof(T) == typeof(NodaTime.Instant)) { writer.WriteValue((NodaTime.Instant) (object) value!); return; }
-
-			if (typeof(T) == typeof(bool?)) { writer.WriteValue((bool?) (object?) value); return; }
-			if (typeof(T) == typeof(char?)) { writer.WriteValue((char?) (object?) value); return; }
-			if (typeof(T) == typeof(int?)) { writer.WriteValue((int?) (object?) value); return; }
-			if (typeof(T) == typeof(long?)) { writer.WriteValue((long?) (object?) value); return; }
-			if (typeof(T) == typeof(uint?)) { writer.WriteValue((uint?) (object?) value); return; }
-			if (typeof(T) == typeof(ulong?)) { writer.WriteValue((ulong?) (object?) value); return; }
-			if (typeof(T) == typeof(double?)) { writer.WriteValue((double?) (object?) value); return; }
-			if (typeof(T) == typeof(float?)) { writer.WriteValue((float?) (object?) value); return; }
-			if (typeof(T) == typeof(Guid?)) { writer.WriteValue((Guid?) (object?) value); return; }
-			if (typeof(T) == typeof(Uuid128?)) { writer.WriteValue((Uuid128?) (object?) value); return; }
-			if (typeof(T) == typeof(Uuid96?)) { writer.WriteValue((Uuid96?) (object?) value); return; }
-			if (typeof(T) == typeof(Uuid80?)) { writer.WriteValue((Uuid80?) (object?) value); return; }
-			if (typeof(T) == typeof(Uuid64?)) { writer.WriteValue((Uuid64?) (object?) value); return; }
-			if (typeof(T) == typeof(TimeSpan?)) { writer.WriteValue((TimeSpan?) (object?) value); return; }
-			if (typeof(T) == typeof(DateTime?)) { writer.WriteValue((DateTime?) (object?) value); return; }
-			if (typeof(T) == typeof(DateTimeOffset?)) { writer.WriteValue((DateTimeOffset?) (object?) value); return; }
-			if (typeof(T) == typeof(DateOnly?)) { writer.WriteValue((DateOnly?) (object?) value); return; }
-			if (typeof(T) == typeof(TimeOnly?)) { writer.WriteValue((TimeOnly?) (object?) value); return; }
-			if (typeof(T) == typeof(NodaTime.Duration?)) { writer.WriteValue((NodaTime.Duration?) (object?) value); return; }
-			if (typeof(T) == typeof(NodaTime.Instant?)) { writer.WriteValue((NodaTime.Instant?) (object?) value); return; }
-
+#if !DEBUG || true
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(bool)) { writer.WriteValue((bool) (object) value!); return; }
+				if (typeof(T) == typeof(char)) { writer.WriteValue((char) (object) value!); return; }
+				if (typeof(T) == typeof(int)) { writer.WriteValue((int) (object) value!); return; }
+				if (typeof(T) == typeof(long)) { writer.WriteValue((long) (object) value!); return; }
+				if (typeof(T) == typeof(uint)) { writer.WriteValue((uint) (object) value!); return; }
+				if (typeof(T) == typeof(ulong)) { writer.WriteValue((ulong) (object) value!); return; }
+				if (typeof(T) == typeof(double)) { writer.WriteValue((double) (object) value!); return; }
+				if (typeof(T) == typeof(float)) { writer.WriteValue((float) (object) value!); return; }
+				if (typeof(T) == typeof(Guid)) { writer.WriteValue((Guid) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid128)) { writer.WriteValue((Uuid128) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid96)) { writer.WriteValue((Uuid96) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid80)) { writer.WriteValue((Uuid80) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid64)) { writer.WriteValue((Uuid64) (object) value!); return; }
+				if (typeof(T) == typeof(TimeSpan)) { writer.WriteValue((TimeSpan) (object) value!); return; }
+				if (typeof(T) == typeof(DateTime)) { writer.WriteValue((DateTime) (object) value!); return; }
+				if (typeof(T) == typeof(DateTimeOffset)) { writer.WriteValue((DateTimeOffset) (object) value!); return; }
+				if (typeof(T) == typeof(DateOnly)) { writer.WriteValue((DateOnly) (object) value!); return; }
+				if (typeof(T) == typeof(TimeOnly)) { writer.WriteValue((TimeOnly) (object) value!); return; }
+				if (typeof(T) == typeof(NodaTime.Duration)) { writer.WriteValue((NodaTime.Duration) (object) value!); return; }
+				if (typeof(T) == typeof(NodaTime.Instant)) { writer.WriteValue((NodaTime.Instant) (object) value!); return; }
+				if (typeof(T) == typeof(Half)) { writer.WriteValue((Half) (object) value!); return; }
 #if NET8_0_OR_GREATER
-			if (typeof(T) == typeof(Half)) { writer.WriteValue((Half) (object) value!); return; }
-			if (typeof(T) == typeof(Half?)) { writer.WriteValue((Half?) (object?) value); return; }
+				if (typeof(T) == typeof(Int128)) { writer.WriteValue((Int128) (object) value!); return; }
+				if (typeof(T) == typeof(UInt128)) { writer.WriteValue((UInt128) (object) value!); return; }
 #endif
+			}
+			else
+			{
+				if (typeof(T) == typeof(bool?)) { writer.WriteValue((bool?) (object?) value); return; }
+				if (typeof(T) == typeof(char?)) { writer.WriteValue((char?) (object?) value); return; }
+				if (typeof(T) == typeof(int?)) { writer.WriteValue((int?) (object?) value); return; }
+				if (typeof(T) == typeof(long?)) { writer.WriteValue((long?) (object?) value); return; }
+				if (typeof(T) == typeof(uint?)) { writer.WriteValue((uint?) (object?) value); return; }
+				if (typeof(T) == typeof(ulong?)) { writer.WriteValue((ulong?) (object?) value); return; }
+				if (typeof(T) == typeof(double?)) { writer.WriteValue((double?) (object?) value); return; }
+				if (typeof(T) == typeof(float?)) { writer.WriteValue((float?) (object?) value); return; }
+				if (typeof(T) == typeof(Guid?)) { writer.WriteValue((Guid?) (object?) value); return; }
+				if (typeof(T) == typeof(Uuid128?)) { writer.WriteValue((Uuid128?) (object?) value); return; }
+				if (typeof(T) == typeof(Uuid96?)) { writer.WriteValue((Uuid96?) (object?) value); return; }
+				if (typeof(T) == typeof(Uuid80?)) { writer.WriteValue((Uuid80?) (object?) value); return; }
+				if (typeof(T) == typeof(Uuid64?)) { writer.WriteValue((Uuid64?) (object?) value); return; }
+				if (typeof(T) == typeof(TimeSpan?)) { writer.WriteValue((TimeSpan?) (object?) value); return; }
+				if (typeof(T) == typeof(DateTime?)) { writer.WriteValue((DateTime?) (object?) value); return; }
+				if (typeof(T) == typeof(DateTimeOffset?)) { writer.WriteValue((DateTimeOffset?) (object?) value); return; }
+				if (typeof(T) == typeof(DateOnly?)) { writer.WriteValue((DateOnly?) (object?) value); return; }
+				if (typeof(T) == typeof(TimeOnly?)) { writer.WriteValue((TimeOnly?) (object?) value); return; }
+				if (typeof(T) == typeof(NodaTime.Duration?)) { writer.WriteValue((NodaTime.Duration?) (object?) value); return; }
+				if (typeof(T) == typeof(NodaTime.Instant?)) { writer.WriteValue((NodaTime.Instant?) (object?) value); return; }
+				if (typeof(T) == typeof(Half?)) { writer.WriteValue((Half?) (object?) value); return; }
+#if NET8_0_OR_GREATER
+				if (typeof(T) == typeof(Int128?)) { writer.WriteValue((Int128?) (object?) value!); return; }
+				if (typeof(T) == typeof(UInt128?)) { writer.WriteValue((UInt128?) (object?) value!); return; }
+#endif
+			}
 
 #endif
 			#endregion </JIT_HACK>

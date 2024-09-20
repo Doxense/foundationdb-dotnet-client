@@ -38,7 +38,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Name in the enclosing type</summary>
 		/// <remarks>Represent the original name in the c# code, while <see cref="Name"/> is the name in the JSON object</remarks>
-		public string? OriginalName { get; init; }
+		public required string OriginalName { get; init; }
 
 		/// <summary>Declared type of the member</summary>
 		public required Type Type { get; init; }
@@ -66,6 +66,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns <see langword="true"/> if a possible value for this member is the default value for this member's type (<see langword="null"/> for ref types or Nullable&lt;T&gt;, <see langword="0"/> for numbers, <see langword="false"/> for booleans, ...)</summary>
 		public bool IsDefaultValue(object? value) => this.DefaultValue?.Equals(value) ?? (value is null);
+
+		/// <summary>Cache for the various encoded versions of a property name</summary>
+		public required JsonEncodedPropertyName EncodedName { get; init; }
 
 	}
 

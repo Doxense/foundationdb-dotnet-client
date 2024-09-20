@@ -42,11 +42,64 @@ namespace Doxense.Serialization.Json
 
 		public bool IsAnonymousType { get; init; }
 
+		public bool IsSealed { get; init; }
+
+		public bool IsNullable { get; init; }
+
 		public Func<object>? Generator { get; init; }
 
 		public CrystalJsonTypeBinder? CustomBinder { get; init; }
 
 		public CrystalJsonMemberDefinition[] Members { get; init; }
+
+		public static bool IsSealedType(Type type)
+		{
+			// We considered a type to be "sealed" if it is impossible for any instance assigned to a parameter of this type to be of a different type.
+
+			// Types considered "sealed":
+			// - primitive types:
+			//   - int, bool, DateTime, ...
+			// - structs:
+			//   - public struct Foo { }
+			//   - public record struct Foo { }
+			// - sealed classes or records:
+			//   - public sealed class Foo { }
+			//   - public sealed record Foo { }
+
+			// Types considered "not sealed":
+			// - interfaces:
+			//   - IEnumerable<string>, ...
+			//   - public interface IFoo { }
+			// - abstract classes or records:
+			//   - public abstract class FooBase { }
+			//   - public abstract record FooBase { }
+			// - non-sealed clases or records:
+			//   - public class Foo { }
+			//   - public record Foo { }
+
+			if (type.IsValueType)
+			{
+				return true;
+			}
+
+			if (type.IsInterface || type.IsAbstract)
+			{
+				return false;
+			}
+
+			return type.IsSealed;
+		}
+
+		public static bool IsNullableType(Type type)
+		{
+			if (!type.IsValueType)
+			{
+				return true;
+			}
+
+			return type.IsNullableType();
+
+		}
 
 		/// <summary>Constructs a new type definition</summary>
 		/// <param name="type">Type représenté</param>
@@ -67,6 +120,8 @@ namespace Doxense.Serialization.Json
 			this.BaseType = baseType;
 			this.ClassId = classId;
 			this.IsAnonymousType = type.IsAnonymousType();
+			this.IsSealed = IsSealedType(type);
+			this.IsNullable = IsNullableType(type);
 			this.RequiresClassAttribute = (type.IsInterface || type.IsAbstract) && !this.IsAnonymousType && baseType == null;
 			this.CustomBinder = customBinder;
 			this.Generator = generator;

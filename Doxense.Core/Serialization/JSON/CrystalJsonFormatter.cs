@@ -185,8 +185,10 @@ namespace Doxense.Serialization.Json
 			return JavaScriptEncoding.EncodeSlow(new StringBuilder(), text, includeQuotes: true).ToString();
 		}
 
-		internal static void WriteFixedIntegerWithDecimalPartUnsafe(TextWriter output, long integer, long decimals, int digits, char[] buf)
+		internal static void WriteFixedIntegerWithDecimalPartUnsafe(TextWriter output, long integer, long decimals, int digits)
 		{
+			Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityInt64 + 1 + digits];
+
 			// on a un nombre décimale décomposé en deux partie: la partie entière, et N digits de la partie décimale:
 			//
 			// Le nombre X est décomposé en (INTEGER, DECIMALS, DIGITS) tel que X = INTEGER + (DECIMALS / 10^DIGITS)
@@ -242,7 +244,7 @@ namespace Doxense.Serialization.Json
 			if (neg) buf[p] = '-';
 			else ++p;
 
-			output.Write(buf, p, len - p);
+			output.Write(buf.Slice(p, len - p));
 		}
 
 		internal static string GetNaNToken(CrystalJsonSettings.FloatFormat format) =>

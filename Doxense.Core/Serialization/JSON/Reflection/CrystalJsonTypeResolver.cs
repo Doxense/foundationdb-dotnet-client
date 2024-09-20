@@ -200,6 +200,7 @@ namespace Doxense.Serialization.Json
 				{
 					Name = "Key",
 					OriginalName = "Key",
+					EncodedName = new("Key"),
 					Type = keyType,
 					DefaultValue = keyType.GetDefaultValue(),
 					ReadOnly = true,
@@ -213,6 +214,7 @@ namespace Doxense.Serialization.Json
 				{
 					Name = "Value",
 					OriginalName = "Value",
+					EncodedName = new("Value"),
 					Type = valueType,
 					DefaultValue = valueType.GetDefaultValue(),
 					ReadOnly = true,
@@ -956,6 +958,7 @@ namespace Doxense.Serialization.Json
 				{
 					Name = name,
 					OriginalName = field.Name,
+					EncodedName = new(name),
 					Type = fieldType,
 					Attributes = jprop,
 					DefaultValue = defaultValue,
@@ -1019,6 +1022,7 @@ namespace Doxense.Serialization.Json
 				{
 					Name = name,
 					OriginalName = property.Name,
+					EncodedName = new(name),
 					Type = propertyType,
 					Attributes = jprop,
 					DefaultValue = defaultValue,
@@ -1716,7 +1720,7 @@ namespace Doxense.Serialization.Json
 					nameof(JsonValueExtensions.As),
 					BindingFlags.Static | BindingFlags.Public,
 					null,
-					[ typeof(JsonValue), typeof(ICrystalJsonTypeResolver) ],
+					[ typeof(JsonValue), Type.MakeGenericMethodParameter(0), typeof(ICrystalJsonTypeResolver) ],
 					null);
 				Contract.Debug.Assert(asMethod != null, $"Could not find the {nameof(JsonValueExtensions)}.{nameof(JsonValueExtensions.As)}As<...>(...) extension method!");
 
@@ -1727,7 +1731,7 @@ namespace Doxense.Serialization.Json
 					items[i] = Expression.Call(
 						asMethod.MakeGenericMethod(args[i]),
 						Expression.MakeIndex(prmValue, arrayIndexer, [ Expression.Constant(i) ]),
-						prmResolver
+						Expression.Default(args[i]), prmResolver
 					);
 				}
 
