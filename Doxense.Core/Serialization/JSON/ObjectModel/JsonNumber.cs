@@ -1984,43 +1984,43 @@ namespace Doxense.Serialization.Json
 
 		public override string ToString() => this.Literal;
 
-		public override bool ToBoolean() => m_value.ToBoolean(m_kind);
+		public override bool ToBoolean(bool _ = false) => m_value.ToBoolean(m_kind);
 
-		public override byte ToByte() => m_value.ToByte(m_kind);
+		public override byte ToByte(byte _ = 0) => m_value.ToByte(m_kind);
 
-		public override sbyte ToSByte() => m_value.ToSByte(m_kind);
+		public override sbyte ToSByte(sbyte _ = 0) => m_value.ToSByte(m_kind);
 
-		public override short ToInt16() => m_value.ToInt16(m_kind);
+		public override short ToInt16(short _ = 0) => m_value.ToInt16(m_kind);
 
-		public override ushort ToUInt16() => m_value.ToUInt16(m_kind);
+		public override ushort ToUInt16(ushort  _ = 0) => m_value.ToUInt16(m_kind);
 
-		public override int ToInt32() => m_value.ToInt32(m_kind);
+		public override int ToInt32(int _ = 0) => m_value.ToInt32(m_kind);
 
-		public override uint ToUInt32() => m_value.ToUInt32(m_kind);
+		public override uint ToUInt32(uint _ = 0) => m_value.ToUInt32(m_kind);
 
-		public override long ToInt64() => m_value.ToInt64(m_kind);
+		public override long ToInt64(long _ = 0) => m_value.ToInt64(m_kind);
 
-		public override ulong ToUInt64() => m_value.ToUInt64(m_kind);
+		public override ulong ToUInt64(ulong _ = 0) => m_value.ToUInt64(m_kind);
 
-		public override float ToSingle() => m_value.ToSingle(m_kind);
+		public override float ToSingle(float _ = 0) => m_value.ToSingle(m_kind);
 
-		public override double ToDouble() => m_value.ToDouble(m_kind);
+		public override double ToDouble(double _ = 0) => m_value.ToDouble(m_kind);
 
-		public override Half ToHalf() => m_value.ToHalf(m_kind);
+		public override Half ToHalf(Half _ = default) => m_value.ToHalf(m_kind);
 
 #if NET8_0_OR_GREATER
 
-		public override Int128 ToInt128() => m_value.ToInt128(m_kind);
+		public override Int128 ToInt128(Int128 _ = default) => m_value.ToInt128(m_kind);
 
-		public override UInt128 ToUInt128() => m_value.ToUInt128(m_kind);
+		public override UInt128 ToUInt128(UInt128 _ = default) => m_value.ToUInt128(m_kind);
 
 #endif
 
-		public override decimal ToDecimal() => m_value.ToDecimal(m_kind);
+		public override decimal ToDecimal(decimal _ = 0) => m_value.ToDecimal(m_kind);
 
 		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTime (UTC)</summary>
 		/// <returns>DateTime (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
-		public override DateTime ToDateTime()
+		public override DateTime ToDateTime(DateTime _ = default)
 		{
 			// By convention, NaN is mapped to DateTime.MaxValue
 			double value = ToDouble();
@@ -2040,7 +2040,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTimeOffset</summary>
 		/// <returns>DateTimeOffset (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
 		/// <remarks>Since the original timezone information is lost, the result with have a time offset of <see langword="0"/>.</remarks>.
-		public override DateTimeOffset ToDateTimeOffset()
+		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset _ = default)
 		{
 			// By convention, NaN is mapped to DateTime.MaxValue
 			double value = ToDouble();
@@ -2059,14 +2059,14 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public override DateOnly ToDateOnly()
+		public override DateOnly ToDateOnly(DateOnly _ = default)
 			=> !IsNaN(this) ? new DateOnly(1970, 1, 1).AddDays(ToInt32()) : DateOnly.MaxValue;
 
 		[Pure]
-		public override TimeOnly ToTimeOnly()
+		public override TimeOnly ToTimeOnly(TimeOnly _ = default)
 			=> !IsNaN(this) ? TimeOnly.FromTimeSpan(ToTimeSpan()) : TimeOnly.MaxValue;
 
-		public override TimeSpan ToTimeSpan()
+		public override TimeSpan ToTimeSpan(TimeSpan _ = default)
 		{
 			// Les timespan correspondent au nombre de secondes écoulées
 
@@ -2109,7 +2109,7 @@ namespace Doxense.Serialization.Json
 			return Duration.FromSeconds((long) sec2).Plus(Duration.FromNanoseconds((long) ns));
 		}
 
-		public override NodaTime.Duration ToDuration()
+		public override NodaTime.Duration ToDuration(NodaTime.Duration _ = default)
 		{
 			// les Duration sont stockés en nombre de secondes écoulées
 
@@ -2127,7 +2127,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Convertit un JSON Number, correspondant au nombre de secondes écoulés depuis Unix Epoch, en Instant</summary>
 		/// <returns>Instant (UTC) égale à epoch(1970-1-1Z) + seconds(value)</returns>
-		public override NodaTime.Instant ToInstant()
+		public override NodaTime.Instant ToInstant(NodaTime.Instant _ = default)
 		{
 			// les Instants sont stockés en nombre de secondes écoulées depuis Unix Epoch
 			var secondsSinceEpoch = ToDouble();
@@ -2142,9 +2142,9 @@ namespace Doxense.Serialization.Json
 			return default(NodaTime.Instant).Plus(ConvertSecondsToDurationUnsafe(secondsSinceEpoch));
 		}
 
-		public override char ToChar() => (char) ToInt16();
+		public override char ToChar(char _ = default) => (char) ToInt16();
 
-		public override TEnum ToEnum<TEnum>()
+		public override TEnum ToEnum<TEnum>(TEnum _ = default)
 		{
 			//BUGBUG: il faudrait normalement tester si typeof(TEnum).GetEnumUnderlyingType() == int32 !!
 			int value = ToInt32();

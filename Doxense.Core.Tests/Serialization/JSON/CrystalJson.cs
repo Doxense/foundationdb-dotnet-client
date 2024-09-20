@@ -3473,14 +3473,14 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(jmissing.Bind<JsonValue>(), Is.SameAs(JsonNull.Missing));
 				Assert.That(() => jmissing.Required<JsonValue>(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(jmissing.As<JsonValue>(), Is.SameAs(JsonNull.Missing));
-				Assert.That(jmissing.As<JsonValue>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
+				Assert.That(jmissing.As<JsonValue>(null, resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
 				Assert.That(jmissing.As<JsonValue>(123), Is.EqualTo(123));
 
 				Assert.That(jmissing.Bind(typeof(JsonNull)), Is.SameAs(JsonNull.Missing));
 				Assert.That(jmissing.Bind<JsonNull>(), Is.SameAs(JsonNull.Missing));
 				Assert.That(() => jmissing.Required<JsonNull>(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(jmissing.As<JsonNull>(), Is.SameAs(JsonNull.Missing));
-				Assert.That(jmissing.As<JsonNull>(resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
+				Assert.That(jmissing.As<JsonNull>(null, resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
 			});
 
 			Assert.That(SerializeToSlice(jmissing), Is.EqualTo(Slice.FromString("null")));

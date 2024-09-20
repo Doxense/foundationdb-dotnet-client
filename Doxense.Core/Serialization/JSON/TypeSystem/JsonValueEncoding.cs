@@ -263,7 +263,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, JsonObject>.DecodeValue(JsonObject packed)
 		{
-			return packed.As<T>(resolver: this.Resolver);
+			return packed.As<T?>(default, resolver: this.Resolver);
 		}
 
 	}

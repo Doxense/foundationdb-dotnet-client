@@ -893,9 +893,9 @@ namespace Doxense.Serialization.Json
 
 		#region Boolean
 
-		public override bool ToBoolean()
+		public override bool ToBoolean(bool defaultValue = false)
 		{
-			return !string.IsNullOrEmpty(m_value) && bool.Parse(m_value);
+			return !string.IsNullOrEmpty(m_value) ? bool.Parse(m_value) : defaultValue;
 		}
 
 		public override bool? ToBooleanOrDefault(bool? defaultValue = null)
@@ -907,23 +907,17 @@ namespace Doxense.Serialization.Json
 
 		#region Byte
 
-		public override byte ToByte()
-		{
-			return string.IsNullOrEmpty(m_value) ? default(byte) : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
-		}
+		public override byte ToByte(byte defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 
-		public override byte? ToByteOrDefault(byte? defaultValue = null)
-		{
-			return string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
-		}
+		public override byte? ToByteOrDefault(byte? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 
 		#endregion
 
 		#region SByte
 
-		public override sbyte ToSByte()
+		public override sbyte ToSByte(sbyte defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(sbyte) : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override sbyte? ToSByteOrDefault(sbyte? defaultValue = null)
@@ -935,9 +929,9 @@ namespace Doxense.Serialization.Json
 
 		#region Char
 
-		public override char ToChar()
+		public override char ToChar(char defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(char) : m_value[0];
+			return string.IsNullOrEmpty(m_value) ? defaultValue : m_value[0];
 		}
 
 		public override char? ToCharOrDefault(char? defaultValue = null)
@@ -949,9 +943,9 @@ namespace Doxense.Serialization.Json
 
 		#region Int16
 
-		public override short ToInt16()
+		public override short ToInt16(short defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(short) : short.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : short.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override short? ToInt16OrDefault(short? defaultValue = null)
@@ -968,9 +962,9 @@ namespace Doxense.Serialization.Json
 
 		#region UInt16
 
-		public override ushort ToUInt16()
+		public override ushort ToUInt16(ushort defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(ushort) : ushort.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ushort.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override ushort? ToUInt16OrDefault(ushort? defaultValue = null)
@@ -987,22 +981,24 @@ namespace Doxense.Serialization.Json
 
 		#region Int32
 
-		public override int ToInt32()
+		public override int ToInt32(int defaultValue = default)
 		{
-			if (string.IsNullOrEmpty(m_value)) return 0;
-			if (m_value.Length == 1)
+			var value = m_value;
+			if (string.IsNullOrEmpty(value))
+			{
+				return defaultValue;
+			}
+
+			if (value.Length == 1)
 			{ // the most frequent case is a number between 0 and 9
-				char c = m_value[0];
+				char c = value[0];
 				if (c >= '0' & c <= '9') return c - '0';
 			}
 			//TODO: PERF: faster parsing ?
-			return int.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return int.Parse(value, NumberFormatInfo.InvariantInfo);
 		}
 
-		public override int? ToInt32OrDefault(int? defaultValue = null)
-		{
-			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt32();
-		}
+		public override int? ToInt32OrDefault(int? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToInt32();
 
 		public bool TryConvertInt32(out int value)
 		{
@@ -1021,9 +1017,9 @@ namespace Doxense.Serialization.Json
 
 		#region UInt32
 
-		public override uint ToUInt32()
+		public override uint ToUInt32(uint defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? 0U : uint.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : uint.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override uint? ToUInt32OrDefault(uint? defaultValue = null)
@@ -1040,16 +1036,22 @@ namespace Doxense.Serialization.Json
 
 		#region Int64
 
-		public override long ToInt64()
+		public override long ToInt64(long defaultValue = default)
 		{
-			if (string.IsNullOrEmpty(m_value)) return 0L;
-			if (m_value.Length == 1)
+			var value = m_value;
+			if (string.IsNullOrEmpty(value))
+			{
+				return defaultValue;
+			}
+
+			if (value.Length == 1)
 			{ // the most frequent case is a number between 0 and 9
-				char c = m_value[0];
+				char c = value[0];
 				if (c >= '0' & c <= '9') return c - '0';
 			}
+
 			//TODO: PERF: faster parsing ?
-			return long.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return long.Parse(value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override long? ToInt64OrDefault(long? defaultValue = null)
@@ -1074,9 +1076,9 @@ namespace Doxense.Serialization.Json
 
 		#region UInt64
 
-		public override ulong ToUInt64()
+		public override ulong ToUInt64(ulong defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? 0UL : ulong.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ulong.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override ulong? ToUInt64OrDefault(ulong? defaultValue = null)
@@ -1095,9 +1097,9 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
-		public override Int128 ToInt128()
+		public override Int128 ToInt128(Int128 defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default : Int128.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : Int128.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override Int128? ToInt128OrDefault(Int128? defaultValue = null)
@@ -1119,9 +1121,9 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 
 
-		public override UInt128 ToUInt128()
+		public override UInt128 ToUInt128(UInt128 defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default : UInt128.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : UInt128.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override UInt128? ToUInt128OrDefault(UInt128? defaultValue = null)
@@ -1140,9 +1142,9 @@ namespace Doxense.Serialization.Json
 
 		#region Single
 
-		public override float ToSingle()
+		public override float ToSingle(float defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? 0f : float.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : float.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override float? ToSingleOrDefault(float? defaultValue = null)
@@ -1159,9 +1161,9 @@ namespace Doxense.Serialization.Json
 
 		#region Double
 
-		public override double ToDouble()
+		public override double ToDouble(double defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? 0d : double.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : double.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override double? ToDoubleOrDefault(double? defaultValue = null)
@@ -1184,9 +1186,9 @@ namespace Doxense.Serialization.Json
 
 		#region Half
 
-		public override Half ToHalf()
+		public override Half ToHalf(Half defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override Half? ToHalfOrDefault(Half? defaultValue = null)
@@ -1209,9 +1211,9 @@ namespace Doxense.Serialization.Json
 
 		#region Decimal
 
-		public override decimal ToDecimal()
+		public override decimal ToDecimal(decimal defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? 0m : decimal.Parse(m_value, NumberFormatInfo.InvariantInfo);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : decimal.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
 		public override decimal? ToDecimalOrDefault(decimal? defaultValue = null)
@@ -1228,9 +1230,9 @@ namespace Doxense.Serialization.Json
 
 		#region Guid
 
-		public override Guid ToGuid()
+		public override Guid ToGuid(Guid defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(Guid) : Guid.Parse(m_value);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : Guid.Parse(m_value);
 		}
 
 		public override Guid? ToGuidOrDefault(Guid? defaultValue = null)
@@ -1250,19 +1252,19 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		public override Uuid128 ToUuid128() => string.IsNullOrEmpty(m_value) ? default : Uuid128.Parse(m_value);
+		public override Uuid128 ToUuid128(Uuid128 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid128.Parse(m_value);
 
 		public override Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid128.Parse(m_value);
 
-		public override Uuid96 ToUuid96() => string.IsNullOrEmpty(m_value) ? default : Uuid96.Parse(m_value);
+		public override Uuid96 ToUuid96(Uuid96 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid96.Parse(m_value);
 
 		public override Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid96.Parse(m_value);
 
-		public override Uuid80 ToUuid80() => string.IsNullOrEmpty(m_value) ? default : Uuid80.Parse(m_value);
+		public override Uuid80 ToUuid80(Uuid80 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid80.Parse(m_value);
 
 		public override Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid80.Parse(m_value);
 
-		public override Uuid64 ToUuid64() => string.IsNullOrEmpty(m_value) ? default : Uuid64.Parse(m_value);
+		public override Uuid64 ToUuid64(Uuid64 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid64.Parse(m_value);
 
 		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid64.Parse(m_value);
 
@@ -1270,9 +1272,12 @@ namespace Doxense.Serialization.Json
 
 		#region DateTime
 
-		public override DateTime ToDateTime()
+		public override DateTime ToDateTime(DateTime defaultValue = default)
 		{
-			if (string.IsNullOrEmpty(m_value)) return default;
+			if (string.IsNullOrEmpty(m_value))
+			{
+				return defaultValue;
+			}
 
 			if (CrystalJsonParser.TryParseIso8601DateTime(m_value, out var d))
 			{
@@ -1297,10 +1302,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTime();
 		}
 
-		public override DateOnly ToDateOnly()
+		public override DateOnly ToDateOnly(DateOnly defaultValue = default)
 		{
-			if (string.IsNullOrEmpty(m_value)) return default;
-			return DateOnly.FromDateTime(ToDateTime());
+			return string.IsNullOrEmpty(m_value) ? defaultValue : DateOnly.FromDateTime(ToDateTime());
 		}
 
 		public override DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null)
@@ -1308,10 +1312,9 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateOnly();
 		}
 
-		public override TimeOnly ToTimeOnly()
+		public override TimeOnly ToTimeOnly(TimeOnly defaultValue = default)
 		{
-			if (string.IsNullOrEmpty(m_value)) return default;
-			return TimeOnly.FromTimeSpan(ToTimeSpan());
+			return string.IsNullOrEmpty(m_value) ? defaultValue : TimeOnly.FromTimeSpan(ToTimeSpan());
 		}
 
 		public override TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = null)
@@ -1354,9 +1357,12 @@ namespace Doxense.Serialization.Json
 
 		#region DateTimeOffset
 
-		public override DateTimeOffset ToDateTimeOffset()
+		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset  defaultValue = default)
 		{
-			if (m_value.Length == 0) return default(DateTimeOffset);
+			if (m_value.Length == 0)
+			{
+				return defaultValue;
+			}
 
 			if (CrystalJsonParser.TryParseIso8601DateTimeOffset(m_value, out var dto))
 			{
@@ -1417,9 +1423,9 @@ namespace Doxense.Serialization.Json
 
 		#region TimeSpan
 
-		public override TimeSpan ToTimeSpan()
+		public override TimeSpan ToTimeSpan(TimeSpan defaultValue = default)
 		{
-			return string.IsNullOrEmpty(m_value) ? default(TimeSpan) : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
+			return string.IsNullOrEmpty(m_value) ? defaultValue : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
 		}
 
 		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null)
@@ -1431,93 +1437,91 @@ namespace Doxense.Serialization.Json
 
 		#region NodaTime
 
-		public override NodaTime.Instant ToInstant()
+		public override NodaTime.Instant ToInstant(NodaTime.Instant defaultValue = default)
 		{
-			if (string.IsNullOrEmpty(m_value)) return default(NodaTime.Instant);
+			if (string.IsNullOrEmpty(m_value))
+			{
+				return defaultValue;
+			}
+
 			var parseResult = CrystalJsonNodaPatterns.Instants.Parse(m_value);
 			if (parseResult.TryGetValue(default(NodaTime.Instant), out var instant))
 			{
 				return instant;
 			}
+
 			// this does not look like an "Instant", try going the DateTimeOffset route...
 			var dateTimeOffset = ToDateTimeOffset();
 			return NodaTime.Instant.FromDateTimeOffset(dateTimeOffset);
 		}
 
-		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null)
-		{
-			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInstant();
-		}
+		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToInstant();
 
-		public override NodaTime.Duration ToDuration()
+		public override NodaTime.Duration ToDuration(NodaTime.Duration defaultValue = default)
 		{
 			string value = m_value;
 			return string.IsNullOrEmpty(value)
-				? NodaTime.Duration.Zero
+				? defaultValue
 				: NodaTime.Duration.FromTicks((long) (double.Parse(value) * NodaTime.NodaConstants.TicksPerSecond));
 		}
 
-		public override NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null)
-		{
-			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDuration();
-		}
+		public override NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToDuration();
 
-		public NodaTime.LocalDateTime ToLocalDateTime()
+		public NodaTime.LocalDateTime ToLocalDateTime(NodaTime.LocalDateTime defaultValue = default)
 		{
 			string value = m_value;
-			if (string.IsNullOrEmpty(value)) return default;
-			if (value.EndsWith("Z", StringComparison.Ordinal))
+			if (string.IsNullOrEmpty(value))
+			{
+				return defaultValue;
+			}
+
+			if (value[^1] == 'Z')
 			{ // this is a UTC date, probably an Instant
 				//HACK: not pretty, but we assume the original intention was to store a local time, so we to a local time as well
 				// => this will NOT work as intended if the server that serialized the JSON value is in a different timezone, but then the app should have used Instant, or a ZonedDateTime instead!
 				return NodaTime.LocalDateTime.FromDateTime(ToInstant().ToDateTimeUtc().ToLocalTime());
 			}
+
 			return CrystalJsonNodaPatterns.LocalDateTimes.Parse(value).Value;
 		}
 
-		public NodaTime.ZonedDateTime ToZonedDateTime()
+		public NodaTime.ZonedDateTime ToZonedDateTime(NodaTime.ZonedDateTime defaultValue = default)
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.ZonedDateTimes.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.ZonedDateTimes.Parse(value).Value;
 		}
 
-		public NodaTime.OffsetDateTime ToOffsetDateTime()
+		public NodaTime.OffsetDateTime ToOffsetDateTime(NodaTime.OffsetDateTime defaultValue = default)
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.OffsetDateTimes.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.OffsetDateTimes.Parse(value).Value;
 		}
 
-		public NodaTime.DateTimeZone? ToDateTimeZone()
+		public NodaTime.DateTimeZone? ToDateTimeZone(NodaTime.DateTimeZone? defaultValue = default)
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value) ? default : (NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(value));
+			return string.IsNullOrEmpty(value) ? defaultValue : (NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(value));
 		}
 
-		public NodaTime.Offset ToOffset()
+		public NodaTime.Offset ToOffset(NodaTime.Offset defaultValue = default)
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.Offsets.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.Offsets.Parse(value).Value;
 		}
 
-		public NodaTime.LocalDate ToLocalDate()
+		public NodaTime.LocalDate ToLocalDate(NodaTime.LocalDate defaultValue = default)
 		{
 			string value = m_value;
-			return string.IsNullOrEmpty(value) ? default : CrystalJsonNodaPatterns.LocalDates.Parse(value).Value;
+			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.LocalDates.Parse(value).Value;
 		}
 
 		#endregion
 
 		#region Enums
 
-		public override TEnum ToEnum<TEnum>()
-		{
-			return string.IsNullOrEmpty(m_value) ? default : Enum.Parse<TEnum>(m_value, ignoreCase: true);
-		}
+		public override TEnum ToEnum<TEnum>(TEnum defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Enum.Parse<TEnum>(m_value, ignoreCase: true);
 
-		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null)
-		{
-			return string.IsNullOrEmpty(m_value) ? defaultValue : Enum.Parse<TEnum>(m_value, ignoreCase: true);
-		}
+		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Enum.Parse<TEnum>(m_value, ignoreCase: true);
 
 		#endregion
 

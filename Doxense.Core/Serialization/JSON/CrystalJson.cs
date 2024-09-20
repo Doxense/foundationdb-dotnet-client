@@ -1417,7 +1417,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue? LoadFrom<TValue>(TextReader source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
-			return ParseFrom(source, settings).As<TValue>(resolver);
+			return ParseFrom(source, settings).As<TValue?>(default, resolver);
 		}
 
 		/// <summary>Dé-sérialise une source de données JSON vers un type défini</summary>
@@ -1437,7 +1437,7 @@ namespace Doxense.Serialization.Json
 
 			using (var sr = new StreamReader(source, Encoding.UTF8, true))
 			{
-				return ParseFromReader(new JsonTextReader(sr), settings).As<TValue>(resolver);
+				return ParseFromReader(new JsonTextReader(sr), settings).As<TValue?>(default, resolver);
 			}
 		}
 
@@ -1452,7 +1452,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static TValue? LoadFrom<TValue>(string path, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, LoadOptions options = LoadOptions.None) where TValue : notnull
 		{
-			return LoadAndParseInternal(path, settings ?? CrystalJsonSettings.Json, options).As<TValue>(resolver);
+			return LoadAndParseInternal(path, settings ?? CrystalJsonSettings.Json, options).As<TValue?>(default, resolver);
 		}
 
 		#endregion

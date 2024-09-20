@@ -506,7 +506,7 @@ namespace Doxense.Serialization.Json
 			return this.HasOffset ? this.DateWithOffset.ToString("O") : this.Date.ToString("O");
 		}
 
-		public override bool ToBoolean()
+		public override bool ToBoolean(bool _ = false)
 		{
 			return m_value != DateTime.MinValue;
 		}
@@ -515,7 +515,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Note: will throw after 2038 instead of returning a negative number. Please use <see cref="UnixTime"/> instead, wich returns a <see langword="long"/>.</remarks>
 		[Obsolete("This method is subject to the Y2038 bug, and will throw for dates that are after 2^31 milliseconds since Unix Epoch.")]
 #pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
-		public override int ToInt32()
+		public override int ToInt32(int _ = 0)
 #pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
 		{
 			//BUGBUG: will throw in 2038 (cf Y2038 bug) !
@@ -524,7 +524,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the number of milliseconds elapsed since Unix Epoch (1970-01-01 00:00:00.000 UTC)</summary>
 		/// <remarks>Note: will throw for years after 2100, for reasons similar to the Y2038 bug</remarks>
-		public override uint ToUInt32()
+		public override uint ToUInt32(uint _ = default)
 		{
 			//BUGBUG: will not throw in 2038 since it is unsigned, but will still throw in ~2100 for similar reasons!
 			return checked((uint) this.UnixTime);
@@ -532,50 +532,50 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the number of ticks</summary>
 		/// <remarks>Similar to <see cref="DateTime.Ticks"/></remarks>
-		public override long ToInt64()
+		public override long ToInt64(long _ = default)
 		{
 			return this.UtcTicks;
 		}
 
 		/// <summary>Returns the number of ticks</summary>
 		/// <remarks>Similar to <see cref="DateTime.Ticks"/></remarks>
-		public override ulong ToUInt64()
+		public override ulong ToUInt64(ulong _ = default)
 		{
 			return (ulong) this.UtcTicks;
 		}
 
 		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
-		public override float ToSingle()
+		public override float ToSingle(float _ = default)
 		{
 			return (float) this.UnixTimeDays;
 		}
 
 		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
-		public override double ToDouble()
+		public override double ToDouble(double _ = default)
 		{
 			return this.UnixTimeDays;
 		}
 
 		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
-		public override decimal ToDecimal()
+		public override decimal ToDecimal(decimal _ = default)
 		{
 			return (decimal) this.UnixTimeDays;
 		}
 
 		/// <inheritdoc />
-		public override DateTime ToDateTime()
+		public override DateTime ToDateTime(DateTime _ = default)
 		{
 			return this.Date;
 		}
 
 		/// <inheritdoc />
-		public override DateTimeOffset ToDateTimeOffset()
+		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset _ = default)
 		{
 			return this.DateWithOffset;
 		}
 
 		/// <inheritdoc />
-		public override DateOnly ToDateOnly()
+		public override DateOnly ToDateOnly(DateOnly _ = default)
 		{
 			return DateOnly.FromDateTime(this.Date);
 		}
@@ -591,15 +591,25 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the elapsed time since January 1st 1970 UTC</summary>
-		public override TimeSpan ToTimeSpan()
+		public override TimeSpan ToTimeSpan(TimeSpan _ = default)
 		{
 			return new TimeSpan(this.UtcTicks - UNIX_EPOCH_TICKS);
 		}
 
 		/// <summary>Returns the elapsed time since January 1st 1970 UTC</summary>
-		public override NodaTime.Duration ToDuration()
+		public override NodaTime.Duration ToDuration(NodaTime.Duration _ = default)
 		{
 			return NodaTime.Duration.FromTicks(this.UtcTicks - UNIX_EPOCH_TICKS);
+		}
+
+		public override NodaTime.Instant ToInstant(NodaTime.Instant _ = default)
+		{
+			if (m_offset == NO_TIMEZONE)
+			{
+				return NodaTime.Instant.FromDateTimeUtc(this.Date.ToUniversalTime());
+			}
+
+			return NodaTime.Instant.FromDateTimeOffset(this.DateWithOffset);
 		}
 
 		public override void WriteTo(ref SliceWriter writer)

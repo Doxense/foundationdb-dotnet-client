@@ -29,6 +29,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections;
+	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
 	using System.Diagnostics;
@@ -46,7 +47,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerNonUserCode]
 	[PublicAPI]
 #if NET9_0_OR_GREATER
-	[System.Runtime.CompilerServices.CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
+	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
 #endif
 	public sealed class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>
 	{
@@ -3549,29 +3550,33 @@ namespace Doxense.Serialization.Json
 		public JsonValue[] ToArray() => this.AsSpan().ToArray();
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public TValue?[] ToArray<TValue>(ICrystalJsonTypeResolver? resolver = null)
+		public TValue?[] ToArray<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
 #if !DEBUG
-			if (typeof(TValue) == typeof(bool)
-			 || typeof(TValue) == typeof(char)
+			if (typeof(TValue) == typeof(bool)) return Unsafe.As<TValue?[]>(ToBoolArray((bool) (object) defaultValue!));
+			if (typeof(TValue) == typeof(int)) return Unsafe.As<TValue?[]>(ToInt32Array((int) (object) defaultValue!));
+			if (typeof(TValue) == typeof(long)) return Unsafe.As<TValue?[]>(ToInt64Array((long) (object) defaultValue!));
+			if (typeof(TValue) == typeof(float)) return Unsafe.As<TValue?[]>(ToSingleArray((float) (object) defaultValue!));
+			if (typeof(TValue) == typeof(double)) return Unsafe.As<TValue?[]>(ToDoubleArray((double) (object) defaultValue!));
+			if (typeof(TValue) == typeof(Guid)) return Unsafe.As<TValue?[]>(ToGuidArray((Guid) (object) defaultValue!));
+			if (typeof(TValue) == typeof(Uuid128)) return Unsafe.As<TValue?[]>(ToUuid128Array((Uuid128) (object) defaultValue!));
+			if (typeof(TValue) == typeof(DateTime)) return Unsafe.As<TValue?[]>(ToDateTimeArray((DateTime) (object) defaultValue!));
+			if (typeof(TValue) == typeof(DateTimeOffset)) return Unsafe.As<TValue?[]>(ToDateTimeOffsetArray((DateTimeOffset) (object) defaultValue!));
+			if (typeof(TValue) == typeof(NodaTime.Instant)) return Unsafe.As<TValue?[]>(ToInstantArray((NodaTime.Instant) (object) defaultValue!));
+
+			//TODO: convert more!
+
+			if (typeof(TValue) == typeof(char)
 			 || typeof(TValue) == typeof(byte)
 			 || typeof(TValue) == typeof(sbyte)
 			 || typeof(TValue) == typeof(short)
 			 || typeof(TValue) == typeof(ushort)
-			 || typeof(TValue) == typeof(int)
 			 || typeof(TValue) == typeof(uint)
-			 || typeof(TValue) == typeof(long)
 			 || typeof(TValue) == typeof(ulong)
-			 || typeof(TValue) == typeof(float)
-			 || typeof(TValue) == typeof(double)
 			 || typeof(TValue) == typeof(decimal)
-			 || typeof(TValue) == typeof(Guid)
-			 || typeof(TValue) == typeof(DateTime)
-			 || typeof(TValue) == typeof(DateTimeOffset)
 			 || typeof(TValue) == typeof(TimeSpan)
-			 || typeof(TValue) == typeof(Instant)
 			 || typeof(TValue) == typeof(Duration)
 			 // nullables!
 			 || typeof(TValue) == typeof(bool?)
@@ -3613,19 +3618,9 @@ namespace Doxense.Serialization.Json
 			}
 
 			var result = new TValue?[items.Length];
-			if (resolver == null || resolver == CrystalJson.DefaultResolver)
+			for (int i = 0; i < result.Length; i++)
 			{
-				for (int i = 0; i < result.Length; i++)
-				{
-					result[i] = items[i].As<TValue>();
-				}
-			}
-			else
-			{
-				for (int i = 0; i < result.Length; i++)
-				{
-					result[i] = items[i].As<TValue>(resolver);
-				}
+				result[i] = items[i].As(defaultValue, resolver);
 			}
 			return result;
 		}
@@ -3633,7 +3628,7 @@ namespace Doxense.Serialization.Json
 #if !DEBUG // <JIT_HACK>
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
-		private T?[] ToPrimitiveArray<T>()
+		private T?[] ToPrimitiveArray<T>(T? defaultValue = default)
 		{
 			//IMPORTANT! typeof(T) doit être un type primitif reconnu par As<T> via compile time scanning!!!
 
@@ -3642,7 +3637,7 @@ namespace Doxense.Serialization.Json
 			var buf = new T?[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].As<T>();
+				buf[i] = items[i].As(defaultValue);
 			}
 			return buf;
 		}
@@ -3656,7 +3651,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="required">If <see langword="true"/>, all items must be non-null</param>
 		/// <returns>Array of <see cref="TValue"/></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
-		public static TValue?[]? BindArray<TValue>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, bool required = false)
+		public static TValue?[]? BindArray<TValue>(JsonValue? value, TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
 			if (value is not JsonArray array)
 			{
@@ -3665,12 +3660,12 @@ namespace Doxense.Serialization.Json
 					: throw JsonBindingException.CannotBindJsonValueToArrayOfThisType(value, typeof(TValue));
 			}
 
-			return array.ToArray<TValue>(resolver);
+			return array.ToArray<TValue>(defaultValue, resolver);
 		}
 
 		/// <summary>Returns the equivalent <see langword="bool[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public bool[] ToBoolArray()
+		public bool[] ToBoolArray(bool defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3678,14 +3673,14 @@ namespace Doxense.Serialization.Json
 			var buf = new bool[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToBoolean();
+				buf[i] = items[i].ToBoolean(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="int[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public int[] ToInt32Array()
+		public int[] ToInt32Array(int defaultValue = 0)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3693,14 +3688,14 @@ namespace Doxense.Serialization.Json
 			var buf = new int[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToInt32();
+				buf[i] = items[i].ToInt32(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="uint[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public uint[] ToUInt32Array()
+		public uint[] ToUInt32Array(uint defaultValue = 0)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3708,14 +3703,14 @@ namespace Doxense.Serialization.Json
 			var buf = new uint[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToUInt32();
+				buf[i] = items[i].ToUInt32(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="long[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public long[] ToInt64Array()
+		public long[] ToInt64Array(long defaultValue = 0)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3723,14 +3718,14 @@ namespace Doxense.Serialization.Json
 			var buf = new long[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToInt64();
+				buf[i] = items[i].ToInt64(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="ulong[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public ulong[] ToUInt64Array()
+		public ulong[] ToUInt64Array(ulong defaultValue = 0)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3738,14 +3733,14 @@ namespace Doxense.Serialization.Json
 			var buf = new ulong[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToUInt64();
+				buf[i] = items[i].ToUInt64(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="float[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public float[] ToSingleArray()
+		public float[] ToSingleArray(float defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3753,14 +3748,14 @@ namespace Doxense.Serialization.Json
 			var buf = new float[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToSingle();
+				buf[i] = items[i].ToSingle(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="double[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public double[] ToDoubleArray()
+		public double[] ToDoubleArray(double defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3768,14 +3763,14 @@ namespace Doxense.Serialization.Json
 			var buf = new double[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToDouble();
+				buf[i] = items[i].ToDouble(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="Half[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public Half[] ToHalfArray()
+		public Half[] ToHalfArray(Half defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3783,14 +3778,14 @@ namespace Doxense.Serialization.Json
 			var buf = new Half[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToHalf();
+				buf[i] = items[i].ToHalf(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="decimal[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public decimal[] ToDecimalArray()
+		public decimal[] ToDecimalArray(decimal defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3798,14 +3793,14 @@ namespace Doxense.Serialization.Json
 			var buf = new decimal[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToDecimal();
+				buf[i] = items[i].ToDecimal(defaultValue);
 			}
 			return buf;
 		}
 
 		/// <summary>Returns the equivalent <see langword="Guid[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public Guid[] ToGuidArray()
+		public Guid[] ToGuidArray(Guid defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3813,14 +3808,59 @@ namespace Doxense.Serialization.Json
 			var buf = new Guid[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = items[i].ToGuid();
+				buf[i] = items[i].ToGuid(defaultValue);
 			}
 			return buf;
 		}
 
+		/// <summary>Returns the equivalent <see langword="Uuid128[]"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public Uuid128[] ToUuid128Array(Uuid128 defaultValue = default)
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var buf = new Uuid128[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = items[i].ToUuid128(defaultValue);
+			}
+			return buf;
+		}
+
+		/// <summary>Returns the equivalent <see langword="DateTime[]"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public DateTime[] ToDateTimeArray(DateTime defaultValue = default)
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var result = new DateTime[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				result[i] = items[i].ToDateTime(defaultValue);
+			}
+			return result;
+		}
+
+		/// <summary>Returns the equivalent <see langword="DateTimeOffset[]"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public DateTimeOffset[] ToDateTimeOffsetArray(DateTimeOffset defaultValue = default)
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [];
+
+			var result = new DateTimeOffset[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				result[i] = items[i].ToDateTimeOffset(defaultValue);
+			}
+			return result;
+		}
+
 		/// <summary>Returns the equivalent <see langword="Instant[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public Instant[] ToInstantArray()
+		public NodaTime.Instant[] ToInstantArray(NodaTime.Instant defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3828,14 +3868,14 @@ namespace Doxense.Serialization.Json
 			var result = new Instant[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = items[i].ToInstant();
+				result[i] = items[i].ToInstant(defaultValue);
 			}
 			return result;
 		}
 
 		/// <summary>Returns the equivalent <see langword="string[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public string?[] ToStringArray()
+		public string?[] ToStringArray(string? defaultValue = default)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3843,7 +3883,7 @@ namespace Doxense.Serialization.Json
 			var result = new string?[items.Length];
 			for (int i = 0; i < items.Length; i++)
 			{
-				result[i] = items[i].ToStringOrDefault();
+				result[i] = items[i].ToStringOrDefault(defaultValue);
 			}
 			return result;
 		}
@@ -3869,7 +3909,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns a <see cref="List{JsonValue}">List&lt;JsonValue&gt;</see> with the same elements as this array</summary>
 		/// <returns>A shallow copy of the original items</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<TValue?> ToList<TValue>(ICrystalJsonTypeResolver? resolver = null)
+		public List<TValue?> ToList<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			#region <JIT_HACK>
 
@@ -3921,23 +3961,29 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-			var items = this.AsSpan();
-			var list = new List<TValue?>(items.Length);
-			if (resolver == null || resolver == CrystalJson.DefaultResolver)
+			return ToListSlow(this, defaultValue, resolver);
+
+			static List<TValue?> ToListSlow(JsonArray self, TValue? defaultValue, ICrystalJsonTypeResolver? resolver)
 			{
+				var items = self.AsSpan();
+#if NET8_0_OR_GREATER
+				var list = new List<TValue?>();
+				CollectionsMarshal.SetCount(list, items.Length);
+				var span = CollectionsMarshal.AsSpan(list);
+				for(int i = 0; i < items.Length; i++)
+				{
+					span[i] = items[i].As(defaultValue, resolver);
+				}
+				return list;
+#else
+				var list = new List<TValue?>(items.Length);
 				foreach(var item in items)
 				{
-					list.Add(item.As<TValue>());
+					list.Add(item.As(defaultValue, resolver));
 				}
+				return list;
+#endif
 			}
-			else
-			{
-				foreach(var item in items)
-				{
-					list.Add(item.As<TValue>(resolver));
-				}
-			}
-			return list;
 		}
 
 		/// <summary>Returns a <see cref="List{T}"/> with the transformed elements of this array</summary>
@@ -4011,7 +4057,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<TValue?>>() : null;
 			if (value is not JsonArray array) throw JsonBindingException.CannotBindJsonValueToArrayOfThisType(value, typeof(TValue));
-			return array.ToList<TValue>(resolver);
+			return array.ToList<TValue?>(default, resolver);
 		}
 
 #if !DEBUG // <JIT_HACK>
@@ -4292,13 +4338,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public ImmutableList<TValue?> ToImmutableList<TValue>(ICrystalJsonTypeResolver? resolver = null)
+		public ImmutableList<TValue?> ToImmutableList<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			resolver ??= CrystalJson.DefaultResolver;
 			var list = ImmutableList.CreateBuilder<TValue?>();
 			foreach (var item in this.AsSpan())
 			{
-				list.Add(item.As<TValue>(resolver));
+				list.Add(item.As<TValue?>(default, resolver));
 			}
 			return list.ToImmutable();
 		}
@@ -5225,7 +5271,7 @@ namespace Doxense.Serialization.Json
 				}
 
 				var key = keySelector(item).Required<TKey>(resolver);
-				var value = valueSelector(item).As<TValue>(resolver)!;
+				var value = valueSelector(item).As<TValue>(default!, resolver);
 				if (overwrite)
 				{
 					target[key] = value;

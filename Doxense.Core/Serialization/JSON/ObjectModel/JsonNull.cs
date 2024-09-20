@@ -293,123 +293,123 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonConvertible...
 
-		public override bool ToBoolean() => false;
+		public override bool ToBoolean(bool defaultValue = false) => defaultValue;
 
 		public override bool? ToBooleanOrDefault(bool? defaultValue = null) => defaultValue;
 
-		public override byte ToByte() => default;
+		public override byte ToByte(byte defaultValue = default) => defaultValue;
 
 		public override byte? ToByteOrDefault(byte? defaultValue = null) => defaultValue;
 
-		public override sbyte ToSByte() => default;
+		public override sbyte ToSByte(sbyte defaultValue = default) => defaultValue;
 
 		public override sbyte? ToSByteOrDefault(sbyte? defaultValue = null) => defaultValue;
 
-		public override char ToChar() => '\0';
+		public override char ToChar(char defaultValue = default) => defaultValue;
 
 		public override char? ToCharOrDefault(char? defaultValue = null) => defaultValue;
 
-		public override short ToInt16() => default;
+		public override short ToInt16(short defaultValue = default) => defaultValue;
 
 		public override short? ToInt16OrDefault(short? defaultValue = null) => defaultValue;
 
-		public override ushort ToUInt16() => default;
+		public override ushort ToUInt16(ushort defaultValue = default) => defaultValue;
 
 		public override ushort? ToUInt16OrDefault(ushort? defaultValue = null) => defaultValue;
 
-		public override int ToInt32() => 0;
+		public override int ToInt32(int defaultValue = 0) => defaultValue;
 
 		public override int? ToInt32OrDefault(int? defaultValue = null) => defaultValue;
 
-		public override uint ToUInt32() => 0U;
+		public override uint ToUInt32(uint defaultValue = default) => defaultValue;
 
 		public override uint? ToUInt32OrDefault(uint? defaultValue = null) => defaultValue;
 
-		public override long ToInt64() => 0L;
+		public override long ToInt64(long defaultValue = default) => defaultValue;
 
 		public override long? ToInt64OrDefault(long? defaultValue = null) => defaultValue;
 
-		public override ulong ToUInt64() => 0UL;
+		public override ulong ToUInt64(ulong defaultValue = default) => defaultValue;
 
 		public override ulong? ToUInt64OrDefault(ulong? defaultValue = null) => defaultValue;
 
-		public override float ToSingle() => 0f;
+		public override float ToSingle(float defaultValue = default) => defaultValue;
 
 		public override float? ToSingleOrDefault(float? defaultValue = null) => defaultValue;
 
-		public override double ToDouble() => 0d;
+		public override double ToDouble(double defaultValue = default) => defaultValue;
 
 		public override double? ToDoubleOrDefault(double? defaultValue = null) => defaultValue;
 
-		public override Half ToHalf() => default;
+		public override Half ToHalf(Half defaultValue = default) => defaultValue;
 
 		public override Half? ToHalfOrDefault(Half? defaultValue = null) => defaultValue;
 
-		public override decimal ToDecimal() => 0m;
+		public override decimal ToDecimal(decimal defaultValue = default) => defaultValue;
 
 		public override decimal? ToDecimalOrDefault(decimal? defaultValue = null) => defaultValue;
 
 #if NET8_0_OR_GREATER
 
-		public override Int128 ToInt128() => default;
+		public override Int128 ToInt128(Int128 defaultValue = default) => defaultValue;
 
 		public override Int128? ToInt128OrDefault(Int128? defaultValue = null) => defaultValue;
 
-		public override UInt128 ToUInt128() => default;
+		public override UInt128 ToUInt128(UInt128 defaultValue = default) => defaultValue;
 
 		public override UInt128? ToUInt128OrDefault(UInt128? defaultValue = null) => defaultValue;
 
 #endif
 
-		public override Guid ToGuid() => default;
+		public override Guid ToGuid(Guid defaultValue = default) => defaultValue;
 
 		public override Guid? ToGuidOrDefault(Guid? defaultValue = null) => defaultValue;
 
-		public override Uuid128 ToUuid128() => Uuid128.Empty;
+		public override Uuid128 ToUuid128(Uuid128 defaultValue = default) => defaultValue;
 
 		public override Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => defaultValue;
 
-		public override Uuid96 ToUuid96() => Uuid96.Empty;
+		public override Uuid96 ToUuid96(Uuid96 defaultValue = default) => defaultValue;
 
 		public override Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => defaultValue;
 
-		public override Uuid80 ToUuid80() => Uuid80.Empty;
+		public override Uuid80 ToUuid80(Uuid80 defaultValue = default) => defaultValue;
 
 		public override Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => defaultValue;
 
-		public override Uuid64 ToUuid64() => Uuid64.Empty;
+		public override Uuid64 ToUuid64(Uuid64 defaultValue = default) => defaultValue;
 
 		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => defaultValue;
 
-		public override DateTime ToDateTime() => default;
+		public override DateTime ToDateTime(DateTime defaultValue = default) => defaultValue;
 
 		public override DateTime? ToDateTimeOrDefault(DateTime? defaultValue = null) => defaultValue;
 
-		public override DateTimeOffset ToDateTimeOffset() => default;
+		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset defaultValue = default) => defaultValue;
 
 		public override DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null) => defaultValue;
 
-		public override DateOnly ToDateOnly() => default;
+		public override DateOnly ToDateOnly(DateOnly defaultValue = default) => defaultValue;
 
 		public override DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null) => defaultValue;
 
-		public override TimeOnly ToTimeOnly() => default;
+		public override TimeOnly ToTimeOnly(TimeOnly defaultValue = default) => defaultValue;
 
 		public override TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = null) => defaultValue;
 
-		public override TimeSpan ToTimeSpan() => default;
+		public override TimeSpan ToTimeSpan(TimeSpan defaultValue = default) => defaultValue;
 
 		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => defaultValue;
 
-		public override TEnum ToEnum<TEnum>() => default;
+		public override TEnum ToEnum<TEnum>(TEnum defaultValue = default) => defaultValue;
 
 		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null) => defaultValue;
 
-		public override NodaTime.Instant ToInstant() => default;
+		public override NodaTime.Instant ToInstant(NodaTime.Instant defaultValue = default) => defaultValue;
 
 		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null) => defaultValue;
 
-		public override NodaTime.Duration ToDuration() => NodaTime.Duration.Zero;
+		public override NodaTime.Duration ToDuration(NodaTime.Duration defaultValue = default) => defaultValue;
 
 		public override NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null) => defaultValue;
 

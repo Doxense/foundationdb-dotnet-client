@@ -201,54 +201,54 @@ namespace Doxense.Serialization.Json
 
 		public override string ToString() => m_value ? JsonTokens.True : JsonTokens.False;
 
-		public override bool ToBoolean() => m_value;
+		public override bool ToBoolean(bool _ = false) => m_value;
 
-		public override byte ToByte() => m_value ? (byte) 1 : default(byte);
+		public override byte ToByte(byte _ = 0) => m_value ? (byte) 1 : default(byte);
 
-		public override sbyte ToSByte() => m_value ? (sbyte)1 : default(sbyte);
+		public override sbyte ToSByte(sbyte _ = 0) => m_value ? (sbyte)1 : default(sbyte);
 
-		public override char ToChar() => m_value ? 'Y' : 'N';
+		public override char ToChar(char _ = '\0') => m_value ? 'Y' : 'N';
 
-		public override short ToInt16() => m_value ? (short) 1 : default(short);
+		public override short ToInt16(short _ = 0) => m_value ? (short) 1 : default(short);
 
-		public override ushort ToUInt16() => m_value ? (ushort) 1 : default(ushort);
+		public override ushort ToUInt16(ushort _ = 0) => m_value ? (ushort) 1 : default(ushort);
 
-		public override int ToInt32() => m_value ? 1 : 0;
+		public override int ToInt32(int _ = 0) => m_value ? 1 : 0;
 
-		public override uint ToUInt32() => m_value ? 1U : 0U;
+		public override uint ToUInt32(uint _ = 0) => m_value ? 1U : 0U;
 
-		public override long ToInt64() => m_value ? 1L : 0L;
+		public override long ToInt64(long _ = 0) => m_value ? 1L : 0L;
 
-		public override ulong ToUInt64() => m_value ? 1UL : 0UL;
+		public override ulong ToUInt64(ulong _ = 0) => m_value ? 1UL : 0UL;
 
 #if NET8_0_OR_GREATER
 
-		public override Int128 ToInt128() => m_value ? Int128.One : Int128.Zero;
+		public override Int128 ToInt128(Int128 _ = default) => m_value ? Int128.One : Int128.Zero;
 
-		public override UInt128 ToUInt128() => m_value ? UInt128.One : UInt128.Zero;
+		public override UInt128 ToUInt128(UInt128 _ = default) => m_value ? UInt128.One : UInt128.Zero;
 
 #endif
 
-		public override float ToSingle() => m_value ? 1f : 0f;
+		public override float ToSingle(float _ = default) => m_value ? 1f : 0f;
 
-		public override double ToDouble() => m_value ? 1d : 0d;
+		public override double ToDouble(double _ = default) => m_value ? 1d : 0d;
 
 
 #if NET8_0_OR_GREATER
-		public override Half ToHalf() => m_value ? Half.One : Half.Zero;
+		public override Half ToHalf(Half _ = default) => m_value ? Half.One : Half.Zero;
 #else
 		private static readonly Half HalfZero = (Half) 0;
 		private static readonly Half HalfOne = (Half) 1;
-		public override Half ToHalf() => m_value ? HalfOne : HalfZero;
+		public override Half ToHalf(Half _ = default) => m_value ? HalfOne : HalfZero;
 #endif
 
-		public override decimal ToDecimal() => m_value ? 1m : 0m;
+		public override decimal ToDecimal(decimal _ = default) => m_value ? 1m : 0m;
 
 		private static readonly Guid AllF = new(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
 
-		public override Guid ToGuid() => m_value ? AllF : Guid.Empty;
+		public override Guid ToGuid(Guid _ = default) => m_value ? AllF : Guid.Empty;
 
-		public override Uuid64 ToUuid64() => m_value ? new Uuid64(-1) : default(Uuid64);
+		public override Uuid64 ToUuid64(Uuid64 _ = default) => m_value ? new Uuid64(-1) : default(Uuid64);
 
 		#endregion
 
