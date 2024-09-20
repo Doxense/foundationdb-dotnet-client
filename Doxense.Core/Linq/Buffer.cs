@@ -150,13 +150,9 @@ namespace Doxense.Linq
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddRange(IEnumerable<T> items)
 		{
-			if (items is T[] array)
+			if (TryGetSpan(items, out var span))
 			{
-				AddRange(new ReadOnlySpan<T>(array));
-			}
-			if (items is List<T> list)
-			{
-				AddRange(CollectionsMarshal.AsSpan(list));
+				AddRange(span);
 			}
 			else if (items.TryGetNonEnumeratedCount(out int count))
 			{
@@ -1111,6 +1107,23 @@ namespace Doxense.Linq
 			return this.Chunks == null
 				? this.Current[this.Index - 1]
 				: this.Chunks[^1].Span[^1];
+		}
+
+		public static bool TryGetSpan([NoEnumeration] IEnumerable<T> items, out ReadOnlySpan<T> span)
+		{
+			if (items is T[] arr)
+			{
+				span = new ReadOnlySpan<T>(arr);
+				return true;
+			}
+			if (items is List<T> list)
+			{
+				span = CollectionsMarshal.AsSpan(list);
+				return true;
+			}
+
+			span = default;
+			return false;
 		}
 
 		#endregion

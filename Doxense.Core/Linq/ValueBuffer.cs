@@ -140,14 +140,9 @@ namespace Doxense.Linq
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddRange(IEnumerable<T> items)
 		{
-			if (items is T[] array)
+			if (Buffer<T>.TryGetSpan(items, out var span))
 			{
-				AddRange(new ReadOnlySpan<T>(array));
-			}
-
-			if (items is List<T> list)
-			{
-				AddRange(CollectionsMarshal.AsSpan(list));
+				AddRange(span);
 			}
 			else if (items.TryGetNonEnumeratedCount(out int count))
 			{
