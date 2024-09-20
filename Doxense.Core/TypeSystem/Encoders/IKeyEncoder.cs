@@ -83,7 +83,7 @@ namespace Doxense.Serialization.Encoders
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static NotSupportedException ErrorKeyTypeNotSupported(Type type)
 		{
-			return new NotSupportedException($"This custom encoding is intended for type {typeof(TKey).GetFriendlyName} and cannot process keys of type {type.GetFriendlyName()}.");
+			return new NotSupportedException($"This custom encoding is intended for type {typeof(TKey).GetFriendlyName()} and cannot process keys of type {type.GetFriendlyName()}.");
 		}
 
 		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
