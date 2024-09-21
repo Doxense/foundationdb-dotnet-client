@@ -26,16 +26,11 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Buffers.Binary;
 	using System.Collections.Concurrent;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
@@ -675,6 +670,15 @@ namespace FoundationDB.Client
 
 			return this;
 		}
+
+		#endregion
+
+		#region Provider Options...
+
+		//TODO: we don't currently have the provider options, and we could also have been created outside of a provider?
+		//TODO: maybe pass in the source provider to the ctor?
+
+		FdbDatabaseProviderOptions IFdbDatabaseProvider.ProviderOptions => throw new NotSupportedException();
 
 		#endregion
 

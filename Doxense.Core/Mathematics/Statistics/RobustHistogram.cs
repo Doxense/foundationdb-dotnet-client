@@ -41,7 +41,7 @@ namespace Doxense.Mathematics.Statistics
 			Unspecified = 0,
 			/// <summary>Measuring a duration, or amount of time</summary>
 			Time = 1,
-			/// <summary>Size (in bytes)</summary>
+			/// <summary>Size (in bytes, powers of 10, 1GB = 10^9 bytes)</summary>
 			Size = 2,
 			/// <summary>Ratio (0..1)</summary>
 			Ratio = 3,
@@ -67,31 +67,32 @@ namespace Doxense.Mathematics.Statistics
 		public const string HorizontalScale = "0.01     0.1             1        10              100             1k              10k             100k            1M              10M             100M            1G              10G             100G            1T              10T             100T            ";
 		public const string HorizontalShade = "---------================---------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤";
 
-		private const int NumBuckets = 193;
+		private const int NumBuckets = 209;
 		public const double MinValue = 0;
 		public const double MaxValue = 1e200;
 		private static readonly double[] BucketLimits =
 		[
-			/*   0 */ 0.001, 0.002, 0.0025, 0.005, 0.01, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.06, 0.07, 0.08, 0.09,
-			/*  16 */ 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.60, 0.70, 0.80, 0.90,
-			/*  32 */ 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9,
-			/*  48 */ 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90,
-			/*  64 */ 100, 120, 140, 160, 180, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900,
-			/*  80 */ 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000,
-			/*  96 */ 10000, 12000, 14000, 16000, 18000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 60000, 70000, 80000, 90000,
-			/* 112 */ 100000, 120000, 140000, 160000, 180000, 200000, 250000, 300000, 350000, 400000, 450000, 500000, 600000, 700000, 800000, 900000,
-			/* 128 */ 1000000, 1200000, 1400000, 1600000, 1800000, 2000000, 2500000, 3000000, 3500000, 4000000, 4500000, 5000000, 6000000, 7000000, 8000000, 9000000,
-			/* 144 */ 10000000, 12000000, 14000000, 16000000, 18000000, 20000000, 25000000, 30000000, 35000000, 40000000, 45000000, 50000000, 60000000, 70000000, 80000000, 90000000,
-			/* 160 */ 100000000, 120000000, 140000000, 160000000, 180000000, 200000000, 250000000, 300000000, 350000000, 400000000, 450000000, 500000000, 600000000, 700000000, 800000000, 900000000,
-			/* 176 */ 1000000000, 1200000000, 1400000000, 1600000000, 1800000000, 2000000000, 2500000000, 3000000000, 3500000000, 4000000000, 4500000000, 5000000000, 6000000000, 7000000000, 8000000000, 9000000000,
-			/* 192 */ 1e200
+			/*   [0] */ 0.001, 0.0012, 0.0014, 0.0016, 0.0018, 0.002, 0.0025, 0.003, 0.0035, 0.0040, 0.0045, 0.005, 0.006, 0.007, 0.008, 0.009,
+			/*  [16] */ 0.01, 0.012, 0.014, 0.016, 0.018, 0.02, 0.025, 0.03, 0.035, 0.040, 0.045, 0.05, 0.06, 0.07, 0.08, 0.09,
+			/*  [32] */ 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.60, 0.70, 0.80, 0.90,
+			/*  [48] */ 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9,
+			/*  [64] */ 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90,
+			/*  [80] */ 100, 120, 140, 160, 180, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900,
+			/*  [96] */ 1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_500, 3_000, 3_500, 4_000, 4_500, 5_000, 6_000, 7_000, 8_000, 9_000,
+			/* [112] */ 10_000, 12_000, 14_000, 16_000, 18_000, 20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000, 60_000, 70_000, 80_000, 90_000,
+			/* [128] */ 100_000, 120_000, 140_000, 160_000, 180_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000, 600_000, 700_000, 800_000, 900_000,
+			/* [144] */ 1_000_000, 1_200_000, 1_400_000, 1_600_000, 1_800_000, 2_000_000, 2_500_000, 3_000_000, 3_500_000, 4_000_000, 4_500_000, 5_000_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000,
+			/* [160] */ 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000, 25_000_000, 30_000_000, 35_000_000, 40_000_000, 45_000_000, 50_000_000, 60_000_000, 70_000_000, 80_000_000, 90_000_000,
+			/* [176] */ 100_000_000, 120_000_000, 140_000_000, 160_000_000, 180_000_000, 200_000_000, 250_000_000, 300_000_000, 350_000_000, 400_000_000, 450_000_000, 500_000_000, 600_000_000, 700_000_000, 800_000_000, 900_000_000,
+			/* [192] */ 1_000_000_000, 1_200_000_000, 1_400_000_000, 1_600_000_000, 1_800_000_000, 2_000_000_000, 2_500_000_000, 3_000_000_000, 3_500_000_000, 4_000_000_000, 4_500_000_000, 5_000_000_000, 6_000_000_000, 7_000_000_000, 8_000_000_000, 9_000_000_000,
+			/* [208] */ 1e200
 		];
 
-		private const int INDEX_ONE = 32;
-		private const int INDEX_HUNDRED = 64;
-		private const int INDEX_THOUSAND = 80;
-		private const int INDEX_MILLION = 128;
-		private const int INDEX_BILLION = 176;
+		private const int INDEX_ONE = 48;
+		private const int INDEX_HUNDRED = 80;
+		private const int INDEX_TEN_THOUSAND = 112;
+		private const int INDEX_MILLION = 144;
+		private const int INDEX_BILLION = 192;
 		private static readonly double SUM_RATIO = (1d / BucketLimits[0]);
 		private static readonly double SUM_SQUARES_RATIO = SUM_RATIO * SUM_RATIO;
 
@@ -173,9 +174,9 @@ namespace Doxense.Mathematics.Statistics
 
 				// size is normalized into bytes
 				case TimeScale.Bytes: return 1.0;
-				case TimeScale.KiloBytes: return 1024;
-				case TimeScale.MegaBytes: return 1024 * 1024;
-				case TimeScale.GigaBytes: return 1024 * 1024 * 1024;
+				case TimeScale.KiloBytes: return 1_024;
+				case TimeScale.MegaBytes: return 1_024 * 1_024;
+				case TimeScale.GigaBytes: return 1_024 * 1_024 * 1_024;
 
 				// ratio is normalized into 100%
 				case TimeScale.Ratio: return 100.0;
@@ -198,72 +199,54 @@ namespace Doxense.Mathematics.Statistics
 				case TimeScale.MegaBytes: return "MiB";
 				case TimeScale.GigaBytes: return "GiB";
 				case TimeScale.Ratio: return "%";
-				default: return String.Empty;
+				default: return "";
 			}
 		}
 
 		[Pure]
 		private string Friendly(double value, double xs)
 		{
-
 			//notes:
+			// - the methods tries to always return a string of 8 or less (though it is possible to return more for extreme values)
 			// - time is normalized into "ticks" which are 1/10,000,000th of a second
 			// - size is normalized into "bytes"
+			
 
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			if (value == 0.0) return "0";
 
-			if (this.Dimension == DimensionType.Time)
+			switch (this.Dimension)
 			{
-				value = value * xs;
-				if (value < 0.000001 /* 1µs */)
+				case DimensionType.Time:
 				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1}ns", value * 1_000_000_000);
+					value *= xs;
+					return value switch
+					{
+						< 0.000001 => string.Create(CultureInfo.InvariantCulture, $"{value * 1E9:N1} ns"), // 100.0 - 999.9 ns
+						< 0.001    => string.Format(CultureInfo.InvariantCulture, "{0:N1} µs", value * 1_000_000), // 100.0 - 999.9 µs
+						< 1        => string.Format(CultureInfo.InvariantCulture, "{0:N1} ms", value * 1_000), // 100.0 - 999.9 ms
+						< 10       => string.Format(CultureInfo.InvariantCulture, "{0:N2} sec", value), // 1.00 - 9.99 sec
+						< 60       => string.Format(CultureInfo.InvariantCulture, "{0:N1} sec", value), // 10.0 - 59.9 sec
+						_          => string.Format(CultureInfo.InvariantCulture, "{0:N0} sec", value) // 60 sec - 9999 sec
+					};
 				}
-				if (value < 0.001 /* 1ms */)
+				case DimensionType.Size:
 				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1}µs", value * 1_000_000);
+					value *= xs;
+					return value switch
+					{
+						< 1_000         => string.Format(CultureInfo.InvariantCulture, "{0:N0} B", value), // 0 B - 999 B
+						< 1_000_000     => string.Format(CultureInfo.InvariantCulture, "{0:N1} KB", value / 1_000), // 1.0 KB - 999.9 KB
+						< 1_000_000_000 => string.Format(CultureInfo.InvariantCulture, "{0:N1} MB", value / 1_000_000), // 1.0 MB - 999.9 MB
+						_               => string.Format(CultureInfo.InvariantCulture, "{0:N1} GB", value / 1_000_000_000), // 1.0 GB - 999.9 GB
+					};
 				}
-				if (value < 1 /* 100ms*/)
+				case DimensionType.Ratio:
 				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1}ms", value * 1_000);
+					// normalized into %
+					value = value * xs;
+					return string.Format(CultureInfo.InvariantCulture, "{0:N1} %", value); // 0.0 % - 100.0 %
 				}
-				if (value < 10 /* sec */)
-				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N2}s", value);
-				}
-				if (value < 60 /* 1 minute */)
-				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1}s", value);
-				}
-				return string.Format(CultureInfo.InvariantCulture, "{0:N0}s", value);
-			}
-
-			if (this.Dimension == DimensionType.Size)
-			{
-				value = value * xs;
-				if (value < 1000)
-				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N0} B", value);
-				}
-				if (value < 1000_000)
-				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1} KB", value / 1000);
-				}
-
-				if (value < 1000_000_000)
-				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1} MB", value / 1000_000);
-				}
-
-				return string.Format(CultureInfo.InvariantCulture, "{0:N1} GB", value / 1000_000_000);
-			}
-
-			if (this.Dimension == DimensionType.Ratio)
-			{
-				// normalized into %
-				value = value * xs;
-				return string.Format(CultureInfo.InvariantCulture, "{0:N1} %", value);
 			}
 
 			// "unspecified"
@@ -272,11 +255,11 @@ namespace Doxense.Mathematics.Statistics
 			{
 				if (value < 0.000001)
 				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1}n", value * 1000000000);
+					return string.Format(CultureInfo.InvariantCulture, "{0:N1}n", value * 1_000_000_000);
 				}
 				if (value < 0.001)
 				{
-					return string.Format(CultureInfo.InvariantCulture, "{0:N1}µ", value * 1000000);
+					return string.Format(CultureInfo.InvariantCulture, "{0:N1}µ", value * 1_000_000);
 				}
 				if (value < 0.01)
 				{
@@ -292,15 +275,15 @@ namespace Doxense.Mathematics.Statistics
 			{
 				return string.Format(CultureInfo.InvariantCulture, "{0:N1}", value);
 			}
-			if (value < 1000)
+			if (value < 1_000)
 			{
 				return string.Format(CultureInfo.InvariantCulture, "{0:N0}", value);
 			}
-			if (value < 1000 * 1000)
+			if (value < 1_000_000)
 			{
-				return string.Format(CultureInfo.InvariantCulture, "{0:N1} K", value / 1000);
+				return string.Format(CultureInfo.InvariantCulture, "{0:N1} K", value / 1_000);
 			}
-			return string.Format(CultureInfo.InvariantCulture, "{0:N1} M", value / 1000000);
+			return string.Format(CultureInfo.InvariantCulture, "{0:N1} M", value / 1_000_000);
 		}
 
 		[Pure]
@@ -317,7 +300,7 @@ namespace Doxense.Mathematics.Statistics
 			this.Count = 0;
 			this.InternalSum = 0;
 			this.InternalSumSquares = 0;
-			Array.Clear(this.Buckets, 0, this.Buckets.Length);
+			this.Buckets.AsSpan().Clear();
 		}
 
 		public void Merge(RobustHistogram other)
@@ -327,9 +310,11 @@ namespace Doxense.Mathematics.Statistics
 			this.Count += other.Count;
 			this.InternalSum += other.InternalSum;
 			this.InternalSumSquares += other.InternalSumSquares;
-			for (int b = 0; b < NumBuckets; b++)
+			var buckets = this.Buckets.AsSpan(0, NumBuckets);
+			var otherBuckets = other.Buckets.AsSpan(0, NumBuckets);
+			for (int i = 0; i < buckets.Length; i++)
 			{
-				this.Buckets[b] += other.Buckets[b];
+				buckets[i] += otherBuckets[i];
 			}
 		}
 
@@ -338,37 +323,50 @@ namespace Doxense.Mathematics.Statistics
 			// We want to find, for each value 'x', the bucket 'B' that verfies: BucketLimits[B - 1] <= x < BucketLimits[B]
 			// Note: If value > MaxValue, we assume that we are still in the last bucket, which may break some measurements
 
-			// This method if performance sensitive, beccause it will usually be called by benchmarks or when profiling the hot path of an algorithm.
+			// This method is performance sensitive, because it will usually be called by benchmarks or when profiling the hot path of an algorithm.
 			// => we will first compute in which "quadrant" the value is located, and then finish by performing a binary search
 			// => we assume that the most common values will be small numbers, and that large numbers are uncommon.
 
-			int p;
+			int begin, end;
 			if (value < 1)
 			{ // 0 <= x < 1
-				p = BinarySearch(BucketLimits, 0, INDEX_ONE, value);
+				begin = 0;
+				end = INDEX_ONE;
 			}
 			else if (value < 100)
 			{ // 1 <= x < 100
-				p = BinarySearch(BucketLimits, INDEX_ONE, INDEX_HUNDRED - INDEX_ONE, value);
+				begin = INDEX_ONE;
+				end = INDEX_HUNDRED;
 			}
-			else if (value < 1000)
+			else if (value < 10_000)
 			{ // 100 <= x < 1K
-				p = BinarySearch(BucketLimits, INDEX_HUNDRED, INDEX_THOUSAND - INDEX_HUNDRED, value);
+				begin = INDEX_HUNDRED;
+				end = INDEX_TEN_THOUSAND;
 			}
-			else if (value < 1000 * 1000)
+			else if (value < 1_000_000)
 			{ // 1K <= x < 1M
-				p = BinarySearch(BucketLimits, INDEX_THOUSAND, INDEX_MILLION - INDEX_THOUSAND, value);
+				begin = INDEX_TEN_THOUSAND;
+				end = INDEX_MILLION;
 			}
-			else if (value < 1000 * 1000 * 1000)
+			else if (value < 1_000_000_000)
 			{ // 1M <= x < 1G
-				p = BinarySearch(BucketLimits, INDEX_MILLION, INDEX_BILLION - INDEX_MILLION, value);
+				begin = INDEX_MILLION;
+				end = INDEX_BILLION;
+			}
+			else if (value < MaxValue)
+			{ // 1G <= x < MAX
+				begin = INDEX_BILLION;
+				end = NumBuckets;
 			}
 			else
-			{ // x >= 1G
-				if (value >= MaxValue) return NumBuckets - 1;
-				p = BinarySearch(BucketLimits, INDEX_BILLION, NumBuckets - INDEX_BILLION, value);
+			{ // over max value
+				return NumBuckets - 1;
 			}
-			return p < 0 ? ~p : p + 1;
+
+			// found the bucket in this range
+			int p = BucketLimits.AsSpan(begin, end - begin).BinarySearch(value);
+
+			return begin + (p < 0 ? (~p) : p + 1);
 		}
 
 		private static unsafe int BinarySearch(double[] array, int index, int length, double value)
@@ -439,13 +437,12 @@ namespace Doxense.Mathematics.Statistics
 		/// <remarks>The unit if the value should match the unit that was specified when the histogram was created</remarks>
 		public void Add(double value)
 		{
-			int bucketIndex = GetBucketIndex(value);
-			++this.Buckets[bucketIndex];
-			if (this.Min > value) this.Min = value;
-			if (this.Max < value) this.Max = value;
+			++this.Buckets[GetBucketIndex(value)];
 			++this.Count;
 			this.InternalSum += (value * SUM_RATIO);
 			this.InternalSumSquares += (value * value * SUM_SQUARES_RATIO);
+			if (this.Min > value) this.Min = value;
+			if (this.Max < value) this.Max = value;
 		}
 
 		/// <summary>Add a new duration measurement</summary>
@@ -502,10 +499,10 @@ namespace Doxense.Mathematics.Statistics
 		}
 
 		/// <summary>Raw sum of all samples</summary>
-		private double InternalSum { get; set; }
+		private double InternalSum;// { get; set; }
 
 		/// <summary>Raw sum of the squares of all samples</summary>
-		private double InternalSumSquares { get; set; }
+		private double InternalSumSquares;// { get; set; }
 
 		/// <summary>Array that contains the number of samples that where measured for each bucket</summary>
 		/// <remarks>The entry <c>Buckets[B]</c> contains the number of samples whose value <c>x</c> is bounded by <c>Buckets[B - 1] &lt;= x &lt; Buckets[B]</c></remarks>
@@ -574,6 +571,12 @@ namespace Doxense.Mathematics.Statistics
 		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
 		public double ToNanoseconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E9, precision, MidpointRounding.AwayFromZero);
 
+		/// <summary>Convert a number of nanoseconds (ns) into the equivalent measured value</summary>
+		/// <param name="value">Number of seconds to convert</param>
+		/// <returns><paramref name="value"/> converted from nanoseconds in the corresponding mesaured value</returns>
+		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		public double FromNanoseconds(double value) => value / (GetScaleFactor(this.Scale) * 1E9);
+
 		#endregion
 
 		#region Bytes...
@@ -611,7 +614,7 @@ namespace Doxense.Mathematics.Statistics
 		/// <returns><paramref name="value"/> converted into kibibytes</returns>
 		/// <remarks>If you want kilobytes (1,000 bytes), please call <see cref="ToKiloBytes(double)"/> instead.</remarks>
 		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
-		public double ToKibiBytes(double value) => value * GetScaleFactor(this.Scale) / 1024;
+		public double ToKibiBytes(double value) => value * GetScaleFactor(this.Scale) / 1_024;
 
 		/// <summary>Convert a measured value into kibibytes (2^10 or 1024 bytes) with a given precision</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
@@ -619,7 +622,7 @@ namespace Doxense.Mathematics.Statistics
 		/// <returns><paramref name="value"/> converted into kibibytes and rounded to the specified <paramref name="precision"/></returns>
 		/// <remarks>If you want kilobytes (1,000 bytes), please call <see cref="ToKiloBytes(double, int)"/> instead.</remarks>
 		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
-		public double ToKibiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1024, precision, MidpointRounding.AwayFromZero);
+		public double ToKibiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1_024, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into megabytes (10^6 or 1,000,000 bytes)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
@@ -685,7 +688,7 @@ namespace Doxense.Mathematics.Statistics
 
 		#endregion
 
-		/// <summary>Compte the value of the given percentile <paramref name="p"/> (0..100%)</summary>
+		/// <summary>Computes the value of the given percentile <paramref name="p"/> (0..100%)</summary>
 		/// <param name="p">Value of the percentile, expressed in % from 0 to 100 (ex: 50 is equivalent to the median)</param>
 		/// <returns>Corresponding percentile value</returns>
 		[MustUseReturnValue, Pure]
@@ -894,12 +897,12 @@ namespace Doxense.Mathematics.Statistics
 		/// </code>
 		/// </returns>
 		[MustUseReturnValue, Pure]
-		public string GetPercentile(double start = 1.0d, double end = MaxValue)
+		public string GetPercentile(double begin = 1.0d, double end = MaxValue)
 		{
-			int offset = GetBucketIndex(start);
+			int offset = GetBucketIndex(begin);
 			int len = Math.Max(GetBucketIndex(end) - offset, 0);
 
-			var percentiles = new double[101];
+			Span<double> percentiles = new double[101];
 			percentiles[0] = 0;
 			for (int i = 1; i <= 100; i++)
 			{
@@ -912,7 +915,7 @@ namespace Doxense.Mathematics.Statistics
 				double p = BucketLimits[i + offset];
 				if (p >= percentiles[1] && p <= percentiles[99])
 				{
-					int idx = Array.BinarySearch(percentiles, p);
+					int idx = percentiles.BinarySearch(p);
 					if (idx < 0) idx = ~idx;
 					cs[i] = idx < 5  | idx > 95 ? '\u00B7' // '.'
 						  : idx < 25 | idx > 75 ? '\u2014' // '-'
@@ -943,13 +946,13 @@ namespace Doxense.Mathematics.Statistics
 		[MustUseReturnValue, Pure]
 		public static double GetMinThreshold(double value)
 		{
-			return Math.Pow(1000, Math.Floor(Math.Log10(value) / 3));
+			return Math.Pow(1_000, Math.Floor(Math.Log10(value) / 3));
 		}
 
 		[MustUseReturnValue, Pure]
 		public static double GetMaxThreshold(double value)
 		{
-			return Math.Pow(1000, Math.Ceiling(Math.Log10(value) / 3));
+			return Math.Pow(1_000, Math.Ceiling(Math.Log10(value) / 3));
 		}
 
 		public double LowThreshold
@@ -999,7 +1002,7 @@ namespace Doxense.Mathematics.Statistics
 		[MustUseReturnValue, Pure]
 		public string GetReport(bool detailed)
 		{
-			var r = new StringBuilder(1024);
+			var r = new StringBuilder(1_024);
 
 			var unit = GetScaleUnit(this.Scale);
 			var xs = GetScaleFactor(this.Scale);

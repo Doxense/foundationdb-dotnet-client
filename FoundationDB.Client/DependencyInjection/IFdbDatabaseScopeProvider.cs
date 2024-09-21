@@ -26,11 +26,7 @@
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
-	using System;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[PublicAPI]
 	public interface IFdbDatabaseScopeProvider : IDisposable

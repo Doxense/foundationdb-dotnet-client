@@ -93,21 +93,21 @@ namespace Doxense.Serialization.Json
 
 				if (kvp.Value.Type != val.Type)
 				{ // type has changed!
-					diff[kvp.Key] = JsonObject.Create("_replace", kvp.Value, "_by", val);
+					diff[kvp.Key] = JsonObject.Create(("_replace", kvp.Value), ("_by", val));
 				}
 				else if (val is JsonObject valObj)
 				{
-					var obj = DiffMap((JsonObject)kvp.Value, valObj, comparer);
+					var obj = DiffMap((JsonObject) kvp.Value, valObj, comparer);
 					if (obj != null) diff[kvp.Key] = obj;
 				}
 				else if (val is JsonArray valArr)
 				{
-					var arr = DiffArray((JsonArray)kvp.Value, valArr, comparer);
+					var arr = DiffArray((JsonArray) kvp.Value, valArr, comparer);
 					if (arr != null) diff[kvp.Key] = arr;
 				}
 				else if (!comparer.Equals(kvp.Value, val))
 				{ // changed in right
-					diff[kvp.Key] = JsonObject.Create("_update", kvp.Value, "_by", val);
+					diff[kvp.Key] = JsonObject.Create(("_update", kvp.Value), ("_by", val));
 				}
 			}
 
@@ -156,7 +156,7 @@ namespace Doxense.Serialization.Json
 					}
 					else
 					{ // at least one item was added/changed in the array...
-						return JsonObject.Create("_truncate", common, "_append", tail);
+						return JsonObject.Create(("_truncate", common), ("_append", tail));
 					}
 				}
 				else
@@ -175,7 +175,7 @@ namespace Doxense.Serialization.Json
 					else
 					{ // items were removed and less were added?
 						var tail = right.GetRange(common);
-						return JsonObject.Create("_truncate", common, "_append", tail);
+						return JsonObject.Create(("_truncate", common), ("_append", tail));
 					}
 				}
 				else

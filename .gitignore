@@ -35,6 +35,7 @@ packages/
 
 fdb_c.dll
 
+[Aa]rtifacts/
 Redist/
 
 # Build tools and artifacts

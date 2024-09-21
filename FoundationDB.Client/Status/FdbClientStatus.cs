@@ -24,13 +24,14 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable InconsistentNaming
+
 namespace FoundationDB.Client.Status
 {
-	using System;
 	using System.Linq;
 	using Doxense.Serialization.Json;
 
-	public sealed class FdbClientStatus : MetricsBase
+	public sealed record FdbClientStatus : MetricsBase
 	{
 		internal FdbClientStatus(JsonObject? doc, Slice raw)
 			: base(doc)
@@ -77,7 +78,7 @@ namespace FoundationDB.Client.Status
 
 		#region Nested Types...
 
-		public sealed class ConnectionStatus : MetricsBase
+		public sealed record ConnectionStatus : MetricsBase
 		{
 			internal ConnectionStatus(JsonObject? data) : base(data) { }
 
@@ -105,7 +106,7 @@ namespace FoundationDB.Client.Status
 
 		}
 
-		public sealed class StorageServerStatus : MetricsBase
+		public sealed record StorageServerStatus : MetricsBase
 		{
 			internal StorageServerStatus(JsonObject? data) : base(data) { }
 

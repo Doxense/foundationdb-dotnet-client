@@ -29,17 +29,14 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 
-	internal static unsafe class FdbNative
+	internal static unsafe partial class FdbNative
 	{
 		public const int FDB_API_MIN_VERSION = 200;
 		public const int FDB_API_MAX_VERSION = 720;
@@ -61,34 +58,65 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Contain all the stubs to the methods exposed by the C API library</summary>
 		[System.Security.SuppressUnmanagedCodeSecurity]
-		internal static class NativeMethods
+		internal static partial class NativeMethods
 		{
 
 			// Core
 
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_select_api_version_impl(int runtimeVersion, int headerVersion);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_select_api_version_impl(int runtimeVersion, int headerVersion);
+#endif
 
 			/// <summary>Returns <c>FDB_API_VERSION</c>, the current version of the FoundationDB C API.</summary>
 			/// <returns>This is the maximum version that may be passed to <see cref="fdb_select_api_version_impl"/>.</returns>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial int fdb_get_max_api_version();
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern int fdb_get_max_api_version();
+#endif
 
 			/// <summary>Returns the build version, git commit hash and protocol version of the loaded native library</summary>
 			/// <returns><c>"version,commit_hash,protocol"</c>. Ex.: <c>"7.1.29,1b2517abce552441e3d0ed8836d1cc3f40e61a2a,fdb00b071010000"</c></returns>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial byte* fdb_get_client_version();
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern byte* fdb_get_client_version();
+#endif
 
 			/// <summary>Returns a (somewhat) human-readable English message from an error code.</summary>
 			/// <remarks>The return value is a statically allocated null-terminated string that must not be freed by the caller.</remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial byte* fdb_get_error(FdbError code);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern byte* fdb_get_error(FdbError code);
+#endif
 
 			/// <summary>Evaluates a predicate against an error code.</summary>
 			/// <returns>True if the code matches the specified <paramref name="predicateTest">predicate</paramref></returns>
 			/// <remarks>The predicate to run should be one of the codes listed by the <see cref="FdbErrorPredicate"/> enum. Sample predicates include <see cref="FdbErrorPredicate.Retryable"/>, which can be used to determine whether the error with the given code is a retryable error or not.</remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			[return: MarshalAs(UnmanagedType.Bool)]
+			public static partial bool fdb_error_predicate(FdbErrorPredicate predicateTest, FdbError code);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern bool fdb_error_predicate(FdbErrorPredicate predicateTest, FdbError code);
+#endif
 
 			// Network
 
@@ -98,16 +126,28 @@ namespace FoundationDB.Client.Native
 			/// If the option is documented as taking an <c>Int</c> parameter, value must point to a signed 64-bit integer (little-endian), and <paramref name="length"/> must be <c>8</c>.
 			/// This memory only needs to be valid until <see cref="fdb_network_set_option"/> returns.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_network_set_option(FdbNetworkOption option, byte* value, int length);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_network_set_option(FdbNetworkOption option, byte* value, int length);
+#endif
 
 			/// <summary>Setup the network thread.</summary>
 			/// <remarks>
 			/// Must be called after <see cref="fdb_select_api_version_impl"/> (and zero or more calls to <see cref="fdb_network_set_option"/>) and before any other function in this API.
 			/// <see cref="fdb_setup_network"/> can only be called once.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_setup_network();
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_setup_network();
+#endif
 
 			/// <summary>Register the given callback to run at the completion of the network thread</summary>
 			/// <remarks>
@@ -115,8 +155,14 @@ namespace FoundationDB.Client.Native
 			/// If there are multiple network threads running (which might occur if one is running multiple versions of the client, for example), then the callback is invoked once on each thread.
 			/// When the supplied function is called, the supplied <paramref name="parameter"/> is passed to it.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_add_network_thread_completion_hook(FdbNetworkThreadCompletionCallback hook, IntPtr parameter);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_add_network_thread_completion_hook(FdbNetworkThreadCompletionCallback hook, IntPtr parameter);
+#endif
 
 			/// <summary>Run the network loop on the current thread</summary>
 			/// <remarks>
@@ -126,34 +172,70 @@ namespace FoundationDB.Client.Native
 			/// It is not possible to run more than one network thread, and the network thread cannot be restarted once it has been stopped.
 			/// This means that once <see cref="fdb_run_network"/> has been called, it is not legal to call it again for the lifetime of the running program.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_run_network();
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_run_network();
+#endif
 
 			/// <summary>Signals the event loop invoked by <see cref="fdb_run_network"/> to terminate.</summary>
 			/// <remarks>
 			/// You must call this function and wait for <see cref="fdb_run_network"/> to return before allowing your program to exit, or else the behavior is undefined.
 			/// This function may be called from any thread. Once the network is stopped it cannot be restarted during the lifetime of the running program.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_stop_network();
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_stop_network();
+#endif
 
 			// Cluster
 
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			[Obsolete("Not supported any more")]
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath);
+#else
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			public static extern FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath);
+#endif
 
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			[Obsolete("Not supported any more")]
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_cluster_destroy(IntPtr cluster);
+#else
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_cluster_destroy(IntPtr cluster);
+#endif
 
+			[Obsolete("Not supported any more")]
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_cluster_set_option(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			[Obsolete("Not supported any more")]
 			public static extern FdbError fdb_cluster_set_option(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
+#endif
 
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			[Obsolete("Not supported any more")]
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
+#else
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			public static extern FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
+#endif
 
 			// Database
 
@@ -163,8 +245,14 @@ namespace FoundationDB.Client.Native
 			/// A single client can use this function multiple times to connect to different clusters simultaneously, with each invocation requiring its own cluster file.
 			/// To connect to multiple clusters running at different, incompatible versions, the multi-version client API must be used.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath, out DatabaseHandle database);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			public static extern FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath, out DatabaseHandle database);
+#endif
 
 			/// <summary>Creates a new database connected the specified cluster, using the specified connection string.</summary>
 			/// <remarks>
@@ -173,16 +261,28 @@ namespace FoundationDB.Client.Native
 			/// <para>To connect to multiple clusters running at different, incompatible versions, the multi-version client API must be used.</para>
 			/// <para>Available since 720.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_create_database_from_connection_string([MarshalAs(UnmanagedType.LPStr)] string? connectionString, out DatabaseHandle database);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			public static extern FdbError fdb_create_database_from_connection_string([MarshalAs(UnmanagedType.LPStr)] string? connectionString, out DatabaseHandle database);
+#endif
 
 			/// <summary>Destroys an FDBDatabase object.</summary>
 			/// <remarks>
 			/// It must be called exactly once for each successful call to <see cref="fdb_create_database"/>.
 			/// This function only destroys a handle to the database  your database will be fine!
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_database_destroy(IntPtr database);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_database_destroy(IntPtr database);
+#endif
 
 			/// <summary>Called to set an option on an <see cref="DatabaseHandle">FDBDatabase</see>.</summary>
 			/// <remarks>
@@ -190,33 +290,69 @@ namespace FoundationDB.Client.Native
 			/// If the option is documented as taking an Int parameter, <paramref name="value"/> must point to a signed 64-bit integer (little-endian), and <paramref name="length"/> must be <c>8</c>.
 			/// This memory only needs to be valid until <see cref="fdb_database_set_option"/> returns.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_database_set_option(DatabaseHandle handle, FdbDatabaseOption option, byte* value, int length);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_database_set_option(DatabaseHandle handle, FdbDatabaseOption option, byte* value, int length);
+#endif
 
 			/// <summary>Creates a new transaction on the given database without using a tenant, meaning that it will operate on the entire database key-space.</summary>
 			/// <remarks>The caller assumes ownership of the <see cref="TransactionHandle">FDBTransaction</see> object and must destroy it with <see cref="fdb_transaction_destroy"/>.</remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_database_create_transaction(DatabaseHandle database, out TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_database_create_transaction(DatabaseHandle database, out TransactionHandle transaction);
+#endif
 
 			//TODO: documentation! (added 7.0)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_database_reboot_worker(DatabaseHandle database, byte* address, int addressLength, [MarshalAs(UnmanagedType.Bool)] bool check, int duration);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_database_reboot_worker(DatabaseHandle database, byte* address, int addressLength, bool check, int duration);
+#endif
 
 			//TODO: documentation! (added 7.0)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_database_force_recovery_with_data_loss(DatabaseHandle database, byte* dcId, int dcIdLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_database_force_recovery_with_data_loss(DatabaseHandle database, byte* dcId, int dcIdLength);
+#endif
 
 			//TODO: documentation! (added 7.0)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_database_create_snapshot(DatabaseHandle database, byte* uid, int uidLength, byte* snapCommand, int snapCommandLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_database_create_snapshot(DatabaseHandle database, byte* uid, int uidLength, byte* snapCommand, int snapCommandLength);
+#endif
 
 			/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
 			/// <remarks>
 			/// <para>By default, this value is updated every second.</para>
 			/// <para>Added in 700</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial double fdb_database_get_main_thread_busyness(DatabaseHandle database);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern double fdb_database_get_main_thread_busyness(DatabaseHandle database);
+#endif
 
 			/// <summary>Returns the protocol version reported by the coordinator this client is connected to.</summary>
 			/// <remarks>
@@ -224,16 +360,34 @@ namespace FoundationDB.Client.Native
 			/// <para>Note: this will never return if the server is running a protocol from FDB 5.0 or older</para>
 			/// <para>Added in 700</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_database_get_server_protocol(DatabaseHandle database, ulong expectedVersion);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_database_get_server_protocol(DatabaseHandle database, ulong expectedVersion);
+#endif
 
 			//TODO: documentation! (added 7.1)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_database_open_tenant(DatabaseHandle database, byte* tenantName, int tenantNameLength, out TenantHandle handle);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_database_open_tenant(DatabaseHandle database, byte* tenantName, int tenantNameLength, out TenantHandle handle);
+#endif
 
 			//TODO: documentation! (added 7.3)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_database_get_client_status(DatabaseHandle database);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_database_get_client_status(DatabaseHandle database);
+#endif
 
 			// Tenant
 
@@ -243,8 +397,14 @@ namespace FoundationDB.Client.Native
 			/// <para>This function only destroys a handle to the tenant -- the tenant and its data will be fine!</para>
 			/// <para>Available since 710</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_tenant_destroy(IntPtr tenant);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_tenant_destroy(IntPtr tenant);
+#endif
 
 			/// <summary>Creates a new transaction on the given tenant.</summary>
 			/// <param name="database"></param>
@@ -255,12 +415,24 @@ namespace FoundationDB.Client.Native
 			/// <para>The caller assumes ownership of the <see cref="TransactionHandle">FDBTransaction</see> object and must destroy it with <see cref="fdb_transaction_destroy"/>.</para>
 			/// <para>Available since 710</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_tenant_create_transaction(TenantHandle database, out TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_tenant_create_transaction(TenantHandle database, out TransactionHandle transaction);
+#endif
 
 			// added 7.3
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_tenant_get_id(TenantHandle tenant);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_tenant_get_id(TenantHandle tenant);
+#endif
 
 			// Transaction
 
@@ -269,8 +441,14 @@ namespace FoundationDB.Client.Native
 			/// It must be called exactly once for each successful call to <see cref="fdb_database_create_transaction"/>.
 			/// Destroying a transaction which has not had <see cref="fdb_transaction_commit"/> called implicitly rolls back the transaction (sets and clears do not take effect on the database).
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_destroy(IntPtr database);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_destroy(IntPtr database);
+#endif
 
 			/// <summary>Called to set an option on an FDBTransaction.</summary>
 			/// <remarks>
@@ -278,8 +456,14 @@ namespace FoundationDB.Client.Native
 			/// If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8.
 			/// This memory only needs to be valid until fdb_transaction_set_option() returns.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_transaction_set_option(TransactionHandle handle, FdbTransactionOption option, byte* value, int valueLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_set_option(TransactionHandle handle, FdbTransactionOption option, byte* value, int valueLength);
+#endif
 
 			/// <summary>Sets the snapshot read version used by a transaction.</summary>
 			/// <remarks>
@@ -287,8 +471,14 @@ namespace FoundationDB.Client.Native
 			/// If the given version is too old, subsequent reads will fail with error_code_transaction_too_old;
 			/// if it is too new, subsequent reads may be delayed indefinitely and/or fail with <see cref="FdbError"><c>error_code_future_version</c></see>.
 			/// If any of <c>fdb_transaction_get_*()</c> have been called on this transaction already, the result is undefined.</remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_set_read_version(TransactionHandle handle, long version);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_set_read_version(TransactionHandle handle, long version);
+#endif
 
 			/// <summary>Gets the read version of the <paramref name="transaction"/> snapshot</summary>
 			/// <returns>Returns an <see cref="FutureHandle"><c>FDBFuture</c></see> which will be set to the transaction snapshot read version.</returns>
@@ -296,8 +486,14 @@ namespace FoundationDB.Client.Native
 			/// <para>You must first wait for the <see cref="FutureHandle"><c>FDBFuture</c></see> to be ready, check for errors, call <see cref="fdb_future_get_int64"/> to extract the version into an <c>int64_t</c> that you provide, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// The transaction obtains a snapshot read version automatically at the time of the first call to <c>fdb_transaction_get_*()</c> (including this one) and (unless causal consistency has been deliberately compromised by transaction options) is guaranteed to represent all transactions which were reported committed before that call.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_read_version(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_read_version(TransactionHandle transaction);
+#endif
 
 			/// <summary>Reads a value from the database snapshot represented by <paramref name="transaction"/></summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the value of <paramref name="keyName"/> in the database.</returns>
@@ -306,16 +502,28 @@ namespace FoundationDB.Client.Native
 			/// <para>See <see cref="fdb_future_get_value"/> to see exactly how results are unpacked.</para>
 			/// <para>If <paramref name="keyName"/> is not present in the database, the result is not an error, but a zero for <c>present</c> returned from that function.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get(TransactionHandle transaction, byte* keyName, int keyNameLength, [MarshalAs(UnmanagedType.Bool)] bool snapshot);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
+#endif
 
-			/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <see cref="keyName"/> and its associated value.</summary>
+			/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="keyName"/> and its associated value.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to an array of strings.</returns>
 			/// <remarks>
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_string_array"/> to extract the string array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_addresses_for_key(TransactionHandle transaction, byte* keyName, int keyNameLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_addresses_for_key(TransactionHandle transaction, byte* keyName, int keyNameLength);
+#endif
 
 			/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the list of split points.</returns>
@@ -323,8 +531,14 @@ namespace FoundationDB.Client.Native
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_key_array"/> to extract the array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// <para>Added in 700</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_range_split_points(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, long chunkSize);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_range_split_points(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, long chunkSize);
+#endif
 
 			/// <summary>Returns an estimated byte size of the key range.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the estimated size of the key range given.</returns>
@@ -332,22 +546,44 @@ namespace FoundationDB.Client.Native
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_int64"/> to extract the size, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// <para>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_estimated_range_size_bytes(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_estimated_range_size_bytes(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength);
+#endif
 
 			/// <summary>Resolves a key selector against the keys in the database snapshot represented by <paramref name="transaction"/>.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the key in the database matching the key selector.</returns>
 			/// <remarks>
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_key"/> to extract the key, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_key(TransactionHandle transaction, byte* keyName, int keyNameLength, [MarshalAs(UnmanagedType.Bool)] bool orEqual, int offset, [MarshalAs(UnmanagedType.Bool)] bool snapshot);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_key(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
+#endif
 
 			/// <summary>Reads all key-value pairs in the database snapshot represented by <paramref name="transaction"/> (potentially limited by <paramref name="limit"/>, <paramref name="targetBytes"/>, or <paramref name="mode"/>) which have a key lexicographically greater than or equal to the key resolved by the <c>begin</c> key selector and lexicographically less than the key resolved by the <c>end</c> key selector.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to an <c>FDBKeyValue</c> array.</returns>
 			/// <remarks>
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_keyvalue_array"/> to extract the key-value array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_range(
+				TransactionHandle transaction,
+				/* begin */ byte* beginKeyName, int beginKeyNameLength, [MarshalAs(UnmanagedType.Bool)] bool beginOrEqual, int beginOffset,
+				/* end */ byte* endKeyName, int endKeyNameLength, [MarshalAs(UnmanagedType.Bool)] bool endOrEqual, int endOffset,
+				int limit, int targetBytes, FdbStreamingMode mode, int iteration, [MarshalAs(UnmanagedType.Bool)] bool snapshot, [MarshalAs(UnmanagedType.Bool)] bool reverse
+			);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_range(
 				TransactionHandle transaction,
@@ -355,9 +591,21 @@ namespace FoundationDB.Client.Native
 				/* end */ byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
 				int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse
 			);
+#endif
 
 			//TODO: documentation! (added 7.1)
 			//TODO: 'fdb_transaction_get_range_and_flat_map' was added in 7.0 but renamed to 'fdb_transaction_get_mapped_range' in 7.1 ... should we support the old name?
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_mapped_range(
+				TransactionHandle transaction,
+				/* begin */ byte* beginKeyName, int beginKeyNameLength, [MarshalAs(UnmanagedType.Bool)] bool beginOrEqual, int beginOffset,
+				/* end */ byte* endKeyName, int endKeyNameLength, [MarshalAs(UnmanagedType.Bool)] bool endOrEqual, int endOffset,
+				/* mapper */ byte* mapperName, int mapperNameLength,
+				int limit, int targetBytes, FdbStreamingMode mode, int iteration, [MarshalAs(UnmanagedType.Bool)] bool snapshot, [MarshalAs(UnmanagedType.Bool)] bool reverse
+			);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_mapped_range(
 				TransactionHandle transaction,
@@ -366,20 +614,33 @@ namespace FoundationDB.Client.Native
 				/* mapper */ byte* mapperName, int mapperNameLength,
 				int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse
 			);
+#endif
 
 			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to change the given key to have the given value. If the given key was not previously present in the database it is inserted.</summary>
 			/// <remarks>
 			/// The modification affects the actual database only if <paramref name="transaction"/> is later committed with <see cref="fdb_transaction_commit"/>.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_set(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_set(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
+#endif
 
 			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to remove the given key from the database. If the key was not previously present in the database, there is no effect.</summary>
 			/// <remarks>
 			/// The modification affects the actual database only if <paramref name="transaction"/> is later committed with <see cref="fdb_transaction_commit"/>.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_clear(TransactionHandle transaction, byte* keyName, int keyNameLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_clear(TransactionHandle transaction, byte* keyName, int keyNameLength);
+#endif
 
 			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.</summary>
 			/// <remarks>
@@ -389,12 +650,22 @@ namespace FoundationDB.Client.Native
 			/// For purposes of computing the transaction size, only the begin and end keys of a clear range are counted.
 			/// The size of the data stored in the range does not count against the transaction size limit.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_clear_range(
+				TransactionHandle transaction,
+				byte* beginKeyName, int beginKeyNameLength,
+				byte* endKeyName, int endKeyNameLength
+			);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_clear_range(
 				TransactionHandle transaction,
 				byte* beginKeyName, int beginKeyNameLength,
 				byte* endKeyName, int endKeyNameLength
 			);
+#endif
 
 			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to perform the operation indicated by operationType with operand param to the value stored by the given key.</summary>
 			/// <remarks>
@@ -406,8 +677,14 @@ namespace FoundationDB.Client.Native
 			/// By combining these logical steps into a single, read-free operation, FoundationDB can guarantee that the transaction will not conflict due to the operation.
 			/// This makes atomic operations ideal for operating on keys that are frequently modified. A common example is the use of a key-value pair as a counter.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_atomic_op(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* param, int paramLength, FdbMutationType operationType);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_atomic_op(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* param, int paramLength, FdbMutationType operationType);
+#endif
 
 			/// <summary>Attempts to commit the sets and clears previously applied to the database snapshot represented by transaction to the actual database. The commit may or may not succeed  in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> representing an empty value.</returns>
@@ -415,8 +692,14 @@ namespace FoundationDB.Client.Native
 			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
 			/// <para>It is not necessary to commit a read-only transaction  you can simply call <see cref="fdb_transaction_destroy"/>.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_commit(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_commit(TransactionHandle transaction);
+#endif
 
 			/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
 			/// <remarks>
@@ -427,8 +710,14 @@ namespace FoundationDB.Client.Native
 			/// The only use for this function is to manually enforce causal consistency when calling <see cref="fdb_transaction_set_read_version"/> on another subsequent transaction.
 			/// Most applications will not call this function.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_transaction_get_committed_version(TransactionHandle transaction, out long version);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_get_committed_version(TransactionHandle transaction, out long version);
+#endif
 
 			/// <summary>Retrieves the <see cref="VersionStamp"/> which was used by any versionstamp operation in this transaction.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the versionstamp which was used by any versionstamp operations in this transaction.</returns>
@@ -437,8 +726,14 @@ namespace FoundationDB.Client.Native
 			/// The future will be ready only after the successful completion of a call to <see cref="fdb_transaction_commit"/> on this Transaction. Read-only transactions do not modify the database when committed and will result in the future completing with an error. Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
 			/// Most applications will not call this function.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_versionstamp(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_versionstamp(TransactionHandle transaction);
+#endif
 
 			/// <summary></summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> representing an empty value that will be set once the watch has detected a change to the value at the specified key.</returns>
@@ -467,8 +762,14 @@ namespace FoundationDB.Client.Native
 			/// Because a watch outlives the transaction that creates it, any watch that is no longer needed should be cancelled by calling <see cref="fdb_future_cancel"/> on its returned future.
 			/// </para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_watch(TransactionHandle transaction, byte* keyName, int keyNameLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_watch(TransactionHandle transaction, byte* keyName, int keyNameLength);
+#endif
 
 			/// <summary>Implements the recommended retry and backoff behavior for a transaction.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> representing an empty value.</returns>
@@ -479,28 +780,52 @@ namespace FoundationDB.Client.Native
 			/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
 			/// </para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_on_error(TransactionHandle transaction, FdbError error);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_on_error(TransactionHandle transaction, FdbError error);
+#endif
 
 			/// <summary>Reset <paramref name="transaction"/> to its initial state.</summary>
 			/// <remarks>
 			/// This is similar to calling <see cref="fdb_transaction_destroy"/> followed by <see cref="fdb_database_create_transaction"/>.
 			/// It is not necessary to call <see cref="fdb_transaction_reset"/> when handling an error with <see cref="fdb_transaction_on_error"/> since the transaction has already been reset.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_reset(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_reset(TransactionHandle transaction);
+#endif
 
 			/// <summary>Cancels the transaction.</summary>
 			/// <remarks>
 			/// All pending or future uses of the transaction will return a <see cref="FdbError"><c>transaction_cancelled</c></see> error.
 			/// The transaction can be used again after it is reset.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_transaction_cancel(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_cancel(TransactionHandle transaction);
+#endif
 
 			/// <summary>Adds a conflict range to a transaction without performing the associated read or write.</summary>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_transaction_add_conflict_range(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, FdbConflictRangeType type);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_add_conflict_range(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, FdbConflictRangeType type);
+#endif
 
 			/// <summary>Returns the approximate transaction size so far.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the approximate transaction size so far in the returned future, which is the summation of the estimated size of mutations, read conflict ranges, and write conflict ranges.</returns>
@@ -508,21 +833,45 @@ namespace FoundationDB.Client.Native
 			/// You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_int64"/> to extract the size, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.
 			/// This can be called multiple times before the transaction is committed.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_approximate_size(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_approximate_size(TransactionHandle transaction);
+#endif
 
 
 			//TODO: documentation! (added 7.3)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_tag_throttled_duration(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_tag_throttled_duration(TransactionHandle transaction);
+#endif
 
 			//TODO: documentation! (added 7.3)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_total_cost(TransactionHandle transaction);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_total_cost(TransactionHandle transaction);
+#endif
 
 			//TODO: documentation! (added 7.3)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FutureHandle fdb_transaction_get_blob_granule_ranges(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_blob_granule_ranges(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength);
+#endif
 
 			// Future
 
@@ -532,8 +881,14 @@ namespace FoundationDB.Client.Native
 			/// It may be called before or after the future is ready.
 			/// It will also cancel the future (and its associated operation if the latter is still outstanding).
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_future_destroy(IntPtr future);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_destroy(IntPtr future);
+#endif
 
 			/// <summary>Cancels an <see cref="FutureHandle">FDBFuture</see> object and its associated asynchronous operation.</summary>
 			/// <remarks>
@@ -541,8 +896,14 @@ namespace FoundationDB.Client.Native
 			/// Cancelling a future which is already ready has no effect.
 			/// Note that even if a future is not ready, its associated asynchronous operation may have successfully completed and be unable to be cancelled.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_future_cancel(FutureHandle future);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_cancel(FutureHandle future);
+#endif
 
 			/// <summary>Release memory associated to the given <see cref="FutureHandle">FDBFuture</see> object.</summary>
 			/// <remarks>
@@ -554,25 +915,50 @@ namespace FoundationDB.Client.Native
 			/// However, <see cref="fdb_future_release_memory"/> leaves the future object itself intact and provides a specific error code which can be used for coordination by multiple threads racing to do something with the results of a specific future.
 			/// This has proven helpful in writing binding code.
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial void fdb_future_release_memory(FutureHandle future);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_release_memory(FutureHandle future);
+#endif
 
 			/// <summary>Blocks the calling thread until the given <c>Future</c> is ready.</summary>
 			/// <remarks>
 			/// It will return success even if the <c>Future</c> is set to an error  you must call <see cref="fdb_future_get_error"/> to determine that.
 			/// <see cref="fdb_future_block_until_ready"/> will return an error only in exceptional conditions (e.g. deadlock detected, out of memory or other operating system resources).
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_block_until_ready(FutureHandle future);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_block_until_ready(FutureHandle future);
+#endif
 
 			/// <summary>Returns non-zero if the <paramref name="future"/> is ready.</summary>
 			/// <remarks>A <c>Future</c> is ready if it has been set to a value or an error.</remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			[return: MarshalAs(UnmanagedType.Bool)] 
+			public static partial bool fdb_future_is_ready(FutureHandle future);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern bool fdb_future_is_ready(FutureHandle future);
+#endif
 
 			/// <summary>Returns zero if <paramref name="future"/> is ready and not in an error state, and a non-zero error code otherwise.</summary>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_error(FutureHandle future);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_error(FutureHandle future);
+#endif
 
 			/// <summary>Causes the FDBCallback function to be invoked as <c><paramref name="callback"/>(<paramref name="future"/>, <paramref name="parameter"/>)</c> when the given <paramref name="future"/> is ready.</summary>
 			/// <returns>
@@ -581,8 +967,14 @@ namespace FoundationDB.Client.Native
 			/// and the callback is responsible for any necessary thread synchronization (and/or for posting work back to your application
 			/// event loop, thread pool, etc. if your applications architecture calls for that).
 			/// </returns>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_set_callback(FutureHandle future, FdbFutureCallback callback, IntPtr parameter);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_set_callback(FutureHandle future, FdbFutureCallback callback, IntPtr parameter);
+#endif
 
 			/// <summary>Extracts an 64-bit version number from a pointer to <see cref="FutureHandle">FDBFuture</see>.</summary>
 			/// <remarks>
@@ -590,8 +982,14 @@ namespace FoundationDB.Client.Native
 			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
 			/// <para>Added in 700</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_version(FutureHandle future, out long version);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_version(FutureHandle future, out long version);
+#endif
 
 			/// <summary>Extracts a boolean from a pointer to <see cref="FutureHandle">FDBFuture</see>.</summary>
 			/// <remarks>
@@ -599,8 +997,14 @@ namespace FoundationDB.Client.Native
 			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
 			/// <para>Added in 720</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_bool(FutureHandle future, [MarshalAs(UnmanagedType.Bool)] out bool version);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_bool(FutureHandle future, out bool version);
+#endif
 
 			/// <summary>Extracts a signed 64-bit integer from a pointer to <see cref="FutureHandle">FDBFuture</see>.</summary>
 			/// <remarks>
@@ -608,8 +1012,14 @@ namespace FoundationDB.Client.Native
 			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
 			/// <para>Added in 630</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_int64(FutureHandle future, out long value);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_int64(FutureHandle future, out long value);
+#endif
 
 			/// <summary>Extracts an unsigned 64-bit integer from a pointer to <see cref="FutureHandle">FDBFuture</see>.</summary>
 			/// <remarks>
@@ -617,8 +1027,14 @@ namespace FoundationDB.Client.Native
 			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
 			/// <para>Added in 700</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_uint64(FutureHandle future, out ulong value);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_uint64(FutureHandle future, out ulong value);
+#endif
 
 			/// <summary>Extracts a double-precision floating-point number from a pointer to <see cref="FutureHandle">FDBFuture</see>.</summary>
 			/// <remarks>
@@ -626,8 +1042,14 @@ namespace FoundationDB.Client.Native
 			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
 			/// <para>Added in 730</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_double(FutureHandle future, out double value);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_double(FutureHandle future, out double value);
+#endif
 
 			/// <summary>Extracts a key from an <see cref="FutureHandle">FDBFuture</see> into caller-provided variables of type <c>uint8_t*</c> (a pointer to the beginning of the key) and int (the length of the key). </summary>
 			/// <remarks>
@@ -635,36 +1057,90 @@ namespace FoundationDB.Client.Native
 			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
 			/// <para>The memory referenced by the result is owned by the <c>FDBFuture</c> object and will be valid until either <see cref="fdb_future_destroy"/> or <see cref="fdb_future_release_memory"/> is called.</para>
 			/// </remarks>
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_key(FutureHandle future, out byte* key, out int keyLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_key(FutureHandle future, out byte* key, out int keyLength);
+#endif
 
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			[Obsolete("Deprecated since API level 610")]
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_cluster(FutureHandle future, out ClusterHandle cluster);
+#else
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_cluster(FutureHandle future, out ClusterHandle cluster);
+#endif
 
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_database(FutureHandle future, out DatabaseHandle database);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_database(FutureHandle future, out DatabaseHandle database);
+#endif
 
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_value(FutureHandle future, [MarshalAs(UnmanagedType.Bool)] out bool present, out byte* value, out int valueLength);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_value(FutureHandle future, out bool present, out byte* value, out int valueLength);
+#endif
 
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_keyvalue_array(FutureHandle future, out FdbKeyValue* kv, out int count, [MarshalAs(UnmanagedType.Bool)] out bool more);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_keyvalue_array(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
+#endif
 
 			//TODO: documentation! (added 7.1)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_mappedkeyvalue_array(FutureHandle future, out FdbMappedKeyValueNative* kvm, out int count, [MarshalAs(UnmanagedType.Bool)] out bool more);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_mappedkeyvalue_array(FutureHandle future, out FdbMappedKeyValueNative* kvm, out int count, out bool more);
+#endif
 
 			//TODO: documentation! (added 7.0)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_key_array(FutureHandle future, out FdbKeyNative* keyArray, out int count);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_key_array(FutureHandle future, out FdbKeyNative* keyArray, out int count);
+#endif
 
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_string_array(FutureHandle future, out byte** strings, out int count);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_string_array(FutureHandle future, out byte** strings, out int count);
+#endif
 
 			//TODO: documentation! (added 7.1)
+#if NET8_0_OR_GREATER
+			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
+			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
+			public static partial FdbError fdb_future_get_keyrange_array(FutureHandle future, out FdbKeyRangeNative* ranges, out int count);
+#else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_keyrange_array(FutureHandle future, out FdbKeyRangeNative* ranges, out int count);
+#endif
 
 		}
 
@@ -766,22 +1242,23 @@ namespace FoundationDB.Client.Native
 		{
 			if (value.Length == 0) return Slice.Empty;
 
-			byte[] result;
+			int len = Encoding.Default.GetByteCount(value);
+
 			if (nullTerminated)
 			{ // NULL terminated ANSI string
-				result = new byte[value.Length + 1];
-			}
-			else
-			{
-				result = new byte[value.Length];
+				len = checked(len + 1);
 			}
 
-			fixed (char* inp = value)
-			fixed (byte* outp = &result[0])
+			var buffer = new byte[len];
+			Encoding.Default.GetBytes(value, buffer);
+
+			if (nullTerminated)
 			{
-				Encoding.Default.GetBytes(inp, value.Length, outp, result.Length);
+				//note: last byte should already be zero, but we want to be sure, in case the default encoding would somehow mess up!
+				buffer[^1] = 0;
 			}
-			return Slice.CreateUnsafe(result, 0, result.Length);
+
+			return buffer.AsSlice();
 		}
 
 

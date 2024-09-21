@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using JetBrains.Annotations;
 
 	/// <summary>Defines a set of options for a transaction</summary>
 	[PublicAPI]

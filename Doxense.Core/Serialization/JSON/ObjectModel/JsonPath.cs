@@ -39,7 +39,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a JsonPath that wraps a <see cref="string">ReadOnlySpan&lt;char&gt;</see> literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonPath Create(string? path) => path == null ? default : new(path.AsMemory());
+		public static JsonPath Create(string? path) => string.IsNullOrEmpty(path) ? default : new(path.AsMemory());
 
 		/// <summary>Returns a JsonPath that wraps an index</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -65,22 +65,72 @@ namespace Doxense.Serialization.Json
 
 		IEnumerator IEnumerable.GetEnumerator() => new Tokenizer(this);
 
-		public List<string> GetParts()
+		public List<string> GetSegments()
 		{
+			var path = this.Value;
+			var tail = path;
 			List<string> res = [ ];
-			foreach (var x in this)
+
+			while (tail.Length > 0)
 			{
-				if (x.Key.Length > 0)
+				var consumed = ParseNext(tail.Span, out var keyLength, out var index);
+				Contract.Debug.Assert(consumed != 0 && consumed >= keyLength);
+
+				if (keyLength > 0)
 				{
-					res.Add(x.Key.ToString());
+					// there is high probably that the key is a single key name, in which case chunk == path
+					// => we will try to extract the original string to reduce allocations as much as possible!
+
+					var chunk = tail[..keyLength];
+
+					if (chunk.TryGetString(out var s))
+					{ // we got the original string
+						res.Add(DecodeKeyName(s)); // returns the same string insance if not escaped
+					}
+					else if (chunk.Span.Contains('\\'))
+					{ // the key is escaped, must be decoded
+						int l = GetDecodedKeyNameSize(chunk.Span);
+						s = string.Create(l, chunk, (buf, c) =>
+						{
+							if (!TryDecodeKeyName(c.Span, buf, out int written) || written != buf.Length)
+							{ // should NOT happen! => decoded count does not match expected length ???
+								throw new InvalidOperationException("Internal decoding error");
+							}
+						});
+						res.Add(s);
+					}
+					else
+					{ // the key does not need to be decoded
+						res.Add(chunk.ToString());
+					}
 				}
 				else
 				{
-					res.Add($"[{x.Index}]");
+					res.Add($"[{index}]");
 				}
+
+				tail = tail.Slice(consumed);
 			}
+
 			return res;
 		}
+
+		public int GetSegmentCount()
+		{
+			var tail = Value.Span;
+			int count = 0;
+			while (tail.Length != 0)
+			{
+				++count;
+				int consumed = ParseNext(tail, out _, out _);
+				Contract.Debug.Assert(consumed != 0);
+
+				tail = tail.Slice(consumed);
+			}
+			return count;
+		}
+
+
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override string ToString() => this.Value.GetStringOrCopy();
@@ -103,7 +153,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override int GetHashCode() => this.Value.GetHashCode();
+		public override int GetHashCode() => string.GetHashCode(this.Value.Span);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override bool Equals(object? obj) => obj switch
@@ -121,6 +171,9 @@ namespace Doxense.Serialization.Json
 		public bool Equals(string? other) => this.Value.Span.SequenceEqual(other); // null|"" == Empty
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<char> other) => this.Value.Span.SequenceEqual(other);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(JsonPath left, JsonPath right) => left.Equals(right);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -133,6 +186,12 @@ namespace Doxense.Serialization.Json
 		public static bool operator !=(JsonPath left, string? right) => !left.Equals(right);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(JsonPath left, ReadOnlySpan<char> right) => left.Equals(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(JsonPath left, ReadOnlySpan<char> right) => !left.Equals(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ReadOnlySpan<char> AsSpan() => this.Value.Span;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -141,6 +200,30 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if this the empty path (root of the document)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsEmpty() => this.Value.Length == 0;
+
+		/// <summary>Throws an exception if the specified path is empty</summary>
+		/// <param name="path">Path to check</param>
+		/// <param name="paramName">Name of the parameter that contains the path</param>
+		/// <exception cref="ArgumentException">if <paramref name="path"/> is empty</exception>
+		public static void ThrowIfEmpty(JsonPath path, [CallerArgumentExpression(nameof(path))] string? paramName = null)
+		{
+			if (path.Value.Length == 0)
+			{
+				throw ThrowHelper.ArgumentException(paramName ?? nameof(path), "Path cannot be empty");
+			}
+		}
+
+		/// <summary>Throws an exception if the specified path is empty</summary>
+		/// <param name="path">Path to check</param>
+		/// <param name="paramName">Name of the parameter that contains the path</param>
+		/// <exception cref="ArgumentException">if <paramref name="path"/> is empty</exception>
+		public static void ThrowIfEmpty(string path, [CallerArgumentExpression(nameof(path))] string? paramName = null)
+		{
+			if (string.IsNullOrEmpty(path))
+			{
+				throw ThrowHelper.ArgumentException(paramName ?? nameof(path), "Path cannot be empty");
+			}
+		}
 
 		/// <summary>Appends an index to this path (ex: <c>JsonPath.Return("tags")[1]</c> => "tags[1]")</summary>
 		public JsonPath this[int index]
@@ -211,6 +294,31 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		public bool StartsWith(ReadOnlySpan<char> prefix) => this.Value.Span.StartsWith(prefix);
+
+		public bool EndsWith(ReadOnlySpan<char> suffix) => this.Value.Span.EndsWith(suffix);
+
+		public bool StartsWith(char prefix)
+#if NET9_0_OR_GREATER
+			=> this.Value.Span.Length > 0 && Value.Span[0] == prefix;
+#else
+		{
+			var span = this.Value.Span;
+			return span.Length > 0 && span[0] == prefix;
+		}
+#endif
+
+		public bool EndsWith(char suffix)
+#if NET9_0_OR_GREATER
+			=> this.Value.Span.EndsWith(suffix);
+#else
+		{
+			var span = this.Value.Span;
+			return span.Length > 0 && span[^1] == suffix;
+		}
+#endif
+
+
 #if NET8_0_OR_GREATER
 
 		private static readonly SearchValues<char> Needle = SearchValues.Create("\\.[]");
@@ -237,7 +345,59 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		private static string Unescape(ReadOnlySpan<char> literal)
+		public static string DecodeKeyName(string? key)
+		{
+			if (string.IsNullOrEmpty(key))
+			{
+				return "";
+			}
+
+			// if the key was escaped previously, it will contains at least one '\' character
+			if (key.Contains('\\'))
+			{
+				return DecodeKeyNameSlow(key);
+			}
+
+			return key;
+		}
+
+		public static ReadOnlySpan<char> DecodeKeyName(ReadOnlySpan<char> key)
+		{
+			if (key.Length == 0)
+			{
+				return default;
+			}
+
+			// if the key was escaped previously, it will contains at least one '\' character
+			if (key.Contains('\\'))
+			{
+				return DecodeKeyNameSlow(key);
+			}
+
+			return key;
+		}
+
+		public static bool TryDecodeKeyName(ReadOnlySpan<char> key, Span<char> buffer, out int written)
+		{
+			if (key.Length == 0)
+			{
+				written = 0;
+				return true;
+			}
+
+			// if the key was escaped previously, it will contains at least one '\' character
+			if (key.Contains('\\'))
+			{
+				return TryDecodeKeyNameSlow(key, buffer, out written);
+			}
+
+			key.CopyTo(buffer);
+			written = key.Length;
+			return true;
+		}
+
+		/// <summary>Decode a potentially escaped key name (ex: <c>@"hello\\world"</c> => <c>@"hello\world"</c>)</summary>
+		private static string DecodeKeyNameSlow(ReadOnlySpan<char> literal)
 		{
 			var tmp = ArrayPool<char>.Shared.Rent(literal.Length);
 			Span<char> buf = tmp.AsSpan();
@@ -268,109 +428,137 @@ namespace Doxense.Serialization.Json
 			return s;
 		}
 
-		private static string Escape(ReadOnlySpan<char> name)
+		/// <summary>Decode a potentially escaped key name (ex: <c>@"hello\\world"</c> => <c>@"hello\world"</c>)</summary>
+		private static bool TryDecodeKeyNameSlow(ReadOnlySpan<char> literal, Span<char> buffer, out int written)
 		{
-			return name.Length switch
+			int p = 0;
+			bool escaped = false;
+			foreach (var c in literal)
 			{
-				0 => string.Empty,
-				<= 64 => EscapeSmallString(name),
-				_ => EscapeLargeString(name)
-			};
-
-			static string EscapeSmallString(ReadOnlySpan<char> name)
-			{
-				// can take up to twice the size (if all characters must be escaped)
-				Span<char> buf = stackalloc char[name.Length * 2];
-				int p = 0;
-				foreach (var c in name)
+				if (c == '\\')
 				{
-					if (c is '.' or '\\' or '[' or ']')
-					{
-						buf[p++] = '\\';
+					if (escaped)
+					{ // double '\\' means only one
+						if (p + 1 > buffer.Length)
+						{
+							goto overflow;
+						}
+						buffer[p++] = '\\';
+						escaped = false;
 					}
-
-					buf[p++] = c;
+					else
+					{
+						escaped = true;
+					}
 				}
-
-				return buf[..p].ToString();
+				else
+				{
+					if (p + 1 > buffer.Length)
+					{
+						goto overflow;
+					}
+					buffer[p++] = c;
+					escaped = false;
+				}
 			}
 
-			static string EscapeLargeString(ReadOnlySpan<char> name)
-			{
-				var tmp = ArrayPool<char>.Shared.Rent(name.Length * 2);
-				Span<char> buf = tmp.AsSpan();
-				int p = 0;
-				foreach (var c in name)
-				{
-					if (c is '.' or '\\' or '[' or ']')
-					{
-						buf[p++] = '\\';
-					}
+			written = p;
+			return true;
 
-					buf[p++] = c;
-				}
-
-				var s = new string(tmp, 0, p);
-				ArrayPool<char>.Shared.Return(tmp, clearArray: true);
-				return s;
-			}
+		overflow:
+			written = 0;
+			return false;
 		}
 
-		private static string EscapeWithPrefix(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
+		/// <summary>Decode a potentially escaped key name (ex: <c>@"hello\\world"</c> => <c>@"hello\world"</c>)</summary>
+		private static int GetDecodedKeyNameSize(ReadOnlySpan<char> literal)
 		{
-			if (prefix.Length == 0)
+			int p = 0;
+			bool escaped = false;
+			foreach (var c in literal)
 			{
-				return Escape(name);
+				if (c == '\\')
+				{
+					if (escaped)
+					{ // double '\\' means only one
+						++p;
+						escaped = false;
+					}
+					else
+					{
+						escaped = true;
+					}
+				}
+				else
+				{
+					++p;
+					escaped = false;
+				}
 			}
 
-			return name.Length switch
-			{
-				0 => string.Concat(prefix, "."),
-				<= 64 => EscapeSmallString(prefix, name),
-				_ => EscapeLargeString(prefix, name)
-			};
+			// if escaped == true, then there is an single backslash at the end of the key
+			// => this is probably a malformed key, but we won't deal with it here and simply add 1
+			return p + (escaped ? 1 : 0);
+		}
 
-			static string EscapeSmallString(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
+		public static string EncodeKeyName(string name)
+		{
+			if (string.IsNullOrEmpty(name) || !RequiresEscaping(name))
 			{
-				// can take up to twice the size (if all characters must be escaped)
-				Span<char> buf = stackalloc char[checked(prefix.Length + 1 + name.Length * 2)];
+				return name;
+			}
+			return EncodeKeyNameWithPrefix(default, name.AsSpan());
+		}
+
+		public static ReadOnlySpan<char> EncodeKeyName(ReadOnlySpan<char> name)
+		{
+			if (name.Length == 0 || !RequiresEscaping(name))
+			{
+				return name.ToString();
+			}
+			return EncodeKeyNameWithPrefix(default, name);
+		}
+
+		private static string EncodeKeyNameWithPrefix(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
+		{
+			//note: we already know that the name requires escaping!
+
+			if (name.Length == 0)
+			{
+				return prefix.Length != 0 ? string.Concat(prefix, ".") : "";
+			}
+
+			// can take up to twice the size (if all characters must be escaped)
+			int capacity = checked(prefix.Length + (prefix.Length != 0 ? 1 : 0) + name.Length * 2);
+
+			char[]? array = null;
+			Span<char> buf = capacity > 512 ? (array = ArrayPool<char>.Shared.Rent(capacity)) : stackalloc char[capacity];
+
+			int p = 0;
+			if (prefix.Length != 0)
+			{
 				prefix.CopyTo(buf);
 				buf[prefix.Length] = '.';
-				int p = prefix.Length + 1;
-				foreach (var c in name)
-				{
-					if (c is '.' or '\\' or '[' or ']')
-					{
-						buf[p++] = '\\';
-					}
-
-					buf[p++] = c;
-				}
-
-				return buf[..p].ToString();
+				p = prefix.Length + 1;
 			}
 
-			static string EscapeLargeString(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
+			foreach (var c in name)
 			{
-				var tmp = ArrayPool<char>.Shared.Rent(name.Length * 2);
-				Span<char> buf = tmp.AsSpan();
-				prefix.CopyTo(buf);
-				buf[prefix.Length] = '.';
-				int p = prefix.Length + 1;
-				foreach (var c in name)
+				if (c is '.' or '\\' or '[' or ']')
 				{
-					if (c is '.' or '\\' or '[' or ']')
-					{
-						buf[p++] = '\\';
-					}
-
-					buf[p++] = c;
+					buf[p++] = '\\';
 				}
 
-				var s = new string(tmp, 0, p);
-				ArrayPool<char>.Shared.Return(tmp, clearArray: true);
-				return s;
+				buf[p++] = c;
 			}
+
+			var res = buf[..p].ToString();
+			if (array != null)
+			{
+				buf[..p].Clear();
+				ArrayPool<char>.Shared.Return(array);
+			}
+			return res;
 		}
 
 		/// <summary>Appends an field to this path (ex: <c>JsonPath.Return("user")["id"]</c> => "user.id")</summary>
@@ -382,7 +570,7 @@ namespace Doxense.Serialization.Json
 
 				if (RequiresEscaping(key))
 				{
-					return new (EscapeWithPrefix(this.Value.Span, key));
+					return new (EncodeKeyNameWithPrefix(this.Value.Span, key));
 				}
 
 				int l = this.Value.Length;
@@ -430,7 +618,7 @@ namespace Doxense.Serialization.Json
 				// we may need to encode the key if it contains any of '\', '.' or '['
 				if (RequiresEscaping(key))
 				{
-					return new (EscapeWithPrefix(this.Value.Span, key));
+					return new (EncodeKeyNameWithPrefix(this.Value.Span, key));
 				}
 
 				int l = this.Value.Length;
@@ -841,12 +1029,25 @@ namespace Doxense.Serialization.Json
 			return p;
 		}
 
-		private static ReadOnlySpan<char> MaybeUnescape(ReadOnlySpan<char> literal)
+		/// <summary>Tests if this path consists of a single key name</summary>
+		/// <returns><see langword="true"/> if the path is a single property name (ex: <c>"Foo"</c>), or <see langword="false"/> if it is an array index (<c>"[1]"</c>) or has mutiple segments (<c>"Foo.Bar"</c> or <c>"Foo[1]"</c>)</returns>
+		/// <remarks>This can be used to speed up processing of selectors where the vast majority of cases is a single child</remarks>
+		public bool TryGetSingleKey(out ReadOnlyMemory<char> key)
 		{
-			return literal.Contains('\\') ? Unescape(literal) : literal;
-		}
+			int consumed = ParseNext(this.Value.Span, out var keyLength, out _);
 
-		/// <summary>Tests if the last segment is a key</summary>
+			if (keyLength == 0 || consumed >= this.Value.Length)
+			{ // starts with an indexer, or more than one segment
+				key = default;
+				return false;
+			}
+
+			key = this.Value;
+			return true;
+		}
+		
+		/// <summary>Tests if the last segment of this path is a key</summary>
+		/// <returns><see langword="true"/> if the path ends with a key name (ex: <c>"Foo.Bar"</c> or <c>"...[1].Bar"</c>), or <see langword="false"/> if the last segment is a key indexer (ex: <c>"...[1]"</c>), </returns>
 		/// <example><code>
 		/// "" => false
 		/// [42] => false
@@ -856,7 +1057,7 @@ namespace Doxense.Serialization.Json
 		/// "foo.bar[42].baz" => true, "baz"
 		/// </code></example>
 		[Pure]
-		public bool TryGetKey(out ReadOnlySpan<char> key)
+		public bool TryGetLastKey(out ReadOnlySpan<char> key)
 		{
 			var path = this.Value.Span;
 			if (path.Length == 0)
@@ -870,7 +1071,7 @@ namespace Doxense.Serialization.Json
 			{
 				if (q < 0)
 				{ // the path is a single key: "foo"
-					key = MaybeUnescape(path);
+					key = DecodeKeyName(path);
 					return true;
 				}
 				// the path ends with an indeer: "[42]" or "foo[42]"
@@ -883,7 +1084,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 			// the last key is after the last indexer: "[42].foo" or "foo[42].bar"
-			key = MaybeUnescape(path[(p + 1)..]);
+			key = DecodeKeyName(path[(p + 1)..]);
 			return true;
 		}
 
@@ -897,9 +1098,26 @@ namespace Doxense.Serialization.Json
 		/// "foo.bar[42].baz" => "baz"
 		/// </code></example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ReadOnlySpan<char> GetKey() => TryGetKey(out var key) ? key : default;
+		public ReadOnlySpan<char> GetLastKey() => TryGetLastKey(out var key) ? key : default;
 
-		/// <summary>Tests if the last segment is an index</summary>
+		/// <summary>Tests if this path consists of a single array index</summary>
+		/// <returns><see langword="true"/> if the path is a single array index (ex: <c>"[123]"</c>), or <see langword="false"/> if it is a key name (ex: <c>"foo"</c>) or has mutiple segments (<c>"foo[1]"</c>)</returns>
+		/// <remarks>This can be used to speed up processing of selectors where the vast majority of cases is a single child</remarks>
+		public bool TryGetSingleIndex(out Index index)
+		{
+			int consumed = ParseNext(this.Value.Span, out var keyLength, out index);
+
+			if (keyLength != 0 || consumed >= this.Value.Length)
+			{ // starts with a key name, or more than one segment
+				index = default;
+				return false;
+			}
+
+			return true;
+		}
+
+		/// <summary>Tests if the last segment of this path is an index</summary>
+		/// <returns><see langword="true"/> if the path ends with a array indexer (ex: <c>"foo[1]"</c> or <c>"foo.bar[1]"</c>), or <see langword="false"/> if the last segment is a key name (ex: <c>"foo.bar"</c> or <c>"foo[1].bar"</c>), </returns>
 		/// <example><code>
 		/// "" => false
 		/// "foo" => false
@@ -910,7 +1128,7 @@ namespace Doxense.Serialization.Json
 		/// "foo.bar[^1].baz" => false
 		/// </code></example>
 		[Pure]
-		public bool TryGetIndex(out Index index)
+		public bool TryGetLastIndex(out Index index)
 		{
 			var path = this.Value.Span;
 			if (path.Length == 0)
@@ -982,18 +1200,16 @@ namespace Doxense.Serialization.Json
 		/// "foo.bar[^1].baz" => null
 		/// </code></example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Index? GetIndex() => TryGetIndex(out var index) ? index : null;
+		public Index? GetLastIndex() => TryGetLastIndex(out var index) ? index : null;
 
 		[Pure]
-		public JsonPath ParseNext(out ReadOnlyMemory<char> key, out Index index, out int consumed)
+		public static int ParseNext(ReadOnlySpan<char> path, out int keyLength, out Index index)
 		{
-			var path = this.Value.Span;
 			if (path.Length == 0)
 			{ // empty: "" => "", _, _
-				key = default;
+				keyLength = 0;
 				index = default;
-				consumed = 0;
-				return default;
+				return 0;
 			}
 			int p = GetIndexOf(path, '.'); // if >=0, could be "foo.bar" or "foo[42].bar" or "[42].foo"
 			int q = GetIndexOf(path, '['); // if >=0, could be "[42]" or "foo[42]"
@@ -1017,17 +1233,15 @@ namespace Doxense.Serialization.Json
 
 				if (p < 0)
 				{ // single field access: "foo" => "", "foo", _, 3
-					key = this.Value;
+					keyLength = path.Length;
 					index = default;
-					consumed = key.Length;
-					return default;
+					return keyLength;
 				}
 
 				// multiple fields access: "foo.bar.baz" => "bar.baz", "foo", _, 4
-				key = this.Value[..p];
+				keyLength = p;
 				index = default;
-				consumed = p + 1;
-				return new(this.Value[(p + 1)..]);
+				return p + 1;
 			}
 
 			if (p < 0)
@@ -1035,59 +1249,54 @@ namespace Doxense.Serialization.Json
 
 				if (q > 0)
 				{ // key[index]: "foo[42]" => "[42]", "foo", _, 3
-					key = this.Value[..q];
+					keyLength = q;
 					index = default;
-					consumed = q;
-					return new(this.Value[q..]);
+					return q;
 				}
 
 				//either [x] or [x][y]...
 				int r = GetIndexOf(path, ']');
-				if (r < q) throw new FormatException("Invalid JSON Path: missing required ']' in indexer.");
+				if (r < q) throw ThrowHelper.FormatException("Invalid JSON Path: missing required ']' in indexer.");
 				
 				// [index]: "[42]" => "", _, 42, 4
-				key = default;
+				keyLength = 0;
 				index = ParseIndex(path[1..r]);
-				consumed = r + 1;
-				return consumed < path.Length ? new(this.Value[consumed..]) : default;
+				return r + 1;
 			}
 
 			if (q == 0)
 			{ // [index].bar: "[42].bar" => "bar", "[42]", _, 4
 				int r = GetIndexOf(path, ']');
-				if (r < q) throw new FormatException("Invalid JSON Path: missing required ']' in indexer.");
-				key = default;
+				if (r < q) throw ThrowHelper.FormatException("Invalid JSON Path: missing required ']' in indexer.");
+				keyLength = 0;
 				index = ParseIndex(path[1..r]);
 				if (r + 1 == p)
 				{ // [index].key
-					consumed = r + 2; // skip the dot
+					return r + 2; // skip the dot
 				}
 				else
 				{ // [index][index].key
-					consumed = r + 1;
+					return r + 1;
 				}
-				return new(this.Value[consumed..]);
 			}
 
 			if (p > q)
 			{ // key[index].key: "foo[42].bar" => "[42].bar", _, 42, 4
-				key = this.Value[..q];
+				keyLength = q;
 				index = default;
-				consumed = q;
-				return new(this.Value[consumed..]);
+				return q;
 			}
 
 			// key.key[index]: "foo.bar[42]" => "bar[42]", "foo", _, 4
-			key = this.Value[..p]; // "foo"
+			keyLength = p; // "foo"
 			index = default;
-			consumed = p + 1;
-			return new(this.Value[(p + 1)..]); // "bar" (must skip the '.')
+			return p + 1;
 		}
 
 		[Pure]
-		private Index ParseIndex(ReadOnlySpan<char> literal)
+		private static Index ParseIndex(ReadOnlySpan<char> literal)
 		{
-			if (literal.Length == 0) throw new FormatException("Invalid JSON Path: empty [] clause.");
+			if (literal.Length == 0) throw ThrowHelper.FormatException("Invalid JSON Path: empty [] clause.");
 			bool fromEnd = false;
 			if (literal[0] == '^')
 			{
@@ -1098,12 +1307,12 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 			if (!int.TryParse(literal, CultureInfo.InvariantCulture, out var result))
 			{
-				throw new FormatException("Invalid JSON Path: invalid [..] clause.");
+				throw ThrowHelper.FormatException("Invalid JSON Path: invalid [..] clause.");
 			}
 #else
 			if (!int.TryParse(literal, out var result))
 			{
-				throw new FormatException("Invalid JSON Path: invalid [..] clause.");
+				throw ThrowHelper.FormatException("Invalid JSON Path: invalid [..] clause.");
 			}
 #endif
 
@@ -1149,7 +1358,7 @@ namespace Doxense.Serialization.Json
 		{
 
 			private JsonPath Path;
-			private JsonPath Tail;
+			private ReadOnlyMemory<char> Tail;
 			private int Offset;
 			private int Consumed;
 			public ReadOnlyMemory<char> Key;
@@ -1159,7 +1368,7 @@ namespace Doxense.Serialization.Json
 			public Tokenizer(JsonPath path)
 			{
 				this.Path = path;
-				this.Tail = path;
+				this.Tail = path.Value;
 				this.Offset = 0;
 				this.Consumed = 0;
 				this.Key = default;
@@ -1169,7 +1378,7 @@ namespace Doxense.Serialization.Json
 
 			public void Reset()
 			{
-				this.Tail = this.Path;
+				this.Tail = this.Path.Value;
 				this.Offset = 0;
 				this.Consumed = 0;
 				this.Key = default;
@@ -1180,29 +1389,37 @@ namespace Doxense.Serialization.Json
 			public bool MoveNext()
 			{
 				var tail = this.Tail;
-				if (tail.Value.Length == 0)
+				if (tail.Length == 0)
 				{
 					return false;
 				}
-				++this.Depth;
-				var next = tail.ParseNext(out this.Key, out this.Index, out int consumed);
 
-				if (this.Key.Length > 0 && RequiresEscaping(this.Key.Span))
+				++this.Depth;
+
+				var consumed = ParseNext(tail.Span, out var keyLength, out this.Index);
+				Contract.Debug.Assert(consumed >= keyLength);
+
+				if (consumed == 0)
+				{
+					this.Key = default;
+					this.Consumed = 0;
+					this.Tail = default;
+					Contract.Debug.Assert(this.Offset == this.Path.Value.Length);
+					return false;
+				}
+
+				this.Key = keyLength > 0 ? tail[..keyLength] : default;
+
+				if (keyLength > 0 && RequiresEscaping(this.Key.Span))
 				{ // we need to decode the key to remove any '\'
 					//HACKHACK: OPTIMIZE: TODO: this allocates inside the tokenizer which is usually in the hot path of JsonValue.GetPath(...) !!
 					// => we _could_ use a small temp buffer from a pool, but we would need to make SURE that nobody can capture the Key
 					//    this is currently a ReadOnlyMemory<char> and would need to be changed into a ReadOnlySpan<char> ?
-					this.Key = Unescape(this.Key.Span).AsMemory();
+					this.Key = DecodeKeyNameSlow(this.Key.Span).AsMemory();
 				}
 
-				if (consumed == 0)
-				{
-					this.Consumed = 0;
-					Contract.Debug.Assert(this.Offset == this.Path.Value.Length);
-					return false;
-				}
 				this.Offset += this.Consumed;
-				this.Tail = next;
+				this.Tail = tail.Slice(consumed);
 				this.Consumed = consumed;
 				Contract.Debug.Ensures(!(this.Key.Length > 0 && (!this.Index.Equals(default)))); // both cannot be true at the same time
 				Contract.Debug.Ensures(this.Consumed > 0); // we should have advanced in the path
@@ -1281,6 +1498,33 @@ namespace Doxense.Serialization.Json
 			{
 				sb.Append(CultureInfo.InvariantCulture, $"[{index}]");
 			}
+		}
+
+		public sealed class Comparer : IEqualityComparer<JsonPath>, IComparer<JsonPath>
+		{
+
+			public static readonly Comparer Default = new();
+
+			private Comparer() { }
+
+			/// <inheritdoc />
+			public bool Equals(JsonPath x, JsonPath y)
+			{
+				return x.Equals(y);
+			}
+
+			/// <inheritdoc />
+			public int GetHashCode(JsonPath obj)
+			{
+				return obj.GetHashCode();
+			}
+
+			/// <inheritdoc />
+			public int Compare(JsonPath x, JsonPath y)
+			{
+				return x.Value.Span.SequenceCompareTo(y.Value.Span);
+			}
+
 		}
 
 	}

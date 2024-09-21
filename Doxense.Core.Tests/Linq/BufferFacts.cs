@@ -338,9 +338,7 @@ namespace Doxense.Linq.Tests
 		[Test]
 		public void Test_Buffer_Stuffing()
 		{
-			int seed = Random.Shared.Next();
-			Log($"Seed: {seed}");
-			var rnd = new Random(seed);
+			var rnd = CreateRandomizer();
 
 			var buffer = new Buffer<int>();
 			int remaining = 1_000;
@@ -539,5 +537,4 @@ namespace Doxense.Linq.Tests
 #endif
 
 	}
-
 }

@@ -26,10 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public static class FdbTenantExtensions

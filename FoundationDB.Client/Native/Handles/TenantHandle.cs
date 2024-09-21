@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
-	using System.Threading;
 	using FoundationDB.Client.Utils;
 
 	/// <summary>Wrapper on a FDBTenant*</summary>

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FdbShell": {
+      "commandName": "Project",
+      "commandLineArgs": "--aspire"
+    }
+  }
+}

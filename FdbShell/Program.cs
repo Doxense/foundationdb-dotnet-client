@@ -31,284 +31,455 @@
 namespace FdbShell
 {
 	using System.Collections.Generic;
+	using System.CommandLine;
+	using System.CommandLine.Invocation;
 	using System.Diagnostics;
-	using System.IO;
+	using System.Globalization;
 	using System.Linq;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense;
-	using Mono.Options;
+	using FoundationDB.DependencyInjection;
+	using Microsoft.Extensions.DependencyInjection;
 	using Mono.Terminal;
 
 	public static class Program
 	{
-		private static IFdbDatabase? Db;
-
-		internal static FdbPath CurrentDirectoryPath = FdbPath.Root;
-
-		internal static string Description = "?";
-
-		internal static void Comment(TextWriter output, string msg)
-		{
-			StdOut(output, msg, ConsoleColor.DarkGray);
-		}
-
-		internal static void Error(TextWriter output, string msg)
-		{
-			StdOut(output, msg, ConsoleColor.Red);
-		}
-
-		internal static void Success(TextWriter output, string msg)
-		{
-			StdOut(output, msg, ConsoleColor.Green);
-		}
-
-		internal static void StdOut(TextWriter output, string msg, ConsoleColor color = ConsoleColor.DarkGray)
-		{
-			if (output == Console.Out)
-			{
-				StdOut(msg, color);
-			}
-			else
-			{
-				output.WriteLine(msg);
-			}
-		}
-
-		private static void StdOut(string msg, ConsoleColor color = ConsoleColor.DarkGray)
-		{
-			var prev = Console.ForegroundColor;
-			if (prev != color) Console.ForegroundColor = color;
-			Console.WriteLine(msg);
-			if (prev != color) Console.ForegroundColor = prev;
-		}
-
-		private static void StdErr(string msg, ConsoleColor color = ConsoleColor.DarkRed)
-		{
-			var prev = Console.ForegroundColor;
-			Console.ForegroundColor = color;
-			Console.Error.WriteLine(msg);
-			Console.ForegroundColor = prev;
-		}
-
-		public static async Task RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command, CancellationToken cancel)
-		{
-			var db = Db ?? throw new InvalidOperationException("DB not available");
-
-			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
-			{ 
-				try
-				{
-					await command(db, Console.Out, cts.Token).ConfigureAwait(false);
-				}
-				finally
-				{
-					await cts.CancelAsync();
-				}
-			}
-		}
-
-		public static async Task<Maybe<T>> RunAsyncCommand<T>(Func<IFdbDatabase, TextWriter, CancellationToken, Task<T>> command, CancellationToken cancel)
-		{
-			var db = Db ?? throw new InvalidOperationException("DB not available");
-
-			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
-			{
-				try
-				{
-					return Maybe.Return<T>(await command(db, Console.Out, cts.Token).ConfigureAwait(false));
-				}
-				catch (Exception e)
-				{
-					return Maybe.Error<T>(e);
-				}
-				finally
-				{
-					await cts.CancelAsync();
-				}
-			}
-		}
 
 		public static void Main(string[] args)
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
-			try
-			{
-				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
-				{
-					Console.WindowWidth = 160;
-					Console.WindowHeight = 60;
-				}
-			}
-			catch
-			{
-				// this sometimes fail on small screen sizes
-			}
 
 			// Initialize FDB
 
 			try
 			{
-				Fdb.Start(620);
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();
 				}
 			}
+			catch (Exception e)
+			{
+				Console.Error.WriteLine("CRASH: " + e);
+			}
 			finally
 			{
 				Fdb.Stop();
-				StdOut("Bye");
 			}
 		}
+
 
 		private static async Task MainAsync(string[] args, CancellationToken cancel)
 		{
 			#region Options Parsing...
 
-			string? clusterFile = null;
-			string? connectionString = null;
-			var partition = FdbPath.Root;
-			bool showHelp = false;
-			int timeout = 30;
-			int maxRetries = 10;
-			string? execCommand = null;
+			var cmd = new FdbShellCommand(cancel);
 
-			var opts = new OptionSet()
+			try
 			{
-				{ 
-					"c|C|connfile=",
-					"The path of a file containing the connection string for the FoundationDB cluster.",
-					v => clusterFile = v
-				},
-				{ 
-					"connStr=",
-					"The connection string for the FoundationDB cluster.",
-					v => connectionString = v
-				},
-				{ 
-					"p|partition=",
-					"The name of the database partition to open.",
-					v => partition = FdbPath.Parse(v.Trim())
-				},
-				{
-					"t|timeout=",
-					"Default timeout (in seconds) for failed transactions.",
-					(int v) => timeout = v
-				},
-				{
-					"r|retries=",
-					"Default max retry count for failed transactions.",
-					(int v) => maxRetries = v
-				},
-				{
-					"exec=",
-					"Execute this command, and exits immediately.",
-					v => execCommand = v
-				},
-				{
-					"h|help",
-					"Show this help and exit.",
-					v => showHelp = v != null
-				}
-			};
-
-			var extra = opts.Parse(args);
-
-			if (showHelp)
-			{
-				//TODO!
-				opts.WriteOptionDescriptions(Console.Out);
-				return;
+				await cmd.InvokeAsync(args);
 			}
-
-			string? startCommand = null;
-			if (!string.IsNullOrEmpty(execCommand))
+			catch (Exception e)
 			{
-				startCommand = execCommand;
-			}
-			else if (extra.Count > 0)
-			{ // the remainder of the command line will be the first command to execute
-				startCommand = string.Join(" ", extra);
+				Console.Error.WriteLine("Crash: " + e);
 			}
 
 			#endregion
+		}
+
+		public class FdbShellCommand : RootCommand
+		{
+
+			public FdbShellCommand(CancellationToken cancel)
+				: base("Hello, there!")
+			{
+				this.AddGlobalOption(ClusterFileOption);
+				this.AddGlobalOption(ConnectionStringOption);
+				this.AddGlobalOption(ApiVersionOption);
+				this.AddGlobalOption(PartitionOption);
+				this.AddGlobalOption(TimeoutOption);
+				this.AddGlobalOption(RetriesOption);
+				this.AddGlobalOption(AspireOption);
+				this.AddOption(ExecOption);
+
+				this.SetHandler(RunShell);
+
+				this.Cancellation = cancel;
+			}
+
+			public CancellationToken Cancellation { get; }
+
+			private static readonly System.CommandLine.Option<string?> ClusterFileOption = new (
+				["--connfile", "-c", "-C"],
+				"The path of a file containing the connection string for the FoundationDB cluster."
+			);
+
+			private static readonly System.CommandLine.Option<string?> ConnectionStringOption = new (
+				["--connStr"],
+				"The connection string for the FoundationDB cluster."
+			);
+
+			private static readonly System.CommandLine.Option<int?> ApiVersionOption = new(
+				[ "--api" ],
+				"The API version level that should be used."
+			);
+
+			private static readonly System.CommandLine.Option<string?> PartitionOption = new(
+				[ "--partition", "-p" ],
+				"The name of the database partition to open."
+			);
+
+			private static readonly System.CommandLine.Option<int?> TimeoutOption = new(
+				[ "--timeout", "-t" ],
+				getDefaultValue: () => 30,
+				"Default timeout (in seconds) for failed transactions."
+			);
+
+			private static readonly System.CommandLine.Option<int?> RetriesOption = new(
+				[ "--retries", "-r" ],
+				getDefaultValue: () => 10,
+				"Default max retry count for failed transactions."
+			);
+
+			private static readonly System.CommandLine.Option<string?> ExecOption = new(
+				[ "--exec" ],
+				"Execute this command, and exits immediately."
+			);
+
+			private static readonly Option<bool> AspireOption = new(
+				[ "--aspire" ],
+				"Use the local docker instance managed by .NET Aspire"
+			);
+
+			private async Task RunShell(InvocationContext context)
+			{
+				var clusterFile = context.ParseResult.GetValueForOption(ClusterFileOption);
+				var connectionString = context.ParseResult.GetValueForOption(ConnectionStringOption);
+				var apiVersion = context.ParseResult.GetValueForOption(ApiVersionOption);
+				var partition = context.ParseResult.GetValueForOption(PartitionOption);
+				var timeout = context.ParseResult.GetValueForOption(TimeoutOption) ?? 30;
+				var maxRetries = context.ParseResult.GetValueForOption(RetriesOption) ?? 10;
+				var execCommand = context.ParseResult.GetValueForOption(ExecOption);
+				var aspire = context.ParseResult.GetValueForOption(AspireOption);
+
+				if (aspire)
+				{
+					clusterFile = null;
+					connectionString = "docker:docker@127.0.0.1:4550";
+				}
+
+				if (apiVersion == null)
+				{
+					apiVersion = !string.IsNullOrEmpty(connectionString) ? 720 : 620;
+				}
+
+				var rootPath = string.IsNullOrEmpty(partition) ? FdbPath.Root : FdbPath.Parse(partition);
+
+				string? startCommand = null;
+				if (!string.IsNullOrEmpty(execCommand))
+				{
+					startCommand = execCommand;
+				}
+				//else if (extra.Count > 0)
+				//{ // the remainder of the command line will be the first command to execute
+				//	startCommand = string.Join(" ", extra);
+				//}
+
+				var builder = new ServiceCollection();
+
+				builder.AddFoundationDb(apiVersion.Value, options =>
+				{
+					options.ConnectionOptions.ClusterFile = clusterFile;
+					options.ConnectionOptions.ConnectionString = connectionString;
+					options.ConnectionOptions.Root = rootPath;
+
+					options.ConnectionOptions.DefaultTimeout = TimeSpan.FromSeconds(Math.Max(0, timeout));
+					options.ConnectionOptions.DefaultRetryLimit = Math.Max(0, maxRetries);
+				});
+
+				builder.AddSingleton<FdbShellRunner>();
+				builder.AddSingleton<IFdbShellTerminal, FdbShellConsoleTerminal>();
+
+				var services = builder.BuildServiceProvider();
+
+				var terminal = services.GetRequiredService<IFdbShellTerminal>();
+
+				if (terminal.IsInteractive)
+				{
+					terminal.SetWindowSize(160, 60);
+				}
+
+				var runner = services.GetRequiredService<FdbShellRunner>();
+
+				var shellArgs = new FdbShellRunnerArguments()
+				{
+					StartCommand = startCommand,
+					RunSingleCommand = execCommand != null,
+				};
+
+				await runner.RunAsync(shellArgs, this.Cancellation);
+			}
+		}
+
+
+	}
+
+	public interface IFdbShellTerminal
+	{
+
+		bool IsInteractive { get; }
+
+		void StdOut(string? msg = null, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true);
+
+		void StdOut(ref DefaultInterpolatedStringHandler msg, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true);
+
+		void StdErr(string msg, ConsoleColor color = ConsoleColor.DarkGray);
+
+		void StdErr(ref DefaultInterpolatedStringHandler msg, ConsoleColor color = ConsoleColor.DarkGray);
+
+		void Beep();
+
+		bool SetWindowSize(int? width, int? height);
+
+	}
+
+	public class FdbShellConsoleTerminal : IFdbShellTerminal
+	{
+
+		public bool IsInteractive => true;
+
+		public bool DisableColors { get; set; }
+
+		public bool IsSilent { get; set; }
+
+		public void Beep()
+		{
+			if (!this.IsSilent)
+			{
+				Console.Beep();
+			}
+		}
+
+		public void StdOut(string? msg = null, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true)
+		{
+			if (this.DisableColors)
+			{
+				if (newLine)
+				{
+					Console.WriteLine(msg);
+				}
+				else
+				{
+					Console.Write(msg);
+				}
+			}
+			else
+			{
+				var prev = Console.ForegroundColor;
+				if (prev != color) Console.ForegroundColor = color;
+
+				if (newLine)
+				{
+					Console.WriteLine(msg);
+				}
+				else
+				{
+					Console.Write(msg);
+				}
+
+				if (prev != color) Console.ForegroundColor = prev;
+			}
+		}
+
+		public void StdOut(ref DefaultInterpolatedStringHandler msg, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true)
+			=> StdOut(string.Create(CultureInfo.InvariantCulture, ref msg), color, newLine);
+
+		public void StdErr(string msg, ConsoleColor color = ConsoleColor.DarkRed)
+		{
+			if (this.DisableColors)
+			{
+				Console.Error.WriteLine(msg);
+			}
+			else
+			{
+				var prev = Console.ForegroundColor;
+				if (prev != color)
+				{
+					Console.ForegroundColor = color;
+				}
+
+				Console.Error.WriteLine(msg);
+
+				if (prev != color)
+				{
+					Console.ForegroundColor = prev;
+				}
+			}
+		}
+
+		public void StdErr(ref DefaultInterpolatedStringHandler msg, ConsoleColor color = ConsoleColor.DarkRed)
+			=> StdErr(string.Create(CultureInfo.InvariantCulture, ref msg), color);
+
+		public bool SetWindowSize(int? width, int? height)
+		{
+			if (width <= 0) return false;
+
+			if (OperatingSystem.IsWindows())
+			{
+				try
+				{
+					if (width > 0)
+					{
+						Console.WindowWidth = width.Value;
+					}
+
+					if (height > 0)
+					{
+						Console.WindowHeight = height.Value;
+					}
+				}
+				catch (Exception e)
+				{
+					StdErr($"Failed to change console width: {e.Message}");
+					return false;
+				}
+			}
+
+			return false;
+		}
+
+	}
+
+	public static class FdbShellTerminalExtensions
+	{
+
+		public static void Comment(this IFdbShellTerminal terminal, string msg) => terminal.StdOut(msg, ConsoleColor.DarkGray);
+
+		public static void Comment(this IFdbShellTerminal terminal, ref DefaultInterpolatedStringHandler msg) => terminal.StdOut(ref msg, ConsoleColor.DarkGray);
+
+		public static void Error(this IFdbShellTerminal terminal, string msg) => terminal.StdErr(msg, ConsoleColor.Red);
+
+		public static void Error(this IFdbShellTerminal terminal, ref DefaultInterpolatedStringHandler msg) => terminal.StdErr(ref msg, ConsoleColor.Red);
+
+		public static void Success(this IFdbShellTerminal terminal, string msg) => terminal.StdOut(msg, ConsoleColor.Green);
+
+		public static void Success(this IFdbShellTerminal terminal, ref DefaultInterpolatedStringHandler msg) => terminal.StdOut(ref msg, ConsoleColor.Green);
+
+		public static void Progress(this IFdbShellTerminal terminal, string msg) => terminal.StdOut(msg, newLine: false);
+
+		public static void Progress(this IFdbShellTerminal terminal, ref DefaultInterpolatedStringHandler msg) => terminal.StdOut(ref msg, newLine: false);
+
+	}
+
+	public sealed record FdbShellRunnerArguments
+	{
+
+		public FdbPath InitialPath { get; set; } = FdbPath.Root;
+
+		public string? StartCommand { get; set; }
+
+		public bool RunSingleCommand { get; set; }
+
+	}
+
+	public class FdbShellRunner
+	{
+
+		private IFdbDatabaseProvider Db { get; }
+
+		public IFdbShellTerminal Terminal { get; }
+
+		public FdbPath CurrentDirectoryPath { get; private set; }
+
+		public string Description { get; set; } = "?";
+
+		public FdbShellRunner(IFdbDatabaseProvider db, IFdbShellTerminal terminal)
+		{
+			this.Db = db;
+			this.Terminal = terminal;
+		}
+
+		private void StdOut(string log, ConsoleColor color = ConsoleColor.DarkGray) => this.Terminal.StdOut(log, color);
+
+		private void StdOut(ref DefaultInterpolatedStringHandler log, ConsoleColor color = ConsoleColor.DarkGray) => this.Terminal.StdErr(string.Create(CultureInfo.InvariantCulture, ref log), color);
+
+		private void StdErr(string log, ConsoleColor color = ConsoleColor.DarkRed) => this.Terminal.StdErr(log, color);
+
+		private void StdErr(ref DefaultInterpolatedStringHandler log, ConsoleColor color = ConsoleColor.DarkGray) => this.Terminal.StdErr(string.Create(CultureInfo.InvariantCulture, ref log), color);
+
+		private static readonly Dictionary<string, string> KnownCommands = new (StringComparer.OrdinalIgnoreCase)
+		{
+			["cd"] = "Change the current directory",
+			["clear"] = "Clear a key in the current directory",
+			["clearrange"] = "Clear a range of keys in the current directory",
+			["get"] = "Read the value of a key in the current directory",
+			["coordinators"] = "Display the list of current coordinators",
+			["count"] = "Count the number of keys in the current directory",
+			["dir"] = "Display the list of sub-directories",
+			["dump"] = "Dump the content of the current directory",
+			["quit"] = "Stop the shell",
+			["help"] = "Display this list",
+			["layer"] = "Display of change the layer id of the current directory",
+			["map"] = "Map the content of a directory and display a report",
+			["mkdir"] = "Create a new sub-directory",
+			["mv"] = "Move a directory to another location",
+			["pwd"] = "Prints the current path",
+			["ren"] = "Rename a directory",
+			["rmdir"] = "Remove a directory",
+			["sampling"] = "Perform a random sampling of the keys in a directory",
+			["shards"] = "Display the shards that intersect a directory",
+			["show"] = "List the keys and values in a directory",
+			["status"] = "Display the status of cluster",
+			["topology"] = "Display the topology of the cluster",
+			["tree"] = "Show all the directories under the current directory",
+			["version"] = "Display the version of the client and cluster",
+			["wide"] = "Switch to wide screen (only on Windows)",
+		};
+
+
+		public async Task RunAsync(FdbShellRunnerArguments args, CancellationToken cancel)
+		{
+			StdOut("Connecting to cluster...");
+
+			this.CurrentDirectoryPath = args.InitialPath;
 
 			bool stop = false;
-			Db = null;
 			try
 			{
-				var cnxOptions = new FdbConnectionOptions
+				StdOut($"Using API v{Fdb.ApiVersion} (max {Fdb.GetMaxApiVersion()})", ConsoleColor.Gray);
+				if (!string.IsNullOrEmpty(this.Db.ProviderOptions.ConnectionOptions.ConnectionString))
 				{
-					ClusterFile = clusterFile,
-					ConnectionString = connectionString,
-					Root = partition
-				};
-				Db = await ChangeDatabase(cnxOptions, cancel);
-				Db.Options.DefaultTimeout = Math.Max(0, timeout) * 1000;
-				Db.Options.DefaultRetryLimit = Math.Max(0, maxRetries);
-
-				StdOut("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")", ConsoleColor.Gray);
-				StdOut("Cluster file: " + (clusterFile ?? "<default>"), ConsoleColor.Gray);
+					StdOut($"Cluster file: {(this.Db.ProviderOptions.ConnectionOptions.ConnectionString)}", ConsoleColor.Gray);
+				}
+				else
+				{
+					StdOut($"Cluster file: {(this.Db.ProviderOptions.ConnectionOptions.ClusterFile ?? "<default>")}", ConsoleColor.Gray);
+				}
 				StdOut("");
 				StdOut("FoundationDB Shell menu:");
-				StdOut("\tcd\tChange the current directory");
-				StdOut("\tdir\tList the sub-directories the current directory");
-				StdOut("\tshow\tShow the content of the current directory");
-				StdOut("\ttree\tShow all the directories under the current directory");
-				StdOut("\tsampling\tDisplay statistics on random shards from the database");
-				StdOut("\tcoordinators\tShow the current coordinators for the cluster");
-				//StdOut("\thelp\tShow all the commands");
-				StdOut("\tquit\tQuit");
+				foreach (var cmd in (string[]) ["cd", "dir", "show", "tree", "help", "quit"])
+				{
+					StdOut($"  {cmd,-8} {FdbShellRunner.KnownCommands[cmd]}");
+				}
 				StdOut("");
 
 				try
 				{
-					var cf = await Fdb.System.GetCoordinatorsAsync(Db, cancel);
-					Description = cf.Description;
+					var cf = await Fdb.System.GetCoordinatorsAsync(this.Db, cancel);
+					this.Description = cf.Description;
 					StdOut("Ready...", ConsoleColor.DarkGreen);
 				}
 				catch (Exception e)
 				{
-					StdErr("Failed to get coordinators state from cluster: " + e.Message, ConsoleColor.DarkRed);
-					Description = "???";
+					StdErr($"Failed to get coordinators state from cluster: {e.Message}", ConsoleColor.DarkRed);
+					this.Description = "???";
 				}
 				
 				StdOut("");
 
 				var le = new LineEditor("FDBShell");
-
-				string[] cmds =
-				[
-					"cd",
-					"clear",
-					"coordinators",
-					"count",
-					"dir",
-					"dump",
-					"exit",
-					"gc",
-					"help",
-					"layer",
-					"map",
-					"mem",
-					"mkdir",
-					"mv",
-					"partition",
-					"pwd",
-					"quit",
-					"ren",
-					"rmdir",
-					"sampling",
-					"shards",
-					"show",
-					"status",
-					"topology",
-					"tree",
-					"version",
-					"wide",
-				];
 
 				le.AutoCompleteEvent = (txt, _) =>
 				{
@@ -357,10 +528,10 @@ namespace FdbShell
 					}
 
 					// list of commands
-					res = cmds
-						.Where(cmd => cmd.StartsWith(txt, StringComparison.OrdinalIgnoreCase))
-						.Select(cmd => cmd.Substring(txt.Length))
-						.ToArray();
+					res = KnownCommands
+					      .Where(cmd => cmd.Key.StartsWith(txt, StringComparison.OrdinalIgnoreCase))
+					      .Select(cmd => cmd.Key.Substring(txt.Length))
+					      .ToArray();
 					return new LineEditor.Completion(txt, res);
 				};
 				le.TabAtStartCompletes = true;
@@ -369,25 +540,30 @@ namespace FdbShell
 
 				void UpdatePrompt(FdbPath path)
 				{
-					prompt = $"[fdb:{Description} {path}]# ";
+					prompt = $"[fdb:{this.Description} {path}]# ";
 				}
 				le.PromptColor = ConsoleColor.Cyan;
 				UpdatePrompt(CurrentDirectoryPath);
 
+				List<string> history = [];
+				string? nextCommand = args.StartCommand;
+
 				while (!stop)
 				{
 					string s;
-					if (startCommand != null)
+					if (nextCommand != null)
 					{
-						s = startCommand;
-						startCommand = null;
+						s = nextCommand;
+						nextCommand = null;
 					}
 					else
 					{
-						s = startCommand ?? le.Edit(prompt, "");
+						s = le.Edit(prompt, "");
 					}
 
 					if (s == null) break;
+
+					history.Add(s);
 
 					//TODO: we need a tokenizer that recognizes binary keys, tuples, escaped paths, etc...
 					var tokens = Tokenize(s);
@@ -404,10 +580,21 @@ namespace FdbShell
 								continue;
 							}
 
+							case "help":
+							{
+								ShowCommandHelp(this.Terminal);
+								break;
+							}
+
 							case "version":
 							{
-								await VersionCommand(extras, clusterFile, Console.Out, cancel);
-								break;
+								//TODO: get the version from the client or status json
+								throw new NotImplementedException();
+								//if (clusterFile != null)
+								//{
+								//	await VersionCommand(extras, clusterFile, Console.Out, cancel);
+								//}
+								//break;
 							}
 
 							case "tree":
@@ -487,12 +674,12 @@ namespace FdbShell
 									if (res.Failed)
 									{
 										StdErr($"# Failed to open Directory {newPath}: {res.Error!.Message}", ConsoleColor.Red);
-										Console.Beep();
+										this.Terminal.Beep();
 									}
 									else if (res.Value == null)
 									{
 										StdOut($"# Directory {newPath} does not exist!", ConsoleColor.Red);
-										Console.Beep();
+										this.Terminal.Beep();
 									}
 									else
 									{
@@ -508,11 +695,11 @@ namespace FdbShell
 									);
 									if (res.Failed)
 									{
-										StdErr($"# Failed to query Directory {Program.CurrentDirectoryPath}: {res.Error!.Message}", ConsoleColor.Red);
+										StdErr($"# Failed to query Directory {this.CurrentDirectoryPath}: {res.Error!.Message}", ConsoleColor.Red);
 									}
 									else if (res.Value == null)
 									{
-										StdOut($"# Directory {Program.CurrentDirectoryPath} does not exist anymore");
+										StdOut($"# Directory {this.CurrentDirectoryPath} does not exist anymore");
 									}
 								}
 
@@ -654,52 +841,55 @@ namespace FdbShell
 
 							case "coordinators":
 							{
-								await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, log, ct), cancel);
+								await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, ct), cancel);
 								break;
 							}
 
 							case "partition":
 							{
-								string? prm = PopParam(ref extras);
-								if (string.IsNullOrEmpty(prm))
-								{
-									StdOut($"# Current partition is {partition}");
-									//TODO: browse existing partitions ?
-									break;
-								}
+								//TODO: how to re-implement this method?
+								throw new NotSupportedException();
 
-								var newPartition = FdbPath.Parse(prm.Trim());
-								IFdbDatabase? newDb = null;
-								try
-								{
-									var options = new FdbConnectionOptions
-									{
-										ClusterFile = clusterFile,
-										Root = newPartition
-									};
-									newDb = await ChangeDatabase(options, cancel);
-								}
-								catch (Exception)
-								{
-									newDb?.Dispose();
-									newDb = null;
-									throw;
-								}
-								finally
-								{
-									if (newDb != null)
-									{
-										if (Db != null)
-										{
-											Db.Dispose();
-											Db = null;
-										}
+								//string? prm = PopParam(ref extras);
+								//if (string.IsNullOrEmpty(prm))
+								//{
+								//	StdOut($"# Current partition is {partition}");
+								//	//TODO: browse existing partitions ?
+								//	break;
+								//}
 
-										Db = newDb;
-										partition = newPartition;
-										StdOut($"# Changed partition to {partition}");
-									}
-								}
+								//var newPartition = FdbPath.Parse(prm.Trim());
+								//IFdbDatabase? newDb = null;
+								//try
+								//{
+								//	var options = new FdbConnectionOptions
+								//	{
+								//		ClusterFile = clusterFile,
+								//		Root = newPartition
+								//	};
+								//	newDb = await ChangeDatabase(options, cancel);
+								//}
+								//catch (Exception)
+								//{
+								//	newDb?.Dispose();
+								//	newDb = null;
+								//	throw;
+								//}
+								//finally
+								//{
+								//	if (newDb != null)
+								//	{
+								//		if (Db != null)
+								//		{
+								//			Db.Dispose();
+								//			Db = null;
+								//		}
+
+								//		Db = newDb;
+								//		partition = newPartition;
+								//		StdOut($"# Changed partition to {partition}");
+								//	}
+								//}
 
 								break;
 							}
@@ -717,42 +907,37 @@ namespace FdbShell
 							case "gc":
 							{
 								long before = GC.GetTotalMemory(false);
-								Console.Write("Collecting garbage...");
+								this.Terminal.Progress("Collecting garbage...");
 								GC.Collect();
 								GC.WaitForPendingFinalizers();
 								GC.Collect();
 								StdOut(" Done");
 								long after = GC.GetTotalMemory(false);
-								StdOut("- before = " + before.ToString("N0"));
-								StdOut("- after  = " + after.ToString("N0"));
-								StdOut("- delta  = " + (before - after).ToString("N0"));
+								StdOut($"- before = {before:N0}");
+								StdOut($"- after  = {after:N0}");
+								StdOut($"- delta  = {(before - after):N0}");
 								break;
 							}
 
 							case "mem":
 							{
-								StdOut("Memory usage:");
-								StdOut("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
-								if (OperatingSystem.IsWindows())
-								{
-									StdOut("- Working Set  : " + PerfCounters.WorkingSet!.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak!.NextValue().ToString("N0") + ")");
-									StdOut("- Virtual Bytes: " + PerfCounters.VirtualBytes!.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak!.NextValue().ToString("N0") + ")");
-									StdOut("- Private Bytes: " + PerfCounters.PrivateBytes!.NextValue().ToString("N0"));
-									StdOut("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps!.NextValue().ToString("N0"));
-								}
+								//TODO: implement this in a more cross platform way!
+								throw new NotSupportedException();
+								//StdOut("Memory usage:");
+								//StdOut("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
+								//if (OperatingSystem.IsWindows())
+								//{
+								//	StdOut("- Working Set  : " + PerfCounters.WorkingSet!.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak!.NextValue().ToString("N0") + ")");
+								//	StdOut("- Virtual Bytes: " + PerfCounters.VirtualBytes!.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak!.NextValue().ToString("N0") + ")");
+								//	StdOut("- Private Bytes: " + PerfCounters.PrivateBytes!.NextValue().ToString("N0"));
+								//	StdOut("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps!.NextValue().ToString("N0"));
+								//}
 								break;
 							}
 
 							case "wide":
 							{
-								try
-								{
-									Console.WindowWidth = 160;
-								}
-								catch (Exception e)
-								{
-									StdErr("Failed to change console width: " + e.Message, ConsoleColor.DarkRed);
-								}
+								this.Terminal.SetWindowSize(160, null);
 
 								break;
 							}
@@ -760,6 +945,14 @@ namespace FdbShell
 							case "status":
 							case "wtf":
 							{
+								var clusterFile = this.Db.ProviderOptions.ConnectionOptions.ClusterFile;
+
+								if (string.IsNullOrEmpty(this.Db.ProviderOptions.ConnectionOptions.ConnectionString))
+								{
+									//TODO: write the string to a temp file?
+									throw new NotSupportedException("Needs a cluster file");
+								}
+
 								var result = await RunAsyncCommand((_, log, ct) => FdbCliCommands.RunFdbCliCommand("status details", null, clusterFile, log, ct), cancel);
 								if (result.Failed) break;
 								if (result.GetValueOrDefault()?.ExitCode != 0)
@@ -783,13 +976,13 @@ namespace FdbShell
 					}
 					catch (Exception e)
 					{
-						StdErr($"Failed to execute command '{trimmedCommand}': " + e.Message, ConsoleColor.Red);
+						StdErr($"Failed to execute command '{trimmedCommand}': {e.Message}", ConsoleColor.Red);
 #if DEBUG
 						StdErr(e.ToString(), ConsoleColor.DarkRed);
 #endif
 					}
 
-					if (!string.IsNullOrEmpty(execCommand))
+					if (args.RunSingleCommand)
 					{ // only run one command, and then exit
 						break;
 					}
@@ -798,7 +991,57 @@ namespace FdbShell
 			}
 			finally
 			{
-				Program.Db?.Dispose();
+				StdOut("Bye");
+				this.Db.Dispose();
+			}
+		}
+
+		private void ShowCommandHelp(IFdbShellTerminal terminal)
+		{
+			terminal.StdOut("List of supported commands:");
+			foreach (var (k, v) in FdbShellRunner.KnownCommands.OrderBy(kv => kv.Key))
+			{
+				terminal.StdOut($"  {k,-14} {v}");
+			}
+		}
+
+		public async Task RunAsyncCommand(Func<IFdbDatabase, IFdbShellTerminal, CancellationToken, Task> command, CancellationToken cancel)
+		{
+			//var db = Db ?? throw new InvalidOperationException("DB not available");
+
+			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
+			{ 
+				try
+				{
+					var db = await this.Db.GetDatabase(cancel);
+
+					await command(db, this.Terminal, cts.Token).ConfigureAwait(false);
+				}
+				finally
+				{
+					await cts.CancelAsync();
+				}
+			}
+		}
+
+		public async Task<Doxense.Maybe<T>> RunAsyncCommand<T>(Func<IFdbDatabase, IFdbShellTerminal, CancellationToken, Task<T>> command, CancellationToken cancel)
+		{
+			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
+			{
+				try
+				{
+					var db = await this.Db.GetDatabase(cancel);
+
+					return Doxense.Maybe.Return<T>(await command(db, this.Terminal, cts.Token).ConfigureAwait(false));
+				}
+				catch (Exception e)
+				{
+					return Doxense.Maybe.Error<T>(e);
+				}
+				finally
+				{
+					await cts.CancelAsync();
+				}
 			}
 		}
 
@@ -862,7 +1105,7 @@ namespace FdbShell
 			return p;
 		}
 
-		private static async Task<string[]?> AutoCompleteDirectories(FdbPath path, IFdbDatabase db, CancellationToken ct)
+		private async Task<string[]?> AutoCompleteDirectories(FdbPath path, IFdbDatabase db, CancellationToken ct)
 		{
 			var parent = await db.ReadAsync(tr => BasicCommands.TryOpenCurrentDirectoryAsync(tr, path), ct);
 			if (parent == null) return null;
@@ -873,28 +1116,28 @@ namespace FdbShell
 
 		#endregion
 
-		private static async Task VersionCommand(IVarTuple _, string? clusterFile, TextWriter log, CancellationToken cancel)
+		private async Task VersionCommand(IVarTuple _, string? clusterFile, IFdbShellTerminal terminal, CancellationToken cancel)
 		{
-			log.WriteLine("Using .NET Binding v{0} with API level {1}", new System.Reflection.AssemblyName(typeof(Fdb).Assembly.FullName!).Version, Fdb.ApiVersion);
-			var res = await RunAsyncCommand((_, _, ct) => FdbCliCommands.RunFdbCliCommand(null, "-h", clusterFile, log, ct), cancel);
+			terminal.StdOut($"Using .NET Binding v{new System.Reflection.AssemblyName(typeof(Fdb).Assembly.FullName!).Version} with API level {Fdb.ApiVersion}");
+			var res = await RunAsyncCommand((_, _, ct) => FdbCliCommands.RunFdbCliCommand(null, "-h", clusterFile, terminal, ct), cancel);
 			if (res.GetValueOrDefault()?.ExitCode == 0)
 			{
 				//HACK HACK HACK
-				log.WriteLine("Found {0}", res.Value!.StdOut.Split('\n')[0]);
+				terminal.StdOut($"Found {res.Value!.StdOut.Split('\n')[0]}");
 			}
 			else
 			{
-				log.WriteLine("# Failed to execute fdbcli :(");
+				terminal.StdOut("# Failed to execute fdbcli :(");
 			}
-			log.WriteLine();
+			terminal.StdOut();
 		}
 
-		private static async Task CoordinatorsCommand(IFdbDatabase db, TextWriter log, CancellationToken ct)
+		private async Task CoordinatorsCommand(IFdbDatabase db, CancellationToken ct)
 		{
 			var cf = await Fdb.System.GetCoordinatorsAsync(db, ct);
-			Description = cf.Description;
-			Program.StdOut(log, $"Connnected to: {cf.Description} ({cf.Id})", ConsoleColor.Gray);
-			Program.StdOut(log, $"Found {cf.Coordinators.Length} coordinator(s):");
+			this.Description = cf.Description;
+			StdOut($"Connnected to: {cf.Description} ({cf.Id})", ConsoleColor.Gray);
+			StdOut($"Found {cf.Coordinators.Length} coordinator(s):");
 			foreach (var coordinator in cf.Coordinators)
 			{
 				//string hostName = null;
@@ -905,17 +1148,8 @@ namespace FdbShell
 				//}
 				//catch (Exception) { }
 
-				Program.StdOut(log, $"  {coordinator.Address}:{coordinator.Port}", ConsoleColor.White);
+				StdOut($"  {coordinator.Address}:{coordinator.Port}", ConsoleColor.White);
 			}
-		}
-
-		private static Task<IFdbDatabase> ChangeDatabase(FdbConnectionOptions options, CancellationToken ct)
-		{
-			options.DefaultTimeout = TimeSpan.FromSeconds(30);
-			options.DefaultRetryLimit = 50;
-			Program.StdOut("Connecting to cluster...", ConsoleColor.Gray);
-
-			return Fdb.OpenAsync(options, ct);
 		}
 
 		private static IVarTuple Tokenize(string s)
@@ -1065,5 +1299,5 @@ namespace FdbShell
 		}
 
 	}
-}
 
+}

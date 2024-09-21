@@ -26,12 +26,8 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 

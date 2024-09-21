@@ -26,12 +26,8 @@
 
 namespace FoundationDB.DependencyInjection
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 
 	/// <summary>Default implementation of a scope provider that uses a pre-initialized database instance</summary>

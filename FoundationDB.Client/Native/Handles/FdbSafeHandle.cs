@@ -28,15 +28,14 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
 	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
-	public abstract class FdbSafeHandle : CriticalHandle
+	public abstract class FdbSafeHandle : SafeHandle
 	{
 		protected FdbSafeHandle()
-			: base(IntPtr.Zero)
+			: base(IntPtr.Zero, ownsHandle: true)
 		{ }
 
 		public override bool IsInvalid => this.handle == IntPtr.Zero;

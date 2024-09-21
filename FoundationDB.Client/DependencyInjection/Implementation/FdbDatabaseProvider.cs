@@ -26,13 +26,8 @@
 
 namespace FoundationDB.DependencyInjection
 {
-	using System;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.Options;
 
 	[PublicAPI]
@@ -44,7 +39,7 @@ namespace FoundationDB.DependencyInjection
 		/// <inheritdoc cref="IFdbDatabaseScopeProvider.IsAvailable"/>
 		public bool IsAvailable { get; private set; }
 
-		public FdbDatabaseProviderOptions Options { get; }
+		public FdbDatabaseProviderOptions ProviderOptions { get; }
 
 		private TaskCompletionSource<IFdbDatabase>? InitTask;
 
@@ -60,14 +55,17 @@ namespace FoundationDB.DependencyInjection
 		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
 		{
 			Contract.NotNull(options);
-			return new FdbDatabaseProvider(Microsoft.Extensions.Options.Options.Create(options));
+			return new FdbDatabaseProvider(Options.Create(options));
 		}
 
 		public FdbDatabaseProvider(IOptions<FdbDatabaseProviderOptions> optionsAccessor)
 		{
 			Contract.NotNull(optionsAccessor);
-			this.Options = optionsAccessor.Value;
-			this.Root = new FdbDirectorySubspaceLocation(this.Options.ConnectionOptions.Root ?? FdbPath.Root);
+
+			var options = optionsAccessor.Value;
+			
+			this.ProviderOptions = options;
+			this.Root = new FdbDirectorySubspaceLocation(this.ProviderOptions.ConnectionOptions.Root ?? FdbPath.Root);
 			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
 		}
 
@@ -97,7 +95,7 @@ namespace FoundationDB.DependencyInjection
 				try
 				{
 					// configure the native library
-					switch (this.Options.NativeLibraryPath)
+					switch (this.ProviderOptions.NativeLibraryPath)
 					{
 						case null:
 						{ // disable pre-loading
@@ -111,19 +109,19 @@ namespace FoundationDB.DependencyInjection
 						}
 						default:
 						{ // pre-load specified library
-							Fdb.Options.SetNativeLibPath(this.Options.NativeLibraryPath); break;
+							Fdb.Options.SetNativeLibPath(this.ProviderOptions.NativeLibraryPath); break;
 						}
 					}
 
 					// configure the API version
-					Fdb.Start(this.Options.ApiVersion);
+					Fdb.Start(this.ProviderOptions.ApiVersion);
 
 					// connect to the cluster
-					var db = await Fdb.OpenAsync(this.Options.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
+					var db = await Fdb.OpenAsync(this.ProviderOptions.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
 
-					if (this.Options.DefaultLogHandler != null)
+					if (this.ProviderOptions.DefaultLogHandler != null)
 					{ // enable transaction capture and logging!
-						db.SetDefaultLogHandler(this.Options.DefaultLogHandler, this.Options.DefaultLogOptions);
+						db.SetDefaultLogHandler(this.ProviderOptions.DefaultLogHandler, this.ProviderOptions.DefaultLogOptions);
 					}
 
 					SetDatabase(db, null);
@@ -192,7 +190,7 @@ namespace FoundationDB.DependencyInjection
 			this.DbTask = Task.FromException<IFdbDatabase>(this.Error);
 			Interlocked.Exchange(ref this.InitTask, null)?.TrySetCanceled();
 
-			if (this.Options.AutoStop)
+			if (this.ProviderOptions.AutoStop)
 			{
 				// Stop the network thread as well
 				// note: this is irreversible!
@@ -221,7 +219,7 @@ namespace FoundationDB.DependencyInjection
 
 			static async ValueTask<IFdbDatabase> GetDatabaseRare(FdbDatabaseProvider provider, CancellationToken ct)
 			{
-				if (provider.InitTask == null && provider.Options.AutoStart)
+				if (provider.InitTask == null && provider.ProviderOptions.AutoStart)
 				{ // start is deferred
 					provider.Start();
 				}

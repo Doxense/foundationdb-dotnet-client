@@ -29,20 +29,16 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Buffers.Binary;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
+	using System.Globalization;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
@@ -279,7 +275,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// If logging is enabled, the transaction will track all the operations performed by this transaction until it completes.
 		/// The log can be accessed via the <see cref="Log"/> property.
-		/// Comments can be added via the <see cref="Annotate"/> method.
+		/// Comments can be added via the <see cref="Annotate(string)"/> method.
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsLogged() => m_log != null;
@@ -292,6 +288,16 @@ namespace FoundationDB.Client
 		public void Annotate(string comment)
 		{
 			m_log?.Annotate(comment);
+		}
+
+		/// <summary>Add a comment to the transaction log</summary>
+		/// <param name="comment">Line of text that will be added to the log</param>
+		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
+		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Annotate(ref DefaultInterpolatedStringHandler comment)
+		{
+			m_log?.Annotate(string.Create(CultureInfo.InvariantCulture, ref comment));
 		}
 
 		/// <summary>If logging was previously enabled on this transaction, clear the log and stop logging any new operations</summary>

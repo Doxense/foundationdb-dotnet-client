@@ -556,7 +556,7 @@ namespace Doxense.Core.Tests
 			Assert.That(Uuid64.Read(buf.AsSlice(4, 8)), Is.EqualTo(original));
 
 			// byte[]
-			Assert.That(Uuid64.Read(buf.AsSlice(4, 8).GetBytesOrEmpty()), Is.EqualTo(original));
+			Assert.That(Uuid64.Read(buf.AsSlice(4, 8).ToArray()), Is.EqualTo(original));
 
 			unsafe
 			{

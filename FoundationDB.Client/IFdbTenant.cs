@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Threading;
-	using JetBrains.Annotations;
 
 	/// <summary>Database connection context.</summary>
 	[PublicAPI]

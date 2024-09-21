@@ -905,7 +905,7 @@ namespace Doxense.Memory
 		/// <summary>Store a 24-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of a 3-byte location</param>
 		/// <param name="value">Logical value to store in the buffer. Bits 24-31 are ignored</param>
-		/// <remarks><see cref="StoreInt24LE"/>(ptr, 0x123456) => ptr[0] == 0x56, ptr[1] == 0x34, ptr[2] == 0x12</remarks>
+		/// <remarks><see cref="StoreInt24LE"/>(ptr, 0x123456) => [ 0x12, 0x34, 0x56 ]</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreInt24LE(void* ptr, int value)
 		{
@@ -917,13 +917,37 @@ namespace Doxense.Memory
 		/// <summary>Store a 24-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of a 3-byte location</param>
 		/// <param name="value">Logical value to store in the buffer. Bits 24-31 are ignored</param>
-		/// <remarks><see cref="StoreUInt24LE"/>(ptr, 0x123456) => ptr[0] == 0x56, ptr[1] == 0x34, ptr[2] == 0x12</remarks>
+		/// <remarks><see cref="StoreUInt24LE"/>(ptr, 0x123456) => [ 0x12, 0x34, 0x56 ]</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreUInt24LE(void* ptr, uint value)
 		{
 			uint x = IsLittleEndian ? value : ByteSwap24(value);
 			*(ushort*) ptr = (ushort)x;
 			((byte*) ptr)[2] = (byte)(x >> 16);
+		}
+
+		/// <summary>Store a 24-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 3-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><see cref="WriteInt24LE"/>(ref ptr, 0x123456) => [ 0x12, 0x34, 0x56 ]</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt24LE(ref byte ptr, int value)
+		{
+			Unsafe.Add(ref ptr, 0) = (byte) (value);
+			Unsafe.Add(ref ptr, 1) = (byte) (value >> 8);
+			Unsafe.Add(ref ptr, 2) = (byte) (value >> 16);
+		}
+
+		/// <summary>Store a 24-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 3-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><see cref="WriteUInt24LE"/>(ref ptr, 0x123456) => [ 0x12, 0x34, 0x56 ]</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt24LE(ref byte ptr, uint value)
+		{
+			Unsafe.Add(ref ptr, 0) = (byte) (value);
+			Unsafe.Add(ref ptr, 1) = (byte) (value >> 8);
+			Unsafe.Add(ref ptr, 2) = (byte) (value >> 16);
 		}
 
 		/// <summary>Load a 24-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
@@ -1014,6 +1038,36 @@ namespace Doxense.Memory
 			return IsLittleEndian ? * (uint*) ptr : ByteSwap32(* (uint*) ptr);
 		}
 
+		/// <summary>Loads a 32-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of an 4-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x12, 0x34, 0x56, 0x78 ]</c> => <c>0x12345678</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int ReadInt32LE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<int>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<int>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+		}
+
+		/// <summary>Loads a 32-bit integer from an in-memory buffer that holds a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of an 4-byte location</param>
+		/// <returns>Logical value in host order</returns>
+		/// <remarks><c>[ 0x12, 0x34, 0x56, 0x78 ]</c> => <c>0x12345678</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint ReadUInt32LE(ref readonly byte ptr)
+		{
+#if NET8_0_OR_GREATER
+			var value = Unsafe.ReadUnaligned<uint>(in ptr);
+#else
+			var value = Unsafe.ReadUnaligned<uint>(ref Unsafe.AsRef(in ptr));
+#endif
+			return IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+		}
+
 		/// <summary>Store a 32-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of a 4-byte location</param>
 		/// <param name="value">Logical value to store in the buffer</param>
@@ -1027,11 +1081,31 @@ namespace Doxense.Memory
 		/// <summary>Store a 32-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
 		/// <param name="ptr">Memory address of a 4-byte location</param>
 		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>[ 0x78, 0x56, 0x34, 0x12 ]</c> == <c>0x12345678</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt32LE(ref byte ptr, int value)
+		{
+			Unsafe.WriteUnaligned(ref ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+		}
+
+		/// <summary>Store a 32-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 4-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt32LE"/>(0x12345678) => ptr[0] == 0x78, ptr[1] == 0x56, ptr[2] == 0x34, ptr[3] == 0x12</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe void StoreUInt32LE(void* ptr, uint value)
 		{
 			*(uint*) ptr = IsLittleEndian ? value : ByteSwap32(value);
+		}
+
+		/// <summary>Store a 32-bit integer in an in-memory buffer that must hold a value in Little-Endian ordering (also known as Host Order)</summary>
+		/// <param name="ptr">Memory address of a 4-byte location</param>
+		/// <param name="value">Logical value to store in the buffer</param>
+		/// <remarks><c>[ 0x78, 0x56, 0x34, 0x12 ]</c> == <c>0x12345678</c></remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt32LE(ref byte ptr, int value)
+		{
+			Unsafe.WriteUnaligned(ref ptr, IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
 		}
 
 		/// <summary>Load a 32-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
@@ -2241,7 +2315,7 @@ namespace Doxense.Memory
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static InvalidOperationException BufferOutOfBound() => new("Attempt to write outside of the buffer, or at a position that would overflow past the end.");
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[DoesNotReturn]
 			public static void ThrowOffsetOutsideSlice() => throw OffsetOutsideSlice();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]

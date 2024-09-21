@@ -26,11 +26,9 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
 	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
 	using System.Security;
-	using Doxense.Diagnostics.Contracts;
 	using Microsoft.Win32.SafeHandles;
 
 	/// <summary>Native Library Loader</summary>

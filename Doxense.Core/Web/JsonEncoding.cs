@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Text;
 
@@ -36,15 +37,21 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Lookup table used to test if a character must be escaped</summary>
 		/// <remarks>lookup[index] contains <c>true</c> if the corresponding UNICODE character must be escaped</remarks>
-		private static readonly bool[] EscapingLookupTable = InitializeEscapingLookupTable();
+		private static readonly int[] EscapingLookupTable = InitializeEscapingLookupTable();
 
-		private static bool[] InitializeEscapingLookupTable()
+		private static int[] InitializeEscapingLookupTable()
 		{
 			// IMPORTANT: the array MUST have a length of 65536 because it will be indexed with the UNICODE value of each character!
-			var table = new bool[65536];
+			var table = new int[65536];
 			for (int i = 0; i < table.Length; i++)
 			{
-				table[i] = NeedsEscaping((char) i);
+				table[i] = NeedsEscaping((char) i) ? 6 : 1;
+			}
+
+			ReadOnlySpan<char> simpleTokens = "\\\"\n\r\t\b\f";
+			foreach (var c in simpleTokens)
+			{
+				table[c] = 2;
 			}
 
 			//JIT_HACK: ensure that StringTable is already JITed
@@ -87,35 +94,106 @@ namespace Doxense.Serialization.Json
 				var lookup = EscapingLookupTable;
 				foreach (var c in s)
 				{
-					if (lookup[c]) return true;
+					if (lookup[c] != 1)
+					{
+						return true;
+					}
 				}
 				return false;
 			}
 
-			static unsafe bool NeedsEscapingLong(ReadOnlySpan<char> s)
+			static bool NeedsEscapingLong(ReadOnlySpan<char> s)
 			{
 				// We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
 				// If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
 
-				fixed (char* p = s)
 				{
-					var lookup = EscapingLookupTable;
+					ReadOnlySpan<int> lookup = EscapingLookupTable;
+					if (lookup.Length < 65536) throw new InvalidOperationException(); // this should help the JIT remove bound checks!
+
 					int n = s.Length;
-					char* ptr = p;
+					ref char ptr = ref MemoryMarshal.GetReference(s);
 
 					// loop unrolling (4 chars = 8 bytes)
 					while (n >= 4)
 					{
-						if (lookup[*(ptr)] | lookup[*(ptr + 1)] | lookup[*(ptr + 2)] | lookup[*(ptr + 3)]) return true;
-						ptr += 4;
+						ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+						if (lookup[(ushort) x] + lookup[(ushort) (x >> 16)] + lookup[(ushort) (x >> 32)] + lookup[(ushort) (x >> 48)] != 4)
+						{
+							return true;
+						}
+						ptr = ref Unsafe.Add(ref ptr, 4);
 						n -= 4;
 					}
+
 					// tail
-					while (n-- > 0)
+					return n switch
 					{
-						if (lookup[*ptr++]) return true;
+						1 => lookup[ptr] != 1,
+						2 => (lookup[ptr] + lookup[Unsafe.Add(ref ptr, 1)]) != 2,
+						3 => (lookup[ptr] + lookup[Unsafe.Add(ref ptr, 1)] + lookup[Unsafe.Add(ref ptr, 2)]) != 3,
+						_ => false
+					};
+				}
+			}
+
+		}
+
+		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <param name="s">Text to inspect</param>
+		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool NeedsEscaping(ReadOnlySpan<char> s, out int capacityHint)
+		{
+			// A string is a collection of zero or more Unicode characters, wrapped in double quotes, using backslash escapes.
+			// A character is represented as a single character string. A string is very much like a C or Java string.
+
+			return s.Length <= 6
+				? NeedsEscapingShort(s, out capacityHint)
+				: NeedsEscapingLong(s, out capacityHint);
+
+			static bool NeedsEscapingShort(ReadOnlySpan<char> s, out int capacityHint)
+			{
+				long size = 0;
+				var lookup = EscapingLookupTable;
+				foreach (var c in s)
+				{
+					size += lookup[c];
+				}
+
+				capacityHint = checked((int) size);
+				return capacityHint != s.Length;
+			}
+
+			static bool NeedsEscapingLong(ReadOnlySpan<char> s, out int capacityHint)
+			{
+				// We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
+				// If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
+
+				long size = 0;
+				
+				{
+					var lookup = EscapingLookupTable;
+					int n = s.Length;
+					ref char ptr = ref MemoryMarshal.GetReference(s);
+
+					// loop unrolling (4 chars = 8 bytes)
+					while (n >= 4)
+					{
+						// read 4 chars at a time (= 64 bits)
+						ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+						size += lookup[(ushort) x] + lookup[(ushort) (x >> 16)] + lookup[(ushort) (x >> 32)] + lookup[(ushort) (x >> 48)];
+						ptr = ref Unsafe.Add(ref ptr, 4);
+						n -= 4;
 					}
-					return false;
+
+					// tail
+					size += n > 0 ? lookup[ptr] : 0;
+					size += n > 1 ? lookup[Unsafe.Add(ref ptr, 1)] : 0;
+					size += n > 2 ? lookup[Unsafe.Add(ref ptr, 2)] : 0;
+
+					capacityHint = checked((int) size);
+					return capacityHint != s.Length;
 				}
 			}
 
@@ -226,7 +304,7 @@ namespace Doxense.Serialization.Json
 						{ // " -> \"
 							goto escape_backslash;
 						}
-						else if (c >= ' ')
+						if (c >= ' ')
 						{ // ASCII 32..47 : from space to '/'
 							goto next; // => not modified
 						}
@@ -244,7 +322,7 @@ namespace Doxense.Serialization.Json
 						// encode as \uXXXX
 						goto escape_unicode;
 					}
-					else if (c == '\\')
+					if (c == '\\')
 					{ // \ -> \\
 						goto escape_backslash;
 					}
@@ -534,7 +612,7 @@ namespace Doxense.Serialization.Json
 				return true;
 			}
 
-			if (!JsonEncoding.NeedsEscaping(text))
+			if (!NeedsEscaping(text))
 			{ // no encoding required
 
 				if (destination.Length < text.Length + 2)

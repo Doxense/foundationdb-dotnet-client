@@ -27,8 +27,6 @@
 namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
-	using System;
-	using System.Threading;
 
 	/// <summary>Wrapper on a FDBFuture*</summary>
 	public sealed class FutureHandle : FdbSafeHandle
@@ -48,7 +46,7 @@ namespace FoundationDB.Client.Native
 
 		public override string ToString()
 		{
-			return $"FutureHandle[0x{this.Handle.ToString("x")}]";
+			return $"FutureHandle[0x{this.Handle:x}]";
 		}
 
 	}

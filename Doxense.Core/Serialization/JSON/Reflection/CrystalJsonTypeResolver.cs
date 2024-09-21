@@ -69,6 +69,25 @@ namespace Doxense.Serialization.Json
 			return m_typeDefinitionCache.GetOrAdd(type, ResolveNewTypeHandler, this);
 		}
 
+		/// <inheritdoc />
+		public CrystalJsonMemberDefinition? ResolveMemberOfType(Type type, string memberName)
+		{
+			var typeDef = ResolveJsonType(type);
+			if (typeDef != null)
+			{
+				//HACKHACK: PERF: OPTIMZE: use a dictionary?
+				foreach (var def in typeDef.Members)
+				{
+					if (def.OriginalName == memberName || def.Name == memberName)
+					{
+						return def;
+					}
+				}
+			}
+
+			return null;
+		}
+
 		private static readonly Func<Type, CrystalJsonTypeResolver, CrystalJsonTypeDefinition?> ResolveNewTypeHandler = (t, self) => self.ResolveJsonTypeNoCache(t);
 
 		private CrystalJsonTypeDefinition? ResolveJsonTypeNoCache(Type type)
@@ -290,9 +309,14 @@ namespace Doxense.Serialization.Json
 			if (value == null) return null;
 			type ??= typeof(object);
 
-			if (typeof(JsonObject) == type || typeof(JsonValue) == type)
-			{ // already the target type
-				return value;
+
+			if (type.IsAssignableTo(typeof(JsonValue)))
+			{
+				if (typeof(JsonObject) == type || typeof(JsonValue) == type)
+				{ // This is already an Object!
+					return value;
+				}
+				throw JsonBindingException.CannotBindJsonObjectToThisType(value, type);
 			}
 
 			// some types are not object
@@ -304,7 +328,7 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(value, type, this);
 		}
 
-		internal static readonly QuasiImmutableCache<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> DefaultArrayBinders = new QuasiImmutableCache<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>>(TypeEqualityComparer.Default);
+		internal static readonly QuasiImmutableCache<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> DefaultArrayBinders = new(TypeEqualityComparer.Default);
 
 		private static readonly Func<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> JsonArrayBinderCallback = CreateDefaultJsonArrayBinder;
 
@@ -312,7 +336,7 @@ namespace Doxense.Serialization.Json
 		public virtual object? BindJsonArray(Type? type, JsonArray? array)
 		{
 			// ReSharper disable once ConvertClosureToMethodGroup
-			return DefaultArrayBinders.GetOrAdd(type ?? typeof(object), JsonArrayBinderCallback)(this, array);
+			return CrystalJsonTypeResolver.DefaultArrayBinders.GetOrAdd(type ?? typeof(object), CrystalJsonTypeResolver.JsonArrayBinderCallback)(this, array);
 		}
 
 		internal static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type? type)
@@ -326,9 +350,13 @@ namespace Doxense.Serialization.Json
 				return (_, array) => array?.ToObject();
 			}
 
-			if (typeof(JsonArray) == type || typeof(JsonValue) == type)
-			{ // This is already an Array!
-				return (_, array) => array;
+			if (type.IsAssignableTo(typeof(JsonValue)))
+			{
+				if (typeof(JsonArray) == type || typeof(JsonValue) == type)
+				{ // This is already an Array!
+					return (_, array) => array;
+				}
+				return CreateDefaultJsonArrayBinder_Invalid(type);
 			}
 
 			if (typeof(string) == type)
@@ -580,7 +608,7 @@ namespace Doxense.Serialization.Json
 
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_Invalid(Type type)
 		{
-			return (_, array) => throw JsonBindingException.CannotBindJsonObjectToThisType(array, type);
+			return (_, array) => throw JsonBindingException.CannotBindJsonArrayToThisType(array, type);
 		}
 
 		private static object? ConvertToBoxedEnumerable(Type type, JsonArray? array, Func<Type, JsonValue?, object?> convert)

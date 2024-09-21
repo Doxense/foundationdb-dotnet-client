@@ -32,9 +32,9 @@ namespace Doxense.Serialization.Json
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Mathematics;
 	using Doxense.Web;
 
+	[PublicAPI]
 	public static class CrystalJsonFormatter
 	{
 
@@ -125,6 +125,8 @@ namespace Doxense.Serialization.Json
 
 		internal static void WriteJsonStringSlow(TextWriter writer, ReadOnlySpan<char> text)
 		{
+			// we know that we need some escaping
+
 			//TODO: PERF: OPTIMIZE: optimize this!
 			writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
 		}
@@ -177,153 +179,10 @@ namespace Doxense.Serialization.Json
 			} // -> premiere passe pour voir s'il y a des caratères a remplacer..
 			if (JavaScriptEncoding.IsCleanJavaScript(text))
 			{ // rien a modifier, retourne la chaine initiale (fast, no memory used)
-				return String.Concat("'", text, "'");
+				return string.Concat("'", text, "'");
 			} // -> deuxieme passe: remplace les caractères invalides (slow, memory used)
 			// note: on estime a 6 caracs l'overhead typique d'un encoding (ou deux ou trois \", ou un \uXXXX)
 			return JavaScriptEncoding.EncodeSlow(new StringBuilder(), text, includeQuotes: true).ToString();
-		}
-
-
-#if ENABLE_TIMO_STRING_CONVERTER
-		private static readonly int[] s_digitPairs = ConstructDigitPairs();
-
-		private static int[] ConstructDigitPairs()
-		{
-			// génère un tableau de int[] où chaque int contient une paire de digits
-			// ex: la pair "42" ie en ASCII '\x34' 'x30' est encodée par l'integer 0x3034
-
-			const string DIGITS_PAIRS =
-				"00010203040506070809" +
-				"10111213141516171819" +
-				"20212223242526272829" +
-				"30313233343536373839" +
-				"40414243444546474849" +
-				"50515253545556575859" +
-				"60616263646566676869" +
-				"70717273747576777879" +
-				"80818283848586878889" +
-				"90919293949596979899";
-
-			var pairs = DIGITS_PAIRS.ToCharArray();
-			var map = new int[pairs.Length >> 1];
-			for (int i = 0; i < pairs.Length; i += 2)
-			{
-				map[i >> 1] = (int)pairs[i] | ((int)pairs[i + 1] << 16);
-			}
-			return map;
-		}
-#endif
-
-		internal static void WriteUnsignedIntegerUnsafe(TextWriter output, ulong value, char[] buf)
-		{
-#if ENABLE_TIMO_STRING_CONVERTER
-			// Timo: au lieu d'écrire les digits un par un ... on les écrit deux par deux ! (ohhhoooooooo)
-			const int BUFFER_SIZE = 20 + 4; // max size = 20 char, plus une marge de sécurité
-			Contract.Debug.Requires(buf.Length >= BUFFER_SIZE); // need 24 chars
-
-			unsafe
-			{
-				fixed(char* ptr = buf)
-				fixed (int* dp = s_digitPairs)
-				{
-					char* end = ptr + BUFFER_SIZE;
-					char* it = end - 2;
-
-					var div = value / 100;
-					while (div != 0)
-					{
-						*((int*)it) = dp[value - (div * 100)];
-						value = div;
-						it -= 2;
-						div = value / 100;
-					}
-					*((int*)it) = dp[value];
-					if (value < 10) it++;
-
-					Contract.Debug.Assert(it >= ptr && it < end);
-					output.Write(buf, (int)(it - ptr), (int)(end - it));
-				}
-			}
-#else
-			int p = buf.Length - 1;
-			do
-			{
-				buf[p--] = (char) (48 + (value % 10));
-				value /= 10;
-			}
-			while (value > 0);
-			++p;
-			int len = buf.Length - p;
-			output.Write(buf, p, len);
-#endif
-		}
-
-		internal static void WriteSignedIntegerUnsafe(TextWriter output, long value, char[] buf)
-		{
-#if ENABLE_TIMO_STRING_CONVERTER
-			// Timo: au lieu d'écrire les digits un par un ... on les écrit deux par deux ! (ohhhoooooooo)
-			const int BUFFER_SIZE = 20 + 4; // max size = 20 char, plus une marge de sécurité
-			Contract.Debug.Requires(buf.Length >= BUFFER_SIZE); // need 24 chars
-
-			unsafe
-			{
-				fixed(char* ptr = buf)
-				fixed (int* dp = s_digitPairs)
-				{
-					char* end = ptr + BUFFER_SIZE;
-					char* it = end - 2;
-
-					if (value >= 0)
-					{
-						var div = value / 100;
-						while (div != 0)
-						{
-							*((int*)it) = dp[value - (div * 100)];
-							value = div;
-							it -= 2;
-							div = value / 100;
-						}
-						*((int*)it) = dp[value];
-						if (value < 10) it++;
-					}
-					else
-					{
-						var div = value / 100;
-						while (div != 0)
-						{
-							*((int*)it) = dp[-(value - (div * 100))];
-							value = div;
-							it -= 2;
-							div = value / 100;
-						}
-						*((int*)it) = dp[-value];
-						if (value <= -10) it--;
-						*it = '-';
-					}
-					Contract.Debug.Assert(it >= ptr && it < end);
-					output.Write(buf, (int)(it - ptr), (int)(end - it));
-				}
-			}
-#else
-			if (value == long.MinValue)
-			{ // note: on doit gérer le cas de long.MinValue à part, car sa valeur absolue ne rentrerait pas dans un long !
-				output.Write(JsonTokens.LongMinValue);
-				return;
-			}
-
-			bool neg = value < 0;
-			value = Math.Abs(value);
-			int p = buf.Length - 1;
-			do
-			{
-				buf[p--] = (char)(48 + (value % 10));
-				value /= 10;
-			}
-			while (value > 0);
-			if (neg) buf[p] = '-'; else ++p;
-			int len = buf.Length - p;
-			output.Write(buf, p, len);
-#endif
 		}
 
 		internal static void WriteFixedIntegerWithDecimalPartUnsafe(TextWriter output, long integer, long decimals, int digits, char[] buf)
@@ -384,75 +243,6 @@ namespace Doxense.Serialization.Json
 			else ++p;
 
 			output.Write(buf, p, len - p);
-		}
-
-		private static readonly NumberFormatInfo NFINV = NumberFormatInfo.InvariantInfo;
-
-		internal static void WriteSingleUnsafe(TextWriter output, float value, char[] buf, CrystalJsonSettings.FloatFormat format)
-		{
-			if (value == default)
-			{ // le plus courant (objets vides)
-				output.Write(JsonTokens.Zero);
-				return;
-			}
-
-			if (float.IsNaN(value))
-			{ // NaN dépend de la configuration
-				output.Write(GetNaNToken(format)); // "NaN"
-				return;
-			}
-
-			if (float.IsInfinity(value))
-			{ // cas spécial pour +/- Infinity
-				output.Write(value > 0 ? GetPositiveInfinityToken(format) : GetNegativeInfinityToken(format));
-				return;
-			}
-
-			long l = (long) value;
-			if (l == value)
-			{
-				WriteSignedIntegerUnsafe(output, l, buf);
-			}
-			else
-			{
-				output.Write(value.ToString("R", NFINV));
-			}
-		}
-
-		internal static void WriteDoubleUnsafe(TextWriter output, double value, char[] buf, CrystalJsonSettings.FloatFormat format)
-		{
-			if (value == 0)
-			{ // le plus courant (objets vides)
-				output.Write(JsonTokens.Zero);
-				return;
-			}
-
-			// Gestion des valeurs spéciales (NaN, Infinity, ...)
-			var dd = new DiyDouble(value);
-			if (dd.IsSpecial)
-			{
-				if (dd.IsNaN)
-				{ // NaN dépend de la configuration
-					output.Write(GetNaNToken(format)); // "NaN"
-					return;
-				}
-				if (dd.IsInfinite)
-				{ // cas spécial pour +/- Infinity
-					output.Write(value > 0.0 ? GetPositiveInfinityToken(format) : GetNegativeInfinityToken(format));
-					return;
-				}
-			}
-			else
-			{
-				long l = (long) value;
-				if (l == value)
-				{ // integer shortcut
-					WriteSignedIntegerUnsafe(output, l, buf);
-					return;
-				}
-			}
-
-			output.Write(value.ToString("R", NFINV));
 		}
 
 		internal static string GetNaNToken(CrystalJsonSettings.FloatFormat format) =>
@@ -536,23 +326,29 @@ namespace Doxense.Serialization.Json
 			}
 
 			int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
-			Contract.Debug.Assert((uint) offset <= ISO8601_MAX_FORMATTED_SIZE);
+			if ((uint) offset > output.Length) throw ThrowHelper.InvalidOperationException("Internal formatting error");
 
 			return output.Slice(0, offset);
+		}
+
+		internal static int ComputeIso8601DateTimeSize(int millis, DateTimeKind kind, TimeSpan? utcOffset, char quotes)
+		{
+			// compute the exact required size
+			// - 'YYYY-DD-MMTHH:MM:SS___' => at least 19
+			// - '"...."' if quotes != 0 => +2
+			// - '___.0000000____" if there are milliseconds => +6
+			// - '___Z" if UTC => +1
+			// - '___' if no offset and kind unspecified => +0
+			// - '___+XX:XX" if offset => +6
+
+			return (quotes == '\0' ? 0 : 2) + 19 + (millis == 0 ? 0 : 8) + ((kind == DateTimeKind.Utc ? 1 : (kind == DateTimeKind.Local || utcOffset != null) ? 6 : 0));
 		}
 
 		internal static bool TryFormatIso8601DateTime(Span<char> output, out int charsWritten, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')
 		{
 			GetDateParts(date.Ticks, out var year, out var month, out var day, out var hour, out var min, out var sec, out var millis);
 
-			// compute the exact required size
-			// - 'YYYY-DD-MMTHH:MM:SS___' => at least 19
-			// - '"...."' if quotes != 0 => +2
-			// - '___.0000000____" if there are milliseconds => +6
-			// - '___Z" if UTC => +1
-			// - '___+XX:XX" if offset => +6
-
-			int size = (quotes == '\0' ? 0 : 2) + 19 + (millis == 0 ? 0 : 8) + ((kind == DateTimeKind.Utc || utcOffset == TimeSpan.Zero) ? 1 : 6);
+			int size = ComputeIso8601DateTimeSize(millis, kind, utcOffset, quotes);
 
 			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer
 			if (output.Length < size)
@@ -570,25 +366,11 @@ namespace Doxense.Serialization.Json
 			}
 
 			cursor = ref FormatDatePart(ref cursor, year, month, day);
-			{
-				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
-				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
-			}
 
 			cursor = 'T';
 			cursor = ref Unsafe.Add(ref cursor, 1);
 
-			{
-				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
-				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
-			}
-
 			cursor = ref FormatTimePart(ref cursor, hour, min, sec, millis);
-
-			{
-				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
-				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
-			}
 
 			if (kind == DateTimeKind.Utc)
 			{ // "Z"
@@ -604,11 +386,6 @@ namespace Doxense.Serialization.Json
 				cursor = ref FormatTimeZoneOffset(ref cursor, TimeZoneInfo.Local.GetUtcOffset(date), true);
 			}
 
-			{
-				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
-				Contract.Debug.Assert(offset <= size, $"{offset} == {size}");
-			}
-
 			if (quotes != '\0')
 			{
 				cursor = quotes;
@@ -617,11 +394,11 @@ namespace Doxense.Serialization.Json
 
 			{
 				int offset = (int) (Unsafe.ByteOffset(ref output[0], ref cursor).ToInt64() / Unsafe.SizeOf<char>());
-				Contract.Debug.Assert(offset == size, $"{offset} == {size}");
+				if (offset != size) throw ThrowHelper.InvalidOperationException("Internal formatting error");
+
 				charsWritten = offset;
 				return true;
 			}
-
 		}
 
 		public static string ToIso8601String(DateTime date)
@@ -631,7 +408,6 @@ namespace Doxense.Serialization.Json
 			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
 			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, quotes: '\0'));
 		}
-
 
 		public static string ToIso8601String(DateTimeOffset date)
 		{

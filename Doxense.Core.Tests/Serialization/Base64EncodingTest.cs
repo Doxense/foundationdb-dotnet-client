@@ -38,39 +38,149 @@ namespace Doxense.Serialization.Tests
 	{
 
 		[Test]
-		public void Test_Basics()
+		public void Test_Basics_Base64()
 		{
 			Assume.That(Convert.ToBase64String("a"u8), Is.EqualTo("YQ=="), "Base64 encoding padds by default");
-#if NET9_0_OR_GREATER
-			Assume.That(Base64Url.EncodeToString("a"u8), Is.EqualTo("YQ"), "Base64Url does not pad by default");
-#endif
 
-			int seed = Random.Shared.Next();
-			Log("Seed: " + seed);
-			byte[] data = new byte[1024];
-			new Random(seed).NextBytes(data);
+			Assert.Multiple(() =>
+			{
+				Assert.That(Base64Encoding.ToBase64String(""u8), Is.EqualTo(""));
+				Assert.That(Base64Encoding.ToBase64String("A"u8), Is.EqualTo("QQ=="));
+				Assert.That(Base64Encoding.ToBase64String("Ab"u8), Is.EqualTo("QWI="));
+				Assert.That(Base64Encoding.ToBase64String("Abc"u8), Is.EqualTo("QWJj"));
+				Assert.That(Base64Encoding.ToBase64String("Abcd"u8), Is.EqualTo("QWJjZA=="));
+				Assert.That(Base64Encoding.ToBase64String("Abcde"u8), Is.EqualTo("QWJjZGU="));
+				Assert.That(Base64Encoding.ToBase64String("Abcdef"u8), Is.EqualTo("QWJjZGVm"));
+				Assert.That(Base64Encoding.ToBase64String("Abcdefg"u8), Is.EqualTo("QWJjZGVmZw=="));
+				Assert.That(Base64Encoding.ToBase64String("Hello, World!"u8), Is.EqualTo("SGVsbG8sIFdvcmxkIQ=="));
+				Assert.That(Base64Encoding.ToBase64String(Slice.FromFixedU64(0xFFFEFCFBFAF9F8UL)), Is.EqualTo("+Pn6+/z+/wA="));
+
+				Assert.That(Base64Encoding.FromBase64String("QWJjZGVmZw=="), Is.EqualTo("Abcdefg"u8.ToArray()));
+				Assert.That(Base64Encoding.FromBase64String("SGVsbG8sIFdvcmxkIQ=="), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(Base64Encoding.FromBase64String("+Pn6+/z+/wA=").AsSlice(), Is.EqualTo(Slice.FromFixedU64(0xFFFEFCFBFAF9F8UL)));
+			});
+
+			var rnd = CreateRandomizer();
+
+			// generate some random data, but with first 256 bytes in ascending order
+			byte[] data = GetRandomData(rnd, 1024);
 			for (int i = 0; i < 256; i++) data[i] = (byte) i;
 
 			DumpHexa(data);
 
-			string expected = Convert.ToBase64String(data, 0, 1024);
-			Assert.That(Base64Encoding.ToBase64String(data.AsSlice(0, 1024)), Is.EqualTo(expected));
-			Assert.That(Base64Encoding.ToBase64UrlString(data.AsSlice(0, 1024)), Is.EqualTo(expected.TrimEnd('=').Replace('+', '-').Replace('/', '_')));
+			string expected = Convert.ToBase64String(data);
+			Log(expected);
 
+			// encode
+			Assert.That(Base64Encoding.ToBase64String(data), Is.EqualTo(expected));
+			Assert.That(Base64Encoding.ToBase64String(data.AsSlice()), Is.EqualTo(expected));
+			Assert.That(Base64Encoding.ToBase64String(data.AsSpan()), Is.EqualTo(expected));
+			// decode
+			Assert.That(Base64Encoding.FromBase64String(expected), Is.EqualTo(data));
+			Assert.That(Base64Encoding.FromBase64String(expected.AsSpan()), Is.EqualTo(data));
+
+			// graments
 			for (int i = 1; i < data.Length; i++)
 			{
-				expected = Convert.ToBase64String(data, 0, i);
-				string actual = Base64Encoding.ToBase64String(data.AsSlice(0, i));
-
-				if (expected != actual)
+				for (int j = 0; j < i; j++)
 				{
-					Assert.That(expected, Is.EqualTo(actual), "FAIL! " + i);
+					var chunk = data.AsSlice(j, i - j);
+
+					expected = Convert.ToBase64String(chunk.Span);
+					string actual = Base64Encoding.ToBase64String(chunk);
+					if (expected != actual)
+					{
+						Assert.That(expected, Is.EqualTo(actual), $"FAIL! j={j}, i={i}");
+					}
+
+					var decoded = Base64Encoding.FromBase64String(actual);
+					if (!chunk.Span.SequenceEqual(decoded))
+					{
+						DumpVersus(chunk, decoded.AsSlice());
+						Assert.That(decoded, Is.EqualTo(chunk.GetBytes()), $"FAIL! j={j}, i={i}");
+					}
+				}
+			}
+		}
+
+		[Test]
+		public void Test_Basics_Base64Url()
+		{
+#if NET9_0_OR_GREATER
+			Assume.That(Base64Url.EncodeToString("a"u8), Is.EqualTo("YQ"), "Base64Url does not pad by default");
+#endif
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Base64Encoding.ToBase64UrlString(""u8), Is.EqualTo(""));
+				Assert.That(Base64Encoding.ToBase64UrlString("A"u8), Is.EqualTo("QQ"));
+				Assert.That(Base64Encoding.ToBase64UrlString("Ab"u8), Is.EqualTo("QWI"));
+				Assert.That(Base64Encoding.ToBase64UrlString("Abc"u8), Is.EqualTo("QWJj"));
+				Assert.That(Base64Encoding.ToBase64UrlString("Abcd"u8), Is.EqualTo("QWJjZA"));
+				Assert.That(Base64Encoding.ToBase64UrlString("Abcde"u8), Is.EqualTo("QWJjZGU"));
+				Assert.That(Base64Encoding.ToBase64UrlString("Abcdef"u8), Is.EqualTo("QWJjZGVm"));
+				Assert.That(Base64Encoding.ToBase64UrlString("Abcdefg"u8), Is.EqualTo("QWJjZGVmZw"));
+				Assert.That(Base64Encoding.ToBase64UrlString("Hello, World!"u8), Is.EqualTo("SGVsbG8sIFdvcmxkIQ"));
+				Assert.That(Base64Encoding.ToBase64UrlString(Slice.FromFixedU64(0xFFFEFCFBFAF9F8UL)), Is.EqualTo("-Pn6-_z-_wA"));
+
+				Assert.That(Base64Encoding.FromBase64UrlString("QWJjZGVmZw"), Is.EqualTo("Abcdefg"u8.ToArray()));
+				Assert.That(Base64Encoding.FromBase64UrlString("SGVsbG8sIFdvcmxkIQ"), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(Base64Encoding.FromBase64UrlString("-Pn6-_z-_wA").AsSlice(), Is.EqualTo(Slice.FromFixedU64(0xFFFEFCFBFAF9F8UL)));
+			});
+
+			var rnd = CreateRandomizer();
+
+			// generate some random data, but with first 256 bytes in ascending order
+			byte[] data = GetRandomData(rnd, 1024);
+			for (int i = 0; i < 256; i++) data[i] = (byte) i;
+
+			DumpHexa(data);
+
+#if NET9_0_OR_GREATER
+			string expected = Base64Url.EncodeToString(data);
+#else
+			string expected = Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+#endif
+			Log(expected);
+
+			// encode
+			Assert.That(Base64Encoding.ToBase64UrlString(data), Is.EqualTo(expected));
+			Assert.That(Base64Encoding.ToBase64UrlString(data.AsSlice()), Is.EqualTo(expected));
+			Assert.That(Base64Encoding.ToBase64UrlString(data.AsSpan()), Is.EqualTo(expected));
+			// decode
+			Assert.That(Base64Encoding.FromBase64UrlString(expected), Is.EqualTo(data));
+			Assert.That(Base64Encoding.FromBase64UrlString(expected.AsSpan()), Is.EqualTo(data));
+
+			// graments
+			for (int i = 1; i < data.Length; i++)
+			{
+				for (int j = 0; j < i; j++)
+				{
+					var chunk = data.AsSlice(j, i - j);
+
+#if NET9_0_OR_GREATER
+					expected = Base64Url.EncodeToString(chunk.Span);
+#else
+					expected = Convert.ToBase64String(chunk.Span).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+#endif
+					string actual = Base64Encoding.ToBase64UrlString(chunk);
+					if (expected != actual)
+					{
+						Assert.That(expected, Is.EqualTo(actual), $"FAIL! j={j}, i={i}");
+					}
+
+					var decoded = Base64Encoding.FromBase64UrlString(actual);
+					if (!chunk.Span.SequenceEqual(decoded))
+					{
+						DumpVersus(chunk, decoded.AsSlice());
+						Assert.That(decoded, Is.EqualTo(chunk.GetBytes()), $"FAIL! j={j}, i={i}");
+					}
 				}
 			}
 		}
 
 		[Test, Category("Benchmark")]
-		//[Ignore("Super long")]
+		[Parallelizable(ParallelScope.None)]
 		public void Bench_Compare_ToString_With_BCL()
 		{
 #if DEBUG
@@ -85,17 +195,25 @@ namespace Doxense.Serialization.Tests
 			for (int i = 0; i < 256; i++) data[i] = (byte)i;
 
 			//WARMUP + JIT
-			Assume.That(Base64Encoding.ToBase64String(data.AsSlice(0, 1024)), Is.EqualTo(Convert.ToBase64String(data, 0, 1024)));
+			for (int i = 0; i < 5; i++)
+			{
+				Assume.That(Base64Encoding.ToBase64String(data), Is.EqualTo(Convert.ToBase64String(data)));
+				Assume.That(Base64Encoding.ToBase64String(data.AsSpan(31, 777)), Is.EqualTo(Convert.ToBase64String(data, 31, 777)));
+			}
 
 			string? s1 = null, s2 = null;
 			var sw = new Stopwatch();
 
 			TimeSpan durA = TimeSpan.Zero;
 			TimeSpan durB = TimeSpan.Zero;
-
-
+#if DEBUG
+			const int R = 5;
+			const int N = 25 * 1000;
+#else
 			const int R = 5;
 			const int N = 250 * 1000;
+#endif
+
 			for (int r = -1; r < R; r++)
 			{
 				var gc = GC.CollectionCount(0);
@@ -117,7 +235,7 @@ namespace Doxense.Serialization.Tests
 				sw.Restart();
 				for (int i = 0; i < N; i++)
 				{
-					s2 = Base64Encoding.ToBase64String(data.AsSlice(0, (i % data.Length) + 1));
+					s2 = Base64Encoding.ToBase64String(data.AsSpan(0, (i % data.Length) + 1));
 				}
 				sw.Stop();
 				gc = GC.CollectionCount(0) - gc;
@@ -137,7 +255,7 @@ namespace Doxense.Serialization.Tests
 		}
 
 		[Test, Category("Benchmark")]
-		//[Ignore("Super long")]
+		[Parallelizable(ParallelScope.None)]
 		public void Bench_Compare_TextWriter_Append_With_BCL()
 		{
 #if DEBUG
@@ -147,14 +265,23 @@ namespace Doxense.Serialization.Tests
 			Log("###########################################################################");
 			Log();
 #endif
+
 			byte[] data = new byte[256 * 1024];
 			new Random().NextBytes(data);
-			for (int i = 0; i < 256; i++) data[i] = (byte)i;
+			for (int i = 0; i < 256; i++) data[i] = (byte) i;
 
 			//WARMUP + JIT
-			Assume.That(Base64Encoding.ToBase64String(data.AsSlice(0, 1024)), Is.EqualTo(Convert.ToBase64String(data, 0, 1024)));
+			{
+				var wr = new StringWriter(new StringBuilder(1024 * 1024));
+				Assume.That(Base64Encoding.ToBase64String(data), Is.EqualTo(Convert.ToBase64String(data)));
+				Base64Encoding.EncodeTo(wr, data.AsSpan(31, 777));
+			}
 
-			const int N = 10 * 1000;
+#if DEBUG
+			const int N = 1_000;
+#else
+			const int N = 10_000;
+#endif
 
 			GC.Collect();
 			GC.WaitForPendingFinalizers();
@@ -167,7 +294,7 @@ namespace Doxense.Serialization.Tests
 				for (int i = 0; i < N; i++)
 				{
 					if (buf == null || (i & 0xFF) == 0) buf = new StringWriter(new StringBuilder(1024 * 1024));
-					buf.Write(Convert.ToBase64String(data, 0, data.Length));
+					buf.Write(Convert.ToBase64String(data));
 				}
 				sw.Stop();
 				gc = GC.CollectionCount(0) - gc;
@@ -191,11 +318,6 @@ namespace Doxense.Serialization.Tests
 				gc = GC.CollectionCount(0) - gc;
 				Log($"DOX: {sw.Elapsed} for {N:N0} with {gc:N0} GC0");
 			}
-
-			//Console.WriteLine("AFTER");
-			//Console.ReadKey();
-
-			Assert.That(true, Is.True); // pour faire plaisir a R#
 		}
 
 		[Test]
@@ -210,6 +332,14 @@ namespace Doxense.Serialization.Tests
 
 				string b64 = Convert.ToBase64String(source);
 				byte[] decoded = Base64Encoding.FromBase64String(b64);
+				if (!decoded.AsSlice().Equals(source))
+				{
+					Log("|" + b64 + "|");
+					DumpVersus(source, decoded);
+					Assert.That(decoded, Is.EqualTo(source), "Decode Base64 buffer does not match original");
+				}
+
+				decoded = Base64Encoding.FromBase64String(b64.AsSpan());
 				if (!decoded.AsSlice().Equals(source))
 				{
 					Log("|" + b64 + "|");

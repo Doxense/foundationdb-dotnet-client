@@ -26,11 +26,7 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
+	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 	using FoundationDB.Filters.Logging;
 
@@ -345,6 +341,8 @@ namespace FoundationDB.Client
 			public void StopLogging() => m_parent.StopLogging();
 
 			public void Annotate(string comment) => m_parent.Annotate(comment);
+
+			public void Annotate(ref DefaultInterpolatedStringHandler comment) => m_parent.Annotate(ref comment);
 
 		}
 

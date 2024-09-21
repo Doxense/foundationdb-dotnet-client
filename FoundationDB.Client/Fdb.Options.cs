@@ -26,11 +26,8 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.IO;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Native;
-	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{

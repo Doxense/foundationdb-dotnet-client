@@ -27,7 +27,6 @@
 namespace FdbShell
 {
 	using System.Diagnostics;
-	using System.IO;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -44,10 +43,8 @@ namespace FdbShell
 			public required string StdErr { get; init; }
 		}
 
-		public static Task<FdbCliResult> RunFdbCliCommand(string? command, string? options, string? clusterFile, TextWriter? log, CancellationToken ct)
+		public static Task<FdbCliResult> RunFdbCliCommand(string? command, string? options, string? clusterFile, IFdbShellTerminal terminal, CancellationToken ct)
 		{
-			log ??= Console.Out;
-
 			string path = "fdbcli";
 			string arguments = string.Format("-C \"{0}\" {2} --exec \"{1}\"", clusterFile, command, options);
 			string workingDirectory = Environment.CurrentDirectory;

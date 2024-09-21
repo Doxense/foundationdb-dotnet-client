@@ -31,22 +31,35 @@
 namespace Doxense.Serialization.Json.Binary.Tests
 {
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO.Compression;
 	using System.Linq;
+	using Doxense.Mathematics.Statistics;
+	using Doxense.Runtime;
 
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
+	[SetInvariantCulture]
 	public class JsonbTest : SimpleTest
 	{
+
+		static JsonbTest()
+		{
+			PlatformHelpers.PreJit(typeof(Jsonb));
+
+			try { _ = Jsonb.Decode(Jsonb.Encode(JsonObject.Create([ ("Hello", "World"), ("Foo", 123) ]))); }
+			// ReSharper disable once EmptyGeneralCatchClause
+			catch { }
+		}
 
 		private void VerifyRoundtrip(JsonValue value)
 		{
 			Log("-----------------");
 
 			DumpCompact("ORIGINAL", value);
-			var bytes = Jsonb.EncodeBuffer(value);
+			var bytes = Jsonb.Encode(value);
 			//Log("RAW: ({0}) {1}", bytes.Length, bytes.AsSlice().ToString("X"));
 			DumpHexa(bytes);
 
@@ -81,7 +94,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
 			{
-				_ = Jsonb.EncodeBuffer(value);
+				_ = Jsonb.Encode(value);
 			}
 			sw.Stop();
 			Log($"Bench: jsonb encode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
@@ -109,7 +122,6 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			Log($"Bench: JSON  decode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
 #endif
 		}
-
 
 		private static long HexDecode(string hexa)
 		{
@@ -328,7 +340,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public void Test_Encode_Arrays()
 		{
 			// empty array
-			VerifyRoundtrip(JsonArray.Empty);
+			VerifyRoundtrip(JsonArray.EmptyReadOnly);
 
 			// simple arrays
 			VerifyRoundtrip(JsonArray.FromValues([ "hello", "world" ]));
@@ -363,13 +375,13 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			//	["hello", "world"]
 			VerifyReferenceEncoding(
 				"1A 00 00 00 02 00 00 40 05 00 00 00 05 00 00 00 68 65 6C 6C 6F 77 6F 72 6C 64",
-				JsonArray.Create("hello", "world")
+				JsonArray.Create([ "hello", "world" ])
 			);
 
 			//	[]
 			VerifyReferenceEncoding(
 				"08 00 00 00 00 00 00 40",
-				JsonArray.Empty
+				JsonArray.EmptyReadOnly
 			);
 
 		}
@@ -417,37 +429,329 @@ namespace Doxense.Serialization.Json.Binary.Tests
 
 		}
 
+		[Test]
+		public void Bench_Select_Objects_Hashed()
+		{
+			// verify that large object (with a lot of fields) are stored with a hashtable, that can be used to speed up future lookups
+#if DEBUG
+			const int RUNS = 3;
+			const int ITERATIONS = 100;
+#else
+			const int RUNS = 10;
+			const int ITERATIONS = 2_000;
+#endif
+
+			var rnd = new Random(123456);
+			var randomIds = Enumerable.Range(0, 1_000).Select(i => (Key: $"AAAAAAAAAAAAAAAAAA_{Guid.NewGuid()}_{rnd.Next():X}_{i}", Value: i)).ToArray();
+
+			RobustHistogram histo = new();
+			var min = histo.FromNanoseconds(100); // It is very unlikely to take less than 100ns to perform a lookup!
+
+			// perform a warmup run, so that the Tiered JIT does not interfer with us!
+			{
+				Log("Warming up...");
+				var tmp = PackObject(randomIds.AsSpan(0, 50), true);
+				for (int i = 0; i < 10; i++)
+				{
+					RunIteration(randomIds.AsSpan(0, 50), tmp, histo);
+					System.Threading.Thread.Sleep(25);
+				}
+				tmp = PackObject(randomIds.AsSpan(0, 50), false);
+				for (int i = 0; i < 10; i++)
+				{
+					RunIteration(randomIds.AsSpan(0, 50), tmp, histo);
+					System.Threading.Thread.Sleep(25);
+				}
+				Log("Ready to rumble!");
+			}
+
+			foreach(bool disableHashing in (bool[]) [ true, false ])
+			foreach (int numFields in (int[]) [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 22, 25, 33, 50, 66, 75, 100, 120, 150, 200, 250, 333, 500, 666, 750, 1_000 ])
+			{
+				rnd = new Random(123456);
+
+				var ids = randomIds.AsSpan(0, numFields).ToArray();
+				var packed = PackObject(ids, disableHashing);
+				Shuffle(rnd, ids);
+
+				histo.Clear();
+				for (int k = 0; k < RUNS; k++)
+				{
+					RunIteration(ids, packed, histo);
+				}
+				Log($"║ N={numFields,5} | SZ={packed.Count,7:N0} | {(disableHashing ? "NO_HASH" : "HASH   ")} ║ P05={histo.ToNanoseconds(histo.Percentile(5)),10:N1} ns | MED={histo.ToNanoseconds(histo.Median),10:N1} ns | P95={histo.ToNanoseconds(histo.Percentile(95)),10:N1} ns ║ {histo.GetDistribution(begin: min, end: 2_000)} ║");
+
+			}
+
+			static Slice PackObject(ReadOnlySpan<(string, int)> ids, bool noHash)
+			{
+				var obj = JsonObject.FromValues(ids);
+
+				return Jsonb.Encode(obj, new JsonbWriterOptions() { HashingThreshold = noHash ? int.MaxValue : 0 });
+			}
+
+			static void RunIteration(ReadOnlySpan<(string Key, int Value)> items, Slice packed, RobustHistogram histo)
+			{
+				var sw = new Stopwatch();
+				for (int i = 0; i < ITERATIONS; i++)
+				{
+					int idx = i % items.Length;
+					var k = items[idx].Key;
+					sw.Restart();
+					// we have an issue where it is "too fast" in Release and the stopwatch may or may not have enough precision pour measure the time taken
+					int x = Jsonb.Get<int>(packed, k, -1);
+					//int y = Jsonb.Get<int>(packed, k, x);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					//y = Jsonb.Get<int>(packed, k, y);
+					histo.Add(sw.Elapsed);
+					if (x != idx) Assert.That(x, Is.EqualTo(items[idx].Value), "Found the wrong field!");
+				}
+			}
+		}
+
 		[Test, Category("Benchmark")]
-		public void Test_Generate_Large_DataSet()
+		public void Test_Compress_Large_DataSet_Jsonb()
 		{
 			var db = FooDb.CreateTestData();
 			var obj = JsonValue.FromValue(db);
 
-			var json = obj.ToJsonBytes(CrystalJsonSettings.JsonCompact);
-			Log($"JSON : {json.Length:N0} bytes");
-			Log($"JSON : {json.AsSlice().ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
-			Log($"JSON : {json.AsSlice().ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
-			Log($"JSON : {json.AsSlice().ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
-			Log($"JSON : {json.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
-			Log($"JSON : {json.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
+			var json = obj.ToJsonSlice(CrystalJsonSettings.JsonCompact);
+			Log($"JSON : {json.Count:N0} bytes, uncompressed");
 
 			// jsonb raw
 			var jsonb = Jsonb.Encode(obj);
-			Log($"JSONB: {jsonb.Length:N0} bytes");
+			Log($"JSONB: {jsonb.Count:N0} bytes, uncompressed, {100.0 * jsonb.Count / json.Count:N1}%");
 
 			// jsonb compressed
-			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
-			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
-			Log($"JSONB: {jsonb.AsSlice().ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
-			Log($"JSONB: {jsonb.AsSlice().DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
-			Log($"JSONB: {jsonb.AsSlice().DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
+			Log($"JSONB: {jsonb.ZstdCompress(2).Count:N0} bytes, compressed with Zstd-2");
+			Log($"JSONB: {jsonb.ZstdCompress(9).Count:N0} bytes, compressed with Zstd-9");
+			Log($"JSONB: {jsonb.ZstdCompress(20).Count:N0} bytes, compressed with Zstd-20");
+			Log($"JSONB: {jsonb.DeflateCompress(CompressionLevel.Optimal).Count:N0} bytes, compressed with Deflate (5)");
+			Log($"JSONB: {jsonb.DeflateCompress(CompressionLevel.SmallestSize).Count:N0} bytes, compressed with Deflate (9)");
 		}
 
-		public sealed class FooDb
+		[Test]
+		public void Test_Jsonb_Test()
 		{
-			public required int Version { get; set; }
+			var original = JsonObject.Create(
+				[
+					("Hello", "World!"),
+					("Foo", 123),
+					("Bar", true),
+					("Baz", false),
+					("Pi", Math.PI),
+					("Max", long.MaxValue),
+					("Nothing", null),
+					("Point", JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])),
+					("Items", JsonArray.Create([ "A", "B", "C" ])),
+				]
+			);
 
-			public required List<Vendor> Vendors { get; set; }
+			var packed = Jsonb.Encode(original);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Jsonb.Test(packed, "Hello", "World!"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Hello", JsonString.Return("World!")), Is.True);
+				Assert.That(Jsonb.Test(packed, "Hello", "Le Monde!"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", default(string)), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", 123), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Hello", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Nothing", default(string)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", JsonNull.Null), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", JsonNull.Missing), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", JsonNull.Error), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(int?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(bool?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(Guid?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", default(Uuid128?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Nothing", "World!"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Nothing", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Nothing", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Nothing", 0), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Missing", default(string)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", JsonNull.Null), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", JsonNull.Missing), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", JsonNull.Error), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(int?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(bool?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(Guid?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", default(Uuid128?)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Missing", "World!"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Missing", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Missing", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Missing", 0), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Foo", 123), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", 123L), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", (int?) 123), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", (long?) 123L), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", JsonNumber.Return(123)), Is.True);
+				Assert.That(Jsonb.Test(packed, "Foo", 124), Is.False);
+				Assert.That(Jsonb.Test(packed, "Foo", 123.01), Is.False);
+				Assert.That(Jsonb.Test(packed, "Foo", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Bar", true), Is.True);
+				Assert.That(Jsonb.Test(packed, "Bar", false), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", "true"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", default(string)), Is.False);
+				Assert.That(Jsonb.Test(packed, "Bar", 1), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Baz", false), Is.True);
+				Assert.That(Jsonb.Test(packed, "Baz", true), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", "false"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", ""), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", default(string)), Is.False);
+				Assert.That(Jsonb.Test(packed, "Baz", 0), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Pi", Math.PI), Is.True);
+				Assert.That(Jsonb.Test(packed, "Pi", (float) Math.PI), Is.False);
+				Assert.That(Jsonb.Test(packed, "Pi", 3.1415), Is.False);
+				Assert.That(Jsonb.Test(packed, "Pi", 3), Is.False);
+				Assert.That(Jsonb.Test(packed, "Pi", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Max", long.MaxValue), Is.True);
+				Assert.That(Jsonb.Test(packed, "Max", -1), Is.False);
+				Assert.That(Jsonb.Test(packed, "Max", "9223372036854775807"), Is.False);
+				Assert.That(Jsonb.Test(packed, "Max", true), Is.False);
+				Assert.That(Jsonb.Test(packed, "Max", double.NaN), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Point.X", 1), Is.True);
+				Assert.That(Jsonb.Test(packed, "Point.X", 123), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Point.Y", 2), Is.True);
+				Assert.That(Jsonb.Test(packed, "Point.Y", 1), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Point.Z", 3), Is.True);
+				Assert.That(Jsonb.Test(packed, "Point.Z", -1), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Items[0]", "A"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Items[0]", 123), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Items[1]", "B"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Items[1]", true), Is.False);
+
+				Assert.That(Jsonb.Test(packed, "Items[2]", "C"), Is.True);
+				Assert.That(Jsonb.Test(packed, "Items[2]", "c"), Is.False);
+			});
+		}
+		
+		[Test]
+		public void Test_Jsonb_Select()
+		{
+			var original = JsonObject.Create(
+				[
+					("Hello", "World!"),
+					("Foo", 123),
+					("Bar", true),
+					("Baz", Math.PI),
+					("Point", JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])),
+					("Items", JsonArray.Create([ "A", "B", "C" ])),
+				]
+			);
+
+			var packed = Jsonb.Encode(original);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Jsonb.Select(packed, "Hello"), IsJson.EqualTo("World!"));
+				Assert.That(Jsonb.Select(packed, "Foo"), IsJson.EqualTo(123));
+				Assert.That(Jsonb.Select(packed, "Bar"), IsJson.True);
+				Assert.That(Jsonb.Select(packed, "Baz"), IsJson.EqualTo(Math.PI));
+				Assert.That(Jsonb.Select(packed, "Point"), IsJson.EqualTo(JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])));
+				Assert.That(Jsonb.Select(packed, "Items"), IsJson.EqualTo(JsonArray.Create([ "A", "B", "C" ])));
+
+				Assert.That(Jsonb.Select(packed, "Point.X"), IsJson.EqualTo(1));
+				Assert.That(Jsonb.Select(packed, "Point.Y"), IsJson.EqualTo(2));
+				Assert.That(Jsonb.Select(packed, "Point.Z"), IsJson.EqualTo(3));
+
+				Assert.That(Jsonb.Select(packed, "Items[0]"), IsJson.EqualTo("A"));
+				Assert.That(Jsonb.Select(packed, "Items[1]"), IsJson.EqualTo("B"));
+				Assert.That(Jsonb.Select(packed, "Items[2]"), IsJson.EqualTo("C"));
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Hello")), IsJson.EqualTo("World!"));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Foo")), IsJson.EqualTo(123));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Bar")), IsJson.True);
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Baz")), IsJson.EqualTo(Math.PI));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Point")), IsJson.EqualTo(JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])));
+				Assert.That(Jsonb.Select(packed, JsonPath.Create("Items")), IsJson.EqualTo(JsonArray.Create([ "A", "B", "C" ])));
+
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Point"]["X"]), IsJson.EqualTo(1));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Point"]["Y"]), IsJson.EqualTo(2));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Point"]["Z"]), IsJson.EqualTo(3));
+
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Items"][0]), IsJson.EqualTo("A"));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Items"][1]), IsJson.EqualTo("B"));
+				Assert.That(Jsonb.Select(packed, JsonPath.Empty["Items"][2]), IsJson.EqualTo("C"));
+			});
+
+		}
+
+		[Test]
+		public void Test_Jsonb_Select_Compiled()
+		{
+			// these would be reused multiple times;
+			var selId = Jsonb.CreateSelector("Id");
+			var selX = Jsonb.CreateSelector("Points[0].X");
+			var selY = Jsonb.CreateSelector("Points[1].Y");
+			var selFooBarBaz = Jsonb.CreateSelector("Foo.Bar.Baz");
+
+			Assert.That(selId.Path, Is.EqualTo("Id"));
+			Assert.That(selX.Path, Is.EqualTo("Points[0].X"));
+			Assert.That(selY.Path, Is.EqualTo("Points[1].Y"));
+			Assert.That(selFooBarBaz.Path, Is.EqualTo("Foo.Bar.Baz"));
+
+			// generate a batch of random data
+			var data = Enumerable
+				.Range(0, 10)
+				.Select(i => JsonObject.Create(
+				[
+					("Id", Guid.NewGuid()),
+					("Points", JsonArray.Create(
+						null,
+						JsonObject.Create([
+							("X", 1),
+							("Y", -i),
+							("Z", 0)
+						])
+					)),
+					("Foo", JsonObject.Create("Bar", JsonObject.Create("Baz", "Hello, there!")))
+				]))
+				.ToArray();
+
+			var batch = data
+				.Select(o => Jsonb.Encode(o))
+				.ToArray();
+
+			// use these selectors on multiple different documents
+			for(int i = 0; i < batch.Length; i++)
+			{
+				Assert.That(Jsonb.Select(batch[i], selId), IsJson.EqualTo(data[i].Get<Guid>("Id")));
+				Assert.That(Jsonb.Select(batch[i], selX), IsJson.Missing);
+				Assert.That(Jsonb.Select(batch[i], selY), IsJson.EqualTo(-i));
+				Assert.That(Jsonb.Select(batch[i], selFooBarBaz), IsJson.EqualTo("Hello, there!"));
+			}
+
+		}
+
+		public sealed record FooDb
+		{
+			public required int Version { get; init; }
+
+			public required List<Vendor> Vendors { get; init; }
 
 			public enum DeviceType
 			{
@@ -457,38 +761,38 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				Plotter
 			}
 
-			public sealed class Vendor
+			public sealed record Vendor
 			{
-				public required Guid Id { get; set; }
-				public required string Label { get; set; }
-				public required string Name { get; set; }
+				public required Guid Id { get; init; }
+				public required string Label { get; init; }
+				public required string Name { get; init; }
 
-				public required Dictionary<Guid, Model> Models { get; set; }
+				public required Dictionary<Guid, Model> Models { get; init; }
 
 			}
 
-			public sealed class Model
+			public sealed record Model
 			{
-				public required Guid Id { get; set; }
+				public required Guid Id { get; init; }
 
-				public required string Name { get; set; }
+				public required string Name { get; init; }
 
-				public required DeviceType Type { get; set; }
+				public required DeviceType Type { get; init; }
 
-				public required bool ColorCapable { get; set; }
+				public required bool ColorCapable { get; init; }
 
-				public required bool DuplexCapable { get; set; }
+				public required bool DuplexCapable { get; init; }
 
-				public required DateTime Updated { get; set; }
+				public required DateTime Updated { get; init; }
 
-				public required List<Rule> Rules { get; set; }
+				public required List<Rule> Rules { get; init; }
 
 				public static Model MakeRandom(Random rnd)
 				{
 					return new Model
 					{
 						Id = Guid.NewGuid(),
-						Name = String.Join(" ", Enumerable.Range(0, rnd.Next(1, 5)).Select(_ => new string('M', rnd.Next(4, 32)))),
+						Name = string.Join(" ", Enumerable.Range(0, rnd.Next(1, 5)).Select(_ => new string('M', rnd.Next(4, 32)))),
 						Type = (DeviceType) rnd.Next((int) DeviceType.Printer, 1 + (int) DeviceType.Plotter),
 						ColorCapable = rnd.Next(2) == 1,
 						DuplexCapable = rnd.Next(2) == 1,
@@ -498,15 +802,15 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				}
 			}
 
-			public sealed class Rule
+			public sealed record Rule
 			{
-				public required Guid Id { get; set; }
+				public required Guid Id { get; init; }
 
-				public required List<Guid> Parents { get; set; }
+				public required List<Guid> Parents { get; init; }
 
-				public required int Level { get; set; }
+				public required int Level { get; init; }
 
-				public required string Expression { get; set; }
+				public required string Expression { get; init; }
 
 				public static Rule MakeRandom(Random rnd)
 				{
@@ -515,7 +819,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 						Id = Guid.NewGuid(),
 						Parents = Enumerable.Range(0, rnd.Next(3)).Select(_ => Guid.NewGuid()).ToList(),
 						Level = rnd.Next(100),
-						Expression = String.Join(" ", Enumerable.Range(0, rnd.Next(1, 4)).Select(_ => new string('X', rnd.Next(4, 32))))
+						Expression = string.Join(" ", Enumerable.Range(0, rnd.Next(1, 4)).Select(_ => new string('X', rnd.Next(4, 32))))
 					};
 				}
 			}
@@ -581,11 +885,11 @@ namespace Doxense.Serialization.Json.Binary.Tests
 					]
 				};
 
-
 				return fooDb;
 			}
 
 		}
+
 	}
 
 }

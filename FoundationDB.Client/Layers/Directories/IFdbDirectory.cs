@@ -26,15 +26,9 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading.Tasks;
-	using JetBrains.Annotations;
 
-	/// <summary>
-	/// Represents a directory in the <code>DirectoryLayer</code>. A <code>Directory</code> stores the path at which it is located and the layer that was used to create it.
-	/// The IFdbDirectory interface contains methods to operate on itself and its subdirectories.
-	/// </summary>
+	/// <summary>Represents a directory in the <code>DirectoryLayer</code>. A <code>Directory</code> stores the path at which it is located and the layer that was used to create it.</summary>
+	/// <remarks>The IFdbDirectory interface contains methods to operate on itself and its subdirectories.</remarks>
 	[PublicAPI]
 	public interface IFdbDirectory
 	{

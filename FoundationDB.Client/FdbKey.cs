@@ -26,16 +26,12 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Factory class for keys</summary>
 	[PublicAPI]
@@ -68,8 +64,10 @@ namespace FoundationDB.Client
 		{
 			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", nameof(slice));
 
+			// ReSharper disable once InconsistentNaming
 			int lastNonFFByte;
-			var tmp = slice.GetBytesOrEmpty();
+
+			var tmp = slice.ToArray();
 			for (lastNonFFByte = tmp.Length - 1; lastNonFFByte >= 0; --lastNonFFByte)
 			{
 				if (tmp[lastNonFFByte] != 0xFF)
@@ -315,7 +313,7 @@ namespace FoundationDB.Client
 										case 0xFF:
 										{
 											//***README*** if you break under here, see README in the last catch() block
-											if (TuPack.TryUnpack(span[0..^1], out tuple))
+											if (TuPack.TryUnpack(span[..^1], out tuple))
 											{
 												suffix = ".<FF>";
 											}
@@ -345,7 +343,7 @@ namespace FoundationDB.Client
 									if (span.Length > 2 && span[^1] == 0 && span[^2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										if (TuPack.TryUnpack(span[0..^1], out tuple))
+										if (TuPack.TryUnpack(span[..^1], out tuple))
 										{
 											suffix = ".<00>";
 										}

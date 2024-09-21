@@ -26,20 +26,14 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 	using FoundationDB.Client.Core;
-	using JetBrains.Annotations;
 
 	/// <summary>
 	/// Represents the context of a retry-able transactional function which accepts a read-only or read-write transaction.
@@ -1445,7 +1439,7 @@ namespace FoundationDB.Client
 							//TODO: REVIEW: how can we distinguish between errors that are caused by the bad assumption of a failed value check, and errors that are completely unrelated?
 
 							bool shouldThrow = true;
-							if (!hasRunValueChecks)
+							if (!hasRunValueChecks && !context.Cancellation.IsCancellationRequested)
 							{
 								context.FailedValueCheckTags?.Clear();
 								if (!await context.ValidateValueChecks(ignoreFailedTasks: false).ConfigureAwait(false))
@@ -1524,7 +1518,10 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-				Contract.Debug.Assert(!reportOpStarted);
+				if (reportOpStarted)
+				{
+					FdbClientInstrumentation.ReportOperationCompleted(context, null, context.PreviousError);
+				}
 
 				if (reportTransStarted)
 				{

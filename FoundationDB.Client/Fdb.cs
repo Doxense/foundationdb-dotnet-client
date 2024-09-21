@@ -28,17 +28,12 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
-	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB binding</summary>
 	[PublicAPI]

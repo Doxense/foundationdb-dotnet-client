@@ -166,7 +166,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
 		{
-			tr.Annotate("Writing task {0:P}", taskId);
+			tr.Annotate($"Writing task {taskId:P}");
 
 			var prefix = this.TaskStore.Partition.ByKey(taskId);
 
@@ -180,7 +180,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private void ClearTask(IFdbTransaction tr, Slice taskId)
 		{
-			tr.Annotate("Deleting task {0:P}", taskId);
+			tr.Annotate($"Deleting task {taskId:P}");
 
 			// clear all metadata about the task
 			tr.ClearRange(KeyRange.StartsWith(this.TaskStore.Encode(taskId)));
@@ -205,7 +205,7 @@ namespace FoundationDB.Layers.Messaging
 #if DEBUG
 				if (tr.Context.Retries > 0) Console.WriteLine($"# retry n°{tr.Context.Retries} for task {taskId:P}");
 #endif
-				tr.Annotate("I want to schedule {0:P}", taskId);
+				tr.Annotate($"I want to schedule {taskId:P}");
 
 				// find a random worker from the idle ring
 				var randomWorkerKey = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
@@ -214,7 +214,7 @@ namespace FoundationDB.Layers.Messaging
 				{
 					Slice workerId = this.IdleRing.Decode<Slice>(randomWorkerKey.Key);
 
-					tr.Annotate("Assigning {0:P} to {1:P}", taskId, workerId);
+					tr.Annotate($"Assigning {taskId:P} to {workerId:P}");
 
 					// remove worker from the idle ring
 					tr.Clear(this.IdleRing.Encode(workerId));
@@ -226,7 +226,7 @@ namespace FoundationDB.Layers.Messaging
 				}
 				else
 				{
-					tr.Annotate("Queueing {0:P}", taskId);
+					tr.Annotate($"Queueing {taskId:P}");
 
 					await PushQueueAsync(tr, this.UnassignedTaskRing, taskId).ConfigureAwait(false);
 				}
@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Messaging
 					await db.WriteAsync(
 						async (tr) =>
 						{
-							tr.Annotate("I'm worker #{0} with id {1:P}", num, workerId);
+							tr.Annotate($"I'm worker #{num} with id {workerId:P}");
 
 							myId = workerId;
 							watch = null;
@@ -299,13 +299,13 @@ namespace FoundationDB.Layers.Messaging
 								{ // mark this worker as busy
 									// note: we need a random id so generate one if it is the first time...
 									if (!myId.IsPresent) myId = GetRandomId();
-									tr.Annotate("Found {0:P}, switch to busy with id {1:P}", msg.Id, myId);
+									tr.Annotate($"Found {msg.Id:P}, switch to busy with id {myId:P}");
 									tr.Set(this.BusyRing.Encode(myId), msg.Id);
 									this.Counters.Increment(tr, COUNTER_BUSY);
 								}
 								else if (myId.IsPresent)
 								{ // remove ourselves from the busy ring
-									tr.Annotate("Found nothing, switch to idle with id {0:P}", myId);
+									tr.Annotate($"Found nothing, switch to idle with id {myId:P}");
 									//tr.Clear(this.BusyRing.Pack(myId));
 								}
 							}
@@ -313,7 +313,7 @@ namespace FoundationDB.Layers.Messaging
 							if (msg.Id.IsPresent)
 							{ // get the task body
 
-								tr.Annotate("Fetching body for task {0:P}", msg.Id);
+								tr.Annotate($"Fetching body for task {msg.Id:P}");
 								var prefix = this.TaskStore.Partition.ByKey(msg.Id);
 								//TODO: replace this with a get_range ?
 								var data = await tr.GetValuesAsync(
@@ -341,7 +341,7 @@ namespace FoundationDB.Layers.Messaging
 
 								// the idle key will also be used as the watch key to wake us up
 								var watchKey = this.IdleRing.Encode(myId);
-								tr.Annotate("Will start watching on key {0:P} with id {1:P}", watchKey, myId);
+								tr.Annotate($"Will start watching on key {watchKey:P} with id {myId:P}");
 								tr.Set(watchKey, Slice.Empty);
 								this.Counters.Increment(tr, COUNTER_IDLE);
 

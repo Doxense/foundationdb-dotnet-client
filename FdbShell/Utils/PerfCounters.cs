@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if false
+
 namespace FdbShell
 {
 	using System.Diagnostics;
@@ -83,3 +85,5 @@ namespace FdbShell
 	}
 
 }
+
+#endif

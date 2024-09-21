@@ -26,9 +26,7 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Runtime.CompilerServices;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys as binary literals.</summary>
 	[PublicAPI]

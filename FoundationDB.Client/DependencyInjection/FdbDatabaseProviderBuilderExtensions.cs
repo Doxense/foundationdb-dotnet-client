@@ -26,10 +26,7 @@
 
 namespace FoundationDB.DependencyInjection
 {
-	using System;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
 	[PublicAPI]

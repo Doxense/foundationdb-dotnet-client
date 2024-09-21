@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-
 	/// <summary>Defines a type of conflict artificially added to a transaction</summary>
 	public enum FdbConflictRangeType
 	{

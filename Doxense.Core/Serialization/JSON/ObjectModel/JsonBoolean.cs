@@ -34,7 +34,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Boolean({m_value})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
-	public sealed class JsonBoolean : JsonValue, IEquatable<JsonBoolean>, IComparable<JsonBoolean>, IEquatable<JsonNumber>, IEquatable<JsonString>, IEquatable<bool>
+	public sealed class JsonBoolean : JsonValue, IEquatable<bool>, IEquatable<JsonBoolean>, IComparable<JsonBoolean>
 	{
 
 		/// <summary>JSON value that is equal to <see langword="true"/></summary>
@@ -118,45 +118,52 @@ namespace Doxense.Serialization.Json
 
 		public override bool Equals(object? value)
 		{
-			if (value == null) return false;
-
-			switch (System.Type.GetTypeCode(value.GetType()))
-			{
-				case TypeCode.Boolean: return m_value == (bool) value;
-				case TypeCode.Int32: return m_value == ((int) value != 0);
-				case TypeCode.UInt32: return m_value == ((uint) value != 0U);
-				case TypeCode.Int64: return m_value == ((long) value != 0L);
-				case TypeCode.UInt64: return m_value == ((ulong) value != 0UL);
-				case TypeCode.Single: return m_value == ((float) value != 0.0f);
-				case TypeCode.Double: return m_value == ((double) value != 0.0);
-				case TypeCode.Int16: return m_value == ((short) value != 0);
-				case TypeCode.UInt16: return m_value == ((ushort) value != 0);
-				case TypeCode.SByte: return m_value == ((sbyte) value != 0);
-				case TypeCode.Byte: return m_value == ((byte) value != 0);
-				//TODO: others?
-			}
-			return base.Equals(value);
-		}
-
-		public override bool Equals(JsonValue? value)
-		{
 			return value switch
 			{
-				JsonBoolean b => Equals(b),
-				JsonNumber n => Equals(n),
-				JsonString s => Equals(s),
+				JsonValue j => Equals(j),
+				bool b => m_value == b,
 				_ => false
 			};
 		}
 
+		/// <inheritdoc />
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		{
+			if (default(TValue) is null)
+			{
+				if (value is null)
+				{ // null != false
+					return false;
+				}
+
+				if (typeof(TValue) == typeof(bool?))
+				{ // we already know it's not null
+					return m_value == (bool) (object) value!;
+				}
+
+				if (value is JsonBoolean j)
+				{ // only JsonBoolean would match...
+					return j.m_value == (bool) (object) value!;
+				}
+			}
+			else
+			{
+				if (typeof(TValue) == typeof(bool))
+				{ // direct match
+					return m_value == (bool) (object) value!;
+				}
+			}
+
+			return false;
+		}
+
+		public override bool Equals(JsonValue? value)
+		{
+			return value is JsonBoolean b && b.m_value == m_value;
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(JsonBoolean? obj) => obj is not null && obj.m_value == m_value;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(JsonNumber? obj) => obj is not null && obj.ToBoolean() == m_value;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(JsonString? obj) => obj is not null && m_value != string.IsNullOrEmpty(obj.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(bool value) => m_value == value;
@@ -173,16 +180,12 @@ namespace Doxense.Serialization.Json
 
 		public override int CompareTo(JsonValue? other)
 		{
-			if (other == null) return +1;
-			switch(other.Type)
+			if (other.IsNullOrMissing()) return +1;
+			if (other is JsonBoolean b)
 			{
-				case JsonType.Boolean:
-				case JsonType.String:
-				case JsonType.Number:
-					return m_value.CompareTo(other.ToBoolean());
-				default:
-					return base.CompareTo(other);
+				return m_value.CompareTo(b.m_value);
 			}
+			return base.CompareTo(other);
 		}
 
 		public int CompareTo(JsonBoolean? other)
@@ -217,6 +220,14 @@ namespace Doxense.Serialization.Json
 		public override long ToInt64() => m_value ? 1L : 0L;
 
 		public override ulong ToUInt64() => m_value ? 1UL : 0UL;
+
+#if NET8_0_OR_GREATER
+
+		public override Int128 ToInt128() => m_value ? Int128.One : Int128.Zero;
+
+		public override UInt128 ToUInt128() => m_value ? UInt128.One : UInt128.Zero;
+
+#endif
 
 		public override float ToSingle() => m_value ? 1f : 0f;
 

@@ -29,13 +29,9 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Utils;
 
 	/// <summary>Helper class to create FDBFutures</summary>

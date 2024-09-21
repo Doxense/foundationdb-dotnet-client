@@ -8,8 +8,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.Metrics;
 
@@ -114,7 +112,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		internal static void ReportOperationCompleted(FdbOperationContext context, IFdbTransaction trans, FdbError error = FdbError.Success)
+		internal static void ReportOperationCompleted(FdbOperationContext context, IFdbTransaction? trans, FdbError error = FdbError.Success)
 		{
 			if (OperationsDuration.Enabled)
 			{
@@ -135,7 +133,7 @@ namespace FoundationDB.Client
 				new KeyValuePair<string, object?>("operation.status", error)
 			);
 
-			if (error != FdbError.Success && OperationSize.Enabled)
+			if (error != FdbError.Success && trans != null && OperationSize.Enabled)
 			{ // we need to record the size for failed attempts
 				int size = trans.Size;
 				if (size > 0)

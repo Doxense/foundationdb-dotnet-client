@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-
 	/// <summary>Defines a set of options for the cluster connection</summary>
 	public enum FdbClusterOption
 	{

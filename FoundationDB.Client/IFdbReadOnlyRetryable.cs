@@ -26,15 +26,12 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	/// <summary>Transactional context that can execute, inside a retry loop, idempotent actions using read-only transactions.</summary>
 	[PublicAPI]
 	public interface IFdbReadOnlyRetryable
 	{
+
 		#region Important Note: Differences with Python's @transactional and Java's TransactionContext
 
 		// This interface is supposed to be the equivalent of the @transactional Python attribute, and the TransactionContext base class in Java,

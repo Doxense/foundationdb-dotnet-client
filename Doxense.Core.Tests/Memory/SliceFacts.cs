@@ -70,7 +70,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(Slice.Nil.IsPresent, Is.False);
 
 			Assert.That(Slice.Nil.GetBytes(), Is.Null);
-			Assert.That(Slice.Nil.GetBytesOrEmpty(), Is.Not.Null.And.Length.EqualTo(0));
+			Assert.That(Slice.Nil.ToArray(), Is.Not.Null.And.Length.EqualTo(0));
 			Assert.That(Slice.Nil.ToByteString(), Is.Null);
 			Assert.That(Slice.Nil.ToUnicode(), Is.Null);
 			Assert.That(Slice.Nil.PrettyPrint(), Is.EqualTo(String.Empty));
@@ -93,7 +93,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(Slice.Empty.IsPresent, Is.False);
 
 			Assert.That(Slice.Empty.GetBytes(), Is.Not.Null.And.Length.EqualTo(0));
-			Assert.That(Slice.Empty.GetBytesOrEmpty(), Is.Not.Null.And.Length.EqualTo(0));
+			Assert.That(Slice.Empty.ToArray(), Is.Not.Null.And.Length.EqualTo(0));
 			Assert.That(Slice.Empty.ToByteString(), Is.EqualTo(String.Empty));
 			Assert.That(Slice.Empty.ToUnicode(), Is.EqualTo(String.Empty));
 			Assert.That(Slice.Empty.PrettyPrint(), Is.EqualTo("''"));
@@ -116,7 +116,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.IsPresent, Is.True);
 
 			Assert.That(slice.GetBytes(), Is.EqualTo("ABC"u8.ToArray()));
-			Assert.That(slice.GetBytesOrEmpty(), Is.EqualTo("ABC"u8.ToArray()));
+			Assert.That(slice.ToArray(), Is.EqualTo("ABC"u8.ToArray()));
 			Assert.That(slice.ToByteString(), Is.EqualTo("ABC"));
 			Assert.That(slice.ToUnicode(), Is.EqualTo("ABC"));
 			Assert.That(slice.PrettyPrint(), Is.EqualTo("'ABC'"));
@@ -2879,7 +2879,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			var buffer = "$$$Hello, World!$$$$$"u8.ToArray();
 			var x = buffer.AsSlice(3, 13);
 			Assume.That(x.ToStringUtf8(), Is.EqualTo("Hello, World!"));
-			var bytes = x.GetBytesOrEmpty();
+			var bytes = x.ToArray();
 
 			span = x.Span;
 			Assert.That(span.Length, Is.EqualTo(13));

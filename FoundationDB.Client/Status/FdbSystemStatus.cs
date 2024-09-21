@@ -25,19 +25,17 @@
 #endregion
 
 // ReSharper disable UnusedMember.Global
+// ReSharper disable InconsistentNaming
 namespace FoundationDB.Client.Status
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
 	using Doxense.Serialization.Json;
-	using JetBrains.Annotations;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>
 	[PublicAPI]
-	public sealed class FdbSystemStatus : MetricsBase
+	public sealed record FdbSystemStatus : MetricsBase
 	{
 		internal FdbSystemStatus(JsonObject doc, long readVersion, Slice raw)
 			: base(doc)
@@ -154,7 +152,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Measured quantity that changes over time</summary>
 	[DebuggerDisplay("Hz={Hz}")]
-	public class RateCounter : MetricsBase
+	public record RateCounter : MetricsBase
 	{
 
 		internal RateCounter(JsonObject? data)
@@ -173,7 +171,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	[DebuggerDisplay("Counter={Counter}, Hz={Hz}")]
-	public class LoadCounter : RateCounter
+	public record LoadCounter : RateCounter
 	{
 		internal LoadCounter(JsonObject? data) : base(data)
 		{
@@ -192,7 +190,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Measured quantity that changes over time</summary>
 	[DebuggerDisplay("Counter={Counter}, Hz={Hz}, Roughness={Roughness}")]
-	public sealed class RoughnessCounter : LoadCounter
+	public sealed record RoughnessCounter : LoadCounter
 	{
 
 		internal RoughnessCounter(JsonObject? data) : base(data)
@@ -210,7 +208,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Measured quantity that changes over time</summary>
 	[DebuggerDisplay("Counter={Counter}, Hz={Hz}, Sectors={Sectors}")]
-	public sealed class DiskCounter : LoadCounter
+	public sealed record DiskCounter : LoadCounter
 	{
 
 		internal DiskCounter(JsonObject? data) : base(data)
@@ -226,7 +224,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	[DebuggerDisplay("Seconds={Seconds}, Versions={Versions}")]
-	public sealed class LagCounter : MetricsBase
+	public sealed record LagCounter : MetricsBase
 	{
 		internal LagCounter(JsonObject? data) : base(data)
 		{
@@ -245,7 +243,8 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Base class for all metrics containers</summary>
-	public abstract class MetricsBase : IJsonSerializable, IJsonPackable
+	[PublicAPI]
+	public abstract record MetricsBase : IJsonSerializable, IJsonPackable
 	{
 		protected readonly JsonObject? m_data;
 
@@ -257,6 +256,8 @@ namespace FoundationDB.Client.Status
 		/// <summary>Returns <see langword="true"/> if this section was present in the parent</summary>
 		/// <remarks>If <see langword="false"/>, the content of this instance should be discarded</remarks>
 		public bool Exists() => m_data != null;
+
+		public JsonValue this[string name] => m_data?.GetValueOrDefault(name) ?? JsonNull.Missing;
 
 		protected JsonObject? GetObject(string field) => m_data?.GetObjectOrDefault(field);
 
@@ -299,7 +300,7 @@ namespace FoundationDB.Client.Status
 	#region Client...
 
 	/// <summary>Description of the current status of the local FoundationDB client</summary>
-	public sealed class ClientStatus : MetricsBase
+	public sealed record ClientStatus : MetricsBase
 	{
 		internal ClientStatus(JsonObject? data) : base(data) { }
 
@@ -349,7 +350,7 @@ namespace FoundationDB.Client.Status
 	#region Cluster...
 
 	/// <summary>Description of the current status of a FoundationDB cluster</summary>
-	public sealed class ClusterStatus : MetricsBase
+	public sealed record ClusterStatus : MetricsBase
 	{
 
 		internal ClusterStatus(JsonObject? data)
@@ -482,7 +483,7 @@ namespace FoundationDB.Client.Status
 		public const string UnreadableConfiguration = "unreadable_configuration";
 	}
 
-	public sealed class ClusterConfiguration : MetricsBase
+	public sealed record ClusterConfiguration : MetricsBase
 	{
 		internal ClusterConfiguration(JsonObject? data) : base(data)
 		{
@@ -511,7 +512,7 @@ namespace FoundationDB.Client.Status
 		public string? StorageEngine => GetString("storage_engine");
 
 		[Obsolete("Deprecated, use RedundancyMode instead")]
-		public string? RedundancyFactor => GetString("redundancy", "factor") ?? string.Empty;
+		public string RedundancyFactor => GetString("redundancy", "factor") ?? string.Empty;
 
 		public string? RedundancyMode => GetString("redundancy_mode");
 
@@ -553,7 +554,7 @@ namespace FoundationDB.Client.Status
 		}
 	}
 
-	public sealed class LatencyMetrics : MetricsBase
+	public sealed record LatencyMetrics : MetricsBase
 	{
 		internal LatencyMetrics(JsonObject? data) : base(data)
 		{
@@ -571,7 +572,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Details about the volume of data stored in the cluster</summary>
-	public sealed class DataMetrics : MetricsBase
+	public sealed record DataMetrics : MetricsBase
 	{
 		internal DataMetrics(JsonObject? data) : base(data) { }
 
@@ -606,7 +607,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Details about the quality of service offered by the cluster</summary>
-	public sealed class QosMetrics : MetricsBase
+	public sealed record QosMetrics : MetricsBase
 	{
 		internal QosMetrics(JsonObject? data) : base(data) { }
 
@@ -626,7 +627,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Details about the current wokrload of the cluster</summary>
-	public sealed class WorkloadMetrics : MetricsBase
+	public sealed record WorkloadMetrics : MetricsBase
 	{
 		internal WorkloadMetrics(JsonObject? data) : base(data) { }
 
@@ -645,7 +646,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Throughput of a FoundationDB cluster</summary>
-	public sealed class WorkloadBytesMetrics : MetricsBase
+	public sealed record WorkloadBytesMetrics : MetricsBase
 	{
 		internal WorkloadBytesMetrics(JsonObject? data) : base(data)
 		{
@@ -659,7 +660,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Operations workload of a FoundationDB cluster</summary>
-	public sealed class WorkloadOperationsMetrics : MetricsBase
+	public sealed record WorkloadOperationsMetrics : MetricsBase
 	{
 		internal WorkloadOperationsMetrics(JsonObject? data) : base(data)
 		{
@@ -678,7 +679,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Transaction workload of a FoundationDB cluster</summary>
-	public sealed class WorkloadTransactionsMetrics : MetricsBase
+	public sealed record WorkloadTransactionsMetrics : MetricsBase
 	{
 		internal WorkloadTransactionsMetrics(JsonObject? data) : base(data)
 		{
@@ -694,7 +695,7 @@ namespace FoundationDB.Client.Status
 		public RoughnessCounter Started { get; }
 	}
 
-	public sealed class ClusterClientsMetrics : MetricsBase
+	public sealed record ClusterClientsMetrics : MetricsBase
 	{
 		internal ClusterClientsMetrics(JsonObject? data) : base(data)
 		{
@@ -706,7 +707,7 @@ namespace FoundationDB.Client.Status
 		//TODO: "supported_versions"
 	}
 
-	public sealed class ClusterTenantsMetrics : MetricsBase
+	public sealed record ClusterTenantsMetrics : MetricsBase
 	{
 
 		internal ClusterTenantsMetrics(JsonObject? data) : base(data)
@@ -724,7 +725,7 @@ namespace FoundationDB.Client.Status
 	#region Processes...
 
 	/// <summary>Details about a FoundationDB process</summary>
-	public sealed class ProcessStatus : MetricsBase
+	public sealed record ProcessStatus : MetricsBase
 	{
 
 		internal ProcessStatus(JsonObject? data, string id) : base(data)
@@ -816,7 +817,7 @@ namespace FoundationDB.Client.Status
 
 	}
 
-	public class ProcessRoleMetrics : MetricsBase
+	public record ProcessRoleMetrics : MetricsBase
 	{
 		internal ProcessRoleMetrics(JsonObject? data, string role) : base(data)
 		{
@@ -853,7 +854,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Metrics related to the <c>proxy_proxy</c> role</summary>
-	public sealed class ProxyRoleMetrics : ProcessRoleMetrics
+	public sealed record ProxyRoleMetrics : ProcessRoleMetrics
 	{
 		public ProxyRoleMetrics(JsonObject? data)
 			: base(data, "proxy")
@@ -861,7 +862,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Metrics related to the <c>commit_proxy</c> role</summary>
-	public sealed class CommitProxyRoleMetrics : ProcessRoleMetrics
+	public sealed record CommitProxyRoleMetrics : ProcessRoleMetrics
 	{
 		public CommitProxyRoleMetrics(JsonObject? data) : base(data, "commit_proxy")
 		{ }
@@ -876,7 +877,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Metrics related to the <c>grv_proxy</c> role</summary>
-	public sealed class GrvProxyRoleMetrics : ProcessRoleMetrics
+	public sealed record GrvProxyRoleMetrics : ProcessRoleMetrics
 	{
 		public GrvProxyRoleMetrics(JsonObject? data) : base(data, "grv_proxy")
 		{ }
@@ -892,7 +893,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Characteristics of a measured value (count, max, avg, percentiles, ...)</summary>
 	[DebuggerDisplay("Count={Count}, Mean={Mean}, Min={Min}, P25={P25}, Med={Median}, P90={P90}, P95={P95}, P99={P99}, P99.9={P999}, Max={Max}")]
-	public sealed class MetricStatistics : MetricsBase
+	public sealed record MetricStatistics : MetricsBase
 	{
 
 		internal MetricStatistics(JsonObject? data) : base(data) { }
@@ -934,41 +935,41 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Metrics related to the <c>master</c> role</summary>
-	public sealed class MasterRoleMetrics : ProcessRoleMetrics
+	public sealed record MasterRoleMetrics : ProcessRoleMetrics
 	{
 		public MasterRoleMetrics(JsonObject? data) : base(data, "master")
 		{ }
 	}
 
 	/// <summary>Metrics related to the <c>resolver</c> role</summary>
-	public sealed class ResolverRoleMetrics : ProcessRoleMetrics
+	public sealed record ResolverRoleMetrics : ProcessRoleMetrics
 	{
 		public ResolverRoleMetrics(JsonObject? data) : base(data, "resolver")
 		{ }
 	}
 
 	/// <summary>Metrics related to the <c>cluster_controller</c> role</summary>
-	public sealed class ClusterControllerRoleMetrics : ProcessRoleMetrics
+	public sealed record ClusterControllerRoleMetrics : ProcessRoleMetrics
 	{
 		public ClusterControllerRoleMetrics(JsonObject? data) : base(data, "cluster_controller")
 		{ }
 	}
 
 	/// <summary>Metrics related to the <c>ratekeeper</c> role</summary>
-	public sealed class RateKeeperRoleMetrics : ProcessRoleMetrics
+	public sealed record RateKeeperRoleMetrics : ProcessRoleMetrics
 	{
 		public RateKeeperRoleMetrics(JsonObject? data) : base(data, "ratekeeper")
 		{ }
 	}
 
 	/// <summary>Metrics related to the <c>data_distributor</c> role</summary>
-	public sealed class DataDistributorRoleMetrics : ProcessRoleMetrics
+	public sealed record DataDistributorRoleMetrics : ProcessRoleMetrics
 	{
 		public DataDistributorRoleMetrics(JsonObject? data) : base(data, "data_distributor")
 		{ }
 	}
 
-	public abstract class DiskBasedRoleMetrics : ProcessRoleMetrics
+	public abstract record DiskBasedRoleMetrics : ProcessRoleMetrics
 	{
 		protected DiskBasedRoleMetrics(JsonObject? data, string role) : base(data, role)
 		{
@@ -997,10 +998,11 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Metrics related to the <c>storage</c> role</summary>
-	public sealed class StorageRoleMetrics : DiskBasedRoleMetrics
+	public sealed record StorageRoleMetrics : DiskBasedRoleMetrics
 	{
 		internal StorageRoleMetrics(JsonObject? data) : base(data, "storage")
 		{
+			this.StorageMetadata = new StorageMetadataMetrics(GetObject("storage_metadata"));
 			this.BytesQueried = new RoughnessCounter(GetObject("bytes_queried"));
 			this.FinishedQueries = new RoughnessCounter(GetObject("finished_queries"));
 			this.KeysQueried = new RoughnessCounter(GetObject("keys_queried"));
@@ -1047,10 +1049,39 @@ namespace FoundationDB.Client.Status
 
 		public MetricStatistics ReadLatencyStatistics { get; }
 
+		/// <summary></summary>
+		public StorageMetadataMetrics StorageMetadata { get; }
+
+	}
+
+	/// <summary>Measured quantity that changes over time</summary>
+	[DebuggerDisplay("StorageEngine={StorageEngine}")]
+	public sealed record StorageMetadataMetrics : MetricsBase
+	{
+
+		internal StorageMetadataMetrics(JsonObject? data)
+			: base(data)
+		{
+			this.StorageEngine = GetString("storage_engine");
+			this.CreatedTimeDateTime = GetString("created_time_datetime");
+			this.CreatedTimeStamp = GetDouble("created_time_timestamp");
+		}
+
+		/// <summary><c>storage_engine</c></summary>
+		public string? StorageEngine { get; }
+
+		/// <summary><c>created_time_datetime</c></summary>
+		/// <remarks>Use <see cref="DateTimeOffset.Parse(string)"/> to parse this string</remarks>
+		/// <example>"2023-10-14 17:12:53.128 +0000"</example>
+		public string? CreatedTimeDateTime { get; }
+
+		/// <summary><c>created_time_timestamp</c></summary>
+		public double? CreatedTimeStamp { get; }
+
 	}
 
 	/// <summary>Metrics related to the <c>log</c> role</summary>
-	public sealed class LogRoleMetrics : DiskBasedRoleMetrics
+	public sealed record LogRoleMetrics : DiskBasedRoleMetrics
 	{
 		internal LogRoleMetrics(JsonObject? data) : base(data, "log")
 		{ }
@@ -1076,7 +1107,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Memory performance counters for a FoundationDB process</summary>
-	public sealed class ProcessMemoryMetrics : MetricsBase
+	public sealed record ProcessMemoryMetrics : MetricsBase
 	{
 		internal ProcessMemoryMetrics(JsonObject? data) : base(data)
 		{ }
@@ -1097,7 +1128,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>CPU performance counters for a FoundationDB process</summary>
-	public sealed class ProcessCpuMetrics : MetricsBase
+	public sealed record ProcessCpuMetrics : MetricsBase
 	{
 		internal ProcessCpuMetrics(JsonObject? data) : base(data)
 		{ }
@@ -1107,7 +1138,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Disk performance counters for a FoundationDB process</summary>
 	[DebuggerDisplay("Busy={Busy}, Free={FreeBytes}/{TotalBytes}, Reads={Reads.Hz}, Writes={Writes.Hz}")]
-	public sealed class ProcessDiskMetrics : MetricsBase
+	public sealed record ProcessDiskMetrics : MetricsBase
 	{
 
 		internal ProcessDiskMetrics(JsonObject? data) : base(data)
@@ -1132,7 +1163,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Network performance counters for a FoundationDB process or machine</summary>
-	public sealed class ProcessNetworkMetrics : MetricsBase
+	public sealed record ProcessNetworkMetrics : MetricsBase
 	{
 		internal ProcessNetworkMetrics(JsonObject? data) : base(data)
 		{
@@ -1162,7 +1193,7 @@ namespace FoundationDB.Client.Status
 
 	#region Machines...
 
-	public sealed class MachineStatus : MetricsBase
+	public sealed record MachineStatus : MetricsBase
 	{
 
 		internal MachineStatus(JsonObject? data, string id) : base(data)
@@ -1206,7 +1237,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Memory performance counters for machine hosting one or more FoundationDB processes</summary>
-	public sealed class MachineMemoryMetrics : MetricsBase
+	public sealed record MachineMemoryMetrics : MetricsBase
 	{
 		internal MachineMemoryMetrics(JsonObject? data) : base(data)
 		{
@@ -1224,7 +1255,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>CPU performance counters for machine hosting one or more FoundationDB processes</summary>
-	public sealed class MachineCpuMetrics : MetricsBase
+	public sealed record MachineCpuMetrics : MetricsBase
 	{
 		internal MachineCpuMetrics(JsonObject? data) : base(data)
 		{
@@ -1236,7 +1267,7 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Network performance counters for machine hosting one or more FoundationDB processes</summary>
-	public sealed class MachineNetworkMetrics : MetricsBase
+	public sealed record MachineNetworkMetrics : MetricsBase
 	{
 		internal MachineNetworkMetrics(JsonObject? data) : base(data)
 		{
@@ -1253,7 +1284,7 @@ namespace FoundationDB.Client.Status
 
 	}
 
-	public sealed class LocalityConfiguration : MetricsBase
+	public sealed record LocalityConfiguration : MetricsBase
 	{
 		internal LocalityConfiguration(JsonObject? data) : base(data)
 		{

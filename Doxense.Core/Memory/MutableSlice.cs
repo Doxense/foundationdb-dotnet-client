@@ -440,7 +440,7 @@ namespace System
 			if (slice.IsNull) throw ThrowHelper.ArgumentException(nameof(slice), "Cannot increment null buffer");
 
 			int lastNonFfByte;
-			var tmp = slice.GetBytesOrEmpty();
+			var tmp = slice.ToArray();
 			for (lastNonFfByte = tmp.Length - 1; lastNonFfByte >= 0; --lastNonFfByte)
 			{
 				if (tmp[lastNonFfByte] != 0xFF)

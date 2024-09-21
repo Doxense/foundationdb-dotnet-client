@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using System.Runtime.Serialization;
 	using System.Security;
 	using FoundationDB.Client.Native;

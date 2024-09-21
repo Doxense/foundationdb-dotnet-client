@@ -126,6 +126,7 @@ namespace System
 		/// The caller is responsible for handle that scenario if it is important!
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This method will be removed soon", error: true)]
 		public static Slice CreateUnsafe(byte[] buffer, [Positive] int offset, [Positive] int count)
 		{
 			Contract.Debug.Requires(buffer != null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
@@ -146,6 +147,7 @@ namespace System
 		/// The caller is responsible for handle that scenario if it is important!
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This method will be removed soon", error: true)]
 		public static Slice CreateUnsafe(byte[] buffer, uint offset, uint count)
 		{
 			Contract.Debug.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
@@ -303,10 +305,26 @@ namespace System
 			return this.Count != 0? this : Empty;
 		}
 
-		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
-		/// <returns>Byte array with a copy of the slice, or null</returns>
+		/// <summary>Copies the contents of this slice into a new array.</summary>
+		/// <returns>An array containing the data in the current slice.</returns>
+		/// <remarks>
+		/// <para>This will return an empty array for both <see cref="Slice.Nil"/> and <see cref="Slice.Empty"/>.</para>
+		/// <para>If you need to distinguish between both, you can use <see cref="GetBytes()"/> which will return <see langword="null"/> for <see cref="Slice.Nil"/>.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] ToArray()
+		{
+			return this.Count != 0 ? this.Span.ToArray() : [ ];
+		}
+
+		/// <summary>Copies the contents of this slice into a new array.</summary>
+		/// <returns>An array containing the data in the current slice.</returns>
+		/// <remarks>
+		/// <para>This will return an empty array for both <see cref="Slice.Nil"/> and <see cref="Slice.Empty"/>.</para>
+		/// <para>If you need to distinguish between both, you can use <see cref="GetBytes()"/> which will return <see langword="null"/> for <see cref="Slice.Nil"/>.</para>
+		/// </remarks>
 		[Pure]
-		public byte[]? GetBytes() //REVIEW: should be called ToArray(), like Span<byte>.ToArray() ?
+		public byte[]? GetBytes()
 		{
 			return this.Count != 0 ? this.Span.ToArray() : this.Array != null ? [ ] : null;
 		}
@@ -314,11 +332,8 @@ namespace System
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
 		/// <returns>Byte array with a copy of the slice</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public byte[] GetBytesOrEmpty()
-		{
-			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
-			return this.Count != 0 ? this.Span.ToArray() : [ ];
-		}
+		[Obsolete("Use Slice.ToArray() instead")]
+		public byte[] GetBytesOrEmpty() => ToArray();
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
@@ -327,33 +342,6 @@ namespace System
 		{
 			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
 			return this.Span.Slice(offset, count).ToArray();
-		}
-
-		/// <summary>Expose the internal buffer, if it is perfectly covered by the slice</summary>
-		/// <param name="bytes">Receives the internal buffer</param>
-		/// <returns><see langword="true"/>> if the buffer is complete and is exposed in <paramref name="bytes"/>, or <see langword="false"/> if the slice only cover a part of the buffer.</returns>
-		/// <remarks>
-		/// Used to optimize the case when the caller needs to send the slice as a non-chunkable <c>byte[]</c> to a legacy API, without copying.
-		/// The pattern should be: <c>if (slice.TryGetBytesUnsafe(out var bytes)) { /* use bytes as readonly! */ } else { /* must copy the slice somehow, or use a memory pool! */ }</c>
-		/// </remarks>
-		[ContractAnnotation("=> true, bytes: notnull; => false, bytes: null")]
-		public bool TryGetBytesUnsafe([MaybeNullWhen(false)] out byte[] bytes)
-		{
-			var arr = this.Array;
-			if (arr == null)
-			{
-				bytes = [ ];
-				return true;
-			}
-
-			if (this.Offset != 0 || this.Count != arr.Length)
-			{
-				bytes = null;
-				return false;
-			}
-
-			bytes = arr;
-			return true;
 		}
 
 		/// <summary>Return a SliceReader that can decode this slice into smaller fields</summary>
@@ -557,34 +545,6 @@ namespace System
 		public bool TryCopyTo(byte[] buffer, int offset)
 		{
 			return this.Span.TryCopyTo(buffer.AsSpan(offset));
-		}
-
-		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
-		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="count">Capacity of the output buffer</param>
-		/// <remarks>Copy will fail if there is not enough space in the output buffer</remarks>
-		public IntPtr CopyTo(IntPtr ptr, long count)
-		{
-			unsafe
-			{
-				if (!this.Span.TryCopyTo(new Span<byte>(ptr.ToPointer(), (int) Math.Min(count, int.MaxValue))))
-				{
-					throw UnsafeHelpers.Errors.SliceBufferTooSmall();
-				}
-			}
-			return IntPtr.Add(ptr, this.Count);
-		}
-
-		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
-		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="count">Capacity of the output buffer</param>
-		/// <return>Updated pointer after the copy, of <see cref="IntPtr.Zero"/> if the destination buffer was too small</return>
-		public bool TryCopyTo(IntPtr ptr, long count)
-		{
-			unsafe
-			{
-				return this.Span.TryCopyTo(new Span<byte>(ptr.ToPointer(), (int) Math.Min(count, int.MaxValue)));
-			}
 		}
 
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position.</summary>
@@ -1658,7 +1618,7 @@ namespace System
 			if (slice.IsNull) throw ThrowHelper.ArgumentException(nameof(slice), "Cannot increment null buffer");
 
 			int lastNonFfByte;
-			var tmp = slice.GetBytesOrEmpty();
+			var tmp = slice.ToArray();
 			for (lastNonFfByte = tmp.Length - 1; lastNonFfByte >= 0; --lastNonFfByte)
 			{
 				if (tmp[lastNonFfByte] != 0xFF)
@@ -2611,7 +2571,7 @@ namespace System
 			if (count != 0)
 			{
 				var array = this.Array;
-				if (array == null || (uint) count > (long) array.Length - (uint) this.Offset)
+				if (array is null || (ulong) (uint) this.Offset + (ulong) (uint) count > (ulong) (uint) array.Length)
 				{
 					throw MalformedSlice(this);
 				}
@@ -2634,7 +2594,7 @@ namespace System
 			if (slice.Count > 0)
 			{
 				if (slice.Array == null!) return UnsafeHelpers.Errors.SliceBufferNotNull();
-				if (slice.Offset + slice.Count > slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
+				if ((ulong) (uint) slice.Offset + (ulong) (uint) slice.Count > (ulong) (uint) slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
 			}
 			// maybe it's Lupus ?
 			return UnsafeHelpers.Errors.SliceInvalid();
@@ -2896,19 +2856,29 @@ namespace System
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes)
 		{
-			return bytes != null && bytes.Length > 0 ? new Slice(bytes, 0, bytes.Length) : EmptyOrNil(bytes);
+			return bytes is not null && bytes.Length > 0 ? new Slice(bytes) : EmptyOrNil(bytes);
 		}
 
-		/// <summary>Returns the tail of the array, starting from the specified offset</summary>
+		/// <summary>Returns the tail of the array, starting from the specified <b>offset</b></summary>
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="offset">Offset to the first byte of the slice</param>
-		/// <returns></returns>
+		/// <remarks><b>REMINDER:</b> the parameter is the <b>offset</b>, and not the length !</remarks>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset)
 		{
-			//note: this method is DANGEROUS! Caller may thing that it is passing a count instead of an offset.
-			if (bytes == null) return offset == 0 ? Slice.Nil : throw UnsafeHelpers.Errors.BufferArrayNotNull();
-			if ((uint) offset > (uint) bytes.Length) throw UnsafeHelpers.Errors.BufferArrayToSmall();
+			//note: this method is DANGEROUS! Caller may thing it is passing a count instead of an offset.
+
+			if (bytes == null)
+			{
+				return offset == 0 ? Slice.Nil : throw UnsafeHelpers.Errors.BufferArrayNotNull();
+			}
+
+			// bound check
+			if ((uint) offset > (uint) bytes.Length)
+			{
+				throw UnsafeHelpers.Errors.BufferArrayToSmall();
+			}
+
 			return bytes.Length != 0 ? new Slice(bytes, offset, bytes.Length - offset) : Slice.Empty;
 		}
 
@@ -2924,11 +2894,17 @@ namespace System
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset, [Positive] int count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
-			if (bytes == null || count == 0) return EmptyOrNil(bytes, count);
+			if (bytes == null || count == 0)
+			{
+				return EmptyOrNil(bytes, count);
+			}
 
 			// bound check
-			// ReSharper disable once PossibleNullReferenceException
-			if ((uint) offset >= (uint) bytes.Length || (uint) count > (uint) (bytes.Length - offset)) UnsafeHelpers.Errors.ThrowOffsetOutsideSlice();
+			// ReSharper disable once RedundantCast
+			if ((ulong) (uint) offset + (ulong) (uint) count > (ulong) (uint) bytes.Length)
+			{
+				UnsafeHelpers.Errors.ThrowOffsetOutsideSlice();
+			}
 
 			return new Slice(bytes, offset, count);
 		}
@@ -2965,18 +2941,24 @@ namespace System
 		{
 			if (bytes == null)
 			{
+				return AsSliceNil(range);
+			}
+
+			(int offset, int count) = range.GetOffsetAndLength(bytes.Length);
+			return count != 0 ? new Slice(bytes, offset, count) : Slice.Empty;
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static Slice AsSliceNil(Range range)
+			{
 				var startIndex = range.Start;
 				var endIndex = range.End;
 
 				if (!startIndex.Equals(Index.Start) || !endIndex.Equals(Index.Start))
+				{
 					throw UnsafeHelpers.Errors.BufferArrayNotNull();
+				}
 
 				return Slice.Nil;
-			}
-			else
-			{
-				(int offset, int count) = range.GetOffsetAndLength(bytes.Length);
-				return count != 0 ? new Slice(bytes, offset, count) : Slice.Empty;
 			}
 		}
 
@@ -3281,11 +3263,64 @@ namespace System
 
 	}
 
-#if NET8_0_OR_GREATER
 
 	[PublicAPI]
 	public static class SliceMarshal
 	{
+
+		/// <summary>Exposes the internal buffer if it has the exact same size as the slice</summary>
+		/// <param name="buffer">Slice with some content</param>
+		/// <param name="bytes">Receives the internal buffer, or <see langword="null"/> if the buffer is larger than the slice</param>
+		/// <returns><see langword="true"/>> if the buffer is complete and is exposed in <paramref name="bytes"/>, or <see langword="false"/> if the slice only cover a part of the buffer.</returns>
+		/// <remarks>
+		/// <para>Used to optimize the case when the caller needs to pass the content of the slice to a legacy API that requires a <c>byte[]</c> without support for spans or specifying an offset or length,
+		/// and would like to avoid an extra copy, especially if the buffer is know to have the correct size.</para>
+		/// <para>The expected pattern is:
+		/// <code>if (SliceMarshal.TryGetBytes(slice, out var bytes))
+		/// { // no copy required
+		///     LegacyAPI.DoSomething(bytes);
+		/// }
+		/// else
+		/// { // need to allocate and copy!!!
+		///     LegacyAPI.DoSomething(slice.ToArray());
+		/// }
+		/// </code></para>
+		/// <para>CAUTION: Slice are expected to be read-only, but exposing the internal buffer may lead to unexpected mutations! Use with caution, and make sure that any consumer of the buffer only read and never write to it!</para>
+		/// </remarks>
+		public static bool TryGetBytes(Slice buffer, [MaybeNullWhen(false)] out byte[] bytes)
+		{
+			var arr = buffer.Array;
+			if (arr == null!)
+			{
+				bytes = [ ];
+				return true;
+			}
+
+			if (buffer.Offset != 0 || buffer.Count != arr.Length)
+			{
+				bytes = null;
+				return false;
+			}
+
+			bytes = arr;
+			return true;
+		}
+
+		/// <summary>Exposes the internal buffer if it has the exact same size as the slice; otherwise, returns a copy of the content</summary>
+		/// <param name="buffer">Slice with some content</param>
+		/// <returns>A byte array which is either the original buffer, or a copy.</returns>
+		/// <remarks>
+		/// <para>Used to optimize situations where the caller needs to pass the content of the slice to a legacy API that requires a <c>byte[]</c> without support for spans or specifying an offset or length,
+		/// and would like to avoid an extra copy, especially if the buffer is know to have the correct size.</para>
+		/// <para>The expected pattern is:
+		/// <code>LegacyAPI.DoSomething(SliceMarshal.GetBytesOrCopy()); // has a chance to skip an extra copy if the buffer has the correct size already</code>
+		/// </para>
+		/// <para><b>CAUTION</b>: Slice are expected to be read-only, but exposing the internal buffer may lead to unexpected mutations! Use with caution, and make sure that any consumer of the buffer only read and never write to it!</para>
+		/// </remarks>
+		public static byte[] GetBytesOrCopy(Slice buffer)
+		{
+			return TryGetBytes(buffer, out var bytes) ? bytes : buffer.ToArray();
+		}
 
 		/// <summary>Try to convert a <see cref="ReadOnlyMemory{T}"/> into a Slice if it is backed by a managed byte array.</summary>
 		/// <param name="buffer">Buffer that maps a region of memory</param>
@@ -3424,10 +3459,18 @@ namespace System
 		public static bool IsAddressInside(Slice buffer, ref readonly byte ptr)
 		{
 			var span = buffer.Span;
-			if (span.Length == 0) return false;
+			if (span.Length == 0)
+			{
+				return false;
+			}
+
 			ref readonly byte start = ref buffer.Array[buffer.Offset];
 			ref readonly byte end = ref Unsafe.Add(ref Unsafe.AsRef(in start), span.Length);
+#if NET8_0_OR_GREATER
 			return !Unsafe.IsAddressLessThan(in ptr, in start) && Unsafe.IsAddressLessThan(in ptr, in end);
+#else
+			return !Unsafe.IsAddressLessThan(ref Unsafe.AsRef(in ptr), ref Unsafe.AsRef(in start)) && Unsafe.IsAddressLessThan(ref Unsafe.AsRef(in ptr), ref Unsafe.AsRef(in end));
+#endif
 		}
 
 		/// <summary>Returns the offset of an unmanaged pointer inside the slice</summary>
@@ -3502,6 +3545,7 @@ namespace System
 
 		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
 		/// <param name="source">A slice.</param>
+		/// <param name="index">Offset (in bytes) from the start of the slice</param>
 		/// <typeparam name="T">The type of the item to retrieve from the slice.</typeparam>
 		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
 		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="source" /> is smaller than <typeparamref name="T" />'s length in bytes.</exception>
@@ -3514,6 +3558,7 @@ namespace System
 
 		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
 		/// <param name="source">A slice.</param>
+		/// <param name="index">Offset (in bytes) in the slice</param>
 		/// <typeparam name="T">The type of the item to retrieve from the slice.</typeparam>
 		/// <exception cref="T:System.ArgumentException"> <typeparamref name="T" /> contains managed object references.</exception>
 		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="source" /> is smaller than <typeparamref name="T" />'s length in bytes.</exception>
@@ -3524,7 +3569,7 @@ namespace System
 			return MemoryMarshal.Read<T>(source.Span.Slice(index.GetOffset(source.Count)));
 		}
 
-		/// <summary>Tries to read a structure of type <paramref name="T" /> from a <see cref="Slice"/>.</summary>
+		/// <summary>Tries to read a structure of type <typeparamref name="T" /> from a <see cref="Slice"/>.</summary>
 		/// <param name="source">A slice.</param>
 		/// <param name="value">When the method returns, an instance of <typeparamref name="T" />.</param>
 		/// <typeparam name="T">The type of the structure to retrieve.</typeparam>
@@ -3596,8 +3641,37 @@ namespace System
 				: null;
 		}
 
+		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
+		/// <param name="buffer">Slice to copy</param>
+		/// <param name="destination">Pointer where to copy this slice</param>
+		/// <param name="capacity">Capacity of the output buffer</param>
+		/// <remarks>Copy will fail if there is not enough space in the output buffer</remarks>
+		public static IntPtr CopyTo(Slice buffer, IntPtr destination, nuint capacity)
+		{
+			unsafe
+			{
+				if (!buffer.Span.TryCopyTo(new Span<byte>(destination.ToPointer(), checked((int) capacity))))
+				{
+					throw UnsafeHelpers.Errors.SliceBufferTooSmall();
+				}
+			}
+			return IntPtr.Add(destination, buffer.Count);
+		}
+
+		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
+		/// <param name="buffer">Slice to copy</param>
+		/// <param name="destination">Pointer where to copy this slice</param>
+		/// <param name="capacity">Capacity of the output buffer</param>
+		/// <return>Updated pointer after the copy, of <see cref="IntPtr.Zero"/> if the destination buffer was too small</return>
+		public static bool TryCopyTo(Slice buffer, IntPtr destination, nuint capacity)
+		{
+			unsafe
+			{
+				return buffer.Span.TryCopyTo(new Span<byte>(destination.ToPointer(), checked((int) capacity)));
+			}
+		}
+
 	}
 
-#endif
 
 }

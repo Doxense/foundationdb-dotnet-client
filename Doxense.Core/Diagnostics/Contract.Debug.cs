@@ -135,7 +135,9 @@ namespace Doxense.Diagnostics.Contracts
 			/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
+#if DEBUG
 			[System.Diagnostics.CodeAnalysis.DoesNotReturn]
+#endif
 			[StackTraceHidden]
 			public static void Fail(string? userMessage, Exception? exception = null)
 			{

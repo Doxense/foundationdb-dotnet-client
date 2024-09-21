@@ -29,15 +29,8 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{
@@ -1457,7 +1450,7 @@ namespace FoundationDB.Client
 					}
 
 #if DEBUG
-					tr.Annotate("Exported {0} items in {1} chunks ({2:N1}% network)", count, chunks, chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0);
+					tr.Annotate($"Exported {count} items in {chunks} chunks ({(chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0):N1}% network)");
 #endif
 
 					return count;
@@ -1610,7 +1603,7 @@ namespace FoundationDB.Client
 					}
 
 #if DEBUG
-					tr.Annotate("Exported {0} items in {1} chunks ({2:N1}% network)", count, chunks, chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0);
+					tr.Annotate($"Exported {count} items in {chunks} chunks ({(chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0):N1}% network)");
 #endif
 
 					return count;
@@ -1620,6 +1613,7 @@ namespace FoundationDB.Client
 			#endregion
 
 		}
+
 	}
 
 }

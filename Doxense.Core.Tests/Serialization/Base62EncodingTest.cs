@@ -218,9 +218,7 @@ namespace Doxense.Serialization.Tests
 
 			});
 
-			var seed = Random.Shared.Next();
-			Log($"seed: {seed}");
-			var rnd = new Random(seed);
+			var rnd = CreateRandomizer();
 			for (int i = 0; i < 1000; i++)
 			{
 				var x = (uint) rnd.Next();
@@ -263,9 +261,7 @@ namespace Doxense.Serialization.Tests
 				Assert.That(Base62Encoding.DecodeUInt64("vYGrAbgkr8p"), Is.EqualTo(ulong.MaxValue));
 			});
 
-			var seed = Random.Shared.Next();
-			Log($"seed: {seed}");
-			var rnd = new Random(seed);
+			var rnd = CreateRandomizer();
 			for (int i = 0; i < 1000; i++)
 			{
 				var x = (ulong) rnd.NextInt64();
@@ -310,9 +306,7 @@ namespace Doxense.Serialization.Tests
 				Assert.That(Base62Encoding.DecodeUInt128("vYGrAbgkr8p"), Is.EqualTo((UInt128) ulong.MaxValue));
 			});
 
-			var seed = Random.Shared.Next();
-			Log($"seed: {seed}");
-			var rnd = new Random(seed);
+			var rnd = CreateRandomizer();
 			for (int i = 0; i < 1000; i++)
 			{
 				var x = new UInt128((ulong) rnd.NextInt64(), (ulong) rnd.NextInt64());

@@ -981,121 +981,185 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(string?[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator string?[]?(JsonValue? value)
+		public static implicit operator JsonValue(ReadOnlySpan<string?> values)
 		{
-			return value.AsArrayOrDefault()?.ToStringArray();
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(bool[]? values)
-		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator bool[]? (JsonValue? value)
-		{
-			return value.AsArrayOrDefault()?.ToBoolArray();
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(int[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator int[]? (JsonValue? value)
+		public static implicit operator JsonValue(ReadOnlySpan<int> values)
 		{
-			return value.AsArrayOrDefault()?.ToInt32Array();
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(uint[]? values)
-		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator uint[]? (JsonValue? value)
-		{
-			return value.AsArrayOrDefault()?.ToUInt32Array();
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(long[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator long[]? (JsonValue? value)
+		public static implicit operator JsonValue(ReadOnlySpan<long> values)
 		{
-			return value.AsArrayOrDefault()?.ToInt64Array();
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ulong[]? values)
-		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator ulong[]?(JsonValue? value)
-		{
-			return value.AsArrayOrDefault()?.ToUInt64Array();
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(float[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator float[]? (JsonValue? value)
+		public static implicit operator JsonValue(ReadOnlySpan<float> values)
 		{
-			return value.AsArrayOrDefault()?.ToSingleArray();
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(double[]? values)
 		{
-			return values == null ? JsonNull.Null : new JsonArray().AddValues(values);
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator double[]? (JsonValue? value)
+		public static implicit operator JsonValue(ReadOnlySpan<double> values)
 		{
-			return value.AsArrayOrDefault()?.ToDoubleArray();
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(Guid[]? values)
 		{
-			return values == null ? JsonNull.Null : JsonArray.FromValues(values);
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator Guid[]? (JsonValue? value)
+		public static implicit operator JsonValue(ReadOnlySpan<Guid> values)
 		{
-			return value.AsArrayOrDefault()?.ToGuidArray();
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(Uuid128[]? values)
+		{
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<Uuid128> values)
+		{
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonValue(NodaTime.Instant[]? values)
 		{
-			return values == null ? JsonNull.Null : JsonArray.FromValues(values);
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator NodaTime.Instant[]? (JsonValue? value)
+		public static implicit operator JsonValue(ReadOnlySpan<NodaTime.Instant> values)
 		{
-			return value.AsArrayOrDefault()?.ToInstantArray();
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
 		}
 
 		#endregion

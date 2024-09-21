@@ -23,13 +23,6 @@ namespace Doxense.IO.Tests
 
 		private const int DEFAULT_STREAM_SIZE = 1 * 1024 * 1024;
 
-		private byte[] GetRandomData(int count = DEFAULT_STREAM_SIZE)
-		{
-			var data = new byte[count];
-			TestContext.CurrentContext.Random.NextBytes(data);
-			return data;
-		}
-
 		[Test]
 		public void Test_Does_Not_Allow_Writing()
 		{
@@ -52,7 +45,7 @@ namespace Doxense.IO.Tests
 		[Test]
 		public void Test_Dispose_Inner_If_Owned()
 		{
-			var data = GetRandomData();
+			var data = GetRandomData(DEFAULT_STREAM_SIZE);
 			const int START = 123;
 			const int LENGTH = 456;
 
@@ -82,7 +75,7 @@ namespace Doxense.IO.Tests
 		[Test]
 		public void Test_Does_Not_Dispose_Inner_If_Not_Owned()
 		{
-			var data = GetRandomData();
+			var data = GetRandomData(DEFAULT_STREAM_SIZE);
 			const int START = 123;
 			const int LENGTH = 456;
 
@@ -113,7 +106,7 @@ namespace Doxense.IO.Tests
 		[Test]
 		public void Test_Can_ReadByte()
 		{
-			var data = GetRandomData();
+			var data = GetRandomData(DEFAULT_STREAM_SIZE);
 			const int START = 123;
 			const int LENGTH = 456;
 			var chunk = data.AsSlice(START, LENGTH);
@@ -165,7 +158,7 @@ namespace Doxense.IO.Tests
 		[Test]
 		public void Test_Can_Read_Array()
 		{
-			var data = GetRandomData();
+			var data = GetRandomData(DEFAULT_STREAM_SIZE);
 			const int START = 123;
 			const int LENGTH = 456;
 			var chunk = data.AsSlice(START, LENGTH);
@@ -246,7 +239,7 @@ namespace Doxense.IO.Tests
 		[Test]
 		public void Test_Can_Read_Span()
 		{
-			var data = GetRandomData();
+			var data = GetRandomData(DEFAULT_STREAM_SIZE);
 			const int START = 123;
 			const int LENGTH = 456;
 			var chunk = data.AsSlice(START, LENGTH);
@@ -327,7 +320,7 @@ namespace Doxense.IO.Tests
 		[Test]
 		public async Task Test_Can_ReadAsync_Array()
 		{
-			var data = GetRandomData();
+			var data = GetRandomData(DEFAULT_STREAM_SIZE);
 			const int START = 123;
 			const int LENGTH = 456;
 			var chunk = data.AsSlice(START, LENGTH);
@@ -408,7 +401,7 @@ namespace Doxense.IO.Tests
 		[Test]
 		public async Task Test_Can_ReadAsync_Memory()
 		{
-			var data = GetRandomData();
+			var data = GetRandomData(DEFAULT_STREAM_SIZE);
 			const int START = 123;
 			const int LENGTH = 456;
 			var chunk = data.AsSlice(START, LENGTH);

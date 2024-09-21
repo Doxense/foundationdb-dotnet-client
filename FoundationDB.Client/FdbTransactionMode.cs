@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using JetBrains.Annotations;
 
 	[Flags]
 	[PublicAPI]

@@ -550,9 +550,13 @@ namespace Doxense.Serialization.Json
 				return m_value;
 			}
 
-			if (type == typeof(JsonValue) || type == typeof(JsonString))
+			if (type.IsAssignableTo(typeof(JsonValue)))
 			{
-				return this;
+				if (type == typeof(JsonValue) || type == typeof(JsonString))
+				{
+					return this;
+				}
+				throw JsonBindingException.CannotBindJsonStringToThisType(this, type);
 			}
 
 			resolver ??= CrystalJson.DefaultResolver;
@@ -763,6 +767,7 @@ namespace Doxense.Serialization.Json
 				null               => false,
 				DateTime dt        => Equals(dt),
 				DateTimeOffset dto => Equals(dto),
+				NodaTime.Instant t => Equals(t),
 				_                  => false
 			};
 			//TODO: compare with int, long, ...?
@@ -784,6 +789,29 @@ namespace Doxense.Serialization.Json
 		public bool Equals(JsonString? obj)
 		{
 			return obj != null && string.Equals(m_value, obj.m_value, StringComparison.Ordinal);
+		}
+
+		/// <inheritdoc />
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		{
+			if (default(TValue) is null)
+			{
+				if (typeof(TValue) == typeof(DateTime?)) return Equals((DateTime) (object) value!);
+				if (typeof(TValue) == typeof(DateTimeOffset?)) return Equals((DateTimeOffset) (object) value!);
+				if (typeof(TValue) == typeof(NodaTime.Instant?)) return Equals((NodaTime.Instant) (object) value!);
+
+				if (typeof(TValue) == typeof(string)) return Equals(Unsafe.As<string>(value));
+
+				if (value is JsonValue j) return Equals(j);
+			}
+			else
+			{
+				if (typeof(TValue) == typeof(DateTime)) return Equals((DateTime) (object) value!);
+				if (typeof(TValue) == typeof(DateTimeOffset)) return Equals((DateTimeOffset) (object) value!);
+				if (typeof(TValue) == typeof(NodaTime.Instant)) return Equals((NodaTime.Instant) (object) value!);
+			}
+			
+			return false;
 		}
 
 		public bool Equals(string? obj)
@@ -1060,6 +1088,53 @@ namespace Doxense.Serialization.Json
 		{
 			return ulong.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
+
+		#endregion
+
+		#region Int128
+
+#if NET8_0_OR_GREATER
+
+		public override Int128 ToInt128()
+		{
+			return string.IsNullOrEmpty(m_value) ? default : Int128.Parse(m_value, NumberFormatInfo.InvariantInfo);
+		}
+
+		public override Int128? ToInt128OrDefault(Int128? defaultValue = null)
+		{
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt128();
+		}
+
+		public bool TryConvertInt128(out Int128 value)
+		{
+			return Int128.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
+		}
+
+#endif
+
+		#endregion
+
+		#region UInt128
+
+#if NET8_0_OR_GREATER
+
+
+		public override UInt128 ToUInt128()
+		{
+			return string.IsNullOrEmpty(m_value) ? default : UInt128.Parse(m_value, NumberFormatInfo.InvariantInfo);
+		}
+
+		public override UInt128? ToUInt128OrDefault(UInt128? defaultValue = null)
+		{
+			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt128();
+		}
+
+		public bool TryConvertUInt128(out UInt128 value)
+		{
+			return UInt128.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
+		}
+
+#endif
 
 		#endregion
 

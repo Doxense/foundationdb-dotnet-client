@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using JetBrains.Annotations;
 
 	/// <summary>Options that can configure the tracing for transactions</summary>
 	[Flags]

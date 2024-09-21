@@ -27,8 +27,6 @@
 namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
-	using System;
-	using System.Threading;
 
 	/// <summary>Wrapper on a FDBDatabase*</summary>
 	internal sealed class DatabaseHandle : FdbSafeHandle

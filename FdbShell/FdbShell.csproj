@@ -4,44 +4,22 @@
 		<OutputType>Exe</OutputType>
 		<TargetFrameworks>net9.0;net8.0</TargetFrameworks>
 		<LangVersion>preview</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<ProjectGuid>{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}</ProjectGuid>
-		<RestorePackages>true</RestorePackages>
-		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-		<RootNamespace>FdbShell</RootNamespace>
-		<AssemblyName>FdbShell</AssemblyName>
+		<InvariantGlobalization>true</InvariantGlobalization>
 		<SignAssembly>true</SignAssembly>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<PublishSingleFile>true</PublishSingleFile>
+		<PublishAot>true</PublishAot>
+		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-		<PlatformTarget>AnyCPU</PlatformTarget>
-		<DebugSymbols>true</DebugSymbols>
-		<DebugType>full</DebugType>
-		<Optimize>false</Optimize>
-		<OutputPath>bin\Debug\</OutputPath>
-		<DefineConstants>TRACE;DEBUG</DefineConstants>
-		<ErrorReport>prompt</ErrorReport>
-		<WarningLevel>4</WarningLevel>
-		<Prefer32Bit>false</Prefer32Bit>
-	</PropertyGroup>
-
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-		<PlatformTarget>AnyCPU</PlatformTarget>
-		<DebugType>pdbonly</DebugType>
-		<Optimize>true</Optimize>
-		<OutputPath>bin\Release\</OutputPath>
-		<DefineConstants>TRACE</DefineConstants>
-		<ErrorReport>prompt</ErrorReport>
-		<WarningLevel>4</WarningLevel>
-		<Prefer32Bit>false</Prefer32Bit>
-	</PropertyGroup>
-
 	<ItemGroup>
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" />
+		<PackageReference Include="System.CommandLine" />
 	</ItemGroup>
 	
 	<ItemGroup>

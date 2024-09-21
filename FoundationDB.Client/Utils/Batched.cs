@@ -26,10 +26,7 @@
 
 namespace FoundationDB
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 
 	internal static class Batched<TValue, TState>

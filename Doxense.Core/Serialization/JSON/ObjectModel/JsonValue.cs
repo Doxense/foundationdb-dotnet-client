@@ -279,6 +279,14 @@ namespace Doxense.Serialization.Json
 
 		public abstract bool Equals(JsonValue? other);
 
+		/// <summary>Tests if the current instance is equal to the specified value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="value">Value to test with the current instance</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
+		public virtual bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) => (comparer ?? EqualityComparer<TValue>.Default).Equals(Bind<TValue>(), value);
+
 		/// <summary>Tests if two JSON values are equivalent</summary>
 		public static bool Equals(JsonValue? left, JsonValue? right) => (left ?? JsonNull.Missing).Equals(right ?? JsonNull.Missing);
 
@@ -307,8 +315,8 @@ namespace Doxense.Serialization.Json
 				throw ThrowHelper.InvalidOperationException($"Cannot compare a JSON value with another value of type {other.Type}");
 			}
 
-			// pas vraiment de solution magique, on va comparer les type et les hashcode (pas pire que mieux)
-			int c = ((int)this.Type).CompareTo((int)other.Type);
+			// no real silver bullet here, we will simple compare the hashcodes (which _MUST_ be constant, so at least the order will be deterministic)
+			int c = ((int) this.Type).CompareTo((int) other.Type);
 			if (c == 0)
 			{
 				c = this.GetHashCode().CompareTo(other.GetHashCode());
@@ -742,7 +750,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
 		/// <param name="key">Name of the property</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
 		/// <example>
@@ -768,7 +776,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
 		/// <param name="key">Name of the property</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
 		/// <example>
@@ -794,7 +802,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value of the <paramref name="key"/> property of this object, if it exists.</summary>
 		/// <param name="key">Name of the property</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <param name="value">If the property exists and is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
 		/// <example>
@@ -1077,7 +1085,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value of the item at the specified location, if it exists.</summary>
 		/// <param name="index">Index of the item</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <param name="value">When this method returns, if the location is within the bounds of the array, and the value is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
 		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
 		/// <example>
@@ -1129,7 +1137,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value of the item at the specified location, if it exists.</summary>
 		/// <param name="index">Index of the item</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <param name="value">When this method returns, if the location is within the bounds of the array, and the value is not equal to <see langword="null"/>, will receive its value converted into type <typeparamref name="TValue"/>.</param>
 		/// <returns><see langword="true" /> if the value was found, and has been converted; otherwise, <see langword="false" />.</returns>
 		/// <example>
@@ -1153,7 +1161,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or an exception if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -1161,32 +1169,37 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public TValue Get<TValue>(int index) where TValue : notnull => GetValue(index).Required<TValue>();
 
-		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <param name="message"></param>
 		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or an exception if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>();
+		public TValue Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>(resolver);
 
-		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or an exception if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public TValue Get<TValue>(Index index) where TValue : notnull => Get<TValue>(index, resolver: null, message: null);
+		public TValue Get<TValue>(Index index) where TValue : notnull => GetValue(index).Required<TValue>();
 
+		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
+		/// <param name="index">Index of the value to retrieve</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <param name="message"></param>
+		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or an exception if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>();
+		public TValue Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>(resolver);
 
-		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
 		/// <returns>The value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
@@ -1196,10 +1209,10 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(int index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
 
-		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>the value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1207,7 +1220,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
 
-		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
 		/// <returns>the value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
@@ -1217,10 +1230,10 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(Index index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
 
-		/// <summary>Gets the converted value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array.</param>
-		/// <param name="resolver"></param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>the value located at the specified index converted into type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, OR the value is null or missing.</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1230,7 +1243,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it is null, missing, or not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1238,7 +1251,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it is null, missing, or not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1246,7 +1259,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it is null, missing, or not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1351,6 +1364,24 @@ namespace Doxense.Serialization.Json
 		#endregion
 
 		#endregion
+
+		/// <summary>Gets the value at the specified path, if it exists</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <param name="value">Receives the value found at this location, if it exists</param>
+		/// <returns><see langword="true"/> if the value was found and was not null or missing; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method will return <see langword="false"/> if a field is present but is explicitly set to <see langword="null"/>.</remarks>
+		public bool TryGetPathValue(string path, out JsonValue value) => TryGetPathValue(JsonPath.Create(path), out value);
+
+		/// <summary>Gets the value at the specified path, if it exists</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <param name="value">Receives the value found at this location, if it exists</param>
+		/// <returns><see langword="true"/> if the value was found and was not null or missing; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method will return <see langword="false"/> if a field is present but is explicitly set to <see langword="null"/>.</remarks>
+		public bool TryGetPathValue(JsonPath path, out JsonValue value)
+		{
+			value = GetPathCore(path, null, required: false);
+			return value is not null or JsonNull;
+		}
 
 		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
@@ -1658,6 +1689,24 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns the equivalent <see cref="Decimal"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual decimal? ToDecimalOrDefault(decimal? defaultValue = default) => ToDecimal();
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Returns the equivalent <see cref="System.Int128"/>, if there exists a valid conversion</summary>
+		public virtual Int128 ToInt128() => throw Errors.JsonConversionNotSupported(this, typeof(double));
+
+		/// <summary>Returns the equivalent <see cref="System.Int128"/>, if there exists a valid conversion</summary>
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public virtual Int128? ToInt128OrDefault(Int128? defaultValue = default) => ToInt128();
+
+		/// <summary>Returns the equivalent <see cref="System.UInt128"/>, if there exists a valid conversion</summary>
+		public virtual UInt128 ToUInt128() => throw Errors.JsonConversionNotSupported(this, typeof(double));
+
+		/// <summary>Returns the equivalent <see cref="System.UInt128"/>, if there exists a valid conversion</summary>
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public virtual UInt128? ToUInt128OrDefault(UInt128? defaultValue = default) => ToUInt128();
+
+#endif
 
 		/// <summary>Returns the equivalent <see cref="Guid"/>, if there exists a valid conversion</summary>
 		public virtual Guid ToGuid() => throw Errors.JsonConversionNotSupported(this, typeof(Guid));

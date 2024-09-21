@@ -29,11 +29,7 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Iterators;
 
 	internal partial class FdbRangeQuery<TState, TResult>
