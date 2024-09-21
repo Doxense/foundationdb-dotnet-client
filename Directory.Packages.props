@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting" Version="8.1.0" />
-    <PackageVersion Include="Backport.System.Threading.Lock" Version="2.0.0" />
+    <PackageVersion Include="Backport.System.Threading.Lock" Version="2.0.2" />
     <PackageVersion Include="MathNet.Numerics.Signed" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
