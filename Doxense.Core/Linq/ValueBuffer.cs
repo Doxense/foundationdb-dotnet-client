@@ -117,7 +117,7 @@ namespace Doxense.Linq
 				buf[pos] = items[0];
 				this.Count = pos + 1;
 			}
-			else if ((uint) (items.Length + this.Count) <= (uint) this.Buffer.Length)
+			else if ((uint) (items.Length + this.Count) <= (uint) buf.Length)
 			{
 				items.CopyTo(buf.Slice(pos));
 				this.Count = pos + items.Length;
