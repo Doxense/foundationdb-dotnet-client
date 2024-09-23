@@ -61,15 +61,15 @@ namespace Doxense.Mathematics.Statistics
 
 			public TimeSpan RawTotal { get; set; }
 
-			public required IList<long> RawTimes { get; set; }
+			public required List<long> RawTimes { get; set; }
 
-			public required IList<TResult> Results { get; set; }
+			public required List<TResult> Results { get; set; }
 
-			public IList<RunData<TResult>>? Runs { get; set; }
+			public List<RunData<TResult>>? Runs { get; set; }
 
 			public int RejectedRuns { get; set; }
 
-			public IList<TimeSpan>? Times { get; set; }
+			public List<TimeSpan>? Times { get; set; }
 
 			public long TotalIterations { get; set; }
 
