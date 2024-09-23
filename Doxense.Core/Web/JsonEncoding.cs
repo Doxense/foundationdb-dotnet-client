@@ -32,33 +32,10 @@ namespace Doxense.Serialization.Json
 	using System.Text;
 	using Doxense.Text;
 
-	public static class JsonEncoding
+	public static partial class JsonEncoding
 	{
 
-		/// <summary>Lookup table used to test if a character must be escaped</summary>
-		/// <remarks>lookup[index] contains <c>true</c> if the corresponding UNICODE character must be escaped</remarks>
-		private static readonly int[] EscapingLookupTable = InitializeEscapingLookupTable();
-
-		private static int[] InitializeEscapingLookupTable()
-		{
-			// IMPORTANT: the array MUST have a length of 65536 because it will be indexed with the UNICODE value of each character!
-			var table = new int[65536];
-			for (int i = 0; i < table.Length; i++)
-			{
-				table[i] = NeedsEscaping((char) i) ? 6 : 1;
-			}
-
-			ReadOnlySpan<char> simpleTokens = "\\\"\n\r\t\b\f";
-			foreach (var c in simpleTokens)
-			{
-				table[c] = 2;
-			}
-
-			//JIT_HACK: ensure that StringTable is already JITed
-			StringTable.EnsureJit();
-
-			return table;
-		}
+		//note: the lookup table is in JsonEncoding.LookupTable.cs
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool NeedsEscaping(char c)
@@ -77,128 +54,435 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
-		/// <param name="s">Text to inspect</param>
+		/// <param name="text">Text to inspect</param>
 		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool NeedsEscaping(ReadOnlySpan<char> s)
+		public static bool NeedsEscaping(ReadOnlySpan<char> text)
 		{
-			// A string is a collection of zero or more Unicode characters, wrapped in double quotes, using backslash escapes.
-			// A character is represented as a single character string. A string is very much like a C or Java string.
+			if (text.Length == 0) return false;
 
-			return s.Length <= 6
-				? NeedsEscapingShort(s)
-				: NeedsEscapingLong(s);
+			// Notes on performance:
+			// - We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
+			// - If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
+			//
+			// Testing with BenchmarkDotNet and .NET 9 we found that:
+			// - this approeach equivalent to a naive "foreach(var c in s) { ... }", even for small strings
+			// - unrolling two ulong (8 chars) vs one ulong (4 chars) only yield ~10% perf (probably due to 50% less loop check)
+			// - testing with SSE3 LoadVector128 is slower, and using AVX2 "Gather" intructions to perform the lookup is also slower
+			// - trying to using a "switch(length & 3) { case 1: ... case 1: ... case 2: ... }" is _slower_ then a simple "while(len-- > 0)"
+			//
+			// Other notes:
+			// - "switch(s.Length)" with dedicated optimzed code paths for arrays of length 1, 2, or 3 is SLOWER, probably due to the additional jump destination lookup table
+			// - trying to remove array bound checks does not really yield any difference. My guess is that since the code never actually overflows, the cpu branch predictor "learns" that the check will never be taken and is "optimized away"
+			// - "ref char ptr = ref s[0]" is a little bit faster than "fixed (char* ptr = s)", because it generates slightly less assembly code, but the difference is in the order of less than 1ns (but still measurable)
 
-			static bool NeedsEscapingShort(ReadOnlySpan<char> s)
+			ref char ptr = ref Unsafe.AsRef(in text[0]);
+			ref int map = ref MemoryMarshal.GetReference(EscapingLookupTable);
+
+			// read by 8
+			int len = text.Length;
+			if (len >= 8)
 			{
-				var lookup = EscapingLookupTable;
-				foreach (var c in s)
+				len >>= 3;
+				while(len-- > 0)
 				{
-					if (lookup[c] != 1)
+					ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+					ulong y = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref Unsafe.Add(ref ptr, 4)));
+
+					int sz = Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+					x >>= 16; y >>= 16;
+					sz |= Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+					x >>= 16; y >>= 16;
+					sz |= Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+					x >>= 16; y >>= 16;
+					sz |= Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+			
+					if (sz != 0)
 					{
 						return true;
 					}
+
+					ptr = ref Unsafe.Add(ref ptr, 8);
 				}
-				return false;
+				len = text.Length & 7;
 			}
 
-			static bool NeedsEscapingLong(ReadOnlySpan<char> s)
+			// read 4
+			if (len >= 4)
 			{
-				// We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
-				// If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
-
+				ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+		
+				int sz = Unsafe.Add(ref map, (ushort) x);
+				x >>= 16;
+				sz |= Unsafe.Add(ref map, (ushort) x);
+				x >>= 16;
+				sz |= Unsafe.Add(ref map, (ushort) x);
+				x >>= 16;
+				sz |= Unsafe.Add(ref map, (ushort) x);
+		
+				if (sz != 0)
 				{
-					ReadOnlySpan<int> lookup = EscapingLookupTable;
-					if (lookup.Length < 65536) throw new InvalidOperationException(); // this should help the JIT remove bound checks!
-
-					int n = s.Length;
-					ref char ptr = ref MemoryMarshal.GetReference(s);
-
-					// loop unrolling (4 chars = 8 bytes)
-					while (n >= 4)
-					{
-						ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
-						if (lookup[(ushort) x] + lookup[(ushort) (x >> 16)] + lookup[(ushort) (x >> 32)] + lookup[(ushort) (x >> 48)] != 4)
-						{
-							return true;
-						}
-						ptr = ref Unsafe.Add(ref ptr, 4);
-						n -= 4;
-					}
-
-					// tail
-					return n switch
-					{
-						1 => lookup[ptr] != 1,
-						2 => (lookup[ptr] + lookup[Unsafe.Add(ref ptr, 1)]) != 2,
-						3 => (lookup[ptr] + lookup[Unsafe.Add(ref ptr, 1)] + lookup[Unsafe.Add(ref ptr, 2)]) != 3,
-						_ => false
-					};
+					return true;
 				}
+
+				ptr = ref Unsafe.Add(ref ptr, 4);
+				len -= 4;
+			}
+			// read 0 to 3
+			while(len-- > 0)
+			{
+				if ((Unsafe.Add(ref map, ptr)) != 0)
+				{
+					return true;
+				}
+
+				ptr = ref Unsafe.Add(ref ptr, 1);
 			}
 
+			return false;
 		}
 
 		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
-		/// <param name="s">Text to inspect</param>
+		/// <param name="text">Text to inspect</param>
+		/// <param name="charsRequired">Capacity required to encode the string (including two double-quotes)</param>
 		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool NeedsEscaping(ReadOnlySpan<char> s, out int capacityHint)
+		/// <remarks>
+		/// <para><paramref name="charsRequired"/> will be equal to the length of <paramref name="text"/> + 2 if no escaping is required</para>
+		/// <para><paramref name="charsRequired"/> will be equal to <see langword="4"/> if <paramref name="text"/> is <see langword="null"/> (<c>"null"</c>).</para>
+		/// </remarks>
+		public static bool NeedsEscapingWithCapacity(string? text, out int charsRequired)
 		{
-			// A string is a collection of zero or more Unicode characters, wrapped in double quotes, using backslash escapes.
-			// A character is represented as a single character string. A string is very much like a C or Java string.
-
-			return s.Length <= 6
-				? NeedsEscapingShort(s, out capacityHint)
-				: NeedsEscapingLong(s, out capacityHint);
-
-			static bool NeedsEscapingShort(ReadOnlySpan<char> s, out int capacityHint)
+			if (text == null)
 			{
-				long size = 0;
-				var lookup = EscapingLookupTable;
-				foreach (var c in s)
-				{
-					size += lookup[c];
-				}
-
-				capacityHint = checked((int) size);
-				return capacityHint != s.Length;
+				charsRequired = 4; // "null"
+				return true;
 			}
 
-			static bool NeedsEscapingLong(ReadOnlySpan<char> s, out int capacityHint)
-			{
-				// We assume that 99.99+% of string will NOT require escaping, and so lookup[c] will (almost) always be false.
-				// If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
-
-				long size = 0;
-				
-				{
-					var lookup = EscapingLookupTable;
-					int n = s.Length;
-					ref char ptr = ref MemoryMarshal.GetReference(s);
-
-					// loop unrolling (4 chars = 8 bytes)
-					while (n >= 4)
-					{
-						// read 4 chars at a time (= 64 bits)
-						ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
-						size += lookup[(ushort) x] + lookup[(ushort) (x >> 16)] + lookup[(ushort) (x >> 32)] + lookup[(ushort) (x >> 48)];
-						ptr = ref Unsafe.Add(ref ptr, 4);
-						n -= 4;
-					}
-
-					// tail
-					size += n > 0 ? lookup[ptr] : 0;
-					size += n > 1 ? lookup[Unsafe.Add(ref ptr, 1)] : 0;
-					size += n > 2 ? lookup[Unsafe.Add(ref ptr, 2)] : 0;
-
-					capacityHint = checked((int) size);
-					return capacityHint != s.Length;
-				}
-			}
-
+			return NeedsEscapingWithCapacity(text.AsSpan(), out charsRequired);
 		}
 
+		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <param name="text">Text to inspect</param>
+		/// <param name="charsRequired">Capacity required to encode the string (including two double-quotes)</param>
+		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
+		/// <remarks>
+		/// <para><paramref name="charsRequired"/> will be equal to the length of <paramref name="text"/> + 2 if no escaping is required</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool NeedsEscapingWithCapacity(ReadOnlySpan<char> text, out int charsRequired)
+		{
+			if (text.Length == 0)
+			{
+				charsRequired = 2; // "\"\""
+				return false;
+			}
+
+			long sz = text.Length;
+			sz += 2; // include the quotes!
+
+			ref char ptr = ref Unsafe.AsRef(in text[0]);
+			ref int map = ref MemoryMarshal.GetReference(EscapingLookupTable);
+
+			// read by 8
+			int len = text.Length;
+			if (len >= 8)
+			{
+				len >>= 3;
+				while(len-- > 0)
+				{
+					ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+					ulong y = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref Unsafe.Add(ref ptr, 4)));
+
+					sz += Unsafe.Add(ref map, (ushort) x) + Unsafe.Add(ref map, (ushort) y);
+					x >>= 16; y >>= 16;
+					sz += Unsafe.Add(ref map, (ushort) x) + Unsafe.Add(ref map, (ushort) y);
+					x >>= 16; y >>= 16;
+					sz += Unsafe.Add(ref map, (ushort) x) + Unsafe.Add(ref map, (ushort) y);
+					x >>= 16; y >>= 16;
+					sz += Unsafe.Add(ref map, (ushort) x) + Unsafe.Add(ref map, (ushort) y);
+			
+					ptr = ref Unsafe.Add(ref ptr, 8);
+				}
+				len = text.Length & 7;
+			}
+
+			// read 4
+			if (len >= 4)
+			{
+				ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+		
+				sz += Unsafe.Add(ref map, (ushort) x);
+				x >>= 16;
+				sz += Unsafe.Add(ref map, (ushort) x);
+				x >>= 16;
+				sz += Unsafe.Add(ref map, (ushort) x);
+				x >>= 16;
+				sz += Unsafe.Add(ref map, (ushort) x);
+		
+				ptr = ref Unsafe.Add(ref ptr, 4);
+				len -= 4;
+			}
+			// read 0 to 3
+			while(len-- > 0)
+			{
+				sz += Unsafe.Add(ref map, ptr);
+				ptr = ref Unsafe.Add(ref ptr, 1);
+			}
+
+			// force an overflow exception if this is more than 2GiB !
+			// => the caller probably does not have any way to handle this, so its safer to "blow up" here!
+			charsRequired = checked((int) sz);
+
+			return charsRequired != text.Length;
+		}
+
+		/// <summary>Finds the position in the string of the first character that would need to be escaped in a valid JSON string</summary>
+		/// <param name="s">Text to inspect</param>
+		/// <returns>Index of the first invalid character, or <see langword="-1"/> if all the characters are valid</returns>
+		public static int IndexOfFirstInvalidChar(ReadOnlySpan<char> s)
+		{
+			ref char start = ref Unsafe.AsRef(in s[0]);
+			ref int map = ref Unsafe.AsRef(in EscapingLookupTable[0]);
+			ref char ptr = ref start;
+			{
+				// read by 8
+				int len = s.Length;
+				if (len >= 8)
+				{
+					len >>= 3;
+					while(len-- > 0)
+					{
+						ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+						ulong y = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref Unsafe.Add(ref ptr, 4)));
+						
+						int sz = Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+						x >>= 16; y >>= 16;
+						sz |= Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+						x >>= 16; y >>= 16;
+						sz |= Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+						x >>= 16; y >>= 16;
+						sz |= Unsafe.Add(ref map, (ushort) x) | Unsafe.Add(ref map, (ushort) y);
+						
+						if (sz != 0) goto found_required_escaping;
+						
+						ptr = ref Unsafe.Add(ref ptr, 8);
+					}
+					len = s.Length & 7;
+				}
+				
+				// read 4
+				if (len >= 4)
+				{
+					ulong x = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref ptr));
+					
+					int sz = Unsafe.Add(ref map, (ushort) x);
+					x >>= 16;
+					sz |= Unsafe.Add(ref map, (ushort) x);
+					x >>= 16;
+					sz |= Unsafe.Add(ref map, (ushort) x);
+					x >>= 16;
+					sz |= Unsafe.Add(ref map, (ushort) x);
+					
+					if (sz != 0) goto found_required_escaping;
+					
+					ptr = ref Unsafe.Add(ref ptr, 4);
+					len -= 4;
+				}
+				
+			check_tail:
+			
+				// check up to 3 chars
+				while(len-- > 0)
+				{
+					if ((Unsafe.Add(ref map, (int) (ptr))) != 0)
+					{
+#if NET8_0_OR_GREATER
+						return (int) (Unsafe.ByteOffset(ref start, ref ptr) >> 1);
+#else
+						return ((int) Unsafe.ByteOffset(ref start, ref ptr)) >> 1;
+#endif
+					}
+					ptr = ref Unsafe.Add(ref ptr, 1);
+				}
+				
+				return -1;
+				
+			found_required_escaping:
+			
+				// we are close to it, we still need to find the exact spot
+				// set the len to the actual number of characters left, and start iterating from there
+#if NET8_0_OR_GREATER
+				len = s.Length - (int) (Unsafe.ByteOffset(ref start, ref ptr) >> 1);
+#else
+				len = s.Length - ((int) Unsafe.ByteOffset(ref start, ref ptr) >> 1);
+#endif
+				goto check_tail;
+			}
+		}
+
+		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int written)
+		{
+			// in all cases, we need space for two double quotes!
+			if (destination.Length < 2)
+			{
+				goto too_small;
+			}
+
+			if (text.Length == 0)
+			{ // empty string
+				destination[0] = '"';
+				destination[1] = '"';
+				written = 2;
+				return true;
+			}
+		
+			// look for the first invalid character
+			// - either they are all valid, then we simply copy everything
+			// - or we can at least copy up to this position, and then start converting with a slow loop
+
+			int first = IndexOfFirstInvalidChar(text);
+			if (first < 0)
+			{ // the string is clean, no need for escaping
+
+				if (destination.Length < text.Length + 2)
+				{
+					goto too_small;
+				}
+
+				destination[0] = '"';
+				text.CopyTo(destination[1..]);
+				destination[text.Length + 1] = '"';
+
+				written = text.Length + 2;
+				return true;
+			}
+			
+			// open double quotes
+			destination[0] = '"';
+			destination = destination[1..];
+
+			if (first > 0)
+			{ // copy the first clean portion of the string
+
+				if (destination.Length < first)
+				{
+					goto too_small;
+				}
+
+				text[..first].CopyTo(destination);
+				text = text[first..];
+				destination = destination[first..];
+			}
+			
+			if (!TryEncodeToSlow(destination, text, out int extra)
+			    || extra >= destination.Length)
+			{
+				goto too_small;
+			}
+
+			// close double quotes
+			destination[extra] = '"';
+			written = first + extra + 2;
+			return true;
+			
+			too_small:
+				written = 0;
+				return false;
+		}
+		
+		private static bool TryEncodeToSlow(Span<char> output, ReadOnlySpan<char> s, out int written)
+		{
+			ref int map = ref Unsafe.AsRef(in EscapingLookupTable[0]);
+			ref char start = ref output[0];
+	        ref char ptr = ref start;
+			int remaining = output.Length;
+			
+			foreach(var c in s)
+			{
+				switch(Unsafe.Add(ref map, c))
+				{
+					case 0:
+					{
+						if (remaining < 1)
+						{
+							goto too_small;
+						}
+						ptr = c;
+						ptr = ref Unsafe.Add(ref ptr, 1);
+						--remaining;
+						break;
+					}
+					case 1:
+					{
+						if (remaining < 2)
+						{
+							goto too_small;
+						}
+						ptr = '\\';
+						
+						if (c is '\\' or '"')
+							Unsafe.Add(ref ptr, 1) = c;
+						else
+							Unsafe.Add(ref ptr, 1) = c switch
+							{
+								'\n' => 'n',
+								'\r' => 'r',
+								'\t' => 't',
+								'\b' => 'b',
+								_ => 'f',
+							};
+						ptr = ref Unsafe.Add(ref ptr, 2);
+						remaining -= 2;
+						break;
+					}
+					default:
+					{
+						if (remaining < 6)
+						{
+							goto too_small;
+						}
+
+						Unsafe.WriteUnaligned<uint>(ref Unsafe.As<char, byte>(ref ptr), 0x0075005C); // '\u' => 5C 00 75 00
+						
+						ptr = ref Unsafe.Add(ref ptr, 2);
+
+						int b1, b2;
+						// most ASCII chars are < 256
+						if (c <= 0xFF)
+						{
+							Unsafe.WriteUnaligned<uint>(ref Unsafe.As<char, byte>(ref ptr), 0x00300030); // "00" => 30 00 30 00
+						}
+						else
+						{
+							b1 = (c >> 12) & 0xF;
+							b2 = (c >> 8) & 0xF;
+							b1 += (b1 < 10 ? 48 : 87);
+							b2 += (b2 < 10 ? 48 : 87);
+							Unsafe.WriteUnaligned<int>(ref Unsafe.As<char, byte>(ref ptr), b2 << 16 | b1);
+						}
+						
+						ptr = ref Unsafe.Add(ref ptr, 2);
+						
+						b1 = (c >> 4) & 0xF;
+						b2 = c & 0xF;
+						b1 += (b1 < 10 ? 48 : 87);
+						b2 += (b2 < 10 ? 48 : 87);
+						Unsafe.WriteUnaligned<int>(ref Unsafe.As<char, byte>(ref ptr), b2 << 16 | b1);
+				
+						ptr = ref Unsafe.Add(ref ptr, 2);
+						remaining -= 6;
+						break;
+					}
+				}	
+			}
+			written = output.Length - remaining;
+			return true;
+			
+		too_small:
+			written = 0;
+			return false;
+		}
+	
 		/// <summary>Encode a string of text that must be written to a JSON document</summary>
 		/// <param name="text">Text to encode</param>
 		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
@@ -345,7 +629,6 @@ namespace Doxense.Serialization.Json
 					if (i > last) sb.Append(text.Slice(last, i - last));
 					last = i + 1;
 					sb.Append(@"\u").Append(((int) c).ToString("x4", NumberFormatInfo.InvariantInfo)); //TODO: PERF: optimize this!
-					goto next;
 
 				next:
 					// no encoding required.
@@ -386,250 +669,6 @@ namespace Doxense.Serialization.Json
 			}
 			// chaîne qui nécessite (a priori) un encoding
 			return AppendSlow(sb, text, true);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static bool TryAppendChar(Span<char> buf, ref int cursor, char c)
-		{
-			if (cursor >= buf.Length)
-			{
-				return false;
-			}
-			buf[cursor++] = c;
-			return true;
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static bool TryAppendChars(Span<char> buf, ref int cursor, char c1, char c2)
-		{
-			if (cursor + 1 >= buf.Length)
-			{
-				return false;
-			}
-			buf[cursor] = c1;
-			buf[cursor + 1] = c2;
-			cursor += 2;
-			return true;
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static bool TryAppendChars(Span<char> buf, ref int cursor, ReadOnlySpan<char> literal)
-		{
-			if (cursor + literal.Length > buf.Length)
-			{
-				return false;
-			}
-
-			literal.CopyTo(buf.Slice(cursor));
-			cursor += literal.Length;
-			return true;
-		}
-
-		private static bool TryAppendUnicode(Span<char> buf, ref int cursor, int unicode)
-		{
-			// "\u####" = 6 characters
-			if (cursor + 5 >= buf.Length)
-			{
-				return false;
-			}
-
-			ref char ptr = ref buf[cursor];
-
-			// "\u" prefix
-			Unsafe.Add(ref ptr, 0) = '\\';
-			Unsafe.Add(ref ptr, 1) = 'u';
-
-			// lower-case hexadecimal
-			int b;
-
-			b = (unicode >> 12) & 0xF;
-			Unsafe.Add(ref ptr, 2) = (char) (b + (b < 10 ? 48 : 87));
-			b = (unicode >> 8) & 0xF;
-			Unsafe.Add(ref ptr, 3) = (char) (b + (b < 10 ? 48 : 87));
-			b = (unicode >> 4) & 0xF;
-			Unsafe.Add(ref ptr, 4) = (char) (b + (b < 10 ? 48 : 87));
-			b = unicode & 0xF;
-			Unsafe.Add(ref ptr, 5) = (char) (b + (b < 10 ? 48 : 87));
-
-			cursor += 6;
-			return true;
-		}
-
-		/// <summary>Encode a string of text that must be written to a JSON document (slow path)</summary>
-		private static unsafe bool TryEncodeToSlow(Span<char> destination, ReadOnlySpan<char> text, bool includeQuotes, out int charsWritten)
-		{
-			// We check and encode in a single pass:
-			// - we have a cursor on the last changed character (initially set to 0)
-			// - as long as we see valid characters, we advance the cursor
-			// - if we find a character that needs to be escaped (or reach the end of the string):
-			//   - we copy the clean text from the previous cursor to the current position,
-			//   - we encode the current character,
-			//   - we advance the cursor to the next character
-			//
-			// A string that did not require any replacement will end up with the cursor still set to 0
-			//
-			// note: we do not encode the forward slash ('/'), to help distinguish with it, and '\/' that is frequently used to encode dates.
-
-			charsWritten = 0;
-			int cursor = 0;
-
-			if (includeQuotes)
-			{
-				if (!TryAppendChar(destination, ref cursor, '"'))
-				{
-					return false;
-				}
-			}
-
-			int i = 0, last = 0;
-			int n = text.Length;
-			fixed (char* str = text)
-			{
-				char* ptr = str;
-				while (n-- > 0)
-				{
-					char c = *ptr++;
-					if (c <= '/')
-					{ // ASCII 0..47
-						if (c == '"')
-						{ // " -> \"
-							goto escape_backslash;
-						}
-						if (c >= ' ')
-						{ // ASCII 32..47 : from space to '/'
-							goto next; // => not modified
-						}
-						// ASCII 0..31 : encoded
-						// - we directly escape any of \n, \r, \t, \b and \f
-						// - all others will be escaped as Unicode: \uXXXX
-						switch (c)
-						{
-							case '\n': c = 'n'; goto escape_backslash;
-							case '\r': c = 'r'; goto escape_backslash;
-							case '\t': c = 't'; goto escape_backslash;
-							case '\b': c = 'b'; goto escape_backslash;
-							case '\f': c = 'f'; goto escape_backslash;
-						}
-						// encode as \uXXXX
-						goto escape_unicode;
-					}
-					if (c == '\\')
-					{ // \ -> \\
-						goto escape_backslash;
-					}
-					if (c >= 0xD800 && (c < 0xE000 || c >= 0xFFFE))
-					{ // warning, the Unicode range D800 - DFFF is used to escape non-BMP characters (> 0x10000), and FFFE/FFFF corresponds to BOM UTF-16 (LE/BE)
-						goto escape_unicode;
-					}
-					// => skip
-					goto next;
-
-					// character encoded with a single backslash => \c
-				escape_backslash:
-					if (i > last)
-					{
-						if (!TryAppendChars(destination, ref cursor, text.Slice(last, i - last)))
-						{
-							return false;
-						}
-					}
-					last = i + 1;
-					if (!TryAppendChars(destination, ref cursor, '\\', c))
-					{
-						return false;
-					}
-					goto next;
-
-					// character encoded as Unicode using 16 bits
-				escape_unicode:
-					if (i > last)
-					{
-						if (!TryAppendChars(destination, ref cursor, text.Slice(last, i - last)))
-						{
-							return false;
-						}
-					}
-					last = i + 1;
-					if (!TryAppendUnicode(destination, ref cursor, (int) c))
-					{
-						return false;
-					}
-					goto next;
-
-				next:
-					// no encoding required.
-					++i;
-
-				} // while
-			} // fixed
-
-			if (last == 0)
-			{ // the text did not require any escaping
-				if (!TryAppendChars(destination, ref cursor, text))
-				{
-					return false;
-				}
-			}
-			else if (last < text.Length)
-			{ // append the tail that did not need any escaping
-				if (!TryAppendChars(destination, ref cursor, text.Slice(last, text.Length - last)))
-				{
-					return false;
-				}
-			}
-
-			if (includeQuotes)
-			{
-				if (!TryAppendChar(destination, ref cursor, '"'))
-				{
-					return false;
-				}
-			}
-
-			charsWritten = cursor;
-			return true;
-		}
-
-		/// <summary>Encodes a string literal into a JSON string, and appends the result to a StringBuilder</summary>
-		/// <param name="destination">Target buffer where the encoding JSON literal will be written</param>
-		/// <param name="text">input string literal to encode</param>
-		/// <param name="charsWritten">Receives the number of characters written to <paramref name="destination"/>, if it was large enough</param>
-		/// <returns><see langword="true"/> if the buffer was large enough; otherwise, <see langword="false"/>.</returns>
-		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int charsWritten)
-		{
-			if (text.Length == 0)
-			{ // empty string-> ""
-
-				if (destination.Length < 2)
-				{
-					charsWritten = 0;
-					return false;
-				}
-
-				destination[0] = '"';
-				destination[1] = '"';
-				charsWritten = 2;
-				return true;
-			}
-
-			if (!NeedsEscaping(text))
-			{ // no encoding required
-
-				if (destination.Length < text.Length + 2)
-				{
-					charsWritten = 0;
-					return false;
-				}
-
-				destination[0] = '"';
-				text.CopyTo(destination.Slice(1));
-				destination[text.Length + 1] = '"';
-				charsWritten = text.Length + 2;
-				return true;
-			}
-
-			// must encode
-			return TryEncodeToSlow(destination, text, includeQuotes: true, out charsWritten);
 		}
 
 	}
