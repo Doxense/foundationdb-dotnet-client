@@ -29,9 +29,9 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
-	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Linq;
 	using Doxense.Web;
 
 	[PublicAPI]
@@ -82,7 +82,7 @@ namespace Doxense.Serialization.Json
 		internal static string NumberToString(decimal value) => value.ToString(null, NumberFormatInfo.InvariantInfo);
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static void WriteJsonString(TextWriter writer, string? text)
+		public static void WriteJsonString(ref ValueStringWriter writer, string? text)
 		{
 			if (text == null)
 			{ // null -> "null"
@@ -94,18 +94,16 @@ namespace Doxense.Serialization.Json
 			}
 			else if (!JsonEncoding.NeedsEscaping(text))
 			{
-				writer.Write('"');
-				writer.Write(text);
-				writer.Write('"');
+				writer.Write('"', text, '"');
 			}
 			else
 			{
-				WriteJsonStringSlow(writer, text.AsSpan());
+				WriteJsonStringSlow(ref writer, text.AsSpan());
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static void WriteJsonString(TextWriter writer, ReadOnlySpan<char> text)
+		public static void WriteJsonString(ref ValueStringWriter writer, ReadOnlySpan<char> text)
 		{
 			if (text.Length == 0)
 			{ // empty string -> ""
@@ -113,17 +111,15 @@ namespace Doxense.Serialization.Json
 			}
 			else if (!JsonEncoding.NeedsEscaping(text))
 			{ // encoding not required (fast path)
-				writer.Write('"');
-				writer.Write(text);
-				writer.Write('"');
+				writer.Write('"', text, '"');
 			}
 			else
 			{ // string requires encoding (slow path)
-				WriteJsonStringSlow(writer, text);
+				WriteJsonStringSlow(ref writer, text);
 			}
 		}
 
-		internal static void WriteJsonStringSlow(TextWriter writer, ReadOnlySpan<char> text)
+		internal static void WriteJsonStringSlow(ref ValueStringWriter writer, ReadOnlySpan<char> text)
 		{
 			// we know that we need some escaping
 
@@ -131,7 +127,7 @@ namespace Doxense.Serialization.Json
 			writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
 		}
 
-		public static void WriteJavaScriptString(TextWriter writer, string? text)
+		public static void WriteJavaScriptString(ref ValueStringWriter writer, string? text)
 		{
 			if (text == null)
 			{ // "null"
@@ -139,11 +135,11 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				WriteJavaScriptString(writer, text.AsSpan());
+				WriteJavaScriptString(ref writer, text.AsSpan());
 			}
 		}
 
-		public static void WriteJavaScriptString(TextWriter writer, ReadOnlySpan<char> text)
+		public static void WriteJavaScriptString(ref ValueStringWriter writer, ReadOnlySpan<char> text)
 		{
 			if (text.Length == 0)
 			{ // "''"
@@ -185,7 +181,7 @@ namespace Doxense.Serialization.Json
 			return JavaScriptEncoding.EncodeSlow(new StringBuilder(), text, includeQuotes: true).ToString();
 		}
 
-		internal static void WriteFixedIntegerWithDecimalPartUnsafe(TextWriter output, long integer, long decimals, int digits)
+		internal static void WriteFixedIntegerWithDecimalPartUnsafe(ref ValueStringWriter output, long integer, long decimals, int digits)
 		{
 			Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityInt64 + 1 + digits];
 

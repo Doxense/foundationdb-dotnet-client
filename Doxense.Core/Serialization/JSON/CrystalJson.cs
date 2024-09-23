@@ -125,24 +125,9 @@ namespace Doxense.Serialization.Json
 				return JsonTokens.Null;
 			}
 
-			FastStringWriter? fsw = null;
-			try
-			{
-				fsw = WriterPool.Allocate();
-				fsw.Reset();
-				var writer = new CrystalJsonWriter(fsw, settings, resolver);
-				CrystalJsonVisitor.VisitValue<T>(value, writer);
-
-				return fsw.Buffer.ToString();
-			}
-			finally
-			{
-				if (fsw != null)
-				{
-					fsw.Reset();
-					WriterPool.Free(fsw);
-				}
-			}
+			using var writer = new CrystalJsonWriter(0, settings, resolver);
+			CrystalJsonVisitor.VisitValue<T>(value, writer);
+			return writer.GetStringAndClear();
 		}
 
 		/// <summary>Serializes a value (of any type)</summary>
@@ -160,12 +145,11 @@ namespace Doxense.Serialization.Json
 				return JsonTokens.Null;
 			}
 
-			FastStringWriter? fsw = null;
+			var writer = WriterPool.Allocate();
 			try
 			{
-				fsw = WriterPool.Allocate();
-				fsw.Reset();
-				var writer = new CrystalJsonWriter(fsw, settings, resolver);
+				writer.Initialize(0, settings, resolver);
+
 				if (serializer != null)
 				{
 					serializer.JsonSerialize(writer, value);
@@ -175,19 +159,14 @@ namespace Doxense.Serialization.Json
 					CrystalJsonVisitor.VisitValue<T>(value, writer);
 				}
 
-				return fsw.Buffer.ToString();
+				return writer.GetStringAndClear();
 			}
 			finally
 			{
-				if (fsw != null)
-				{
-					fsw.Reset();
-					WriterPool.Free(fsw);
-				}
+				writer.Dispose();
+				WriterPool.Free(writer);
 			}
 		}
-
-		private static readonly ObjectPool<FastStringWriter> WriterPool = new(() => new FastStringWriter(4096));
 
 		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
@@ -209,12 +188,11 @@ namespace Doxense.Serialization.Json
 
 			//REVIEW: use an ObjectPool for FastStringWriter and CrystalJsonWriter?
 
-			using (var fsw = new FastStringWriter(buffer))
+			using (var writer = new CrystalJsonWriter(new FastStringWriter(buffer), 0, settings, resolver))
 			{
-				var writer = new CrystalJsonWriter(fsw, settings, resolver);
 				CrystalJsonVisitor.VisitValue(value, typeof(object), writer);
-				return buffer;
 			}
+			return buffer;
 		}
 
 		/// <summary>Creates a new empty buffer with the appropriate size</summary>
@@ -242,25 +220,15 @@ namespace Doxense.Serialization.Json
 				return JsonTokens.Null;
 			}
 
-			FastStringWriter? fsw = null;
-			try
+			//try
 			{
-				fsw = WriterPool.Allocate();
-				fsw.Reset();
-				var writer = new CrystalJsonWriter(fsw, settings, resolver);
-
+				using var writer = new CrystalJsonWriter(0, settings, resolver);
 				CrystalJsonVisitor.VisitValue(value, declaredType, writer);
-
-				return fsw.Buffer.ToString();
+				return writer.Buffer.ToString();
 			}
-			finally
-			{
-				if (fsw != null)
-				{
-					fsw.Reset();
-					WriterPool.Free(fsw);
-				}
-			}
+			//finally
+			//{
+			//}
 		}
 
 		/// <summary>Serializes a boxed value (of any type) into the specified output</summary>
@@ -408,8 +376,63 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			byte[]? _ = null;
-			return ToSliceInternal(value, typeof(T), settings, resolver, ref _);
+			using var writer = new CrystalJsonWriter(0, settings, resolver);
+
+			CrystalJsonVisitor.VisitValue(value, writer);
+
+			return writer.Buffer.ToUtf8SliceAndClear();
+		}
+
+		private static ObjectPool<CrystalJsonWriter> WriterPool = new(() => new CrystalJsonWriter());
+
+		public static Slice ToSlice<T>(T? value, IJsonSerializer<T>? serializer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				if (serializer != null)
+				{
+					serializer.JsonSerialize(writer, value);
+				}
+				else
+				{
+					CrystalJsonVisitor.VisitValue(value, writer);
+				}
+
+				return writer.Buffer.ToUtf8SliceAndClear();
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
+		public static SliceOwner ToSlice<T>(T? value, IJsonSerializer<T>? serializer, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+				if (serializer != null)
+				{
+					serializer.JsonSerialize(writer, value);
+				}
+				else
+				{
+					CrystalJsonVisitor.VisitValue(value, writer);
+				}
+
+				return writer.Buffer.ToUtf8SliceOwner(pool);
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
 		}
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
@@ -622,7 +645,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				var writer = new CrystalJsonWriter(output, settings, resolver);
+				using var writer = new CrystalJsonWriter(output, 0, settings, resolver);
 				if (value is JsonValue jval)
 				{ // shortcurt pour la sérialisation de DOM json
 					jval.JsonSerialize(writer);
@@ -1521,15 +1544,6 @@ namespace Doxense.Serialization.Json
 		internal static DateTime JavaScriptTicksToDate(long ticks)
 		{
 			return new DateTime((ticks * TimeSpan.TicksPerMillisecond) + Ticks1970Jan1, DateTimeKind.Utc);
-		}
-
-		/// <summary>Encode une chaîne en JSON</summary>
-		/// <param name="text">Chaîne à encoder</param>
-		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
-		/// <remarks>Chaine correctement encodée. Note: retourne "null" si text==null</remarks>
-		public static string StringEncode(string? text)
-		{
-			return JsonEncoding.Encode(text);
 		}
 
 		/// <summary>Encode une chaîne en JSON, et append le résultat à un StringBuilder</summary>

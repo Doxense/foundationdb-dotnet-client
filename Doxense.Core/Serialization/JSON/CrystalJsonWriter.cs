@@ -30,18 +30,24 @@ namespace Doxense.Serialization.Json
 {
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using System.Threading;
+
 	using Doxense.IO;
+	using Doxense.Linq;
+	using NodaTime;
+	using NodaTime.Text;
 
 	/// <summary>Serialize values into JSON</summary>
 	[DebuggerDisplay("Json={!m_javascript}, Formatted={m_formatted}, Depth={m_objectGraphDepth}")]
 	[PublicAPI]
 	[DebuggerNonUserCode]
-	public sealed class CrystalJsonWriter
+	public sealed class CrystalJsonWriter : IDisposable
 	{
 		private const int MaximumObjectGraphDepth = 16;
 
@@ -65,54 +71,49 @@ namespace Doxense.Serialization.Json
 		}
 
 		// Settings
-		private readonly TextWriter m_buffer;
+		private ValueStringWriter m_buffer;
 		private State m_state;
 
-		private readonly bool m_javascript;
-		private readonly bool m_formatted;
-		private readonly bool m_indented;
-		private readonly CrystalJsonSettings.DateFormat m_dateFormat;
-		private readonly CrystalJsonSettings.FloatFormat m_floatFormat;
-		private readonly bool m_discardDefaults;
-		private readonly bool m_discardNulls;
-		private readonly bool m_discardClass;
-		private readonly bool m_markVisited;
-		private readonly bool m_camelCase;
-		private readonly bool m_enumAsString;
-		private readonly bool m_enumCamelCased;
-		private readonly CrystalJsonSettings m_settings;
-		private readonly ICrystalJsonTypeResolver m_resolver;
+		private TextWriter? m_output;
+		private int m_autoFlush;
+
+		private bool m_javascript;
+		private bool m_formatted;
+		private bool m_indented;
+		private CrystalJsonSettings.DateFormat m_dateFormat;
+		private CrystalJsonSettings.FloatFormat m_floatFormat;
+		private bool m_discardDefaults;
+		private bool m_discardNulls;
+		private bool m_discardClass;
+		private bool m_markVisited;
+		private bool m_camelCase;
+		private bool m_enumAsString;
+		private bool m_enumCamelCased;
+		private CrystalJsonSettings m_settings;
+		private ICrystalJsonTypeResolver m_resolver;
 		private JsonPropertyAttribute? m_attributes;
 		private object[]? m_visitedObjects;
 		private int m_visitedCursor;
 		private int m_objectGraphDepth;
 
-		public CrystalJsonWriter(TextWriter? buffer, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public CrystalJsonWriter(TextWriter output, int autoFlush, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			m_buffer = buffer ?? new FastStringWriter(512);
-			m_settings = settings ?? CrystalJsonSettings.Json;
-			m_resolver = resolver ?? CrystalJson.DefaultResolver;
-			//
-			m_javascript = m_settings.TargetLanguage == CrystalJsonSettings.Target.JavaScript;
-			m_formatted = m_settings.TextLayout != CrystalJsonSettings.Layout.Compact;
-			m_indented = m_settings.TextLayout == CrystalJsonSettings.Layout.Indented;
-			if (m_indented) m_state.Indentation = string.Empty;
-			m_dateFormat = m_settings.DateFormatting != CrystalJsonSettings.DateFormat.Default ? m_settings.DateFormatting : (m_javascript ? CrystalJsonSettings.DateFormat.JavaScript : CrystalJsonSettings.DateFormat.TimeStampIso8601);
-			m_floatFormat = m_settings.FloatFormatting != CrystalJsonSettings.FloatFormat.Default ? m_settings.FloatFormatting : (m_javascript ? CrystalJsonSettings.FloatFormat.JavaScript : CrystalJsonSettings.FloatFormat.Symbol);
-			m_discardDefaults = m_settings.HideDefaultValues;
-			m_discardNulls = m_discardDefaults || !m_settings.ShowNullMembers;
-			m_discardClass = m_settings.HideClassId;
-			m_camelCase = m_settings.UseCamelCasingForNames;
-			m_enumAsString = m_settings.EnumsAsString;
-			m_enumCamelCased = m_settings.UseCamelCasingForEnums;
-			m_markVisited = !m_settings.DoNotTrackVisitedObjects;
+			Contract.NotNull(output);
+			Initialize(0, settings, resolver);
+			m_output = output;
+			m_autoFlush = autoFlush > 0 ? autoFlush : 64 * 1024;
 		}
 
-		public CrystalJsonWriter(StringBuilder? buffer, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-			: this(buffer != null ? new FastStringWriter(buffer) : null, settings, resolver)
-		{ }
+		public CrystalJsonWriter(int initialCapacity, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			Initialize(initialCapacity, settings, resolver);
+		}
 
-		public TextWriter Buffer => m_buffer;
+		internal CrystalJsonWriter() { }
+
+		internal ref ValueStringWriter Buffer => ref m_buffer;
+
+		public TextWriter? Output => m_output;
 
 		public CrystalJsonSettings Settings => m_settings;
 
@@ -145,6 +146,154 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Specifies whether the writer will insert spaces between tokens (to enhance readability by humans)</summary>
 		public bool Formatted => m_formatted;
+
+		public void Dispose()
+		{
+			if (m_output != null)
+			{
+				FlushBuffer();
+				m_output = null;
+			}
+
+			m_visitedObjects?.AsSpan().Clear();
+		}
+
+		[MemberNotNull([ nameof(m_settings), nameof(m_resolver), ])]
+		internal void Initialize(int initialCapacity, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			settings ??= CrystalJsonSettings.Json;
+			resolver ??= CrystalJson.DefaultResolver;
+
+			if (!ReferenceEquals(settings, m_settings) || ReferenceEquals(resolver, m_resolver))
+			{
+				m_javascript = settings.TargetLanguage == CrystalJsonSettings.Target.JavaScript;
+				m_formatted = settings.TextLayout != CrystalJsonSettings.Layout.Compact;
+				m_indented = settings.TextLayout == CrystalJsonSettings.Layout.Indented;
+				m_state.Indentation = string.Empty;
+				m_dateFormat = settings.DateFormatting != CrystalJsonSettings.DateFormat.Default ? settings.DateFormatting : (m_javascript ? CrystalJsonSettings.DateFormat.JavaScript : CrystalJsonSettings.DateFormat.TimeStampIso8601);
+				m_floatFormat = settings.FloatFormatting != CrystalJsonSettings.FloatFormat.Default ? settings.FloatFormatting : (m_javascript ? CrystalJsonSettings.FloatFormat.JavaScript : CrystalJsonSettings.FloatFormat.Symbol);
+				m_discardDefaults = settings.HideDefaultValues;
+				m_discardNulls = m_discardDefaults || !settings.ShowNullMembers;
+				m_discardClass = settings.HideClassId;
+				m_camelCase = settings.UseCamelCasingForNames;
+				m_enumAsString = settings.EnumsAsString;
+				m_enumCamelCased = settings.UseCamelCasingForEnums;
+				m_markVisited = !settings.DoNotTrackVisitedObjects;
+			}
+
+			m_buffer = new ValueStringWriter(initialCapacity != 0 ? initialCapacity : (settings.OptimizeForLargeData ? 64 * 1024 : 1024));
+			m_settings = settings;
+			m_resolver = resolver;
+			m_output = null;
+			m_autoFlush = 0;
+		}
+
+		public void Initialize(TextWriter output, int autoFlush, CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
+		{
+			Contract.NotNull(output);
+			Contract.Positive(autoFlush);
+
+			Initialize(0, settings, resolver);
+			m_output = output;
+			m_autoFlush = autoFlush > 0 ? autoFlush : 64 * 1024;
+		}
+
+		/// <summary>Returns the JSON text written so far</summary>
+		/// <returns>JSON text</returns>
+		/// <exception cref="InvalidOperationException">If this instance is outputing to a TextWriter</exception>
+		public string GetString()
+		{
+			return m_output == null ? m_buffer.ToString() : throw new InvalidOperationException("This method cannot be used when writing to a TextWriter");
+		}
+
+		/// <summary>Returns the JSON text written, and clear the writer</summary>
+		/// <returns>JSON text</returns>
+		/// <exception cref="InvalidOperationException">If this instance is outputing to a TextWriter</exception>
+		public string GetStringAndClear()
+		{
+			return m_output == null ? m_buffer.ToStringAndClear() : throw new InvalidOperationException("This method cannot be used when writing to a TextWriter");
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal void MaybeFlush()
+		{
+			if (m_autoFlush > 0 && m_buffer.Count >= m_autoFlush)
+			{
+				FlushBuffer();
+			}
+		}
+
+		internal void FlushBuffer()
+		{
+			if (m_output != null)
+			{
+				WriteBufferToOutput();
+			}
+			m_buffer.Clear();
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			void WriteBufferToOutput()
+			{
+				Contract.Debug.Assert(m_output != null);
+
+				//note: if the TextWriter implementation does not overload Write(ReadOnlySpan<char>),
+				// the base implementation simply uses a tempt buffer from ArrayPool<char>.Shared, and calls Write(char[], int, int)
+				// => we expect most of the callers to use either FastStringWriter, StringWriter or StreamWriter, so we are "ok" with that
+				m_output.Write(m_buffer.Span);
+
+				m_buffer.Clear();
+			}
+		}
+
+		internal Task FlushBufferAsync(CancellationToken ct)
+		{
+			if (m_output != null)
+			{
+				return WriteBufferToOutputAsync(ct);
+			}
+
+			m_buffer.Clear();
+			return Task.CompletedTask;
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			async Task WriteBufferToOutputAsync(CancellationToken cancel)
+			{
+				//note: if the TextWriter implementation does not overload WriteAsync(ReadOnlyMemory<char>),
+				// the base implementation simply Task.Factory.StartNew((...) => output.Write(ReadOnlySpan<char>))
+				// also, the CancellationToken is only check _BEFORE_ the write, but the write itself is not cancellable :(
+				await m_output.WriteAsync(m_buffer.Memory, cancel).ConfigureAwait(false);
+
+				m_buffer.Clear();
+			}
+		}
+
+
+		public void Flush()
+		{
+			if (m_output != null)
+			{
+				FlushBuffer();
+				m_output.Flush();
+			}
+		}
+
+		public async Task FlushAsync(CancellationToken ct)
+		{
+			if (m_output != null)
+			{
+				// first flush the buffer content into the writer
+				await FlushBufferAsync(ct).ConfigureAwait(false);
+
+				// and then flush the writer itself (into its base stream)
+#if NET8_0_OR_GREATER
+				await m_output.FlushAsync(ct).ConfigureAwait(false);
+#else
+				//BUGBUG: .NET 6 does not have an overload that takes a cancellation token :(
+				ct.ThrowIfCancellationRequested();
+				await m_output.FlushAsync();
+#endif
+			}
+		}
 
 		/// <summary>Apply casing policy to a property name</summary>
 		/// <param name="name">Name (ex: "FooBar")</param>
@@ -189,9 +338,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Not all JSON parser will accept comments! Only use when you know that all parsers that will consume this understand and allow comments!</remarks>
 		public void WriteComment(string comment)
 		{
-			m_buffer.Write("/* ");
-			m_buffer.Write(comment.Replace("*/", "* /"));
-			m_buffer.Write(" */");
+			m_buffer.Write("/* ", comment.Replace("*/", "* /"), " */");
 		}
 
 		/// <summary>Write the "null" literal</summary>
@@ -219,19 +366,20 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteFieldSeparator()
 		{
-			var buffer = m_buffer;
 			if (m_indented)
 			{
-				buffer.Write(m_state.Tail ? JsonTokens.CommaIndented : JsonTokens.NewLine);
-				buffer.Write(m_state.Indentation);
+				m_buffer.Write(
+					m_state.Tail ? JsonTokens.CommaIndented : JsonTokens.NewLine,
+					m_state.Indentation
+				);
 			}
 			else if (m_formatted)
 			{
-				buffer.Write(m_state.Tail ? JsonTokens.CommaFormatted : " ");
+				m_buffer.Write(m_state.Tail ? JsonTokens.CommaFormatted : " ");
 			}
 			else if (m_state.Tail)
 			{
-				buffer.Write(',');
+				m_buffer.Write(',');
 			}
 			m_state.Tail = true;
 		}
@@ -241,15 +389,16 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(!m_state.Tail);
 			m_state.Tail = true;
-			var buffer = m_buffer;
 			if (m_indented)
 			{
-				buffer.Write(JsonTokens.NewLine);
-				buffer.Write(m_state.Indentation);
+				m_buffer.Write(
+					JsonTokens.NewLine,
+					m_state.Indentation
+				);
 			}
 			else if (m_formatted)
 			{
-				buffer.Write(' ');
+				m_buffer.Write(' ');
 			}
 		}
 
@@ -257,19 +406,20 @@ namespace Doxense.Serialization.Json
 		public void WriteTailSeparator()
 		{
 			Contract.Debug.Requires(m_state.Tail);
-			var buffer = m_buffer;
 			if (m_indented)
 			{
-				buffer.Write(JsonTokens.CommaIndented);
-				buffer.Write(m_state.Indentation);
+				m_buffer.Write(
+					JsonTokens.CommaIndented,
+					m_state.Indentation
+				);
 			}
 			else if (m_formatted)
 			{
-				buffer.Write(JsonTokens.CommaFormatted);
+				m_buffer.Write(JsonTokens.CommaFormatted);
 			}
 			else
 			{
-				buffer.Write(',');
+				m_buffer.Write(',');
 			}
 		}
 
@@ -291,24 +441,22 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(!m_state.Tail);
 			m_state.Tail = true;
-			var buffer = m_buffer;
 			if (m_indented | m_formatted)
 			{
-				buffer.Write(' ');
+				m_buffer.Write(' ');
 			}
 		}
 
 		public void WriteInlineTailSeparator()
 		{
 			Contract.Debug.Requires(m_state.Tail);
-			var buffer = m_buffer;
 			if (m_indented | m_formatted)
 			{
-				buffer.Write(JsonTokens.CommaFormatted);
+				m_buffer.Write(JsonTokens.CommaFormatted);
 			}
 			else
 			{
-				buffer.Write(',');
+				m_buffer.Write(',');
 			}
 		}
 
@@ -396,22 +544,25 @@ namespace Doxense.Serialization.Json
 		public void EndObject(State state)
 		{
 			Paranoid.Requires(m_state.Node == NodeType.Object);
-			var buffer = m_buffer;
 			if (m_indented)
 			{
-				buffer.Write(JsonTokens.NewLine);
-				buffer.Write(state.Indentation);
-				buffer.Write('}');
+				m_buffer.Write(
+					JsonTokens.NewLine,
+					state.Indentation,
+					'}'
+				);
 			}
 			else if (m_formatted)
 			{
-				buffer.Write(JsonTokens.CurlyCloseFormatted);
+				m_buffer.Write(JsonTokens.CurlyCloseFormatted);
 			}
 			else
 			{
-				buffer.Write('}');
+				m_buffer.Write('}');
 			}
 			m_state = state;
+
+			MaybeFlush();
 		}
 
 		/// <summary>Start a new JSON array</summary>
@@ -444,22 +595,25 @@ namespace Doxense.Serialization.Json
 		public void EndArray(State state)
 		{
 			Paranoid.Requires(m_state.Node == NodeType.Array);
-			var buffer = m_buffer;
 			if (m_indented)
 			{
-				buffer.Write(JsonTokens.NewLine);
-				buffer.Write(state.Indentation);
-				buffer.Write(']');
+				m_buffer.Write(
+					JsonTokens.NewLine,
+					state.Indentation,
+					']'
+				);
 			}
 			else if (m_formatted)
 			{
-				buffer.Write(JsonTokens.BracketCloseFormatted); // " ]"
+				m_buffer.Write(JsonTokens.BracketCloseFormatted); // " ]"
 			}
 			else
 			{
-				buffer.Write(']');
+				m_buffer.Write(']');
 			}
 			m_state = state;
+
+			MaybeFlush();
 		}
 
 		/// <summary>End a JSON inline array</summary>
@@ -468,16 +622,16 @@ namespace Doxense.Serialization.Json
 		public void EndInlineArray(State state)
 		{
 			Paranoid.Requires(m_state.Node == NodeType.Array);
-			var buffer = m_buffer;
 			if (m_indented | m_formatted)
 			{
-				buffer.Write(JsonTokens.BracketCloseFormatted); // " ]"
+				m_buffer.Write(JsonTokens.BracketCloseFormatted); // " ]"
 			}
 			else
 			{
-				buffer.Write(']');
+				m_buffer.Write(']');
 			}
 			m_state = state;
+			MaybeFlush();
 		}
 
 		#region WritePair ...
@@ -872,7 +1026,10 @@ namespace Doxense.Serialization.Json
 			if (value != null && m_markVisited && m_visitedObjects != null && m_visitedCursor > 0)
 			{
 				var previous = PopVisited(ref m_visitedObjects, ref m_visitedCursor);
-				if (!object.ReferenceEquals(previous, value)) throw CrystalJson.Errors.Serialization_LeaveNotSameThanMark(m_objectGraphDepth, value);
+				if (!ReferenceEquals(previous, value))
+				{
+					throw CrystalJson.Errors.Serialization_LeaveNotSameThanMark(m_objectGraphDepth, value);
+				}
 			}
 			--m_objectGraphDepth;
 
@@ -953,18 +1110,19 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_javascript)
 			{
-				var buffer = m_buffer;
 				string formattedName = FormatName(name);
 				if (knownSafe || !JsonEncoding.NeedsEscaping(formattedName))
 				{
-					buffer.Write('"');
-					buffer.Write(formattedName);
-					buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+					m_buffer.Write(
+						'"',
+						formattedName,
+						m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact
+					);
 				}
 				else
 				{
-					CrystalJsonFormatter.WriteJsonStringSlow(buffer, name);
-					buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+					CrystalJsonFormatter.WriteJsonStringSlow(ref m_buffer, name);
+					m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 				}
 			}
 			else
@@ -976,9 +1134,10 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		internal void WriteJavaScriptName(string name)
 		{
-			var buffer = m_buffer;
-			buffer.Write(Doxense.Web.JavaScriptEncoding.EncodePropertyName(FormatName(name)));
-			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+			m_buffer.Write(
+				Doxense.Web.JavaScriptEncoding.EncodePropertyName(FormatName(name)),
+				m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact
+			);
 		}
 
 		internal void WritePropertyName(ReadOnlySpan<char> name, bool knownSafe)
@@ -989,37 +1148,34 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			var buffer = m_buffer;
 			if (knownSafe || !JsonEncoding.NeedsEscaping(name))
 			{
-				buffer.Write('"');
 				if (!m_camelCase || (name[0] is '_' or (>= 'a' and <= 'z')))
 				{
-					buffer.Write(name);
+					m_buffer.Write('"', name);
 				}
 				else
 				{
-					buffer.Write(char.ToLowerInvariant(name[0]));
+					m_buffer.Write('"', char.ToLowerInvariant(name[0]));
 					if (name.Length > 1)
 					{
-						buffer.Write(name[1..]);
+						m_buffer.Write(name[1..]);
 					}
 				}
-				buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				m_buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
 			}
 			else
 			{
-				CrystalJsonFormatter.WriteJsonStringSlow(buffer, name);
-				buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+				CrystalJsonFormatter.WriteJsonStringSlow(ref m_buffer, name);
+				m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 			}
 		}
 
 		internal void WriteJavaScriptName(ReadOnlySpan<char> name)
 		{
-			var buffer = m_buffer;
 			if (!m_camelCase || (name[0] is '_' or (>= 'a' and <= 'z')))
 			{
-				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(buffer, name);
+				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(ref m_buffer, name);
 			}
 			else
 			{
@@ -1027,9 +1183,9 @@ namespace Doxense.Serialization.Json
 				Span<char> tmp = stackalloc char[name.Length];
 				tmp[0] = char.ToLowerInvariant(name[0]);
 				name[1..].CopyTo(tmp[1..]);
-				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(buffer, name);
+				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(ref m_buffer, name);
 			}
-			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+			m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 		}
 
 		/// <summary>Write a field name that is an integer</summary>
@@ -1043,17 +1199,16 @@ namespace Doxense.Serialization.Json
 
 		internal void WritePropertyName(long name)
 		{
-			var buffer = m_buffer;
 			if (!m_javascript)
 			{
-				buffer.Write('"');
+				m_buffer.Write('"');
 				WriteValue(name);
-				buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				m_buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
 			}
 			else
 			{
 				WriteValue(name);
-				buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+				m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 			}
 		}
 
@@ -1067,40 +1222,39 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void WritePropertyName(in JsonEncodedPropertyName name)
 		{
-			var buffer = m_buffer;
-			buffer.Write(m_javascript ? name.JavaScriptLiteral : name.JsonLiteral);
-			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+			m_buffer.Write(
+				m_javascript ? name.JavaScriptLiteral : name.JsonLiteral,
+				m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact
+			);
 		}
 
 		internal void WritePropertyName(int name)
 		{
-			var buffer = m_buffer;
 			if (!m_javascript)
 			{
-				buffer.Write('"');
+				m_buffer.Write('"');
 				WriteValue(name);
-				buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				m_buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
 			}
 			else
 			{
 				WriteValue(name);
-				buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+				m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 			}
 		}
 
 		public void WriteUnsafeName(string name)
 		{
 			WriteFieldSeparator();
-			var buffer = m_buffer;
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(buffer, name);
+				CrystalJsonFormatter.WriteJsonString(ref m_buffer, name);
 			}
 			else
 			{
-				CrystalJsonFormatter.WriteJavaScriptString(buffer, FormatName(name));
+				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, FormatName(name));
 			}
-			buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+			m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
 		}
 
 		#region WriteValue...
@@ -1123,11 +1277,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(m_buffer, value);
+				CrystalJsonFormatter.WriteJsonString(ref m_buffer, value);
 			}
 			else
 			{
-				CrystalJsonFormatter.WriteJavaScriptString(m_buffer, value);
+				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, value);
 			}
 		}
 
@@ -1136,11 +1290,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(m_buffer, value);
+				CrystalJsonFormatter.WriteJsonString(ref m_buffer, value);
 			}
 			else
 			{
-				CrystalJsonFormatter.WriteJavaScriptString(m_buffer, value);
+				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, value);
 			}
 		}
 
@@ -1149,31 +1303,29 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(m_buffer, value.Span);
+				CrystalJsonFormatter.WriteJsonString(ref m_buffer, value.Span);
 			}
 			else
 			{
-				CrystalJsonFormatter.WriteJavaScriptString(m_buffer, value.Span);
+				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, value.Span);
 			}
 		}
 
 		public void WriteValue(char value)
 		{
 			// replace the NUL character (\0) by 'null'
-			var buffer = m_buffer;
 			if (value == '\0')
 			{
-				buffer.Write(JsonTokens.Null);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else if (!JsonEncoding.NeedsEscaping(value))
 			{
-				buffer.Write('"');
-				buffer.Write(value);
-				buffer.Write('"');
+				m_buffer.Write('"', value, '"');
 			}
 			else
 			{
-				buffer.Write(JsonEncoding.AppendSlow(new StringBuilder(), new string(value, 1), true).ToString());
+				//TODO: PERF: optimize this!
+				m_buffer.Write(JsonEncoding.AppendSlow(new StringBuilder(), new string(value, 1), true).ToString());
 			}
 		}
 
@@ -1209,14 +1361,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(byte value)
 		{
-			if (value < 10)
-			{ // single char
-				m_buffer.Write((char) ('0' + value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1227,14 +1372,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(sbyte value)
 		{
-			if ((uint) value < 10U)
-			{ // single char
-				m_buffer.Write((char) ('0' + value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1245,14 +1383,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(short value)
 		{
-			if ((uint) value < 10U)
-			{ // single char
-				m_buffer.Write((char) (48 + value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1263,14 +1394,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(ushort value)
 		{
-			if (value < 10U)
-			{ // single char
-				m_buffer.Write((char) (48 + value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1281,14 +1405,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(int value)
 		{
-			if ((uint) value < 10U)
-			{ // single char
-				m_buffer.Write((char) ('0' + value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1299,14 +1416,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(uint value)
 		{
-			if (value < 10U)
-			{ // single char
-				m_buffer.Write((char) ('0' + (int) value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1317,14 +1427,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(long value)
 		{
-			if ((ulong) value < 10UL)
-			{ // single char
-				m_buffer.Write((char)('0' + (int) value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1335,14 +1438,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(ulong value)
 		{
-			if (value < 10UL)
-			{ // single char
-				m_buffer.Write((char) ('0' + (int) value));
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1364,7 +1460,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				StringConverters.WriteTo(m_buffer, value);
+				m_buffer.Write(value);
 			}
 		}
 
@@ -1387,7 +1483,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				StringConverters.WriteTo(m_buffer, value);
+				m_buffer.Write(value);
 			}
 		}
 
@@ -1484,15 +1580,8 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(decimal value)
 		{
-			if (value == 0)
-			{ // the most common for empty members
-				m_buffer.Write('0');
-			}
-			else
-			{ // direct conversion
-				// note: we do not add '.0' for integers, since 'decimal' could be used to represent any number (integer or floats) in dynamic or scripted languages (like javascript), and we want to be able to round-trip: "1" => (decimal) 1 => "1"
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			// note: we do not add '.0' for integers, since 'decimal' could be used to represent any number (integer or floats) in dynamic or scripted languages (like javascript), and we want to be able to round-trip: "1" => (decimal) 1 => "1"
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1510,14 +1599,18 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(Half value)
 		{
-			if (value == default)
-			{ // the most common for empty members
-				m_buffer.Write('0');
+			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
+			if (!Half.IsFinite(value))
+			{
+				m_buffer.Write(
+					Half.IsNaN(value) ? CrystalJsonFormatter.GetNaNToken(m_floatFormat)
+					: value > default(Half) ? CrystalJsonFormatter.GetPositiveInfinityToken(m_floatFormat)
+					: CrystalJsonFormatter.GetNegativeInfinityToken(m_floatFormat)
+				);
 			}
 			else
-			{ // direct conversion
-				m_buffer.Write(value.ToString(null, NumberFormatInfo.InvariantInfo));
-				// note: we do not add '.0' for integers, since 'decimal' could be used to represent any number (integer or floats) in dynamic or scripted languages (like javascript), and we want to be able to round-trip: "1" => (decimal) 1 => "1"
+			{
+				m_buffer.Write(value);
 			}
 		}
 
@@ -1538,14 +1631,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(Int128 value)
 		{
-			if (value == default)
-			{ // single char
-				m_buffer.Write('0');
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1556,14 +1642,7 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(UInt128 value)
 		{
-			if (value == default)
-			{ // single char
-				m_buffer.Write('0');
-			}
-			else
-			{
-				StringConverters.WriteTo(m_buffer, value);
-			}
+			m_buffer.Write(value);
 		}
 
 
@@ -1827,40 +1906,38 @@ namespace Doxense.Serialization.Json
 		/// <summary>Write a date, using the Javascript format: <c>new Date(123456789)</c></summary>
 		public void WriteDateTimeJavaScript(DateTime date)
 		{
-			var buffer = m_buffer;
 			if (date == DateTime.MinValue)
 			{ // no timezone
-				buffer.Write(JsonTokens.JavaScriptDateTimeMinValue);
+				m_buffer.Write(JsonTokens.JavaScriptDateTimeMinValue);
 			}
 			else if (date == DateTime.MaxValue)
 			{ // no timezone
-				buffer.Write(JsonTokens.JavaScriptDateTimeMaxValue);
+				m_buffer.Write(JsonTokens.JavaScriptDateTimeMaxValue);
 			}
 			else
 			{ // "new Date(#####)"
-				buffer.Write(JsonTokens.DateBeginJavaScript);
-				buffer.Write(CrystalJson.DateToJavaScriptTicks(date).ToString(NumberFormatInfo.InvariantInfo));
-				buffer.Write(')');
+				m_buffer.Write(JsonTokens.DateBeginJavaScript);
+				m_buffer.Write(CrystalJson.DateToJavaScriptTicks(date).ToString(NumberFormatInfo.InvariantInfo));
+				m_buffer.Write(')');
 			}
 		}
 
 		/// <summary>Write a date with offset, using the Javascript format: <c>new Date(123456789)</c></summary>
 		public void WriteDateTimeJavaScript(DateTimeOffset date)
 		{
-			var buffer = m_buffer;
 			if (date == DateTimeOffset.MinValue)
 			{ // no timezone
-				buffer.Write(JsonTokens.JavaScriptDateTimeMinValue);
+				m_buffer.Write(JsonTokens.JavaScriptDateTimeMinValue);
 			}
 			else if (date == DateTimeOffset.MaxValue)
 			{ // no timezone
-				buffer.Write(JsonTokens.JavaScriptDateTimeMaxValue);
+				m_buffer.Write(JsonTokens.JavaScriptDateTimeMaxValue);
 			}
 			else
 			{ // "new Date(#####)"
-				buffer.Write(JsonTokens.DateBeginJavaScript);
-				buffer.Write(CrystalJson.DateToJavaScriptTicks(date).ToString(null, NumberFormatInfo.InvariantInfo));
-				buffer.Write(')');
+				m_buffer.Write(JsonTokens.DateBeginJavaScript);
+				m_buffer.Write(CrystalJson.DateToJavaScriptTicks(date).ToString(null, NumberFormatInfo.InvariantInfo));
+				m_buffer.Write(')');
 			}
 		}
 
@@ -1891,22 +1968,21 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(Guid value)
 		{
-			var buffer = m_buffer;
 			if (value == Guid.Empty)
 			{
-				buffer.Write(JsonTokens.Null);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else if (!m_javascript)
 			{
-				buffer.Write('"');
-				buffer.Write(value.ToString());
-				buffer.Write('"');
+				m_buffer.Write('"');
+				m_buffer.Write(value);
+				m_buffer.Write('"');
 			}
 			else
 			{
-				buffer.Write('\'');
-				buffer.Write(value.ToString());
-				buffer.Write('\'');
+				m_buffer.Write('\'');
+				m_buffer.Write(value);
+				m_buffer.Write('\'');
 			}
 		}
 
@@ -1925,22 +2001,21 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(Uuid128 value)
 		{
-			var buffer = m_buffer;
 			if (value == Uuid128.Empty)
 			{
-				buffer.Write(JsonTokens.Null);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else if (!m_javascript)
 			{
-				buffer.Write('"');
-				buffer.Write(value.ToString());
-				buffer.Write('"');
+				m_buffer.Write('"');
+				m_buffer.Write(value);
+				m_buffer.Write('"');
 			}
 			else
 			{
-				buffer.Write('\'');
-				buffer.Write(value.ToString());
-				buffer.Write('\'');
+				m_buffer.Write('\'');
+				m_buffer.Write(value);
+				m_buffer.Write('\'');
 			}
 		}
 
@@ -1959,22 +2034,21 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(Uuid96 value)
 		{
-			var buffer = m_buffer;
 			if (value == Uuid96.Empty)
 			{
-				buffer.Write(JsonTokens.Null);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else if (!m_javascript)
 			{
-				buffer.Write('"');
-				buffer.Write(value.ToString());
-				buffer.Write('"');
+				m_buffer.Write('"');
+				m_buffer.Write(value.ToString());
+				m_buffer.Write('"');
 			}
 			else
 			{
-				buffer.Write('\'');
-				buffer.Write(value.ToString());
-				buffer.Write('\'');
+				m_buffer.Write('\'');
+				m_buffer.Write(value.ToString());
+				m_buffer.Write('\'');
 			}
 		}
 
@@ -1993,22 +2067,21 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(Uuid80 value)
 		{
-			var buffer = m_buffer;
 			if (value == Uuid80.Empty)
 			{
-				buffer.Write(JsonTokens.Null);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else if (!m_javascript)
 			{
-				buffer.Write('"');
-				buffer.Write(value.ToString());
-				buffer.Write('"');
+				m_buffer.Write('"');
+				m_buffer.Write(value.ToString());
+				m_buffer.Write('"');
 			}
 			else
 			{
-				buffer.Write('\'');
-				buffer.Write(value.ToString());
-				buffer.Write('\'');
+				m_buffer.Write('\'');
+				m_buffer.Write(value.ToString());
+				m_buffer.Write('\'');
 			}
 		}
 
@@ -2027,22 +2100,21 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(Uuid64 value)
 		{
-			var buffer = m_buffer;
 			if (value == Uuid64.Empty)
 			{
-				buffer.Write(JsonTokens.Null);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else if (!m_javascript)
 			{
-				buffer.Write('"');
-				buffer.Write(value.ToString());
-				buffer.Write('"');
+				m_buffer.Write('"');
+				m_buffer.Write(value);
+				m_buffer.Write('"');
 			}
 			else
 			{
-				buffer.Write('\'');
-				buffer.Write(value.ToString());
-				buffer.Write('\'');
+				m_buffer.Write('\'');
+				m_buffer.Write(value);
+				m_buffer.Write('\'');
 			}
 		}
 
@@ -2074,7 +2146,7 @@ namespace Doxense.Serialization.Json
 			long nanos = nanosOfDay - (secsOfDay * 1_000_000_000);
 			long secs = secsOfDay + (days * 86400);
 
-			CrystalJsonFormatter.WriteFixedIntegerWithDecimalPartUnsafe(m_buffer, secs, nanos, 9);
+			CrystalJsonFormatter.WriteFixedIntegerWithDecimalPartUnsafe(ref m_buffer, secs, nanos, 9);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2095,7 +2167,16 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{ // "2013-07-26T16:45:20.1234567Z"
-				WriteValue(CrystalJsonNodaPatterns.Instants.Format(date));
+
+				// "uuuu'-'MM'-'dd'T'HH':'mm':'ss;FFFFFFFFF'Z'"
+				if (date >= NodaConstants.BclEpoch)
+				{
+					WriteValue(date.ToDateTimeUtc());
+				}
+				else
+				{
+					WriteValue(InstantPattern.ExtendedIso.Format(date));
+				}
 			}
 		}
 
@@ -2258,70 +2339,53 @@ namespace Doxense.Serialization.Json
 
 		public void WriteBuffer(byte[]? bytes)
 		{
-			var buffer = m_buffer;
 			if (bytes == null)
 			{
-				buffer.Write(JsonTokens.Null);
-			}
-			else if (bytes.Length == 0)
-			{
-				buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else
-			{ // note: Base64 without any <'> or <">, so no need to escape it!
-				buffer.Write('"');
-				Base64Encoding.EncodeTo(buffer, bytes);
-				buffer.Write('"');
+			{
+				WriteBuffer(new ReadOnlySpan<byte>(bytes));
 			}
 		}
 
 		public void WriteBuffer(byte[]? bytes, int offset, int count)
 		{
-			var buffer = m_buffer;
 			if (bytes == null)
 			{
-				buffer.Write(JsonTokens.Null);
-			}
-			else if (count == 0)
-			{
-				buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write(JsonTokens.Null);
 			}
 			else
-			{ // note: Base64 without any <'> or <">, so no need to escape it!
-				buffer.Write('"');
-				buffer.Write(Convert.ToBase64String(bytes, offset, count));
-				buffer.Write('"');
+			{
+				WriteBuffer(bytes.AsSpan(offset, count));
 			}
 		}
 
 		public void WriteBuffer(ReadOnlySpan<byte> bytes)
 		{
-			var buffer = m_buffer;
 			if (bytes.Length == 0)
 			{
-				buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write(JsonTokens.EmptyString);
 			}
 			else
 			{ // note: Base64 without any <'> or <">, so no need to escape it!
-				buffer.Write('"');
-				buffer.Write(Convert.ToBase64String(bytes));
-				buffer.Write('"');
+				m_buffer.Write('"');
+				Base64Encoding.EncodeTo(ref m_buffer, bytes);
+				m_buffer.Write('"');
 			}
 		}
 
 		public void WriteBuffer(Slice bytes)
 		{
-			var buffer = m_buffer;
 			if (bytes.Count == 0)
 			{
-				buffer.Write(bytes.Array == null! ? JsonTokens.Null : JsonTokens.EmptyString);
+				m_buffer.Write(bytes.Array == null! ? JsonTokens.Null : JsonTokens.EmptyString);
 			}
 			else
-			{ // note: Base64 ne contient ni ' ni " donc pas besoin d'escaper !
-				buffer.Write('"');
-				//TODO: if count is large, we could switch to ToBase64CharArray + a buffer ?
-				buffer.Write(Convert.ToBase64String(bytes.Array, bytes.Offset, bytes.Count));
-				buffer.Write('"');
+			{ // note: Base64 without any <'> or <">, so no need to escape it!
+				m_buffer.Write('"');
+				Base64Encoding.EncodeTo(ref m_buffer, bytes.Span);
+				m_buffer.Write('"');
 			}
 		}
 
@@ -2352,24 +2416,6 @@ namespace Doxense.Serialization.Json
 			if (value != null || !m_discardNulls)
 			{
 				WriteName(name);
-				WriteValue(value);
-			}
-		}
-
-		public void Zobi(JsonEncodedPropertyName name, string? value)
-		{
-			if (value != null || !m_discardNulls)
-			{
-				WriteName(in name);
-				WriteValue(value);
-			}
-		}
-
-		public void Zobi(in JsonEncodedPropertyName name, string? value)
-		{
-			if (value != null || !m_discardNulls)
-			{
-				WriteName(in name);
 				WriteValue(value);
 			}
 		}
@@ -3576,7 +3622,7 @@ namespace Doxense.Serialization.Json
 			if (items is not null)
 			{
 				WriteName(in name);
-				VisitArray(items, serializer);
+				VisitArray(CollectionsMarshal.AsSpan(items), serializer);
 			}
 			else if (!m_discardNulls)
 			{
@@ -3633,9 +3679,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				MarkVisited(array);
 				VisitArray(new ReadOnlySpan<T>(array), serializer);
-				Leave(array);
 			}
 		}
 
@@ -3647,9 +3691,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				MarkVisited(array);
 				VisitArray(CollectionsMarshal.AsSpan(array), serializer);
-				Leave(array);
 			}
 		}
 
@@ -3683,8 +3725,6 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			MarkVisited(array);
-
 			if (Doxense.Linq.Buffer<T>.TryGetSpan(array, out var span))
 			{
 				VisitArray(span, serializer);
@@ -3699,8 +3739,6 @@ namespace Doxense.Serialization.Json
 				}
 				EndArray(state);
 			}
-
-			Leave(array);
 		}
 
 		public void VisitArray<T>([InstantHandle] IEnumerable<T>? array, Action<CrystalJsonWriter, T> action)
@@ -3860,17 +3898,26 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			MarkVisited(map);
-
 			var state = BeginObject();
-			foreach (var kvp in map)
+			if (map is Dictionary<string, TValue> dict)
 			{
-				WriteNameEscaped(kvp.Key);
-				serializer.JsonSerialize(this, kvp.Value);
+				// we can use the struct enumerator
+				foreach (var kvp in dict)
+				{
+					WriteNameEscaped(kvp.Key);
+					serializer.JsonSerialize(this, kvp.Value);
+				}
+			}
+			else
+			{
+				// this will allocate an enumerator
+				foreach (var kvp in map)
+				{
+					WriteNameEscaped(kvp.Key);
+					serializer.JsonSerialize(this, kvp.Value);
+				}
 			}
 			EndObject(state); // "}"
-
-			Leave(map);
 		}
 
 		public void WriteDictionary(IDictionary<string, object>? map)

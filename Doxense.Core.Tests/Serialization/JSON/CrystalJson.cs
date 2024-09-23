@@ -641,11 +641,11 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			static string Execute(Action<CrystalJsonWriter> handler, CrystalJsonSettings? settings = null)
 			{
-				var sb = new StringBuilder();
-				var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
+				var writer = new CrystalJsonWriter(0, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
 				handler(writer);
-				Log(sb.ToString());
-				return sb.ToString();
+				var json = writer.GetStringAndClear();
+				Log(json);
+				return json;
 			}
 
 			#region String-like
@@ -764,12 +764,11 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			static string Execute(Action<CrystalJsonWriter> handler, CrystalJsonSettings? settings = null)
 			{
-				var sb = new StringBuilder();
-				var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
+				using var writer = new CrystalJsonWriter(0, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
 				var state = writer.BeginObject();
 				handler(writer);
 				writer.EndObject(state);
-				return sb.ToString();
+				return writer.GetStringAndClear();
 			}
 
 			#region String-like
@@ -9867,7 +9866,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// from tzdb
 			string id = NodaTime.DateTimeZoneProviders.Tzdb.Ids[rnd.Next(NodaTime.DateTimeZoneProviders.Tzdb.Ids.Count)];
-			Assert.That(CrystalJson.Deserialize<NodaTime.DateTimeZone>(CrystalJson.StringEncode(id)), Is.EqualTo(NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(id)));
+			Assert.That(CrystalJson.Deserialize<NodaTime.DateTimeZone>(JsonEncoding.Encode(id)), Is.EqualTo(NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(id)));
 
 			// roundtrip
 			Assert.That(CrystalJson.Deserialize<NodaTime.DateTimeZone>(CrystalJson.Serialize(dtz)), Is.EqualTo(dtz), "DateTimeZone roundtrip");
@@ -10635,9 +10634,9 @@ namespace Doxense.Serialization.Json.Tests
 
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer)
 		{
-			Assert.That(writer, Is.Not.Null, "writer");
-			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
-			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
+			Assert.That(writer, Is.Not.Null);
+			Assert.That(writer.Settings, Is.Not.Null);
+			Assert.That(writer.Resolver, Is.Not.Null);
 			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
 		}
 
@@ -10691,9 +10690,9 @@ namespace Doxense.Serialization.Json.Tests
 		/// <param name="writer"></param>
 		public static void JsonSerialize(DummyStaticLegacyJson instance, CrystalJsonWriter writer)
 		{
-			Assert.That(writer, Is.Not.Null, "writer");
-			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
-			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
+			Assert.That(writer, Is.Not.Null);
+			Assert.That(writer.Settings, Is.Not.Null);
+			Assert.That(writer.Resolver, Is.Not.Null);
 			// TODO: comment gérer les settings ?
 			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(instance.m_secret) + " }");
 		}
@@ -10729,16 +10728,16 @@ namespace Doxense.Serialization.Json.Tests
 
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer)
 		{
-			Assert.That(writer, Is.Not.Null, "writer");
-			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
-			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
+			Assert.That(writer, Is.Not.Null);
+			Assert.That(writer.Settings, Is.Not.Null);
+			Assert.That(writer.Resolver, Is.Not.Null);
 
 			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
 		}
 
 		static DummyStaticCustomJson IJsonDeserializer<DummyStaticCustomJson>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? _)
 		{
-			Assert.That(value, Is.Not.Null, "value");
+			Assert.That(value, Is.Not.Null);
 
 			var customString = value.Get<string>("custom", message: "Missing 'custom' value for DummyCustomJson");
 			return new DummyStaticCustomJson(customString);

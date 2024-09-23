@@ -339,9 +339,9 @@ namespace Doxense.Serialization.Json.Tests
 				Log("json/doxense-runtime: size  = " + b.Length + " chars");
 				Assert.That(media, Is.EqualTo(c), "clone != media ??");
 
-				var w = new CrystalJsonWriter(new StringBuilder(), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
+				using var w = new CrystalJsonWriter(0, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
 				media.Manual(w);
-				b = w.Buffer.ToString();
+				b = w.GetStringAndClear();
 				Log("json/doxense-manual : size  = " + b?.Length + " chars");
 			}
 
@@ -375,8 +375,9 @@ namespace Doxense.Serialization.Json.Tests
 
 			RunBenchOnMethod("json/doxense-manual : ser  ", () =>
 			{
-				var writer = new CrystalJsonWriter(new StringBuilder(512), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
+				using var writer = new CrystalJsonWriter(512, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
 				media.Manual(writer);
+				_ = writer.GetStringAndClear();
 			});
 
 #if ENABLE_NEWTONSOFT

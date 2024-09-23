@@ -1019,6 +1019,8 @@ namespace Doxense.Serialization.Json
 			// reste de la liste
 			for (int i = 1; i < array.Length; i++)
 			{
+				if (i % 10 == 0) writer.MaybeFlush();
+
 				writer.WriteTailSeparator();
 				writer.WriteValue(array[i]);
 			}
@@ -1041,6 +1043,7 @@ namespace Doxense.Serialization.Json
 			var enmr = enumerable.GetEnumerator();
 			try
 			{
+				int n = 10;
 				if (enmr.MoveNext())
 				{
 					var state = writer.BeginArray();
@@ -1049,9 +1052,14 @@ namespace Doxense.Serialization.Json
 
 					while (enmr.MoveNext())
 					{
+						if (n == 0) { writer.MaybeFlush(); n = 10; }
+
 						writer.WriteFieldSeparator();
 						writer.WriteValue(enmr.Current);
+
+						--n;
 					}
+
 					writer.EndArray(state);
 				}
 				else
@@ -1112,6 +1120,8 @@ namespace Doxense.Serialization.Json
 			// tail
 			for (int i = 1; i < array.Length; i++)
 			{
+				if (i % 10 == 0) writer.MaybeFlush();
+
 				writer.WriteTailSeparator();
 				visitor(array[i], elemType, null, writer);
 			}
@@ -1143,6 +1153,8 @@ namespace Doxense.Serialization.Json
 			// tail
 			for (int i = 1; i < array.Length; i++)
 			{
+				if (i % 10 == 0) writer.MaybeFlush();
+
 				writer.WriteTailSeparator();
 				VisitValue<T>(array[i], writer);
 			}
@@ -1165,6 +1177,7 @@ namespace Doxense.Serialization.Json
 
 			try
 			{
+				int n = 0;
 				if (iter.MoveNext())
 				{
 					var state = writer.BeginArray();
@@ -1174,8 +1187,16 @@ namespace Doxense.Serialization.Json
 					// tail
 					while (iter.MoveNext())
 					{
+						if (n == 10)
+						{
+							writer.MaybeFlush();
+							n = 0;
+						}
+
 						writer.WriteTailSeparator();
 						VisitValue(iter.Current, elementType, writer);
+
+						++n;
 					}
 					writer.EndArray(state);
 				}
@@ -1214,9 +1235,17 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
+			int n = 0;
 			foreach (var kvp in dictionary)
 			{
+				if (n == 10)
+				{
+					writer.MaybeFlush();
+					n = 0;
+				}
+
 				writer.WriteField(kvp.Key, kvp.Value);
+				++n;
 			}
 
 			writer.EndObject(state); // "}"
@@ -1241,10 +1270,19 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
+			int n = 10;
 			foreach (var kvp in dictionary)
 			{
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = 10;
+				}
+
 				writer.WriteUnsafeName(kvp.Key);
 				VisitValue<TValue>(kvp.Value, writer);
+
+				--n;
 			}
 
 			writer.EndObject(state); // "}"
@@ -1269,10 +1307,19 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
+			int n = 10;
 			foreach (var kvp in dictionary)
 			{
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = 10;
+				}
+
 				writer.WriteUnsafeName(kvp.Key);
 				VisitValue(kvp.Value, typeof(object), writer);
+
+				--n;
 			}
 
 			writer.EndObject(state); // "}"
@@ -1301,17 +1348,27 @@ namespace Doxense.Serialization.Json
 			bool valueIsString = valueType == typeof(string);
 
 			// il va falloir convertir les key et/ou values :(
+			int n = 10;
 			foreach (DictionaryEntry entry in dictionary)
 			{
 				var name = keyIsString ? (entry.Key as string) : TypeHelper.ConvertKeyToString(entry.Key);
 				if (name == null) continue; // not supported!
+
+				if (n == 0) { writer.MaybeFlush(); n = 10; }
+
 				// key
 				writer.WriteUnsafeName(name);
 				// value
 				if (valueIsString)
+				{
 					writer.WriteValue(entry.Value as string);
+				}
 				else
+				{
 					VisitValue(entry.Value, valueType, writer);
+				}
+
+				--n;
 			}
 
 			// done!
@@ -1337,12 +1394,17 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
+			int n = 10;
 			foreach (DictionaryEntry entry in dictionary)
 			{
+				if (n == 0) { writer.MaybeFlush(); n = 10; }
+
 				// key
 				writer.WriteUnsafeName((string) entry.Key);
 				// value
 				visitor(entry.Value, valueType, entry.Value?.GetType() ?? valueType, writer);
+
+				--n;
 			}
 
 			writer.EndObject(state); // "}"
@@ -1367,12 +1429,17 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
+			int n = 10;
 			foreach (var kv in dictionary)
 			{
+				if (n == 0) { writer.MaybeFlush(); n = 10; }
+
 				// key
 				writer.WriteUnsafeName(kv.Key);
 				// value
 				writer.WriteValue(kv.Value);
+
+				--n;
 			}
 
 			writer.EndObject(state); // "}"
@@ -1397,12 +1464,17 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
+			int n = 10;
 			foreach (DictionaryEntry entry in dictionary)
 			{
+				if (n == 0) { writer.MaybeFlush(); n = 10; }
+
 				// key
 				writer.WriteName((int) entry.Key);
 				// value
 				visitor(entry.Value, valueType, entry.Value?.GetType() ?? valueType, writer);
+
+				--n;
 			}
 
 			writer.EndObject(state); // "}"
@@ -1427,12 +1499,17 @@ namespace Doxense.Serialization.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
+			int n = 10;
 			foreach (var entry in dictionary)
 			{
+				if (n == 0) { writer.MaybeFlush(); n = 10; }
+
 				// key
 				writer.WriteName(entry.Key);
 				// value
 				writer.WriteValue(entry.Value);
+
+				--n;
 			}
 
 			writer.EndObject(state); // "}"
@@ -1506,6 +1583,8 @@ namespace Doxense.Serialization.Json
 			// Tail
 			for (int i = 1; i < n; i++)
 			{
+				if (i % 10 == 0) { writer.MaybeFlush(); }
+				
 				writer.WriteFieldSeparator();
 				VisitValue(tuple[i], writer);
 			}

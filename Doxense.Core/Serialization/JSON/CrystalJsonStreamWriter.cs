@@ -61,6 +61,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Visiteur en cache pour des éléments du même type que m_lastType</summary>
 		private CrystalJsonTypeVisitor? m_visitor;
 
+		private string m_newLine = "\r\n";
+
 		public CrystalJsonStreamWriter(Stream output, CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver = null, bool ownStream = false)
 		{
 			Contract.NotNull(output);
@@ -71,10 +73,12 @@ namespace Doxense.Serialization.Json
 			resolver ??= CrystalJson.DefaultResolver;
 
 			m_scratch = new MemoryStream(65536);
-			m_writer = new CrystalJsonWriter(new StreamWriter(m_scratch, Encoding.UTF8), settings, resolver);
+			m_writer = new CrystalJsonWriter(new StreamWriter(m_scratch, Encoding.UTF8), 0, settings, resolver);
 		}
 
 		public CrystalJsonWriter.NodeType CurrentNode => m_writer.CurrentState.Node;
+
+		public string NewLine => m_newLine;
 
 		/// <summary>Retourne une estimation de la position dans le stream source, pour information</summary>
 		/// <remarks>ATTENTION: cette valeur ne peut être considérée comme valide que juste après un Flush!</remarks>
@@ -99,7 +103,7 @@ namespace Doxense.Serialization.Json
 
 			var visitor = GetVisitor(typeof(T));
 			visitor(item, typeof(T), item != null ? item.GetType() : null, m_writer);
-			m_writer.Buffer.WriteLine();
+			m_writer.Buffer.Write(m_newLine);
 
 			FlushInternal(true);
 		}
@@ -115,7 +119,7 @@ namespace Doxense.Serialization.Json
 
 			var visitor = GetVisitor(typeof(T));
 			visitor(item, typeof(T), item != null ? item.GetType() : null, m_writer);
-			m_writer.Buffer.WriteLine();
+			m_writer.Buffer.Write(m_newLine);
 
 			return FlushInternalAsync(true, cancellationToken);
 		}
@@ -267,9 +271,9 @@ namespace Doxense.Serialization.Json
 
 				if (state.Tail)
 				{
-					writer.Buffer.WriteLine();
+					writer.Buffer.Write(m_parent.NewLine);
 				}
-				writer.Buffer.WriteLine("}");
+				writer.Buffer.Write('}', m_parent.NewLine);
 				writer.PopState(m_state);
 			}
 
@@ -281,7 +285,7 @@ namespace Doxense.Serialization.Json
 		public ObjectStream BeginObjectFragment(CancellationToken cancellationToken = default)
 		{
 			var state = m_writer.PushState(CrystalJsonWriter.NodeType.Object);
-			m_writer.Buffer.WriteLine("{");
+			m_writer.Buffer.Write('{', m_newLine);
 			return new ObjectStream(this, state, cancellationToken);
 		}
 
@@ -652,9 +656,9 @@ namespace Doxense.Serialization.Json
 
 				if (state.Tail)
 				{
-					writer.Buffer.WriteLine();
+					writer.Buffer.Write(m_parent.NewLine);
 				}
-				writer.Buffer.WriteLine("]");
+				writer.Buffer.Write(']', m_parent.NewLine);
 				writer.PopState(m_state);
 			}
 
@@ -666,7 +670,7 @@ namespace Doxense.Serialization.Json
 		public ArrayStream BeginArrayFragment(CancellationToken cancellationToken = default)
 		{
 			var state = m_writer.PushState(CrystalJsonWriter.NodeType.Array);
-			m_writer.Buffer.WriteLine("[");
+			m_writer.Buffer.Write('[', m_newLine);
 			return new ArrayStream(this, state, cancellationToken);
 		}
 
@@ -725,12 +729,7 @@ namespace Doxense.Serialization.Json
 		private async Task FlushInternalAsync(bool flushStream, CancellationToken cancellationToken)
 		{
 			// Flush le TextWriter pour être sûr que tous les caractères écrits arrivent dans le scratch stream!
-#if NET8_0_OR_GREATER
-			await m_writer.Buffer.FlushAsync(cancellationToken).ConfigureAwait(false);
-#else
-			//BUGBUG: .NET 6 does not have an overload that takes a cancellation token :(
-			await m_writer.Buffer.FlushAsync().ConfigureAwait(false);
-#endif
+			await m_writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
 			// flush le scratch buffer dans le stream de destination si nécessaire
 			if (m_scratch.Length > 0)
@@ -760,7 +759,7 @@ namespace Doxense.Serialization.Json
 		private void FlushInternal(bool flushStream)
 		{
 			// Flush le TextWriter pour être sûr que tous les caractères écrits arrivent dans le scratch stream!
-			m_writer.Buffer.Flush();
+			m_writer.Flush();
 
 			// flush le scratch buffer dans le stream de destination si nécessaire
 			if (m_scratch.Length != 0)

@@ -33,6 +33,7 @@ namespace Doxense.Serialization
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
+	using Doxense.Linq;
 	using Doxense.Memory;
 
 	[PublicAPI]
@@ -384,12 +385,13 @@ namespace Doxense.Serialization
 		{
 			Contract.NotNull(output);
 
-
 			if (source.Length == 0) return;
 
 			int size = GetCharsCount(source.Length, padded);
+#if !NET9_0_OR_GREATER
 			char padChar = !padded ? '\0' : urlSafe ? Base64UrlPadChar : Base64PadChar;
 			var charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
+#endif
 
 			//TODO: if StringWriter, extraire le StringBuilder, et faire une version qui écrit directement dedans !
 
@@ -420,6 +422,30 @@ namespace Doxense.Serialization
 			{
 				throw new InvalidOperationException(); // ??
 			}
+		}
+
+		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
+		/// <param name="output">Writer où écrire le texte encodé en Base64</param>
+		/// <param name="source">Buffer source contenant les données à encoder</param>
+		/// <param name="padded">Ajoute des caractères de padding (true) ou non (false). Le caractère de padding utilisé dépend de la valeur de <paramref name="urlSafe"/>.</param>
+		/// <param name="urlSafe">Si true, remplace les caractères 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractères classiques ('+' et '/')</param>
+		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractères écrit sera toujours un multiple de 4.</remarks>
+		public static void EncodeTo(ref ValueStringWriter output, ReadOnlySpan<byte> source, bool padded = true, bool urlSafe = false)
+		{
+			if (source.Length == 0) return;
+
+			int size = GetCharsCount(source.Length, padded);
+			int bufferSize = GetCharsCount(source.Length, padded);
+			var chars = output.GetSpan(bufferSize);
+
+#if NET9_0_OR_GREATER
+			Convert.TryToBase64Chars(source, chars, out int n);
+#else
+			var charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
+			int n = EncodeBufferUnsafe(chars, source, charMap, !padded ? '\0' : urlSafe ? Base64UrlPadChar : Base64PadChar);
+#endif
+			Contract.Debug.Assert(n == bufferSize);
+			output.Advance(n);
 		}
 
 		#endregion

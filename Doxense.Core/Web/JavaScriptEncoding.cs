@@ -30,6 +30,7 @@ namespace Doxense.Web
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Linq;
 #if NET8_0_OR_GREATER
 	using System.Buffers;
 #endif
@@ -105,13 +106,42 @@ namespace Doxense.Web
 			return sb;
 		}
 
+		/// <summary>Encode a Javascript string known to contain at least one invalid character</summary>
+		public static unsafe void EncodeSlow(ref ValueStringWriter sb, ReadOnlySpan<char> s, bool includeQuotes)
+		{
+			int n = s.Length;
+			if (includeQuotes) sb.Write('\'');
+			//PERF: TODO: rewrite this to use ref byte + Unsafe.Add ?
+			fixed (char* p = s)
+			{
+				char* ptr = p;
+				while (n-- > 0)
+				{
+					char c = *ptr++;
+					if ((c >= 'a' && c <= 'z') || c == ' ' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == ',' || c == '-' || c == '_' || c == ':' || c == '/' || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
+						sb.Write(c);
+					else if (c == '\n')
+						sb.Write('\n');
+					else if (c == '\r')
+						sb.Write('\r');
+					else if (c == '\t')
+						sb.Write('\t');
+					else if (c > 127) // 4 byte unicode
+						sb.Write(@"\u", ((int) c).ToString("x4", CultureInfo.InvariantCulture));
+					else // 2 byte ascii
+						sb.Write(@"\x", ((int) c).ToString("x2", CultureInfo.InvariantCulture));
+				}
+			}
+			if (includeQuotes) sb.Write('\'');
+		}
+
 		/// <summary>Writes an encoded a JavaScript string literal</summary>
 		/// <param name="output">Destination</param>
 		/// <param name="text">Text to encode</param>
 		/// <param name="includeQuotes">Si <c>true</c>, automatically add quotes around the string (<c>'...'</c>)</param>
 		/// <returns>Encoded string</returns>
 		/// <remarks>This method will not allocate memory if the original string is printable as-is, and <paramref name="includeQuotes"/> is <c>false</c></remarks>
-		public static void EncodeTo(TextWriter output, ReadOnlySpan<char> text, bool includeQuotes)
+		public static void EncodeTo(ref ValueStringWriter output, ReadOnlySpan<char> text, bool includeQuotes)
 		{
 			if (text.Length == 0)
 			{
@@ -139,7 +169,7 @@ namespace Doxense.Web
 
 			// second pass to escape all non-printable characters
 			//PERF: TODO: optimize this use case!
-			output.Write(EncodeSlow(new StringBuilder(text.Length + 16), text, includeQuotes));
+			EncodeSlow(ref output, text, includeQuotes);
 		}
 
 
@@ -188,7 +218,7 @@ namespace Doxense.Web
 		/// EncodePropertyName("") => "''"
 		/// EncodePropertyName(null) => ArgumentNullException
 		/// </example>
-		public static void EncodePropertyNameTo(TextWriter output, ReadOnlySpan<char> name)
+		public static void EncodePropertyNameTo(ref ValueStringWriter output, ReadOnlySpan<char> name)
 		{
 			if (IsValidIdentifier(name))
 			{
@@ -196,7 +226,7 @@ namespace Doxense.Web
 			}
 			else
 			{
-				EncodeTo(output, name, true);
+				EncodeTo(ref output, name, true);
 			}
 		}
 

@@ -164,10 +164,9 @@ namespace Doxense.Serialization.Json
 				return JsonTokens.Null;
 			}
 
-			var sb = new StringBuilder(this is JsonArray or JsonObject ? 256 : 64);
-			var writer = new CrystalJsonWriter(sb, settings ?? CrystalJsonSettings.Json, null);
+			using var writer = new CrystalJsonWriter(this is JsonArray or JsonObject ? 256 : 64, settings ?? CrystalJsonSettings.Json, null);
 			JsonSerialize(writer);
-			return sb.ToString();
+			return writer.GetStringAndClear();
 		}
 		//TODO: REVIEW: rename as "ToJsonText()" or something else? "ToXYZ" usually means that XYZ is the final result, but here it is a string, and not a JsonValue
 
