@@ -40,7 +40,7 @@ namespace Doxense.Serialization
 		#region Formatting...
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-		private static void ReportInternalFormattingError()
+		internal static void ReportInternalFormattingError()
 		{
 #if DEBUG
 			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
@@ -501,8 +501,6 @@ namespace Doxense.Serialization
 
 		#region Half...
 
-#if NET8_0_OR_GREATER
-
 		/// <summary>Converts a 16-bit IEEE floating point number into a decimal string literal, using the Invariant culture</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
@@ -518,7 +516,7 @@ namespace Doxense.Serialization
 		/// <param name="value">Value to write</param>
 		public static void WriteTo(TextWriter output, Half value)
 		{
-			Span<char> buf = stackalloc char[Base10MaxCapacityHalf];
+			Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityHalf];
 
 			//note: I'm not sure how to optimize for this type...
 			bool success = value.TryFormat(buf, out var written, null, NumberFormatInfo.InvariantInfo);
@@ -526,8 +524,6 @@ namespace Doxense.Serialization
 
 			output.Write(buf.Slice(0, written));
 		}
-
-#endif
 
 		#endregion
 
@@ -980,11 +976,23 @@ namespace Doxense.Serialization
 		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
 		public const int Base10MaxCapacityDecimal = 32;
 
-#if NET8_0_OR_GREATER
-
 		/// <summary>Maximum number of characters required to safely format any 16-bit IEEE floating point number in base 10</summary>
 		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
 		public const int Base10MaxCapacityHalf = 32;
+
+		/// <summary>Maximum number of characters required to safely format any 128-bit using the standard format</summary>
+		/// <remarks>"ffffffff-ffff-ffff-ffff-ffffffffffff" requires 36 characters</remarks>
+		public const int Base16MaxCapacityGuid = 36;
+
+		/// <summary>Maximum number of characters required to safely format any 128-bit using the standard format</summary>
+		/// <remarks>"ffffffff-ffff-ffff-ffff-ffffffffffff" requires 36 characters</remarks>
+		public const int Base16MaxCapacityUuid128 = 36;
+
+		/// <summary>Maximum number of characters required to safely format any 64-bit using the standard format</summary>
+		/// <remarks>"ffffffff-ffffffff" requires 17 characters</remarks>
+		public const int Base16MaxCapacityUuid64 = 17;
+
+#if NET8_0_OR_GREATER
 
 		/// <summary>Maximum number of characters required to safely format any signed 64-bit integer in base 10</summary>
 		/// <remarks><see cref="Int128.MinValue"/> needs 40 characters in base 10 (including the negative sign)</remarks>
