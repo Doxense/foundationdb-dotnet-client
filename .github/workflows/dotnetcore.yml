@@ -1,5 +1,8 @@
 name: .NET Build
 
+permissions:
+  contents: read
+
 on: [push]
 
 jobs:
@@ -8,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee # v4.0.1
       with:
         dotnet-version: 9.0.x
     - name: Build with dotnet (net8.0)
@@ -18,7 +21,7 @@ jobs:
     - name: Build NuGet Packages
       run: dotnet pack --configuration Release --output Redist
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
       with:
         name: NuGet Packages
         path: Redist/*.nupkg
