@@ -2514,34 +2514,6 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_Json_Custom_Resolver()
-		{
-			var x = new DummyJsonClass();
-			var resolver = new DummyCustomJsonResolver();
-
-			string expected = """{ "Foo": "<nobody>", "Narf": 42 }""";
-			string jsonText = CrystalJson.Serialize(x, resolver: resolver);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JSON+CustomResolver)");
-
-			expected = """{ "Foo": "<nobody>" }""";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues(), resolver);
-			Assert.That(jsonText, Is.EqualTo(expected), "SerializeObject(EMPTY,JSON+CustomResolver+WithoutDefaults)");
-
-			// with non-zero values
-			x.Index = 7; // => 42+7 = 49
-			x.Name = "James Bond"; // => "<James Bond>"
-			x.Height = 1.23f; // => should not be visible
-			expected = """{ "Foo": "<James Bond>", "Narf": 49 }""";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json, resolver);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(x,JSON+CustomResolver)");
-
-			// with the default resolver
-			expected = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 0, "Height": 1.23, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }""";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(x,JSON+DefaultResolver)");
-		}
-
-		[Test]
 		public void Test_JsonSerialize_Arrays()
 		{
 			// int[]
@@ -11053,51 +11025,6 @@ namespace Doxense.Serialization.Json.Tests
 		public string InvisibleProperty => "ShouldNotBeSeen";
 	}
 #pragma warning restore 649
-
-	class DummyCustomJsonResolver : CrystalJsonTypeResolver
-	{
-		protected override CrystalJsonTypeDefinition? GetTypeDefinition(Type type)
-		{
-			if (type != typeof(DummyJsonClass))
-			{
-				return base.GetTypeDefinition(type);
-			}
-
-			CrystalJsonTypeBinder binder = (v, t, r) => v?.Bind(t, r);
-
-			return new CrystalJsonTypeDefinition(type, null, "Dummy",
-				null,
-				() => new DummyJsonClass(),
-				[
-					new()
-					{
-						Name = "Foo",
-						OriginalName = "Foo",
-						EncodedName = new ("Foo"),
-						Type = typeof(string),
-						DefaultValue = null,
-						Getter = (instance) => "<" + (((DummyJsonClass) instance).Name ?? "nobody") + ">",
-						Setter = (instance, value) => { ((DummyJsonClass) instance).Name = ((value as string) ?? string.Empty).Replace("<","").Replace(">",""); },
-						Binder = binder,
-						Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(string))
-					},
-					new()
-					{
-						Name = "Narf",
-						OriginalName = "Narf",
-						EncodedName = new ("Narf"),
-						Type = typeof(int),
-						DefaultValue = 42, // non-standard default value !
-						Getter = (instance) => 42 + ((DummyJsonClass)instance).Index,
-						Setter = (instance, value) => { ((DummyJsonClass) instance).Index = ((int) value!) - 42; },
-						Binder = binder,
-						Visitor = CrystalJsonVisitor.GetVisitorForType(typeof(int))
-					}
-				]
-			);
-		}
-
-	}
 
 #endregion
 

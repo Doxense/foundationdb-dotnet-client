@@ -29,85 +29,42 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics;
 
 	[DebuggerDisplay("Type={Type.Name}, ReqClass={RequiresClassAttribute}, IsAnonymousType={IsAnonymousType}, ClassId={ClassId}")]
+	[PublicAPI]
 	public sealed record CrystalJsonTypeDefinition
 	{
 
+		/// <summary>Type of the object</summary>
 		public Type Type { get; init; }
 
+		/// <summary>Base type for derived types; otherwise, <see langword="null"/>)</summary>
+		/// <remarks>This should be the top-level class in the type hierarchy, not simply the immediate parent.</remarks>
 		public Type? BaseType { get; init; }
 
+		/// <summary>Custom ClassId for this type</summary>
 		public string? ClassId { get; init; }
 
 		public bool RequiresClassAttribute { get; init; }
 
+		/// <summary>Specifies if this is a anonymous type that does not have a valid name</summary>
+		/// <remarks>ex: <c>CrystalJson.Serialize(new { "Hello": "World" })</c></remarks>
 		public bool IsAnonymousType { get; init; }
 
+		/// <summary>Specifies if the type cannot possibily be derived (sealed class, or value type)</summary>
+		/// <remarks>If <see langword="false"/>, a type-check will have to be performed during serialization, which add some overhead</remarks>
 		public bool IsSealed { get; init; }
 
+		/// <summary>Specifies if the type can have a value of <see langword="null"/> (ref types, or <see cref="Nullable{T}"/>)</summary>
 		public bool IsNullable { get; init; }
 
+		/// <summary>Factory method that can instantiate a new value of this type</summary>
 		public Func<object>? Generator { get; init; }
 
+		/// <summary>Custom handler for deserializing <see cref="JsonValue"/> into instances of this type.</summary>
 		public CrystalJsonTypeBinder? CustomBinder { get; init; }
 
+		/// <summary>Definitions of the fields and properties of this type</summary>
 		public CrystalJsonMemberDefinition[] Members { get; init; }
 
-		public static bool IsSealedType(Type type)
-		{
-			// We considered a type to be "sealed" if it is impossible for any instance assigned to a parameter of this type to be of a different type.
-
-			// Types considered "sealed":
-			// - primitive types:
-			//   - int, bool, DateTime, ...
-			// - structs:
-			//   - public struct Foo { }
-			//   - public record struct Foo { }
-			// - sealed classes or records:
-			//   - public sealed class Foo { }
-			//   - public sealed record Foo { }
-
-			// Types considered "not sealed":
-			// - interfaces:
-			//   - IEnumerable<string>, ...
-			//   - public interface IFoo { }
-			// - abstract classes or records:
-			//   - public abstract class FooBase { }
-			//   - public abstract record FooBase { }
-			// - non-sealed clases or records:
-			//   - public class Foo { }
-			//   - public record Foo { }
-
-			if (type.IsValueType)
-			{
-				return true;
-			}
-
-			if (type.IsInterface || type.IsAbstract)
-			{
-				return false;
-			}
-
-			return type.IsSealed;
-		}
-
-		public static bool IsNullableType(Type type)
-		{
-			if (!type.IsValueType)
-			{
-				return true;
-			}
-
-			return type.IsNullableType();
-
-		}
-
-		/// <summary>Constructs a new type definition</summary>
-		/// <param name="type">Type représenté</param>
-		/// <param name="baseType"></param>
-		/// <param name="classId">Identifiant custom du type (si null, génère un identifiant "Namespace.ClassName, Assembly"</param>
-		/// <param name="customBinder"></param>
-		/// <param name="generator">Fonction capable de créer un nouvel objet de ce type (ou null si ce n'est pas possible, comme pour des interfaces ou des classes abstraites)</param>
-		/// <param name="members">Définitions des membres de ce type</param>
 		public CrystalJsonTypeDefinition(Type type, Type? baseType, string? classId, CrystalJsonTypeBinder? customBinder, Func<object>? generator, CrystalJsonMemberDefinition[] members)
 		{
 			Contract.NotNull(type);
@@ -120,8 +77,8 @@ namespace Doxense.Serialization.Json
 			this.BaseType = baseType;
 			this.ClassId = classId;
 			this.IsAnonymousType = type.IsAnonymousType();
-			this.IsSealed = IsSealedType(type);
-			this.IsNullable = IsNullableType(type);
+			this.IsSealed = CrystalJsonTypeResolver.IsSealedType(type);
+			this.IsNullable = CrystalJsonTypeResolver.IsNullableType(type);
 			this.RequiresClassAttribute = (type.IsInterface || type.IsAbstract) && !this.IsAnonymousType && baseType == null;
 			this.CustomBinder = customBinder;
 			this.Generator = generator;

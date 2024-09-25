@@ -41,8 +41,8 @@ namespace Doxense.Serialization.Json
 	using Doxense.Runtime;
 	using Doxense.Runtime.Converters;
 
-	/// <summary>JSON resolver that uses reflection to enumerate the members of a type</summary>
-	public class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
+	/// <summary>Default JSON resolver that uses reflection to serizalize and deserialize managed types</summary>
+	public sealed class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
 	{
 
 		#region Private Members...
@@ -115,7 +115,7 @@ namespace Doxense.Serialization.Json
 			);
 		}
 
-		protected virtual CrystalJsonTypeDefinition? GetTypeDefinition(Type type)
+		private CrystalJsonTypeDefinition? GetTypeDefinition(Type type)
 		{
 #if DEBUG_JSON_RESOLVER
 			Debug.WriteLine(this.GetType().Name + ".ResolveNewTypeWriter(" + type + ") => from reflection");
@@ -196,12 +196,8 @@ namespace Doxense.Serialization.Json
 			//REVIEW: not sure if this is necessary, since we already have a custom binder?
 			var members = new[]
 			{
-				new CrystalJsonMemberDefinition()
+				new CrystalJsonMemberDefinition(keyType, "Key")
 				{
-					Name = "Key",
-					OriginalName = "Key",
-					EncodedName = new("Key"),
-					Type = keyType,
 					DefaultValue = keyType.GetDefaultValue(),
 					ReadOnly = true,
 					Getter = type.GetProperty("Key")!.CompileGetter(),
@@ -210,12 +206,8 @@ namespace Doxense.Serialization.Json
 					Visitor = (_, _, _, _) => throw new NotImplementedException(),
 					Binder = (_, _, _) => throw new NotImplementedException(),
 				},
-				new CrystalJsonMemberDefinition()
+				new CrystalJsonMemberDefinition(valueType, "Value")
 				{
-					Name = "Value",
-					OriginalName = "Value",
-					EncodedName = new("Value"),
-					Type = valueType,
 					DefaultValue = valueType.GetDefaultValue(),
 					ReadOnly = true,
 					Getter = type.GetProperty("Value")!.CompileGetter(),
@@ -229,12 +221,12 @@ namespace Doxense.Serialization.Json
 			return new CrystalJsonTypeDefinition(type, null, null, binder, null, members);
 		}
 
-		protected virtual string? GetClassIdByType(Type type)
+		private string? GetClassIdByType(Type type)
 		{
 			return null;
 		}
 
-		protected virtual Type? GetTypeByClassId(string classId)
+		private Type? GetTypeByClassId(string classId)
 		{
 #if DEBUG_JSON_RESOLVER
 			Debug.WriteLine(this.GetType().Name + ".GetTypeByClassId(" + classId + ") => Type.GetType(...)");
@@ -273,7 +265,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public virtual object? BindJsonValue(Type? type, JsonValue? value)
+		public object? BindJsonValue(Type? type, JsonValue? value)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindValue(" + type + ", " + value + ")");
@@ -303,7 +295,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public virtual object? BindJsonObject(Type? type, JsonObject? value)
+		public object? BindJsonObject(Type? type, JsonObject? value)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindObject(" + type + ", " + value + ")");
@@ -330,18 +322,18 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(value, type, this);
 		}
 
-		internal static readonly QuasiImmutableCache<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> DefaultArrayBinders = new(TypeEqualityComparer.Default);
+		private static readonly QuasiImmutableCache<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> DefaultArrayBinders = new(TypeEqualityComparer.Default);
 
 		private static readonly Func<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> JsonArrayBinderCallback = CreateDefaultJsonArrayBinder;
 
 		/// <inheritdoc />
-		public virtual object? BindJsonArray(Type? type, JsonArray? array)
+		public object? BindJsonArray(Type? type, JsonArray? array)
 		{
 			// ReSharper disable once ConvertClosureToMethodGroup
 			return CrystalJsonTypeResolver.DefaultArrayBinders.GetOrAdd(type ?? typeof(object), CrystalJsonTypeResolver.JsonArrayBinderCallback)(this, array);
 		}
 
-		internal static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type? type)
+		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type? type)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindArray(" + type + ", " + array + ")");
@@ -882,9 +874,9 @@ namespace Doxense.Serialization.Json
 		{
 			foreach (var attr in type.GetCustomAttributes(true))
 			{
-				if (attr is JsonTypeAttribute jtype)
+				if (attr is JsonTypeAttribute jt)
 				{
-					return jtype;
+					return jt;
 				}
 			}
 			return null;
@@ -894,9 +886,9 @@ namespace Doxense.Serialization.Json
 		{
 			foreach (var attr in field.GetCustomAttributes(true))
 			{
-				if (attr is JsonPropertyAttribute jprop)
+				if (attr is JsonPropertyAttribute jp)
 				{
-					return jprop;
+					return jp;
 				}
 			}
 			return null;
@@ -906,9 +898,9 @@ namespace Doxense.Serialization.Json
 		{
 			foreach (var attr in prop.GetCustomAttributes(true))
 			{
-				if (attr is JsonPropertyAttribute jprop)
+				if (attr is JsonPropertyAttribute jp)
 				{
-					return jprop;
+					return jp;
 				}
 			}
 			return null;
@@ -935,13 +927,13 @@ namespace Doxense.Serialization.Json
 					continue;
 				}
 
-				var jprop = FindPropertyAttribute(field);
+				var jp = FindPropertyAttribute(field);
 
-				string name = jprop?.PropertyName ?? field.Name;
+				string name = jp?.PropertyName ?? field.Name;
 				object? defaultValue;
 				try
 				{
-					defaultValue = jprop?.DefaultValue ?? fieldType.GetDefaultValue();
+					defaultValue = jp?.DefaultValue ?? fieldType.GetDefaultValue();
 				}
 				catch (Exception e)
 				{
@@ -954,13 +946,9 @@ namespace Doxense.Serialization.Json
 				var visitor = CrystalJsonVisitor.GetVisitorForType(fieldType, atRuntime: false);
 				if (visitor == null) throw new ArgumentException($"Doesn't know how to serialize field {field.Name} of type {fieldType.GetFriendlyName()}", nameof(type));
 
-				members.Add(new CrystalJsonMemberDefinition()
+				members.Add(new(fieldType, name, field.Name)
 				{
-					Name = name,
-					OriginalName = field.Name,
-					EncodedName = new(name),
-					Type = fieldType,
-					Attributes = jprop,
+					Attributes = jp,
 					DefaultValue = defaultValue,
 					ReadOnly = false,
 					Getter = field.CompileGetter(),
@@ -980,13 +968,13 @@ namespace Doxense.Serialization.Json
 					continue;
 				}
 
-				var jprop = FindPropertyAttribute(property);
+				var jp = FindPropertyAttribute(property);
 
-				string name = jprop?.PropertyName ?? property.Name;
+				string name = jp?.PropertyName ?? property.Name;
 				object? defaultValue;
 				try
 				{
-					defaultValue = jprop?.DefaultValue ?? propertyType.GetDefaultValue();
+					defaultValue = jp?.DefaultValue ?? propertyType.GetDefaultValue();
 				}
 				catch (Exception e)
 				{
@@ -1018,13 +1006,9 @@ namespace Doxense.Serialization.Json
 					setter = TryCompileAdderForReadOnlyCollection(property);
 				}
 
-				members.Add(new CrystalJsonMemberDefinition
+				members.Add(new(propertyType, name, property.Name)
 				{
-					Name = name,
-					OriginalName = property.Name,
-					EncodedName = new(name),
-					Type = propertyType,
-					Attributes = jprop,
+					Attributes = jp,
 					DefaultValue = defaultValue,
 					ReadOnly = setter == null,
 					Getter = getter,
@@ -1095,20 +1079,20 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(type != null && !type.IsPrimitive);
 
-			var jtype = FindTypeAttribute(type.GetTypeInfo());
+			var jt = FindTypeAttribute(type.GetTypeInfo());
 
 			// enumerate the members
 			var members = GetMembersFromReflection(type);
 
 			// look for any custom binders
-			var binder = FindCustomBinder(type, out Func<object>? generator, members);
+			var binder = FindCustomBinder(type, out var generator, members);
 
 			if (binder == null)
 			{ // we need to generate one ourselves for this type
 				generator ??= RequireGeneratorForType(type);
 			}
 
-			return new CrystalJsonTypeDefinition(type, jtype?.BaseType, jtype?.ClassId ?? GetClassIdByType(type), binder, generator, members);
+			return new CrystalJsonTypeDefinition(type, jt?.BaseType, jt?.ClassId ?? GetClassIdByType(type), binder, generator, members);
 		}
 
 		/// <summary>Extracts the type definition for the Nullable&lt;T&gt; version of a struct</summary>
@@ -1390,7 +1374,7 @@ namespace Doxense.Serialization.Json
 			return Expression.Lambda<CrystalJsonTypeBinder>(body, "<>_" + type.Name + "_JsonDeserialize", true, new[] { prmValue, prmBindingType, prmResolver }).Compile();
 		}
 
-		/// <summary>Créer un binder qui invoque la méthode static JsonUnpack d'un type</summary>
+		/// <summary>Generates a binder that invokes the static <c>JsonUnpack</c> method on a type</summary>
 		private static CrystalJsonTypeBinder CreateBinderStaticJsonBindable(Type type, MethodInfo staticMethod)
 		{
 			// The type has a static "factory" that can pack instance of this type into JsonValue
@@ -1442,7 +1426,7 @@ namespace Doxense.Serialization.Json
 			return Expression.Lambda<CrystalJsonTypeBinder>(body, "<>_" + type.Name + "_JsonUnpack", true, new[] { prmValue, prmBindingType, prmResolver }).Compile();
 		}
 
-		/// <summary>Generates a binder that call the ctor that accepts a JsonValue (or derived) as the first parameter</summary>
+		/// <summary>Generates a binder that invokes the ctor that accepts a JsonValue (or derived) as the first parameter</summary>
 		private static CrystalJsonTypeBinder CreateBinderJsonConstructor(Type type, ConstructorInfo ctor)
 		{
 			// the class must have a ctor that takes a JsonValue, and optionally a type resolver
@@ -1506,24 +1490,6 @@ namespace Doxense.Serialization.Json
 			if (keyType == typeof(int))
 			{
 				return CreateBinderForImmutableDictionary_Int32Key(valueType);
-			}
-
-			if (keyType == typeof(int)
-				|| keyType == typeof(uint)
-				|| keyType == typeof(long)
-				|| keyType == typeof(ulong)
-				|| keyType == typeof(Guid)
-				|| keyType == typeof(Uuid64)
-				|| keyType == typeof(Uuid96)
-				|| keyType == typeof(Uuid80)
-				|| keyType == typeof(Uuid128)
-				//TODO: rajouter d'autres types ?
-			)
-			{ // simple key types (integers, guids, ...)
-				var convert = TypeConverters.CreateBoxedConverter<string>(keyType);
-				Contract.Debug.Assert(convert != null);
-				//TODO: IMPLEMENTED BOXED IMMUTABLE DICT !!!
-				return null;
 			}
 
 			// unsupported key type
@@ -1590,8 +1556,12 @@ namespace Doxense.Serialization.Json
 				return CreateBinderForDictionary_StringKey(generator, valueType);
 			}
 
-			if (keyType == typeof(int)
-			 || keyType == typeof(uint)
+			if (keyType == typeof(int))
+			{ // fastest path when keys are ints
+				return CreateBinderForDictionary_Int32Key(generator, valueType);
+			}
+
+			if (keyType == typeof(uint)
 			 || keyType == typeof(long)
 			 || keyType == typeof(ulong)
 			 || keyType == typeof(Guid)
@@ -1623,6 +1593,23 @@ namespace Doxense.Serialization.Json
 				foreach (var item in obj)
 				{
 					instance.Add(item.Key, r.BindJsonValue(valueType, item.Value));
+				}
+
+				return instance;
+			};
+		}
+
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_Int32Key(Func<object> generator, Type valueType)
+		{
+			return (v, t, r) =>
+			{
+				if (v == null || v.IsNull) return null;
+				if (v is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(t);
+
+				var instance = (IDictionary) generator();
+				foreach (var item in obj)
+				{
+					instance.Add(StringConverters.ToInt32(item.Key, 0), r.BindJsonValue(valueType, item.Value));
 				}
 
 				return instance;
@@ -1751,6 +1738,54 @@ namespace Doxense.Serialization.Json
 			}
 
 			return Expression.Lambda<CrystalJsonTypeBinder>(expr, "<>_VT_" + args.Length + "_" + type.Name + "_Unpack", true, new[] { prmValue, prmType, prmResolver }).Compile();
+		}
+
+		public static bool IsSealedType(Type type)
+		{
+			// We considered a type to be "sealed" if it is impossible for any instance assigned to a parameter of this type to be of a different type.
+
+			// Types considered "sealed":
+			// - primitive types:
+			//   - int, bool, DateTime, ...
+			// - structs:
+			//   - public struct Foo { }
+			//   - public record struct Foo { }
+			// - sealed classes or records:
+			//   - public sealed class Foo { }
+			//   - public sealed record Foo { }
+
+			// Types considered "not sealed":
+			// - interfaces:
+			//   - IEnumerable<string>, ...
+			//   - public interface IFoo { }
+			// - abstract classes or records:
+			//   - public abstract class FooBase { }
+			//   - public abstract record FooBase { }
+			// - non-sealed clases or records:
+			//   - public class Foo { }
+			//   - public record Foo { }
+
+			if (type.IsValueType)
+			{
+				return true;
+			}
+
+			if (type.IsInterface || type.IsAbstract)
+			{
+				return false;
+			}
+
+			return type.IsSealed;
+		}
+
+		public static bool IsNullableType(Type type)
+		{
+			if (!type.IsValueType)
+			{
+				return true;
+			}
+
+			return type.IsNullableType();
 		}
 
 	}

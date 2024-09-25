@@ -30,18 +30,28 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Structure that holds the cached serialization metadata for a field or property of a class or struct</summary>
 	[DebuggerDisplay("Name={Name}, Type={Type}")]
-	public record CrystalJsonMemberDefinition : ICrystalMemberDefinition
+	[PublicAPI]
+	public sealed record CrystalJsonMemberDefinition
 	{
 
+		public CrystalJsonMemberDefinition(Type type, string name, string? originalName = null)
+		{
+			this.Type = type;
+			this.Name = name;
+			this.OriginalName = originalName ?? name;
+			this.EncodedName = new(name);
+			this.IsNullable = CrystalJsonTypeResolver.IsNullableType(type);
+		}
+
+		/// <summary>Declared type of the member</summary>
+		public Type Type { get; }
+
 		/// <summary>Name of the member</summary>
-		public required string Name { get; init; }
+		public string Name { get; }
 
 		/// <summary>Name in the enclosing type</summary>
 		/// <remarks>Represent the original name in the c# code, while <see cref="Name"/> is the name in the JSON object</remarks>
-		public required string OriginalName { get; init; }
-
-		/// <summary>Declared type of the member</summary>
-		public required Type Type { get; init; }
+		public string OriginalName { get; }
 
 		/// <summary>Optional <see cref="JsonPropertyAttribute"/> attribute that was applied to this member</summary>
 		public JsonPropertyAttribute? Attributes { get; init; }
@@ -68,7 +78,9 @@ namespace Doxense.Serialization.Json
 		public bool IsDefaultValue(object? value) => this.DefaultValue?.Equals(value) ?? (value is null);
 
 		/// <summary>Cache for the various encoded versions of a property name</summary>
-		public required JsonEncodedPropertyName EncodedName { get; init; }
+		public JsonEncodedPropertyName EncodedName { get; }
+
+		public bool IsNullable { get; init; }
 
 	}
 
