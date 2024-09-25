@@ -792,18 +792,19 @@ namespace Doxense.Serialization
 
 		/// <summary>Tests if a type is implements a generic type or interface</summary>
 		/// <param name="type">Type of the inspected instance (ex: <c>List&lt;string&gt;</c>)</param>
-		/// <param name="genericType">Type of the generic interface (ex: <c>IList&lt;T&gt;</c>)</param>
+		/// <param name="genericType">Type of the generic interface (ex: <c>IList&lt;&gt;</c>)</param>
+		/// <param name="closedType">Receives the corresponding closed generic type (ex: <c>IList&lt;string&gt;</c>)</param>
 		/// <returns><see langword="true"/> if the type implements the generic interface</returns>
 		/// <remarks>This method is required because <c>new List&lt;string>().GetType().IsAssignableTo(IList&lt;>)</c> returns false (the types implements <c>IList&lt;string&gt;</c> which is not the same as <c>IList&lt;&gt;</c>)</remarks>
 		/// <example><code>
-		/// typeof(List&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == true
+		/// typeof(List&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;), out var closedType) == true && closedType == typeof(IList&lt;string&gt;)
 		/// typeof(HashSet&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == false
 		/// </code></example>
 		[Pure]
-		public static bool IsGenericInstanceOf([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, Type genericType, [MaybeNullWhen(false)] out Type elementType)
+		public static bool IsGenericInstanceOf([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, Type genericType, [MaybeNullWhen(false)] out Type closedType)
 		{
-			elementType = FindGenericType(type, genericType);
-			return elementType != null;
+			closedType = FindGenericType(type, genericType);
+			return closedType != null;
 		}
 
 		public static bool IsEnumerableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, [MaybeNullWhen(false)] out Type elementType)
