@@ -189,6 +189,22 @@ namespace Doxense.Serialization.Json
 
 		internal const int ISO8601_MAX_FORMATTED_SIZE = 35; // With quotes and TimeZone
 
+		public static string ToIso8601String(DateTime date)
+		{
+			if (date == DateTime.MinValue) return string.Empty;
+
+			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
+			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, quotes: '\0'));
+		}
+
+		public static string ToIso8601String(DateTimeOffset date)
+		{
+			if (date == DateTime.MinValue) return string.Empty;
+
+			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
+			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, quotes: '\0'));
+		}
+
 		internal static ReadOnlySpan<char> FormatIso8601DateTime(Span<char> output, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')
 		{
 			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer

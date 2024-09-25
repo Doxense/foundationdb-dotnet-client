@@ -28,14 +28,9 @@ namespace Doxense.Linq
 {
 	using System;
 	using System.Buffers;
-	using System.Buffers.Binary;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Drawing;
 	using System.Globalization;
-	using System.Reflection.Metadata;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using Doxense.Serialization;
 	using Doxense.Serialization.Json;
 
@@ -402,7 +397,7 @@ namespace Doxense.Linq
 		/// </remarks>
 		private ref char AllocateRefUnsafe(
 #if NET8_0_OR_GREATER
-			[ConstantExpected(Min = 1)]
+			[System.Diagnostics.CodeAnalysis.ConstantExpected(Min = 1)]
 #endif
 			int size)
 		{
