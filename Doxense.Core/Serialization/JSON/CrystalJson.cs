@@ -125,9 +125,20 @@ namespace Doxense.Serialization.Json
 				return JsonTokens.Null;
 			}
 
-			using var writer = new CrystalJsonWriter(0, settings, resolver);
-			CrystalJsonVisitor.VisitValue<T>(value, writer);
-			return writer.GetStringAndClear();
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				CrystalJsonVisitor.VisitValue<T>(value, writer);
+
+				return writer.GetString();
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
 		}
 
 		/// <summary>Serializes a value (of any type)</summary>
@@ -159,7 +170,123 @@ namespace Doxense.Serialization.Json
 					CrystalJsonVisitor.VisitValue<T>(value, writer);
 				}
 
-				return writer.GetStringAndClear();
+				return writer.GetString();
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
+		/// <summary>Performs a custom seriazation operation, using a pooled <see cref="CrystalJsonWriter"/>.</summary>
+		/// <typeparam name="TState">Type of the state that is forwarded to <paramref name="handler"/></typeparam>
+		/// <param name="state">State that is forwarded to <paramref name="handler"/></param>
+		/// <param name="handler">Handler that receives a pooled writer, and forwarded <paramref name="state"/>, and will use the writer to produce some JSON and consume the result.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <remarks>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, before returning.</para>
+		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
+		/// </remarks>
+		public static void Convert<TState>(TState state, Action<CrystalJsonWriter, TState> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(handler);
+
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				handler(writer, state);
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
+		/// <summary>Performs a custom serialization operation, using a pooled <see cref="CrystalJsonWriter"/>.</summary>
+		/// <typeparam name="TState">Type of the state that is forwarded to <paramref name="handler"/></typeparam>
+		/// <typeparam name="TResult">Type of the result returned by the handler</typeparam>
+		/// <param name="state">State that is forwarded to <paramref name="handler"/></param>
+		/// <param name="handler">Handler that receives a pooled writer, and forwarded <paramref name="state"/>, and will use the writer to produce some JSON and consume the result.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>The result of the custom serialization (usually a <see cref="string"/>, <see cref="Slice"/> or any other value)</returns>
+		/// <remarks>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, to extract the content of the writer.</para>
+		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
+		/// </remarks>
+		public static TResult Convert<TState, TResult>(TState state, Func<CrystalJsonWriter, TState, TResult> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(handler);
+
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				return handler(writer, state);
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
+		/// <summary>Performs a custom seriazation operation, using a pooled <see cref="CrystalJsonWriter"/>.</summary>
+		/// <typeparam name="TState">Type of the state that is forwarded to <paramref name="handler"/></typeparam>
+		/// <param name="state">State that is forwarded to <paramref name="handler"/></param>
+		/// <param name="handler">Handler that receives a pooled writer, and forwarded <paramref name="state"/>, and will use the writer to produce some JSON and consume the result.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <remarks>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, before returning.</para>
+		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
+		/// </remarks>
+		public static async Task ConvertAsync<TState>(TState state, Func<CrystalJsonWriter, TState, Task> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(handler);
+
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				await handler(writer, state).ConfigureAwait(false);
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
+		/// <summary>Performs a custom serialization operation, using a pooled <see cref="CrystalJsonWriter"/>.</summary>
+		/// <typeparam name="TState">Type of the state that is forwarded to <paramref name="handler"/></typeparam>
+		/// <typeparam name="TResult">Type of the result returned by the handler</typeparam>
+		/// <param name="state">State that is forwarded to <paramref name="handler"/></param>
+		/// <param name="handler">Handler that receives a pooled writer, and forwarded <paramref name="state"/>, and will use the writer to produce some JSON and consume the result.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>The result of the custom serialization (usually a <see cref="string"/>, <see cref="Slice"/> or any other value)</returns>
+		/// <remarks>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, to extract the content of the writer.</para>
+		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
+		/// </remarks>
+		public static async Task<TResult> ConvertAsync<TState, TResult>(TState state, Func<CrystalJsonWriter, TState, Task<TResult>> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(handler);
+
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				return await handler(writer, state).ConfigureAwait(false);
 			}
 			finally
 			{
@@ -380,7 +507,7 @@ namespace Doxense.Serialization.Json
 
 			CrystalJsonVisitor.VisitValue(value, writer);
 
-			return writer.Buffer.ToUtf8SliceAndClear();
+			return writer.Buffer.ToUtf8Slice(clear: true);
 		}
 
 		private static ObjectPool<CrystalJsonWriter> WriterPool = new(() => new CrystalJsonWriter());
@@ -402,7 +529,7 @@ namespace Doxense.Serialization.Json
 					CrystalJsonVisitor.VisitValue(value, writer);
 				}
 
-				return writer.Buffer.ToUtf8SliceAndClear();
+				return writer.Buffer.ToUtf8Slice(clear: true);
 			}
 			finally
 			{
@@ -426,7 +553,7 @@ namespace Doxense.Serialization.Json
 					CrystalJsonVisitor.VisitValue(value, writer);
 				}
 
-				return writer.Buffer.ToUtf8SliceOwner(pool);
+				return writer.Buffer.ToUtf8SliceOwner(clear: true, pool);
 			}
 			finally
 			{
@@ -1256,6 +1383,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
 		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <param name="serializer"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Resolver optionnel</param>
 		/// <returns>Objet correspondant</returns>
@@ -1628,13 +1756,31 @@ namespace Doxense.Serialization.Json
 			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSignature(Type type, MethodInfo method) => new($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidFirstParam(Type type, MethodInfo method, Type prmType) => new($"First parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be assignable to type '{type.GetFriendlyName()}' (it was '{prmType.GetFriendlyName()}').");
+			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidFirstParam(Type type, MethodInfo method, Type prmType)
+			{
+#if DEBUG
+				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+				return new JsonSerializationException($"First parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be assignable to type '{type.GetFriendlyName()}' (it was '{prmType.GetFriendlyName()}').");
+			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSecondParam(Type type, MethodInfo method, Type prmType) => new($"Second parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be a {nameof(CrystalJsonWriter)} object (it was '{prmType.GetFriendlyName()}').");
+			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSecondParam(Type type, MethodInfo method, Type prmType)
+			{
+#if DEBUG
+				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+				return new JsonSerializationException($"Second parameter of static method '{type.GetFriendlyName()}.{method.Name}' must be a {nameof(CrystalJsonWriter)} object (it was '{prmType.GetFriendlyName()}').");
+			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_InstanceJsonPackMethodInvalidSignature(Type type, MethodInfo method) => new($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
+			internal static JsonSerializationException Serialization_InstanceJsonPackMethodInvalidSignature(Type type, MethodInfo method)
+			{
+#if DEBUG
+				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+				return new JsonSerializationException($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
+			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonSerializationException Serialization_CouldNotGetDefaultValueForMember(Type type, MemberInfo info, Exception? error)

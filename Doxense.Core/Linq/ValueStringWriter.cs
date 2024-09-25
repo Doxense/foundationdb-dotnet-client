@@ -31,6 +31,7 @@ namespace Doxense.Linq
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
+	using System.Text;
 	using Doxense.Serialization;
 	using Doxense.Serialization.Json;
 
@@ -258,16 +259,19 @@ namespace Doxense.Linq
 
 		private void Clear(bool release)
 		{
-			this.Span.Clear();
-			this.Count = 0;
+			if (this.Count != 0)
+			{
+				this.Span.Clear();
+				this.Count = 0;
+			}
 
 			// return the array to the pool
 			if (release)
 			{
-				var array = Buffer;
+				var array = this.Buffer;
 				this.Buffer = [ ];
 
-				if (array.Length != 0)
+				if (array?.Length > 0)
 				{
 					ArrayPool<char>.Shared.Return(array);
 				}
@@ -284,31 +288,31 @@ namespace Doxense.Linq
 		public override string ToString() => this.Span.ToString();
 
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
-		public string ToStringAndClear()
+		public string ToString(bool clear)
 		{
 			var res = this.Span.ToString();
-			Clear(release: true);
+			if (clear)
+			{
+				Clear(release: true);
+			}
 			return res;
 		}
 
-		public Slice ToUtf8Slice(ArrayPool<byte>? pool = null)
+		public Slice ToUtf8Slice(bool clear, ArrayPool<byte>? pool = null)
 		{
 			var enc = CrystalJson.Utf8NoBom;
 			var span = this.Span;
 			int size = enc.GetByteCount(span);
 			var tmp = pool?.Rent(size) ?? new byte[size];
 			var written = enc.GetBytes(span, tmp);
+			if (clear)
+			{
+				Clear(release: true);
+			}
 			return tmp.AsSlice(0, written);
 		}
 
-		public Slice ToUtf8SliceAndClear(ArrayPool<byte>? pool = null)
-		{
-			var res = ToUtf8Slice(pool);
-			Clear(release: true);
-			return res;
-		}
-
-		public SliceOwner ToUtf8SliceOwner(ArrayPool<byte>? pool = null)
+		public SliceOwner ToUtf8SliceOwner(bool clear, ArrayPool<byte>? pool = null)
 		{
 			pool ??= ArrayPool<byte>.Shared;
 			var enc = CrystalJson.Utf8NoBom;
@@ -316,25 +320,34 @@ namespace Doxense.Linq
 			int size = enc.GetByteCount(span);
 			var tmp = pool.Rent(size);
 			var written = enc.GetBytes(span, tmp);
-			Clear(release: true);
+			if (clear)
+			{
+				Clear(release: true);
+			}
 			return new SliceOwner(tmp.AsSlice(0, written), pool);
 		}
 
 		/// <summary>Copies the content of the buffer into a destination span</summary>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public int CopyTo(Span<char> destination)
+		public int CopyTo(Span<char> destination, bool clear = false)
 		{
 			if (this.Count < destination.Length)
 			{
 				throw new ArgumentException("Destination buffer is too small", nameof(destination));
 			}
+
 			this.Span.CopyTo(destination);
-			return this.Count;
+			var count = this.Count;
+			if (clear)
+			{
+				Clear(release: true);
+			}
+			return count;
 		}
 
 		/// <summary>Copies the content of the buffer into a destination span, if it is large enough</summary>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public bool TryCopyTo(Span<char> destination, out int written)
+		public bool TryCopyTo(Span<char> destination, out int written, bool clear = false)
 		{
 			int count = this.Count;
 			if (count < destination.Length)
@@ -345,7 +358,86 @@ namespace Doxense.Linq
 
 			this.Span.TryCopyTo(destination);
 			written = count;
+			if (clear)
+			{
+				Clear(release: true);
+			}
 			return true;
+		}
+
+		public int CopyToUtf8(Span<byte> destination, bool clear = false)
+		{
+			int written = CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
+			if (clear)
+			{
+				Clear(release: true);
+			}
+			return written;
+		}
+
+		public bool TryCopyToUtf8(Span<byte> destination, out int written, bool clear = false)
+		{
+#if NET8_0_OR_GREATER
+			if (!CrystalJson.Utf8NoBom.TryGetBytes(this.Span, destination, out written))
+			{
+				return false;
+			}
+#else
+			int required = CrystalJson.Utf8NoBom.GetByteCount(this.Span);
+			if (destination.Length < required)
+			{
+				written = 0;
+				return false;
+			}
+
+			written = CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
+#endif
+			if (clear)
+			{
+				Clear(release: true);
+			}
+			return true;
+		}
+
+		public void CopyTo(IBufferWriter<byte> destination, bool clear = false)
+		{
+			var data = this.Span;
+
+			CrystalJson.Utf8NoBom.GetBytes(data, destination);
+
+			if (clear)
+			{
+				Clear(release: true);
+			}
+		}
+
+		public void CopyTo(Stream destination, bool clear = false)
+		{
+			Contract.NotNull(destination);
+			if (!destination.CanWrite) throw new InvalidOperationException("Cannot write to destination stream");
+
+			using var data = ToUtf8SliceOwner(clear);
+			destination.Write(data.Span);
+
+		}
+
+		public async Task CopyToAsync(Stream destination, bool clear, CancellationToken ct)
+		{
+			Contract.NotNull(destination);
+			ct.ThrowIfCancellationRequested();
+			if (!destination.CanWrite) throw new InvalidOperationException("Cannot write to destination stream");
+
+			using var data = ToUtf8SliceOwner(clear);
+
+			if (destination is MemoryStream ms)
+			{
+				ms.Write(data.Span);
+			}
+			else
+			{
+				await destination.WriteAsync(data.Memory, ct).ConfigureAwait(false);
+			}
+
 		}
 
 		#region IReadOnlyList<T>...

@@ -28,6 +28,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
@@ -92,7 +93,7 @@ namespace Doxense.Serialization.Json
 		private CrystalJsonSettings m_settings;
 		private ICrystalJsonTypeResolver m_resolver;
 		private JsonPropertyAttribute? m_attributes;
-		private object[]? m_visitedObjects;
+		private object[] m_visitedObjects;
 		private int m_visitedCursor;
 		private int m_objectGraphDepth;
 
@@ -159,14 +160,21 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_output != null)
 			{
-				FlushBuffer();
+				FlushBuffer(last: true);
 				m_output = null;
 			}
+			else
+			{
+				m_buffer.Dispose();
+			}
 
-			m_visitedObjects?.AsSpan().Clear();
+			if (this.m_visitedCursor > 0)
+			{
+				m_visitedObjects.AsSpan(0, m_visitedCursor).Clear();
+			}
 		}
 
-		[MemberNotNull(nameof(m_settings), nameof(m_resolver))]
+		[MemberNotNull(nameof(m_settings), nameof(m_resolver), nameof(m_visitedObjects))]
 		internal void Initialize(int initialCapacity, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			settings ??= CrystalJsonSettings.Json;
@@ -194,6 +202,9 @@ namespace Doxense.Serialization.Json
 			m_resolver = resolver;
 			m_output = null;
 			m_autoFlush = 0;
+			m_visitedObjects ??= [];
+			m_visitedCursor = 0;
+			m_objectGraphDepth = 0;
 		}
 
 		public void Initialize(TextWriter output, int autoFlush, CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
@@ -206,20 +217,71 @@ namespace Doxense.Serialization.Json
 			m_autoFlush = autoFlush > 0 ? autoFlush : 64 * 1024;
 		}
 
-		/// <summary>Returns the JSON text written so far</summary>
-		/// <returns>JSON text</returns>
-		/// <exception cref="InvalidOperationException">If this instance is outputing to a TextWriter</exception>
-		public string GetString()
-		{
-			return m_output == null ? m_buffer.ToString() : throw new InvalidOperationException("This method cannot be used when writing to a TextWriter");
-		}
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException ErrorCannotBeUsedWhenWritingToTextWriter() => new("This method cannot be used when writing to a TextWriter");
 
 		/// <summary>Returns the JSON text written, and clear the writer</summary>
 		/// <returns>JSON text</returns>
 		/// <exception cref="InvalidOperationException">If this instance is outputing to a TextWriter</exception>
-		public string GetStringAndClear()
+		public string GetString()
 		{
-			return m_output == null ? m_buffer.ToStringAndClear() : throw new InvalidOperationException("This method cannot be used when writing to a TextWriter");
+			return m_output == null
+				? m_buffer.ToString(clear: true)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public Slice GetUtf8Slice(ArrayPool<byte>? pool = null)
+		{
+			return m_output == null
+				? m_buffer.ToUtf8Slice(clear: true, pool)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public SliceOwner GetUft8SliceOwner(ArrayPool<byte>? pool = null)
+		{
+			return m_output == null
+				? m_buffer.ToUtf8SliceOwner(clear: true, pool)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public int CopyTo(Span<char> buffer)
+		{
+			return m_output == null
+				? m_buffer.CopyTo(buffer, clear: true)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public bool TryCopyTo(Span<char> buffer, out int written)
+		{
+			return m_output == null
+				? m_buffer.TryCopyTo(buffer, out written, clear: true)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public int CopyToUtf8(Span<byte> buffer)
+		{
+			return m_output == null
+				? m_buffer.CopyToUtf8(buffer, clear: true)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public bool TryCopyToUtf8(Span<byte> buffer, out int written)
+		{
+			return m_output == null
+				? m_buffer.TryCopyToUtf8(buffer, out written, clear: true)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public void CopyTo(IBufferWriter<byte> buffer)
+		{
+			if (m_output != null) throw ErrorCannotBeUsedWhenWritingToTextWriter();
+			m_buffer.CopyTo(buffer, clear: true);
+		}
+
+		public void CopyTo(Stream destination)
+		{
+			if (m_output != null) throw ErrorCannotBeUsedWhenWritingToTextWriter();
+			m_buffer.CopyTo(destination, clear: true);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -227,70 +289,73 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_autoFlush > 0 && m_buffer.Count >= m_autoFlush)
 			{
-				FlushBuffer();
+				FlushBuffer(false);
 			}
 		}
 
-		internal void FlushBuffer()
+		internal void FlushBuffer(bool last)
 		{
 			if (m_output != null)
 			{
-				WriteBufferToOutput();
-			}
-			m_buffer.Clear();
-
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			void WriteBufferToOutput()
-			{
-				Contract.Debug.Assert(m_output != null);
-
 				//note: if the TextWriter implementation does not overload Write(ReadOnlySpan<char>),
 				// the base implementation simply uses a tempt buffer from ArrayPool<char>.Shared, and calls Write(char[], int, int)
 				// => we expect most of the callers to use either FastStringWriter, StringWriter or StreamWriter, so we are "ok" with that
-				m_output.Write(m_buffer.Span);
+				if (m_buffer.Count > 0)
+				{
+					m_output.Write(m_buffer.Span);
+				}
+			}
 
+			if (last)
+			{
+				m_buffer.Dispose();
+			}
+			else
+			{
 				m_buffer.Clear();
 			}
 		}
 
-		internal Task FlushBufferAsync(CancellationToken ct)
+		internal async Task FlushBufferAsync(bool last, CancellationToken ct)
 		{
 			if (m_output != null)
-			{
-				return WriteBufferToOutputAsync(ct);
-			}
-
-			m_buffer.Clear();
-			return Task.CompletedTask;
-
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			async Task WriteBufferToOutputAsync(CancellationToken cancel)
 			{
 				//note: if the TextWriter implementation does not overload WriteAsync(ReadOnlyMemory<char>),
 				// the base implementation simply Task.Factory.StartNew((...) => output.Write(ReadOnlySpan<char>))
 				// also, the CancellationToken is only check _BEFORE_ the write, but the write itself is not cancellable :(
-				await m_output.WriteAsync(m_buffer.Memory, cancel).ConfigureAwait(false);
+				if (m_buffer.Count > 0)
+				{
+					await m_output.WriteAsync(m_buffer.Memory, ct).ConfigureAwait(false);
+				}
+			}
 
+			if (last)
+			{
+				m_buffer.Dispose();
+			}
+			else
+			{
 				m_buffer.Clear();
 			}
 		}
 
-
-		public void Flush()
+		public void Flush(bool last = false)
 		{
 			if (m_output != null)
 			{
-				FlushBuffer();
+				FlushBuffer(last: false);
 				m_output.Flush();
 			}
 		}
 
-		public async Task FlushAsync(CancellationToken ct)
+		public Task FlushAsync(CancellationToken ct) => FlushAsync(last: false, ct);
+
+		public async Task FlushAsync(bool last, CancellationToken ct)
 		{
 			if (m_output != null)
 			{
 				// first flush the buffer content into the writer
-				await FlushBufferAsync(ct).ConfigureAwait(false);
+				await FlushBufferAsync(last, ct).ConfigureAwait(false);
 
 				// and then flush the writer itself (into its base stream)
 #if NET8_0_OR_GREATER
@@ -982,12 +1047,7 @@ namespace Doxense.Serialization.Json
 			}
 			if (value != null && m_markVisited)
 			{ // protect against loops in the object graph that would cause a stack overflow
-				if (m_visitedObjects == null)
-				{
-					m_visitedObjects = new object[4];
-					m_visitedCursor = 0;
-				}
-				else if (AlreadyVisited(m_visitedObjects.AsSpan(0, m_visitedCursor), m_visitedCursor))
+				if (m_visitedCursor > 0 && AlreadyVisited(m_visitedObjects.AsSpan(0, m_visitedCursor), m_visitedCursor))
 				{
 					if (!TypeSafeForRecursion(value.GetType()))
 					{
@@ -1031,7 +1091,7 @@ namespace Doxense.Serialization.Json
 		public void Leave(object? value)
 		{
 			if (m_objectGraphDepth == 0) throw CrystalJson.Errors.Serialization_InternalDepthInconsistent();
-			if (value != null && m_markVisited && m_visitedObjects != null && m_visitedCursor > 0)
+			if (value != null && m_markVisited && m_visitedCursor > 0)
 			{
 				var previous = PopVisited(ref m_visitedObjects, ref m_visitedCursor);
 				if (!ReferenceEquals(previous, value))

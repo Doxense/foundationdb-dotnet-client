@@ -75,6 +75,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target type <typeparamref name="TValue"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var res = Bind(typeof(TValue), resolver);
@@ -164,9 +165,16 @@ namespace Doxense.Serialization.Json
 				return JsonTokens.Null;
 			}
 
-			using var writer = new CrystalJsonWriter(this is JsonArray or JsonObject ? 256 : 64, settings ?? CrystalJsonSettings.Json, null);
-			JsonSerialize(writer);
-			return writer.GetStringAndClear();
+			return CrystalJson.Convert(
+				state: this,
+				handler: static (writer, self) =>
+				{
+					self.JsonSerialize(writer);
+					return writer.GetString();
+				},
+				settings: settings ?? CrystalJsonSettings.Json,
+				resolver: CrystalJson.DefaultResolver
+			);
 		}
 		//TODO: REVIEW: rename as "ToJsonText()" or something else? "ToXYZ" usually means that XYZ is the final result, but here it is a string, and not a JsonValue
 

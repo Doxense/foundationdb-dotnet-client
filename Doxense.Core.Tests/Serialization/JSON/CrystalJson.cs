@@ -635,9 +635,9 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			static string Execute(Action<CrystalJsonWriter> handler, CrystalJsonSettings? settings = null)
 			{
-				var writer = new CrystalJsonWriter(0, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
+				using var writer = new CrystalJsonWriter(0, settings ?? CrystalJsonSettings.Json, CrystalJson.DefaultResolver);
 				handler(writer);
-				var json = writer.GetStringAndClear();
+				var json = writer.GetString();
 				Log(json);
 				return json;
 			}
@@ -762,7 +762,7 @@ namespace Doxense.Serialization.Json.Tests
 				var state = writer.BeginObject();
 				handler(writer);
 				writer.EndObject(state);
-				return writer.GetStringAndClear();
+				return writer.GetString();
 			}
 
 			#region String-like
@@ -866,9 +866,9 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Serialize(null, CrystalJsonSettings.Json), Is.EqualTo("null"));
 			Assert.That(CrystalJson.Serialize(null, CrystalJsonSettings.JsonCompact), Is.EqualTo("null"));
 
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, null)), Is.EqualTo("null"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, null, CrystalJsonSettings.Json)), Is.EqualTo("null"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, null, CrystalJsonSettings.JsonCompact)), Is.EqualTo("null"));
+			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo<string?>(sw, null, default(CrystalJsonSettings))), Is.EqualTo("null"));
+			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo<string?>(sw, null, CrystalJsonSettings.Json)), Is.EqualTo("null"));
+			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo<string?>(sw, null, CrystalJsonSettings.JsonCompact)), Is.EqualTo("null"));
 		}
 
 		[Test]
@@ -3932,35 +3932,58 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Conversions
 			Assert.That(JsonString.Return("false").ToBoolean(), Is.False);
+			Assert.That(JsonString.Return("false").Bind<bool>(), Is.False);
 			Assert.That(JsonString.Return("false").Bind(typeof(bool)), Is.False);
 			Assert.That(JsonString.Return("true").ToBoolean(), Is.True);
+			Assert.That(JsonString.Return("true").Bind<bool>(), Is.True);
 			Assert.That(JsonString.Return("true").Bind(typeof(bool)), Is.True);
 			Assert.That(JsonString.Return("true").Bind(typeof(bool)), Is.InstanceOf<bool>());
 
 			Assert.That(JsonString.Return("0").ToInt32(), Is.EqualTo(0));
-			Assert.That(JsonString.Return("1").Bind(typeof(int)), Is.EqualTo(1));
+			Assert.That(JsonString.Return("0").ToInt32OrDefault(), Is.EqualTo(0));
+			Assert.That(JsonString.Return("0").Bind<int>(), Is.EqualTo(0));
+			Assert.That(JsonString.Return("0").Bind(typeof(int)), Is.InstanceOf<int>().And.EqualTo(0));
+			Assert.That(JsonString.Return("1").ToInt32(), Is.EqualTo(1));
+			Assert.That(JsonString.Return("1").ToInt32OrDefault(), Is.EqualTo(1));
+			Assert.That(JsonString.Return("1").Bind<int>(), Is.EqualTo(1));
+			Assert.That(JsonString.Return("1").Bind(typeof(int)), Is.InstanceOf<int>().And.EqualTo(1));
 			Assert.That(JsonString.Return("123").ToInt32(), Is.EqualTo(123));
-			Assert.That(JsonString.Return("666666666").Bind(typeof(int)), Is.EqualTo(666666666));
-			Assert.That(JsonString.Return("2147483647").Bind(typeof(int)), Is.EqualTo(int.MaxValue));
-			Assert.That(JsonString.Return("-2147483648").Bind(typeof(int)), Is.EqualTo(int.MinValue));
-			Assert.That(JsonString.Return("123").Bind(typeof(int)), Is.InstanceOf<int>());
+			Assert.That(JsonString.Return("123").ToInt32OrDefault(), Is.EqualTo(123));
+			Assert.That(JsonString.Return("123").Bind<int>(), Is.EqualTo(123));
+			Assert.That(JsonString.Return("123").Bind(typeof(int)), Is.InstanceOf<int>().And.EqualTo(123));
+			Assert.That(JsonString.Return("666666666").Bind<int>(), Is.EqualTo(666666666));
+			Assert.That(JsonString.Return("666666666").Bind(typeof(int)), Is.InstanceOf<int>().And.EqualTo(666666666));
+			Assert.That(JsonString.Return("2147483647").Bind<int>(), Is.EqualTo(int.MaxValue));
+			Assert.That(JsonString.Return("2147483647").Bind(typeof(int)), Is.InstanceOf<int>().And.EqualTo(int.MaxValue));
+			Assert.That(JsonString.Return("-2147483648").Bind<int>(), Is.EqualTo(int.MinValue));
+			Assert.That(JsonString.Return("-2147483648").Bind(typeof(int)), Is.InstanceOf<int>().And.EqualTo(int.MinValue));
 
 			Assert.That(JsonString.Return("0").ToInt64(), Is.EqualTo(0));
-			Assert.That(JsonString.Return("1").Bind(typeof(long)), Is.EqualTo(1));
+			Assert.That(JsonString.Return("1").Bind<long>(), Is.EqualTo(1));
+			Assert.That(JsonString.Return("1").Bind(typeof(long)), Is.InstanceOf<long>().And.EqualTo(1));
 			Assert.That(JsonString.Return("123").ToInt64(), Is.EqualTo(123));
-			Assert.That(JsonString.Return("666666666").Bind(typeof(long)), Is.EqualTo(666666666));
-			Assert.That(JsonString.Return("9223372036854775807").Bind(typeof(long)), Is.EqualTo(long.MaxValue));
-			Assert.That(JsonString.Return("-9223372036854775808").Bind(typeof(long)), Is.EqualTo(long.MinValue));
+			Assert.That(JsonString.Return("666666666").Bind<long>(), Is.EqualTo(666666666));
+			Assert.That(JsonString.Return("666666666").Bind(typeof(long)), Is.InstanceOf<long>().And.EqualTo(666666666));
+			Assert.That(JsonString.Return("9223372036854775807").Bind<long>(), Is.EqualTo(long.MaxValue));
+			Assert.That(JsonString.Return("9223372036854775807").Bind(typeof(long)), Is.InstanceOf<long>().And.EqualTo(long.MaxValue));
+			Assert.That(JsonString.Return("-9223372036854775808").Bind<long>(), Is.EqualTo(long.MinValue));
+			Assert.That(JsonString.Return("-9223372036854775808").Bind(typeof(long)), Is.InstanceOf<long>().And.EqualTo(long.MinValue));
 			Assert.That(JsonString.Return("123").Bind(typeof(long)), Is.InstanceOf<long>());
 
 			Assert.That(JsonString.Return("0").ToSingle(), Is.EqualTo(0f));
+			Assert.That(JsonString.Return("1").Bind<float>(), Is.EqualTo(1f));
 			Assert.That(JsonString.Return("1").Bind(typeof(float)), Is.EqualTo(1f));
 			Assert.That(JsonString.Return("1.23").ToSingle(), Is.EqualTo(1.23f));
-			Assert.That(JsonString.Return("3.14159274").Bind(typeof(float)), Is.EqualTo((float) Math.PI));
-			Assert.That(JsonString.Return("NaN").Bind(typeof(float)), Is.EqualTo(float.NaN));
-			Assert.That(JsonString.Return("Infinity").Bind(typeof(float)), Is.EqualTo(float.PositiveInfinity));
-			Assert.That(JsonString.Return("-Infinity").Bind(typeof(float)), Is.EqualTo(float.NegativeInfinity));
-			Assert.That(JsonString.Return("1.23").Bind(typeof(float)), Is.InstanceOf<float>());
+			Assert.That(JsonString.Return("1.23").Bind<float>(), Is.EqualTo(1.23f));
+			Assert.That(JsonString.Return("1.23").Bind(typeof(float)), Is.InstanceOf<float>().And.EqualTo(1.23f));
+			Assert.That(JsonString.Return("3.14159274").Bind<float>(), Is.EqualTo((float) Math.PI));
+			Assert.That(JsonString.Return("3.14159274").Bind(typeof(float)), Is.InstanceOf<float>().And.EqualTo((float) Math.PI));
+			Assert.That(JsonString.Return("NaN").Bind<float>(), Is.EqualTo(float.NaN));
+			Assert.That(JsonString.Return("NaN").Bind(typeof(float)), Is.InstanceOf<float>().And.EqualTo(float.NaN));
+			Assert.That(JsonString.Return("Infinity").Bind<float>(), Is.EqualTo(float.PositiveInfinity));
+			Assert.That(JsonString.Return("Infinity").Bind(typeof(float)), Is.InstanceOf<float>().And.EqualTo(float.PositiveInfinity));
+			Assert.That(JsonString.Return("-Infinity").Bind<float>(), Is.EqualTo(float.NegativeInfinity));
+			Assert.That(JsonString.Return("-Infinity").Bind(typeof(float)), Is.InstanceOf<float>().And.EqualTo(float.NegativeInfinity));
 
 			Assert.That(JsonString.Return("0").ToDouble(), Is.EqualTo(0d));
 			Assert.That(JsonString.Return("1").Bind(typeof(double)), Is.EqualTo(1d));

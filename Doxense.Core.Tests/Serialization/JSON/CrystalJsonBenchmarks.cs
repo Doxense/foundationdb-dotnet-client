@@ -341,7 +341,7 @@ namespace Doxense.Serialization.Json.Tests
 
 				using var w = new CrystalJsonWriter(0, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
 				media.Manual(w);
-				b = w.GetStringAndClear();
+				b = w.GetString();
 				Log("json/doxense-manual : size  = " + b?.Length + " chars");
 			}
 
@@ -365,8 +365,12 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Warmup
 			// premier run pour vérifier que tout est ok
-			//Log("CrystalJSON: " + Encoding.UTF8.GetByteCount(CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact)) + " bytes");
-			//media.Manual(new CrystalJsonWriter(new StringBuilder(512), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver));
+			for (int i = 0; i < 10; i++)
+			{
+				_ = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
+				_ = CrystalJson.ToSlice(media, CrystalJsonSettings.JsonCompact);
+			}
+
 			#endregion
 
 			RunBenchOnMethod("json/doxense-text   : ser  ", () => { CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact); });
@@ -375,9 +379,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			RunBenchOnMethod("json/doxense-manual : ser  ", () =>
 			{
-				using var writer = new CrystalJsonWriter(512, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
-				media.Manual(writer);
-				_ = writer.GetStringAndClear();
+				CrystalJson.Convert(media, static (writer, media) => media.Manual(writer), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
 			});
 
 #if ENABLE_NEWTONSOFT
