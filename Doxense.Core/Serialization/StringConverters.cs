@@ -481,7 +481,11 @@ namespace Doxense.Serialization
 		[Pure]
 		public static string ToString(decimal value)
 		{
+#if NET8_0_OR_GREATER
 			return value.ToString("R", NumberFormatInfo.InvariantInfo);
+#else
+			return value.ToString("G", NumberFormatInfo.InvariantInfo);
+#endif
 		}
 
 		/// <summary>Writes the text representation of a 128-bit decimal floating point number, using the Invariant culture</summary>
