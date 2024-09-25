@@ -50,12 +50,12 @@ namespace Doxense.Serialization.Json
 		public static implicit operator JsonValue(StringBuilder? value) => JsonString.Return(value);
 
 		[Pure]
-		public static implicit operator JsonValue(char[]? value)
+		public static explicit operator JsonValue(char[]? value)
 		{
 			return value == null ? JsonNull.Null : JsonString.Return(value, 0, value.Length);
 		}
 
-		public static implicit operator JsonValue(ReadOnlySpan<char> value) => JsonString.Return(value);
+		public static explicit operator JsonValue(ReadOnlySpan<char> value) => JsonString.Return(value);
 
 		#endregion
 
@@ -979,7 +979,7 @@ namespace Doxense.Serialization.Json
 		#region Common Array Types
 		
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(string?[]? values)
+		public static explicit operator JsonValue(string?[]? values)
 		{
 			if (values == null) return JsonNull.Null;
 			var arr = new JsonArray(values.Length);
@@ -991,7 +991,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<string?> values)
+		public static explicit operator JsonValue(ReadOnlySpan<string?> values)
 		{
 			var arr = new JsonArray(values.Length);
 			foreach (var item in values)
@@ -1002,7 +1002,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(int[]? values)
+		public static explicit operator JsonValue(int[]? values)
 		{
 			if (values == null) return JsonNull.Null;
 			var arr = new JsonArray(values.Length);
@@ -1014,7 +1014,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<int> values)
+		public static explicit operator JsonValue(ReadOnlySpan<int> values)
 		{
 			var arr = new JsonArray(values.Length);
 			foreach (var item in values)
@@ -1025,7 +1025,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(long[]? values)
+		public static explicit operator JsonValue(long[]? values)
 		{
 			if (values == null) return JsonNull.Null;
 			var arr = new JsonArray(values.Length);
@@ -1037,7 +1037,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<long> values)
+		public static explicit operator JsonValue(ReadOnlySpan<long> values)
 		{
 			var arr = new JsonArray(values.Length);
 			foreach (var item in values)
@@ -1048,7 +1048,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(float[]? values)
+		public static explicit operator JsonValue(float[]? values)
 		{
 			if (values == null) return JsonNull.Null;
 			var arr = new JsonArray(values.Length);
@@ -1060,7 +1060,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<float> values)
+		public static explicit operator JsonValue(ReadOnlySpan<float> values)
 		{
 			var arr = new JsonArray(values.Length);
 			foreach (var item in values)
@@ -1071,7 +1071,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(double[]? values)
+		public static explicit operator JsonValue(double[]? values)
 		{
 			if (values == null) return JsonNull.Null;
 			var arr = new JsonArray(values.Length);
@@ -1083,7 +1083,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<double> values)
+		public static explicit operator JsonValue(ReadOnlySpan<double> values)
 		{
 			var arr = new JsonArray(values.Length);
 			foreach (var item in values)
@@ -1094,30 +1094,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(Guid[]? values)
-		{
-			if (values == null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<Guid> values)
-		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(Uuid128[]? values)
+		public static explicit operator JsonValue(Guid[]? values)
 		{
 			if (values == null) return JsonNull.Null;
 			var arr = new JsonArray(values.Length);
@@ -1129,7 +1106,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<Uuid128> values)
+		public static explicit operator JsonValue(ReadOnlySpan<Guid> values)
 		{
 			var arr = new JsonArray(values.Length);
 			foreach (var item in values)
@@ -1140,7 +1117,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(NodaTime.Instant[]? values)
+		public static explicit operator JsonValue(Uuid128[]? values)
 		{
 			if (values == null) return JsonNull.Null;
 			var arr = new JsonArray(values.Length);
@@ -1152,7 +1129,30 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonValue(ReadOnlySpan<NodaTime.Instant> values)
+		public static explicit operator JsonValue(ReadOnlySpan<Uuid128> values)
+		{
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator JsonValue(NodaTime.Instant[]? values)
+		{
+			if (values == null) return JsonNull.Null;
+			var arr = new JsonArray(values.Length);
+			foreach (var item in values)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+			return arr;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator JsonValue(ReadOnlySpan<NodaTime.Instant> values)
 		{
 			var arr = new JsonArray(values.Length);
 			foreach (var item in values)

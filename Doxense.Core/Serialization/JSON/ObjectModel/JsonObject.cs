@@ -39,6 +39,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using Doxense.Linq;
 	using Doxense.Memory;
 
 	/// <summary>JSON Object with fields</summary>
@@ -799,11 +800,26 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type of the values, that must support conversion to JSON values</typeparam>
 		/// <param name="items">Sequence of key/value pairs that will become the fields of the new JSON Object. There must not be any duplicate key, or an exception will be thrown.</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Corresponding JSON object, that can be modified.</returns>
-		public static JsonObject FromValues<TValue>(IEnumerable<KeyValuePair<string, TValue>> items, IEqualityComparer<string>? comparer = null)
+		public static JsonObject FromValues<TValue>(IDictionary<string, TValue> items, IEqualityComparer<string>? comparer = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(comparer, items).AddValues(items);
+			return CreateEmptyWithComparer(comparer, items).AddValues(items, settings, resolver);
+		}
+
+		/// <summary>Creates a JSON Object from a sequence of key/value pairs.</summary>
+		/// <typeparam name="TValue">Type of the values, that must support conversion to JSON values</typeparam>
+		/// <param name="items">Sequence of key/value pairs that will become the fields of the new JSON Object. There must not be any duplicate key, or an exception will be thrown.</param>
+		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Corresponding JSON object, that can be modified.</returns>
+		public static JsonObject FromValues<TValue>(IEnumerable<KeyValuePair<string, TValue>> items, IEqualityComparer<string>? comparer = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			Contract.NotNull(items);
+			return CreateEmptyWithComparer(comparer, items).AddValues(items, settings, resolver);
 		}
 
 		/// <summary>Creates a read-only JSON Object from a list of key/value pairs.</summary>
@@ -811,6 +827,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="items">Sequence of key/value pairs that will become the fields of the new JSON Object. There must not be any duplicate key, or an exception will be thrown.</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>Corresponding JSON object, that cannot be modified.</returns>
+		[Obsolete("Call FromValues with read-only settings")]
 		public static JsonObject FromValuesReadOnly<TValue>(IEnumerable<KeyValuePair<string, TValue>> items, IEqualityComparer<string>? comparer = null)
 		{
 			Contract.NotNull(items);
@@ -899,7 +916,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding value, that will in turn be converted into JSON.</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>Corresponding JSON object, that can be modified</returns>
-		public static JsonObject FromValues<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
+		public static JsonObject FromValues<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
 			var context = new CrystalJsonDomWriter.VisitingContext();
@@ -919,6 +936,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding value, that will in turn be converted into JSON.</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>Corresponding JSON object, that cannot be modified</returns>
+		[Obsolete("Call FromValues with read-only settings")]
 		public static JsonObject FromValuesReadOnly<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
 			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
@@ -939,10 +957,12 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent JSON Object.</summary>
 		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
 		/// <param name="value">Instance to convert.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Corresponding JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
 		/// <remarks>The JSON Object that is returned is mutable, and cannot safely be cached or shared. If you need an immutable instance, consider calling <see cref="FromObjectReadOnly{TValue}(TValue)"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
-		public static JsonObject? FromObject<TValue>(TValue value)
+		public static JsonObject? FromObject<TValue>(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
 			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
@@ -958,19 +978,6 @@ namespace Doxense.Serialization.Json
 		{
 			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
 			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
-		}
-
-		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent JSON Object.</summary>
-		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
-		/// <param name="value">Instance to convert.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns>Corresponding JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
-		/// <remarks>The JSON Object that is returned is mutable, and cannot safely be cached or shared. If you need an immutable instance, consider calling <see cref="FromObjectReadOnly{TValue}(TValue)"/> instead.</remarks>
-		[return: NotNullIfNotNull(nameof(value))]
-		public static JsonObject? FromObject<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
 		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
@@ -1613,7 +1620,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddValues<TValue>(ReadOnlySpan<(string Key, TValue Value)> items)
+		public JsonObject AddValues<TValue>(ReadOnlySpan<(string Key, TValue Value)> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (items.Length == 0) return this;
@@ -1624,7 +1631,7 @@ namespace Doxense.Serialization.Json
 			foreach (var item in items)
 			{
 				Contract.Debug.Requires(item.Key != null);
-				self.Add(item.Key, FromValue<TValue>(item.Value));
+				self.Add(item.Key, FromValue<TValue>(item.Value, settings, resolver));
 			}
 
 			return this;
@@ -2035,7 +2042,7 @@ namespace Doxense.Serialization.Json
 		#region Mutable...
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddValues<TValue>(ReadOnlySpan<KeyValuePair<string, TValue>> items)
+		public JsonObject AddValues<TValue>(ReadOnlySpan<KeyValuePair<string, TValue>> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 
@@ -2046,94 +2053,80 @@ namespace Doxense.Serialization.Json
 
 			foreach (var kvp in items)
 			{
-				self.Add(kvp.Key, FromValue(kvp.Value));
+				self.Add(kvp.Key, FromValue(kvp.Value, settings, resolver));
 			}
 
 			return this;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddValues<TValue>(KeyValuePair<string, TValue>[] items)
+		public JsonObject AddValues<TValue>(KeyValuePair<string, TValue>[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			Contract.NotNull(items);
-			return AddValues<TValue>(items.AsSpan());
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
+			if (items is null || items.Length == 0) return this;
+
+			return AddValues<TValue>(items.AsSpan(), settings, resolver);
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddValues<TValue>(Dictionary<string, TValue> items)
+		public JsonObject AddValues<TValue>(IDictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.NotNull(items);
 
-			if (items.Count == 0) return this;
+			if (items is null || items.Count == 0) return this;
 
 			var self = m_items;
 			self.EnsureCapacity(checked(this.Count + items.Count));
 
-			foreach (var kvp in items)
+			if (items is Dictionary<string, TValue> dict)
 			{
-				self.Add(kvp.Key, FromValue(kvp.Value));
+				foreach (var kvp in dict)
+				{
+					self.Add(kvp.Key, FromValue(kvp.Value, settings, resolver));
+				}
+			}
+			else
+			{
+				foreach (var kvp in items)
+				{
+					self.Add(kvp.Key, FromValue(kvp.Value, settings, resolver));
+				}
 			}
 
 			return this;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddValues<TValue>(List<KeyValuePair<string, TValue>> items)
+		public JsonObject AddValues<TValue>(IEnumerable<KeyValuePair<string, TValue>>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.NotNull(items);
 
-			if (items.Count == 0) return this;
+			if (items is null) return this;
+
+			if (items is IDictionary<string, TValue> dict)
+			{
+				return AddValues<TValue>(dict, settings, resolver);
+			}
+
+			if (Buffer<KeyValuePair<string, TValue>>.TryGetSpan(items, out var span))
+			{
+				return AddValues<TValue>(span, settings, resolver);
+			}
 
 			var self = m_items;
-			self.EnsureCapacity(checked(this.Count + items.Count));
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{
+				if (count == 0) return this;
+				self.EnsureCapacity(checked(this.Count + count));
+			}
 
 			foreach (var kvp in items)
 			{
-				self.Add(kvp.Key, FromValue(kvp.Value));
+				self.Add(kvp.Key, FromValue(kvp.Value, settings, resolver));
 			}
 
 			return this;
-		}
-
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public JsonObject AddValues<TValue>(IEnumerable<KeyValuePair<string, TValue>> items)
-		{
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.NotNull(items);
-
-			switch (items)
-			{
-				case Dictionary<string, TValue> dict:
-				{
-					return AddValues(dict);
-				}
-				case List<KeyValuePair<string, TValue>> list:
-				{
-					return AddValues<TValue>(CollectionsMarshal.AsSpan(list));
-				}
-				case KeyValuePair<string, TValue>[] arr:
-				{
-					return AddValues<TValue>(arr.AsSpan());
-				}
-				default:
-				{
-					var self = m_items;
-					if (items.TryGetNonEnumeratedCount(out var count))
-					{
-						if (count == 0) return this;
-						self.EnsureCapacity(checked(this.Count + count));
-					}
-
-					foreach (var kvp in items)
-					{
-						self.Add(kvp.Key, FromValue(kvp.Value));
-					}
-
-					return this;
-				}
-			}
 		}
 
 		#endregion
@@ -2141,6 +2134,7 @@ namespace Doxense.Serialization.Json
 		#region Immutable...
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[Obsolete("Call AddValues with read-only settings")]
 		public JsonObject AddValuesReadOnly<TValue>(ReadOnlySpan<KeyValuePair<string, TValue>> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -2159,6 +2153,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[Obsolete("Call AddValues with read-only settings")]
 		public JsonObject AddValuesReadOnly<TValue>(KeyValuePair<string, TValue>[] items)
 		{
 			Contract.NotNull(items);
@@ -2166,6 +2161,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[Obsolete("Call AddValues with read-only settings")]
 		public JsonObject AddValuesReadOnly<TValue>(Dictionary<string, TValue> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -2185,6 +2181,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[Obsolete("Call AddValues with read-only settings")]
 		public JsonObject AddValuesReadOnly<TValue>(List<KeyValuePair<string, TValue>> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -2204,6 +2201,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[Obsolete("Call AddValues with read-only settings")]
 		public JsonObject AddValuesReadOnly<TValue>(IEnumerable<KeyValuePair<string, TValue>> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);

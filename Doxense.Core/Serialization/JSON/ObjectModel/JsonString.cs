@@ -37,7 +37,20 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
-	public sealed class JsonString : JsonValue, IEquatable<JsonString>, IEquatable<string>, IEquatable<Guid>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
+	public sealed class JsonString : JsonValue,
+		IEquatable<JsonString>,
+		IEquatable<string>,
+		IEquatable<Guid>,
+		IEquatable<Uuid128>,
+		IEquatable<Uuid96>,
+		IEquatable<Uuid80>,
+		IEquatable<Uuid64>,
+		IEquatable<DateTime>,
+		IEquatable<DateTimeOffset>,
+		IEquatable<DateOnly>,
+		IEquatable<TimeOnly>,
+		IEquatable<NodaTime.LocalDateTime>,
+		IEquatable<NodaTime.LocalDate>
 	{
 		public static readonly JsonValue Empty = new JsonString(string.Empty);
 
@@ -225,54 +238,54 @@ namespace Doxense.Serialization.Json
 				var map = new Dictionary<Type, JsonString>(TypeEqualityComparer.Default)
 				{
 					// basic types
-					[typeof(object)] = new JsonString("object"),
-					[typeof(string)] = new JsonString("string"),
-					[typeof(bool)] = new JsonString("bool"),
-					[typeof(char)] = new JsonString("char"),
-					[typeof(sbyte)] = new JsonString("sbyte"),
-					[typeof(short)] = new JsonString("short"),
-					[typeof(int)] = new JsonString("int"),
-					[typeof(long)] = new JsonString("long"),
-					[typeof(byte)] = new JsonString("byte"),
-					[typeof(ushort)] = new JsonString("ushort"),
-					[typeof(uint)] = new JsonString("uint"),
-					[typeof(ulong)] = new JsonString("ulong"),
-					[typeof(float)] = new JsonString("float"),
-					[typeof(double)] = new JsonString("double"),
-					[typeof(decimal)] = new JsonString("decimal"),
-					[typeof(TimeSpan)] = new JsonString("TimeSpan"),
-					[typeof(DateTime)] = new JsonString("DateTime"),
-					[typeof(DateTimeOffset)] = new JsonString("DateTimeOffset"),
-					[typeof(DateOnly)] = new JsonString("DateOnly"),
-					[typeof(TimeOnly)] = new JsonString("TimeOnly"),
-					[typeof(Guid)] = new JsonString("Guid"),
+					[typeof(object)] = new("object"),
+					[typeof(string)] = new("string"),
+					[typeof(bool)] = new("bool"),
+					[typeof(char)] = new("char"),
+					[typeof(sbyte)] = new("sbyte"),
+					[typeof(short)] = new("short"),
+					[typeof(int)] = new("int"),
+					[typeof(long)] = new("long"),
+					[typeof(byte)] = new("byte"),
+					[typeof(ushort)] = new("ushort"),
+					[typeof(uint)] = new("uint"),
+					[typeof(ulong)] = new("ulong"),
+					[typeof(float)] = new("float"),
+					[typeof(double)] = new("double"),
+					[typeof(decimal)] = new("decimal"),
+					[typeof(TimeSpan)] = new("TimeSpan"),
+					[typeof(DateTime)] = new("DateTime"),
+					[typeof(DateTimeOffset)] = new("DateTimeOffset"),
+					[typeof(DateOnly)] = new("DateOnly"),
+					[typeof(TimeOnly)] = new("TimeOnly"),
+					[typeof(Guid)] = new("Guid"),
 					// nullable types
-					[typeof(bool?)] = new JsonString("bool?"),
-					[typeof(char?)] = new JsonString("char?"),
-					[typeof(sbyte?)] = new JsonString("sbyte?"),
-					[typeof(short?)] = new JsonString("short?"),
-					[typeof(int?)] = new JsonString("int?"),
-					[typeof(long?)] = new JsonString("long?"),
-					[typeof(byte?)] = new JsonString("byte?"),
-					[typeof(ushort?)] = new JsonString("ushort?"),
-					[typeof(uint?)] = new JsonString("uint?"),
-					[typeof(ulong?)] = new JsonString("ulong?"),
-					[typeof(float?)] = new JsonString("float?"),
-					[typeof(double?)] = new JsonString("double?"),
-					[typeof(decimal?)] = new JsonString("decimal?"),
-					[typeof(TimeSpan?)] = new JsonString("TimeSpan?"),
-					[typeof(DateTime?)] = new JsonString("DateTime?"),
-					[typeof(DateTimeOffset?)] = new JsonString("DateTimeOffset?"),
-					[typeof(DateOnly?)] = new JsonString("DateOnly?"),
-					[typeof(TimeOnly?)] = new JsonString("TimeOnly?"),
-					[typeof(Guid?)] = new JsonString("Guid?"),
+					[typeof(bool?)] = new("bool?"),
+					[typeof(char?)] = new("char?"),
+					[typeof(sbyte?)] = new("sbyte?"),
+					[typeof(short?)] = new("short?"),
+					[typeof(int?)] = new("int?"),
+					[typeof(long?)] = new("long?"),
+					[typeof(byte?)] = new("byte?"),
+					[typeof(ushort?)] = new("ushort?"),
+					[typeof(uint?)] = new("uint?"),
+					[typeof(ulong?)] = new("ulong?"),
+					[typeof(float?)] = new("float?"),
+					[typeof(double?)] = new("double?"),
+					[typeof(decimal?)] = new("decimal?"),
+					[typeof(TimeSpan?)] = new("TimeSpan?"),
+					[typeof(DateTime?)] = new("DateTime?"),
+					[typeof(DateTimeOffset?)] = new("DateTimeOffset?"),
+					[typeof(DateOnly?)] = new("DateOnly?"),
+					[typeof(TimeOnly?)] = new("TimeOnly?"),
+					[typeof(Guid?)] = new("Guid?"),
 					// system types
-					[typeof(Uri)] = new JsonString(typeof(Uri).FullName!),
-					[typeof(Version)] = new JsonString(typeof(Version).FullName!),
-					[typeof(Exception)] = new JsonString(typeof(Exception).FullName!),
+					[typeof(Uri)] = new(typeof(Uri).FullName!),
+					[typeof(Version)] = new(typeof(Version).FullName!),
+					[typeof(Exception)] = new(typeof(Exception).FullName!),
 					//
 				};
-				return new QuasiImmutableCache<Type, JsonString>(map);
+				return new(map);
 			}
 
 			[Pure]
@@ -505,45 +518,92 @@ namespace Doxense.Serialization.Json
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
-#if !DEBUG
-			if (typeof(T) == typeof(bool)) return (T) (object) ToBoolean();
-			if (typeof(T) == typeof(byte)) return (T) (object) ToByte();
-			if (typeof(T) == typeof(sbyte)) return (T) (object) ToSByte();
-			if (typeof(T) == typeof(char)) return (T) (object) ToChar();
-			if (typeof(T) == typeof(short)) return (T) (object) ToInt16();
-			if (typeof(T) == typeof(ushort)) return (T) (object) ToUInt16();
-			if (typeof(T) == typeof(int)) return (T) (object) ToInt32();
-			if (typeof(T) == typeof(uint)) return (T) (object) ToUInt32();
-			if (typeof(T) == typeof(ulong)) return (T) (object) ToUInt64();
-			if (typeof(T) == typeof(long)) return (T) (object) ToInt64();
-			if (typeof(T) == typeof(float)) return (T) (object) ToSingle();
-			if (typeof(T) == typeof(double)) return (T) (object) ToDouble();
-			if (typeof(T) == typeof(decimal)) return (T) (object) ToDecimal();
-			if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
-			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
-			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
-			if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
-			if (typeof(T) == typeof(TimeOnly)) return (T) (object) ToTimeOnly();
-			if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
-			if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
-			if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
-			if (typeof(T) == typeof(Uuid80)) return (T) (object) ToUuid80();
-			if (typeof(T) == typeof(Uuid64)) return (T) (object) ToUuid64();
-			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
-			if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) ToDuration();
-			if (typeof(T) == typeof(NodaTime.LocalDateTime)) return (T) (object) ToLocalDateTime();
-			if (typeof(T) == typeof(NodaTime.LocalDate)) return (T) (object) ToLocalDate();
-			if (typeof(T) == typeof(NodaTime.Offset)) return (T) (object) ToOffset();
+
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(bool)) return (T) (object) ToBoolean();
+				if (typeof(T) == typeof(byte)) return (T) (object) ToByte();
+				if (typeof(T) == typeof(sbyte)) return (T) (object) ToSByte();
+				if (typeof(T) == typeof(char)) return (T) (object) ToChar();
+				if (typeof(T) == typeof(short)) return (T) (object) ToInt16();
+				if (typeof(T) == typeof(ushort)) return (T) (object) ToUInt16();
+				if (typeof(T) == typeof(int)) return (T) (object) ToInt32();
+				if (typeof(T) == typeof(uint)) return (T) (object) ToUInt32();
+				if (typeof(T) == typeof(ulong)) return (T) (object) ToUInt64();
+				if (typeof(T) == typeof(long)) return (T) (object) ToInt64();
+				if (typeof(T) == typeof(float)) return (T) (object) ToSingle();
+				if (typeof(T) == typeof(double)) return (T) (object) ToDouble();
+				if (typeof(T) == typeof(decimal)) return (T) (object) ToDecimal();
+				if (typeof(T) == typeof(TimeSpan)) return (T) (object) ToTimeSpan();
+				if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
+				if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
+				if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
+				if (typeof(T) == typeof(TimeOnly)) return (T) (object) ToTimeOnly();
+				if (typeof(T) == typeof(Guid)) return (T) (object) ToGuid();
+				if (typeof(T) == typeof(Uuid128)) return (T) (object) ToUuid128();
+				if (typeof(T) == typeof(Uuid96)) return (T) (object) ToUuid96();
+				if (typeof(T) == typeof(Uuid80)) return (T) (object) ToUuid80();
+				if (typeof(T) == typeof(Uuid64)) return (T) (object) ToUuid64();
+				if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
+				if (typeof(T) == typeof(NodaTime.Duration)) return (T) (object) ToDuration();
+				if (typeof(T) == typeof(NodaTime.LocalDateTime)) return (T) (object) ToLocalDateTime();
+				if (typeof(T) == typeof(NodaTime.LocalDate)) return (T) (object) ToLocalDate();
+				if (typeof(T) == typeof(NodaTime.Offset)) return (T) (object) ToOffset();
+				if (typeof(T) == typeof(Half)) return (T) (object) ToHalf();
+#if NET8_0_OR_GREATER
+				if (typeof(T) == typeof(Int128)) return (T) (object) ToInt128();
+				if (typeof(T) == typeof(UInt128)) return (T) (object) ToUInt128();
 #endif
+
+				return (T?) Bind(typeof(T), resolver);
+			}
+			else
+			{
+				if (typeof(T) == typeof(string)) return (T) (object) m_value;
+
+				if (typeof(T) == typeof(bool?)) return (T?) (object?) ToBooleanOrDefault((bool?) (object?) defaultValue);
+				if (typeof(T) == typeof(byte?)) return (T?) (object?) ToByteOrDefault((byte?) (object?) defaultValue);
+				if (typeof(T) == typeof(sbyte?)) return (T?) (object?) ToSByteOrDefault((sbyte?) (object?) defaultValue);
+				if (typeof(T) == typeof(char?)) return (T?) (object?) ToCharOrDefault((char?) (object?) defaultValue);
+				if (typeof(T) == typeof(short?)) return (T?) (object?) ToInt16OrDefault((short?) (object?) defaultValue);
+				if (typeof(T) == typeof(ushort?)) return (T?) (object?) ToUInt16OrDefault((ushort?) (object?) defaultValue);
+				if (typeof(T) == typeof(int?)) return (T?) (object?) ToInt32OrDefault((int?) (object?) defaultValue);
+				if (typeof(T) == typeof(uint?)) return (T?) (object?) ToUInt32OrDefault((uint?) (object?) defaultValue);
+				if (typeof(T) == typeof(ulong?)) return (T?) (object?) ToUInt64OrDefault((ulong?) (object?) defaultValue);
+				if (typeof(T) == typeof(long?)) return (T?) (object?) ToInt64OrDefault((long?) (object?) defaultValue);
+				if (typeof(T) == typeof(float?)) return (T?) (object?) ToSingleOrDefault((float?) (object?) defaultValue);
+				if (typeof(T) == typeof(double?)) return (T?) (object?) ToDoubleOrDefault((double?) (object?) defaultValue);
+				if (typeof(T) == typeof(decimal?)) return (T?) (object?) ToDecimalOrDefault((decimal?) (object?) defaultValue);
+				if (typeof(T) == typeof(TimeSpan?)) return (T?) (object?) ToTimeSpanOrDefault((TimeSpan?) (object?) defaultValue);
+				if (typeof(T) == typeof(DateTime?)) return (T?) (object?) ToDateTimeOrDefault((DateTime?) (object?) defaultValue);
+				if (typeof(T) == typeof(DateTimeOffset?)) return (T?) (object?) ToDateTimeOffsetOrDefault((DateTimeOffset?) (object?) defaultValue);
+				if (typeof(T) == typeof(DateOnly?)) return (T?) (object?) ToDateOnlyOrDefault((DateOnly?) (object?) defaultValue);
+				if (typeof(T) == typeof(TimeOnly?)) return (T?) (object?) ToTimeOnlyOrDefault((TimeOnly?) (object?) defaultValue);
+				if (typeof(T) == typeof(Guid?)) return (T?) (object?) ToGuidOrDefault((Guid?) (object?) defaultValue);
+				if (typeof(T) == typeof(Uuid128?)) return (T?) (object?) ToUuid128OrDefault((Uuid128?) (object?) defaultValue);
+				if (typeof(T) == typeof(Uuid96?)) return (T?) (object?) ToUuid96OrDefault((Uuid96?) (object?) defaultValue);
+				if (typeof(T) == typeof(Uuid80?)) return (T?) (object?) ToUuid80OrDefault((Uuid80?) (object?) defaultValue);
+				if (typeof(T) == typeof(Uuid64?)) return (T?) (object?) ToUuid64OrDefault((Uuid64?) (object?) defaultValue);
+				if (typeof(T) == typeof(NodaTime.Instant?)) return (T?) (object?) ToInstantOrDefault((NodaTime.Instant?) (object?) defaultValue);
+				if (typeof(T) == typeof(NodaTime.Duration?)) return (T?) (object?) ToDurationOrDefault((NodaTime.Duration?) (object?) defaultValue);
+				if (typeof(T) == typeof(NodaTime.LocalDateTime?)) return (T?) (object?) ToLocalDateTime();
+				if (typeof(T) == typeof(NodaTime.LocalDate?)) return (T?) (object?) ToLocalDate();
+				if (typeof(T) == typeof(NodaTime.Offset?)) return (T?) (object?) ToOffset();
+				if (typeof(T) == typeof(Half?)) return (T?) (object?) ToHalfOrDefault((Half?) (object?) defaultValue);
+#if NET8_0_OR_GREATER
+				if (typeof(T) == typeof(Int128?)) return (T?) (object?) ToInt128OrDefault((Int128?) (object?) defaultValue);
+				if (typeof(T) == typeof(UInt128?)) return (T?) (object?) ToUInt128OrDefault((UInt128?) (object?) defaultValue);
+#endif
+
+				return (T?) (Bind(typeof(T), resolver) ?? defaultValue);
+			}
+
 			#endregion
 
-			return typeof(T) == typeof(string) ? (T) (object) m_value : (T?) (Bind(typeof(T), resolver) ?? defaultValue);
 		}
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			//TODO: réécrire via une Dictionary<Type, Func<..>> pour éviter le train de if/elseif !
-
 			if (type == null || typeof(string) == type || typeof(object) == type)
 			{
 				//TODO: si object, heuristics pour convertir en DateTime ?
@@ -796,9 +856,19 @@ namespace Doxense.Serialization.Json
 		{
 			if (default(TValue) is null)
 			{
-				if (typeof(TValue) == typeof(DateTime?)) return Equals((DateTime) (object) value!);
-				if (typeof(TValue) == typeof(DateTimeOffset?)) return Equals((DateTimeOffset) (object) value!);
-				if (typeof(TValue) == typeof(NodaTime.Instant?)) return Equals((NodaTime.Instant) (object) value!);
+				if (value is null) return false;
+
+				if (typeof(TValue) == typeof(DateTime?)) return Equals((DateTime) (object) value);
+				if (typeof(TValue) == typeof(DateTimeOffset?)) return Equals((DateTimeOffset) (object) value);
+				if (typeof(TValue) == typeof(DateOnly?)) return Equals((DateOnly) (object) value);
+				if (typeof(TValue) == typeof(TimeOnly?)) return Equals((TimeOnly) (object) value);
+				if (typeof(TValue) == typeof(Guid?)) return Equals((Guid) (object) value);
+				if (typeof(TValue) == typeof(Uuid128?)) return Equals((Uuid128) (object) value);
+				if (typeof(TValue) == typeof(Uuid96?)) return Equals((Uuid96) (object) value);
+				if (typeof(TValue) == typeof(Uuid80?)) return Equals((Uuid80) (object) value);
+				if (typeof(TValue) == typeof(Uuid64?)) return Equals((Uuid64) (object) value);
+				if (typeof(TValue) == typeof(NodaTime.Instant?)) return Equals((NodaTime.Instant) (object) value);
+				if (typeof(TValue) == typeof(NodaTime.LocalDate?)) return Equals((NodaTime.LocalDate) (object) value);
 
 				if (typeof(TValue) == typeof(string)) return Equals(Unsafe.As<string>(value));
 
@@ -808,9 +878,17 @@ namespace Doxense.Serialization.Json
 			{
 				if (typeof(TValue) == typeof(DateTime)) return Equals((DateTime) (object) value!);
 				if (typeof(TValue) == typeof(DateTimeOffset)) return Equals((DateTimeOffset) (object) value!);
+				if (typeof(TValue) == typeof(DateOnly)) return Equals((DateOnly) (object) value!);
+				if (typeof(TValue) == typeof(TimeOnly)) return Equals((TimeOnly) (object) value!);
+				if (typeof(TValue) == typeof(Guid)) return Equals((Guid) (object) value!);
+				if (typeof(TValue) == typeof(Uuid128)) return Equals((Uuid128) (object) value!);
+				if (typeof(TValue) == typeof(Uuid96)) return Equals((Uuid96) (object) value!);
+				if (typeof(TValue) == typeof(Uuid80)) return Equals((Uuid80) (object) value!);
+				if (typeof(TValue) == typeof(Uuid64)) return Equals((Uuid64) (object) value!);
 				if (typeof(TValue) == typeof(NodaTime.Instant)) return Equals((NodaTime.Instant) (object) value!);
+				if (typeof(TValue) == typeof(NodaTime.LocalDate)) return Equals((NodaTime.LocalDate) (object) value!);
 			}
-			
+
 			return false;
 		}
 
@@ -819,35 +897,29 @@ namespace Doxense.Serialization.Json
 			return obj != null && string.Equals(m_value, obj, StringComparison.Ordinal);
 		}
 
-		public bool Equals(Guid obj)
-		{
-			return ToGuid() == obj;
-		}
+		public bool Equals(Guid obj) => ToGuid() == obj;
 
-		public bool Equals(DateTime obj)
-		{
-			return ToDateTime() == obj;
-		}
+		public bool Equals(Uuid128 obj) => ToUuid128() == obj;
 
-		public bool Equals(DateTimeOffset obj)
-		{
-			return ToDateTimeOffset() == obj;
-		}
+		public bool Equals(Uuid96 obj) => ToUuid96() == obj;
 
-		public bool Equals(NodaTime.LocalDateTime obj)
-		{
-			return ToLocalDateTime() == obj;
-		}
+		public bool Equals(Uuid80 obj) => ToUuid80() == obj;
 
-		public bool Equals(NodaTime.LocalDate obj)
-		{
-			return ToLocalDate() == obj;
-		}
+		public bool Equals(Uuid64 obj) => ToUuid64() == obj;
 
-		public override int GetHashCode()
-		{
-			return m_value.GetHashCode();
-		}
+		public bool Equals(DateTime obj) => ToDateTime() == obj;
+
+		public bool Equals(DateTimeOffset obj) => ToDateTimeOffset() == obj;
+
+		public bool Equals(DateOnly obj) => ToDateOnly() == obj;
+
+		public bool Equals(TimeOnly obj) => ToTimeOnly() == obj;
+
+		public bool Equals(NodaTime.LocalDateTime obj) => ToLocalDateTime() == obj;
+
+		public bool Equals(NodaTime.LocalDate obj) => ToLocalDate() == obj;
+
+		public override int GetHashCode() => m_value.GetHashCode();
 
 		public override int CompareTo(JsonValue? other)
 		{
@@ -1327,9 +1399,9 @@ namespace Doxense.Serialization.Json
 			return TryConvertDateTime(m_value, out dt);
 		}
 
-		internal static bool TryConvertDateTime(string literal, out DateTime dt)
+		internal static bool TryConvertDateTime(ReadOnlySpan<char> literal, out DateTime dt)
 		{
-			if (string.IsNullOrEmpty(literal))
+			if (literal.Length == 0)
 			{
 				dt = default;
 				return false;
@@ -1373,12 +1445,12 @@ namespace Doxense.Serialization.Json
 			{
 				if (tz.HasValue)
 				{
-					return new DateTimeOffset(d, tz.Value);
+					return new(d, tz.Value);
 				}
-				return new DateTimeOffset(d);
+				return new(d);
 			}
 
-			return new DateTimeOffset(StringConverters.ParseDateTime(m_value));
+			return new(StringConverters.ParseDateTime(m_value));
 		}
 
 		public override DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null)
@@ -1391,7 +1463,7 @@ namespace Doxense.Serialization.Json
 			return TryConvertDateTimeOffset(m_value, out dto);
 		}
 
-		internal static bool TryConvertDateTimeOffset(string literal, out DateTimeOffset dto)
+		internal static bool TryConvertDateTimeOffset(ReadOnlySpan<char> literal, out DateTimeOffset dto)
 		{
 			if (literal.Length == 0)
 			{
@@ -1428,10 +1500,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
 		}
 
-		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null)
-		{
-			return string.IsNullOrEmpty(m_value) ? defaultValue : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
-		}
+		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToTimeSpan();
 
 		#endregion
 
@@ -1485,17 +1554,23 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonNodaPatterns.LocalDateTimes.Parse(value).Value;
 		}
 
+		public NodaTime.LocalDateTime? ToLocalDateTimeOrDefault(NodaTime.LocalDateTime? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToLocalDateTime();
+
 		public NodaTime.ZonedDateTime ToZonedDateTime(NodaTime.ZonedDateTime defaultValue = default)
 		{
 			string value = m_value;
 			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.ZonedDateTimes.Parse(value).Value;
 		}
 
+		public NodaTime.ZonedDateTime? ToZonedDateTimeOrDefault(NodaTime.ZonedDateTime? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToZonedDateTime();
+
 		public NodaTime.OffsetDateTime ToOffsetDateTime(NodaTime.OffsetDateTime defaultValue = default)
 		{
 			string value = m_value;
 			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.OffsetDateTimes.Parse(value).Value;
 		}
+
+		public NodaTime.OffsetDateTime? ToOffsetDateTimeOrDefault(NodaTime.OffsetDateTime? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToOffsetDateTime();
 
 		public NodaTime.DateTimeZone? ToDateTimeZone(NodaTime.DateTimeZone? defaultValue = default)
 		{
@@ -1509,11 +1584,15 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.Offsets.Parse(value).Value;
 		}
 
+		public NodaTime.Offset? ToOffsetOrDefault(NodaTime.Offset? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToOffset();
+
 		public NodaTime.LocalDate ToLocalDate(NodaTime.LocalDate defaultValue = default)
 		{
 			string value = m_value;
 			return string.IsNullOrEmpty(value) ? defaultValue : CrystalJsonNodaPatterns.LocalDates.Parse(value).Value;
 		}
+
+		public NodaTime.LocalDate? ToLocalDateOrDefault(NodaTime.LocalDate? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToLocalDate();
 
 		#endregion
 

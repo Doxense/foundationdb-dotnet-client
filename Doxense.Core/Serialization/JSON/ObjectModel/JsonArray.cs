@@ -37,6 +37,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using Doxense.Linq;
 	using Doxense.Memory;
 	using NodaTime;
 
@@ -668,7 +669,13 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return new JsonArray().AddValues<TValue>(values, settings, resolver);
+			var arr = new JsonArray();
+			arr.AddValues<TValue>(values, settings, resolver);
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
 		}
 
 		/// <summary>Creates a new mutable JSON Array from an array of raw values.</summary>
@@ -678,10 +685,18 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<TValue>(TValue[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		[return: NotNullIfNotNull(nameof(values))]
+		public static JsonArray? FromValues<TValue>(TValue[]? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			Contract.NotNull(values);
-			return new JsonArray().AddValues<TValue>(new ReadOnlySpan<TValue>(values), settings, resolver);
+			if (values is null) return null;
+
+			var arr = new JsonArray();
+			arr.AddValues<TValue>(new ReadOnlySpan<TValue>(values), settings, resolver);
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
 		}
 
 		/// <summary>Creates a new mutable JSON Array from a sequence of raw values.</summary>
@@ -691,9 +706,18 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<TValue>(IEnumerable<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		[return: NotNullIfNotNull(nameof(values))]
+		public static JsonArray? FromValues<TValue>(IEnumerable<TValue>? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return new JsonArray().AddValues<TValue>(values, settings, resolver);
+			if (values is null) return null;
+
+			var arr = new JsonArray();
+			arr.AddValues<TValue>(values, settings, resolver);
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
 		}
 
 		/// <summary>Creates a new mutable JSON Array with values extracted from a span of source items.</summary>
@@ -708,7 +732,14 @@ namespace Doxense.Serialization.Json
 		public static JsonArray FromValues<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(selector);
-			return new JsonArray().AddValues(values, selector, settings, resolver);
+
+			var arr = new JsonArray().AddValues(values, selector, settings, resolver);
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
 		}
 
 		/// <summary>Creates a new mutable JSON Array with values extracted from an array of source items.</summary>
@@ -720,10 +751,18 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all the values extracted from the source, and converted into <see cref="JsonValue"/> instances</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		[return: NotNullIfNotNull(nameof(values))]
+		public static JsonArray? FromValues<TItem, TValue>(TItem[]? values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			Contract.NotNull(values);
-			return new JsonArray().AddValues(new ReadOnlySpan<TItem>(values), selector, settings, resolver);
+			if (values is null) return null;
+
+			var arr = new JsonArray().AddValues(new ReadOnlySpan<TItem>(values), selector, settings, resolver);
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
 		}
 
 		/// <summary>Creates a new mutable JSON Array with values extracted from a sequence of source items.</summary>
@@ -735,9 +774,19 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all the values extracted from the source, and converted into <see cref="JsonValue"/> instances</returns>
 		[Pure]
-		public static JsonArray FromValues<TItem, TValue>(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		[return: NotNullIfNotNull(nameof(values))]
+		public static JsonArray? FromValues<TItem, TValue>(IEnumerable<TItem>? values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return new JsonArray().AddValues(values, selector, settings, resolver);
+			if (values is null) return null;
+
+			var arr = new JsonArray().AddValues(values, selector, settings, resolver);
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+
 		}
 
 		#endregion
@@ -751,6 +800,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Call FromValues with readonly settings")]
 		public static JsonArray FromValuesReadOnly<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(values, settings, resolver).FreezeUnsafe();
@@ -763,9 +813,11 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValuesReadOnly<TValue>(TValue[] values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		[return: NotNullIfNotNull(nameof(values))]
+		[Obsolete("Call FromValues with readonly settings")]
+		public static JsonArray? FromValuesReadOnly<TValue>(TValue[]? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			Contract.NotNull(values);
+			if (values is null) return null;
 			return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(values), settings, resolver).FreezeUnsafe();
 		}
 
@@ -776,9 +828,11 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValuesReadOnly<TValue>(IEnumerable<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		[return: NotNullIfNotNull(nameof(values))]
+		[Obsolete("Call FromValues with readonly settings")]
+		public static JsonArray? FromValuesReadOnly<TValue>(IEnumerable<TValue>? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			Contract.NotNull(values);
+			if (values is null) return null;
 			return values.TryGetNonEnumeratedCount(out var count) && count == 0
 				? JsonArray.EmptyReadOnly
 				: new JsonArray().AddValuesReadOnly<TValue>(values, settings, resolver).FreezeUnsafe();
@@ -793,6 +847,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Call FromValues with readonly settings")]
 		public static JsonArray FromValuesReadOnly<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(selector);
@@ -808,6 +863,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Call FromValues with readonly settings")]
 		public static JsonArray FromValuesReadOnly<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
@@ -823,6 +879,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
 		[Pure]
+		[Obsolete("Call FromValues with readonly settings")]
 		public static JsonArray FromValuesReadOnly<TItem, TValue>(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(values);
@@ -979,7 +1036,10 @@ namespace Doxense.Serialization.Json
 			if (size > 0)
 			{
 				var tmp = new JsonValue[size];
-				this.AsSpan().CopyTo(tmp);
+				if (m_size > 0)
+				{ // copy existing items
+					m_items.AsSpan(0, m_size).CopyTo(tmp);
+				}
 				m_items = tmp;
 			}
 			else
@@ -995,6 +1055,33 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns a memory of all items in this array</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal Memory<JsonValue> AsMemory() => m_items.AsMemory(0, m_size);
+
+		/// <summary>Sets the count of the array and returns a span on all the items</summary>
+		/// <param name="count">Number of items that will be written to this array</param>
+		/// <param name="skipInit">If <see langword="false"/> (default), pre-fill the span with <see cref="JsonNull.Null"/>, if <see langword="true"/> the caller <b>MUST</b> fill the span with non-null entries or risk breaking the array!</param>
+		/// <returns>Span that can be used to fill this array.</returns>
+		internal Span<JsonValue> GetSpanAndSetCount([Positive] int count, bool skipInit = false)
+		{
+			Contract.Positive(count);
+
+			if (count < m_size)
+			{
+				throw new InvalidOperationException("Cannot reduce the size of an array");
+			}
+
+			if (m_items.Length < count)
+			{ // set the buffer size to the exact amount
+				ResizeBuffer(count);
+			}
+
+			if (!skipInit && count > m_size)
+			{ // fill the items 
+				m_items.AsSpan(m_size, count - m_size).Fill(JsonNull.Null);
+			}
+
+			m_size = count;
+			return m_items.AsSpan(0, count);
+		}
 
 		/// <summary>Trim the size of the internal buffer to reduce memory consumption.</summary>
 		/// <remarks>
@@ -1212,15 +1299,9 @@ namespace Doxense.Serialization.Json
 			}
 
 			// Regular Array
-			if (values is JsonValue?[] arr)
+			if (Buffer<JsonValue?>.TryGetSpan(values, out var span))
 			{ // optimized
-				return AddRange(new ReadOnlySpan<JsonValue?>(arr));
-			}
-
-			// Collection
-			if (values is List<JsonValue?> list)
-			{
-				return AddRange(CollectionsMarshal.AsSpan(list));
+				return AddRange(span);
 			}
 
 			if (values.TryGetNonEnumeratedCount(out var count))
@@ -1258,16 +1339,9 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(values);
 
-			// Regular Array
-			if (values is TSource[] arr)
+			if (Buffer<TSource>.TryGetSpan(values, out var span))
 			{ // optimized
-				return AddRange(new ReadOnlySpan<TSource>(arr), selector);
-			}
-
-			// Collection
-			if (values is List<TSource> list)
-			{
-				return AddRange(CollectionsMarshal.AsSpan(list), selector);
+				return AddRange(span, selector);
 			}
 
 			if (values.TryGetNonEnumeratedCount(out var count))
@@ -1339,16 +1413,9 @@ namespace Doxense.Serialization.Json
 				return AddRangeReadOnly(jArr.GetSpan()!);
 			}
 
-			// Regular Array
-			if (values is JsonValue?[] arr)
+			if (Buffer<JsonValue?>.TryGetSpan(values, out var span))
 			{ // optimized
-				return AddRangeReadOnly(new ReadOnlySpan<JsonValue?>(arr));
-			}
-
-			// Collection
-			if (values is List<JsonValue?> list)
-			{
-				return AddRangeReadOnly(CollectionsMarshal.AsSpan(list));
+				return AddRangeReadOnly(span);
 			}
 
 			if (values.TryGetNonEnumeratedCount(out var count))
@@ -1484,14 +1551,9 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
-			if (items is TValue[] arr)
+			if (Buffer<TValue>.TryGetSpan(items, out var span))
 			{ // fast path for arrays
-				return AddValues<TValue>(new ReadOnlySpan<TValue>(arr), settings, resolver);
-			}
-
-			if (items is List<TValue> list)
-			{ // fast path for lists
-				return AddValues<TValue>(CollectionsMarshal.AsSpan(list), settings, resolver);
+				return AddValues<TValue>(span, settings, resolver);
 			}
 
 			if (items is IEnumerable<JsonValue?> json)
@@ -1685,14 +1747,9 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(items);
 			Contract.NotNull(transform);
 
-			if (items is TSource[] arr)
+			if (Buffer<TSource>.TryGetSpan(items, out var span))
 			{
-				return AddValues(new ReadOnlySpan<TSource>(arr), transform, settings, resolver);
-			}
-
-			if (items is List<TSource> list)
-			{
-				return AddValues(CollectionsMarshal.AsSpan(list), transform, settings, resolver);
+				return AddValues(span, transform, settings, resolver);
 			}
 
 			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
@@ -1873,14 +1930,9 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
-			if (items is TValue[] arr)
-			{ // fast path for arrays
-				return AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(arr), settings, resolver);
-			}
-
-			if (items is List<TValue> list)
-			{ // fast path for lists
-				return AddValuesReadOnly<TValue>(CollectionsMarshal.AsSpan(list), settings, resolver);
+			if (Buffer<TValue>.TryGetSpan(items, out var span))
+			{ // fast path for arrays, lists, ...
+				return AddValuesReadOnly<TValue>(span, settings, resolver);
 			}
 
 			if (items is IEnumerable<JsonValue?> json)
@@ -2073,14 +2125,9 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(items);
 			Contract.NotNull(transform);
 
-			if (items is TSource[] arr)
+			if (Buffer<TSource>.TryGetSpan(items, out var span))
 			{
-				return AddValuesReadOnly(new ReadOnlySpan<TSource>(arr), transform, settings, resolver);
-			}
-
-			if (items is List<TSource> list)
-			{
-				return AddValuesReadOnly(CollectionsMarshal.AsSpan(list), transform, settings, resolver);
+				return AddValuesReadOnly(span, transform, settings, resolver);
 			}
 
 			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
@@ -3647,6 +3694,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Deserializes a <see cref="JsonArray">JSON Array</see> into an array of <see cref="TValue"/></summary>
 		/// <typeparam name="TValue">Types of the items in the deserialized array</typeparam>
 		/// <param name="value">JSON value known to be a JSON Array</param>
+		/// <param name="defaultValue">Default value if the value is null or missing</param>
 		/// <param name="resolver">Optional type resolver</param>
 		/// <param name="required">If <see langword="true"/>, all items must be non-null</param>
 		/// <returns>Array of <see cref="TValue"/></returns>
