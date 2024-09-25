@@ -474,7 +474,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(short value, string expected)
 			{
-				Assert.That(Slice.FromInt16(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromInt16(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -541,7 +541,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(short value, string expected)
 			{
-				Assert.That(Slice.FromInt16BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromInt16BE(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -669,7 +669,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(int value, string expected)
 			{
-				Assert.That(Slice.FromInt32(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromInt32(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -752,7 +752,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(int value, string expected)
 			{
-				Assert.That(Slice.FromInt32BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromInt32BE(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -839,7 +839,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(long value, string expected)
 			{
-				Assert.That(Slice.FromInt64(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromInt64(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -955,7 +955,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(long value, string expected)
 			{
-				Assert.That(Slice.FromInt64BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromInt64BE(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -1094,11 +1094,11 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			static void Verify(Int128 value, string expected)
 			{
 				var s = Slice.FromInt128(value);
-				if (s.ToHexaString() != expected)
+				if (s.ToHexString() != expected)
 				{
-					var x = Slice.FromHexa(expected);
+					var x = Slice.FromHexString(expected);
 					DumpVersus(s, x);
-					Assert.That(s.ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+					Assert.That(s.ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 				}
 			}
 
@@ -1172,7 +1172,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 				{
 					Log("Invalid encoding (actual vs expected):");
 					DumpVersus(s.Span, expected);
-					Assert.That(s.ToHexaString(), Is.EqualTo(expected.AsSlice().ToHexaString()), $"Invalid encoding for {value}");
+					Assert.That(s.ToHexString(), Is.EqualTo(expected.AsSlice().ToHexString()), $"Invalid encoding for {value}");
 				}
 			}
 
@@ -1307,7 +1307,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(uint value, string expected)
 			{
-				Assert.That(Slice.FromUInt32(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromUInt32(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -1389,7 +1389,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(uint value, string expected)
 			{
-				Assert.That(Slice.FromUInt32BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromUInt32BE(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12, "12");
@@ -1473,7 +1473,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(ulong value, string expected)
 			{
-				Assert.That(Slice.FromUInt64(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromUInt64(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12UL, "12");
@@ -1652,7 +1652,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			static void Verify(ulong value, string expected)
 			{
-				Assert.That(Slice.FromUInt64BE(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromUInt64BE(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0x12UL, "12");
@@ -1776,8 +1776,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(float value, string expected)
 			{
-				Assert.That(Slice.FromSingle(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value} (Little Endian)");
-				Assert.That(Slice.FromSingleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), $"Invalid encoding for {value} (Big Endian)");
+				Assert.That(Slice.FromSingle(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value} (Little Endian)");
+				Assert.That(Slice.FromSingleBE(value).ToHexString(), Is.EqualTo(SwapHexa(expected)), $"Invalid encoding for {value} (Big Endian)");
 			}
 
 			Verify(0f, "00000000");
@@ -1804,8 +1804,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(string value, float expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToSingle(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
+				Assert.That(Slice.FromHexString(value).ToSingle(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
+				Assert.That(Slice.FromHexString(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
 			}
 
 			Assert.That(Slice.Empty.ToSingle(), Is.EqualTo(0d));
@@ -1836,8 +1836,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(double value, string expected)
 			{
-				Assert.That(Slice.FromDouble(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value} (Little Endian)");
-				Assert.That(Slice.FromDoubleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), $"Invalid encoding for {value} (Big Endian)");
+				Assert.That(Slice.FromDouble(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value} (Little Endian)");
+				Assert.That(Slice.FromDoubleBE(value).ToHexString(), Is.EqualTo(SwapHexa(expected)), $"Invalid encoding for {value} (Big Endian)");
 			}
 
 			Verify(0d, "0000000000000000");
@@ -1865,8 +1865,8 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(string value, double expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDouble(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
+				Assert.That(Slice.FromHexString(value).ToDouble(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Little Endian)");
+				Assert.That(Slice.FromHexString(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), $"Invalid decoding for '{value}' (Big Endian)");
 			}
 
 			Verify("", 0d);
@@ -1897,7 +1897,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(decimal value, string expected)
 			{
-				Assert.That(Slice.FromDecimal(value).ToHexaString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
+				Assert.That(Slice.FromDecimal(value).ToHexString(), Is.EqualTo(expected), $"Invalid encoding for {value}");
 			}
 
 			Verify(0m, "00000000000000000000000000000000");
@@ -1921,7 +1921,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		{
 			static void Verify(string value, decimal expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), $"Invalid decoding for '{value}'");
+				Assert.That(Slice.FromHexString(value).ToDecimal(), Is.EqualTo(expected), $"Invalid decoding for '{value}'");
 			}
 
 			Verify("", 0m);
@@ -1954,18 +1954,18 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			// empty guid should be all zeroes
 			var slice = Slice.FromGuid(Guid.Empty);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00000000000000000000000000000000"));
+			Assert.That(slice.ToHexString(), Is.EqualTo("00000000000000000000000000000000"));
 
 			// GUIDs should be stored using RFC 4122 (big endian)
 			var guid = new Guid("00112233-4455-6677-8899-aabbccddeeff");
 
 			// byte order should follow the string!
 			slice = Slice.FromGuid(guid);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "Slice.FromGuid() should use the RFC 4122 encoding");
+			Assert.That(slice.ToHexString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "Slice.FromGuid() should use the RFC 4122 encoding");
 
 			// but guid in memory should follow MS format
 			slice = guid.ToByteArray().AsSlice(); // <-- this is BAD, don't try this at home !
-			Assert.That(slice.ToHexaString(), Is.EqualTo("33221100554477668899AABBCCDDEEFF"));
+			Assert.That(slice.ToHexString(), Is.EqualTo("33221100554477668899AABBCCDDEEFF"));
 		}
 
 		[Test]
@@ -1980,7 +1980,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.ToGuid(), Is.EqualTo(Guid.Empty));
 
 			// RFC 4122 encoded UUIDs should be properly reversed when converted to System.GUID
-			slice = Slice.FromHexa("00112233445566778899aabbccddeeff");
+			slice = Slice.FromHexString("00112233445566778899aabbccddeeff");
 			Guid guid = slice.ToGuid();
 			Assert.That(guid.ToString(), Is.EqualTo("00112233-4455-6677-8899-aabbccddeeff"), "slice.ToGuid() should convert RFC 4122 encoded UUIDs into native System.Guid");
 
@@ -2007,18 +2007,18 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			// empty guid should be all zeroes
 			var slice = Slice.FromUuid128(Uuid128.Empty);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00000000000000000000000000000000"));
+			Assert.That(slice.ToHexString(), Is.EqualTo("00000000000000000000000000000000"));
 
 			// UUIDs should be stored using RFC 4122 (big endian)
 			var uuid = new Uuid128("00112233-4455-6677-8899-aabbccddeeff");
 
 			// byte order should follow the string!
 			slice = Slice.FromUuid128(uuid);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "Slice.FromUuid() should preserve RFC 4122 ordering");
+			Assert.That(slice.ToHexString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "Slice.FromUuid() should preserve RFC 4122 ordering");
 
 			// ToByteArray() should also be safe
 			slice = uuid.ToByteArray().AsSlice();
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"));
+			Assert.That(slice.ToHexString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"));
 		}
 
 		[Test]
@@ -2035,7 +2035,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(slice.ToUuid128(), Is.EqualTo(Uuid128.Empty));
 
 			// RFC 4122 encoded UUIDs should not keep the byte ordering
-			slice = Slice.FromHexa("00112233445566778899aabbccddeeff");
+			slice = Slice.FromHexString("00112233445566778899aabbccddeeff");
 			uuid = slice.ToUuid128();
 			Assert.That(uuid.ToString(), Is.EqualTo("00112233-4455-6677-8899-aabbccddeeff"), "slice.ToUuid() should preserve RFC 4122 ordering");
 
@@ -2061,18 +2061,18 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			// empty guid should be all zeroes
 			var slice = Slice.FromUuid64(Uuid64.Empty);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("0000000000000000"));
+			Assert.That(slice.ToHexString(), Is.EqualTo("0000000000000000"));
 
 			// UUIDs should be stored in lexicographical order
 			var uuid = Uuid64.Parse("01234567-89abcdef");
 
 			// byte order should follow the string!
 			slice = Slice.FromUuid64(uuid);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("0123456789ABCDEF"), "Slice.FromUuid64() should preserve ordering");
+			Assert.That(slice.ToHexString(), Is.EqualTo("0123456789ABCDEF"), "Slice.FromUuid64() should preserve ordering");
 
 			// ToByteArray() should also be safe
 			slice = uuid.ToByteArray().AsSlice();
-			Assert.That(slice.ToHexaString(), Is.EqualTo("0123456789ABCDEF"));
+			Assert.That(slice.ToHexString(), Is.EqualTo("0123456789ABCDEF"));
 		}
 
 		[Test]
@@ -2089,7 +2089,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Assert.That(uuid, Is.EqualTo(Uuid64.Empty));
 
 			// hexadecimal text representation
-			uuid = Slice.FromHexa("0123456789abcdef").ToUuid64();
+			uuid = Slice.FromHexString("0123456789abcdef").ToUuid64();
 			Assert.That(uuid.ToInt64(), Is.EqualTo(0x123456789abcdef), "slice.ToUuid64() should preserve ordering");
 
 			// round-trip

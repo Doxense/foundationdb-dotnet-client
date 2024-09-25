@@ -53,7 +53,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			action(ref writer, value);
 
 			Assert.That(
-				writer.ToSlice().ToHexaString(' '),
+				writer.ToSlice().ToHexString(' '),
 				Is.EqualTo(expectedResult),
 				$"Value {(value == null ? "<null>" : value is string s ? Clean(s) : value.ToString())} ({(value == null ? "null" : value.GetType().Name)}) was not properly packed. {message}"
 			);

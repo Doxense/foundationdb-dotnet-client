@@ -2098,10 +2098,10 @@ namespace System
 			string s = format switch
 			{
 				"" or "D" or "d" => Dump(this),
-				"N" => ToHexaString(lower: false),
-				"n" => ToHexaString(lower: true),
-				"X" => ToHexaString(' ', lower: false),
-				"x" => ToHexaString(' ', lower: true),
+				"N" => ToHexString(),
+				"n" => ToHexStringLower(),
+				"X" => ToHexString(' '),
+				"x" => ToHexStringLower(' '),
 				"P" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: null, lower: false),
 				"p" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: null, lower: true),
 				"K" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: true, lower: false),
@@ -2154,14 +2154,14 @@ namespace System
 					return Dump(this);
 
 				case "N":
-					return ToHexaString(lower: false);
+					return ToHexString();
 				case "n":
-					return ToHexaString(lower: true);
+					return ToHexStringLower();
 
 				case "X":
-					return ToHexaString(' ', lower: false);
+					return ToHexString(' ');
 				case "x":
-					return ToHexaString(' ', lower: true);
+					return ToHexStringLower(' ');
 
 				case "P":
 					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: null, lower: false);
@@ -2822,8 +2822,8 @@ namespace System
 				{
 					if (m_slice.Count == 0) return m_slice.Array == null! ? null : string.Empty;
 					return m_slice.Count <= DefaultPrettyPrintSize
-						? m_slice.ToHexaString(' ')
-						: m_slice.Substring(0, DefaultPrettyPrintSize).ToHexaString(' ') + "[\u2026]";
+						? m_slice.ToHexString(' ')
+						: m_slice.Substring(0, DefaultPrettyPrintSize).ToHexString(' ') + "[\u2026]";
 				}
 			}
 

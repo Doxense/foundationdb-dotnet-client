@@ -2421,7 +2421,7 @@ namespace Doxense.Memory
 				this.Capacity = writer.Capacity;
 			}
 
-			public string Hexa => this.Data.ToHexaString(' ');
+			public string Hexa => this.Data.ToHexString(' ');
 
 			public Slice Data { get; }
 

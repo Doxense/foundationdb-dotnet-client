@@ -47,7 +47,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.UserVersion, Is.Zero, "80-bits VersionStamps don't have a user version");
 
 				Assert.That(vs.GetLength(), Is.EqualTo(10));
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?"));
 			}
 
@@ -61,7 +61,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.UserVersion, Is.EqualTo(0));
 
 				Assert.That(vs.GetLength(), Is.EqualTo(12));
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 00"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 00"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?#0"));
 			}
 
@@ -73,7 +73,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.HasUserVersion, Is.True);
 				Assert.That(vs.UserVersion, Is.EqualTo(123));
 				Assert.That(vs.IsIncomplete, Is.True);
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 7B"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 7B"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?#123"));
 			}
 
@@ -85,7 +85,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.HasUserVersion, Is.True);
 				Assert.That(vs.UserVersion, Is.EqualTo(12345));
 				Assert.That(vs.IsIncomplete, Is.True);
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 30 39"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 30 39"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?#12345"));
 			}
 
@@ -97,7 +97,7 @@ namespace FoundationDB.Client.Tests
 				writer.WriteFixed24BE(0xAAAAAA);
 				VersionStamp.Incomplete(123).WriteTo(ref writer);
 				writer.WriteFixed24BE(0xAAAAAA);
-				Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
+				Assert.That(writer.ToSlice().ToHexString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
 
 				var reader = new SliceReader(writer.ToSlice());
 				reader.Skip(3);
@@ -113,7 +113,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var buf = MutableSlice.Repeat(0xAA, 18);
 				VersionStamp.Incomplete(123).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.Slice.ToHexaString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
+				Assert.That(buf.Slice.ToHexString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
 			}
 		}
 
@@ -128,7 +128,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.HasUserVersion, Is.False);
 				Assert.That(vs.UserVersion, Is.Zero);
 				Assert.That(vs.IsIncomplete, Is.False);
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-123"));
 			}
 
@@ -140,7 +140,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.HasUserVersion, Is.True);
 				Assert.That(vs.UserVersion, Is.Zero);
 				Assert.That(vs.IsIncomplete, Is.False);
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B 00 00"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B 00 00"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-123#0"));
 			}
 
@@ -152,7 +152,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.HasUserVersion, Is.True);
 				Assert.That(vs.UserVersion, Is.EqualTo(456));
 				Assert.That(vs.IsIncomplete, Is.False);
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B 01 C8"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B 01 C8"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-123#456"));
 			}
 
@@ -163,7 +163,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.TransactionOrder, Is.EqualTo(12345));
 				Assert.That(vs.UserVersion, Is.EqualTo(6789));
 				Assert.That(vs.IsIncomplete, Is.False);
-				Assert.That(vs.ToSlice().ToHexaString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 30 39 1A 85"));
+				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 30 39 1A 85"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-12345#6789"));
 			}
 
@@ -175,7 +175,7 @@ namespace FoundationDB.Client.Tests
 				writer.WriteFixed24BE(0xAAAAAA);
 				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(ref writer);
 				writer.WriteFixed24BE(0xAAAAAA);
-				Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
+				Assert.That(writer.ToSlice().ToHexString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
 
 				var reader = new SliceReader(writer.ToSlice());
 				reader.Skip(3);
@@ -191,7 +191,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var buf = MutableSlice.Repeat(0xAA, 18);
 				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.Slice.ToHexaString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
+				Assert.That(buf.Slice.ToHexString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
 			}
 		}
 

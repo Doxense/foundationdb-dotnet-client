@@ -997,11 +997,11 @@ namespace FoundationDB.Client.Tests
 				_ = await db.ReadAsync(async (tr) =>
 				{
 					var subspace = (await location.Resolve(tr))!;
-					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexaString(' '), Is.EqualTo("2B 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexaString(' '), Is.EqualTo("2A 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexaString(' '), Is.EqualTo("29 01 00 00"));
-					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexaString(' '), Is.EqualTo("2A 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("2B 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2A 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("29 01 00 00"));
+					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("2A 00 00 00"));
 					return 123;
 				}, this.Cancellation);
 			}
@@ -1045,11 +1045,11 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async (tr) =>
 				{
 					var subspace = (await location.Resolve(tr))!;
-					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexaString(' '), Is.EqualTo("02 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexaString(' '), Is.EqualTo("2B 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexaString(' '), Is.EqualTo("00 01 00 00"));
-					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("02 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2B 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("00 01 00 00"));
+					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
 				}, this.Cancellation);
 			}
 		}
@@ -1090,11 +1090,11 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async (tr) =>
 				{
 					var subspace = (await location.Resolve(tr))!;
-					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexaString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexaString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexaString(' '), Is.EqualTo("29 01 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexaString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("29 01 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
 				}, this.Cancellation);
 			}
 		}
@@ -1135,11 +1135,11 @@ namespace FoundationDB.Client.Tests
 				await db.ReadAsync(async (tr) =>
 				{
 					var subspace = (await location.Resolve(tr))!;
-					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexaString(' '), Is.EqualTo("02 00 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexaString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexaString(' '), Is.EqualTo("00 01 00 00 00 00 00 00"));
-					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("02 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("00 01 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
 				}, this.Cancellation);
 			}
 		}
@@ -1183,10 +1183,10 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = (await location.Resolve(tr))!;
 					Assert.That((await tr.GetAsync(subspace["AAA"])), Is.EqualTo(Slice.Nil));
-					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
 					Assert.That((await tr.GetAsync(subspace["CCC"])), Is.EqualTo(Slice.Nil));
 					Assert.That((await tr.GetAsync(subspace["DDD"])), Is.EqualTo(Slice.Nil));
-					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(subspace["FFF"])), Is.EqualTo(Slice.Nil));
 					return 123;
 				}, this.Cancellation);
@@ -2681,11 +2681,11 @@ namespace FoundationDB.Client.Tests
 					foreach (var key in servers)
 					{
 						// the node id seems to be at offset 8
-						var nodeId = key.Value.Substring(8, 16).ToHexaString();
+						var nodeId = key.Value.Substring(8, 16).ToHexString();
 						// the machine id seems to be at offset 24
-						var machineId = key.Value.Substring(24, 16).ToHexaString();
+						var machineId = key.Value.Substring(24, 16).ToHexString();
 						// the datacenter id seems to be at offset 40
-						var dataCenterId = key.Value.Substring(40, 16).ToHexaString();
+						var dataCenterId = key.Value.Substring(40, 16).ToHexString();
 
 						Log($"- {key.Key:X} : ({key.Value.Count}) {key.Value:P}");
 						Log($"  > node       = {nodeId}");
@@ -2718,7 +2718,7 @@ namespace FoundationDB.Client.Tests
 						if (ids == null || ids.Length != n) ids = new string[n];
 						for (int i = 0; i < n; i++)
 						{
-							ids[i] = key.Value.Substring(12 + i * 16, 16).ToHexaString();
+							ids[i] = key.Value.Substring(12 + i * 16, 16).ToHexString();
 							distinctNodes.Add(ids[i]);
 						}
 

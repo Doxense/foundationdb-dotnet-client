@@ -212,6 +212,14 @@ namespace System
 				return string.Empty;
 			}
 
+			if (sep == '\0')
+			{
+				if (!lower) return Convert.ToHexString(buffer);
+#if NET9_0_OR_GREATER
+				return Convert.ToHexStringLower(buffer);
+#endif
+			}
+
 			var sb = new StringBuilder(buffer.Length * (sep == '\0' ? 2 : 3));
 			int letters = lower ? 87 : 55;
 			unsafe

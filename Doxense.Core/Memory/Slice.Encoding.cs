@@ -29,6 +29,7 @@ namespace System
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.ComponentModel;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -940,7 +941,7 @@ namespace System
 #endif
 			return FromStringSlow(value, ref buffer);
 
-			static unsafe Slice FromStringSlow(ReadOnlySpan<char> value, ref byte[]? buffer)
+			static unsafe Slice FromStringSlow(ReadOnlySpan<char> value, [NotNull] ref byte[]? buffer)
 			{
 				fixed (char* chars = &MemoryMarshal.GetReference(value))
 				{
@@ -990,7 +991,7 @@ namespace System
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
-		[Pure, ContractAnnotation("=> buffer:notnull")]
+		[Pure]
 		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice FromStringUtf8(string value, [Positive] int offset, [Positive] int count, ref byte[]? buffer, out bool asciiOnly)
@@ -1105,7 +1106,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
+		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value, [NotNull] ref byte[]? buffer)
 		{
 			if (value.Length == 0)
 			{
@@ -1217,32 +1218,90 @@ namespace System
 		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
 		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		[Pure]
-		public static Slice FromHexa(string? hexaString)
+		public static Slice FromHexString(string? hexaString)
 		{
 			if (string.IsNullOrEmpty(hexaString))
 			{
 				return hexaString == null ? default : Empty;
 			}
 
-			byte[]? buffer = null;
-			int written = UnsafeHelpers.FromHexa(hexaString.AsSpan(), ref buffer);
-			return new Slice(buffer, 0, written);
+			return new Slice(Convert.FromHexString(hexaString));
 		}
 
 		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
 		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
 		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		[Pure]
-		public static Slice FromHexa(ReadOnlySpan<char> hexaString)
+		public static Slice FromHexString(ReadOnlySpan<char> hexaString)
 		{
 			if (hexaString.Length == 0)
 			{
 				return Empty;
 			}
 
+			return new Slice(Convert.FromHexString(hexaString));
+		}
+
+
+#if NET8_0_OR_GREATER
+		public static Slice FromHexString(string? hexaString, [ConstantExpected] char separator)
+#else
+		public static Slice FromHexString(string? hexaString, char separator)
+#endif
+			=> separator == '\0' ? FromHexString(hexaString) : FromHexa(hexaString, separator);
+
+		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice, ignoring any spaces characters.</summary>
+		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits, and optional separating white-spaces.</param>
+		/// <param name="separator">Allowed separator character between hex pairs, or <c>'\0'</c> for no separator allowed. Note strings with no separators are always allowed</param>
+		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
+		/// <remarks>If the string is known to not have any spaces or separators, it is faster to call <see cref="Slice.FromHexString(string)"/>.</remarks>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Slice FromHexa(
+			string? hexaString,
+#if NET8_0_OR_GREATER
+			[ConstantExpected]
+#endif
+			char separator = ' '
+		)
+		{
+			if (string.IsNullOrEmpty(hexaString))
+			{
+				return hexaString == null ? default : Empty;
+			}
+
+			return FromHexa(hexaString.AsSpan(), separator);
+		}
+
+		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
+		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
+		/// <param name="separator">Allowed separator character between hex pairs, or <c>'\0'</c> for no separator allowed. Note strings with no separators are always allowed</param>
+		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
+		/// <remarks>If the string is known to not have any spaces or separators, it is faster to call <see cref="Slice.FromHexString(string)"/>.</remarks>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Slice FromHexa(
+			ReadOnlySpan<char> hexaString,
+#if NET8_0_OR_GREATER
+			[ConstantExpected]
+#endif
+			char separator = ' '
+		)
+		{
+			if (hexaString.Length == 0)
+			{
+				return Empty;
+			}
+
+			if (separator == '\0' || (hexaString.Length & 2) == 0 && !hexaString.Contains(separator))
+			{ // looks like a compact string, use the optimized runtime version
+				return new(Convert.FromHexString(hexaString));
+			}
+
+			// slower version
 			byte[]? buffer = null;
-			int written = UnsafeHelpers.FromHexa(hexaString, ref buffer);
-			return new Slice(buffer, 0, written);
+			int written = UnsafeHelpers.FromHexa(hexaString, ref buffer, separator);
+			return new(buffer, 0, written);
 		}
 
 		/// <summary>Decode the string that was generated by slice.ToString() or Slice.Dump(), back into the original slice</summary>
@@ -1401,28 +1460,46 @@ namespace System
 			return Convert.ToBase64String(this.Array, this.Offset, this.Count);
 		}
 
-		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (lowercase)</summary>
-		/// <param name="lower">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
-		/// <returns>"0123456789abcdef"</returns>
+		/// <summary>Converts a slice into a string with each byte encoded into uppercase hexadecimal (<c>A-F</c>)</summary>
+		/// <returns>ex: <c>"0123456789ABCDEF"</c></returns>
+		public string ToHexString()
+			=> Convert.ToHexString(this.Span);
+
+		/// <summary>Converts a slice into a string with each byte encoded into lowercase hexadecimal (<c>a-f</c>)</summary>
+		/// <returns>ex: <c>"0123456789abcdef"</c></returns>
+		public string ToHexStringLower()
+#if NET9_0_OR_GREATER
+			=> Convert.ToHexStringLower(this.Span);
+#else
+			=> this.Span.ToHexaString('\0', lowerCase: true);
+#endif
+
+		/// <summary>[OBSOLETE] Please replace with a either <see cref="ToHexString()"/> or <see cref="ToHexStringLower()"/></summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please replace with a either ToHexString() or ToHexStringLower()")]
+		public string ToHexaString(bool lower = false) => lower ? ToHexStringLower() : ToHexString();
+
+		/// <summary>[OBSOLETE] Please replace with a either <see cref="ToHexString(char)"/> or <see cref="ToHexStringLower(char)"/></summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Please replace with a either ToHexString(char) or ToHexStringLower(char)")]
+		public string ToHexaString(char sep, bool lower = false) => lower ? ToHexStringLower(sep) : ToHexString(sep);
+
+		/// <summary>Converts a slice into a string with each byte encoded into uppercase hexadecimal, separated by a character</summary>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <returns>"01 23 45 67 89 AB CD EF"</returns>
 		[Pure]
-		public string ToHexaString(bool lower = false)
+		public string ToHexString(char sep)
 		{
-			return this.Span.ToHexaString('\0', lower);
+			return sep != '\0' ? this.Span.ToHexaString(sep, lowerCase: false) : Convert.ToHexString(this.Span);
 		}
 
-		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
+		/// <summary>Converts a slice into a string with each byte encoded into lowercase hexadecimal, separated by a character</summary>
 		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
-		/// <param name="lower">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		[Pure]
-		public string ToHexaString(char sep, bool lower = false)
+		public string ToHexStringLower(char sep)
 		{
-			return this.Span.ToHexaString(sep, lower);
-		}
-
-		public string ToPrintableString()
-		{
-			throw new NotImplementedException();
+			return sep != '\0' ? this.Span.ToHexaString(sep, lowerCase: true) : ToHexStringLower();
 		}
 
 		internal static StringBuilder EscapeString(StringBuilder? sb, ReadOnlySpan<byte> buffer, Encoding encoding)

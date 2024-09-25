@@ -72,8 +72,8 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		{
 			var bmpBuilder = builder.ToBitmap();
 			var bmpWitness = witness.ToBitmap();
-			Log($"> B: {bmpBuilder.Bounds,12} ({bmpBuilder.CountBits(),3}) {bmpBuilder.ToSlice().ToHexaString()}");
-			Log($"> W: {bmpWitness.Bounds,12} ({bmpWitness.CountBits(),3}) {bmpWitness.ToSlice().ToHexaString()}");
+			Log($"> B: {bmpBuilder.Bounds,12} ({bmpBuilder.CountBits(),3}) {bmpBuilder.ToSlice().ToHexString()}");
+			Log($"> W: {bmpWitness.Bounds,12} ({bmpWitness.CountBits(),3}) {bmpWitness.ToSlice().ToHexString()}");
 			var rawBuilder = builder.ToBooleanArray();
 			var rawWitness = witness.ToBooleanArray();
 			Log("> B: " + bmpBuilder.Dump());
@@ -235,7 +235,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				bmp = builder.ToBitmap();
 				Log();
 				Log($"> Result of gen #{k}: {bmp.Dump()}");
-				Log($"> {bmp.ToSlice().ToHexaString()}");
+				Log($"> {bmp.ToSlice().ToHexString()}");
 				Log();
 			}
 		}

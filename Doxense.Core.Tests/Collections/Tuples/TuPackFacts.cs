@@ -131,23 +131,23 @@ namespace Doxense.Collections.Tuples.Tests
 
 			t = TuPack.Unpack(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>"));
 			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}));
-			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF"));
+			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><42><00><FF><00>"));
 			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x42, 0x00}));
-			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("42 00"));
+			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("42 00"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><00><FF><42><00>"));
 			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x00, 0x42}));
-			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("00 42"));
+			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("00 42"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><42><00><FF><42><00>"));
 			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x42, 0x00, 0x42}));
-			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("42 00 42"));
+			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("42 00 42"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><42><00><FF><00><FF><42><00>"));
 			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x42, 0x00, 0x00, 0x42}));
-			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("42 00 00 42"));
+			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("42 00 00 42"));
 
 			Assert.That(TuPack.DecodeKey<byte[]>(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>")), Is.EqualTo(new byte[] { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }));
 			Assert.That(TuPack.DecodeKey<Slice>(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>")), Is.EqualTo(new byte[] { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }.AsSlice()));
@@ -296,19 +296,19 @@ namespace Doxense.Collections.Tuples.Tests
 			Slice packed;
 
 			packed = TuPack.EncodeKey(Uuid96.Parse("00010203-04050607-08090A0B"));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 00 01 02 03 04 05 06 07 08 09 0A 0B"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 00 01 02 03 04 05 06 07 08 09 0A 0B"));
 
 			packed = TuPack.EncodeKey(Uuid96.Parse("01234567-89ABCDEF-55AA33CC"));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 01 23 45 67 89 AB CD EF 55 AA 33 CC"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 01 23 45 67 89 AB CD EF 55 AA 33 CC"));
 
 			packed = TuPack.EncodeKey(Uuid96.Empty);
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 00 00 00 00 00 00 00 00 00 00 00 00"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 00 00 00 00 00 00 00 00 00 00 00 00"));
 
 			packed = TuPack.EncodeKey(new Uuid96(0x12345678, 0xBADC0FFEE0DDF00DUL));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 12 34 56 78 BA DC 0F FE E0 DD F0 0D"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 12 34 56 78 BA DC 0F FE E0 DD F0 0D"));
 
 			packed = TuPack.EncodeKey(new Uuid96(0xFFFFFFFF, 0xDEADBEEFL));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 FF FF FF FF 00 00 00 00 DE AD BE EF"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 FF FF FF FF 00 00 00 00 DE AD BE EF"));
 		}
 
 		[Test]
@@ -353,19 +353,19 @@ namespace Doxense.Collections.Tuples.Tests
 			Slice packed;
 
 			packed = TuPack.EncodeKey(Uuid80.Parse("0001-02030405-06070809"));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 00 01 02 03 04 05 06 07 08 09"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("32 00 01 02 03 04 05 06 07 08 09"));
 
 			packed = TuPack.EncodeKey(Uuid80.Parse("0123-456789AB-CDEF55AA"));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 01 23 45 67 89 AB CD EF 55 AA"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("32 01 23 45 67 89 AB CD EF 55 AA"));
 
 			packed = TuPack.EncodeKey(Uuid80.Empty);
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 00 00 00 00 00 00 00 00 00 00"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("32 00 00 00 00 00 00 00 00 00 00"));
 
 			packed = TuPack.EncodeKey(new Uuid80(0x1234, 0xBADC0FFEE0DDF00DUL));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 12 34 BA DC 0F FE E0 DD F0 0D"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("32 12 34 BA DC 0F FE E0 DD F0 0D"));
 
 			packed = TuPack.EncodeKey(new Uuid80(0xFFFF, 0xDEADBEEFL));
-			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 FF FF 00 00 00 00 DE AD BE EF"));
+			Assert.That(packed.ToHexString(' '), Is.EqualTo("32 FF FF 00 00 00 00 DE AD BE EF"));
 		}
 
 		[Test]
@@ -678,22 +678,22 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// 32-bit floats are stored in 5 bytes, using the prefix 0x20 followed by the High-Endian representation of their normalized form
 
-			Assert.That(TuPack.EncodeKey(0f).ToHexaString(' '), Is.EqualTo("20 80 00 00 00"));
-			Assert.That(TuPack.EncodeKey(42f).ToHexaString(' '), Is.EqualTo("20 C2 28 00 00"));
-			Assert.That(TuPack.EncodeKey(-42f).ToHexaString(' '), Is.EqualTo("20 3D D7 FF FF"));
+			Assert.That(TuPack.EncodeKey(0f).ToHexString(' '), Is.EqualTo("20 80 00 00 00"));
+			Assert.That(TuPack.EncodeKey(42f).ToHexString(' '), Is.EqualTo("20 C2 28 00 00"));
+			Assert.That(TuPack.EncodeKey(-42f).ToHexString(' '), Is.EqualTo("20 3D D7 FF FF"));
 
-			Assert.That(TuPack.EncodeKey((float) Math.Sqrt(2)).ToHexaString(' '), Is.EqualTo("20 BF B5 04 F3"));
+			Assert.That(TuPack.EncodeKey((float) Math.Sqrt(2)).ToHexString(' '), Is.EqualTo("20 BF B5 04 F3"));
 
-			Assert.That(TuPack.EncodeKey(float.MinValue).ToHexaString(' '), Is.EqualTo("20 00 80 00 00"), "float.MinValue");
-			Assert.That(TuPack.EncodeKey(float.MaxValue).ToHexaString(' '), Is.EqualTo("20 FF 7F FF FF"), "float.MaxValue");
-			Assert.That(TuPack.EncodeKey(-0f).ToHexaString(' '), Is.EqualTo("20 7F FF FF FF"), "-0f");
-			Assert.That(TuPack.EncodeKey(float.NegativeInfinity).ToHexaString(' '), Is.EqualTo("20 00 7F FF FF"), "float.NegativeInfinity");
-			Assert.That(TuPack.EncodeKey(float.PositiveInfinity).ToHexaString(' '), Is.EqualTo("20 FF 80 00 00"), "float.PositiveInfinity");
-			Assert.That(TuPack.EncodeKey(float.Epsilon).ToHexaString(' '), Is.EqualTo("20 80 00 00 01"), "+float.Epsilon");
-			Assert.That(TuPack.EncodeKey(-float.Epsilon).ToHexaString(' '), Is.EqualTo("20 7F FF FF FE"), "-float.Epsilon");
+			Assert.That(TuPack.EncodeKey(float.MinValue).ToHexString(' '), Is.EqualTo("20 00 80 00 00"), "float.MinValue");
+			Assert.That(TuPack.EncodeKey(float.MaxValue).ToHexString(' '), Is.EqualTo("20 FF 7F FF FF"), "float.MaxValue");
+			Assert.That(TuPack.EncodeKey(-0f).ToHexString(' '), Is.EqualTo("20 7F FF FF FF"), "-0f");
+			Assert.That(TuPack.EncodeKey(float.NegativeInfinity).ToHexString(' '), Is.EqualTo("20 00 7F FF FF"), "float.NegativeInfinity");
+			Assert.That(TuPack.EncodeKey(float.PositiveInfinity).ToHexString(' '), Is.EqualTo("20 FF 80 00 00"), "float.PositiveInfinity");
+			Assert.That(TuPack.EncodeKey(float.Epsilon).ToHexString(' '), Is.EqualTo("20 80 00 00 01"), "+float.Epsilon");
+			Assert.That(TuPack.EncodeKey(-float.Epsilon).ToHexString(' '), Is.EqualTo("20 7F FF FF FE"), "-float.Epsilon");
 
 			// all possible variants of NaN should all be equal
-			Assert.That(TuPack.EncodeKey(float.NaN).ToHexaString(' '), Is.EqualTo("20 00 3F FF FF"), "float.NaN");
+			Assert.That(TuPack.EncodeKey(float.NaN).ToHexString(' '), Is.EqualTo("20 00 3F FF FF"), "float.NaN");
 
 			// cook up a non standard NaN (with some bits set in the fraction)
 			float f = float.NaN; // defined as 1f / 0f
@@ -703,7 +703,7 @@ namespace Doxense.Collections.Tuples.Tests
 			unsafe { f = *((float*) &nan); }
 			Assert.That(float.IsNaN(f), Is.True);
 			Assert.That(
-				TuPack.EncodeKey(f).ToHexaString(' '),
+				TuPack.EncodeKey(f).ToHexString(' '),
 				Is.EqualTo("20 00 3F FF FF"),
 				"All variants of NaN must be normalized"
 				//note: if we have 20 00 3F FF 84, that means that the NaN was not normalized
@@ -740,24 +740,24 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// 64-bit floats are stored in 9 bytes, using the prefix 0x21 followed by the High-Endian representation of their normalized form
 
-			Assert.That(TuPack.EncodeKey(0d).ToHexaString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 00"));
-			Assert.That(TuPack.EncodeKey(42d).ToHexaString(' '), Is.EqualTo("21 C0 45 00 00 00 00 00 00"));
-			Assert.That(TuPack.EncodeKey(-42d).ToHexaString(' '), Is.EqualTo("21 3F BA FF FF FF FF FF FF"));
+			Assert.That(TuPack.EncodeKey(0d).ToHexString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 00"));
+			Assert.That(TuPack.EncodeKey(42d).ToHexString(' '), Is.EqualTo("21 C0 45 00 00 00 00 00 00"));
+			Assert.That(TuPack.EncodeKey(-42d).ToHexString(' '), Is.EqualTo("21 3F BA FF FF FF FF FF FF"));
 
-			Assert.That(TuPack.EncodeKey(Math.PI).ToHexaString(' '), Is.EqualTo("21 C0 09 21 FB 54 44 2D 18"));
-			Assert.That(TuPack.EncodeKey(Math.E).ToHexaString(' '), Is.EqualTo("21 C0 05 BF 0A 8B 14 57 69"));
+			Assert.That(TuPack.EncodeKey(Math.PI).ToHexString(' '), Is.EqualTo("21 C0 09 21 FB 54 44 2D 18"));
+			Assert.That(TuPack.EncodeKey(Math.E).ToHexString(' '), Is.EqualTo("21 C0 05 BF 0A 8B 14 57 69"));
 
-			Assert.That(TuPack.EncodeKey(double.MinValue).ToHexaString(' '), Is.EqualTo("21 00 10 00 00 00 00 00 00"), "double.MinValue");
-			Assert.That(TuPack.EncodeKey(double.MaxValue).ToHexaString(' '), Is.EqualTo("21 FF EF FF FF FF FF FF FF"), "double.MaxValue");
-			Assert.That(TuPack.EncodeKey(-0d).ToHexaString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FF"), "-0d");
-			Assert.That(TuPack.EncodeKey(double.NegativeInfinity).ToHexaString(' '), Is.EqualTo("21 00 0F FF FF FF FF FF FF"), "double.NegativeInfinity");
-			Assert.That(TuPack.EncodeKey(double.PositiveInfinity).ToHexaString(' '), Is.EqualTo("21 FF F0 00 00 00 00 00 00"), "double.PositiveInfinity");
-			Assert.That(TuPack.EncodeKey(double.Epsilon).ToHexaString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 01"), "+double.Epsilon");
-			Assert.That(TuPack.EncodeKey(-double.Epsilon).ToHexaString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FE"), "-double.Epsilon");
+			Assert.That(TuPack.EncodeKey(double.MinValue).ToHexString(' '), Is.EqualTo("21 00 10 00 00 00 00 00 00"), "double.MinValue");
+			Assert.That(TuPack.EncodeKey(double.MaxValue).ToHexString(' '), Is.EqualTo("21 FF EF FF FF FF FF FF FF"), "double.MaxValue");
+			Assert.That(TuPack.EncodeKey(-0d).ToHexString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FF"), "-0d");
+			Assert.That(TuPack.EncodeKey(double.NegativeInfinity).ToHexString(' '), Is.EqualTo("21 00 0F FF FF FF FF FF FF"), "double.NegativeInfinity");
+			Assert.That(TuPack.EncodeKey(double.PositiveInfinity).ToHexString(' '), Is.EqualTo("21 FF F0 00 00 00 00 00 00"), "double.PositiveInfinity");
+			Assert.That(TuPack.EncodeKey(double.Epsilon).ToHexString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 01"), "+double.Epsilon");
+			Assert.That(TuPack.EncodeKey(-double.Epsilon).ToHexString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FE"), "-double.Epsilon");
 
 			// all possible variants of NaN should all be equal
 
-			Assert.That(TuPack.EncodeKey(double.NaN).ToHexaString(' '), Is.EqualTo("21 00 07 FF FF FF FF FF FF"), "double.NaN");
+			Assert.That(TuPack.EncodeKey(double.NaN).ToHexString(' '), Is.EqualTo("21 00 07 FF FF FF FF FF FF"), "double.NaN");
 
 			// cook up a non standard NaN (with some bits set in the fraction)
 			double d = double.NaN; // defined as 1d / 0d
@@ -767,7 +767,7 @@ namespace Doxense.Collections.Tuples.Tests
 			unsafe { d = *((double*) &nan); }
 			Assert.That(double.IsNaN(d), Is.True);
 			Assert.That(
-				TuPack.EncodeKey(d).ToHexaString(' '),
+				TuPack.EncodeKey(d).ToHexString(' '),
 				Is.EqualTo("21 00 07 FF FF FF FF FF FF")
 				//note: if we have 21 00 07 FF FF FF FF FF 84, that means that the NaN was not normalized
 			);
@@ -808,17 +808,17 @@ namespace Doxense.Collections.Tuples.Tests
 			// Booleans are stored as <26> for false, and <27> for true
 
 			// bool
-			Assert.That(TuPack.EncodeKey(false).ToHexaString(' '), Is.EqualTo("26"));
-			Assert.That(TuPack.EncodeKey(true).ToHexaString(' '), Is.EqualTo("27"));
+			Assert.That(TuPack.EncodeKey(false).ToHexString(' '), Is.EqualTo("26"));
+			Assert.That(TuPack.EncodeKey(true).ToHexString(' '), Is.EqualTo("27"));
 
 			// bool?
-			Assert.That(TuPack.EncodeKey(default(bool?)).ToHexaString(' '), Is.EqualTo("00"));
-			Assert.That(TuPack.EncodeKey((bool?) false).ToHexaString(' '), Is.EqualTo("26"));
-			Assert.That(TuPack.EncodeKey((bool?) true).ToHexaString(' '), Is.EqualTo("27"));
+			Assert.That(TuPack.EncodeKey(default(bool?)).ToHexString(' '), Is.EqualTo("00"));
+			Assert.That(TuPack.EncodeKey((bool?) false).ToHexString(' '), Is.EqualTo("26"));
+			Assert.That(TuPack.EncodeKey((bool?) true).ToHexString(' '), Is.EqualTo("27"));
 
 			// tuple containing bools
-			Assert.That(TuPack.EncodeKey(true).ToHexaString(' '), Is.EqualTo("27"));
-			Assert.That(TuPack.EncodeKey(true, default(string), false).ToHexaString(' '), Is.EqualTo("27 00 26"));
+			Assert.That(TuPack.EncodeKey(true).ToHexString(' '), Is.EqualTo("27"));
+			Assert.That(TuPack.EncodeKey(true, default(string), false).ToHexString(' '), Is.EqualTo("27 00 26"));
 		}
 
 		[Test]
@@ -861,57 +861,57 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// incomplete, 80 bits
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Incomplete()).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Incomplete()).ToHexString(' '),
 				Is.EqualTo("32 FF FF FF FF FF FF FF FF FF FF")
 			);
 			Assert.That(
-				TuPack.Pack(ValueTuple.Create(VersionStamp.Incomplete())).ToHexaString(' '),
+				TuPack.Pack(ValueTuple.Create(VersionStamp.Incomplete())).ToHexString(' '),
 				Is.EqualTo("32 FF FF FF FF FF FF FF FF FF FF")
 			);
 
 			// incomplete, 96 bits
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Incomplete(0)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Incomplete(0)).ToHexString(' '),
 				Is.EqualTo("33 FF FF FF FF FF FF FF FF FF FF 00 00")
 			);
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Incomplete(42)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Incomplete(42)).ToHexString(' '),
 				Is.EqualTo("33 FF FF FF FF FF FF FF FF FF FF 00 2A")
 			);
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Incomplete(456)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Incomplete(456)).ToHexString(' '),
 				Is.EqualTo("33 FF FF FF FF FF FF FF FF FF FF 01 C8")
 			);
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Incomplete(65535)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Incomplete(65535)).ToHexString(' '),
 				Is.EqualTo("33 FF FF FF FF FF FF FF FF FF FF FF FF")
 			);
 
 			// complete, 80 bits
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234)).ToHexString(' '),
 				Is.EqualTo("32 01 23 45 67 89 AB CD EF 04 D2")
 			);
 			Assert.That(
-				TuPack.Pack(ValueTuple.Create(VersionStamp.Complete(0x0123456789ABCDEF, 1234))).ToHexaString(' '),
+				TuPack.Pack(ValueTuple.Create(VersionStamp.Complete(0x0123456789ABCDEF, 1234))).ToHexString(' '),
 				Is.EqualTo("32 01 23 45 67 89 AB CD EF 04 D2")
 			);
 
 			// complete, 96 bits
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234, 0)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234, 0)).ToHexString(' '),
 				Is.EqualTo("33 01 23 45 67 89 AB CD EF 04 D2 00 00")
 			);
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234, 42)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234, 42)).ToHexString(' '),
 				Is.EqualTo("33 01 23 45 67 89 AB CD EF 04 D2 00 2A")
 			);
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 65535, 42)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 65535, 42)).ToHexString(' '),
 				Is.EqualTo("33 01 23 45 67 89 AB CD EF FF FF 00 2A")
 			);
 			Assert.That(
-				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234, 65535)).ToHexaString(' '),
+				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234, 65535)).ToHexString(' '),
 				Is.EqualTo("33 01 23 45 67 89 AB CD EF 04 D2 FF FF")
 			);
 		}
@@ -942,27 +942,27 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// 64-bit floats are stored in 9 bytes, using the prefix 0x21 followed by the High-Endian representation of their normalized form
 
-			Assert.That(TuPack.EncodeKey(TuPackUserType.System).ToHexaString(' '), Is.EqualTo("FF"));
-			Assert.That(TuPack.EncodeKey(TuPackUserType.Directory).ToHexaString(' '), Is.EqualTo("FE"));
-			Assert.That(TuPack.EncodeKey(TuPackUserType.Directory, 42, "Hello").ToHexaString(' '), Is.EqualTo("FE 15 2A 02 48 65 6C 6C 6F 00"));
+			Assert.That(TuPack.EncodeKey(TuPackUserType.System).ToHexString(' '), Is.EqualTo("FF"));
+			Assert.That(TuPack.EncodeKey(TuPackUserType.Directory).ToHexString(' '), Is.EqualTo("FE"));
+			Assert.That(TuPack.EncodeKey(TuPackUserType.Directory, 42, "Hello").ToHexString(' '), Is.EqualTo("FE 15 2A 02 48 65 6C 6C 6F 00"));
 
-			Assert.That(TuPack.EncodeKey(42, TuPackUserType.Directory, "Hello").ToHexaString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
-			Assert.That(TuPack.Pack((42, TuPackUserType.Directory, "Hello")).ToHexaString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
+			Assert.That(TuPack.EncodeKey(42, TuPackUserType.Directory, "Hello").ToHexString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
+			Assert.That(TuPack.Pack((42, TuPackUserType.Directory, "Hello")).ToHexString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
 
-			Assert.That(TuPack.EncodeKey(TuPackUserType.System, "Hello").ToHexaString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
-			Assert.That(TuPack.Pack((TuPackUserType.System, "Hello")).ToHexaString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
+			Assert.That(TuPack.EncodeKey(TuPackUserType.System, "Hello").ToHexString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
+			Assert.That(TuPack.Pack((TuPackUserType.System, "Hello")).ToHexString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
 		}
 
 		[Test]
 		public void Test_TuplePack_Deserialize_Custom_Types()
 		{
-			Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexa("FF")), Is.EqualTo(TuPackUserType.System));
-			Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexa("FE")), Is.EqualTo(TuPackUserType.Directory));
-			Assert.That(TuPack.DecodeKey<int, TuPackUserType, string>(Slice.FromHexa("15 2A FE 02 48 65 6C 6C 6F 00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
+			Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FF")), Is.EqualTo(TuPackUserType.System));
+			Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FE")), Is.EqualTo(TuPackUserType.Directory));
+			Assert.That(TuPack.DecodeKey<int, TuPackUserType, string>(Slice.FromHexString("152AFE0248656C6C6F00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
 
-			Assert.That(TuPack.Unpack(Slice.FromHexa("FF"))[0], Is.EqualTo(TuPackUserType.System));
-			Assert.That(TuPack.Unpack(Slice.FromHexa("FE"))[0], Is.EqualTo(TuPackUserType.Directory));
-			Assert.That(TuPack.Unpack(Slice.FromHexa("15 2A FE 02 48 65 6C 6C 6F 00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
+			Assert.That(TuPack.Unpack(Slice.FromHexString("FF"))[0], Is.EqualTo(TuPackUserType.System));
+			Assert.That(TuPack.Unpack(Slice.FromHexString("FE"))[0], Is.EqualTo(TuPackUserType.Directory));
+			Assert.That(TuPack.Unpack(Slice.FromHexString("152AFE0248656C6C6F00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
 		}
 
 		[Test]
@@ -972,22 +972,22 @@ namespace Doxense.Collections.Tuples.Tests
 			// They will take from 6 to 10 bytes, depending on the number of '.0' in them.
 
 			Assert.That(
-				TuPack.EncodeKey(IPAddress.Loopback).ToHexaString(' '),
+				TuPack.EncodeKey(IPAddress.Loopback).ToHexString(' '),
 				Is.EqualTo("01 7F 00 FF 00 FF 01 00")
 			);
 
 			Assert.That(
-				TuPack.EncodeKey(IPAddress.Any).ToHexaString(' '),
+				TuPack.EncodeKey(IPAddress.Any).ToHexString(' '),
 				Is.EqualTo("01 00 FF 00 FF 00 FF 00 FF 00")
 			);
 
 			Assert.That(
-				TuPack.EncodeKey(IPAddress.Parse("1.2.3.4")).ToHexaString(' '),
+				TuPack.EncodeKey(IPAddress.Parse("1.2.3.4")).ToHexString(' '),
 				Is.EqualTo("01 01 02 03 04 00")
 			);
 
 			Assert.That(
-				TuPack.Pack(ValueTuple.Create(IPAddress.Loopback)).ToHexaString(' '),
+				TuPack.Pack(ValueTuple.Create(IPAddress.Loopback)).ToHexString(' '),
 				Is.EqualTo("01 7F 00 FF 00 FF 01 00")
 			);
 
@@ -1075,7 +1075,7 @@ namespace Doxense.Collections.Tuples.Tests
 			void Verify(IVarTuple t, string expected)
 			{
 				var key = TuPack.Pack(t);
-				Assert.That(key.ToHexaString(' '), Is.EqualTo(expected));
+				Assert.That(key.ToHexString(' '), Is.EqualTo(expected));
 				var t2 = TuPack.Unpack(key);
 				Assert.That(t2, Is.Not.Null);
 				Assert.That(t2.Count, Is.EqualTo(t.Count), $"{t2}.Count");

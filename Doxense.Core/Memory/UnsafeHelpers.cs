@@ -123,7 +123,7 @@ namespace Doxense.Memory
 			return p;
 		}
 
-		internal static int FromHexa(ReadOnlySpan<char> hexaString, [NotNull] ref byte[]? buffer)
+		internal static int FromHexa(ReadOnlySpan<char> hexaString, [NotNull] ref byte[]? buffer, char separator)
 		{
 			int capacity = hexaString.Length >> 1;
 			buffer = EnsureCapacity(ref buffer, capacity);
@@ -131,7 +131,7 @@ namespace Doxense.Memory
 			while (i < hexaString.Length)
 			{
 				char x = hexaString[i++];
-				if (x == ' ') { continue; } // skip whitespaces
+				if (x == separator) { continue; } // skip whitespaces
 				if (i >= hexaString.Length) throw new ArgumentException("Hexadecimal string must be of even length", nameof(hexaString));
 				char y = hexaString[i++];
 				buffer[p++] = (byte) ((NibbleToDecimal(x) << 4) | NibbleToDecimal(y));

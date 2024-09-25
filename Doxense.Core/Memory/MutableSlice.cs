@@ -741,8 +741,8 @@ namespace System
 				{
 					if (m_slice.Count == 0) return m_slice.Array == null ? null : string.Empty;
 					return m_slice.Count <= Slice.DefaultPrettyPrintSize
-						? m_slice.Slice.ToHexaString(' ')
-						: m_slice.Substring(0, Slice.DefaultPrettyPrintSize).Slice.ToHexaString(' ') + "[\u2026]";
+						? m_slice.Slice.ToHexString(' ')
+						: m_slice.Substring(0, Slice.DefaultPrettyPrintSize).Slice.ToHexString(' ') + "[\u2026]";
 				}
 			}
 

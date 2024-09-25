@@ -591,7 +591,7 @@ namespace FoundationDB.Filters.Logging
 					}
 					default:
 					{
-						str = "<" + value.ToHexaString(' ') + ">";
+						str = "<" + value.ToHexString(' ') + ">";
 						switch (value.Count)
 						{
 							case 4:
