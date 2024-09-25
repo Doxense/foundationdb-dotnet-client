@@ -304,13 +304,13 @@ namespace Doxense.Text
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string Add(ReadOnlySpan<char> chars)
+		public string Add(ReadOnlySpan<char> chars, string? original = null)
 		{
-			return Add(Hash.GetFnvHashCode(chars), chars);
+			return Add(Hash.GetFnvHashCode(chars), chars, original);
 		}
 
 		[Pure]
-		public string Add(int hashCode, ReadOnlySpan<char> chars)
+		public string Add(int hashCode, ReadOnlySpan<char> chars, string? original = null)
 		{
 #if DEBUG_STRINGTABLE_PERFS
 			Interlocked.Increment(ref addCalls);
@@ -322,8 +322,8 @@ namespace Doxense.Text
 			var text = arr[idx].Text;
 			if (text != null && arr[idx].HashCode == hashCode)
 			{
-				var result = arr[idx].Text;
-				if (TextEquals(result, chars))
+				var result = arr[idx].Text!;
+				if (chars.SequenceEqual(result))
 				{
 #if DEBUG_STRINGTABLE_PERFS
 					Interlocked.Increment(ref localHits);
@@ -347,7 +347,7 @@ namespace Doxense.Text
 				return shared;
 			}
 
-			return AddItem(chars, hashCode);
+			return AddItem(chars, hashCode, original);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -365,7 +365,7 @@ namespace Doxense.Text
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string Add(int hashCode, string chars)
 		{
-			return Add(hashCode, chars.AsSpan());
+			return Add(hashCode, chars.AsSpan(), chars);
 		}
 
 		public string Add(StringBuilder chars)
@@ -576,14 +576,11 @@ namespace Doxense.Text
 			}
 		}
 
-		private unsafe string AddItem(ReadOnlySpan<char> chars, int hashCode)
+		private string AddItem(ReadOnlySpan<char> chars, int hashCode, string? original)
 		{
-			fixed(char* ptr = &MemoryMarshal.GetReference(chars))
-			{
-				var text = new string(ptr, 0, chars.Length);
-				AddCore(text, hashCode);
-				return text;
-			}
+			var text = original ?? chars.ToString();
+			AddCore(text, hashCode);
+			return text;
 		}
 
 		private string AddItem(StringBuilder chars, int hashCode)
