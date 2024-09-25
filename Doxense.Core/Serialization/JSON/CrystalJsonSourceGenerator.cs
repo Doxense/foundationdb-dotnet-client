@@ -135,9 +135,25 @@ namespace Doxense.Serialization.Json
 
 				foreach(var member in typeDef.Members)
 				{
-					if (!this.AllowedAssemblies.Contains(member.Type.Assembly)) continue;
+					// is it an array, list, dictionary?
 
-					var subDef = this.JsonResolver.ResolveJsonType(member.Type);
+					var actualType = member.Type;
+
+					if (IsDictionary(actualType, out var keyType, out var valueType))
+					{
+						actualType = valueType;
+					}
+					else if (IsEnumerable(actualType, out var elemType))
+					{
+						if (IsArray(actualType, out _) || IsList(actualType, out _))
+						{
+							actualType = elemType;
+						}
+					}
+
+					if (!this.AllowedAssemblies.Contains(actualType.Assembly)) continue;
+
+					var subDef = this.JsonResolver.ResolveJsonType(actualType);
 
 					if (subDef != null && subDef.Members.Length > 0 && this.ObservedTypes.Add(subDef.Type))
 					{
@@ -148,6 +164,40 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		private static bool IsArray(Type type, [MaybeNullWhen(false)] out Type elementType)
+		{
+			if (type.IsArray)
+			{
+				elementType = type.GetElementType()!;
+				return true;
+			}
+
+			elementType = null;
+			return false;
+		}
+
+		private static bool IsList(Type type, [MaybeNullWhen(false)] out Type elementType)
+		{
+			if (type.IsGenericType && type.IsGenericInstanceOf(typeof(List<>), out var listType)
+			)
+			{
+				return type.IsEnumerableType(out elementType);
+			}
+
+			elementType = null;
+			return false;
+		}
+
+		private static bool IsDictionary(Type type, [MaybeNullWhen(false)] out Type keyType, [MaybeNullWhen(false)] out Type valueType)
+		{
+			return type.IsDictionaryType(out keyType, out valueType);
+		}
+
+		private static bool IsEnumerable(Type type, [MaybeNullWhen(false)] out Type elementType)
+		{
+			return type.IsEnumerableType(out elementType);
+		}
+
 		public string GenerateCode()
 		{
 			var sb = new CodeBuilder();
@@ -156,7 +206,9 @@ namespace Doxense.Serialization.Json
 				this.Namespace,
 				() =>
 				{
+					sb.Comment("ReSharper disable GrammarMistakeInComment");
 					sb.Comment("ReSharper disable InconsistentNaming");
+					sb.Comment("ReSharper disable JoinDeclarationAndInitializer");
 					sb.Comment("ReSharper disable PartialTypeWithSinglePart");
 					sb.Comment("ReSharper disable RedundantNameQualifier");
 					sb.NewLine();
@@ -172,6 +224,18 @@ namespace Doxense.Serialization.Json
 							{
 								GenerateCodeForType(sb, typeDef);
 							}
+
+							// custom helpers
+
+							sb.AppendLine("#region Helpers...");
+
+							sb.Attribute<UnsafeAccessorAttribute>([sb.Constant(UnsafeAccessorKind.Method)], [("Name", sb.Constant(nameof(JsonObject.FreezeUnsafe))) ]);
+							sb.AppendLine($"private static extern ref string FreezeUnsafe({sb.TypeName<JsonObject>()} instance);");
+
+							sb.Attribute<UnsafeAccessorAttribute>([sb.Constant(UnsafeAccessorKind.Method)], [("Name", sb.Constant(nameof(JsonArray.FreezeUnsafe))) ]);
+							sb.AppendLine($"private static extern ref string FreezeUnsafe({sb.TypeName<JsonArray>()} instance);");
+
+							sb.AppendLine("#endregion");
 						}
 					);
 				}
@@ -195,20 +259,18 @@ namespace Doxense.Serialization.Json
 
 			var type = typeDef.Type;
 			var jsonSerializerType = typeof(IJsonSerializer<>).MakeGenericType(type);
+			var jsonPackerForType = typeof(IJsonPackerFor<>).MakeGenericType(type);
 			var jsonDeserializerForType = typeof(IJsonDeserializerFor<>).MakeGenericType(type);
 
 			var typeName = sb.TypeName(type);
 			var serializerName = GetSerializerName(type);
 			var serializerTypeName = "_" + serializerName + "JsonSerializer";
 
-			var jsonSerializerInterfaceName = sb.TypeName(jsonSerializerType);
-			var jsonDeserializerForInterfaceName = sb.TypeName(jsonDeserializerForType);
-
 			sb.AppendLine($"#region {type.GetFriendlyName()} ...");
 			sb.NewLine();
 
 			sb.AppendLine($"/// <summary>Serializer for type <see cref=\"{type.FullName}\">{type.GetFriendlyName()}</see></summary>");
-			sb.AppendLine($"public static {serializerTypeName} {serializerName} => m_cached{serializerName} ??= new {serializerTypeName}();");
+			sb.AppendLine($"public static {serializerTypeName} {serializerName} => m_cached{serializerName} ??= new();");
 			sb.NewLine();
 			sb.AppendLine($"private static {serializerTypeName}? m_cached{serializerName};");
 			sb.NewLine();
@@ -219,15 +281,15 @@ namespace Doxense.Serialization.Json
 			sb.Class(
 				"public sealed",
 				serializerTypeName,
-				[ jsonSerializerInterfaceName, jsonDeserializerForInterfaceName ],
+				[sb.TypeName(jsonSerializerType), sb.TypeName(jsonPackerForType), sb.TypeName(jsonDeserializerForType)],
 				[ ],
 				() =>
 				{
 
+					#region JsonSerialize...
+
 					sb.AppendLine("#region Serialization...");
 					sb.NewLine();
-
-					#region JsonSerialize...
 
 					// first we need to genereated the cached property names (pre-encoded)
 					string encodedPropertyTypeName = sb.TypeName<JsonEncodedPropertyName>();
@@ -260,85 +322,96 @@ namespace Doxense.Serialization.Json
 								sb.NewLine();
 							}
 
-							if (!typeDef.IsSealed)
+							if (type.IsAssignableTo(typeof(IJsonSerializer<>).MakeGenericType(type)))
 							{
-								sb.If(
-									$"instance.GetType() != typeof({typeName})", () =>
-									{
-										sb.Call(sb.TypeName(typeof(CrystalJsonVisitor)) + "." + nameof(CrystalJsonVisitor.VisitValue), [ "instance", $"typeof({typeName})", "writer" ]);
-										sb.Return();
-									}
-								);
-								sb.NewLine();
+								sb.Return($"{sb.TypeName(type)}.{nameof(IJsonSerializer<object>.JsonSerialize)}(writer, instance);");
 							}
-
-							sb.AppendLine("var state = writer.BeginObject();");
-
-							foreach (var member in typeDef.Members)
+							else if (type.IsAssignableTo(typeof(IJsonSerializable)))
 							{
-								var propertyName = "_" + member.Name;
-
-								sb.NewLine();
-								sb.Comment($"{member.Type.GetFriendlyName()} {member.OriginalName} => \"{member.Name}\"");
-
-								if (this.FastFieldSerializable.Contains(member.Type))
-								{ // there is a direct, dedicated method for this!
-									sb.Comment("fast!");
-									sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
-									continue;
-								}
-
-								if (this.TypeMap.TryGetValue(member.Type, out var subDef))
+								sb.Return($"instance.{nameof(IJsonSerializable.JsonSerialize)}(writer);");
+							}
+							else
+							{
+								if (!typeDef.IsSealed)
 								{
-									sb.Comment("custom!");
-									sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(subDef.Type) ]);
-									continue;
-								}
-
-								if (member.Type.IsDictionaryType(out var keyType, out var valueType))
-								{
-									if (this.TypeMap.ContainsKey(valueType))
-									{
-										if (keyType == typeof(string))
+									sb.If(
+										$"instance.GetType() != typeof({typeName})", () =>
 										{
-											sb.Comment("dictionary with string key");
-											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldDictionary)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(valueType) ]);
+											sb.Call(sb.TypeName(typeof(CrystalJsonVisitor)) + "." + nameof(CrystalJsonVisitor.VisitValue), [ "instance", $"typeof({typeName})", "writer" ]);
+											sb.Return();
+										}
+									);
+									sb.NewLine();
+								}
+
+								sb.AppendLine("var state = writer.BeginObject();");
+
+								foreach (var member in typeDef.Members)
+								{
+									var propertyName = "_" + member.Name;
+
+									sb.NewLine();
+									sb.Comment($"{member.Type.GetFriendlyName()} {member.OriginalName} => \"{member.Name}\"");
+
+									if (this.FastFieldSerializable.Contains(member.Type))
+									{ // there is a direct, dedicated method for this!
+										sb.Comment("fast!");
+										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
+										continue;
+									}
+
+									if (this.TypeMap.TryGetValue(member.Type, out var subDef))
+									{
+										sb.Comment("custom!");
+										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(subDef.Type) ]);
+										continue;
+									}
+
+									if (IsDictionary(member.Type, out var keyType, out var valueType))
+									{
+										if (this.TypeMap.ContainsKey(valueType))
+										{
+											if (keyType == typeof(string))
+											{
+												sb.Comment("dictionary with string key");
+												sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldDictionary)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(valueType) ]);
+												continue;
+											}
+										}
+										sb.Comment($"TODO: unsupported dictionary type: key={keyType.FullName}, value={valueType.FullName}");
+									}
+									else if (IsEnumerable(member.Type, out var elemType))
+									{
+										if (this.FastFieldArraySerializable.Contains(elemType))
+										{
+											sb.Comment("fast array!");
+											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
 											continue;
 										}
-									}
-									sb.Comment($"TODO: unsupported dictionary type: key={keyType.FullName}, value={valueType.FullName}");
-								}
-								else if (member.Type.IsEnumerableType(out var elemType))
-								{
-									if (this.FastFieldArraySerializable.Contains(elemType))
-									{
-										sb.Comment("fast array!");
-										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
-										continue;
+
+										if (this.TypeMap.ContainsKey(elemType))
+										{
+											sb.Comment("custom array!");
+											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(elemType) ]);
+											continue;
+										}
+
+										if (member.Type == typeof(IEnumerable<>).MakeGenericType(elemType))
+										{
+											sb.Comment("custom enumerable!");
+											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
+										}
+
+										sb.Comment("TODO: unsupported enumerable type: " + member.Type.FullName);
 									}
 
-									if (this.TypeMap.ContainsKey(elemType))
-									{
-										sb.Comment("custom array!");
-										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(elemType) ]);
-										continue;
-									}
-
-									if (member.Type == typeof(IEnumerable<>).MakeGenericType(elemType))
-									{
-										sb.Comment("custom enumerable!");
-										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
-									}
-
-									sb.Comment("TODO: unsupported enumerable type: " + member.Type.FullName);
+									sb.Comment("unknown type");
+									sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
 								}
 
-								sb.Comment("unknown type");
-								sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
+								sb.NewLine();
+								sb.Call("writer.EndObject", [ "state" ]);
 							}
-
-							sb.NewLine();
-							sb.Call("writer.EndObject", [ "state" ]);
 						}
 					);
 
@@ -346,13 +419,215 @@ namespace Doxense.Serialization.Json
 					sb.NewLine();
 
 					#endregion
-					
+
+					#region JsonPack...
+
+					sb.AppendLine("#region Packing...");
+					sb.NewLine();
+
+					sb.Method(
+						"public",
+						sb.TypeName<JsonValue>(),
+						nameof(IJsonPackerFor<object>.JsonPack),
+						[
+							sb.Parameter(typeName + (typeDef.IsNullable ? "?" : ""), "instance"),
+							sb.Parameter<CrystalJsonSettings>("settings", nullable: true),
+							sb.Parameter<ICrystalJsonTypeResolver>("resolver", nullable: true)
+						],
+						() =>
+						{
+							if (typeDef.IsNullable)
+							{
+								sb.If(
+									"instance is null", () =>
+									{
+										sb.Return(sb.TypeName<JsonNull>() + "." + nameof(JsonNull.Null));
+									}
+								);
+								sb.NewLine();
+							}
+
+							if (type.IsAssignableTo(typeof(IJsonPackable)))
+							{ // the type knows how to encode itself
+								sb.Return($"instance.{nameof(IJsonPackable.JsonPack)}(instance, settings, resolver);");
+							}
+							else
+							{
+
+								if (!typeDef.IsSealed)
+								{
+									sb.If(
+										$"instance.GetType() != typeof({typeName})", () =>
+										{
+											sb.Return($"{sb.TypeName<JsonValue>()}.{nameof(JsonValue.FromValue)}(instance)");
+										}
+									);
+									sb.NewLine();
+								}
+
+								sb.AppendLine($"{sb.TypeName<JsonValue>()}? value;");
+								sb.AppendLine($"var readOnly = settings?.{nameof(CrystalJsonSettings.ReadOnly)} ?? false;");
+								if (typeDef.Members.Any(m => m.IsNullable))
+								{
+									sb.AppendLine($"var keepNulls = settings?.{nameof(CrystalJsonSettings.ShowNullMembers)} ?? false;");
+								}
+								sb.NewLine();
+
+								sb.AppendLine($"var obj = new {sb.TypeName<JsonObject>()}({typeDef.Members.Length});");
+
+								foreach (var member in typeDef.Members)
+								{
+									var getter = $"instance.{member.OriginalName}";
+
+									sb.NewLine();
+									sb.Comment($"{member.Type.GetFriendlyName()} {member.OriginalName} => \"{member.Name}\"");
+
+									string? converter = null;
+									bool canBeNull = member.IsNullable;
+									bool isNullableOfT = member.Type.IsNullableType();
+
+									var memberType = !isNullableOfT ? member.Type : member.Type.GenericTypeArguments[0];
+
+									if (this.TypeMap.TryGetValue(memberType, out var subDef))
+									{
+										sb.Comment("custom!");
+										converter = $"{GetLocalSerializerRef(subDef.Type)}.{nameof(IJsonPackerFor<object>.JsonPack)}($VALUE$, settings, resolver)";
+									}
+									else if (memberType.IsAssignableTo(typeof(JsonValue)))
+									{ // already JSON!
+										converter = getter;
+									}
+									else if (memberType.IsValueType)
+									{ // there is a direct, dedicated method for this!
+										sb.Comment("fast!");
+
+										if (memberType == typeof(bool))
+										{
+											converter = "JsonBoolean.Return($VALUE$)";
+										}
+										else if (memberType == typeof(int) || memberType == typeof(long) || memberType == typeof(float) || memberType == typeof(double) || memberType == typeof(TimeSpan) || memberType == typeof(TimeOnly))
+										{
+											converter = $"{sb.MethodName<JsonNumber>(nameof(JsonNumber.Return))}($VALUE$)";
+										}
+										else if (memberType == typeof(Guid) || memberType == typeof(Uuid128) || memberType == typeof(Uuid96) || memberType == typeof(Uuid80) || memberType == typeof(Uuid64))
+										{
+											converter = $"{sb.MethodName<JsonString>(nameof(JsonString.Return))}($VALUE$)";
+										}
+										else if (memberType == typeof(DateTime) || memberType == typeof(DateTimeOffset) || memberType == typeof(DateOnly) || memberType == typeof(NodaTime.Instant))
+										{
+											converter = $"{sb.MethodName<JsonDateTime>(nameof(JsonDateTime.Return))}($VALUE$)";
+										}
+									}
+									else
+									{
+										if (memberType == typeof(string))
+										{
+											converter = $"{sb.MethodName<JsonString>(nameof(JsonString.Return))}($VALUE$)";
+										}
+										else if (IsDictionary(memberType, out var keyType, out var valueType))
+										{
+											if (keyType == typeof(string))
+											{
+												if (this.TypeMap.ContainsKey(valueType))
+												{
+													converter = $"{GetLocalSerializerRef(valueType)}.{nameof(JsonSerializerExtensions.JsonPackObject)}($VALUE$, settings, resolver)";
+												}
+												else
+												{
+													converter = $"{sb.MethodName(typeof(JsonSerializerExtensions), nameof(JsonSerializerExtensions.JsonPackEnumerable))}($VALUE$, settings, resolver)";
+												}
+											}
+										}
+										else if (IsEnumerable(memberType, out var elemType))
+										{
+											if (this.TypeMap.ContainsKey(elemType))
+											{
+												if (IsArray(memberType, out _))
+												{
+													converter = $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonPackArray)}($VALUE$, settings, resolver)";
+												}
+												else if (IsList(memberType, out _))
+												{
+													converter = $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonPackList)}($VALUE$, settings, resolver)";
+												}
+												else
+												{
+													converter = $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonPackEnumerable)}($VALUE$, settings, resolver)";
+												}
+											}
+											else
+											{
+												if (IsArray(memberType, out _))
+												{
+													converter = $"{sb.MethodName(typeof(JsonSerializerExtensions), nameof(JsonSerializerExtensions.JsonPackArray))}($VALUE$, settings, resolver)";
+												}
+												else if (IsList(memberType, out _))
+												{
+													converter = $"{sb.MethodName(typeof(JsonSerializerExtensions), nameof(JsonSerializerExtensions.JsonPackList))}($VALUE$, settings, resolver)";
+												}
+												else
+												{
+													converter = $"{sb.MethodName(typeof(JsonSerializerExtensions), nameof(JsonSerializerExtensions.JsonPackEnumerable))}($VALUE$, settings, resolver)";
+												}
+											}
+										}
+									}
+
+									if (converter == null)
+									{
+										converter = $"JsonValue.FromValue<{sb.TypeName(memberType)}>($VALUE$)";
+									}
+
+									var setter = $"obj[{sb.Constant(member.Name)}]";
+
+									if (isNullableOfT)
+									{
+										sb.EnterBlock("nullableOfT");
+										sb.AppendLine($"var tmp = {getter};");
+										sb.AppendLine($"value = tmp.HasValue ? {converter.Replace("$VALUE$", "tmp.Value")} : null;");
+										sb.AppendLine("if (keepNulls || value is not null or JsonNull)");
+										sb.EnterBlock("notNull");
+										sb.AppendLine($"{setter} = value;");
+										sb.LeaveBlock("notNull");
+										sb.LeaveBlock("nullableOfT");
+									}
+									else if (canBeNull)
+									{
+										sb.AppendLine($"value = {converter.Replace("$VALUE$", getter)};");
+										sb.AppendLine("if (keepNulls || value is not null or JsonNull)");
+										sb.EnterBlock("notNull");
+										sb.AppendLine($"{setter} = value;");
+										sb.LeaveBlock("notNull");
+									}
+									else
+									{
+										sb.AppendLine($"value = {converter.Replace("$VALUE$", getter)};");
+										sb.AppendLine($"{setter} = value;");
+									}
+								}
+
+								sb.If("readOnly", () =>
+								{
+									sb.AppendLine($"FreezeUnsafe(obj);");
+								});
+
+								sb.NewLine();
+								sb.Return("obj");
+							}
+						}
+					);
+
+					sb.AppendLine("#endregion");
+					sb.NewLine();
+
+					#endregion
+
 					#region JsonDeserialize...
 
 					sb.AppendLine("#region Deserialization...");
 					sb.NewLine();
 
-					bool isValueType = typeDef.Type.IsValueType;
+					bool isValueType = type.IsValueType;
 					bool smallish = false; //typeDef.Members.Length <= 5;
 
 					if (!smallish)
@@ -514,7 +789,7 @@ namespace Doxense.Serialization.Json
 				{
 					if (keyType == typeof(string))
 					{
-						return $"{GetLocalSerializerRef(valueType)}.{nameof(JsonSerializerExtensions.JsonDeserializeDictionary)}<{sb.TypeName(valueType)}>(kv.Value, defaultValue: {defaultValue}, keyComparer: null, resolver: resolver)!";
+						return $"{GetLocalSerializerRef(valueType)}.{nameof(JsonSerializerExtensions.JsonDeserializeDictionary)}(kv.Value, defaultValue: {defaultValue}, keyComparer: null, resolver: resolver)!";
 
 					}
 					//TODO??
@@ -523,22 +798,22 @@ namespace Doxense.Serialization.Json
 				{
 					if (this.TypeMap.ContainsKey(elemType))
 					{
-						if (memberType.IsArray)
+						if (IsArray(memberType, out _))
 						{
-							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeArray)}<{sb.TypeName(elemType)}>(kv.Value, defaultValue: {defaultValue}, resolver: resolver)!";
+							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeArray)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver)!";
 						}
-						if (memberType.IsGenericInstanceOf(typeof(List<>)))
+						if (IsList(memberType, out _))
 						{
-							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeList)}<{sb.TypeName(elemType)}>(kv.Value, defaultValue: {defaultValue}, resolver: resolver)!";
+							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeList)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver)!";
 						}
 					}
 					else
 					{
-						if (memberType.IsArray)
+						if (IsArray(memberType, out _))
 						{
 							return $"kv.Value.AsArrayOrDefault()?.ToArray<{sb.TypeName(elemType)}>({defaultValue}, resolver)!";
 						}
-						if (memberType.IsGenericInstanceOf(typeof(List<>)))
+						if (IsList(memberType, out _))
 						{
 							return $"kv.Value.AsArrayOrDefault()?.ToList<{sb.TypeName(elemType)}>({defaultValue}, resolver)!";
 						}
@@ -641,9 +916,13 @@ namespace Doxense.Serialization.Json
 
 		public string MethodName<T>(string name) => TypeName<T>() + "." + name;
 
-		public void EnterBlock(string type)
+		public string Singleton(Type type, string name) => TypeName(type) + "." + name;
+
+		public string Singleton<T>(string name) => TypeName<T>() + "." + name;
+
+		public void EnterBlock(string type, string? comment = null)
 		{
-			this.Output.Append('\t', this.Depth).AppendLine("{");
+			this.Output.Append('\t', this.Depth).AppendLine(comment == null ? "{" : "{ // " + comment);
 			this.Structure.Push(type);
 			++this.Depth;
 		}
@@ -771,6 +1050,11 @@ namespace Doxense.Serialization.Json
 				elseBock();
 				LeaveBlock("else:" + conditionText);
 			}
+		}
+
+		public void Ternary(string conditionText, string ifTrue, string ifFalse)
+		{
+			this.Output.Append($"{conditionText} ? {ifTrue} : {ifFalse}");
 		}
 
 		public void Attribute(string name, ReadOnlySpan<string> args = default, ReadOnlySpan<(string Name, string Value)> extras = default)

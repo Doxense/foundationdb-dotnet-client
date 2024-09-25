@@ -42,10 +42,12 @@ namespace Doxense.Serialization.Json.Tests
 		}
 	}
 
-	public sealed record Person
+	public record Person
 	{
-		public string? Firstame { get; set; }
+		[JsonProperty("firstName")]
+		public string? FirstName { get; set; }
 
+		[JsonProperty("familyName")]
 		public string? FamilyName { get; set; }
 
 	}
@@ -141,9 +143,8 @@ namespace Doxense.Serialization.Json.Tests
 
 			gen.AddTypes(
 			[
+				typeof(Person),
 				typeof(MyAwesomeUser),
-				typeof(MyAwesomeStruct), //BUGBUG:
-				typeof(MyAwesomeDevice), //BUGBUG:
 			]);
 
 			var source = gen.GenerateCode();
@@ -151,15 +152,74 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_Custom_Serializer_Basics()
+		public void Test_Custom_Serializer_Simple_Type()
 		{
 
+			{
+				var person = new Person() { FamilyName = "Bond", FirstName = "James" };
+				Log(person.ToString());
+				Log();
+				Log("# Reference System.Text.Json:");
+				Log(System.Text.Json.JsonSerializer.Serialize(person, SystemTextJsonGeneratedSerializers.Default.Person));
+				Log();
 
-			var person = new Person() { FamilyName = "Bond", Firstame = "James" };
+				Log("# Actual output:");
+				var json = CrystalJson.Serialize(person, GeneratedSerializers.Person);
+				Log(json);
+				Assert.That(json, Is.EqualTo("""{ "firstName": "James", "familyName": "Bond" }"""));
+				Log();
 
+				Log("# Parsing:");
+				var parsed = CrystalJson.Deserialize<Person>(json, GeneratedSerializers.Person);
+				Log(parsed?.ToString());
+				Assert.That(parsed, Is.Not.Null);
+				Assert.That(parsed.FirstName, Is.EqualTo("James"));
+				Assert.That(parsed.FamilyName, Is.EqualTo("Bond"));
+				Log();
 
-			Log(System.Text.Json.JsonSerializer.Serialize(person, SystemTextJsonGeneratedSerializers.Default.Person));
+				Log("# Packing:");
+				var packed = GeneratedSerializers.Person.JsonPack(person);
+				Dump(packed);
+				Assert.That(packed, IsJson.Object);
+				Assert.That(packed["firstName"], IsJson.EqualTo("James"));
+				Assert.That(packed["familyName"], IsJson.EqualTo("Bond"));
+				Log();
+			}
 
+			{
+				var person = new Person() { FirstName = "👍", FamilyName = "🐶" };
+				Log(person.ToString());
+				Log();
+				Log("# Reference System.Text.Json:");
+				Log(System.Text.Json.JsonSerializer.Serialize(person, SystemTextJsonGeneratedSerializers.Default.Person));
+				Log();
+
+				Log("# Actual output:");
+				var json = CrystalJson.Serialize(person, GeneratedSerializers.Person);
+				Log(json);
+				Assert.That(json, Is.EqualTo("""{ "firstName": "\ud83d\udc4d", "familyName": "\ud83d\udc36" }"""));
+
+				var parsed = CrystalJson.Deserialize<Person>(json, GeneratedSerializers.Person);
+				Assert.That(parsed, Is.Not.Null);
+				Assert.That(parsed.FirstName, Is.EqualTo("👍"));
+				Assert.That(parsed.FamilyName, Is.EqualTo("🐶"));
+
+				Log();
+			}
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(CrystalJson.Serialize(new(), GeneratedSerializers.Person), Is.EqualTo("""{ }"""));
+				Assert.That(CrystalJson.Serialize(new() { FirstName = null, FamilyName = null }, GeneratedSerializers.Person), Is.EqualTo("""{ }"""));
+				Assert.That(CrystalJson.Serialize(new() { FirstName = "", FamilyName = "" }, GeneratedSerializers.Person), Is.EqualTo("""{ "firstName": "", "familyName": "" }"""));
+				Assert.That(CrystalJson.Serialize(new() { FirstName = "James" }, GeneratedSerializers.Person), Is.EqualTo("""{ "firstName": "James" }"""));
+				Assert.That(CrystalJson.Serialize(new() { FamilyName = "Bond" }, GeneratedSerializers.Person), Is.EqualTo("""{ "familyName": "Bond" }"""));
+			});
+		}
+
+		[Test]
+		public void Test_Custom_Serializer_Complex_Type()
+		{
 			var user = new MyAwesomeUser()
 			{
 				Id = "b6a16abe-e30c-4198-8358-5f0d8fd9c283",
@@ -193,11 +253,13 @@ namespace Doxense.Serialization.Json.Tests
 			var expectedJson = CrystalJson.Serialize(user);
 			Log(expectedJson);
 
+			Log();
 			Log("Actual Json:");
 			var json = CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser);
 			Log(json);
 			Assert.That(json, Is.EqualTo(expectedJson));
 
+			Log();
 			Log("System.Text.Json reference:");
 			Log(System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser));
 
@@ -223,10 +285,33 @@ namespace Doxense.Serialization.Json.Tests
 				}
 			}
 
+			Log();
 			Log("Parse...");
-			var parsed = JsonValue.ParseObject(json);
+			var parsed = JsonValue.Parse(json);
 			DumpCompact(parsed);
+			Assert.That(parsed, IsJson.Object);
+			Assert.Multiple(() =>
+			{
+				Assert.That(parsed["id"], IsJson.EqualTo(user.Id));
+				Assert.That(parsed["displayName"], IsJson.EqualTo(user.DisplayName));
+				Assert.That(parsed["email"], IsJson.EqualTo(user.Email));
+				Assert.That(parsed["type"], IsJson.EqualTo(user.Type));
+				Assert.That(parsed["metadata"], IsJson.Object);
+				Assert.That(parsed["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
+				Assert.That(parsed["metadata"]["accountModified"], IsJson.EqualTo(user.Metadata.AccountModified));
+				Assert.That(parsed["metadata"]["accountDisabled"], IsJson.EqualTo(user.Metadata.AccountDisabled));
+				Assert.That(parsed["items"], IsJson.Array.And.OfSize(2));
+				Assert.That(parsed["items"][0], IsJson.Object);
+				Assert.That(parsed["items"][0]["id"], IsJson.EqualTo("382bb7cd-f9e4-4906-874e-ab88df954fa8"));
+				Assert.That(parsed["items"][1], IsJson.Object);
+				Assert.That(parsed["items"][1]["id"], IsJson.EqualTo("8092e57d-16b4-4afb-ae04-28acbeb22aa8"));
+				Assert.That(parsed["devices"], IsJson.Object.And.OfSize(2));
+				Assert.That(parsed["devices"]["Foo"], IsJson.Object);
+				Assert.That(parsed["devices"]["Bar"], IsJson.Object);
+				Assert.That(parsed["extras"], IsJson.Object.And.EqualTo(user.Extras));
+			});
 
+			Log();
 			Log("Deserialize...");
 			var decoded = GeneratedSerializers.MyAwesomeUser.JsonDeserialize(parsed);
 			Assert.That(decoded, Is.Not.Null);
@@ -238,6 +323,32 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(decoded.Roles, Is.EqualTo(user.Roles));
 			Assert.That(decoded.Devices, Is.EqualTo(user.Devices));
 			Assert.That(decoded.Extras, IsJson.EqualTo(user.Extras));
+
+			Log();
+			Log("Pack...");
+			var packed = GeneratedSerializers.MyAwesomeUser.JsonPack(user);
+			Dump(packed);
+			Assert.That(packed, IsJson.Object);
+			Assert.Multiple(() =>
+			{
+				Assert.That(packed["id"], IsJson.EqualTo(user.Id));
+				Assert.That(packed["displayName"], IsJson.EqualTo(user.DisplayName));
+				Assert.That(packed["email"], IsJson.EqualTo(user.Email));
+				Assert.That(packed["type"], IsJson.EqualTo(user.Type));
+				Assert.That(packed["metadata"], IsJson.Object);
+				Assert.That(packed["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
+				Assert.That(packed["metadata"]["accountModified"], IsJson.EqualTo(user.Metadata.AccountModified));
+				Assert.That(packed["metadata"]["accountDisabled"], IsJson.EqualTo(user.Metadata.AccountDisabled));
+				Assert.That(packed["items"], IsJson.Array.And.OfSize(2));
+				Assert.That(packed["items"][0], IsJson.Object);
+				Assert.That(packed["items"][0]["id"], IsJson.EqualTo("382bb7cd-f9e4-4906-874e-ab88df954fa8"));
+				Assert.That(packed["items"][1], IsJson.Object);
+				Assert.That(packed["items"][1]["id"], IsJson.EqualTo("8092e57d-16b4-4afb-ae04-28acbeb22aa8"));
+				Assert.That(packed["devices"], IsJson.Object.And.OfSize(2));
+				Assert.That(packed["devices"]["Foo"], IsJson.Object);
+				Assert.That(packed["devices"]["Bar"], IsJson.Object);
+				Assert.That(packed["extras"], IsJson.Object.And.EqualTo(user.Extras));
+			});
 		}
 
 		[Test]
@@ -268,7 +379,7 @@ namespace Doxense.Serialization.Json.Tests
 				},
 			};
 
-			var stjopts = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web) { };
+			var stjOps = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web) { };
 
 			var json = CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser);
 			var parsed = JsonValue.ParseObject(json);
@@ -278,72 +389,81 @@ namespace Doxense.Serialization.Json.Tests
 				_ = JsonValue.Parse(CrystalJson.Serialize(user)).As<MyAwesomeUser>();
 				_ = GeneratedSerializers.MyAwesomeUser.JsonDeserialize(JsonValue.Parse(CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser)));
 				_ = CrystalJson.Deserialize<MyAwesomeUser>(json);
-				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjopts);
+				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps);
 				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser);
 			}
 
 			Log($"JSON: {json.Length:N0} chars");
 
+			//{
+			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, stjOps), 6, 100_000);
+			//	Log($"* SERIALIZE TEXT STJ_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), 6, 100_000);
+			//	Log($"* SERIALIZE TEXT STJ_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user), 6, 100_000);
+			//	Log($"* SERIALIZE TEXT CRY_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser), 6, 100_000);
+			//	Log($"* SERIALIZE TEXT CRY_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user), 6, 100_000);
+			//	Log($"* SERIALIZE UTF8 CRY_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser), 6, 100_000);
+			//	Log($"* SERIALIZE UTF8 CRY_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() =>
+			//	{
+			//		using var res = CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser, ArrayPool<byte>.Shared);
+			//		// use the JSON here to do something!
+			//	}, 6, 100_000);
+			//	Log($"* SERIALIZE UTF8 POOLED: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+
+			//{
+			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps), 6, 100_000);
+			//	Log($"* DESR STJ_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), 6, 100_000);
+			//	Log($"* DESR STJ_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => CrystalJson.Deserialize<MyAwesomeUser>(json), 6, 100_000);
+			//	Log($"* DESR RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(JsonValue.Parse(json)), 6, 100_000);
+			//	Log($"* DESR CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+
+			//{
+			//	var report = RobustBenchmark.Run(() => parsed.As<MyAwesomeUser>(), 6, 100_000);
+			//	Log($"* AS<> RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+			//{
+			//	var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(parsed), 6, 100_000);
+			//	Log($"* AS<> CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
+
+			//{
+			//	var report = RobustBenchmark.Run(() => JsonValue.FromValue<MyAwesomeUser>(user), 6, 100_000);
+			//	Log($"* PACK RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+			//}
 			{
-				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, stjopts), 5, 100_000);
-				Log($"* SERIALIZE TEXT STJ_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), 5, 100_000);
-				Log($"* SERIALIZE TEXT STJ_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user), 5, 100_000);
-				Log($"* SERIALIZE TEXT CRY_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser), 5, 100_000);
-				Log($"* SERIALIZE TEXT CRY_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user), 5, 100_000);
-				Log($"* SERIALIZE UTF8 CRY_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser), 5, 100_000);
-				Log($"* SERIALIZE UTF8 CRY_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() =>
-				{
-					using var res = CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser, ArrayPool<byte>.Shared);
-					// use the JSON here to do something!
-				}, 5, 100_000);
-				Log($"* SERIALIZE UTF8 POOLED: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
+				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonPack(user), 50, 100_000);
+				Log($"* PACK CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
 			}
 
-			{
-				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjopts), 5, 100_000);
-				Log($"* DESR STJ_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), 5, 100_000);
-				Log($"* DESR STJ_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => CrystalJson.Deserialize<MyAwesomeUser>(json), 5, 100_000);
-				Log($"* DESR RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(JsonValue.Parse(json)), 5, 100_000);
-				Log($"* DESR CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-
-			{
-				var report = RobustBenchmark.Run(() => parsed.As<MyAwesomeUser>(), 5, 100_000);
-				Log($"* AS<> RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
-			{
-				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(parsed), 5, 100_000);
-				Log($"* AS<> CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count} GC0");
-			}
 		}
-
 
 	}
 
@@ -352,24 +472,149 @@ namespace Doxense.Serialization.Json.Tests
 namespace Doxense.Serialization.Json.Tests
 {
 
+	// ReSharper disable GrammarMistakeInComment
 	// ReSharper disable InconsistentNaming
+	// ReSharper disable JoinDeclarationAndInitializer
 	// ReSharper disable PartialTypeWithSinglePart
 	// ReSharper disable RedundantNameQualifier
 
 	public partial class GeneratedSerializers
 	{
 
+		#region Person ...
+
+		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.Person">Person</see></summary>
+		public static _PersonJsonSerializer Person => m_cachedPerson ??= new();
+
+		private static _PersonJsonSerializer? m_cachedPerson;
+
+		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
+		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
+		[global::System.Diagnostics.DebuggerNonUserCode()]
+		public sealed class _PersonJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.Person>, global::Doxense.Serialization.Json.IJsonPackerFor<global::Doxense.Serialization.Json.Tests.Person>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.Person>
+		{
+
+			#region Serialization...
+
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _firstName = new("firstName");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _familyName = new("familyName");
+
+			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.Person? instance)
+			{
+				if (instance is null)
+				{
+					writer.WriteNull();
+					return;
+				}
+
+				if (instance.GetType() != typeof(global::Doxense.Serialization.Json.Tests.Person))
+				{
+					global::Doxense.Serialization.Json.CrystalJsonVisitor.VisitValue(instance, typeof(global::Doxense.Serialization.Json.Tests.Person), writer);
+					return;
+				}
+
+				var state = writer.BeginObject();
+
+				// string FirstName => "firstName"
+				// fast!
+				writer.WriteField(in _firstName, instance.FirstName);
+
+				// string FamilyName => "familyName"
+				// fast!
+				writer.WriteField(in _familyName, instance.FamilyName);
+
+				writer.EndObject(state);
+			}
+
+			#endregion
+
+			#region Packing...
+
+			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.Person? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			{
+				if (instance is null)
+				{
+					return global::Doxense.Serialization.Json.JsonNull.Null;
+				}
+
+				if (instance.GetType() != typeof(global::Doxense.Serialization.Json.Tests.Person))
+				{
+					return global::Doxense.Serialization.Json.JsonValue.FromValue(instance);
+				}
+
+				global::Doxense.Serialization.Json.JsonValue? value;
+				var readOnly = settings?.ReadOnly ?? false;
+				var keepNulls = settings?.ShowNullMembers ?? false;
+
+				var obj = new global::Doxense.Serialization.Json.JsonObject(2);
+
+				// string FirstName => "firstName"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.FirstName);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["firstName"] = value;
+				}
+
+				// string FamilyName => "familyName"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.FamilyName);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["familyName"] = value;
+				}
+				if (readOnly)
+				{
+					FreezeUnsafe(obj);
+				}
+
+				return obj;
+			}
+
+			#endregion
+
+			#region Deserialization...
+
+			// FirstName { get; init; }
+			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FirstName>k__BackingField")]
+			private static extern ref string FirstNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
+
+			// FamilyName { get; init; }
+			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FamilyName>k__BackingField")]
+			private static extern ref string FamilyNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
+
+			public global::Doxense.Serialization.Json.Tests.Person JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			{
+				var obj = value.AsObject();
+				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.Person>();
+
+				foreach (var kv in obj)
+				{
+					switch (kv.Key)
+					{
+						case "firstName": FirstNameAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
+						case "familyName": FamilyNameAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
+					}
+				}
+
+				return instance;
+			}
+
+			#endregion
+
+		}
+
+		#endregion
+
 		#region MyAwesomeUser ...
 
 		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeUser">MyAwesomeUser</see></summary>
-		public static _MyAwesomeUserJsonSerializer MyAwesomeUser => m_cachedMyAwesomeUser ??= new _MyAwesomeUserJsonSerializer();
+		public static _MyAwesomeUserJsonSerializer MyAwesomeUser => m_cachedMyAwesomeUser ??= new();
 
 		private static _MyAwesomeUserJsonSerializer? m_cachedMyAwesomeUser;
 
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeUserJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>
+		public sealed class _MyAwesomeUserJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>, global::Doxense.Serialization.Json.IJsonPackerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>
 		{
 
 			#region Serialization...
@@ -389,12 +634,6 @@ namespace Doxense.Serialization.Json.Tests
 				if (instance is null)
 				{
 					writer.WriteNull();
-					return;
-				}
-
-				if (instance.GetType() != typeof(global::Doxense.Serialization.Json.Tests.MyAwesomeUser))
-				{
-					global::Doxense.Serialization.Json.CrystalJsonVisitor.VisitValue(instance, typeof(global::Doxense.Serialization.Json.Tests.MyAwesomeUser), writer);
 					return;
 				}
 
@@ -437,6 +676,92 @@ namespace Doxense.Serialization.Json.Tests
 				writer.WriteField(in _extras, instance.Extras);
 
 				writer.EndObject(state);
+			}
+
+			#endregion
+
+			#region Packing...
+
+			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			{
+				if (instance is null)
+				{
+					return global::Doxense.Serialization.Json.JsonNull.Null;
+				}
+
+				global::Doxense.Serialization.Json.JsonValue? value;
+				var readOnly = settings?.ReadOnly ?? false;
+				var keepNulls = settings?.ShowNullMembers ?? false;
+
+				var obj = new global::Doxense.Serialization.Json.JsonObject(9);
+
+				// string Id => "id"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["id"] = value;
+				}
+
+				// string DisplayName => "displayName"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.DisplayName);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["displayName"] = value;
+				}
+
+				// string Email => "email"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Email);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["email"] = value;
+				}
+
+				// int Type => "type"
+				// fast!
+				value = global::Doxense.Serialization.Json.JsonNumber.Return(instance.Type);
+				obj["type"] = value;
+
+				// string[] Roles => "roles"
+				value = global::Doxense.Serialization.Json.JsonSerializerExtensions.JsonPackArray(instance.Roles, settings, resolver);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["roles"] = value;
+				}
+
+				// MyAwesomeMetadata Metadata => "metadata"
+				// custom!
+				value = GeneratedSerializers.MyAwesomeMetadata.JsonPack(instance.Metadata, settings, resolver);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["metadata"] = value;
+				}
+
+				// List<MyAwesomeStruct> Items => "items"
+				value = GeneratedSerializers.MyAwesomeStruct.JsonPackList(instance.Items, settings, resolver);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["items"] = value;
+				}
+
+				// Dictionary<string, MyAwesomeDevice> Devices => "devices"
+				value = GeneratedSerializers.MyAwesomeDevice.JsonPackObject(instance.Devices, settings, resolver);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["devices"] = value;
+				}
+
+				// JsonObject Extras => "extras"
+				value = instance.Extras;
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["extras"] = value;
+				}
+				if (readOnly)
+				{
+					FreezeUnsafe(obj);
+				}
+
+				return obj;
 			}
 
 			#endregion
@@ -494,9 +819,138 @@ namespace Doxense.Serialization.Json.Tests
 						case "type": TypeAccessor(instance) = kv.Value.ToInt32(); break;
 						case "roles": RolesAccessor(instance) = kv.Value.AsArrayOrDefault()?.ToArray<string>(null, resolver)!; break;
 						case "metadata": MetadataAccessor(instance) = GeneratedSerializers.MyAwesomeMetadata.JsonDeserialize(kv.Value, resolver)!; break;
-						case "items": ItemsAccessor(instance) = GeneratedSerializers.MyAwesomeStruct.JsonDeserializeList<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>(kv.Value, defaultValue: null, resolver: resolver)!; break;
-						case "devices": DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>(kv.Value, defaultValue: null, keyComparer: null, resolver: resolver)!; break;
+						case "items": ItemsAccessor(instance) = GeneratedSerializers.MyAwesomeStruct.JsonDeserializeList(kv.Value, defaultValue: null, resolver: resolver)!; break;
+						case "devices": DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary(kv.Value, defaultValue: null, keyComparer: null, resolver: resolver)!; break;
 						case "extras": ExtrasAccessor(instance) = kv.Value.AsObjectOrDefault()!; break;
+					}
+				}
+
+				return instance;
+			}
+
+			#endregion
+
+		}
+
+		#endregion
+
+		#region MyAwesomeMetadata ...
+
+		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see></summary>
+		public static _MyAwesomeMetadataJsonSerializer MyAwesomeMetadata => m_cachedMyAwesomeMetadata ??= new();
+
+		private static _MyAwesomeMetadataJsonSerializer? m_cachedMyAwesomeMetadata;
+
+		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
+		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
+		[global::System.Diagnostics.DebuggerNonUserCode()]
+		public sealed class _MyAwesomeMetadataJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>, global::Doxense.Serialization.Json.IJsonPackerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>
+		{
+
+			#region Serialization...
+
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountCreated = new("accountCreated");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountModified = new("accountModified");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountDisabled = new("accountDisabled");
+
+			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance)
+			{
+				if (instance is null)
+				{
+					writer.WriteNull();
+					return;
+				}
+
+				var state = writer.BeginObject();
+
+				// DateTimeOffset AccountCreated => "accountCreated"
+				// unknown type
+				writer.WriteField(in _accountCreated, instance.AccountCreated);
+
+				// DateTimeOffset AccountModified => "accountModified"
+				// unknown type
+				writer.WriteField(in _accountModified, instance.AccountModified);
+
+				// DateTimeOffset? AccountDisabled => "accountDisabled"
+				// unknown type
+				writer.WriteField(in _accountDisabled, instance.AccountDisabled);
+
+				writer.EndObject(state);
+			}
+
+			#endregion
+
+			#region Packing...
+
+			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			{
+				if (instance is null)
+				{
+					return global::Doxense.Serialization.Json.JsonNull.Null;
+				}
+
+				global::Doxense.Serialization.Json.JsonValue? value;
+				var readOnly = settings?.ReadOnly ?? false;
+				var keepNulls = settings?.ShowNullMembers ?? false;
+
+				var obj = new global::Doxense.Serialization.Json.JsonObject(3);
+
+				// DateTimeOffset AccountCreated => "accountCreated"
+				// fast!
+				value = global::Doxense.Serialization.Json.JsonDateTime.Return(instance.AccountCreated);
+				obj["accountCreated"] = value;
+
+				// DateTimeOffset AccountModified => "accountModified"
+				// fast!
+				value = global::Doxense.Serialization.Json.JsonDateTime.Return(instance.AccountModified);
+				obj["accountModified"] = value;
+
+				// DateTimeOffset? AccountDisabled => "accountDisabled"
+				// fast!
+				{
+					var tmp = instance.AccountDisabled;
+					value = tmp.HasValue ? global::Doxense.Serialization.Json.JsonDateTime.Return(tmp.Value) : null;
+					if (keepNulls || value is not null or JsonNull)
+					{
+						obj["accountDisabled"] = value;
+					}
+				}
+				if (readOnly)
+				{
+					FreezeUnsafe(obj);
+				}
+
+				return obj;
+			}
+
+			#endregion
+
+			#region Deserialization...
+
+			// AccountCreated { get; init; }
+			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountCreated>k__BackingField")]
+			private static extern ref global::System.DateTimeOffset AccountCreatedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
+
+			// AccountModified { get; init; }
+			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountModified>k__BackingField")]
+			private static extern ref global::System.DateTimeOffset AccountModifiedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
+
+			// AccountDisabled { get; init; }
+			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountDisabled>k__BackingField")]
+			private static extern ref global::System.DateTimeOffset? AccountDisabledAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
+
+			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			{
+				var obj = value.AsObject();
+				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>();
+
+				foreach (var kv in obj)
+				{
+					switch (kv.Key)
+					{
+						case "accountCreated": AccountCreatedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
+						case "accountModified": AccountModifiedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
+						case "accountDisabled": AccountDisabledAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(null); break;
 					}
 				}
 
@@ -512,14 +966,14 @@ namespace Doxense.Serialization.Json.Tests
 		#region MyAwesomeStruct ...
 
 		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeStruct">MyAwesomeStruct</see></summary>
-		public static _MyAwesomeStructJsonSerializer MyAwesomeStruct => m_cachedMyAwesomeStruct ??= new _MyAwesomeStructJsonSerializer();
+		public static _MyAwesomeStructJsonSerializer MyAwesomeStruct => m_cachedMyAwesomeStruct ??= new();
 
 		private static _MyAwesomeStructJsonSerializer? m_cachedMyAwesomeStruct;
 
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeStructJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>
+		public sealed class _MyAwesomeStructJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>, global::Doxense.Serialization.Json.IJsonPackerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>
 		{
 
 			#region Serialization...
@@ -545,6 +999,48 @@ namespace Doxense.Serialization.Json.Tests
 				writer.WriteField(in _disabled, instance.Disabled);
 
 				writer.EndObject(state);
+			}
+
+			#endregion
+
+			#region Packing...
+
+			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			{
+				global::Doxense.Serialization.Json.JsonValue? value;
+				var readOnly = settings?.ReadOnly ?? false;
+				var keepNulls = settings?.ShowNullMembers ?? false;
+
+				var obj = new global::Doxense.Serialization.Json.JsonObject(3);
+
+				// string Id => "id"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["id"] = value;
+				}
+
+				// int Level => "level"
+				// fast!
+				value = global::Doxense.Serialization.Json.JsonNumber.Return(instance.Level);
+				obj["level"] = value;
+
+				// bool? Disabled => "disabled"
+				// fast!
+				{
+					var tmp = instance.Disabled;
+					value = tmp.HasValue ? JsonBoolean.Return(tmp.Value) : null;
+					if (keepNulls || value is not null or JsonNull)
+					{
+						obj["disabled"] = value;
+					}
+				}
+				if (readOnly)
+				{
+					FreezeUnsafe(obj);
+				}
+
+				return obj;
 			}
 
 			#endregion
@@ -590,14 +1086,14 @@ namespace Doxense.Serialization.Json.Tests
 		#region MyAwesomeDevice ...
 
 		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeDevice">MyAwesomeDevice</see></summary>
-		public static _MyAwesomeDeviceJsonSerializer MyAwesomeDevice => m_cachedMyAwesomeDevice ??= new _MyAwesomeDeviceJsonSerializer();
+		public static _MyAwesomeDeviceJsonSerializer MyAwesomeDevice => m_cachedMyAwesomeDevice ??= new();
 
 		private static _MyAwesomeDeviceJsonSerializer? m_cachedMyAwesomeDevice;
 
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeDeviceJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>
+		public sealed class _MyAwesomeDeviceJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>, global::Doxense.Serialization.Json.IJsonPackerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>
 		{
 
 			#region Serialization...
@@ -625,8 +1121,8 @@ namespace Doxense.Serialization.Json.Tests
 				// fast!
 				writer.WriteField(in _Model, instance.Model);
 
-				// Instant? LastSeen => "LastSeen"
-				// fast!
+				// DateTimeOffset? LastSeen => "LastSeen"
+				// unknown type
 				writer.WriteField(in _LastSeen, instance.LastSeen);
 
 				// IPAddress LastAddress => "LastAddress"
@@ -634,6 +1130,62 @@ namespace Doxense.Serialization.Json.Tests
 				writer.WriteField(in _LastAddress, instance.LastAddress);
 
 				writer.EndObject(state);
+			}
+
+			#endregion
+
+			#region Packing...
+
+			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			{
+				if (instance is null)
+				{
+					return global::Doxense.Serialization.Json.JsonNull.Null;
+				}
+
+				global::Doxense.Serialization.Json.JsonValue? value;
+				var readOnly = settings?.ReadOnly ?? false;
+				var keepNulls = settings?.ShowNullMembers ?? false;
+
+				var obj = new global::Doxense.Serialization.Json.JsonObject(4);
+
+				// string Id => "Id"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["Id"] = value;
+				}
+
+				// string Model => "Model"
+				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Model);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["Model"] = value;
+				}
+
+				// DateTimeOffset? LastSeen => "LastSeen"
+				// fast!
+				{
+					var tmp = instance.LastSeen;
+					value = tmp.HasValue ? global::Doxense.Serialization.Json.JsonDateTime.Return(tmp.Value) : null;
+					if (keepNulls || value is not null or JsonNull)
+					{
+						obj["LastSeen"] = value;
+					}
+				}
+
+				// IPAddress LastAddress => "LastAddress"
+				value = JsonValue.FromValue<global::System.Net.IPAddress>(instance.LastAddress);
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["LastAddress"] = value;
+				}
+				if (readOnly)
+				{
+					FreezeUnsafe(obj);
+				}
+
+				return obj;
 			}
 
 			#endregion
@@ -650,7 +1202,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// LastSeen { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastSeen>k__BackingField")]
-			private static extern ref DateTimeOffset? LastSeenAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
+			private static extern ref global::System.DateTimeOffset? LastSeenAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
 
 			// LastAddress { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastAddress>k__BackingField")]
@@ -681,90 +1233,12 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
-		#region MyAwesomeMetadata ...
-
-		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see></summary>
-		public static _MyAwesomeMetadataJsonSerializer MyAwesomeMetadata => m_cachedMyAwesomeMetadata ??= new _MyAwesomeMetadataJsonSerializer();
-
-		private static _MyAwesomeMetadataJsonSerializer? m_cachedMyAwesomeMetadata;
-
-		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
-		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
-		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeMetadataJsonSerializer : global::Doxense.Serialization.Json.IJsonSerializer<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>, global::Doxense.Serialization.Json.IJsonDeserializerFor<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>
-		{
-
-			#region Serialization...
-
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountCreated = new("accountCreated");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountModified = new("accountModified");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountDisabled = new("accountDisabled");
-
-			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance)
-			{
-				if (instance is null)
-				{
-					writer.WriteNull();
-					return;
-				}
-
-				var state = writer.BeginObject();
-
-				// Instant AccountCreated => "accountCreated"
-				// fast!
-				writer.WriteField(in _accountCreated, instance.AccountCreated);
-
-				// Instant AccountModified => "accountModified"
-				// fast!
-				writer.WriteField(in _accountModified, instance.AccountModified);
-
-				// Instant? AccountDisabled => "accountDisabled"
-				// fast!
-				writer.WriteField(in _accountDisabled, instance.AccountDisabled);
-
-				writer.EndObject(state);
-			}
-
-			#endregion
-
-			#region Deserialization...
-
-			// AccountCreated { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountCreated>k__BackingField")]
-			private static extern ref DateTimeOffset AccountCreatedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
-
-			// AccountModified { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountModified>k__BackingField")]
-			private static extern ref DateTimeOffset AccountModifiedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
-
-			// AccountDisabled { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountDisabled>k__BackingField")]
-			private static extern ref DateTimeOffset? AccountDisabledAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
-
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				var obj = value.AsObject();
-				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>();
-
-				foreach (var kv in obj)
-				{
-					switch (kv.Key)
-					{
-						case "accountCreated": AccountCreatedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
-						case "accountModified": AccountModifiedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
-						case "accountDisabled": AccountDisabledAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(null); break;
-					}
-				}
-
-				return instance;
-			}
-
-			#endregion
-
-		}
-
+		#region Helpers...
+		[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Method, Name = "FreezeUnsafe")]
+		private static extern ref string FreezeUnsafe(global::Doxense.Serialization.Json.JsonObject instance);
+		[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Method, Name = "FreezeUnsafe")]
+		private static extern ref string FreezeUnsafe(global::Doxense.Serialization.Json.JsonArray instance);
 		#endregion
-
 	}
 
 }
