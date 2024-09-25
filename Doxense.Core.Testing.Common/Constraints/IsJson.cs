@@ -29,7 +29,7 @@
 namespace SnowBank.Testing
 {
 	using System.Linq.Expressions;
-	using System.Runtime.CompilerServices;
+	using Doxense.Collections.Tuples;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
 	using NUnit.Framework.Constraints;
@@ -118,15 +118,9 @@ namespace SnowBank.Testing
 		#region JsonValue...
 		
 		/// <summary>Assert that the value is a JSON Value equal to the expected value</summary>
-#if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
-#endif
 		public static JsonConstraint EqualTo(JsonValue expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, expected);
 
 		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
-#if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(-1)]
-#endif
 		public static JsonConstraint EqualTo(IEnumerable<JsonValue> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
@@ -174,14 +168,32 @@ namespace SnowBank.Testing
 		#region Boolean...
 		
 		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(bool expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, expected ? JsonBoolean.True : JsonBoolean.False);
+		public static JsonConstraint EqualTo(bool expected) => new JsonEqualConstraint<bool>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(bool? expected) => new JsonEqualConstraint<bool?>(expected);
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<bool> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<bool?> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		#endregion
 
 		#region Int32...
-		
+
 		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(int expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonNumber.Return(expected));
+		public static JsonConstraint EqualTo(int expected) => new JsonEqualConstraint<int>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(int? expected) => new JsonEqualConstraint<int?>(expected);
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<int> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<int?> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
 		public static JsonConstraint GreaterThan(int expected) => new JsonEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -200,7 +212,16 @@ namespace SnowBank.Testing
 		#region Int64...
 		
 		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(long expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonNumber.Return(expected));
+		public static JsonConstraint EqualTo(long expected) => new JsonEqualConstraint<long>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(long? expected) => new JsonEqualConstraint<long?>(expected);
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<long> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<long?> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
 		public static JsonConstraint GreaterThan(long expected) => new JsonEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -219,7 +240,16 @@ namespace SnowBank.Testing
 		#region Float...
 		
 		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(float expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonNumber.Return(expected));
+		public static JsonConstraint EqualTo(float expected) => new JsonEqualConstraint<float>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(float? expected) => new JsonEqualConstraint<float?>(expected);
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<float> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<float?> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
 		public static JsonConstraint GreaterThan(float expected) => new JsonEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -238,7 +268,16 @@ namespace SnowBank.Testing
 		#region Double...
 		
 		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(double expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonNumber.Return(expected));
+		public static JsonConstraint EqualTo(double expected) => new JsonEqualConstraint<double>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(double? expected) => new JsonEqualConstraint<double?>(expected);
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<double> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<double?> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
 		public static JsonConstraint GreaterThan(double expected) => new JsonEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -257,7 +296,13 @@ namespace SnowBank.Testing
 		#region Strings...
 
 		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(string? expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonString.Return(expected));
+		public static JsonConstraint EqualTo(string? expected) => new JsonEqualConstraint<string>(expected, StringComparer.Ordinal);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(string? expected, IEqualityComparer<string>? comparer) => new JsonEqualConstraint<string>(expected, comparer ?? StringComparer.Ordinal);
+
+		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
+		public static JsonConstraint EqualTo(ReadOnlySpan<string> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
 		public static JsonConstraint GreaterThan(string? expected) => new JsonEqualConstraint(JsonComparisonOperator.GreaterThan, JsonString.Return(expected));
@@ -273,11 +318,85 @@ namespace SnowBank.Testing
 
 		#endregion
 
+		#region Guids...
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Guid expected) => new JsonEqualConstraint<Guid>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Guid? expected) => new JsonEqualConstraint<Guid?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid128 expected) => new JsonEqualConstraint<Uuid128>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid128? expected) => new JsonEqualConstraint<Uuid128?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid96 expected) => new JsonEqualConstraint<Uuid96>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid96? expected) => new JsonEqualConstraint<Uuid96?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid80 expected) => new JsonEqualConstraint<Uuid80>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid80? expected) => new JsonEqualConstraint<Uuid80?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid64 expected) => new JsonEqualConstraint<Uuid64>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(Uuid64? expected) => new JsonEqualConstraint<Uuid64?>(expected);
+
+		#endregion
+
+		#region Dates and times...
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(DateTime expected) => new JsonEqualConstraint<DateTime>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(DateTime? expected) => new JsonEqualConstraint<DateTime?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(DateTimeOffset expected) => new JsonEqualConstraint<DateTimeOffset>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(DateTimeOffset? expected) => new JsonEqualConstraint<DateTimeOffset?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(DateOnly expected) => new JsonEqualConstraint<DateOnly>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(DateOnly? expected) => new JsonEqualConstraint<DateOnly?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(TimeOnly expected) => new JsonEqualConstraint<TimeOnly>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(TimeOnly? expected) => new JsonEqualConstraint<TimeOnly?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(NodaTime.Instant expected) => new JsonEqualConstraint<NodaTime.Instant>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(NodaTime.Instant? expected) => new JsonEqualConstraint<NodaTime.Instant?>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(NodaTime.Duration expected) => new JsonEqualConstraint<NodaTime.Duration>(expected);
+
+		/// <summary>Assert that the value is equal to the expected value</summary>
+		public static JsonConstraint EqualTo(NodaTime.Duration? expected) => new JsonEqualConstraint<NodaTime.Duration?>(expected);
+
+		#endregion
+
 		private static JsonValue? CoerceToJsonValue<TActual>(TActual actual) => actual switch
 		{
 			null                   => JsonNull.Null,
 			JsonValue value        => value,
-			IJsonPackable packable => packable.JsonPack(CrystalJsonSettings.Json, CrystalJson.DefaultResolver) ?? JsonNull.Null,
+			IJsonPackable packable => packable.JsonPack(CrystalJsonSettings.Json, CrystalJson.DefaultResolver),
 			_                      => null
 		};
 
@@ -289,7 +408,14 @@ namespace SnowBank.Testing
 			_ => value.ToJsonIndented().Replace("\r\n", "\r\n  "),
 		};
 
-		public enum JsonComparisonOperator
+		private static string Stringify<TValue>(TValue? value) => value switch
+		{
+			null => "<null>",
+			JsonValue j => Jsonify(j),
+			_ => STuple.Formatter.Stringify(value).Replace("\r\n", "\r\n  "),
+		};
+
+		internal enum JsonComparisonOperator
 		{
 			Equal,
 			SameAs,
@@ -299,6 +425,7 @@ namespace SnowBank.Testing
 			LessThanOrEqual,
 		}
 
+		[PublicAPI]
 		public abstract class JsonConstraint : Constraint
 		{
 
@@ -374,10 +501,9 @@ namespace SnowBank.Testing
 
 			internal class Result : ConstraintResult
 			{
+				private JsonValue ExpectedValue { get; }
 
-				public JsonValue ExpectedValue { get; }
-
-				public JsonComparisonOperator Operator { get; }
+				private JsonComparisonOperator Operator { get; }
 
 				public Result(JsonEqualConstraint constraint, object? actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
@@ -470,7 +596,7 @@ namespace SnowBank.Testing
 						}
 						default:
 						{
-							throw new NotImplementedException();
+							throw new NotSupportedException("This type of comparison is not supported.");
 						}
 					}
 				}
@@ -486,6 +612,167 @@ namespace SnowBank.Testing
 						base.WriteActualValueTo(writer);
 					}
 				}
+			}
+
+		}
+
+		internal sealed class JsonEqualConstraint<TValue> : JsonConstraint
+		{
+
+			public TValue? Expected { get; }
+
+			public IEqualityComparer<TValue> Comparer { get; }
+
+			public JsonEqualConstraint(TValue? expected, IEqualityComparer<TValue>? comparer = null) : base(expected)
+			{
+				this.Expected = expected;
+				this.Comparer = comparer ?? EqualityComparer<TValue>.Default;
+			}
+
+			public override ConstraintResult ApplyTo<TActual>(TActual actual)
+			{
+				// TActual is expected to be either null, or a JsonValue
+				var obj = CoerceToJsonValue(actual);
+
+				if (obj is null)
+				{ // the actual value is NOT a JsonValue
+					return new Result(this, actual, false);
+				}
+
+				bool isEqual;
+				if (this.Expected is null)
+				{
+					isEqual = obj is JsonNull;
+				}
+				else if (this.Expected is JsonValue j)
+				{
+					isEqual = obj.Equals(j);
+				}
+				else
+				{
+					isEqual = obj.ValueEquals(this.Expected, this.Comparer);
+				}
+
+				return new Result(this, obj, isEqual);
+			}
+
+			public override string Description => $"<{(this.Expected?.GetType() ?? typeof(TValue)).GetFriendlyName()}> {Stringify(this.Expected)}";
+
+			internal class Result : ConstraintResult
+			{
+
+				private TValue? ExpectedValue { get; }
+
+				public Result(JsonEqualConstraint<TValue> constraint, object? actual, bool hasSucceeded)
+					: base(constraint, actual, hasSucceeded)
+				{
+					this.ExpectedValue = constraint.Expected;
+				}
+
+				private void WriteDifferences(MessageWriter writer, string? op, string message)
+				{
+					writer.WriteMessageLine(message);
+					writer.Write(TextMessageWriter.Pfx_Expected);
+					if (op != null) writer.Write(op + " ");
+					if (this.ActualValue is TValue value)
+					{
+						if (this.ExpectedValue is not null or JsonNull)
+						{
+							writer.Write($"<{(this.ExpectedValue.GetType()).GetFriendlyName()}> ");
+						}
+						writer.WriteLine(Stringify(this.ExpectedValue));
+
+						writer.Write(TextMessageWriter.Pfx_Actual);
+						writer.Write($"<{(value.GetType()).GetFriendlyName()}> ");
+						writer.WriteLine(Stringify(value));
+					}
+					else if (this.ActualValue is null)
+					{
+						writer.WriteLine(Stringify(this.ExpectedValue));
+						writer.Write(TextMessageWriter.Pfx_Actual);
+						writer.WriteLine("null");
+					}
+					else if (this.ActualValue is JsonValue j)
+					{
+						if (this.ExpectedValue is not null or JsonNull)
+						{
+							writer.Write($"<{(this.ExpectedValue.GetType()).GetFriendlyName()}> ");
+						}
+						writer.WriteLine(Stringify(this.ExpectedValue));
+
+						writer.Write(TextMessageWriter.Pfx_Actual);
+						if (TryBind(j, out var casted))
+						{
+							writer.WriteLine($"<{(casted?.GetType() ?? typeof(TValue)).GetFriendlyName()}> {Stringify(casted)}");
+						}
+						else
+						{
+							writer.WriteLine($"<{j.GetType().GetFriendlyName()}> {Jsonify(j)}");
+						}
+					}
+					else
+					{
+						if (this.ExpectedValue is not null or JsonNull)
+						{
+							writer.Write($"<{(this.ExpectedValue.GetType()).GetFriendlyName()}> ");
+						}
+						writer.WriteLine(Stringify(this.ExpectedValue));
+
+						writer.Write(TextMessageWriter.Pfx_Actual);
+						writer.Write($"<{this.ActualValue.GetType().GetFriendlyName()}> ");
+						writer.WriteActualValue(this.ActualValue);
+					}
+				}
+
+				public override void WriteMessageTo(MessageWriter writer)
+				{
+					if (this.IsSuccess)
+					{
+						base.WriteMessageTo(writer);
+						return;
+					}
+
+					WriteDifferences(writer, null, "JSON value does not match the expected value");
+				}
+
+				public override void WriteActualValueTo(MessageWriter writer)
+				{
+					if (this.ActualValue is JsonNull jn)
+					{
+						writer.WriteLine(Jsonify(jn));
+
+					}
+					else if (this.ActualValue is JsonValue value)
+					{
+						if (TryBind(value, out var casted))
+						{
+							writer.WriteLine($"<{(casted?.GetType() ?? typeof(TValue)).GetFriendlyName()}> {Stringify(casted)}");
+						}
+						else
+						{
+							writer.WriteLine($"<{value.GetType().GetFriendlyName()}> {Jsonify(value)}");
+						}
+					}
+					else
+					{
+						base.WriteActualValueTo(writer);
+					}
+				}
+
+				private bool TryBind(JsonValue value, out TValue? result)
+				{
+					try
+					{
+						result = value.Bind<TValue>();
+						return true;
+					}
+					catch (Exception)
+					{
+						result = default;
+						return false;
+					}
+				}
+
 			}
 
 		}
@@ -515,9 +802,9 @@ namespace SnowBank.Testing
 			internal class Result : ConstraintResult
 			{
 
-				public JsonType ExpectedType { get; }
+				private JsonType ExpectedType { get; }
 
-				public JsonValue ActualJsonValue { get; }
+				private JsonValue ActualJsonValue { get; }
 
 				public Result(JsonTypeConstraint constraint, JsonValue actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
@@ -605,22 +892,16 @@ namespace SnowBank.Testing
 				_                                 => "???",
 			};
 
-			internal class Result : ConstraintResult
+			private class Result : ConstraintResult
 			{
 
-				public int ExpectedSize { get; }
+				private int ActualSize { get; }
 
-				public ExpressionType Type { get; }
-
-				public int ActualSize { get; }
-
-				public JsonValue ActualJsonValue { get; }
+				private JsonValue ActualJsonValue { get; }
 
 				public Result(JsonSizeConstraint constraint, JsonValue actual, int actualSize, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
-					this.ExpectedSize = constraint.ExpectedSize;
-					this.Type = constraint.Type;
 					this.ActualSize = actualSize;
 					this.ActualJsonValue = actual;
 				}
@@ -659,6 +940,7 @@ namespace SnowBank.Testing
 					writer.WriteLine($"{this.ActualJsonValue.Type} of size {this.ActualSize}");
 					writer.WriteMessageLine(Jsonify(this.ActualJsonValue));
 				}
+
 			}
 
 		}
@@ -688,7 +970,7 @@ namespace SnowBank.Testing
 			internal class Result : ConstraintResult
 			{
 
-				public JsonValue ActualJsonValue { get; }
+				private JsonValue ActualJsonValue { get; }
 
 				public Result(JsonReadOnlyConstraint constraint, JsonValue actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
@@ -732,7 +1014,7 @@ namespace SnowBank.Testing
 				return new Result(this, constraintResult.ActualValue, constraintResult);
 			}
 
-			internal class Result : ConstraintResult
+			private class Result : ConstraintResult
 			{
 
 				private readonly ConstraintResult InnerResult;
@@ -799,7 +1081,7 @@ namespace SnowBank.Testing
 				return new Result(this, actual, leftResult, rightResult);
 			}
 
-			internal class Result : ConstraintResult
+			private class Result : ConstraintResult
 			{
 
 				private readonly ConstraintResult LeftResult;
@@ -914,6 +1196,8 @@ namespace SnowBank.Testing
 
 			private JsonConstraintExpression AddEqualConstraint(JsonValue expected) => this.Append(new JsonEqualConstraint(JsonComparisonOperator.Equal, expected));
 
+			private JsonConstraintExpression AddTypedEqualConstraint<TValue>(TValue? expected, IEqualityComparer<TValue>? comparer = null) => this.Append(new JsonEqualConstraint<TValue>(expected, comparer));
+
 			private JsonConstraintExpression AddEqualConstraint(JsonComparisonOperator op, JsonValue expected) => this.Append(new JsonEqualConstraint(op, expected));
 
 			public JsonConstraintExpression Not => this.Append(new JsonNotOperator());
@@ -990,15 +1274,9 @@ namespace SnowBank.Testing
 			#region JsonValue...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-#if NET9_0_OR_GREATER
-			[OverloadResolutionPriority(1)]
-#endif
 			public JsonConstraintExpression EqualTo(JsonValue expected) => AddEqualConstraint(expected);
 
 			/// <summary>Assert that the value is a JSON Array with the expected content</summary>
-#if NET9_0_OR_GREATER
-			[OverloadResolutionPriority(-1)]
-#endif
 			public JsonConstraintExpression EqualTo(IEnumerable<JsonValue> expected) => AddEqualConstraint(JsonArray.FromValues(expected));
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
@@ -1046,33 +1324,57 @@ namespace SnowBank.Testing
 			#region String...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(string expected) => AddEqualConstraint(JsonString.Return(expected));
+			public JsonConstraintExpression EqualTo(string? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(string? expected, IEqualityComparer<string>? comparer) => AddTypedEqualConstraint(expected, comparer);
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
-			public JsonConstraintExpression GreaterThan(string expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonString.Return(expected));
+			public JsonConstraintExpression EqualTo(ReadOnlySpan<string?> expected) => AddEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+			/// <summary>Assert that the value is strictly greater than the expected value</summary>
+			public JsonConstraintExpression GreaterThan(string? expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonString.Return(expected));
 
 			/// <summary>Assert that the value is greater than, or equal to, the expected value</summary>
-			public JsonConstraintExpression GreaterThanOrEqualTo(string expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThanOrEqual, JsonString.Return(expected));
+			public JsonConstraintExpression GreaterThanOrEqualTo(string? expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThanOrEqual, JsonString.Return(expected));
 
 			/// <summary>Assert that the value is strictly less than the expected value</summary>
-			public JsonConstraintExpression LessThan(string expected) => AddEqualConstraint(JsonComparisonOperator.LessThan, JsonString.Return(expected));
+			public JsonConstraintExpression LessThan(string? expected) => AddEqualConstraint(JsonComparisonOperator.LessThan, JsonString.Return(expected));
 
 			/// <summary>Assert that the value is less than, or equal to, the expected value</summary>
-			public JsonConstraintExpression LessThanOrEqualTo(string expected) => AddEqualConstraint(JsonComparisonOperator.LessThanOrEqual, JsonString.Return(expected));
+			public JsonConstraintExpression LessThanOrEqualTo(string? expected) => AddEqualConstraint(JsonComparisonOperator.LessThanOrEqual, JsonString.Return(expected));
 
 			#endregion
 
 			#region Boolean...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(bool expected) => AddEqualConstraint(expected ? JsonBoolean.True : JsonBoolean.False);
+			public JsonConstraintExpression EqualTo(bool expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(bool? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is strictly greater than the expected value</summary>
+			public JsonConstraintExpression EqualTo(ReadOnlySpan<bool> expected) => AddEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+			/// <summary>Assert that the value is strictly greater than the expected value</summary>
+			public JsonConstraintExpression EqualTo(ReadOnlySpan<bool?> expected) => AddEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 			#endregion
 
 			#region Int32...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(int expected) => AddEqualConstraint(JsonNumber.Return(expected));
+			public JsonConstraintExpression EqualTo(int expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(int? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is strictly greater than the expected value</summary>
+			public JsonConstraintExpression EqualTo(ReadOnlySpan<int> expected) => AddEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+			/// <summary>Assert that the value is strictly greater than the expected value</summary>
+			public JsonConstraintExpression EqualTo(ReadOnlySpan<int?> expected) => AddEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
 			public JsonConstraintExpression GreaterThan(int expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -1091,7 +1393,16 @@ namespace SnowBank.Testing
 			#region Int64...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(long expected) => AddEqualConstraint(JsonNumber.Return(expected));
+			public JsonConstraintExpression EqualTo(long expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(long? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is strictly greater than the expected value</summary>
+			public JsonConstraintExpression EqualTo(ReadOnlySpan<long> expected) => AddEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+
+			/// <summary>Assert that the value is strictly greater than the expected value</summary>
+			public JsonConstraintExpression EqualTo(ReadOnlySpan<long?> expected) => AddEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
 			public JsonConstraintExpression GreaterThan(long expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -1110,7 +1421,9 @@ namespace SnowBank.Testing
 			#region Single...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(float expected) => AddEqualConstraint(JsonNumber.Return(expected));
+			public JsonConstraintExpression EqualTo(float expected) => AddTypedEqualConstraint(expected);
+
+			public JsonConstraintExpression EqualTo(float? expected) => AddTypedEqualConstraint(expected);
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
 			public JsonConstraintExpression GreaterThan(float expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -1129,7 +1442,10 @@ namespace SnowBank.Testing
 			#region Double...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(double expected) => AddEqualConstraint(JsonNumber.Return(expected));
+			public JsonConstraintExpression EqualTo(double expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(double? expected) => AddTypedEqualConstraint(expected);
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
 			public JsonConstraintExpression GreaterThan(double expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -1142,6 +1458,80 @@ namespace SnowBank.Testing
 
 			/// <summary>Assert that the value is less than, or equal to, the expected value</summary>
 			public JsonConstraintExpression LessThanOrEqualTo(double expected) => AddEqualConstraint(JsonComparisonOperator.LessThanOrEqual, JsonNumber.Return(expected));
+
+			#endregion
+
+			#region Guids...
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Guid expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Guid? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid128 expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid128? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid96 expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid96? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid80 expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid80? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid64 expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(Uuid64? expected) => AddTypedEqualConstraint(expected);
+
+			#endregion
+
+			#region Dates and Times...
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(DateTime expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(DateTime? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(DateTimeOffset expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(DateTimeOffset? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(DateOnly expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(DateOnly? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(TimeOnly expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(TimeOnly? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(NodaTime.Instant expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(NodaTime.Instant? expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(NodaTime.Duration expected) => AddTypedEqualConstraint(expected);
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(NodaTime.Duration? expected) => AddTypedEqualConstraint(expected);
 
 			#endregion
 

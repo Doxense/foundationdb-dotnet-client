@@ -8959,6 +8959,10 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj["zero"], IsJson.Zero);
 			Assert.That(obj["id"], IsJson.EqualTo(id));
 			Assert.That(obj["id"], IsJson.Not.EqualTo(Guid.NewGuid()));
+			Assert.That(obj["id"], IsJson.Not.EqualTo(Guid.Empty));
+			Assert.That(obj["id"], IsJson.EqualTo((Uuid128) id));
+			Assert.That(obj["id"], IsJson.Not.EqualTo((Uuid128) Guid.NewGuid()));
+			Assert.That(obj["id"], IsJson.Not.EqualTo(Uuid128.Empty));
 			Assert.That(obj["date"], IsJson.EqualTo(now));
 			Assert.That(obj["null"], IsJson.ExplicitNull);
 
