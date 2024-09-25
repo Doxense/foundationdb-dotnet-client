@@ -256,10 +256,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Vérifie que le stream contient bien les charactères spécifiés</summary>
 		/// <param name="values">Charactères d'un token a lire</param>
 		/// <exception cref="System.FormatException">Si le stream contient autre chose que les charactères, ou s'il est fini prématurément</exception>
-		internal void ReadExpectedKeyword(char[] values)
+		internal void ReadExpectedKeyword(ReadOnlySpan<char> values)
 		{
-			Contract.Debug.Requires(values != null);
-
 			char c;
 			foreach (char value in values)
 			{

@@ -424,7 +424,7 @@ namespace Doxense.Serialization.Json.Binary
 					throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
 				}
 
-				if (IsHashed)
+				if (this.IsHashed)
 				{
 					return GetEntryByNameHashed(key, out value);
 				}
@@ -788,7 +788,7 @@ namespace Doxense.Serialization.Json.Binary
 					case JType.Integer:
 					{ // signed integer up to 64 bits
 						long x = DecodeVarInt64(this.Value);
-						return CrystalJsonFormatter.NumberToString(x);
+						return StringConverters.ToString(x);
 					}
 					default:
 					{

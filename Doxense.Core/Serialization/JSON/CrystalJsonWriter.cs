@@ -109,7 +109,15 @@ namespace Doxense.Serialization.Json
 			Initialize(initialCapacity, settings, resolver);
 		}
 
-		internal CrystalJsonWriter() { }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+		/// <summary>Constructor only intended for use with an object pool</summary>
+		/// <remarks>The <see cref="Initialize"/> method <b>MUST</b> be called immediately after, otherwise the objet will not be usable</remarks>
+		internal CrystalJsonWriter()
+		{
+		}
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		internal ref ValueStringWriter Buffer => ref m_buffer;
 
@@ -158,7 +166,7 @@ namespace Doxense.Serialization.Json
 			m_visitedObjects?.AsSpan().Clear();
 		}
 
-		[MemberNotNull([ nameof(m_settings), nameof(m_resolver), ])]
+		[MemberNotNull(nameof(m_settings), nameof(m_resolver))]
 		internal void Initialize(int initialCapacity, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			settings ??= CrystalJsonSettings.Json;
@@ -345,21 +353,21 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteNull()
 		{
-			m_buffer.Write(JsonTokens.Null);
+			m_buffer.Write("null");
 		}
 
 		/// <summary>Write the empty object "{}" literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyObject()
 		{
-			m_buffer.Write(m_formatted ? JsonTokens.EmptyObjectFormatted : JsonTokens.EmptyObjectCompact);
+			m_buffer.Write(m_formatted ? "{ }" : "{}");
 		}
 
 		/// <summary>Write the empty array "[]" literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyArray()
 		{
-			m_buffer.Write(m_formatted ? JsonTokens.EmptyArrayFormatted : JsonTokens.EmptyArrayCompact);
+			m_buffer.Write(m_formatted ? "[ ]" : "[]");
 		}
 
 		/// <summary>Write a coma separator (",") between two fields, unless this is the first element of an array</summary>
@@ -369,13 +377,13 @@ namespace Doxense.Serialization.Json
 			if (m_indented)
 			{
 				m_buffer.Write(
-					m_state.Tail ? JsonTokens.CommaIndented : JsonTokens.NewLine,
+					m_state.Tail ? ",\r\n" : "\r\n",
 					m_state.Indentation
 				);
 			}
 			else if (m_formatted)
 			{
-				m_buffer.Write(m_state.Tail ? JsonTokens.CommaFormatted : " ");
+				m_buffer.Write(m_state.Tail ? ", " : " ");
 			}
 			else if (m_state.Tail)
 			{
@@ -392,7 +400,7 @@ namespace Doxense.Serialization.Json
 			if (m_indented)
 			{
 				m_buffer.Write(
-					JsonTokens.NewLine,
+					"\r\n",
 					m_state.Indentation
 				);
 			}
@@ -409,13 +417,13 @@ namespace Doxense.Serialization.Json
 			if (m_indented)
 			{
 				m_buffer.Write(
-					JsonTokens.CommaIndented,
+					",\r\n",
 					m_state.Indentation
 				);
 			}
 			else if (m_formatted)
 			{
-				m_buffer.Write(JsonTokens.CommaFormatted);
+				m_buffer.Write(", ");
 			}
 			else
 			{
@@ -452,7 +460,7 @@ namespace Doxense.Serialization.Json
 			Contract.Debug.Requires(m_state.Tail);
 			if (m_indented | m_formatted)
 			{
-				m_buffer.Write(JsonTokens.CommaFormatted);
+				m_buffer.Write(", ");
 			}
 			else
 			{
@@ -547,14 +555,14 @@ namespace Doxense.Serialization.Json
 			if (m_indented)
 			{
 				m_buffer.Write(
-					JsonTokens.NewLine,
+					"\r\n",
 					state.Indentation,
 					'}'
 				);
 			}
 			else if (m_formatted)
 			{
-				m_buffer.Write(JsonTokens.CurlyCloseFormatted);
+				m_buffer.Write(" }");
 			}
 			else
 			{
@@ -598,14 +606,14 @@ namespace Doxense.Serialization.Json
 			if (m_indented)
 			{
 				m_buffer.Write(
-					JsonTokens.NewLine,
+					"\r\n",
 					state.Indentation,
 					']'
 				);
 			}
 			else if (m_formatted)
 			{
-				m_buffer.Write(JsonTokens.BracketCloseFormatted); // " ]"
+				m_buffer.Write(" ]");
 			}
 			else
 			{
@@ -624,7 +632,7 @@ namespace Doxense.Serialization.Json
 			Paranoid.Requires(m_state.Node == NodeType.Array);
 			if (m_indented | m_formatted)
 			{
-				m_buffer.Write(JsonTokens.BracketCloseFormatted); // " ]"
+				m_buffer.Write(" ]");
 			}
 			else
 			{
@@ -1116,13 +1124,13 @@ namespace Doxense.Serialization.Json
 					m_buffer.Write(
 						'"',
 						formattedName,
-						m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact
+						m_formatted ? "\": " : "\":"
 					);
 				}
 				else
 				{
-					CrystalJsonFormatter.WriteJsonStringSlow(ref m_buffer, name);
-					m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+					JsonEncoding.EncodeTo(ref m_buffer, name);
+					m_buffer.Write(m_formatted ? ": " : ":");
 				}
 			}
 			else
@@ -1136,7 +1144,7 @@ namespace Doxense.Serialization.Json
 		{
 			m_buffer.Write(
 				Doxense.Web.JavaScriptEncoding.EncodePropertyName(FormatName(name)),
-				m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact
+				m_formatted ? ": " : ":"
 			);
 		}
 
@@ -1162,12 +1170,12 @@ namespace Doxense.Serialization.Json
 						m_buffer.Write(name[1..]);
 					}
 				}
-				m_buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				m_buffer.Write(m_formatted ? "\": " : "\":");
 			}
 			else
 			{
-				CrystalJsonFormatter.WriteJsonStringSlow(ref m_buffer, name);
-				m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+				JsonEncoding.EncodeTo(ref m_buffer, name);
+				m_buffer.Write(m_formatted ? ": " : ":");
 			}
 		}
 
@@ -1185,7 +1193,7 @@ namespace Doxense.Serialization.Json
 				name[1..].CopyTo(tmp[1..]);
 				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(ref m_buffer, name);
 			}
-			m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+			m_buffer.Write(m_formatted ? ": " : ":");
 		}
 
 		/// <summary>Write a field name that is an integer</summary>
@@ -1203,12 +1211,12 @@ namespace Doxense.Serialization.Json
 			{
 				m_buffer.Write('"');
 				WriteValue(name);
-				m_buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				m_buffer.Write(m_formatted ? "\": " : "\":");
 			}
 			else
 			{
 				WriteValue(name);
-				m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+				m_buffer.Write(m_formatted ? ": " : ":");
 			}
 		}
 
@@ -1224,7 +1232,7 @@ namespace Doxense.Serialization.Json
 		{
 			m_buffer.Write(
 				m_javascript ? name.JavaScriptLiteral : name.JsonLiteral,
-				m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact
+				m_formatted ? ": " : ":"
 			);
 		}
 
@@ -1234,12 +1242,12 @@ namespace Doxense.Serialization.Json
 			{
 				m_buffer.Write('"');
 				WriteValue(name);
-				m_buffer.Write(m_formatted ? JsonTokens.QuoteColonFormatted : JsonTokens.QuoteColonCompact);
+				m_buffer.Write(m_formatted ? "\": " : "\":");
 			}
 			else
 			{
 				WriteValue(name);
-				m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+				m_buffer.Write(m_formatted ? ": " : ":");
 			}
 		}
 
@@ -1248,13 +1256,13 @@ namespace Doxense.Serialization.Json
 			WriteFieldSeparator();
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(ref m_buffer, name);
+				JsonEncoding.EncodeTo(ref m_buffer, name);
 			}
 			else
 			{
 				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, FormatName(name));
 			}
-			m_buffer.Write(m_formatted ? JsonTokens.ColonFormatted : JsonTokens.ColonCompact);
+			m_buffer.Write(m_formatted ? ": " : ":");
 		}
 
 		#region WriteValue...
@@ -1277,7 +1285,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(ref m_buffer, value);
+				JsonEncoding.EncodeTo(ref m_buffer, value);
 			}
 			else
 			{
@@ -1290,7 +1298,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(ref m_buffer, value);
+				JsonEncoding.EncodeTo(ref m_buffer, value);
 			}
 			else
 			{
@@ -1303,7 +1311,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_javascript)
 			{
-				CrystalJsonFormatter.WriteJsonString(ref m_buffer, value.Span);
+				JsonEncoding.EncodeTo(ref m_buffer, value.Span);
 			}
 			else
 			{
@@ -1316,7 +1324,7 @@ namespace Doxense.Serialization.Json
 			// replace the NUL character (\0) by 'null'
 			if (value == '\0')
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else if (!JsonEncoding.NeedsEscaping(value))
 			{
@@ -1350,15 +1358,23 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(bool value)
 		{
-			m_buffer.Write(value ? JsonTokens.True : JsonTokens.False);
+			m_buffer.Write(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(bool? value)
 		{
-			m_buffer.Write(value == null ? JsonTokens.Null : value.Value ? JsonTokens.True : JsonTokens.False);
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(byte value)
 		{
 			m_buffer.Write(value);
@@ -1367,9 +1383,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(byte? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(sbyte value)
 		{
 			m_buffer.Write(value);
@@ -1378,9 +1402,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(sbyte? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(short value)
 		{
 			m_buffer.Write(value);
@@ -1389,9 +1421,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(short? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ushort value)
 		{
 			m_buffer.Write(value);
@@ -1400,9 +1440,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ushort? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(int value)
 		{
 			m_buffer.Write(value);
@@ -1411,9 +1459,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(int? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(uint value)
 		{
 			m_buffer.Write(value);
@@ -1422,9 +1478,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(uint? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(long value)
 		{
 			m_buffer.Write(value);
@@ -1433,9 +1497,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(long? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ulong value)
 		{
 			m_buffer.Write(value);
@@ -1444,7 +1516,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ulong? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 		public void WriteValue(float value)
@@ -1629,6 +1708,7 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Int128 value)
 		{
 			m_buffer.Write(value);
@@ -1637,9 +1717,17 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Int128? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(UInt128 value)
 		{
 			m_buffer.Write(value);
@@ -1649,7 +1737,14 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(UInt128? value)
 		{
-			if (value.HasValue) WriteValue(value.Value); else WriteNull();
+			if (value.HasValue)
+			{
+				m_buffer.Write(value.Value);
+			}
+			else
+			{
+				WriteNull();
+			}
 		}
 
 #endif
@@ -1769,7 +1864,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == TimeOnly.MinValue)
 			{
-				m_buffer.Write(JsonTokens.Zero);
+				m_buffer.Write('0');
 			}
 			else
 			{
@@ -1858,7 +1953,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (date == DateTime.MinValue)
 			{ // MinValue is serialized as the emtpy string
-				m_buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write("\"\"");
 			}
 			else if (date == DateTime.MaxValue)
 			{ // MaxValue should not specify a timezone
@@ -1876,7 +1971,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (date == default)
 			{ // MinValue (== default) is serialized as an empty string
-				m_buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write("\"\"");
 			}
 			else if (date == DateTimeOffset.MaxValue)
 			{ // MaxValue should not specify any timezone
@@ -1894,7 +1989,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (date == DateOnly.MinValue)
 			{ // MinValue is serialized as the emtpy string
-				m_buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write("\"\"");
 			}
 			else
 			{
@@ -1945,7 +2040,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == TimeSpan.Zero)
 			{
-				m_buffer.Write(JsonTokens.Zero);
+				m_buffer.Write('0');
 			}
 			else
 			{
@@ -1970,7 +2065,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == Guid.Empty)
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else if (!m_javascript)
 			{
@@ -2003,7 +2098,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == Uuid128.Empty)
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else if (!m_javascript)
 			{
@@ -2036,7 +2131,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == Uuid96.Empty)
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else if (!m_javascript)
 			{
@@ -2069,7 +2164,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == Uuid80.Empty)
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else if (!m_javascript)
 			{
@@ -2102,7 +2197,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == Uuid64.Empty)
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else if (!m_javascript)
 			{
@@ -2128,7 +2223,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value == NodaTime.Duration.Zero)
 			{
-				m_buffer.Write(JsonTokens.Zero);
+				m_buffer.Write('0');
 				return;
 			}
 
@@ -2159,7 +2254,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (date == NodaTime.Instant.MinValue)
 			{ // MinValue is serialized as the empty string
-				m_buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write("\"\"");
 			}
 			else if (date == NodaTime.Instant.MaxValue)
 			{ // MaxValue does not have any timezone
@@ -2341,7 +2436,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (bytes == null)
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else
 			{
@@ -2353,7 +2448,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (bytes == null)
 			{
-				m_buffer.Write(JsonTokens.Null);
+				WriteNull();
 			}
 			else
 			{
@@ -2365,7 +2460,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (bytes.Length == 0)
 			{
-				m_buffer.Write(JsonTokens.EmptyString);
+				m_buffer.Write("\"\"");
 			}
 			else
 			{ // note: Base64 without any <'> or <">, so no need to escape it!
@@ -2379,7 +2474,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (bytes.Count == 0)
 			{
-				m_buffer.Write(bytes.Array == null! ? JsonTokens.Null : JsonTokens.EmptyString);
+				m_buffer.Write(bytes.Array == null! ? "null" : "\"\"");
 			}
 			else
 			{ // note: Base64 without any <'> or <">, so no need to escape it!

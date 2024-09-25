@@ -1363,7 +1363,7 @@ namespace Doxense.Serialization.Json
 			  value == 0d ? DecimalZero
 			: value == 1d ? DecimalOne
 			: double.IsNaN(value) ? NaN
-			: new JsonNumber(new Number(value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
+			: new JsonNumber(new Number(value), Kind.Double, StringConverters.ToString(value));
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1378,7 +1378,7 @@ namespace Doxense.Serialization.Json
 			  value == 0f ? DecimalZero
 			: value == 1f ? DecimalOne
 			: float.IsNaN(value) ? NaN
-			: new JsonNumber(new Number(value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
+			: new JsonNumber(new Number(value), Kind.Double, StringConverters.ToString(value));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(Half? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
@@ -1393,7 +1393,7 @@ namespace Doxense.Serialization.Json
 			  value == Half.Zero ? DecimalZero
 			: value == Half.One ? DecimalOne
 			: Half.IsNaN(value) ? NaN
-			: new JsonNumber(new Number((double) value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
+			: new JsonNumber(new Number((double) value), Kind.Double, StringConverters.ToString(value));
 #else
 		private static readonly Half HalfZero = (Half) 0;
 		private static readonly Half HalfOne = (Half) 1;
@@ -1402,7 +1402,7 @@ namespace Doxense.Serialization.Json
 			  value == HalfZero ? DecimalZero
 			: value == HalfOne ? DecimalOne
 			: Half.IsNaN(value) ? NaN
-			: new JsonNumber(new Number((double) value), Kind.Double, CrystalJsonFormatter.NumberToString(value));
+			: new JsonNumber(new Number((double) value), Kind.Double, StringConverters.ToString(value));
 #endif
 
 		[Pure]
@@ -1410,7 +1410,7 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(float? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
-		public static JsonNumber Return(decimal value) => new(new Number(value), Kind.Decimal, CrystalJsonFormatter.NumberToString(value));
+		public static JsonNumber Return(decimal value) => new(new Number(value), Kind.Decimal, StringConverters.ToString(value));
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1551,54 +1551,64 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(NodaTime.Duration? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
-		internal static JsonNumber ParseSigned(long value, string? literal)
+		internal static JsonNumber ParseSigned(long value, ReadOnlySpan<char> literal, string? original)
 		{
 			if (value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX)
 			{ // interning du pauvre
 				var num = SmallNumbers[value - CACHED_SIGNED_MIN];
-				if (literal == null || num.Literal == literal)
+				if (literal.Length == 0 || literal.SequenceEqual(num.Literal))
 				{
 					return num;
 				}
 			}
 
-			return new JsonNumber(new Number(value), Kind.Signed, literal);
+			return new JsonNumber(new Number(value), Kind.Signed, original ?? (literal.Length > 0 ? literal.ToString() : null));
 		}
 
 		[Pure]
-		internal static JsonNumber ParseUnsigned(ulong value, string? literal)
+		internal static JsonNumber ParseUnsigned(ulong value, ReadOnlySpan<char> literal, string? original)
 		{
 			if (value <= CACHED_SIGNED_MAX)
 			{ // interning du pauvre
 				var num = SmallNumbers[value + CACHED_OFFSET_ZERO];
-				if (literal == null || num.Literal == literal)
+				if (literal.Length == 0 || literal.SequenceEqual(num.Literal))
 				{
 					return num;
 				}
 			}
 
-			return new JsonNumber(new Number(value), value <= long.MaxValue ? Kind.Signed : Kind.Unsigned, literal);
+			return new JsonNumber(new Number(value), value <= long.MaxValue ? Kind.Signed : Kind.Unsigned, original ?? (literal.Length > 0 ? literal.ToString() : null));
 		}
 
 		[Pure]
-		internal static JsonNumber Parse(double value, string? literal)
+		internal static JsonNumber Parse(double value, ReadOnlySpan<char> literal, string? original)
 		{
-			long l = (long)value;
+			// first try to coerce to an integer
+			long l = (long) value;
 			if (l == value)
-			{
-				return l == 0 ? Zero : l == 1 ? One : new JsonNumber(new Number(l), Kind.Signed, literal);
+			{ // we can probably use a cached number for this
+				return ParseSigned(l, literal, original);
 			}
-			else
+
+			if (double.IsNaN(value))
 			{
-				return new JsonNumber(new Number(value), Kind.Double, literal);
+				return JsonNumber.NaN;
 			}
+
+			return new JsonNumber(new Number(value), Kind.Double, original ?? (literal.Length > 0 ? literal.ToString() : null));
 		}
 
 		[Pure]
-		internal static JsonNumber Parse(decimal value, string literal)
+		internal static JsonNumber Parse(decimal value, ReadOnlySpan<char> literal, string? original)
 		{
-			//TODO: check for zero, integers, ...
-			return new JsonNumber(new Number(value), Kind.Decimal, literal);
+			// first try to coerce to a smaller integer
+			long l = (long) value;
+			if (l == value)
+			{ // we can probably use a cached number for this
+				return ParseSigned(l, literal, original);
+			}
+
+			return new JsonNumber(new Number(value), Kind.Decimal, original ?? (literal.Length > 0 ? literal.ToString() : null));
 		}
 
 		internal static JsonNumber Parse(ReadOnlySpan<byte> value)
@@ -1654,10 +1664,10 @@ namespace Doxense.Serialization.Json
 		{
 			switch (kind)
 			{
-				case Kind.Signed: return CrystalJsonFormatter.NumberToString(number.Signed);
-				case Kind.Unsigned: return CrystalJsonFormatter.NumberToString(number.Unsigned);
-				case Kind.Double: return CrystalJsonFormatter.NumberToString(number.Double);
-				case Kind.Decimal: return CrystalJsonFormatter.NumberToString(number.Decimal);
+				case Kind.Signed: return StringConverters.ToString(number.Signed);
+				case Kind.Unsigned: return StringConverters.ToString(number.Unsigned);
+				case Kind.Double: return StringConverters.ToString(number.Double);
+				case Kind.Decimal: return StringConverters.ToString(number.Decimal);
 				default: throw new ArgumentOutOfRangeException(nameof(kind));
 			}
 		}

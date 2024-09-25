@@ -1254,6 +1254,35 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonText, settings).Required<TValue>(resolver);
 		}
 
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Resolver optionnel</param>
+		/// <returns>Objet correspondant</returns>
+		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
+		[Pure]
+		public static TValue Deserialize<TValue>(
+#if NET8_0_OR_GREATER
+			[StringSyntax("json")]
+#endif
+			string jsonText,
+			IJsonDeserializerFor<TValue>? serializer,
+			CrystalJsonSettings? settings = null,
+			ICrystalJsonTypeResolver? resolver = null
+		) where TValue : notnull
+		{
+			var parsed = Parse(jsonText, settings);
+			if (serializer != null)
+			{
+				return serializer.JsonDeserialize(parsed, resolver);
+			}
+			else
+			{
+				return parsed.Required<TValue>(resolver);
+			}
+		}
+
 		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
 		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
 		/// <param name="defaultValue"></param>

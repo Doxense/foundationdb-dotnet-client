@@ -30,6 +30,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using Doxense.Linq;
 	using Doxense.Text;
 
 	public static partial class JsonEncoding
@@ -144,47 +145,47 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
 		/// <param name="text">Text to inspect</param>
-		/// <param name="charsRequired">Capacity required to encode the string (including two double-quotes)</param>
-		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
-		/// <remarks>
-		/// <para><paramref name="charsRequired"/> will be equal to the length of <paramref name="text"/> + 2 if no escaping is required</para>
-		/// <para><paramref name="charsRequired"/> will be equal to <see langword="4"/> if <paramref name="text"/> is <see langword="null"/> (<c>"null"</c>).</para>
-		/// </remarks>
-		public static bool NeedsEscapingWithCapacity(string? text, out int charsRequired)
+		/// <returns>
+		/// <para> the length of <paramref name="text"/> if no escaping is required</para>
+		/// <para> a greater value if at least one character needs to be escaped.</para>
+		/// <para> <see langword="4"/> if <paramref name="text"/> is <see langword="null"/> (<c>"null"</c>).</para>
+		/// </returns>
+		public static int ComputeEscapedSize(string? text, bool withQuotes = true)
 		{
 			if (text == null)
 			{
-				charsRequired = 4; // "null"
-				return true;
+				return 4;
 			}
 
-			return NeedsEscapingWithCapacity(text.AsSpan(), out charsRequired);
+			return ComputeEscapedSize(text.AsSpan(), withQuotes);
 		}
 
 		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
 		/// <param name="text">Text to inspect</param>
-		/// <param name="charsRequired">Capacity required to encode the string (including two double-quotes)</param>
-		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
-		/// <remarks>
-		/// <para><paramref name="charsRequired"/> will be equal to the length of <paramref name="text"/> + 2 if no escaping is required</para>
-		/// </remarks>
+		/// <returns>
+		/// <para> the length of <paramref name="text"/> if no escaping is required</para>
+		/// <para> a greater value if at least one character needs to be escaped.</para>
+		/// </returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool NeedsEscapingWithCapacity(ReadOnlySpan<char> text, out int charsRequired)
+		public static int ComputeEscapedSize(ReadOnlySpan<char> text, bool withQuotes = true)
 		{
 			if (text.Length == 0)
 			{
-				charsRequired = 2; // "\"\""
-				return false;
+				return withQuotes ? 2 : 0;
 			}
 
 			long sz = text.Length;
-			sz += 2; // include the quotes!
+			if (withQuotes)
+			{
+				sz += 2;
+			}
 
 			ref char ptr = ref Unsafe.AsRef(in text[0]);
 			ref int map = ref MemoryMarshal.GetReference(EscapingLookupTable);
 
 			// read by 8
 			int len = text.Length;
+
 			if (len >= 8)
 			{
 				len >>= 3;
@@ -230,10 +231,8 @@ namespace Doxense.Serialization.Json
 			}
 
 			// force an overflow exception if this is more than 2GiB !
-			// => the caller probably does not have any way to handle this, so its safer to "blow up" here!
-			charsRequired = checked((int) sz);
-
-			return charsRequired != text.Length;
+			// => the caller probably does not have any way to handle this, so it is safer to "blow up" here!
+			return checked((int) sz);
 		}
 
 		/// <summary>Finds the position in the string of the first character that would need to be escaped in a valid JSON string</summary>
@@ -294,7 +293,7 @@ namespace Doxense.Serialization.Json
 				// check up to 3 chars
 				while(len-- > 0)
 				{
-					if ((Unsafe.Add(ref map, (int) (ptr))) != 0)
+					if ((Unsafe.Add(ref map, ptr)) != 0)
 					{
 #if NET8_0_OR_GREATER
 						return (int) (Unsafe.ByteOffset(ref start, ref ptr) >> 1);
@@ -320,20 +319,23 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int written)
+		public static void EncodeTo(ref ValueStringWriter destination, string? text)
 		{
-			// in all cases, we need space for two double quotes!
-			if (destination.Length < 2)
+			if (text == null)
 			{
-				goto too_small;
+				destination.Write("null");
+				return;
 			}
 
+			EncodeTo(ref destination, text.AsSpan());
+		}
+
+		public static void EncodeTo(ref ValueStringWriter destination, ReadOnlySpan<char> text)
+		{
 			if (text.Length == 0)
 			{ // empty string
-				destination[0] = '"';
-				destination[1] = '"';
-				written = 2;
-				return true;
+				destination.Write("\"\"");
+				return;
 			}
 		
 			// look for the first invalid character
@@ -344,22 +346,96 @@ namespace Doxense.Serialization.Json
 			if (first < 0)
 			{ // the string is clean, no need for escaping
 
-				if (destination.Length < text.Length + 2)
+				destination.Write('"', text, '"');
+				return;
+			}
+
+			// we need to compute the size required to escape the rest
+			int required = ComputeEscapedSize(text[first..], withQuotes: false);
+
+			// and allocate a buffer for the whole string: double-quote + [first] + escape([tail]) + double-quote
+			var span = destination.Allocate(checked(2 + first + required));
+
+			// open the string
+			span[0] = '"';
+			span = span[1..];
+
+			if (first > 0)
+			{ // copy the first clean portion of the string
+				text[..first].CopyTo(span);
+				text = text[first..];
+				span = span[first..];
+			}
+
+			// encode the rest
+			if (!TryEncodeToSlow(span, text, out int written)
+			    || written != required)
+			{ // this is NOT supposed to happen! this means that ComputeEscapedSize does not agree with TryEncodeToSlow !
+				throw new InvalidOperationException("Internal formatting error");
+			}
+
+			// close the string
+			span[written] = '"';
+		}
+
+		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int written, bool withQuotes = true)
+		{
+			// in all cases, we need space for two double quotes!
+			if (withQuotes && destination.Length < 2)
+			{
+				goto too_small;
+			}
+
+			if (text.Length == 0)
+			{ // empty string
+				if (withQuotes)
+				{
+					destination[0] = '"';
+					destination[1] = '"';
+					written = 2;
+				}
+				else
+				{
+					written = 0;
+				}
+				return true;
+			}
+
+			// look for the first invalid character
+			// - either they are all valid, then we simply copy everything
+			// - or we can at least copy up to this position, and then start converting with a slow loop
+
+			int first = IndexOfFirstInvalidChar(text);
+			if (first < 0)
+			{ // the string is clean, no need for escaping
+
+				if (withQuotes)
+				{
+					if (destination.Length < text.Length + 2)
+					{
+						goto too_small;
+					}
+					destination[0] = '"';
+					text.CopyTo(destination[1..]);
+					destination[text.Length + 1] = '"';
+					written = text.Length + 2;
+					return true;
+				}
+
+				if (!text.TryCopyTo(destination))
 				{
 					goto too_small;
 				}
-
-				destination[0] = '"';
-				text.CopyTo(destination[1..]);
-				destination[text.Length + 1] = '"';
-
-				written = text.Length + 2;
+				written = text.Length;
 				return true;
 			}
-			
+
 			// open double quotes
-			destination[0] = '"';
-			destination = destination[1..];
+			if (withQuotes)
+			{
+				destination[0] = '"';
+				destination = destination[1..];
+			}
 
 			if (first > 0)
 			{ // copy the first clean portion of the string
@@ -373,28 +449,35 @@ namespace Doxense.Serialization.Json
 				text = text[first..];
 				destination = destination[first..];
 			}
-			
+
 			if (!TryEncodeToSlow(destination, text, out int extra)
 			    || extra >= destination.Length)
 			{
 				goto too_small;
 			}
 
-			// close double quotes
-			destination[extra] = '"';
-			written = first + extra + 2;
-			return true;
-			
-			too_small:
-				written = 0;
-				return false;
+			if (withQuotes)
+			{ // close double quotes
+				destination[extra] = '"';
+				written = first + extra + 2;
+				return true;
+			}
+			else
+			{
+				written = first + extra;
+				return true;
+			}
+
+		too_small:
+			written = 0;
+			return false;
 		}
-		
+
 		private static bool TryEncodeToSlow(Span<char> output, ReadOnlySpan<char> s, out int written)
 		{
 			ref int map = ref Unsafe.AsRef(in EscapingLookupTable[0]);
 			ref char start = ref output[0];
-	        ref char ptr = ref start;
+			ref char ptr = ref start;
 			int remaining = output.Length;
 			
 			foreach(var c in s)
@@ -481,36 +564,6 @@ namespace Doxense.Serialization.Json
 		too_small:
 			written = 0;
 			return false;
-		}
-	
-		/// <summary>Encode a string of text that must be written to a JSON document</summary>
-		/// <param name="text">Text to encode</param>
-		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
-		/// <remarks>String with the correct escaping and surrounded by double-quotes (<c>"..."</c>), or <c>"null"</c> if <paramref name="text"/> is <c>null</c></remarks>
-		/// <example>EncodeJsonString("foo") => "\"foo\""</example>
-		public static string Encode(ReadOnlySpan<char> text)
-		{
-			if (text.Length == 0)
-			{ // => ""
-				return "\"\"";
-			}
-			
-			// first check if we actually need to encode anything
-			if (NeedsEscaping(text))
-			{ // yes => slow path
-				return EncodeSlow(text);
-			}
-
-			// nothing to do, except add the double quotes
-			return string.Concat("\"", text, "\"");
-		}
-
-		internal static string EncodeSlow(ReadOnlySpan<char> text)
-		{
-			// note: we assume that the typical overhead of escaping characters will be up to 6 characters if there is only one or two "invalid" characters
-			// this assumption totally breaks down for non-latin languages!
-			var sb = StringBuilderCache.Acquire(checked(text.Length + 2 + 6));
-			return StringBuilderCache.GetStringAndRelease(AppendSlow(sb, text, true));
 		}
 
 		/// <summary>Encodes a string literal that must be written to a JSON document</summary>

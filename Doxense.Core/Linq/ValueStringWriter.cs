@@ -28,9 +28,14 @@ namespace Doxense.Linq
 {
 	using System;
 	using System.Buffers;
+	using System.Buffers.Binary;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Drawing;
 	using System.Globalization;
+	using System.Reflection.Metadata;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using Doxense.Serialization;
 	using Doxense.Serialization.Json;
 
@@ -367,25 +372,53 @@ namespace Doxense.Linq
 
 		#region IBufferWriter<T>...
 
-		/// <summary>Allocate a fixed-size span, and advance the cursor</summary>
-		/// <param name="exactSize">Size of the buffer to allocate</param>
-		/// <returns>Span of size <paramref name="exactSize"/></returns>
-		/// <remarks>The cursor is advanced by <paramref name="exactSize"/></remarks>
-		public Span<char> Allocate(int exactSize)
+		/// <summary>Allocates a fixed-size span, and advance the cursor</summary>
+		/// <param name="size">Size of the buffer to allocate</param>
+		/// <returns>Span of size <paramref name="size"/></returns>
+		/// <remarks>The cursor is advanced by <paramref name="size"/></remarks>
+		public Span<char> Allocate(int size)
 		{
-			Contract.Positive(exactSize);
+			Contract.Positive(size);
 
 			// do we have enough space in the current segment?
-			int newCount = this.Count + exactSize;
+			var count = this.Count;
+			int newCount = count + size;
 			if ((uint) newCount > (uint) this.Buffer.Length)
 			{
-				Grow(exactSize);
+				Grow(size);
 			}
 
 			// we have enough remaining data to accomodate the requested size
-			var count = this.Count;
 			this.Count = newCount;
-			return this.Buffer.AsSpan(count, exactSize);
+			return this.Buffer.AsSpan(count, size);
+		}
+
+		/// <summary>Allocate a fixed-size section, and returns an unsafe reference to the start of the segment.</summary>
+		/// <param name="size">Size of the buffer to allocate</param>
+		/// <returns>Reference to the start of the span</returns>
+		/// <remarks>
+		/// <para><b>CAUTION</b>: the caller must take extreme care in not overflowing the allocated span!</para>
+		/// <para>The cursor is advanced by <paramref name="size"/></para>
+		/// </remarks>
+		private ref char AllocateRefUnsafe(
+#if NET8_0_OR_GREATER
+			[ConstantExpected(Min = 1)]
+#endif
+			int size)
+		{
+			Contract.Debug.Requires(size > 0);
+
+			// do we have enough space in the current segment?
+			var count = this.Count;
+			int newCount = count + size;
+			if ((uint) newCount > (uint) this.Buffer.Length)
+			{
+				Grow(size);
+			}
+
+			// we have enough remaining data to accomodate the requested size
+			this.Count = newCount;
+			return ref this.Buffer[count];
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
@@ -418,6 +451,7 @@ namespace Doxense.Linq
 			return this.Buffer.AsMemory(this.Count);
 		}
 
+		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public Span<char> GetSpan(int sizeHint = 0)
 		{
@@ -438,6 +472,42 @@ namespace Doxense.Linq
 		#endregion
 
 		#region Formatting...
+
+		public void Write(bool value)
+		{
+			//TODO: PERF: OPTIMIZE: according to https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-9/#vectorization
+			// the JIT will be able to automatically optimize the following code, so that we don't have to. .NET 9 already does this for arrays, but not yet on spans !
+			//
+			// if (value)
+			// {
+			//     buf[0] = 't';
+			//     buf[1] = 'r';
+			//     buf[2] = 'u';
+			//     buf[3] = 'e';
+			// }
+
+			if (value)
+			{ // "true"
+				ref char buf = ref AllocateRefUnsafe(4);
+				// LE: (((ulong)'e' << 48) | ((ulong)'u' << 32) | ((ulong)'r' << 16) | (ulong)'t')
+				// BE: (((ulong)'t' << 48) | ((ulong)'r' << 32) | ((ulong)'u' << 16) | (ulong)'e')
+				Unsafe.WriteUnaligned(
+					ref Unsafe.As<char, byte>(ref buf),
+					BitConverter.IsLittleEndian ? 0x65007500720074ul : 0x74007200750065ul
+				);
+			}
+			else
+			{ // "false"
+				ref char buf = ref AllocateRefUnsafe(5);
+				// LE: (((ulong)'s' << 48) | ((ulong)'l' << 32) | ((ulong)'a' << 16) | (ulong)'f')
+				// BE: (((ulong)'f' << 48) | ((ulong)'a' << 32) | ((ulong)'l' << 16) | (ulong)'s')
+				Unsafe.WriteUnaligned(
+					ref Unsafe.As<char, byte>(ref buf),
+					BitConverter.IsLittleEndian ? 0x73006C00610066ul : 0x660061006C0073ul
+				);
+				Unsafe.Add(ref buf, 4) = 'e';
+			}
+		}
 
 		/// <summary>Writes the text representation of a 16-bit signed integer, using the Invariant culture</summary>
 		/// <param name="value">Value to write</param>

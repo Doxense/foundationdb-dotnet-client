@@ -1223,18 +1223,11 @@ namespace Doxense.Serialization
 			if (!TryParseDateTime(date, culture, out DateTime result, false)) return dflt;
 			return result;
 		}
-		private static int ParseDateSegmentUnsafe(string source, int offset, int size)
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static int ParseDateSegment(ReadOnlySpan<char> source)
 		{
-			// note: normalement le caller a déjà validé les paramètres
-			int sum = source[offset++] - '0';
-			if (sum < 0 || sum >= 10) return -1; // invalid first digit
-			while (--size > 0)
-			{
-				int d = source[offset++] - '0';
-				if (d < 0 || d >= 10) return -1; // invalid digit!
-				sum = (sum * 10) + d;
-			}
-			return sum;
+			return int.TryParse(source, NumberStyles.Integer, CultureInfo.InvariantCulture, out int r) ? r : -1;
 		}
 
 		/// <summary>Essayes de convertir une chaîne de caractères au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
@@ -1246,11 +1239,31 @@ namespace Doxense.Serialization
 		[Pure]
 		public static bool TryParseDateTime(string? date, CultureInfo? culture, out DateTime result, bool throwsFail)
 		{
+			if (date == null)
+			{
+				if (throwsFail) throw new ArgumentNullException(nameof(date));
+				result = DateTime.MinValue;
+				return false;
+			}
+			return TryParseDateTime(date.AsSpan(), culture, out result, throwsFail);
+		}
+
+		/// <summary>Essayes de convertir une chaîne de caractères au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
+		/// <param name="date">Chaîne de caractères à convertir</param>
+		/// <param name="culture">Culture (pour le format attendu) ou null</param>
+		/// <param name="result">Date convertie (ou DateTime.MinValue en cas de problème)</param>
+		/// <param name="throwsFail">Si false, absorbe les exceptions éventuelles. Si true, laisse les s'échaper</param>
+		/// <returns>True si la date est correcte, false dans les autres cas</returns>
+		[Pure]
+		public static bool TryParseDateTime(ReadOnlySpan<char> date, CultureInfo? culture, out DateTime result, bool throwsFail)
+		{
 			result = DateTime.MinValue;
 
-			if (date == null) { if (throwsFail) throw new ArgumentNullException(nameof(date)); else return false; }
-			if (date.Length < 4) { if (throwsFail) throw new FormatException("Date '" + date + "' must be at least 4 characters long"); else return false; }
-			//if (throwsFail) throw new FormatException("Date '"+date+"' must contains only digits"); else return false;
+			if (date.Length < 4)
+			{
+				return !throwsFail ? false : throw new FormatException("Date must be at least 4 characters long");
+			}
+
 			try
 			{
 				if (char.IsDigit(date[0]))
@@ -1259,63 +1272,63 @@ namespace Doxense.Serialization
 					{
 						case 4:
 						{ // YYYY -> YYYY/01/01 00:00:00.000
-							int y = ParseDateSegmentUnsafe(date, 0, 4);
+							int y = ParseDateSegment(date.Slice(0, 4));
 							if (y < 1 || y > 9999) break;
 							result = new DateTime(y, 1, 1);
 							return true;
 						}
 						case 6:
 						{ // YYYYMM -> YYYY/MM/01 00:00:00.000
-							int y = ParseDateSegmentUnsafe(date, 0, 4);
+							int y = ParseDateSegment(date.Slice(0, 4));
 							if (y < 1 || y > 9999) break;
-							int m = ParseDateSegmentUnsafe(date, 4, 2);
+							int m = ParseDateSegment(date.Slice(4, 2));
 							if (m < 1 || m > 12) break;
 							result = new DateTime(y, m, 1);
 							return true;
 						}
 						case 8:
 						{ // YYYYMMDD -> YYYY/MM/DD 00:00:00.000
-							int y = ParseDateSegmentUnsafe(date, 0, 4);
+							int y = ParseDateSegment(date.Slice(0, 4));
 							if (y < 1 || y > 9999) break;
-							int m = ParseDateSegmentUnsafe(date, 4, 2);
+							int m = ParseDateSegment(date.Slice(4, 2));
 							if (m < 1 || m > 12) break;
-							int d = ParseDateSegmentUnsafe(date, 6, 2);
+							int d = ParseDateSegment(date.Slice(6, 2));
 							if (d < 1 || d > 31) break;
 							result = new DateTime(y, m, d);
 							return true;
 						}
 						case 14:
 						{ // YYYYMMDDHHMMSS -> YYYY/MM/DD HH:MM:SS.000
-							int y = ParseDateSegmentUnsafe(date, 0, 4);
+							int y = ParseDateSegment(date.Slice(0, 4));
 							if (y < 1 || y > 9999) break;
-							int m = ParseDateSegmentUnsafe(date, 4, 2);
+							int m = ParseDateSegment(date.Slice(4, 2));
 							if (m < 1 || m > 12) break;
-							int d = ParseDateSegmentUnsafe(date, 6, 2);
+							int d = ParseDateSegment(date.Slice(6, 2));
 							if (d < 1 || d > 31) break;
-							int h = ParseDateSegmentUnsafe(date, 8, 2);
+							int h = ParseDateSegment(date.Slice(8, 2));
 							if (h < 0 || h > 23) break;
-							int n = ParseDateSegmentUnsafe(date, 10, 2);
+							int n = ParseDateSegment(date.Slice(10, 2));
 							if (n < 0 || n > 59) break;
-							int s = ParseDateSegmentUnsafe(date, 12, 2);
+							int s = ParseDateSegment(date.Slice(12, 2));
 							if (s < 0 || s > 59) break;
 							result = new DateTime(y, m, d, h, n, s);
 							return true;
 						}
 						case 17:
 						{ // YYYYMMDDHHMMSSFFF -> YYYY/MM/DD HH:MM:SS.FFF
-							int y = ParseDateSegmentUnsafe(date, 0, 4);
+							int y = ParseDateSegment(date.Slice(0, 4));
 							if (y < 1 || y > 9999) break;
-							int m = ParseDateSegmentUnsafe(date, 4, 2);
+							int m = ParseDateSegment(date.Slice(4, 2));
 							if (m < 1 || m > 12) break;
-							int d = ParseDateSegmentUnsafe(date, 6, 2);
+							int d = ParseDateSegment(date.Slice(6, 2));
 							if (d < 1 || d > 31) break;
-							int h = ParseDateSegmentUnsafe(date, 8, 2);
+							int h = ParseDateSegment(date.Slice(8, 2));
 							if (h < 0 || h > 23) break;
-							int n = ParseDateSegmentUnsafe(date, 10, 2);
+							int n = ParseDateSegment(date.Slice(10, 2));
 							if (n < 0 || n > 59) break;
-							int s = ParseDateSegmentUnsafe(date, 12, 2);
+							int s = ParseDateSegment(date.Slice(12, 2));
 							if (s < 0 || s > 59) break;
-							int f = ParseDateSegmentUnsafe(date, 14, 3);
+							int f = ParseDateSegment(date.Slice(14, 3));
 							result = new DateTime(y, m, d, h, n, s, f);
 							return true;
 						}
@@ -1352,13 +1365,28 @@ namespace Doxense.Serialization
 		[Pure]
 		public static bool TryParseInstant(string? date, CultureInfo? culture, out Instant result, bool throwsFail)
 		{
-			result = default(Instant);
 
 			if (date == null)
 			{
 				if (throwsFail) throw new ArgumentNullException(nameof(date));
+				result = default(Instant);
 				return false;
 			}
+
+			return TryParseInstant(date.AsSpan(), culture, out result, throwsFail);
+		}
+
+		/// <summary>Essayes de convertir une chaîne de caractères au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
+		/// <param name="date">Chaîne de caractères à convertir</param>
+		/// <param name="culture">Culture (pour le format attendu) ou null</param>
+		/// <param name="result">Date convertie (ou DateTime.MinValue en cas de problème)</param>
+		/// <param name="throwsFail">Si false, absorbe les exceptions éventuelles. Si true, laisse les s'échapper</param>
+		/// <returns>True si la date est correcte, false dans les autres cas</returns>
+		[Pure]
+		public static bool TryParseInstant(ReadOnlySpan<char> date, CultureInfo? culture, out Instant result, bool throwsFail)
+		{
+			result = default(Instant);
+
 			if (date.Length < 4)
 			{
 				if (throwsFail) throw new FormatException("Date must be at least 4 characters long");
@@ -1375,63 +1403,63 @@ namespace Doxense.Serialization
 				{
 					case 4:
 					{ // YYYY -> YYYY/01/01 00:00:00.000
-						int y = ParseDateSegmentUnsafe(date, 0, 4);
+						int y = ParseDateSegment(date.Slice(0, 4));
 						if (y < 1 || y > 9999) break;
 						result = Instant.FromUtc(y, 1, 1, 0, 0);
 						return true;
 					}
 					case 6:
 					{ // YYYYMM -> YYYY/MM/01 00:00:00.000
-						int y = ParseDateSegmentUnsafe(date, 0, 4);
+						int y = ParseDateSegment(date.Slice(0, 4));
 						if (y < 1 || y > 9999) break;
-						int m = ParseDateSegmentUnsafe(date, 4, 2);
+						int m = ParseDateSegment(date.Slice(4, 2));
 						if (m < 1 || m > 12) break;
 						result = Instant.FromUtc(y, m, 1, 0, 0);
 						return true;
 					}
 					case 8:
 					{ // YYYYMMDD -> YYYY/MM/DD 00:00:00.000
-						int y = ParseDateSegmentUnsafe(date, 0, 4);
+						int y = ParseDateSegment(date.Slice(0, 4));
 						if (y < 1 || y > 9999) break;
-						int m = ParseDateSegmentUnsafe(date, 4, 2);
+						int m = ParseDateSegment(date.Slice(4, 2));
 						if (m < 1 || m > 12) break;
-						int d = ParseDateSegmentUnsafe(date, 6, 2);
+						int d = ParseDateSegment(date.Slice(6, 2));
 						if (d < 1 || d > 31) break;
 						result = Instant.FromUtc(y, m, d, 0, 0);
 						return true;
 					}
 					case 14:
 					{ // YYYYMMDDHHMMSS -> YYYY/MM/DD HH:MM:SS.000
-						int y = ParseDateSegmentUnsafe(date, 0, 4);
+						int y = ParseDateSegment(date.Slice(0, 4));
 						if (y < 1 || y > 9999) break;
-						int m = ParseDateSegmentUnsafe(date, 4, 2);
+						int m = ParseDateSegment(date.Slice(4, 2));
 						if (m < 1 || m > 12) break;
-						int d = ParseDateSegmentUnsafe(date, 6, 2);
+						int d = ParseDateSegment(date.Slice(6, 2));
 						if (d < 1 || d > 31) break;
-						int h = ParseDateSegmentUnsafe(date, 8, 2);
+						int h = ParseDateSegment(date.Slice(8, 2));
 						if (h < 0 || h > 23) break;
-						int n = ParseDateSegmentUnsafe(date, 10, 2);
+						int n = ParseDateSegment(date.Slice(10, 2));
 						if (n < 0 || n > 59) break;
-						int s = ParseDateSegmentUnsafe(date, 12, 2);
+						int s = ParseDateSegment(date.Slice(12, 2));
 						if (s < 0 || s > 59) break;
 						result = Instant.FromUtc(y, m, d, h, n, s);
 						return true;
 					}
 					case 17:
 					{ // YYYYMMDDHHMMSSFFF -> YYYY/MM/DD HH:MM:SS.FFF
-						int y = ParseDateSegmentUnsafe(date, 0, 4);
+						int y = ParseDateSegment(date.Slice(0, 4));
 						if (y < 1 || y > 9999) break;
-						int m = ParseDateSegmentUnsafe(date, 4, 2);
+						int m = ParseDateSegment(date.Slice(4, 2));
 						if (m < 1 || m > 12) break;
-						int d = ParseDateSegmentUnsafe(date, 6, 2);
+						int d = ParseDateSegment(date.Slice(6, 2));
 						if (d < 1 || d > 31) break;
-						int h = ParseDateSegmentUnsafe(date, 8, 2);
+						int h = ParseDateSegment(date.Slice(8, 2));
 						if (h < 0 || h > 23) break;
-						int n = ParseDateSegmentUnsafe(date, 10, 2);
+						int n = ParseDateSegment(date.Slice(10, 2));
 						if (n < 0 || n > 59) break;
-						int s = ParseDateSegmentUnsafe(date, 12, 2);
+						int s = ParseDateSegment(date.Slice(12, 2));
 						if (s < 0 || s > 59) break;
-						int f = ParseDateSegmentUnsafe(date, 14, 3);
+						int f = ParseDateSegment(date.Slice(14, 3));
 						result = Instant.FromUtc(y, m, d, h, n, s) + Duration.FromMilliseconds(f);
 						return true;
 					}

@@ -42,91 +42,6 @@ namespace Doxense.Serialization.Json
 
 		#region Formatting
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(byte value) => JsonNumber.GetCachedSmallNumber(value).Literal;
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(int value) =>
-			value <= JsonNumber.CACHED_SIGNED_MAX & value >= JsonNumber.CACHED_SIGNED_MIN
-				? JsonNumber.GetCachedSmallNumber(value).Literal
-				: value.ToString(NumberFormatInfo.InvariantInfo);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(uint value) =>
-			value <= JsonNumber.CACHED_SIGNED_MAX
-				? JsonNumber.GetCachedSmallNumber(unchecked((int) value)).Literal
-				: value.ToString(NumberFormatInfo.InvariantInfo);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(long value) => 
-			value <= JsonNumber.CACHED_SIGNED_MAX & value >= JsonNumber.CACHED_SIGNED_MIN
-				? JsonNumber.GetCachedSmallNumber(unchecked((int) value)).Literal
-				: value.ToString(NumberFormatInfo.InvariantInfo);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(ulong value) =>
-			value <= JsonNumber.CACHED_SIGNED_MAX
-				? JsonNumber.GetCachedSmallNumber(unchecked((int) value)).Literal
-				: value.ToString(NumberFormatInfo.InvariantInfo);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(float value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(Half value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(double value) => value.ToString("R", NumberFormatInfo.InvariantInfo);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string NumberToString(decimal value) => value.ToString(null, NumberFormatInfo.InvariantInfo);
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static void WriteJsonString(ref ValueStringWriter writer, string? text)
-		{
-			if (text == null)
-			{ // null -> "null"
-				writer.Write(JsonTokens.Null);
-			}
-			else if (text.Length == 0)
-			{ // empty string -> ""
-				writer.Write(JsonTokens.EmptyString);
-			}
-			else if (!JsonEncoding.NeedsEscaping(text))
-			{
-				writer.Write('"', text, '"');
-			}
-			else
-			{
-				WriteJsonStringSlow(ref writer, text.AsSpan());
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static void WriteJsonString(ref ValueStringWriter writer, ReadOnlySpan<char> text)
-		{
-			if (text.Length == 0)
-			{ // empty string -> ""
-				writer.Write(JsonTokens.EmptyString);
-			}
-			else if (!JsonEncoding.NeedsEscaping(text))
-			{ // encoding not required (fast path)
-				writer.Write('"', text, '"');
-			}
-			else
-			{ // string requires encoding (slow path)
-				WriteJsonStringSlow(ref writer, text);
-			}
-		}
-
-		internal static void WriteJsonStringSlow(ref ValueStringWriter writer, ReadOnlySpan<char> text)
-		{
-			// we know that we need some escaping
-
-			//TODO: PERF: OPTIMIZE: optimize this!
-			writer.Write(JsonEncoding.AppendSlow(new StringBuilder(), text, true).ToString());
-		}
-
 		public static void WriteJavaScriptString(ref ValueStringWriter writer, string? text)
 		{
 			if (text == null)
@@ -147,24 +62,17 @@ namespace Doxense.Serialization.Json
 			}
 			else if (JavaScriptEncoding.IsCleanJavaScript(text))
 			{ // "'foo bar'"
-				writer.Write('\'');
-				writer.Write(text);
-				writer.Write('\'');
+				writer.Write('\'', text, '\'');
 			}
 			else
 			{ // "'foo\'bar'"
+				//TODO: optimize!
 				writer.Write(JavaScriptEncoding.EncodeSlow(new StringBuilder(), text, includeQuotes: true).ToString());
 			}
 		}
 
-		/// <summary>Encode une chaîne en JavaSCript</summary>
-		/// <param name="text">Chaîne à encoder</param>
-		/// <returns>"null", "''", "'foo'", "'\''", "'\u0000'", ...</returns>
-		/// <remarks>Chaine correctement encodée, avec les quotes ou "null" si text==null</remarks>
-		/// <example>EncodeJavaScriptString("foo") => "'foo'"</example>
 		public static string EncodeJavaScriptString(string? text)
 		{
-			// on évacue tout de suite les cas faciles
 			if (text == null)
 			{ // => null
 				return JsonTokens.Null;
@@ -397,30 +305,6 @@ namespace Doxense.Serialization.Json
 				charsWritten = offset;
 				return true;
 			}
-		}
-
-		public static string ToIso8601String(DateTime date)
-		{
-			if (date == DateTime.MinValue) return string.Empty;
-
-			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
-			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, quotes: '\0'));
-		}
-
-		public static string ToIso8601String(DateTimeOffset date)
-		{
-			if (date == DateTime.MinValue) return string.Empty;
-
-			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
-			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, quotes: '\0'));
-		}
-
-		public static string ToIso8601String(DateOnly date)
-		{
-			if (date == DateOnly.MinValue) return string.Empty;
-
-			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
-			return new string(FormatIso8601DateOnly(buf, date, quotes: '\0'));
 		}
 
 		internal static ReadOnlySpan<char> FormatIso8601DateOnly(Span<char> output, DateOnly date, char quotes = '\0')

@@ -364,12 +364,10 @@ namespace Doxense.Serialization.Json.Tests
 		/// <summary>Helper to wrap calls to SerializeTo(...), using a StringWriter, and returning the generated string</summary>
 		private static string SerializeToString(Func<TextWriter, TextWriter> action)
 		{
-			using (var sw = new StringWriter())
-			{
-				var rw = action(sw);
-				Assert.That(rw, Is.SameAs(sw), "SerializeTo should return the input TextWriter!");
-				return sw.ToString();
-			}
+			using var sw = new StringWriter();
+			var rw = action(sw);
+			Assert.That(rw, Is.SameAs(sw), "SerializeTo should return the input TextWriter!");
+			return sw.ToString();
 		}
 
 		private static Slice SerializeToSlice(JsonValue value)
@@ -487,17 +485,16 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_JsonEncoding_NeedsEscapingWithCapacity()
+		public void Test_JsonEncoding_ComputeEscapedSize()
 		{
 
 			// with capacity hint (note: may be too large!)
 			static unsafe void VerifyEscapingCapacity(string s)
 			{
 				string encoded = JsonEncoding.Encode(s);
-				bool required = JsonEncoding.NeedsEscapingWithCapacity(s, out int capacity);
-				if (!required)
-				{ // capacity should == s.Length, and encoding should return the same string
-					Assert.That(capacity, Is.EqualTo(s.Length), $"No escaping required for '{s}' => '{encoded}'");
+				int capacity = JsonEncoding.ComputeEscapedSize(s, withQuotes: true);
+				if (capacity == s.Length)
+				{ // no encoding required
 					Assert.That(encoded, Is.EqualTo("\"" + s + "\""), $"No escaping required for '{s}' => '{encoded}'");
 				}
 				else
@@ -505,15 +502,15 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(capacity, Is.EqualTo(encoded.Length), $"Escaping required for '{s}' => '{encoded}'");
 				}
 
-				Span<char> buf = stackalloc char[capacity + s.Length * 6];
+				Span<char> buf = stackalloc char[2 + capacity + s.Length * 6];
 
-				// with more then required
+				// with more than required
 				buf.Fill('#');
 				Assert.That(JsonEncoding.TryEncodeTo(buf, s, out int written), Is.True, $"Should have more than enough to encode '{s}' => '{encoded}'");
 				Assert.That(written, Is.EqualTo(capacity));
 				Assert.That(buf.Slice(0, written).SequenceEqual(encoded));
 #if NET8_0_OR_GREATER
-				Assert.That(buf.Slice(capacity).IndexOfAnyExcept('#'), Is.EqualTo(-1), "Should not have overflowed the buffer");
+				Assert.That(buf.Slice(capacity + 2).IndexOfAnyExcept('#'), Is.EqualTo(-1), $"Should not have overflowed the buffer: {buf.Slice(capacity + 2).ToString()}");
 #endif
 
 				// with just enough
@@ -525,15 +522,12 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(buf.Slice(capacity).IndexOfAnyExcept('#'), Is.EqualTo(-1), "Should not have overflowed the buffer");
 #endif
 
-				// with one less than require
-				if (capacity > 1)
-				{
-					buf.Fill('#');
-					Assert.That(JsonEncoding.TryEncodeTo(buf.Slice(0, capacity - 1), s, out written), Is.False, $"Should have ONE LESS than required to encode '{s}' => '{encoded}'");
+				// not enough for the last quote
+				buf.Fill('#');
+				Assert.That(JsonEncoding.TryEncodeTo(buf.Slice(0, capacity - 1), s, out written), Is.False, $"Should have ONE LESS than required to encode '{s}' => '{encoded}'");
 #if NET8_0_OR_GREATER
-					Assert.That(buf.Slice(capacity - 1).IndexOfAnyExcept('#'), Is.EqualTo(-1), "Should not have overflowed the buffer");
+				Assert.That(buf.Slice(capacity - 1).IndexOfAnyExcept('#'), Is.EqualTo(-1), "Should not have overflowed the buffer");
 #endif
-				}
 
 				// with half required
 				if (capacity > 2)
@@ -10191,7 +10185,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// empty
 			var path = GetTemporaryPath("null.json");
-			using (var fs = File.Create(path))
+			await using (var fs = File.Create(path))
 			{
 				using (new CrystalJsonStreamWriter(fs, CrystalJsonSettings.Json, null, ownStream: false))
 				{
@@ -10204,7 +10198,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// empty batch
 			path = GetTemporaryPath("empty.json");
-			using (var fs = File.Create(path))
+			await using (var fs = File.Create(path))
 			{
 				using (var stream = new CrystalJsonStreamWriter(fs, CrystalJsonSettings.Json, null, ownStream: true))
 				{
@@ -10308,8 +10302,8 @@ namespace Doxense.Serialization.Json.Tests
 
 			// compress
 			path = GetTemporaryPath("objects.json.gz");
-			using (var fs = File.Create(path + ".gz"))
-			using (var gz = new GZipStream(fs, CompressionMode.Compress, false))
+			await using (var fs = File.Create(path + ".gz"))
+			await using (var gz = new GZipStream(fs, CompressionMode.Compress, false))
 			using (var stream = new CrystalJsonStreamWriter(gz, CrystalJsonSettings.Json))
 			{
 				await stream.WriteArrayFragmentAsync(async (array) =>
@@ -10369,10 +10363,9 @@ namespace Doxense.Serialization.Json.Tests
 				// next, une array for each id in the first array
 				foreach(var _ in metric.Metrics)
 				{
-					using (var arr = writer.BeginArrayFragment(cancel))
-					{
-						await arr.WriteBatchAsync(Enumerable.Range(0, 10).Select(_ => KeyValuePair.Create(Stopwatch.GetTimestamp(), rnd.Next())));
-					}
+					using var arr = writer.BeginArrayFragment(cancel);
+
+					await arr.WriteBatchAsync(Enumerable.Range(0, 10).Select(_ => KeyValuePair.Create(Stopwatch.GetTimestamp(), rnd.Next())));
 				}
 			}
 			Log($"> saved {new FileInfo(path).Length:N0} bytes");

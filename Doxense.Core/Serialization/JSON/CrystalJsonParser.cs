@@ -34,7 +34,9 @@ namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
 	using System.Reflection;
+	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Linq;
 	using Doxense.Text;
 	using Doxense.Tools;
 
@@ -78,14 +80,28 @@ namespace Doxense.Serialization.Json
 			return map;
 		}
 
-		internal  static readonly char[] NullToken = "ull".ToCharArray();
-		internal  static readonly char[] TrueToken = "rue".ToCharArray();
-		internal static readonly char[] FalseToken = "alse".ToCharArray();
+		internal static ReadOnlySpan<char> NullToken => "ull";
 
-		internal const int TOKEN_TYPE_LENGTH = 128;
-		internal static readonly JsonTokenType[] TokenMap = ComputeTokenTypeMap();
+		internal static ReadOnlySpan<char> TrueToken => "rue";
 
-		private static JsonTokenType[] ComputeTokenTypeMap()
+		internal static ReadOnlySpan<char> FalseToken => "alse";
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static ReadOnlySpan<JsonTokenType> GetTokenMap() =>
+		[
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, JsonTokenType.String, 0, 0, 0, 0, 0, 0, 0, 0, JsonTokenType.Number, 0, JsonTokenType.Number, 0, 0,
+			JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, JsonTokenType.Number, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, JsonTokenType.Special, 0, 0, 0, 0, JsonTokenType.Special, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, JsonTokenType.Array, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, JsonTokenType.False, 0, 0, 0, 0, 0, 0, 0, JsonTokenType.Null, 0,
+			0, 0, 0, 0, JsonTokenType.True, 0, 0, 0, 0, 0, 0, JsonTokenType.Object, 0, 0, 0, 0,
+		];
+
+#if RECOMPUTE_TOKEN_MAP
+
+		public static JsonTokenType[] ComputeTokenTypeMap()
 		{
 			var map = new JsonTokenType[TOKEN_TYPE_LENGTH];
 			map['{'] = JsonTokenType.Object; // { ... }
@@ -102,8 +118,29 @@ namespace Doxense.Serialization.Json
 			}
 			map['+'] = JsonTokenType.Number; // +###
 			map['-'] = JsonTokenType.Number; // -###
+
+			var sb = new StringBuilder();
+			sb.AppendLine("[").Append("\t");
+			for (int i = 0; i < map.Length; i++)
+			{
+				if (map[i] == JsonTokenType.Invalid)
+				{
+					sb.Append('0');
+				}
+				else
+				{
+					sb.Append(nameof(JsonTokenType) + ".").Append(map[i].ToString("G"));
+				}
+
+				if (i % 16 == 15) sb.AppendLine(",\t"); else sb.Append(", ");
+			}
+			sb.AppendLine("];");
+			Console.WriteLine(sb);
+
 			return map;
 		}
+
+#endif
 
 		internal static JsonNumber? ParseJsonNumber(string? literal)
 		{
@@ -222,17 +259,17 @@ namespace Doxense.Serialization.Json
 				}
 
 				return !negative
-					? JsonNumber.ParseUnsigned(num, literal)
-					: JsonNumber.ParseSigned(-((long) num), literal); // avec seulement 16 digits, pas de risques d'overflow a cause du signe
+					? JsonNumber.ParseUnsigned(num, literal, literal)
+					: JsonNumber.ParseSigned(-((long) num), literal, literal); // avec seulement 16 digits, pas de risques d'overflow a cause du signe
 			}
 
 			// on a besoin de parser le nombre...
-			var value = ParseNumberFromLiteral(literal, negative, hasDot, hasExponent);
+			var value = ParseNumberFromLiteral(literal, literal, negative, hasDot, hasExponent);
 			if (value is null) throw InvalidNumberFormat(literal, "malformed");
 			return value;
 		}
 
-		internal static JsonNumber? ParseNumberFromLiteral(string literal, bool negative, bool hasDot, bool hasExponent)
+		internal static JsonNumber? ParseNumberFromLiteral(ReadOnlySpan<char> literal, string? original, bool negative, bool hasDot, bool hasExponent)
 		{
 			var styles = NumberStyles.AllowLeadingSign;
 			if (hasExponent) styles |= NumberStyles.AllowExponent;
@@ -244,14 +281,14 @@ namespace Doxense.Serialization.Json
 				{ // unsigned
 					if (ulong.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var u64))
 					{
-						return JsonNumber.ParseUnsigned(u64, literal);
+						return JsonNumber.ParseUnsigned(u64, literal, original);
 					}
 				}
 				else
 				{ // signed
 					if (long.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var s64))
 					{
-						return JsonNumber.ParseSigned(s64, literal);
+						return JsonNumber.ParseSigned(s64, literal, original);
 					}
 				}
 			}
@@ -262,14 +299,14 @@ namespace Doxense.Serialization.Json
 				if (double.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var dbl))
 				{
 					//TODO: detecter si c'est quand même un entier ?
-					return JsonNumber.Parse(dbl, literal);
+					return JsonNumber.Parse(dbl, literal, original);
 				}
 			}
 
 			// use decimal has the last resort fallback...
 			if (decimal.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var dec))
 			{
-				return JsonNumber.Parse(dec, literal);
+				return JsonNumber.Parse(dec, literal, original);
 			}
 
 			// no luck ...
@@ -277,16 +314,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		private static FormatException InvalidNumberFormat(string literal, string reason)
-		{
-			return new FormatException($"Invalid number '{literal}.' ({reason})");
-		}
+		private static FormatException InvalidNumberFormat(string literal, string reason) => new($"Invalid number '{literal}.' ({reason})");
 
 		/// <summary>Indique si la string PEUT être une date au format ISO 8601</summary>
 		/// <param name="value">Chaine candidate</param>
 		/// <returns>True si la string ressemble (de loin) à une date ISO</returns>
 		[Pure]
-		internal static bool CouldBeIso8601DateTime(string value)
+		private static bool CouldBeIso8601DateTime(ReadOnlySpan<char> value)
 		{
 			// cherche les marqueurs '-' 'T' et ':'
 			// la fin doit etre 'Z' si UTC ou alors '+##:##' ou '-##:##'
@@ -294,41 +328,41 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, ContractAnnotation("value:null => false")]
-		internal static bool TryParseIso8601DateTime(string value, out DateTime result)
+		internal static bool TryParseIso8601DateTime(ReadOnlySpan<char> value, out DateTime result)
 		{
 #if DEBUG_JSON_PARSER
 			Debug.WriteLine("CrystalJsonConverter.TryParseMicrosoftDateTime(" + value +")");
 #endif
 			result = DateTime.MinValue;
 
-			if (string.IsNullOrEmpty(value) || !CouldBeIso8601DateTime(value)) return false;
+			if (value.Length == 0 || !CouldBeIso8601DateTime(value)) return false;
 
 			// cf http://msdn.microsoft.com/en-us/library/bb882584.aspx
 			return DateTime.TryParse(value, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.RoundtripKind, out result);
 		}
 
 		[Pure, ContractAnnotation("value:null => false")]
-		internal static bool TryParseIso8601DateTimeOffset(string value, out DateTimeOffset result)
+		internal static bool TryParseIso8601DateTimeOffset(ReadOnlySpan<char> value, out DateTimeOffset result)
 		{
 #if DEBUG_JSON_PARSER
 			Debug.WriteLine("CrystalJsonConverter.TryParseMicrosoftDateTime(" + value +")");
 #endif
 			result = DateTimeOffset.MinValue;
 
-			if (string.IsNullOrEmpty(value) || !CouldBeIso8601DateTime(value)) return false;
+			if (value.Length == 0 || !CouldBeIso8601DateTime(value)) return false;
 
 			// cf http://msdn.microsoft.com/en-us/library/bb882584.aspx
 			return DateTimeOffset.TryParse(value, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.RoundtripKind, out result);
 		}
 
 		[Pure]
-		internal static bool CouldBeJsonMicrosoftDateTime(string value)
+		private static bool CouldBeJsonMicrosoftDateTime(ReadOnlySpan<char> value)
 		{
-			return value.Length >= 9 && value[0] == '/' && value[1] == 'D' && value[2] == 'a' && value[3] == 't' && value[4] == 'e' && value[5] == '(' && value[^2] == ')' && value[^1] == '/';
+			return value.Length >= 9 && value.StartsWith("/Date(") && value.EndsWith(")/");
 		}
 
 		[Pure, ContractAnnotation("value:null => false")]
-		internal static bool TryParseMicrosoftDateTime(string value, out DateTime result, out TimeSpan? tz)
+		internal static bool TryParseMicrosoftDateTime(ReadOnlySpan<char> value, out DateTime result, out TimeSpan? tz)
 		{
 #if DEBUG_JSON_PARSER
 			Debug.WriteLine("CrystalJsonConverter.TryParseMicrosoftDateTime(" + value +")");
@@ -336,7 +370,7 @@ namespace Doxense.Serialization.Json
 			result = DateTime.MinValue;
 			tz = null;
 
-			if (string.IsNullOrEmpty(value) || !CouldBeJsonMicrosoftDateTime(value)) return false;
+			if (value.Length == 0 || !CouldBeJsonMicrosoftDateTime(value)) return false;
 
 			//Note: la chaine de texte est déja décodée, donc "\/Date(...)\/" devient "/Date(...)/"
 			// Microsoft: "/Date(ticks)/" ou "/Date(ticks+HHMM)/"
@@ -352,7 +386,7 @@ namespace Doxense.Serialization.Json
 				isLocal = true;
 				endOffset -= 5;
 			}
-			if (!long.TryParse(value.Substring(6, endOffset - 6), out var ticks)) // 6 = "/Date(".Length
+			if (!long.TryParse(value.Slice(6, endOffset - 6), out var ticks)) // 6 = "/Date(".Length
 				return false;
 
 			// note: il y a un "bug" dans les sérialisateurs de Microsoft: MinValue/MaxValue sont en LocalTime, et donc
@@ -376,7 +410,7 @@ namespace Doxense.Serialization.Json
 					// pb: Local ici sera en fct de la TZ du serveur, et non pas celle indiquée dans le JSON
 					// vu que de toutes manières, les ticks sont en UTC, et qu'on ne peut pas créer un DateTime de type Local dans une autre TZ que la notre,
 					// on ne peut pas faire grand chose avec la TZ spécifiée, hormis la garder en mémoire si jamais on doit binder vers un DateTimeOffset
-					if (!int.TryParse(value.Substring(endOffset + 1, value.Length - endOffset - 3), out var offset))
+					if (!int.TryParse(value.Slice(endOffset + 1, value.Length - endOffset - 3), out var offset))
 						return false;
 					// on a l'offset en "BCD", il faut retransformer en nombre de minutes
 					int h = offset / 100;
@@ -573,8 +607,8 @@ namespace Doxense.Serialization.Json
 #endif
 			char first = reader.ReadNextToken();
 
-			var map = CrystalJsonParser.TokenMap;
-			if (first < CrystalJsonParser.TOKEN_TYPE_LENGTH)
+			var map = CrystalJsonParser.GetTokenMap();
+			if (first < map.Length)
 			{
 				switch (map[first])
 				{
@@ -665,34 +699,29 @@ namespace Doxense.Serialization.Json
 
 		private static unsafe string ParseJsonStringInternal(ref CrystalJsonTokenizer<TReader> reader, StringTable? table)
 		{
-			// note: on a déja lu la quote (")
-
-			// Optimisation: pour éviter d'allouer un StringBuilder inutilement, on fonctionne d'abord avec un buffer de 16 charactères sur la stack et on switch sur un StringBuilder si ce buffer est trop petit
-			// Donc a la fin de la boucle, on est dans trois cas possibles:
-			// * si p = 0, la chaine vide
-			// * si sb == null, elle tient dans le buffer sur la stack et fait 'p' caractères de long
-			// * sinon, elle est contenue dans le StringBuilder
+			// note: we have already parsed the opening double-quote (")
 
 			const int SIZE = 128;
-			char* chunk = stackalloc char[SIZE];
+
+			Span<char> buf = stackalloc char[SIZE];
+			using var sb = new ValueBuffer<char>(buf);
+
 			int hashCode = StringTable.Hash.FNV_OFFSET_BIAS;
-			StringBuilder? sb = null;
-			int p = 0;
 
 			while (true)
 			{
 				char c = reader.ReadOne();
 
-				// Probabilités décroissantes:
-				// > du texte classique
-				// > des espaces
-				// > un \ d'escaping
-				// > le " terminal
-				// > EOF (cas très rare)
+				// From most frequent to less frequent:
+				// > letters
+				// > the last double-quote that ends the string
+				// > spaces
+				// > '\' used for escaping
+				// > EOF (this would only happen if the whole document is a string, usually it is an object or array)
 
-				if (c == '"') break; // doit être évalué AVANT de parser un '\"'
+				if (c == '"') break; // must be evaluated BEFORE parsing '\"'
 				if (c == '\\')
-				{ // décode le caractère encodé
+				{ // decode the escaped character
 					c = ParseEscapedCharacter(ref reader);
 				}
 				if (c == CrystalJsonParser.EndOfStream)
@@ -700,38 +729,23 @@ namespace Doxense.Serialization.Json
 					throw reader.FailUnexpectedEndOfStream("String is incomplete");
 				}
 
-				if (p < SIZE & sb == null)
-				{ // il y a encore de la place dans le buffer
-					chunk[p++] = c;
-				}
-				else
-				{
-					if (sb == null)
-					{
-						// il est plein, on le dump dans le StringBuilder
-						sb = new StringBuilder(SIZE * 2);
-						// et on copie le chunk dans le builder
-						sb.Append(new string(chunk, 0, p));
-					}
-					sb.Append(c);
-				}
+				sb.Add(c);
 				hashCode = StringTable.Hash.CombineFnvHash(hashCode, c);
 			}
 
-			if (p == 0)
+			if (sb.Count == 0)
 			{
 				return string.Empty;
 			}
-			//TODO: table for single letter names ?
 
+			//TODO: table for single letter names ?
 			if (table != null)
 			{ // interning
-				//REVIEW: est-qu'il faut "fermer" le hashcode? (en xoring avant la taille de la chaine, par exemple?)
-				return sb == null ? table.Add(hashCode, new ReadOnlySpan<char>(chunk, p)) : table.Add(hashCode, sb);
+				return table.Add(hashCode, sb.Span);
 			}
 			else
 			{
-				return sb?.ToString() ?? new string(chunk, 0, p);
+				return sb.Span.ToString();
 			}
 
 		}
@@ -755,22 +769,24 @@ namespace Doxense.Serialization.Json
 
 		private static char ParseEscapedUnicodeCharacter(ref CrystalJsonTokenizer<TReader> reader)
 		{
-			// Format: \uXXXX   où XXXX = hexa
+			// Format: "\uXXXX" where XXXX = hexa
 			int x = 0;
 			for (int i = 0; i < 4; i++)
 			{
 				char c = reader.ReadOne();
-				if (c >= '0' && c <= '9')
-				{
-					x = (x << 4) | (c - 48);
+
+				x <<= 4;
+				if ((uint) (c - '0') <= ('9' - '0'))
+				{ // c is >= '0' and <= '9'
+					x |= (c - 48);
 				}
-				else if (c >= 'A' && c <= 'F')
-				{
-					x = (x << 4) | (c - 55);
+				else if ((uint) (c - 'A') <= ('F' - 'A'))
+				{ // c is >= 'A' and <= 'F'
+					x |= (c - 55);
 				}
-				else if (c >= 'a' && c <= 'f')
-				{
-					x = (x << 4) | (c - 87);
+				else if ((uint) (c - 'a') <= ('f' - 'a'))
+				{ // c is >= 'a' and <= 'f'
+					x |= (c - 87);
 				}
 				else if (c == CrystalJsonParser.EndOfStream)
 				{
@@ -781,7 +797,8 @@ namespace Doxense.Serialization.Json
 					throw reader.FailInvalidSyntax("Invalid Unicode character escaping");
 				}
 			}
-			return (char)x;
+
+			return (char) x;
 		}
 
 		private static unsafe JsonNumber ParseJsonNumber(ref CrystalJsonTokenizer<TReader> reader, char first)
@@ -791,121 +808,140 @@ namespace Doxense.Serialization.Json
 #endif
 			const int MAX_NUMBER_CHARS = 64;
 
-			char* buffer = stackalloc char[MAX_NUMBER_CHARS];
+			Span<char> buffer = stackalloc char[MAX_NUMBER_CHARS];
 			buffer[0] = first;
 			int p = 1;
 			bool negative = first == '-';
 			bool hasDot = false;
 			bool hasExponent = false;
 			bool hasExponentSign = false;
-			bool incomplete = first < '0' || first > '9';
+			bool incomplete = first is < '0' or > '9';
 			bool computed = negative || !incomplete;
 			ulong num = incomplete ? 0 : (ulong)(first - '0');
-			while (p < MAX_NUMBER_CHARS) // protection contre un trop grand consommation de mémoire
+			while (p < MAX_NUMBER_CHARS)
 			{
 				char c = reader.ReadOne();
-				if (c <= '9' && c >= '0') //TODO: utiliser un bias (uint)
+
+				if ((uint) (c - '0') < 10) // "0" .. "9"
 				{ // digit
 					incomplete = false;
 					num = (num * 10) + (ulong)(c - '0');
 					//REVIEW: fail if more than 17 digits? (ulong.MaxValue) unless we want to handle BigIntegers?
 				}
 				else if (c == ',' || c == '}' || c == ']' || c == ' ' || c == '\n' || c == '\t' || c == '\r')
-				{ // c'est un caractère valide pour une fin de stream
-				  // rembobine le caractère lu
+				{ // this is a valid end-of-stream character
+				  // rewind this character
 					reader.Push(c);
 					break;
 				}
 				else if (c == '.')
 				{
-					if (hasDot) throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}.' (duplicate decimal point)");
+					if (hasDot)
+					{
+						throw reader.FailInvalidSyntax($"Invalid number '{buffer[..p].ToString()}.' (duplicate decimal point)");
+					}
 					incomplete = true;
 					hasDot = true;
 					computed = false;
 				}
 				else if (c == 'e' || c == 'E')
-				{ // exposant (forme scientifique)
+				{ // exponent (scientific form)
 					if (hasExponent)
 					{
-						throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}{c}' (duplicate exponent)");
+						throw reader.FailInvalidSyntax($"Invalid number '{buffer[..p].ToString()}{c}' (duplicate exponent)");
 					}
-					incomplete = true;  // doit être suivit d'un signe ou d'un digit! ("123E" n'est pas valid)
+					incomplete = true; // must be followed by a sign or digit! ("123E" is not valid)
 					hasExponent = true;
 					computed = false;
 				}
 				else if (c == '-' || c == '+')
-				{ // signe de l'exposant
+				{ // sign of the exponent
 					if (!hasExponent)
 					{
-						throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}{c}' (unexpected sign at this location)");
+						throw reader.FailInvalidSyntax($"Invalid number '{buffer[..p].ToString()}{c}' (unexpected sign at this location)");
 					}
 					if (hasExponentSign)
 					{
-						throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}{c}' (duplicate sign is exponent)");
+						throw reader.FailInvalidSyntax($"Invalid number '{buffer[..p].ToString()}{c}' (duplicate sign is exponent)");
 					}
-					incomplete = true; // doit être suivit d'un digit! ("123E-" n'est pas valid)
+					incomplete = true; // must be followed by a digit! ("123E-" is not valid)
 					hasExponentSign = true;
 				}
 				else if (c == 'I' && p == 1 && (first == '+' || first == '-'))
 				{ // '+Infinity' / '-Infinity' ?
 					ParseSpecialKeyword(ref reader, c);
-					//HACKHACK: si ca réussi, c'est que le mot clé était bien "Infinity"
+					//HACKHACK: if this succeeds, then the keyword was "Infinity" as expected
 					return negative ? JsonNumber.NegativeInfinity : JsonNumber.PositiveInfinity;
 				}
 				else if (c == CrystalJsonParser.EndOfStream)
-				{ // fin de stream
+				{ // end of stream => end of number
 					break;
 				}
 				else
-				{ // caractère invalide après un nombre
-					throw reader.FailInvalidSyntax($"Invalid number '{new string(buffer, 0, p)}' (unexpected character '{c}' found)");
+				{ // invalid character after a (valid) number => fail
+					throw reader.FailInvalidSyntax($"Invalid number '{buffer[..p].ToString()}' (unexpected character '{c}' found)");
 				}
 
 				buffer[p++] = c;
 			}
 
 			if (incomplete)
-			{ // normalement cela doit toujours finir par un digit !
+			{ // this should always end with a digit!
 				throw reader.FailInvalidSyntax("Invalid JSON number (truncated)");
 			}
 
-			// si on n'a pas vu de points pour d'exposant, et que le nombre de digits <= 16, on est certain que c'est un entier valide, et donc on l'a déja parsé
+			// if we did not see neither '.' nor exponent, and the number of digits is <= 4, we have a valid integer that will fit in the cache!
 			if (computed && p <= 4)
 			{
-				if (num == 0) return JsonNumber.Zero;
-				if (num == 1) return negative ? JsonNumber.MinusOne : JsonNumber.One;
+				if (num == 0)
+				{
+					return JsonNumber.Zero;
+				}
+				if (num == 1)
+				{
+					return negative ? JsonNumber.MinusOne : JsonNumber.One;
+				}
 				if (!negative)
 				{
 					// le literal est-il en cache?
-					if (num <= JsonNumber.CACHED_SIGNED_MAX) return JsonNumber.GetCachedSmallNumber((int) num);
+					if (num <= JsonNumber.CACHED_SIGNED_MAX)
+					{
+						return JsonNumber.GetCachedSmallNumber((int) num);
+					}
 				}
 				else
 				{
 					// le literal est-il en cache?
-					if (num <= -JsonNumber.CACHED_SIGNED_MIN) return JsonNumber.GetCachedSmallNumber(-((int) num));
+					if (num <= -JsonNumber.CACHED_SIGNED_MIN)
+					{
+						return JsonNumber.GetCachedSmallNumber(-((int) num));
+					}
 				}
 			}
-
-			// génère le literal
-			// on considère qu'un nombre de 4 ou plus digits est une "valeur", alors qu'en dessous, c'est une "clé"
-			var table = reader.GetStringTable(computed ? JsonLiteralKind.Integer : JsonLiteralKind.Decimal);
 
 			if (computed)
 			{
 				if (negative)
 				{ // avec seulement 16 digits, pas de risques d'overflow a cause du signe
-					return JsonNumber.ParseSigned(-((long) num), null);
+					return JsonNumber.ParseSigned(-((long) num), null, default);
 				}
 				else
 				{
-					return JsonNumber.ParseUnsigned(num, null);
+					return JsonNumber.ParseUnsigned(num, null, default);
 				}
 			}
 
-			// on a besoin de parser le nombre...
-			string literal = table != null ? table.Add(new ReadOnlySpan<char>(buffer, p)) : new string(buffer, 0, p);
-			var value = CrystalJsonParser.ParseNumberFromLiteral(literal, negative, hasDot, hasExponent);
-			return value ?? throw reader.FailInvalidSyntax($"Invalid JSON number '{literal}' (malformed)");
+			// this is either a floating pointer number, or a large interger that does not fit in the cache
+			var literal = buffer.Slice(0, p);
+
+			// we may get the literal from a string table
+			var table = reader.GetStringTable(computed ? JsonLiteralKind.Integer : JsonLiteralKind.Decimal);
+			string? original = table?.Add(literal);
+
+			// complete the parsing
+			var value = CrystalJsonParser.ParseNumberFromLiteral(literal, original, negative, hasDot, hasExponent);
+
+			return value ?? throw reader.FailInvalidSyntax($"Invalid JSON number '{literal.ToString()}' (malformed)");
 		}
 
 		private static JsonValue ParseSpecialKeyword(ref CrystalJsonTokenizer<TReader> reader, char first)
