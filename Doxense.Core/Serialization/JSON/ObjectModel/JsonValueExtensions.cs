@@ -288,7 +288,7 @@ namespace Doxense.Serialization.Json
 				if (typeof(TValue) == typeof(UInt128)) return (TValue) (object) value.ToUInt128();
 #endif
 
-				return value.Bind<TValue>(default, resolver)!;
+				return value.Bind<TValue>(default!, resolver);
 			}
 			else
 			{
@@ -789,23 +789,7 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
 		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
-		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/></returns>
-		/// <exception cref="JsonBindingException">The field is null or missing, or cannot be bound to the specified type.</exception>
-		[Pure]
-		public static TValue[] GetArray<TValue>(this JsonValue self, string key)
-		{
-			var value = self.GetValue(key);
-			if (value is not JsonArray arr)
-			{
-				throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value);
-			}
-			return arr.ToArray<TValue>()!;
-		}
-
-		/// <summary>Returns the value of the <b>required</b> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
-		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
-		/// <param name="self">Parent object</param>
-		/// <param name="key">Name of the field</param>
+		/// <param name="defaultValue"></param>
 		/// <param name="resolver">Optional custom type resolver</param>
 		/// <param name="message">Optional error message if the required array is null or missing</param>
 		/// <returns>Array of values converted into instances of type <typeparamref name="TValue"/></returns>
@@ -905,32 +889,18 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
 		/// <param name="self">Parent object</param>
 		/// <param name="key">Name of the field</param>
-		/// <returns>List of values converted into instances of type <typeparamref name="TValue"/></returns>
-		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
-		[Pure]
-		public static List<TValue> GetList<TValue>(this JsonValue self, string key)
-		{
-			Contract.NotNull(self);
-			var value = self.GetValue(key);
-			if (value is not JsonArray arr) throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value);
-			return arr.ToList<TValue>()!;
-		}
-
-		/// <summary>Return the value of the <b>required</b> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
-		/// <typeparam name="TValue">Type of the elements of the array</typeparam>
-		/// <param name="self">Parent object</param>
-		/// <param name="key">Name of the field</param>
+		/// <param name="defaultValue"></param>
 		/// <param name="resolver">Optional custom type resolver</param>
 		/// <param name="message">Optional error message if the required array is null or missing</param>
 		/// <returns>List of values converted into instances of type <typeparamref name="TValue"/></returns>
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
-		public static List<TValue> GetList<TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null)
+		public static List<TValue> GetList<TValue>(this JsonValue self, string key, TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null, string? message = null)
 		{
 			Contract.NotNull(self);
 			var value = self.GetValueOrDefault(key).RequiredField(key, message);
 			if (value is not JsonArray arr) throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value);
-			return arr.ToList<TValue>(default, resolver)!;
+			return arr.ToList<TValue>(defaultValue, resolver)!;
 		}
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
@@ -990,9 +960,6 @@ namespace Doxense.Serialization.Json
 			if (value is not JsonObject obj) throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value);
 			return obj.ToDictionary<TKey, TValue>(resolver);
 		}
-
-		public static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(this JsonValue self, string key) where TKey : notnull
-			=> GetDictionary<TKey, TValue>(self, key, resolver: null, message: null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a dictionary with keys of type <typeparamref name="TKey"/> and elements of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TKey">Type of the keys of the dictionary</typeparam>

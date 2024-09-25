@@ -26,7 +26,9 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
@@ -285,16 +287,30 @@ namespace Doxense.Serialization.Json
 
 		public override object ToObject() => m_value;
 
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
-#if !DEBUG
-			if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime();
-			if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset();
-			if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly();
-			if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant();
-#endif
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(DateTime)) return (T) (object) ToDateTime((DateTime) (object) defaultValue!);
+				if (typeof(T) == typeof(DateTimeOffset)) return (T) (object) ToDateTimeOffset((DateTimeOffset) (object) defaultValue!);
+				if (typeof(T) == typeof(NodaTime.Instant)) return (T) (object) ToInstant((NodaTime.Instant) (object) defaultValue!);
+				if (typeof(T) == typeof(DateOnly)) return (T) (object) ToDateOnly((DateOnly) (object) defaultValue!);
+			}
+			else
+			{
+				if (typeof(T) == typeof(DateTime?)) return (T?) (object?) ToDateTimeOrDefault((DateTime?) (object?) defaultValue);
+				if (typeof(T) == typeof(DateTimeOffset?)) return (T?) (object?) ToDateTimeOffsetOrDefault((DateTimeOffset?) (object?) defaultValue);
+				if (typeof(T) == typeof(NodaTime.Instant?)) return (T?) (object?) ToInstantOrDefault((NodaTime.Instant?) (object?) defaultValue);
+				if (typeof(T) == typeof(DateOnly?)) return (T?) (object?) ToDateOnlyOrDefault((DateOnly?) (object?) defaultValue);
+
+				if (typeof(T) == typeof(string)) return (T?) (object?) ToStringOrDefault((string?) (object?) defaultValue);
+			}
+
 			#endregion
 
 			return (T?) BindNative(this, this.Ticks, typeof(T), resolver) ?? defaultValue;
@@ -302,22 +318,16 @@ namespace Doxense.Serialization.Json
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (type == typeof(DateTimeOffset))
-			{
-				return this.DateWithOffset;
-			}
-			if (type == typeof(DateTime))
-			{
-				return this.Date;
-			}
-			if (type == typeof(DateOnly))
-			{
-				return this.DateWithoutTime;
-			}
-			if (type == typeof(NodaTime.Instant))
-			{
-				return NodaTime.Instant.FromDateTimeOffset(this.DateWithOffset);
-			}
+			if (type == typeof(DateTimeOffset)) return this.DateWithOffset;
+			if (type == typeof(DateTime)) return this.Date;
+			if (type == typeof(NodaTime.Instant)) return NodaTime.Instant.FromDateTimeOffset(this.DateWithOffset);
+			if (type == typeof(DateOnly)) return this.DateWithoutTime;
+			if (type == typeof(string)) return ToStringOrDefault();
+			if (type == typeof(DateTimeOffset?)) return this.DateWithOffset;
+			if (type == typeof(DateTime?)) return this.Date;
+			if (type == typeof(NodaTime.Instant?)) return NodaTime.Instant.FromDateTimeOffset(this.DateWithOffset);
+			if (type == typeof(DateOnly?)) return this.DateWithoutTime;
+
 			return BindNative(this, this.Ticks, type, resolver);
 		}
 

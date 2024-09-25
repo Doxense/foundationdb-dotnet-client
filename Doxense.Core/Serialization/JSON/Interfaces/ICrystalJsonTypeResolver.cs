@@ -26,6 +26,8 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Diagnostics.CodeAnalysis;
+
 	/// <summary>Resolveur JSON capable d'énumérer les membres d'un type</summary>
 	public interface ICrystalJsonTypeResolver
 	{
@@ -51,7 +53,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		T? BindJson<T>(JsonValue? value);
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		T? BindJson<T>(JsonValue? value, T? defaultValue = default);
 
 		/// <summary>Bind a JSON object into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>

@@ -106,6 +106,8 @@ namespace Doxense.Serialization.Json
 			if (type == typeof(DateOnly)) return jsonValue.ToDateOnly();
 			if (type == typeof(TimeOnly)) return jsonValue.ToTimeOnly();
 			if (type == typeof(JsonValue)) return jsonValue;
+			if (type == typeof(NodaTime.Instant)) return jsonValue.ToInstant();
+			if (type == typeof(NodaTime.Duration)) return jsonValue.ToDuration();
 
 			if (type.IsEnum)
 			{ // Enumeration

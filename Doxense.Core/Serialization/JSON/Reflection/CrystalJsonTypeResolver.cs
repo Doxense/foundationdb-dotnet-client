@@ -235,17 +235,18 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public T? BindJson<T>(JsonValue? value)
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public T? BindJson<T>(JsonValue? value, T? defaultValue = default)
 		{
 			switch (value)
 			{
 				case null:
 				{
-					return default;
+					return defaultValue;
 				}
 				case JsonNull:
 				{
-					return default;
+					return defaultValue;
 				}
 				case JsonArray arr:
 				{
@@ -259,7 +260,7 @@ namespace Doxense.Serialization.Json
 				}
 				default:
 				{
-					return value.Bind<T>();
+					return value.Bind<T>(defaultValue, this);
 				}
 			}
 		}
