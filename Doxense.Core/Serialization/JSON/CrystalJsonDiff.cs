@@ -430,7 +430,7 @@ namespace Doxense.Serialization.Json
 			{
 				if (!before.TryGetValue(kvp.Key, out var prev))
 				{
-					// ["add", PATH, VALUE] : add new field "PATH" with value VALUE
+					// ["add", PATH, VALUE] : add new field "PATH" with value "VALUE"
 					ops.Add(JsonArray.Create(Commands.Add, kvp.Key, kvp.Value));
 				}
 				else if (prev.Type != kvp.Value.Type)

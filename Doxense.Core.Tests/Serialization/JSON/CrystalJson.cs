@@ -3197,8 +3197,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_KeyValuePair()
 		{
-			// KeyValuePair<K, V> instances, outside of a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
-			// The only exception is for a collection of KV pairs (all of the same type), which are serialized as an object
+			// KeyValuePair<K, V> instances, outside a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
+			// The only exception is for a collection of KV pairs (all with the same type), which are serialized as an object
 
 			Assert.That(CrystalJson.Serialize(new KeyValuePair<string, int>("hello", 42), CrystalJsonSettings.Json), Is.EqualTo("""[ "hello", 42 ]"""));
 			Assert.That(CrystalJson.Serialize(new KeyValuePair<int, bool>(123, true), CrystalJsonSettings.Json), Is.EqualTo("[ 123, true ]"));
@@ -3216,8 +3216,8 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonValue_FromValue_KeyValuePair()
 		{
-			// KeyValuePair<K, V> instances, outside of a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
-			// The only exception is for a collection of KV pairs (all of the same type), which are serialized as an object
+			// KeyValuePair<K, V> instances, outside a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
+			// The only exception is for a collection of KV pairs (all with the same type), which are serialized as an object
 
 			Assert.That(JsonValue.FromValue(new KeyValuePair<string, int>("hello", 42)).ToJson(), Is.EqualTo("""[ "hello", 42 ]"""));
 			Assert.That(JsonValue.FromValue(new KeyValuePair<int, bool>(123, true)).ToJson(), Is.EqualTo("[ 123, true ]"));
@@ -4775,7 +4775,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(x1 >= 2, Is.False);
 
 			// JsonNumber vs valuetype (no allocations)
-			// => this comparisons should not allocated any JsonValue during the operation
+			// => this comparisons should not allocate any JsonValue instance during the operation
 
 			Expression<Func<JsonNumber, int, bool>> expr1 = (jnum, x) => jnum < x;
 			Assert.That(expr1.Body.NodeType, Is.EqualTo(ExpressionType.LessThan));
@@ -4936,7 +4936,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonNumber_Interning()
 		{
-			//NOTE: currently, interning should only be used for small numbers: -128..+127 et 0U..255U
+			//NOTE: currently, interning should only be used for small numbers: -128..+127 et 0U...255U
 			// => if this test fails, please check that this range hasn't changed !
 
 			Assert.That(JsonNumber.Return(0), Is.SameAs(JsonNumber.Zero), "Zero");
@@ -5331,7 +5331,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonArray.CreateReadOnly([ "one", JsonArray.CreateReadOnly([ "two", "three" ]) ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
 			Assert.That(JsonArray.CreateReadOnly("one", JsonArray.CreateReadOnly("two", "three")), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
 
-			// check that Span<..> will use the Create(ReadOnlySpan<..>) overload
+			// check that Span<...> will use the Create(ReadOnlySpan<..>) overload
 			Span<JsonValue?> buf = [ JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) ];
 			Assert.That(JsonArray.Create(buf), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) }));
 
@@ -6696,7 +6696,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr2, IsJson.EqualTo([ "world" ]));
 			Assert.That(arr, IsJson.Empty);
 
-			// copy and try remove last field
+			// copy and try removing last field
 			var arr6 = arr5.CopyAndRemove(0, out var prev);
 			DumpCompact(arr6);
 			Assert.That(arr6, Is.Not.SameAs(arr5));
@@ -8376,7 +8376,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj, IsJson.Empty);
 			Assert.That(obj["foo"], IsJson.Missing);
 
-			// copy and try remove last field
+			// copy and try removing last field
 			var obj6 = obj5.CopyAndRemove("foo", out var prev);
 			DumpCompact(obj6);
 			Assert.That(obj6, Is.Not.SameAs(obj5));
@@ -8535,7 +8535,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonValue_FromObject_Nullable()
 		{
-			//note: nullable<int> is be boxed into Int32 if it had a value, so we lose the knowledge that it was a Nullable<int> when calling FromObject(object)
+			//note: nullable<int> is boxed into Int32 if it had a value, so we lose the knowledge that it was a Nullable<int> when calling FromObject(object)
 			// => we will force the type by calling FromObject(..., typeof(int?)) in order to ensure that it works as intended
 
 			Assert.That(JsonValue.FromValue(null, typeof(int?)), Is.InstanceOf<JsonNull>());

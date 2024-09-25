@@ -170,7 +170,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
-		/// <param name="buffer">Buffer de destination (créé automatiquement si null)</param>
+		/// <param name="buffer">Destination buffer (created automatically if null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The value of <paramref name="buffer"/>, for call chaining</returns>
@@ -208,7 +208,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Class, struct, Enumerable, Nullable&lt;T&gt;, ...</param>
 		/// <param name="declaredType"></param>
-		/// <param name="buffer">Destination buffer (created automically if null)</param>
+		/// <param name="buffer">Destination buffer (created automatically if null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Value of <paramref name="buffer"/>, or of the newly created buffer if it was null (for call chaining)</returns>
@@ -532,7 +532,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
 		/// </remarks>
 		[Pure]
 		public static Slice ToSlice(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
@@ -566,7 +566,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
 		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
 		[Pure]
@@ -584,7 +584,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
 		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
 		[Pure]
@@ -602,7 +602,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in anyway after the opertaion, or risk data corruption!</para>
+		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
 		/// <para>If <paramref name="declaredType"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="declaredType"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
 		[Pure]
@@ -815,7 +815,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -839,7 +839,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -854,7 +854,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -869,7 +869,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
@@ -890,7 +890,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -905,7 +905,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonBytes"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
@@ -956,7 +956,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -971,7 +971,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
@@ -1006,7 +1006,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="reader"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
@@ -1022,7 +1022,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="source"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
@@ -1050,7 +1050,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="path"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1065,7 +1065,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON value. If <paramref name="source"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 		/// <remarks>
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
-		/// <para>If the result is always expected to be an Array or an Object, please call call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 		[Pure]
@@ -1234,7 +1234,7 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonText).Required<TValue>(resolver: null);
 		}
 
-		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
 		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Resolver optionnel</param>
@@ -1584,7 +1584,7 @@ namespace Doxense.Serialization.Json
 			internal static JsonSerializationException Serialization_InternalDepthInconsistent() => new("Internal depth is inconsistent.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object? current) => new($"Desynchronization of the visited object stack: Leave() was called with a different value of type '{current?.GetType().GetFriendlyName() ?? "<null>"}' than MarkVisited() at depth {depth}.");
+			internal static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object? current) => new($"De-synchronization of the visited object stack: Leave() was called with a different value of type '{current?.GetType().GetFriendlyName() ?? "<null>"}' than MarkVisited() at depth {depth}.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonSerializationException Serialization_DoesNotKnowHowToSerializeType(Type type) => new($"Doesn't know how to serialize values of type '{type.GetFriendlyName()}'.");

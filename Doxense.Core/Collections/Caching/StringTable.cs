@@ -28,7 +28,6 @@
 
 namespace Doxense.Text
 {
-	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
@@ -41,6 +40,7 @@ namespace Doxense.Text
 	/// This is basically a lossy cache of strings that is searchable by
 	/// strings, string sub ranges, character array ranges or string-builder.
 	/// </summary>
+	[PublicAPI]
 	public class StringTable : IDisposable
 	{
 #if DEBUG_STRINGTABLE_PERFS
@@ -50,19 +50,20 @@ namespace Doxense.Text
 #endif
 
 		/// <summary>Helpers for Hash computation</summary>
+		[PublicAPI]
 		public static class Hash
 		{
 			/// <summary>
 			/// The offset bias value used in the FNV-1a algorithm
 			/// See http://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
 			/// </summary>
-			public const int FNV_OFFSET_BIAS = unchecked((int)2166136261);
+			public const int FNV_OFFSET_BIAS = unchecked((int) 2166136261);
 
 			/// <summary>
 			/// The generative factor used in the FNV-1a algorithm
 			/// See http://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
 			/// </summary>
-			public const int FNV_PRIME = 16777619;
+			private const int FNV_PRIME = 16777619;
 
 			[Pure]
 			public static unsafe int GetFnvHashCode(ReadOnlySpan<byte> text, out bool isAscii)
@@ -134,13 +135,6 @@ namespace Doxense.Text
 
 		}
 
-		[DebuggerDisplay("{Text}")]
-		private struct Entry
-		{
-			public int HashCode;
-			public string Text;
-		}
-
 		// Size of local cache.
 		private const int LocalSizeBits = 11;
 		private const int LocalSize = 1 << LocalSizeBits;
@@ -160,26 +154,22 @@ namespace Doxense.Text
 		// simple fast and not threadsafe cache
 		// with limited size and "last add wins" expiration policy
 		//
-		// The main purpose of the local cache is to use in long lived
+		// The main purpose of the local cache is to use in long-lived
 		// single threaded operations with lots of locality (like parsing).
 		// Local cache is smaller (and thus faster) and is not affected
 		// by cache misses on other threads.
-		private readonly Entry[] m_localTable = new Entry[LocalSize];
+		private readonly (int HashCode, string? Text)[] m_localTable = new (int, string?)[LocalSize];
 
 		// shared (L2) threadsafe cache
 		// slightly slower than local cache
 		// we read this cache when having a miss in local cache
 		// writes to local cache will update shared cache as well.
-		private static readonly Entry[] s_sharedTable = new Entry[SharedSize];
+		private static readonly (int HashCode, string? Text)[] s_sharedTable = new (int, string?)[SharedSize];
 
 		// essentially a random number
 		// the usage pattern will randomly use and increment this
 		// the counter is not static to avoid interlocked operations and cross-thread traffic
 		private int m_localRandom = Environment.TickCount;
-
-		internal StringTable()
-			: this(null)
-		{ }
 
 		#region Poolable...
 
@@ -197,12 +187,6 @@ namespace Doxense.Text
 			// ReSharper disable once AccessToModifiedClosure
 			pool = new ObjectPool<StringTable>(() => new StringTable(pool), Environment.ProcessorCount * 2);
 			return pool;
-		}
-
-		/// <summary>PERF: calling this method first will ensure that the JIT will inline all readonly stuff in all other methods!</summary>
-		internal static void EnsureJit()
-		{
-			GetInstance().Dispose();
 		}
 
 		public static StringTable GetInstance()
@@ -251,7 +235,7 @@ namespace Doxense.Text
 			var text = arr[idx].Text;
 			if (text != null && arr[idx].HashCode == hashCode)
 			{
-				var result = arr[idx].Text;
+				var result = arr[idx].Text!;
 				if (TextEqualsAscii(result, ascii))
 				{
 #if DEBUG_STRINGTABLE_PERFS
@@ -291,7 +275,7 @@ namespace Doxense.Text
 			var text = arr[idx].Text;
 			if (text != null && arr[idx].HashCode == hashCode)
 			{
-				var result = arr[idx].Text;
+				var result = arr[idx].Text!;
 				if (TextEqualsUtf8(text, utf8))
 				{
 #if DEBUG_STRINGTABLE_PERFS
@@ -404,7 +388,7 @@ namespace Doxense.Text
 
 			if (text != null && arr[idx].HashCode == hashCode)
 			{
-				var result = arr[idx].Text;
+				var result = arr[idx].Text!;
 				if (TextEquals(result, chars))
 				{
 #if DEBUG_STRINGTABLE_PERFS
@@ -667,12 +651,12 @@ namespace Doxense.Text
 			return m_localRandom++;
 		}
 
-		internal static bool TextEquals(string array, ReadOnlySpan<char> text)
+		private static bool TextEquals(string array, ReadOnlySpan<char> text)
 		{
 			return array.Length == text.Length && text.SequenceEqual(array.AsSpan());
 		}
 
-		internal static bool TextEquals(string array, StringBuilder text)
+		private static bool TextEquals(string array, StringBuilder text)
 		{
 			if (array.Length != text.Length)
 			{
@@ -710,7 +694,7 @@ namespace Doxense.Text
 			return true;
 		}
 
-		internal static unsafe bool TextEqualsAscii(string text, ReadOnlySpan<byte> ascii)
+		private static unsafe bool TextEqualsAscii(string text, ReadOnlySpan<byte> ascii)
 		{
 			if (text.Length != ascii.Length) return false;
 
@@ -728,7 +712,7 @@ namespace Doxense.Text
 			}
 		}
 
-		internal static bool TextEqualsUtf8(string text, ReadOnlySpan<byte> utf8)
+		private static bool TextEqualsUtf8(string text, ReadOnlySpan<byte> utf8)
 		{
 			return Utf8String.Equals(utf8, text);
 		}

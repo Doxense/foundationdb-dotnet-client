@@ -217,7 +217,7 @@ namespace Doxense.Serialization.Json
 			}
 			else if (runtimeType.IsArray)
 			{ // T[]
-				if (TryConvertListObject(ref context, (IList)value, runtimeType, out result))
+				if (TryConvertListObject(ref context, (IList) value, runtimeType, out result))
 				{
 					return result;
 				}

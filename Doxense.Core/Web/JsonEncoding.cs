@@ -69,7 +69,7 @@ namespace Doxense.Serialization.Json
 			// - this approeach equivalent to a naive "foreach(var c in s) { ... }", even for small strings
 			// - unrolling two ulong (8 chars) vs one ulong (4 chars) only yield ~10% perf (probably due to 50% less loop check)
 			// - testing with SSE3 LoadVector128 is slower, and using AVX2 "Gather" intructions to perform the lookup is also slower
-			// - trying to using a "switch(length & 3) { case 1: ... case 1: ... case 2: ... }" is _slower_ then a simple "while(len-- > 0)"
+			// - trying to use a "switch(length & 3) { case 1: ... case 1: ... case 2: ... }" is _slower_ then a simple "while(len-- > 0)"
 			//
 			// Other notes:
 			// - "switch(s.Length)" with dedicated optimzed code paths for arrays of length 1, 2, or 3 is SLOWER, probably due to the additional jump destination lookup table
