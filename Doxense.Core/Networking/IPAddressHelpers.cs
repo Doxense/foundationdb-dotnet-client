@@ -692,7 +692,7 @@ namespace Doxense.Networking
 		{
 			Contract.NotNull(address);
 			Contract.GreaterThan(maxDistance, 0);
-			Contract.GreaterThan(timeout, TimeSpan.Zero);
+			Contract.GreaterThan(timeout.Ticks, 0);
 			ct.ThrowIfCancellationRequested();
 
 			int timeoutMs = (int) Math.Ceiling(timeout.TotalMilliseconds);

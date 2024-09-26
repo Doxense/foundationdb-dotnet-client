@@ -116,7 +116,7 @@ namespace System
 		[Pure]
 		public static MutableSlice Zero(uint size)
 		{
-			Contract.LessOrEqual(size, int.MaxValue);
+			Contract.LessOrEqual(size, (uint) int.MaxValue);
 			return size != 0 ? new MutableSlice(new byte[size], 0, (int) size) : MutableSlice.Empty;
 		}
 

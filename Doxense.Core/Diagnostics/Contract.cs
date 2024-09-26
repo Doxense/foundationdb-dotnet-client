@@ -393,25 +393,25 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotGreaterThan<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null) where T : struct
+		public static Exception FailArgumentNotGreaterThan<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null)
 		{
 			return ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.AboveZeroNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} > " + thresholdExpression, details: value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotGreaterOrEqual<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null) where T : struct
+		public static Exception FailArgumentNotGreaterOrEqual<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null)
 		{
 			return ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.PositiveNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} >= " + thresholdExpression, details: value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotLessThan<T>(T value, string valueExpression, string thresholdExpression, string? message = null) where T : struct
+		public static Exception FailArgumentNotLessThan<T>(T value, string valueExpression, string thresholdExpression, string? message = null)
 		{
 			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} < " + thresholdExpression, details: value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotLessOrEqual<T>(T value, string valueExpression, string thresholdExpression, string? message = null) where T : struct
+		public static Exception FailArgumentNotLessOrEqual<T>(T value, string valueExpression, string thresholdExpression, string? message = null)
 		{
 			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} <= " + thresholdExpression, details: value);
 		}
@@ -426,6 +426,12 @@ namespace Doxense.Diagnostics.Contracts
 		public static Exception FailArgumentOutOfBounds(string valueExpression, string minExpression, string maxExpression, string? message = null)
 		{
 			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueMustBeBetween, message, valueExpression, minExpression + " <= {0} <= " + maxExpression);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception FailArgumentNotMultiple(string paramName, string? message = null)
+		{
+			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueMustBeMultiple, message, paramName, ContractMessages.ConditionArgMultiple);
 		}
 
 		#region Positive...
@@ -592,106 +598,37 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region GreaterThan...
 
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == 0, message);
-		}
-
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == 0, message);
-		}
-
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == 0, message);
-		}
-
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == 0, message);
-		}
-
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == 0.0f, message);
-		}
-
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterThan(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == 0.0d, message);
-		}
-
+#if NET8_0_OR_GREATER
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-			where T: struct, IComparable<T>
+			where T : System.Numerics.INumber<T>
+		{
+			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, T.IsZero(threshold), message);
+		}
+#else
+		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+			where T : struct, IComparable<T>
 		{
 			if (value.CompareTo(threshold) <= 0) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
 		}
+#endif
 
 		#endregion
-		
+
 		#region GreaterOrEqual...
 
+#if NET8_0_OR_GREATER
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+			where T : System.Numerics.INumber<T>
 		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold == 0, message);
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, T.IsZero(threshold), message);
 		}
-
-		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, false, message);
-		}
-
-		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold == 0, message);
-		}
-
-		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, false, message);
-		}
-
-		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold == 0.0f, message);
-		}
-
-		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void GreaterOrEqual(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold == 0.0d, message);
-		}
-
+#else
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -699,53 +636,21 @@ namespace Doxense.Diagnostics.Contracts
 		{
 			if (value.CompareTo(threshold) < 0) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
 		}
+#endif
 
 		#endregion
 
 		#region LessThan...
 
-		/// <summary>The specified value must not greater than or equal to the specified upper bound</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
-		}
-
-		/// <summary>The specified value must not greater than or equal to the specified upper bound</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
-		}
-
+#if NET8_0_OR_GREATER
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+			where T : System.Numerics.INumber<T>
 		{
 			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
 		}
-
-		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
-		}
-
-		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
-		}
-
-		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessThan(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
-		}
-
+#else
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -753,53 +658,21 @@ namespace Doxense.Diagnostics.Contracts
 		{
 			if (value.CompareTo(threshold) >= 0) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
 		}
+#endif
 
 		#endregion
 
 		#region LessOrEqual...
 
+#if NET8_0_OR_GREATER
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(int value, int threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+			where T : System.Numerics.INumber<T>
 		{
 			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
 		}
-
-		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(uint value, uint threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
-		}
-
-		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(long value, long threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
-		}
-
-		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(ulong value, ulong threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
-		}
-
-		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(float value, float threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
-		}
-
-		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void LessOrEqual(double value, double threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
-		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
-		}
-
+#else
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -807,65 +680,42 @@ namespace Doxense.Diagnostics.Contracts
 		{
 			if (value.CompareTo(threshold) > 0) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
 		}
+#endif
 
 		#endregion
 
 		#region Between...
 
+#if NET8_0_OR_GREATER
 		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
-		/// <exception cref="System.ArgumentException">If the value is outside the specified bounds</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(int value, int minimumInclusive, int maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between<T>(T value, T minimumInclusive, T maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+			where T : System.Numerics.INumber<T>
 		{
 			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
-
-		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
-		/// <exception cref="System.ArgumentException">If the value is outside the specified bounds</exception>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(uint value, uint minimumInclusive, uint maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
-		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
-		}
-
+#else
 		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(long value, long minimumInclusive, long maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+		public static void Between<T>(T value, T minimumInclusive, T maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
+			where T : IComparable<T>
 		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
+			if (value.CompareTo(minimumInclusive) < 0 || value.CompareTo(maximumInclusive) > 0) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
 		}
-
-		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(ulong value, ulong minimumInclusive, ulong maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
-		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
-		}
-
-		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(float value, float minimumInclusive, float maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
-		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
-		}
-
-		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Between(double value, double minimumInclusive, double maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
-		{
-			if (value < minimumInclusive || value > maximumInclusive) throw FailArgumentOutOfBounds(valueExpression!, minExpression!, maxExpression!, message);
-		}
+#endif
 
 		#endregion
 
 		#region Multiple...
 
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotMultiple(string paramName, string? message = null)
+#if NET8_0_OR_GREATER
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Multiple<T>(T value, T multiple, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
+			where T : System.Numerics.INumber<T>
 		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueMustBeMultiple, message, paramName, ContractMessages.ConditionArgMultiple);
+			if ((value % multiple) != T.Zero) throw FailArgumentNotMultiple(paramName!, message);
 		}
-
+#else
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Multiple(int value, int multiple, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
@@ -889,6 +739,7 @@ namespace Doxense.Diagnostics.Contracts
 		{
 			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
+#endif
 
 		#endregion
 
@@ -896,14 +747,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region Contract.DoesNotOverflow
 
-		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
-		/// <param name="buffer">Buffer (qui ne doit pas être null)</param>
-		/// <param name="index">Index (qui ne doit pas être négatif)</param>
-		/// <param name="count">Taille (qui ne doit pas être négative)</param>
-		/// <param name="message"></param>
-		/// <param name="paramBuffer"></param>
-		/// <param name="paramIndex"></param>
-		/// <param name="paramCount"></param>
+		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
 		public static void DoesNotOverflow(
 			[System.Diagnostics.CodeAnalysis.NotNull]
@@ -921,11 +765,7 @@ namespace Doxense.Diagnostics.Contracts
 			if ((buffer.Length - index) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
 
-		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
-		/// <param name="bufferLength">Taille du buffer</param>
-		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
-		/// <param name="count">Taille (qui ne doit pas être négative)</param>
-		/// <param name="message"></param>
+		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
 		public static void DoesNotOverflow(int bufferLength, int offset, int count, string? message = null)
 		{
@@ -933,11 +773,7 @@ namespace Doxense.Diagnostics.Contracts
 			if ((bufferLength - offset) < count) throw FailBufferTooSmall(nameof(count), message);
 		}
 
-		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
-		/// <param name="bufferLength">Taille du buffer</param>
-		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
-		/// <param name="count">Taille (qui ne doit pas être négative)</param>
-		/// <param name="message"></param>
+		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
 		public static void DoesNotOverflow(long bufferLength, long offset, long count, string? message = null)
 		{
@@ -945,14 +781,7 @@ namespace Doxense.Diagnostics.Contracts
 			if ((bufferLength - offset) < count) throw FailBufferTooSmall(nameof(count), message);
 		}
 
-		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
-		/// <param name="buffer">Buffer (qui ne doit pas être null)</param>
-		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
-		/// <param name="count">Taille (qui ne doit pas être négative)</param>
-		/// <param name="message"></param>
-		/// <param name="paramBuffer"></param>
-		/// <param name="paramOffset"></param>
-		/// <param name="paramCount"></param>
+		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
@@ -970,10 +799,7 @@ namespace Doxense.Diagnostics.Contracts
 			if ((buffer.Length - offset) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
 
-		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
-		/// <param name="buffer">Buffer (qui ne doit pas être null)</param>
-		/// <param name="message"></param>
-		/// <param name="paramName"></param>
+		/// <summary>The specified region must not be outside the specified buffer</summary>
 		public static void DoesNotOverflow<TElement>(
 			ArraySegment<TElement> buffer,
 			string? message = null,
@@ -992,14 +818,7 @@ namespace Doxense.Diagnostics.Contracts
 			}
 		}
 
-		/// <summary>Vérifie qu'une couple index/count ne débord pas d'un buffer, et qu'il n'est pas null</summary>
-		/// <param name="buffer">Buffer (qui ne doit pas être null)</param>
-		/// <param name="offset">Index (qui ne doit pas être négatif)</param>
-		/// <param name="count">Taille (qui ne doit pas être négative)</param>
-		/// <param name="message"></param>
-		/// <param name="paramBuffer"></param>
-		/// <param name="paramOffset"></param>
-		/// <param name="paramCount"></param>
+		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
@@ -1056,7 +875,7 @@ namespace Doxense.Diagnostics.Contracts
 #if DEBUG
 			if (str != null)
 			{
-				// note: do not spam the logs if in the context a of unit test runner!
+				// note: do not spam the logs if in the context of a unit test runner!
 				if (!IsUnitTesting)
 				{
 					System.Diagnostics.Debug.Fail(str);
