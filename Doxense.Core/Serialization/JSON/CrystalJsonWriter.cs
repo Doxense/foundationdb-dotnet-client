@@ -38,8 +38,6 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
-
-	using Doxense.IO;
 	using Doxense.Linq;
 	using NodaTime;
 	using NodaTime.Text;
@@ -322,7 +320,7 @@ namespace Doxense.Serialization.Json
 			{
 				//note: if the TextWriter implementation does not overload WriteAsync(ReadOnlyMemory<char>),
 				// the base implementation simply Task.Factory.StartNew((...) => output.Write(ReadOnlySpan<char>))
-				// also, the CancellationToken is only check _BEFORE_ the write, but the write itself is not cancellable :(
+				// also, the CancellationToken is only check _BEFORE_ writing, but the write operation itself is not cancellable :(
 				if (m_buffer.Count > 0)
 				{
 					await m_output.WriteAsync(m_buffer.Memory, ct).ConfigureAwait(false);
@@ -475,7 +473,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Write a coma between elements of an array</summary>
+		/// <summary>Write a comma between elements of an array</summary>
 		public void WriteTailSeparator()
 		{
 			Contract.Debug.Requires(m_state.Tail);
@@ -496,7 +494,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Write a coma between elements of an inline array, unless this is the first element</summary>
+		/// <summary>Write a comma between elements of an inline array, unless this is the first element</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteInlineFieldSeparator()
 		{
@@ -1115,7 +1113,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary><b>[CAUTION]</b> Writes a raw JSON literal into the output buffer, without any checks or encoding.</summary>
 		/// <param name="rawJson">JSON snippet that is already encoded</param>
-		/// <remarks>Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputing already encoded JSON constants or in very specific use cases where performance superseeds safety!</remarks>
+		/// <remarks>"Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputting already encoded JSON constants or in very specific use cases where performance superseeds safety!</remarks>
 		public void WriteRaw(string? rawJson)
 		{
 			if (!string.IsNullOrEmpty(rawJson))
@@ -1126,14 +1124,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary><b>[CAUTION]</b> Writes a raw JSON literal into the output buffer, without any checks or encoding.</summary>
 		/// <param name="rawJson">JSON snippet that is already encoded</param>
-		/// <remarks>"Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputing already encoded JSON constants or in very specific use cases where performance superseeds safety!</remarks>
+		/// <remarks>"Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputting already encoded JSON constants or in very specific use cases where performance superseeds safety!</remarks>
 		public void WriteRaw(ref DefaultInterpolatedStringHandler rawJson)
 		{
 			WriteRaw(rawJson.ToStringAndClear());
 		}
 
 		/// <summary>Write a property name that is KNOWN to not require any escaping.</summary>
-		/// <param name="name">Name of the property that MUST NOT REQUIRED ANY ESCAPING!</param>
+		/// <param name="name">Name of the property that MUST NOT REQUIRE ANY ESCAPING!</param>
 		/// <remarks>Calling this with a .NET object property or field name (obtained via reflection or nameof(...)) is OK, but calling with a dictionary key or user-input is NOT safe!</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteName(string name)
@@ -1143,7 +1141,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Write a property name that is KNOWN to not require any escaping.</summary>
-		/// <param name="name">Name of the property that MUST NOT REQUIRED ANY ESCAPING!</param>
+		/// <param name="name">Name of the property that MUST NOT REQUIRE ANY ESCAPING!</param>
 		/// <remarks>Calling this with a .NET object property or field name (obtained via reflection or nameof(...)) is OK, but calling with a dictionary key or user-input is NOT safe!</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteName(in JsonEncodedPropertyName name)
@@ -1155,7 +1153,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Write a property name that MAY require escaping.</summary>
 		/// <param name="name">Name of the property that will be escaped if necessary</param>
 		/// <remarks>
-		/// <para>This method should be used whenever the origin of key is not controlled, and may contains any character that would required escaping ('\', '"', ...).</para>
+		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('\', '"', ...).</para>
 		/// </remarks>
 		public void WriteNameEscaped(string name)
 		{
@@ -1166,7 +1164,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Write a property name that MAY require escaping.</summary>
 		/// <param name="name">Name of the property that will be escaped if necessary</param>
 		/// <remarks>
-		/// <para>This method should be used whenever the origin of key is not controlled, and may contains any character that would required escaping ('\', '"', ...).</para>
+		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('\', '"', ...).</para>
 		/// </remarks>
 		public void WriteNameEscaped(ReadOnlySpan<char> name)
 		{
@@ -1392,8 +1390,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{
-				//TODO: PERF: optimize this!
-				m_buffer.Write(JsonEncoding.AppendSlow(new StringBuilder(), new string(value, 1), true).ToString());
+				WriteValue(MemoryMarshal.CreateReadOnlySpan(ref value, 1));
 			}
 		}
 
@@ -3964,8 +3961,6 @@ namespace Doxense.Serialization.Json
 
 		public void WriteArray<T>(ReadOnlySpan<T> array)
 		{
-			//TODO: check params ?
-
 			if (array.Length == 0)
 			{
 				WriteEmptyArray();
@@ -3988,8 +3983,6 @@ namespace Doxense.Serialization.Json
 
 		public void WriteArray(ReadOnlySpan<string> array)
 		{
-			//TODO: check params ?
-
 			if (array.Length == 0)
 			{
 				WriteEmptyArray();
