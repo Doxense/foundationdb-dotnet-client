@@ -148,7 +148,7 @@ namespace Doxense.Collections.Generic
 		/// <exception cref="System.InvalidOperationException">If an entry with the same key already exist in the dictionary.</exception>
 		public void Add(TKey key, TValue value)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			Interlocked.Increment(ref m_version);
 			if (!m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: false))
@@ -163,7 +163,7 @@ namespace Doxense.Collections.Generic
 		/// <param name="value">The key value to set.</param>
 		public void SetItem(TKey key, TValue value)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 			Interlocked.Increment(ref m_version);
 			m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: true);
 		}
@@ -174,7 +174,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>true if the key did not previously exist and was inserted; otherwise, false.</returns>
 		public bool AddOrUpdate(TKey key, TValue value)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out int offset, out var entry);
 			if (level >= 0)
@@ -197,7 +197,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>true if the key did not previously exist and was inserted; otherwise, false.</returns>
 		public bool GetOrAdd(TKey key, TValue value, out TValue actualValue)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
 			if (level >= 0)
@@ -214,7 +214,7 @@ namespace Doxense.Collections.Generic
 
 		public bool ContainsKey(TKey key)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			return m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out _) >= 0;
 		}
@@ -234,7 +234,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>true if a match for <paramref name="equalKey"/> is found; otherwise, false.</returns>
 		public bool TryGetKey(TKey equalKey, out TKey actualKey)
 		{
-			Contract.NotNullAllowStructs(equalKey);
+			Contract.NotNull(equalKey);
 
 			int level = m_items.Find(new KeyValuePair<TKey, TValue>(equalKey, default!), out _, out var entry);
 			if (level < 0)
@@ -252,7 +252,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>true if a match for <paramref name="key"/> is found; otherwise, false.</returns>
 		public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
 			if (level < 0)
@@ -267,7 +267,7 @@ namespace Doxense.Collections.Generic
 		[Pure]
 		public TValue GetValue(TKey key)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
 			if (level < 0)
@@ -283,7 +283,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>true if a match for <paramref name="key"/> is found; otherwise, false.</returns>
 		public bool TryGetKeyValue(TKey key, out KeyValuePair<TKey, TValue> entry)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out entry);
 			return level >= 0;
@@ -295,7 +295,7 @@ namespace Doxense.Collections.Generic
 		/// <remarks>It is NOT allowed to remove keys while iterating on the dictionary at the same time!</remarks>
 		public bool Remove(TKey key)
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 
 			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out int offset, out _);
 

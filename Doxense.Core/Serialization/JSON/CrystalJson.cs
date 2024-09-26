@@ -1156,7 +1156,7 @@ namespace Doxense.Serialization.Json
 		internal static JsonValue ParseFromReader<TReader>(TReader source, CrystalJsonSettings? settings = null)
 			where TReader : struct, IJsonReader
 		{
-			Contract.NotNullAllowStructs(source);
+			Contract.NotNull(source);
 
 			var tokenizer = default(CrystalJsonTokenizer<TReader>);
 			try

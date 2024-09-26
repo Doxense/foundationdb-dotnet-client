@@ -849,7 +849,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(STuple<T1> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, tuple.Item1);
@@ -864,7 +864,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(ValueTuple<T1> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, tuple.Item1);
@@ -918,7 +918,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>(STuple<T1, T2> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(default, in tuple);
@@ -932,7 +932,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>((T1, T2) tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(default, in tuple);
@@ -985,7 +985,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>(STuple<T1, T2, T3> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(default, in tuple);
@@ -1047,7 +1047,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(default, in tuple);
@@ -1109,7 +1109,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(default, in tuple);
@@ -1171,7 +1171,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(default, in tuple);
@@ -1233,7 +1233,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(default, in tuple);
@@ -1346,7 +1346,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple tuple)
 			where TTuple : IVarTuple?
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, tuple);
@@ -1363,7 +1363,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToRange<TTuple>(ReadOnlySpan<byte> prefix, TTuple tuple)
 			where TTuple : IVarTuple?
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, tuple);
@@ -1378,7 +1378,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(Slice prefix, STuple<T1> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, tuple);
@@ -1393,7 +1393,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(ReadOnlySpan<byte> prefix, STuple<T1> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, tuple);
@@ -1408,7 +1408,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>(Slice prefix, STuple<T1, T2> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
@@ -1423,7 +1423,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>(ReadOnlySpan<byte> prefix, STuple<T1, T2> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);
@@ -1437,7 +1437,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>(Slice prefix, STuple<T1, T2, T3> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
@@ -1451,7 +1451,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);
@@ -1465,7 +1465,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(Slice prefix, STuple<T1, T2, T3, T4> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
@@ -1479,7 +1479,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);
@@ -1493,7 +1493,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>(Slice prefix, STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
@@ -1507,7 +1507,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);
@@ -1521,7 +1521,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
@@ -1535,7 +1535,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);
@@ -1549,7 +1549,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
@@ -1563,7 +1563,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.Pack(prefix, in tuple);

@@ -234,7 +234,7 @@ namespace Doxense.Serialization.Encoders
 
 		string IValueEncoder<T, string>.EncodeValue(T? value)
 		{
-			Contract.NotNullAllowStructs(value);
+			Contract.NotNull(value);
 			return CrystalJson.Serialize(value, this.Settings, this.Resolver);
 		}
 
@@ -246,7 +246,7 @@ namespace Doxense.Serialization.Encoders
 
 		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
 		{
-			Contract.NotNullAllowStructs(value);
+			Contract.NotNull(value);
 			return CrystalJson.ToSlice(value, this.Settings, this.Resolver);
 		}
 
@@ -257,7 +257,7 @@ namespace Doxense.Serialization.Encoders
 
 		JsonObject IValueEncoder<T, JsonObject>.EncodeValue(T? value)
 		{
-			Contract.NotNullAllowStructs(value);
+			Contract.NotNull(value);
 			return JsonObject.FromObject(value, this.Settings, this.Resolver);
 		}
 

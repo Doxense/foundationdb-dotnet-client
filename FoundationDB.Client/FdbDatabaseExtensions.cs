@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 			where TTuple : IVarTuple
 		{
 			Contract.NotNull(db);
-			Contract.NotNullAllowStructs(name);
+			Contract.NotNull(name);
 			if (name.Count == 0) throw new ArgumentException("Tenant name cannot be empty", nameof(name));
 			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 		public static IFdbTenant GetTenant<T1>(this IFdbDatabase db, ValueTuple<T1> name)
 		{
 			Contract.NotNull(db);
-			Contract.NotNullAllowStructs(name);
+			Contract.NotNull(name);
 			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 		public static IFdbTenant GetTenant<T1, T2>(this IFdbDatabase db, ValueTuple<T1, T2> name)
 		{
 			Contract.NotNull(db);
-			Contract.NotNullAllowStructs(name);
+			Contract.NotNull(name);
 			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
@@ -137,7 +137,7 @@ namespace FoundationDB.Client
 		public static IFdbTenant GetTenant<T1, T2, T3>(this IFdbDatabase db, ValueTuple<T1, T2, T3> name)
 		{
 			Contract.NotNull(db);
-			Contract.NotNullAllowStructs(name);
+			Contract.NotNull(name);
 			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
@@ -145,7 +145,7 @@ namespace FoundationDB.Client
 		public static IFdbTenant GetTenant<T1, T2, T3, T4>(this IFdbDatabase db, ValueTuple<T1, T2, T3, T4> name)
 		{
 			Contract.NotNull(db);
-			Contract.NotNullAllowStructs(name);
+			Contract.NotNull(name);
 			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
@@ -153,7 +153,7 @@ namespace FoundationDB.Client
 		public static IFdbTenant GetTenant<T1, T2, T3, T4, T5>(this IFdbDatabase db, ValueTuple<T1, T2, T3, T4, T5> name)
 		{
 			Contract.NotNull(db);
-			Contract.NotNullAllowStructs(name);
+			Contract.NotNull(name);
 			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 

@@ -1388,7 +1388,7 @@ namespace FoundationDB.Client
 			{
 				if (this.Database.Handler.GetMaxApiVersion() >= 700)
 				{ // but the installed client could support it
-					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selectred API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
+					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selected API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
 				}
 				else
 				{ // not supported by the local client
@@ -1433,7 +1433,7 @@ namespace FoundationDB.Client
 			{
 				if (this.Database.Handler.GetMaxApiVersion() >= 700)
 				{ // but the installed client could support it
-					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selectred API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
+					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selected API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
 				}
 				else
 				{ // not supported by the local client
@@ -1646,11 +1646,11 @@ namespace FoundationDB.Client
 		private void RestoreDefaultSettings()
 		{
 			// resetting the state of a transaction automatically clears the RetryLimit and Timeout settings
-			// => we need to set the again!
+			// => we need to set the settings again!
 			UseSettings(this.Database.Options);
 
 			// if we have used a random token for VersionStamps, we need to clear it (and generate a new one)
-			// => this ensure that if the error was due to a collision between the token and another part of the key,
+			// => this ensures that if the error was due to a collision between the token and another part of the key,
 			//    a transaction retry will hopefully use a different token that does not collide.
 			m_versionStampToken = 0;
 			m_versionStampCounter = 0;

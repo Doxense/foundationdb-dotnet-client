@@ -84,7 +84,7 @@ namespace Doxense.Serialization.Encoders
 
 		Slice IValueEncoder<T, Slice>.EncodeValue(T? value)
 		{
-			Contract.NotNullAllowStructs(value);
+			Contract.NotNull(value);
 			return JsonPack.Encode(JsonValue.FromValue<T>(value, this.Settings, this.Resolver), this.Settings);
 		}
 

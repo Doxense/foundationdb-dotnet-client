@@ -189,32 +189,26 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
 		/// <exception cref="ArgumentNullException">if <paramref name="value"/> is null</exception>
+		/// <remarks>
+		/// <para>Note that, even if <paramref name="value"/> is a Value Type, the JIT will optimize the method away, and no boxing should occur</para>
+		/// </remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNull(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] string? value,
+			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] object? value,
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null) throw FailArgumentNull(paramName!, message);
+			if (value is null) throw FailArgumentNull(paramName!, message);
 		}
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
-		/// <exception cref="ArgumentNullException">if <paramref name="value"/> is null</exception>
+		/// <remarks>
+		/// <para>This method allow structs (that can never be null)</para>
+		/// <para>OBSOLETE: please call <see cref="NotNull(object?,string?,string?)"/>.</para>
+		/// </remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void NotNull<TValue>(
-			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
-			string? message = null,
-			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
-		)
-			where TValue : class
-		{
-			if (value == null) throw FailArgumentNull(paramName!, message);
-		}
-
-		/// <summary>The specified instance must not be null (assert: value != null)</summary>
-		/// <remarks>This method allow structs (that can never be null)</remarks>
-		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use Contract.NotNull() instead.")]
 		public static void NotNullAllowStructs<TValue>(
 			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] TValue? value,
 			string? message = null,
@@ -253,6 +247,8 @@ namespace Doxense.Diagnostics.Contracts
 			string? message = null
 		)
 		{
+			//note: if T is a value type, this should be optimized away but the JIT
+
 			return value ?? throw FailArgumentNull(nameof(value), message);
 		}
 

@@ -255,7 +255,7 @@ namespace FoundationDB.Client
 			where TState : class
 			where TToken : notnull
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 			Contract.NotNull(newState);
 			lock (this)
 			{
@@ -280,7 +280,7 @@ namespace FoundationDB.Client
 			where TState : class
 			where TToken : notnull
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 			Contract.NotNull(newState);
 			lock (this)
 			{
@@ -313,7 +313,7 @@ namespace FoundationDB.Client
 			where TState : class
 			where TToken : notnull
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 			lock (this)
 			{
 				var container = this.LocalData;
@@ -337,7 +337,7 @@ namespace FoundationDB.Client
 			where TState : class
 			where TToken : notnull
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 			lock (this)
 			{
 				var container = this.LocalData;
@@ -365,7 +365,7 @@ namespace FoundationDB.Client
 			where TState : class
 			where TToken : notnull
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 			Contract.NotNull(newState);
 			lock (this)
 			{
@@ -404,7 +404,7 @@ namespace FoundationDB.Client
 			where TState : class
 			where TToken : notnull
 		{
-			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(key);
 			Contract.NotNull(factory);
 			lock (this)
 			{

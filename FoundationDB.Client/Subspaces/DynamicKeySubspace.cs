@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 		public Slice Pack<TTuple>(TTuple tuple)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNullAllowStructs(tuple);
+			Contract.NotNull(tuple);
 
 			var sw = this.OpenWriter();
 			this.KeyEncoder.PackKey(ref sw, tuple);
