@@ -46,7 +46,6 @@ namespace SnowBank.Testing
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
-	using NUnit.Framework.Internal;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 	/// <summary>Base class for simple unit tests. Provides a set of usefull services (logging, cancellation, async helpers, ...)</summary>
@@ -1197,7 +1196,6 @@ namespace SnowBank.Testing
 		{
 			if (node == null) { Log($"{label}: <null>"); return; }
 
-			//TODO: formatter proprement le XML!
 			if (label != null) Log($"{label}:");
 
 			var sb = new StringBuilder();
@@ -1250,7 +1248,7 @@ namespace SnowBank.Testing
 		{
 			if (typeof(Task).IsAssignableFrom(t)) return true;
 			if (t == typeof(ValueTask)) return true;
-			//TODO: ValueTask<...>
+			if (t is { IsGenericType: true, Name: "ValueTask`1", Namespace: "System.Threading.Tasks" }) return true;
 			return false;
 		}
 
