@@ -34,8 +34,12 @@ namespace Doxense.Linq
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
-	/// <summary>Small buffer that keeps a list of chunks that are larger and larger</summary>
+	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
+	/// <remarks>
+	/// <para>The final list of items will be available as a single contiguous <see cref="Span{T}"/></para>
+	/// <para>If the caller does not need to consume the items as a single span, <see cref="SegmentedValueBuffer{T}"/> may be faster</para>
+	/// </remarks>
 	[DebuggerDisplay("Count={Count}, Capacity{Buffer.Length}")]
 	[DebuggerTypeProxy(typeof(ValueBufferDebugView<>))]
 	[PublicAPI]
