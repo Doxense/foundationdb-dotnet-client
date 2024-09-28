@@ -78,7 +78,7 @@ namespace Doxense.Serialization.Json
 			// - "ref char ptr = ref s[0]" is a little bit faster than "fixed (char* ptr = s)", because it generates slightly less assembly code, but the difference is in the order of less than 1ns (but still measurable)
 
 			ref char ptr = ref Unsafe.AsRef(in text[0]);
-			ref int map = ref MemoryMarshal.GetReference(EscapingLookupTable);
+			ref int map = ref EscapingLookupTable[0];
 
 			// read by 8
 			int len = text.Length;
@@ -181,7 +181,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			ref char ptr = ref Unsafe.AsRef(in text[0]);
-			ref int map = ref MemoryMarshal.GetReference(EscapingLookupTable);
+			ref int map = ref EscapingLookupTable[0];
 
 			// read by 8
 			int len = text.Length;
@@ -241,7 +241,7 @@ namespace Doxense.Serialization.Json
 		public static int IndexOfFirstInvalidChar(ReadOnlySpan<char> s)
 		{
 			ref char start = ref Unsafe.AsRef(in s[0]);
-			ref int map = ref Unsafe.AsRef(in EscapingLookupTable[0]);
+			ref int map = ref EscapingLookupTable[0];
 			ref char ptr = ref start;
 			{
 				// read by 8
@@ -475,7 +475,7 @@ namespace Doxense.Serialization.Json
 
 		private static bool TryEncodeToSlow(Span<char> output, ReadOnlySpan<char> s, out int written)
 		{
-			ref int map = ref Unsafe.AsRef(in EscapingLookupTable[0]);
+			ref int map = ref EscapingLookupTable[0];
 			ref char start = ref output[0];
 			ref char ptr = ref start;
 			int remaining = output.Length;

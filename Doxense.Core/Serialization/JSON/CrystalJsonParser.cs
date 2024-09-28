@@ -80,14 +80,7 @@ namespace Doxense.Serialization.Json
 			return map;
 		}
 
-		internal static ReadOnlySpan<char> NullToken => "ull";
-
-		internal static ReadOnlySpan<char> TrueToken => "rue";
-
-		internal static ReadOnlySpan<char> FalseToken => "alse";
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static ReadOnlySpan<JsonTokenType> GetTokenMap() =>
+		internal static readonly JsonTokenType[] TokenMap =
 		[
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -607,7 +600,7 @@ namespace Doxense.Serialization.Json
 #endif
 			char first = reader.ReadNextToken();
 
-			var map = CrystalJsonParser.GetTokenMap();
+			var map = CrystalJsonParser.TokenMap;
 			if (first < map.Length)
 			{
 				switch (map[first])
@@ -622,17 +615,17 @@ namespace Doxense.Serialization.Json
 					}
 					case JsonTokenType.Null:
 					{ // null
-						reader.ReadExpectedKeyword(CrystalJsonParser.NullToken);
+						reader.ReadExpectedKeyword("ull");
 						return JsonNull.Null;
 					}
 					case JsonTokenType.True:
 					{ // true
-						reader.ReadExpectedKeyword(CrystalJsonParser.TrueToken);
+						reader.ReadExpectedKeyword("rue");
 						return JsonBoolean.True;
 					}
 					case JsonTokenType.False:
 					{ // false
-						reader.ReadExpectedKeyword(CrystalJsonParser.FalseToken);
+						reader.ReadExpectedKeyword("alse");
 						return JsonBoolean.False;
 					}
 					case JsonTokenType.String:
