@@ -42,8 +42,8 @@ namespace Doxense.Linq
 	/// <para>The final list of items will be available as a single contiguous <see cref="Span{T}"/></para>
 	/// <para>If the caller does not need to consume the items as a single span, <see cref="SegmentedValueBuffer{T}"/> may be faster</para>
 	/// </remarks>
-	[DebuggerDisplay("Count={Count}, Capacity{Current.Length}")]
-	[DebuggerTypeProxy(typeof(SegmentedValueBufferDebugView<>))]
+	[DebuggerDisplay("Count={Count}, Capacity{Capacity}, Depth={Depth}")]
+//	[DebuggerTypeProxy(typeof(SegmentedValueBufferDebugView<>))]
 	[PublicAPI]
 	public ref struct SegmentedValueBuffer<T> : IDisposable
 	{
@@ -136,18 +136,22 @@ namespace Doxense.Linq
 
 		#endregion
 
-		public int Count => checked(this.CountInCurrent + this.CountInOthers);
+		/// <summary>Returns the number of items that have been added to the buffer</summary>
+		public readonly int Count => checked(this.CountInCurrent + this.CountInOthers);
 
 		/// <summary>Returns the current capacity of the buffer</summary>
-		public int Capacity => checked(this.CountInOthers + this.Current.Length);
+		public readonly int Capacity => checked(this.CountInOthers + this.Current.Length);
 
+		/// <summary>Appends an item to the end of the buffer</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(T item)
 		{
-			var countInCurrent = CountInCurrent;
-			if (countInCurrent < this.Current.Length)
+			var current = this.Current;
+			var countInCurrent = this.CountInCurrent;
+			if (countInCurrent < current.Length)
 			{
-				this.Current[countInCurrent] = item;
+				current[countInCurrent] = item;
 				this.CountInCurrent = countInCurrent + 1;
 				return;
 			}
@@ -162,6 +166,78 @@ namespace Doxense.Linq
 
 			this.Current[0] = item;
 			this.CountInCurrent = 1;
+		}
+
+		/// <summary>Appends a range of items to the end of the buffer</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public void AddRange(scoped ReadOnlySpan<T> items)
+		{
+			while (items.Length > 0)
+			{
+				var countInCurrent = this.CountInCurrent;
+				var remaining = this.Current.Length - countInCurrent;
+
+				// is the current buffer large enough?
+				if (remaining >= items.Length)
+				{ // yes, fill it, and return
+
+					items.CopyTo(this.Current[countInCurrent..]);
+					this.CountInCurrent = countInCurrent + items.Length;
+					return;
+				}
+
+				// no, fill what we can and expand to a new segment
+				items[..remaining].CopyTo(this.Current[countInCurrent..]);
+				this.CountInCurrent += remaining;
+
+				items = items[remaining..];
+
+				Expand();
+			}
+		}
+
+		/// <summary>Appends an array of items to the end of the buffer</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public void AddRange(T[]? items)
+		{
+			if (items != null)
+			{
+				AddRange(new ReadOnlySpan<T>(items));
+			}
+		}
+
+		/// <summary>Appends a sequence of items to the end of the buffer</summary>
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		public void AddRange(IEnumerable<T>? items)
+		{
+			if (items is null)
+			{
+				return;
+			}
+
+			if (Buffer<T>.TryGetSpan(items, out var span))
+			{
+				AddRange(span);
+				return;
+			}
+
+			foreach (var item in items)
+			{
+				Add(item);
+			}
+		}
+
+		/// <summary>Clears the content of the buffer, so that it can be reused immediately</summary>
+		public void Clear()
+		{
+			if (this.Depth > 0)
+			{
+				ReleaseSegments(this.Depth);
+			}
+			this.CountInCurrent = 0;
+			this.CountInOthers = 0;
+			this.Depth = 0;
+			this.Current = this.Initial;
 		}
 
 		private void Expand()
@@ -193,72 +269,9 @@ namespace Doxense.Linq
 			this.CountInCurrent = 0;
 		}
 
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public void AddRange(scoped ReadOnlySpan<T> items)
-		{
-			while (items.Length > 0)
-			{
-				var countInCurrent = this.CountInCurrent;
-				var remaining = this.Current.Length - countInCurrent;
-
-				// is the current buffer large enough?
-				if (remaining >= items.Length)
-				{ // yes, fill it, and return
-
-					items.CopyTo(this.Current[countInCurrent..]);
-					this.CountInCurrent = countInCurrent + items.Length;
-					return;
-				}
-
-				// no, fill what we can and expand to a new segment
-				items[..remaining].CopyTo(this.Current[countInCurrent..]);
-				this.CountInCurrent += remaining;
-
-				items = items[remaining..];
-
-				Expand();
-			}
-		}
-
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public void AddRange(T[]? items)
-		{
-			if (items != null)
-			{
-				AddRange(new ReadOnlySpan<T>(items));
-			}
-		}
-
-		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public void AddRange(IEnumerable<T> items)
-		{
-			if (Buffer<T>.TryGetSpan(items, out var span))
-			{
-				AddRange(span);
-				return;
-			}
-
-			foreach (var item in items)
-			{
-				Add(item);
-			}
-		}
-
-		/// <summary>Clears the content of the buffer, so that it can be reused immediately</summary>
-		public void Clear()
-		{
-			if (this.Depth > 0)
-			{
-				ReleaseSegments(this.Depth);
-			}
-			this.CountInCurrent = 0;
-			this.CountInOthers = 0;
-			this.Depth = 0;
-			this.Current = this.Initial;
-		}
-
 		private void ReleaseSegments(int depth)
 		{
+			Contract.Debug.Requires(depth > 0);
 			Span<T[]> segments = this.Segments!;
 
 			// if T contains at least one ref type, we have to clear it before returning to the pool
@@ -267,32 +280,34 @@ namespace Doxense.Linq
 			if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 			{
 				// clear and release full segments
-				foreach (var segment in segments[..(depth - 1)])
+				if (depth > 1)
 				{
-					Array.Clear(segment);
-					this.Pool.Return(segment);
+					foreach (var segment in segments[..(depth - 1)])
+					{
+						Array.Clear(segment);
+						this.Pool.Return(segment);
+					}
 				}
 
 				// clear and release last segment (may not be full)
 				this.Current[..CountInCurrent].Clear();
-				this.Pool.Return(segments[depth]);
+				this.Pool.Return(segments[depth - 1]);
 			}
 			else
 			{
+				// return all segments, without clearing
 				foreach (var segment in segments[..depth])
 				{
 					this.Pool.Return(segment);
 				}
 			}
-
-			this.Depth = 0;
-			this.CountInOthers = 0;
-			this.Current = this.Initial;
 		}
 
-		public bool IsSingleSegment => this.Depth == 0;
+		/// <summary>Indicates if the buffer content does fit in a single consecutive span</summary>
+		public readonly bool IsSingleSegment => this.Depth == 0;
 
-		public bool TryGetSpan(out Span<T> span)
+		/// <summary>Returns the content of the buffer, if it fits in a single consecutive span</summary>
+		public readonly bool TryGetSpan(out Span<T> span)
 		{
 			if (this.Depth == 0)
 			{
@@ -307,7 +322,7 @@ namespace Doxense.Linq
 		/// <summary>Returns the content of the buffer as an array</summary>
 		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public T[] ToArray()
+		public readonly T[] ToArray()
 		{
 			if (this.Depth != 0)
 			{
@@ -319,7 +334,7 @@ namespace Doxense.Linq
 			return res;
 		}
 
-		private T[] ToArrayMultipleSegments()
+		private readonly T[] ToArrayMultipleSegments()
 		{
 			Contract.Debug.Requires(this.Depth > 0);
 
@@ -344,6 +359,12 @@ namespace Doxense.Linq
 			return res;
 		}
 
+		/// <summary>Returns the content of the buffer as an array, and clears it for immediate re-use</summary>
+		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <remarks>
+		/// <para>After this call, the buffer can be used again for the next batch of item</para>
+		/// <para>If the buffer is only used once, it is faster to call <see cref="ToArray()"/> and the <see cref="Dispose"/></para>
+		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public T[] ToArrayAndClear()
 		{
@@ -355,7 +376,7 @@ namespace Doxense.Linq
 		/// <summary>Returns the content of the buffer as a list</summary>
 		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<T> ToList()
+		public readonly List<T> ToList()
 		{
 			if (this.Depth != 0)
 			{
@@ -368,7 +389,7 @@ namespace Doxense.Linq
 			return res;
 		}
 
-		private List<T> ToListMultipleSegments()
+		private readonly List<T> ToListMultipleSegments()
 		{
 			Contract.Debug.Requires(this.Depth > 0);
 
@@ -388,6 +409,12 @@ namespace Doxense.Linq
 			return res;
 		}
 
+		/// <summary>Returns the content of the buffer as a list</summary>
+		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <remarks>
+		/// <para>After this call, the buffer can be used again for the next batch of item</para>
+		/// <para>If the buffer is only used once, it is faster to call <see cref="ToList()"/> and the <see cref="Dispose"/></para>
+		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public List<T> ToListAndClear()
 		{
@@ -398,7 +425,7 @@ namespace Doxense.Linq
 
 		/// <summary>Copies the content of the buffer into a destination span</summary>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public int CopyTo(Span<T> destination)
+		public readonly int CopyTo(Span<T> destination)
 		{
 			if (!TryCopyTo(destination, out int written))
 			{
@@ -409,7 +436,7 @@ namespace Doxense.Linq
 
 		/// <summary>Copies the content of the buffer into a destination span, if it is large enough</summary>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public bool TryCopyTo(Span<T> destination, out int written)
+		public readonly bool TryCopyTo(Span<T> destination, out int written)
 		{
 			if (this.Depth != 0)
 			{
@@ -426,7 +453,7 @@ namespace Doxense.Linq
 			return true;
 		}
 
-		private bool TryCopyToMultipleSegments(Span<T> destination, out int written)
+		private readonly bool TryCopyToMultipleSegments(Span<T> destination, out int written)
 		{
 			var span = destination;
 
@@ -461,7 +488,8 @@ namespace Doxense.Linq
 			return false;
 		}
 
-		public void CopyTo(IBufferWriter<T> writer)
+		/// <summary>Copies the content of the buffer into a destination <see cref="IBufferWriter{T}"/></summary>
+		public readonly void CopyTo(IBufferWriter<T> writer)
 		{
 			if (this.Depth != 0)
 			{
@@ -475,7 +503,7 @@ namespace Doxense.Linq
 			writer.Advance(count);
 		}
 
-		private void CopyToMultipleSegments(IBufferWriter<T> writer)
+		private readonly void CopyToMultipleSegments(IBufferWriter<T> writer)
 		{
 			Contract.Debug.Requires(this.Depth > 0);
 
@@ -503,6 +531,7 @@ namespace Doxense.Linq
 
 		#region IReadOnlyList<T>...
 
+		/// <summary>Returns a reference to the item at the given index</summary>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public ref T this[int index]
 		{
@@ -542,22 +571,25 @@ namespace Doxense.Linq
 		[UnscopedRef]
 		public Enumerator GetEnumerator()
 		{
-			var depth = this.Depth;
-			if (depth == 0)
+			switch (this.Depth)
 			{
-				return new(this.Initial.Slice(0, this.CountInCurrent), default, default);
-			}
-			else if (depth == 1)
-			{
-				return new(this.Initial, default, this.Current.Slice(0, this.CountInCurrent));
-			}
-			else
-			{
-				Span<T[]?> segments = this.Segments;
-				return new Enumerator(this.Initial, segments[..(depth - 1)]!, this.Current[..this.CountInCurrent]);
+				case 0:
+				{
+					return new(this.Initial.Slice(0, this.CountInCurrent), default, default);
+				}
+				case 1:
+				{
+					return new(this.Initial, default, this.Current.Slice(0, this.CountInCurrent));
+				}
+				default:
+				{
+					Span<T[]?> segments = this.Segments;
+					return new(this.Initial, segments[..(this.Depth - 1)]!, this.Current[..this.CountInCurrent]);
+				}
 			}
 		}
 
+		/// <summary>Enumerates the contents of a <see cref="SegmentedValueBuffer{T}"/></summary>
 		public ref struct Enumerator : IEnumerator<T>
 		{
 			private ReadOnlySpan<T> Segment;
@@ -639,21 +671,14 @@ namespace Doxense.Linq
 
 		#endregion
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
-			if (typeof(T) == typeof(byte))
-			{ // => base64
-
-				// we need to trick the compiler into casting Span<T> into Span<byte>!
-				var bytes = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference<T>(this.Current)), this.Count);
-
-				return Convert.ToBase64String(bytes);
-			}
-
-			return $"{nameof(ValueBuffer<T>)}<{typeof(T).Name}>[{this.Count}]";
+			return $"{nameof(SegmentedValueBuffer<T>)}<{typeof(T).Name}>[{this.Count}]";
 		}
 
-		/// <inheritdoc />
+		/// <summary>Release any rented buffer used by this instance</summary>
+		/// <remarks>It is <b>NOT</b> same to continue using this buffer after Dispose has been called at once!</remarks>
 		public void Dispose()
 		{
 			var depth = this.Depth;
@@ -661,11 +686,6 @@ namespace Doxense.Linq
 			{
 				ReleaseSegments(depth);
 			}
-
-			// note: we don't clear the initial buffer,
-			// because it's lifetime is the responsibility of the caller
-
-			this.CountInCurrent = 0;
 		}
 	}
 

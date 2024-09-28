@@ -98,18 +98,19 @@ namespace SnowBank.Testing
 
 		public void Dump()
 		{
-			SimpleTest.Log($"# ArrayPool<{typeof(T).GetFriendlyName()}>: {this.NotReturned:N0} pending");
+			var typeName = typeof(T).GetFriendlyName();
+			SimpleTest.Log($"# ArrayPool<{typeName}>: {this.NotReturned.Count:N0} pending");
 
-			SimpleTest.Log($"# > Rented: {this.Rented.Count:N0}");
+			SimpleTest.Log($"# - Rented: {this.Rented.Count:N0}");
 			foreach (var rent in this.Rented)
 			{
-				SimpleTest.Log($"#   - {rent.Token}, [{rent.Size:N0}]; {(this.NotReturned.ContainsKey(rent.Array) ? "PENDING" : "returned")}");
+				SimpleTest.Log($"#   > #{rent.Token}: {typeName}[{rent.Size:N0}] {(this.NotReturned.ContainsKey(rent.Array) ? "PENDING" : "returned")}");
 			}
 
-			SimpleTest.Log($"Returned: {this.Returned.Count:N0}");
+			SimpleTest.Log($"# - Returned: {this.Returned.Count:N0}");
 			foreach (var ret in this.Returned)
 			{
-				SimpleTest.Log($"#   - {ret.Token}, [{ret.Array.Length:N0}]");
+				SimpleTest.Log($"#   > #{ret.Token}: {typeName}[{ret.Array.Length:N0}]");
 			}
 		}
 

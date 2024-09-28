@@ -32,6 +32,7 @@ namespace Doxense.Linq.Tests
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
+	using Doxense.Mathematics.Statistics;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -57,7 +58,10 @@ namespace Doxense.Linq.Tests
 			buffer.AddRange([ 4, 5, 6 ]);
 			Assert.That(buffer.Count, Is.EqualTo(6));
 
-			buffer.AddRange(Enumerable.Range(7, 100 - 6));
+			buffer.AddRange((List<int>) [ 7, 8, 9, 10 ]);
+			Assert.That(buffer.Count, Is.EqualTo(10));
+
+			buffer.AddRange(Enumerable.Range(11, 100 - 10));
 			Assert.That(buffer.Count, Is.EqualTo(100));
 
 			Assert.That(buffer.ToArray(), Is.EqualTo(Enumerable.Range(1, 100).ToArray()));
@@ -193,57 +197,101 @@ namespace Doxense.Linq.Tests
 		{
 			var pool = HistoryRecordingArrayPool.Create<int>();
 
-			var initial = new int[6];
-			using var buffer = new SegmentedValueBuffer<int>(initial, pool);
+			var scratch = new SegmentedValueBuffer<int>.Scratch();
+			Span<int> initial = scratch;
+
+			using var buffer = new SegmentedValueBuffer<int>(scratch, pool);
 			Assert.That(buffer.Count, Is.EqualTo(0));
-			Assert.That(buffer.Capacity, Is.EqualTo(initial.Length));
+			Assert.That(buffer.Capacity, Is.EqualTo(8));
 
-			Log("Add(42)");
-			buffer.Add(42);
+			// add nothing
+			buffer.AddRange([ ]);
+			Assert.That(buffer.Count, Is.Zero);
+			buffer.AddRange(Array.Empty<int>());
+			Assert.That(buffer.Count, Is.Zero);
+			buffer.AddRange(Enumerable.Empty<int>());
+			Assert.That(buffer.Count, Is.Zero);
+			buffer.AddRange(default(int[]));
+			Assert.That(buffer.Count, Is.Zero);
+			buffer.AddRange(default(IEnumerable<int>));
+
+			// add single item
+			Log("Add([ 1 ])");
+			buffer.AddRange([ 1 ]);
 			Assert.That(buffer.Count, Is.EqualTo(1));
-			Assert.That(buffer.ToArray(), Is.EqualTo(((int[]) [ 42 ])));
-			Assert.That(buffer.Capacity, Is.EqualTo(initial.Length));
-			Assert.That(initial, Is.EqualTo((int[]) [ 42, 0, 0, 0, 0, 0 ]), "Should use the initial buffer");
-			Assert.That(pool.Rented, Is.Empty, "Should not use the pool");
-
-			// mutating the original buffer before the first resize should be observed
-			initial[0] = 1;
+			Assert.That(buffer.Capacity, Is.EqualTo(8));
+			Assert.That(initial.ToArray(), Is.EqualTo((int[]) [ 1, 0, 0, 0, 0, 0, 0, 0 ]));
 			Assert.That(buffer.ToArray(), Is.EqualTo(((int[]) [ 1 ])));
+			Assert.That(buffer.IsSingleSegment, Is.True);
+			Assert.That(buffer.TryGetSpan(out var span), Is.True);
+			Assert.That(span.ToArray(), Is.EqualTo(((int[]) [1])));
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.Zero, "Should not use the pool");
 
 			// add items that fit in the buffer
 			Log("AddRange([ 2, 3, 4 ])");
 			buffer.AddRange([ 2, 3, 4 ]);
 			Assert.That(buffer.Count, Is.EqualTo(4));
+			Assert.That(buffer.Capacity, Is.EqualTo(8));
+			Assert.That(initial.ToArray(), Is.EqualTo((int[]) [ 1, 2, 3, 4, 0, 0, 0, 0]));
 			Assert.That(buffer.ToArray(), Is.EqualTo(((int[]) [ 1, 2, 3, 4 ])));
-			Assert.That(buffer.Capacity, Is.EqualTo(initial.Length));
-			Assert.That(initial, Is.EqualTo((int[]) [ 1, 2, 3, 4, 0, 0 ]), "Should use the initial buffer");
+			Assert.That(buffer.IsSingleSegment, Is.True);
+			Assert.That(buffer.TryGetSpan(out span), Is.True);
+			Assert.That(span.ToArray(), Is.EqualTo(((int[]) [ 1, 2, 3, 4 ])));
 			pool.Dump();
-			Assert.That(pool.Rented, Is.Empty, "Should not use the pool");
+			Assert.That(pool.Rented, Has.Count.Zero, "Should not use the pool");
 
 			// too many items, should trigger a resize!
-			Log("AddRange([ 5, 6, 7, 8 ])");
-			buffer.AddRange([ 5, 6, 7, 8 ]);
-			Assert.That(buffer.Count, Is.EqualTo(8));
-			Assert.That(buffer.ToArray(), Is.EqualTo(((int[]) [ 1, 2, 3, 4, 5, 6, 7, 8 ])));
-			Assert.That(buffer.Capacity, Is.GreaterThanOrEqualTo(8));
-			Assert.That(initial, Is.EqualTo((int[]) [ 1, 2, 3, 4, 5, 6 ]), "Should have filled the initial buffer");
+			Log("AddRange([ 5, 6, 7, 8, 9 ])");
+			buffer.AddRange([ 5, 6, 7, 8, 9 ]);
+			Assert.That(buffer.Count, Is.EqualTo(9));
+			Assert.That(buffer.Capacity, Is.GreaterThanOrEqualTo(8 + 16));
+			Assert.That(initial.ToArray(), Is.EqualTo((int[]) [ 1, 2, 3, 4, 5, 6, 7, 8 ]));
+			Assert.That(buffer.ToArray(), Is.EqualTo(((int[]) [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ])));
+			Assert.That(buffer.IsSingleSegment, Is.False);
+			Assert.That(buffer.TryGetSpan(out span), Is.False);
 			pool.Dump();
 			Assert.That(pool.Rented, Has.Count.EqualTo(1), "Should have rented a buffer from the pool");
 			Assert.That(pool.Rented[0].Size, Is.EqualTo(16));
 
-			// mutating the original buffer _should_ change the buffer content
-			initial[0] = 42;
-			Assert.That(buffer[0], Is.EqualTo(42));
-			Assert.That(buffer.ToArray(), Is.EqualTo(((int[]) [ 42, 2, 3, 4, 5, 6, 7, 8 ])));
-
 			// should rent more pages
-			Log("AddRange([ 9 .. 100 ])");
-			buffer.AddRange(Enumerable.Range(7, 100 - 8));
+			Log("AddRange([ 10 .. 40 ])");
+			buffer.AddRange(Enumerable.Range(10, 40 - 9));
+			Assert.That(buffer.Count, Is.EqualTo(40));
+			Assert.That(buffer.Capacity, Is.EqualTo(8 + 16 + 32));
+			Assert.That(buffer.ToArray(), Is.EqualTo(Enumerable.Range(1, 40).ToArray()));
+			Assert.That(buffer.IsSingleSegment, Is.False);
+			Assert.That(buffer.TryGetSpan(out span), Is.False);
 			pool.Dump();
-			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented a 3 buffers from the pool");
+			Assert.That(pool.Rented, Has.Count.EqualTo(2), "Should have rented 2 buffers from the pool");
 			Assert.That(pool.Rented[0].Size, Is.EqualTo(16));
 			Assert.That(pool.Rented[1].Size, Is.EqualTo(32));
+
+			// should rent more pages
+			Log("AddRange([ 41 .. 100 ])");
+			buffer.AddRange(Enumerable.Range(41, 100 - 40));
+			Assert.That(buffer.Count, Is.EqualTo(100));
+			Assert.That(buffer.Capacity, Is.EqualTo(8 + 16 + 32 + 64));
+			Assert.That(buffer.ToArray(), Is.EqualTo(Enumerable.Range(1, 100).ToArray()));
+			Assert.That(buffer.IsSingleSegment, Is.False);
+			Assert.That(buffer.TryGetSpan(out span), Is.False);
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented 3 buffers from the pool");
 			Assert.That(pool.Rented[2].Size, Is.EqualTo(64));
+
+			// should rent more pages
+			Log("AddRange([ 101 .. 1000 ])");
+			buffer.AddRange(Enumerable.Range(101, 1000 - 100));
+			Assert.That(buffer.Count, Is.EqualTo(1000));
+			Assert.That(buffer.Capacity, Is.EqualTo(8 + 16 + 32 + 64 + 128 + 256 + 512));
+			Assert.That(buffer.ToArray(), Is.EqualTo(Enumerable.Range(1, 1000).ToArray()));
+			Assert.That(buffer.IsSingleSegment, Is.False);
+			Assert.That(buffer.TryGetSpan(out span), Is.False);
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.EqualTo(6), "Should have rented 6 buffers from the pool");
+			Assert.That(pool.Rented[3].Size, Is.EqualTo(128));
+			Assert.That(pool.Rented[4].Size, Is.EqualTo(256));
+			Assert.That(pool.Rented[5].Size, Is.EqualTo(512));
 		}
 
 		[Test]
@@ -252,25 +300,28 @@ namespace Doxense.Linq.Tests
 			// process a list of N random items by adding them to the buffer via random small chunks
 			
 			var randomItems= GetRandomNumbers(1000);
-			Dump(randomItems);
 
-			var scratch = new SegmentedValueBuffer<int>.Scratch();
-			using var buffer = new SegmentedValueBuffer<int>(scratch);
-
-			ReadOnlySpan<int> remaining = randomItems;
-			while (remaining.Length > 0)
+			for (int i = 0; i < 10; i++)
 			{
-				var chunk = NextRandomChunk(remaining, 17);
-				Assert.That(chunk.Length, Is.GreaterThan(0).And.LessThanOrEqualTo(remaining.Length));
+				Log($"Run {i}...");
+				var scratch = new SegmentedValueBuffer<int>.Scratch();
+				using var buffer = new SegmentedValueBuffer<int>(scratch);
 
-				buffer.AddRange(chunk);
+				ReadOnlySpan<int> remaining = randomItems;
+				while (remaining.Length > 0)
+				{
+					var chunk = NextRandomChunk(remaining, 39);
+					Assert.That(chunk.Length, Is.GreaterThan(0).And.LessThanOrEqualTo(remaining.Length));
 
-				remaining = remaining.Slice(chunk.Length);
+					buffer.AddRange(chunk);
+
+					remaining = remaining[chunk.Length..];
+				}
+
+				Assert.That(buffer.Count, Is.EqualTo(randomItems.Length));
+				Assert.That(buffer.Capacity, Is.GreaterThanOrEqualTo(randomItems.Length));
+				Assert.That(buffer.ToArray(), Is.EqualTo(randomItems));
 			}
-
-			Assert.That(buffer.Count, Is.EqualTo(randomItems.Length));
-			Assert.That(buffer.Capacity, Is.GreaterThanOrEqualTo(randomItems.Length));
-			Assert.That(buffer.ToArray(), Is.EqualTo(randomItems));
 		}
 
 		[Test]
@@ -291,21 +342,12 @@ namespace Doxense.Linq.Tests
 			Log("Dispose buffer...");
 			buffer.Dispose();
 
-			Assert.That(buffer.Count, Is.EqualTo(0));
-			Assert.That(buffer.Capacity, Is.EqualTo(8));
-
 			pool.Dump();
-			Assert.That(pool.NotReturned, Is.Empty);
-
-			Log("Reuse after dispose...");
-
-			buffer.AddRange([ 123, 456, 789 ]);
-			Assert.That(buffer.Count, Is.EqualTo(3));
-			Assert.That(buffer.ToArray(), Is.EqualTo((int[]) [ 123, 456, 789 ]));
+			Assert.That(pool.NotReturned, Has.Count.Zero);
 		}
 
 		[Test]
-		public void Test_Buffer_Clear()
+		public void Test_Buffer_Clear_Primitive()
 		{
 			var pool = HistoryRecordingArrayPool.Create<int>();
 
@@ -318,94 +360,134 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.ToArray(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
 			Assert.That(buffer.Count, Is.EqualTo(4));
 			Assert.That(buffer.Capacity, Is.EqualTo(8));
-			Assert.That(pool.Rented, Is.Empty, "Should not use the pool for small buffer");
-			Assert.That(pool.NotReturned, Is.Empty, "Should not use the pool for small buffer");
+			Assert.That(pool.Rented, Has.Count.Zero, "Should not use the pool for small buffer");
+			Assert.That(pool.NotReturned, Has.Count.Zero, "Should not use the pool for small buffer");
 
 			buffer.Clear();
 			Assert.That(buffer.ToArray(), Is.Empty);
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(8));
-			Assert.That(pool.Returned, Is.Empty, "Should not return anything");
+			Assert.That(pool.Returned, Has.Count.Zero, "Should not return anything");
 
 			// multiple segments
 			buffer.AddRange(Enumerable.Range(1, 100).ToArray());
-			Assert.That(buffer.ToArray(), Is.EqualTo(Enumerable.Range(1, 100).ToArray()));
-			Log("Rented:");
-			foreach (var rented in pool.Rented)
-			{
-				Log($"- {rented.Size}");
-			}
-			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented 3 buffers");
 			Assert.That(buffer.Count, Is.EqualTo(100));
 			Assert.That(buffer.Capacity, Is.EqualTo(120));
+			Assert.That(buffer.ToArray(), Is.EqualTo(Enumerable.Range(1, 100).ToArray()));
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented 3 buffers");
 
 			buffer.Clear();
-			Log("Returned:");
-			foreach (var rented in pool.Returned)
-			{
-				Log($"- {rented.Array.Length}: {rented.Snapshot}");
-			}
-			Assert.That(pool.Returned, Has.Count.EqualTo(3), "Should have returned all 3 buffers");
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(8));
+			pool.Dump();
+			Assert.That(pool.Returned, Has.Count.EqualTo(3), "Should have returned all 3 buffers");
+			// buffers should not be cleared when returned
+			foreach (var returned in pool.Returned)
+			{
+				Assert.That(returned.Snapshot, Is.Not.All.Zero, "Should not clear returned buffers if they don't contain ref types");
+				Assert.That(returned.Cleared, Is.False, "Buffer does the clearing itself");
+			}
+		}
+
+		[Test]
+		public void Test_Buffer_Clear_RefType()
+		{
+			var pool = HistoryRecordingArrayPool.Create<string>();
+
+			var scratch = new SegmentedValueBuffer<string>.Scratch();
+			using var buffer = new SegmentedValueBuffer<string>(scratch, pool);
+
+			// single segment
+
+			Log("Fill with items...");
+			buffer.AddRange(Enumerable.Range(1, 100).Select(x => x.ToString("D03")));
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented buffers");
+
+			Log("Clear...");
+			buffer.Clear();
+			Assert.That(buffer.Count, Is.EqualTo(0));
+			Assert.That(buffer.Capacity, Is.EqualTo(8));
+			Assert.That(buffer.ToArray(), Is.Empty);
+			Assert.That(buffer.Count, Is.EqualTo(0));
+			Assert.That(buffer.Capacity, Is.EqualTo(8));
+
+			pool.Dump();
+			Assert.That(pool.NotReturned, Has.Count.Zero, "Should returned everything");
+			Assert.That(pool.Returned, Has.Count.EqualTo(3), "Should have returned all 3 buffers");
+			// buffers should not be cleared when returned
+			foreach (var returned in pool.Returned)
+			{
+				Assert.That(returned.Snapshot, Is.All.Null, "Should have cleared returned buffers since they contain ref types");
+				Assert.That(returned.Cleared, Is.False, "Buffer does the clearing itself");
+			}
+		}
+
+		[Test]
+		public void Test_Buffer_Clear_MixedType()
+		{
+			var pool = HistoryRecordingArrayPool.Create<(int, string)>();
+
+			var scratch = new SegmentedValueBuffer<(int, string)>.Scratch();
+			using var buffer = new SegmentedValueBuffer<(int, string)>(scratch, pool);
+
+			// single segment
+
+			Log("Fill with items...");
+			buffer.AddRange(Enumerable.Range(1, 100).Select(x => (x, x.ToString("D03"))));
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented buffers");
+
+			Log("Clear...");
+			buffer.Clear();
+			Assert.That(buffer.Count, Is.EqualTo(0));
+			Assert.That(buffer.Capacity, Is.EqualTo(8));
+			Assert.That(buffer.ToArray(), Is.Empty);
+			Assert.That(buffer.Count, Is.EqualTo(0));
+			Assert.That(buffer.Capacity, Is.EqualTo(8));
+
+			pool.Dump();
+			Assert.That(pool.NotReturned, Has.Count.Zero, "Should returned everything");
+			Assert.That(pool.Returned, Has.Count.EqualTo(3), "Should have returned all 3 buffers");
+			// buffers should not be cleared when returned
+			foreach (var returned in pool.Returned)
+			{
+				Assert.That(returned.Snapshot, Is.All.EqualTo((0, default(string))), "Should have cleared returned buffers since they have field that points to a ref type");
+				Assert.That(returned.Cleared, Is.False, "Buffer does the clearing itself");
+			}
 		}
 
 		[Test]
 		public void Test_Buffer_Enumerator()
 		{
 			var scratch = new SegmentedValueBuffer<int>.Scratch();
-			using var buffer = new SegmentedValueBuffer<int>(scratch);
 
-			// empty
-			using (var it = buffer.GetEnumerator())
+			for (int i = 0; i <= 60; i++)
 			{
-				Assert.That(it.MoveNext(), Is.False);
-			}
+				using var buffer = new SegmentedValueBuffer<int>(scratch);
 
-			// one
-			buffer.Add(1);
-			Assert.That(buffer.Count, Is.EqualTo(1));
-			using (var it = buffer.GetEnumerator())
-			{
-				Assert.That(it.MoveNext(), Is.True);
-				Assert.That(it.Current, Is.EqualTo(1));
-				Assert.That(it.MoveNext(), Is.False);
-			}
+				buffer.AddRange(Enumerable.Range(1, i));
 
-			// initial full
-			buffer.AddRange([ 2, 3, 4, 5, 6, 7, 8 ]);
-			Assert.That(buffer.Count, Is.EqualTo(8));
-			using (var it = buffer.GetEnumerator())
-			{
-				for (int i = 0; i < 8; i++)
+				// manual iteration
+				using (var it = buffer.GetEnumerator())
 				{
-					Assert.That(it.MoveNext(), Is.True);
-					Assert.That(it.Current, Is.EqualTo(i + 1));
+					for (int j = 0; j < i; j++)
+					{
+						Assert.That(it.MoveNext(), Is.True, $"#{j}/{i}");
+						Assert.That(it.Current, Is.EqualTo(j + 1), $"#{j}/{i}");
+					}
+					Assert.That(it.MoveNext(), Is.False, $"last/{i}");
 				}
-				Assert.That(it.MoveNext(), Is.False);
-			}
 
-			// multiple segments
-			buffer.AddRange(Enumerable.Range(9, 100 - 8));
-			Assert.That(buffer.Count, Is.EqualTo(100));
-			using (var it = buffer.GetEnumerator())
-			{
-				for (int i = 0; i < 100; i++)
+				int count = 0;
+				foreach (var x in buffer)
 				{
-					Assert.That(it.MoveNext(), Is.True, $"#{i}");
-					Assert.That(it.Current, Is.EqualTo(i + 1), $"#{i}");
+					Assert.That(count, Is.LessThan(i));
+					++count;
+					Assert.That(x, Is.EqualTo(count));
 				}
-				Assert.That(it.MoveNext(), Is.False);
 			}
-
-			int count = 0;
-			foreach (var x in buffer)
-			{
-				Assert.That(count, Is.LessThan(100));
-				++count;
-				Assert.That(x, Is.EqualTo(count));
-			}
-
 		}
 
 		[Test]
