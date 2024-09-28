@@ -994,177 +994,166 @@ namespace Doxense.Serialization.Json
 			System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonObject(...) [BEGIN]");
 #endif
 
-			var props = reader.AcquireObjectBuffer();
-			Contract.Debug.Assert(props != null);
+			const int EXPECT_PROPERTY = 0; // Expect a string that contains a name of a new property, or '}' to close the object
+			const int EXPECT_VALUE = 1; // Expect a ':' followed by the value of the current property
+			const int EXPECT_NEXT = 2; // Expect a ',' to start next property, or '}' to close the object
+			int state = EXPECT_PROPERTY;
 
-			try
+			char c = '\0';
+			string? name = null;
+			var createReadOnly = reader.Settings.ReadOnly;
+
+#if NET8_0_OR_GREATER
+			var scratch = new SegmentedValueBuffer<KeyValuePair<string, JsonValue>>.Scratch();
+			using var props = new SegmentedValueBuffer<KeyValuePair<string, JsonValue>>(scratch);
+#else
+			using var props = new ValueBuffer<KeyValuePair<string, JsonValue>>(0);
+#endif
+
+			while (true)
 			{
-				int index = 0;
-
-				const int EXPECT_PROPERTY = 0; // Expect a string that contains a name of a new property, or '}' to close the object
-				const int EXPECT_VALUE = 1; // Expect a ':' followed by the value of the current property
-				const int EXPECT_NEXT = 2; // Expect a ',' to start next property, or '}' to close the object
-				int state = EXPECT_PROPERTY;
-
-				char c = '\0';
-				string? name = null;
-				var createReadOnly = reader.Settings.ReadOnly;
-
-				while (true)
+				char prev = c;
+				switch (c = reader.ReadNextToken())
 				{
-					char prev = c;
-					switch (c = reader.ReadNextToken())
-					{
-						case '"':
-						{ // start of property name
-							if (state != EXPECT_PROPERTY)
+					case '"':
+					{ // start of property name
+						if (state != EXPECT_PROPERTY)
+						{
+							if (state == EXPECT_VALUE)
 							{
-								if (state == EXPECT_VALUE)
-								{
-									throw reader.FailInvalidSyntax($"Missing colon after field #{index + 1} value");
-								}
-								else
-								{
-									throw reader.FailInvalidSyntax($"Missing comma after field #{index}");
-								}
-							}
-
-							name = ParseJsonName(ref reader);
-							// next should be ':'
-							state = EXPECT_VALUE;
-							break;
-						}
-						case '}':
-						{ // end of object
-							if (state != EXPECT_NEXT)
-							{
-								if (state == EXPECT_PROPERTY && prev == ',' && reader.Settings.DenyTrailingCommas)
-								{
-									throw reader.FailInvalidSyntax("Missing field before end of object");
-								}
-								else if (state == EXPECT_VALUE)
-								{
-									throw reader.FailInvalidSyntax($"Missing value for field #{index} at the end of object definition");
-								}
-							}
-#if DEBUG_JSON_PARSER
-							System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonObject(...) [END] read " + map.Count + " fields");
-#endif
-
-							if (index == 0)
-							{ // empty object
-								return createReadOnly ? JsonObject.EmptyReadOnly : JsonObject.Create();
-							}
-
-							// convert into the dictionary
-							var map = new Dictionary<string, JsonValue>(index, reader.FieldComparer);
-							foreach (var kv in props.AsSpan(0, index))
-							{
-								map[kv.Key] = kv.Value;
-#if DEBUG
-								if (createReadOnly && !kv.Value.IsReadOnly)
-								{
-									Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
-								}
-#endif
-							}
-							var obj = new JsonObject(map, createReadOnly);
-							if (obj.Count != index && !reader.Settings.OverwriteDuplicateFields)
-							{
-								var x = new HashSet<string>(reader.FieldComparer);
-								for (int i = 0; i < index; i++)
-								{
-									if (!x.Add(props[i].Key))
-									{
-										throw reader.FailInvalidSyntax($"Duplicate field '{props[i].Key}' in JSON Object.");
-									}
-								}
-							}
-							return obj;
-						}
-						case ':':
-						{ // start of property value
-							if (state != EXPECT_VALUE)
-							{
-								if (state == EXPECT_PROPERTY)
-								{
-									throw reader.FailInvalidSyntax($"Missing field name after field #{index}");
-								}
-								else if (name != null)
-								{
-									throw reader.FailInvalidSyntax($"Duplicate colon after field #{index} '{name}'");
-								}
-								else
-								{
-									throw reader.FailInvalidSyntax($"Unexpected semicolon after field #{index}");
-								}
-							}
-							// immédiatement après, on doit trouver une valeur
-
-							if (index == props.Length)
-							{
-								reader.ResizeObjectBuffer(ref props);
-							}
-
-							props[index] = new KeyValuePair<string, JsonValue>(name!, ParseJsonValue(ref reader)!);
-							++index;
-							// next should be ',' or '}'
-							state = EXPECT_NEXT;
-							name = null;
-							break;
-						}
-						case ',':
-						{ // next field
-							if (state != EXPECT_NEXT)
-							{
-								if (name != null)
-								{
-									throw reader.FailInvalidSyntax($"Unexpected comma after name of field #{index} ");
-								}
-								else
-								{
-									throw reader.FailInvalidSyntax($"Unexpected comma after field #{index}");
-								}
-							}
-
-							// next should be '"' or '}' if trailing commas are allowed
-							state = EXPECT_PROPERTY;
-							break;
-						}
-						case '/':
-						{ // comment
-							ParseComment(ref reader);
-							break;
-						}
-						default:
-						{ // object
-							if (c == CrystalJsonParser.EndOfStream)
-							{
-								throw reader.FailUnexpectedEndOfStream("Incomplete object definition");
-							}
-							else if (state == EXPECT_NEXT)
-							{
-								throw reader.FailInvalidSyntax($"Missing comma after field #{index}");
-							}
-							else if (state == EXPECT_VALUE)
-							{
-								throw reader.FailInvalidSyntax($"Missing semicolon after field '{name!}' value");
-							}
-							else if (c == ']')
-							{
-								throw reader.FailInvalidSyntax("Unexpected ']' encountered inside an object. Did you forget to close the object?");
+								throw reader.FailInvalidSyntax($"Missing colon after field #{props.Count + 1} value");
 							}
 							else
 							{
-								throw reader.FailInvalidSyntax($"Invalid character '{c}' after field #{index}");
+								throw reader.FailInvalidSyntax($"Missing comma after field #{props.Count}");
 							}
+						}
+
+						name = ParseJsonName(ref reader);
+						// next should be ':'
+						state = EXPECT_VALUE;
+						break;
+					}
+					case '}':
+					{ // end of object
+						if (state != EXPECT_NEXT)
+						{
+							if (state == EXPECT_PROPERTY && prev == ',' && reader.Settings.DenyTrailingCommas)
+							{
+								throw reader.FailInvalidSyntax("Missing field before end of object");
+							}
+							else if (state == EXPECT_VALUE)
+							{
+								throw reader.FailInvalidSyntax($"Missing value for field #{props.Count} at the end of object definition");
+							}
+						}
+#if DEBUG_JSON_PARSER
+						System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonObject(...) [END] read " + map.Count + " fields");
+#endif
+
+						if (props.Count == 0)
+						{ // empty object
+							return createReadOnly ? JsonObject.EmptyReadOnly : JsonObject.Create();
+						}
+
+						// convert into the dictionary
+						var map = new Dictionary<string, JsonValue>(props.Count, reader.FieldComparer);
+						foreach (var kv in props)
+						{
+							map[kv.Key] = kv.Value;
+#if DEBUG
+							if (createReadOnly && !kv.Value.IsReadOnly)
+							{
+								Contract.Fail("Parsed child was mutable even though the settings are set to Immutable!");
+							}
+#endif
+						}
+						var obj = new JsonObject(map, createReadOnly);
+						if (obj.Count != props.Count && !reader.Settings.OverwriteDuplicateFields)
+						{
+							var x = new HashSet<string>(reader.FieldComparer);
+							foreach (var kv in props)
+							{
+								if (!x.Add(kv.Key))
+								{
+									throw reader.FailInvalidSyntax($"Duplicate field '{kv.Key}' in JSON Object.");
+								}
+							}
+						}
+						return obj;
+					}
+					case ':':
+					{ // start of property value
+						if (state != EXPECT_VALUE)
+						{
+							if (state == EXPECT_PROPERTY)
+							{
+								throw reader.FailInvalidSyntax($"Missing field name after field #{props.Count + 1}");
+							}
+							else if (name != null)
+							{
+								throw reader.FailInvalidSyntax($"Duplicate colon after field #{props.Count + 1} '{name}'");
+							}
+							else
+							{
+								throw reader.FailInvalidSyntax($"Unexpected semicolon after field #{props.Count + 1}");
+							}
+						}
+						// immédiatement après, on doit trouver une valeur
+
+						props.Add(new (name!, ParseJsonValue(ref reader)!));
+						// next should be ',' or '}'
+						state = EXPECT_NEXT;
+						name = null;
+						break;
+					}
+					case ',':
+					{ // next field
+						if (state != EXPECT_NEXT)
+						{
+							if (name != null)
+							{
+								throw reader.FailInvalidSyntax($"Unexpected comma after name of field #{props.Count + 1} ");
+							}
+							else
+							{
+								throw reader.FailInvalidSyntax($"Unexpected comma after field #{props.Count + 1}");
+							}
+						}
+
+						// next should be '"' or '}' if trailing commas are allowed
+						state = EXPECT_PROPERTY;
+						break;
+					}
+					case '/':
+					{ // comment
+						ParseComment(ref reader);
+						break;
+					}
+					default:
+					{ // object
+						if (c == CrystalJsonParser.EndOfStream)
+						{
+							throw reader.FailUnexpectedEndOfStream("Incomplete object definition");
+						}
+						else if (state == EXPECT_NEXT)
+						{
+							throw reader.FailInvalidSyntax($"Missing comma after field #{props.Count + 1}");
+						}
+						else if (state == EXPECT_VALUE)
+						{
+							throw reader.FailInvalidSyntax($"Missing semicolon after field '{name!}' value");
+						}
+						else if (c == ']')
+						{
+							throw reader.FailInvalidSyntax("Unexpected ']' encountered inside an object. Did you forget to close the object?");
+						}
+						else
+						{
+							throw reader.FailInvalidSyntax($"Invalid character '{c}' after field #{props.Count + 1}");
 						}
 					}
 				}
-			}
-			finally
-			{
-				reader.ReleaseObjectBuffer(props);
 			}
 		}
 
@@ -1248,65 +1237,57 @@ namespace Doxense.Serialization.Json
 #endif
 			// on a déjà le ']'
 
-			var buffer = reader.AcquireArrayBuffer();
-			Contract.Debug.Requires(buffer != null);
-			try
-			{
-				int index = 0;
+			char c;
+			bool commaRequired = false;
+			bool valueRequired = false;
+			bool readOnly = reader.Settings.ReadOnly;
 
-				bool commaRequired = false;
-				bool valueRequired = false;
-				bool readOnly = reader.Settings.ReadOnly;
-
-				while (true)
-				{
-					char c = reader.ReadNextToken();
-					if (c == CrystalJsonParser.EndOfStream)
-					{
-						throw reader.FailUnexpectedEndOfStream("Array is incomplete");
-					}
-
-					if (c == ']')
-					{
-						if (valueRequired && reader.Settings.DenyTrailingCommas) throw reader.FailInvalidSyntax("Missing value before end of array");
-#if DEBUG_JSON_PARSER
-						System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonArray(...) [END] read " + list.Count + " values");
+#if NET8_0_OR_GREATER
+			var scratch = new SegmentedValueBuffer<JsonValue>.Scratch();
+			using var buffer = new SegmentedValueBuffer<JsonValue>(scratch);
+#else
+			using var buffer = new ValueBuffer<JsonValue>(0);
 #endif
-						if (index == 0)
-						{ // empty object
-							return readOnly ? JsonArray.EmptyReadOnly : JsonArray.Create();
-						}
 
-						var tmp = buffer.AsSpan(0, index).ToArray();
-						return new JsonArray(tmp, index, readOnly);
-					}
-
-					if (c == ',')
-					{
-						if (!commaRequired) throw reader.FailInvalidSyntax("Unexpected comma in array");
-						commaRequired = false;
-						valueRequired = true;
-					}
-					else
-					{
-						if (commaRequired) throw reader.FailInvalidSyntax("Missing comma between two items of an array");
-						reader.Push(c);
-
-						if (buffer.Length == index)
-						{
-							reader.ResizeArrayBuffer(ref buffer);
-						}
-
-						var val = ParseJsonValue(ref reader) ?? throw reader.FailUnexpectedEndOfStream("Array is incomplete");
-						buffer[index++] = val;
-						commaRequired = true;
-						valueRequired = false;
-					}
-				}
-			}
-			finally
+			while (true)
 			{
-				reader.ReleaseArrayBuffer(buffer);
+				c = reader.ReadNextToken();
+				if (c == CrystalJsonParser.EndOfStream)
+				{
+					throw reader.FailUnexpectedEndOfStream("Array is incomplete");
+				}
+
+				if (c == ']')
+				{
+					if (valueRequired && reader.Settings.DenyTrailingCommas) throw reader.FailInvalidSyntax("Missing value before end of array");
+#if DEBUG_JSON_PARSER
+					System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonArray(...) [END] read " + list.Count + " values");
+#endif
+					if (buffer.Count == 0)
+					{ // empty object
+						return readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+					}
+
+					var tmp = buffer.ToArray();
+					return new(tmp, tmp.Length, readOnly);
+				}
+
+				if (c == ',')
+				{
+					if (!commaRequired) throw reader.FailInvalidSyntax("Unexpected comma in array");
+					commaRequired = false;
+					valueRequired = true;
+				}
+				else
+				{
+					if (commaRequired) throw reader.FailInvalidSyntax("Missing comma between two items of an array");
+					reader.Push(c);
+
+					var val = ParseJsonValue(ref reader) ?? throw reader.FailUnexpectedEndOfStream("Array is incomplete");
+					buffer.Add(val);
+					commaRequired = true;
+					valueRequired = false;
+				}
 			}
 		}
 

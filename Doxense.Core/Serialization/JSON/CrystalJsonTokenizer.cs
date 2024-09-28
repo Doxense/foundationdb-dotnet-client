@@ -65,10 +65,6 @@ namespace Doxense.Serialization.Json
 
 		private StringTable? StringTable;
 
-		private JsonValue[]? ArrayBuffer;
-
-		private KeyValuePair<string, JsonValue>[]? ObjectBuffer;
-
 		public CrystalJsonTokenizer(TReader source, CrystalJsonSettings? settings)
 			: this()
 		{
@@ -86,16 +82,6 @@ namespace Doxense.Serialization.Json
 				this.StringTable.Dispose();
 				this.StringTable = null;
 			}
-			if (this.ArrayBuffer != null)
-			{
-				ArrayPool<JsonValue>.Shared.Return(this.ArrayBuffer);
-				this.ArrayBuffer = null;
-			}
-			if (this.ObjectBuffer != null)
-			{
-				ArrayPool<KeyValuePair<string, JsonValue>>.Shared.Return(this.ObjectBuffer);
-				this.ObjectBuffer = null;
-			}
 		}
 
 #if ENABLE_SOURCE_POSITION
@@ -108,74 +94,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Nombre de lignes lues dans la source (commence à 0!)</summary>
 		public long Line => m_line;
 #endif
-
-		internal JsonValue[] AcquireArrayBuffer()
-		{
-			var buffer = this.ArrayBuffer;
-			this.ArrayBuffer = null;
-			return buffer ?? ArrayPool<JsonValue>.Shared.Rent(16);
-		}
-
-		internal void ResizeArrayBuffer(ref JsonValue[] buffer)
-		{
-			int newSize = Math.Max(buffer.Length << 1, 16);
-			var tmp = ArrayPool<JsonValue>.Shared.Rent(newSize);
-			Array.Copy(buffer, 0, tmp, 0, buffer.Length);
-			ArrayPool<JsonValue>.Shared.Return(buffer, clearArray: true);
-			buffer = tmp;
-		}
-
-		internal void ReleaseArrayBuffer(JsonValue[] buffer)
-		{
-			var prev = this.ArrayBuffer;
-			if (prev == null)
-			{ // keep it
-				this.ArrayBuffer = buffer;
-			}
-			else if (prev.Length < buffer.Length)
-			{ // discard previous
-				ArrayPool<JsonValue>.Shared.Return(prev, clearArray: true);
-				this.ArrayBuffer = buffer;
-			}
-			else
-			{ // discard current
-				ArrayPool<JsonValue>.Shared.Return(buffer, clearArray: true);
-			}
-		}
-
-		internal KeyValuePair<string, JsonValue>[] AcquireObjectBuffer()
-		{
-			var buffer = this.ObjectBuffer;
-			this.ObjectBuffer = null;
-			return buffer ?? ArrayPool<KeyValuePair<string, JsonValue>>.Shared.Rent(16);
-		}
-
-		internal void ResizeObjectBuffer(ref KeyValuePair<string, JsonValue>[] buffer)
-		{
-			int newSize = Math.Max(buffer.Length << 1, 8);
-			var tmp = ArrayPool<KeyValuePair<string, JsonValue>>.Shared.Rent(newSize);
-			Array.Copy(buffer, 0, tmp, 0, buffer.Length);
-			ArrayPool<KeyValuePair<string, JsonValue>>.Shared.Return(buffer, clearArray: true);
-			buffer = tmp;
-		}
-
-		internal void ReleaseObjectBuffer(KeyValuePair<string, JsonValue>[] buffer)
-		{
-			var prev = this.ObjectBuffer;
-			if (prev == null)
-			{ // keep it
-				this.ObjectBuffer = buffer;
-			}
-			else if (prev.Length < buffer.Length)
-			{ // discard previous
-				ArrayPool<KeyValuePair<string, JsonValue>>.Shared.Return(prev, clearArray: true);
-				this.ObjectBuffer = buffer;
-			}
-			else
-			{ // discard current
-				ArrayPool<KeyValuePair<string, JsonValue>>.Shared.Return(buffer, clearArray: true);
-			}
-		}
 
 		/// <summary>Lit le prochain caractère significatif, qui ne soit pas un espace</summary>
 		/// <returns>Prochain caractère, ou EndOfStream si fini</returns>
