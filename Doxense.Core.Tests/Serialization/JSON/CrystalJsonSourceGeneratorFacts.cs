@@ -395,72 +395,85 @@ namespace Doxense.Serialization.Json.Tests
 
 			Log($"JSON: {json.Length:N0} chars");
 
-			//{
-			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, stjOps), 6, 100_000);
-			//	Log($"* SERIALIZE TEXT STJ_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), 6, 100_000);
-			//	Log($"* SERIALIZE TEXT STJ_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user), 6, 100_000);
-			//	Log($"* SERIALIZE TEXT CRY_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser), 6, 100_000);
-			//	Log($"* SERIALIZE TEXT CRY_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user), 6, 100_000);
-			//	Log($"* SERIALIZE UTF8 CRY_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser), 6, 100_000);
-			//	Log($"* SERIALIZE UTF8 CRY_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() =>
-			//	{
-			//		using var res = CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser, ArrayPool<byte>.Shared);
-			//		// use the JSON here to do something!
-			//	}, 6, 100_000);
-			//	Log($"* SERIALIZE UTF8 POOLED: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
+#if DEBUG
+			const int RUNS = 25;
+			const int ITERATIONS = 1_000;
+#else
+			const int RUNS = 50;
+			const int ITERATIONS = 10_000;
+#endif
 
-			//{
-			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps), 6, 100_000);
-			//	Log($"* DESR STJ_DYN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), 6, 100_000);
-			//	Log($"* DESR STJ_GEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => CrystalJson.Deserialize<MyAwesomeUser>(json), 6, 100_000);
-			//	Log($"* DESR RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(JsonValue.Parse(json)), 6, 100_000);
-			//	Log($"* DESR CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-
-			//{
-			//	var report = RobustBenchmark.Run(() => parsed.As<MyAwesomeUser>(), 6, 100_000);
-			//	Log($"* AS<> RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-			//{
-			//	var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(parsed), 6, 100_000);
-			//	Log($"* AS<> CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
-
-			//{
-			//	var report = RobustBenchmark.Run(() => JsonValue.FromValue<MyAwesomeUser>(user), 6, 100_000);
-			//	Log($"* PACK RUNTIME: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
-			//}
+			static void Report(string label, RobustBenchmark.Report<long> report)
 			{
-				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonPack(user), 50, 100_000);
-				Log($"* PACK CODEGEN: {report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos), {report.GC0 / report.Runs!.Count:N1} GC0");
+				Log($"* {label,-23}: {report.IterationsPerRun,7:N0} in {report.BestDuration.TotalMilliseconds,8:F1} ms at {report.BestIterationsPerSecond,10:N0} op/s ({report.BestIterationsNanos,9:N0} nanos), {(report.GcAllocatedOnThread / (report.NumberOfRuns * report.IterationsPerRun)),9:N0} allocated");
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, stjOps), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT STJ_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT STJ_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT CRY_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT CRY_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user), RUNS, ITERATIONS);
+				Report("SERIALIZE UTF8 CRY_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("SERIALIZE UTF8 CRY_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() =>
+				{
+					using var res = CrystalJson.ToSlice(user, GeneratedSerializers.MyAwesomeUser, ArrayPool<byte>.Shared);
+					// use the JSON here to do something!
+				}, RUNS, ITERATIONS);
+				Report("SERIALIZE UTF8 POOLED", report);
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps), RUNS, ITERATIONS);
+				Report("DESERIALIZE STJ_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("DESERIALIZE STJ_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.Deserialize<MyAwesomeUser>(json), RUNS, ITERATIONS);
+				Report("DESERIALIZE RUNTIME", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(JsonValue.Parse(json)), RUNS, ITERATIONS);
+				Report("DESERIALIZE CODEGEN", report);
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => parsed.As<MyAwesomeUser>(), RUNS, ITERATIONS);
+				Report("AS<T> RUNTIME", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(parsed), RUNS, ITERATIONS);
+				Report("AS<T> CODEGEN", report);
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => JsonValue.FromValue<MyAwesomeUser>(user), RUNS, ITERATIONS);
+				Report("PACK RUNTIME", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonPack(user), RUNS, ITERATIONS);
+				Report("PACK CODEGEN", report);
 			}
 
 		}

@@ -28,6 +28,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System;
 	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -253,6 +254,13 @@ namespace Doxense.Serialization.Json
 		{
 			return m_output == null
 				? m_buffer.TryCopyTo(buffer, out written, clear: true)
+				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
+		}
+
+		public int CopyTo(StringBuilder buffer)
+		{
+			return m_output == null
+				? m_buffer.CopyTo(buffer, clear: true)
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
@@ -2865,6 +2873,50 @@ namespace Doxense.Serialization.Json
 		}
 
 		public void WriteField(in JsonEncodedPropertyName name, DateTime? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(in name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(in name);
+			}
+		}
+
+		public void WriteField(string name, DateTimeOffset value)
+		{
+			if (value != DateTimeOffset.MinValue || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(in JsonEncodedPropertyName name, DateTimeOffset value)
+		{
+			if (value != DateTimeOffset.MinValue || !m_discardDefaults)
+			{
+				WriteName(in name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, DateTimeOffset? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(in JsonEncodedPropertyName name, DateTimeOffset? value)
 		{
 			if (value.HasValue)
 			{
