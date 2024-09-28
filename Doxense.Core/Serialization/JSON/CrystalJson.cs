@@ -313,12 +313,21 @@ namespace Doxense.Serialization.Json
 			// grab a new buffer if needed
 			buffer ??= CreateBufferFromSettings(settings);
 
-			//REVIEW: use an ObjectPool for FastStringWriter and CrystalJsonWriter?
-
-			using (var writer = new CrystalJsonWriter(new FastStringWriter(buffer), 0, settings, resolver))
+			var writer = WriterPool.Allocate();
+			try
 			{
+				writer.Initialize(0, settings, resolver);
+
 				CrystalJsonVisitor.VisitValue(value, typeof(object), writer);
+
+				writer.CopyTo(buffer);
 			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+
 			return buffer;
 		}
 

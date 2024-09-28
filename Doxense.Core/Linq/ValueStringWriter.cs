@@ -399,6 +399,19 @@ namespace Doxense.Linq
 			return true;
 		}
 
+		/// <summary>Copies the content of the buffer into a destination span</summary>
+		[CollectionAccess(CollectionAccessType.Read)]
+		public int CopyTo(StringBuilder destination, bool clear = false)
+		{
+			destination.Append(this.Span);
+			var count = this.Count;
+			if (clear)
+			{
+				Clear(release: true);
+			}
+			return count;
+		}
+
 		public void CopyTo(IBufferWriter<byte> destination, bool clear = false)
 		{
 			var data = this.Span;

@@ -53,7 +53,7 @@ namespace Doxense.Serialization.Json.Tests
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Category("Benchmark")]
-	[Parallelizable(ParallelScope.All)]
+	[Parallelizable(ParallelScope.None)]
 	public class CrystalJsonBenchmarks : SimpleTest
 	{
 
@@ -77,22 +77,22 @@ namespace Doxense.Serialization.Json.Tests
 			Thread.CurrentThread.Priority = ThreadPriority.Highest;
 
 			// basic types
-			ComparativeBenchmark(0, 10000);
-			ComparativeBenchmark(123, 10000);
-			ComparativeBenchmark(long.MaxValue, 10000);
-			ComparativeBenchmark(Math.PI, 10000);
-			ComparativeBenchmark("short string", 10000);
-			ComparativeBenchmark("really long string that does not contains a double quote, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!", 10000);
-			ComparativeBenchmark("really long string that does indeed contain the \" charac, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!", 10000);
-			ComparativeBenchmark(DateTime.Now, 10000);
-			ComparativeBenchmark(DateTime.UtcNow, 10000);
-			ComparativeBenchmark(DateTimeOffset.Now, 10000);
-			ComparativeBenchmark(DateTimeOffset.UtcNow, 10000);
-			ComparativeBenchmark(Guid.NewGuid(), 10000);
+			ComparativeBenchmark(0);
+			ComparativeBenchmark(123);
+			ComparativeBenchmark(long.MaxValue);
+			ComparativeBenchmark(Math.PI);
+			ComparativeBenchmark("short string");
+			ComparativeBenchmark("really long string that does not contains a double quote, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!");
+			ComparativeBenchmark("really long string that does indeed contain the \" charac, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!");
+			ComparativeBenchmark(DateTime.Now);
+			ComparativeBenchmark(DateTime.UtcNow);
+			ComparativeBenchmark(DateTimeOffset.Now);
+			ComparativeBenchmark(DateTimeOffset.UtcNow);
+			ComparativeBenchmark(Guid.NewGuid());
 
 			// simple class / structs
-			ComparativeBenchmark(new DummyJsonStruct(), 1000);
-			ComparativeBenchmark(new DummyJsonClass(), 1000);
+			ComparativeBenchmark(new DummyJsonStruct(), 10_000);
+			ComparativeBenchmark(new DummyJsonClass(), 10_000);
 			ComparativeBenchmark(new DummyJsonClass()
 			{
 				Name = "James Bond",
@@ -103,7 +103,7 @@ namespace Doxense.Serialization.Json.Tests
 				Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
 				Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
 				State = DummyJsonEnum.Bar,
-			}, 1000);
+			}, 10_000);
 
 			ComparativeBenchmark(new[] {
 				"Sheldon Cooper by Jim Parsons",
@@ -111,7 +111,7 @@ namespace Doxense.Serialization.Json.Tests
 				"Penny by Kaley Cuoco",
 				"Howard Wolowitz by Simon Helberg",
 				"Raj Koothrappali by Kunal Nayyar",
-			}, 1000);
+			}, 10_000);
 
 			ComparativeBenchmark(new[] { 1, 2, 3, 4, 42, 666, 2403, 999999999 }, 1000);
 			ComparativeBenchmark(new[] {
@@ -120,7 +120,7 @@ namespace Doxense.Serialization.Json.Tests
 				new { Character="Penny", Actor="Kaley Cuoco", Female=true },
 				new { Character="Howard Wolowitz", Actor="Simon Helberg", Female=false },
 				new { Character="Raj Koothrappali", Actor="Kunal Nayyar", Female=false },
-			}, 1000);
+			}, 10_000);
 
 			// Objet composite (worst case ?)
 			ComparativeBenchmark(new
@@ -139,17 +139,17 @@ namespace Doxense.Serialization.Json.Tests
 				ScoreIMDB = 8.4, // (26/10/2010)
 				Producer = "Chuck Lorre Productions",
 				PilotAirDate = new DateTime(2007, 9, 24, 0, 0, 0, DateTimeKind.Utc), // plus simple si UTC
-			}, 1000);
+			}, 10_000);
 		}
 
-		private static void ComparativeBenchmark<T>(T? data, int iterations, ICrystalJsonTypeResolver? resolver = null)
+		private static void ComparativeBenchmark<T>(T? data, int iterations = 100_000, int runs = 50)
 		{
 			Log();
 			Log("### Comparative Benchmark: " + (data == null ? "<null>" : (data.GetType().GetFriendlyName())));
 			// warmup!
 			var sb = new StringBuilder(1024);
 			var settings = CrystalJsonSettings.JsonCompact;
-			_ = CrystalJson.Serialize(data, sb, settings, resolver);
+			_ = CrystalJson.Serialize(data, sb, settings);
 			string jsonText = sb.ToString();
 			Log("CJS # [" + jsonText.Length + "] " + jsonText);
 			object? jsonValue = CrystalJson.Deserialize<T?>(jsonText, default(T));
@@ -178,15 +178,15 @@ namespace Doxense.Serialization.Json.Tests
 			// Benchmarking!
 
 			var report = RobustBenchmark.Run(
-				(data, settings, resolver),
+				(data, settings),
 				static (g) => new StringBuilder(1024),
 				static (g, buffer, _) =>
 				{
 					buffer.Clear();
-					return CrystalJson.Serialize(g.data, buffer, g.settings, g.resolver);
+					return CrystalJson.Serialize(g.data, buffer, g.settings);
 				},
 				static (g, buffer) => buffer.Length,
-				20,
+				runs,
 				iterations
 			);
 			double crystalOps = report.BestIterationsPerSecond;
@@ -196,7 +196,7 @@ namespace Doxense.Serialization.Json.Tests
 				jsonText,
 				(text) => CrystalJson.Deserialize(text, default(T)),
 				(text) => text.Length,
-				20,
+				runs,
 				iterations
 			);
 			double crystalOps2 = report.BestIterationsPerSecond;
@@ -214,7 +214,7 @@ namespace Doxense.Serialization.Json.Tests
 						njs.Serialize(new StringWriter(buffer), data);
 					},
 					(buffer) => buffer.Length,
-					20,
+					runs,
 					iterations
 				);
 				double newtonOps = report.BestIterationsPerSecond;
@@ -235,7 +235,7 @@ namespace Doxense.Serialization.Json.Tests
 					njsonText ?? "",
 					(text) => njs.Deserialize<T>(new NJ.JsonTextReader(new StringReader(text))),
 					(text) => text?.Length ?? 0,
-					20,
+					runs,
 					iterations
 				);
 				double newtonOps = report.BestIterationsPerSecond;
@@ -268,11 +268,11 @@ namespace Doxense.Serialization.Json.Tests
 		// pour rester comparable, j'utilise aussi des public fields en C# ce qui n'est pas forcément représentatif...
 
 #if DEBUG
-		public const int BENCH_RUNS = 20; // (max 60 a cause du Pierce Criterion)
+		public const int BENCH_RUNS = 25; // (max 60 a cause du Pierce Criterion)
 		public const int BENCH_ITERS = 1_000;
 #else
-		public const int BENCH_RUNS = 40; // (max 60 a cause du Pierce Criterion)
-		public const int BENCH_ITERS = 2_000;
+		public const int BENCH_RUNS = 50; // (max 60 a cause du Pierce Criterion)
+		public const int BENCH_ITERS = 10_000;
 #endif
 
 		public void Bench_Everything()
@@ -537,10 +537,6 @@ namespace Doxense.Serialization.Json.Tests
 			GC.WaitForPendingFinalizers();
 			GC.Collect();
 
-			long gen0 = GC.CollectionCount(0);
-			long gen1 = GC.CollectionCount(1);
-			long gen2 = GC.CollectionCount(2);
-
 			var histo = measure ? new RobustHistogram() : null;
 
 			var report = RobustBenchmark.Run(
@@ -552,10 +548,7 @@ namespace Doxense.Serialization.Json.Tests
 				histo
 			);
 
-			gen0 = GC.CollectionCount(0) - gen0;
-			gen1 = GC.CollectionCount(1) - gen1;
-			gen2 = GC.CollectionCount(2) - gen2;
-			Log($"{name} = {report.BestIterationsNanos:N0} nanos [{report.MedianIterationsNanos:N0}] (~ {report.BestIterationsPerSecond:N0} ips [{report.MedianIterationsPerSecond:N0}], gen0={gen0}, gen1={gen1}, gen2={gen2})");
+			Log($"{name} = {report.BestIterationsNanos:N0} nanos [{report.MedianIterationsNanos:N0}] (~ {report.BestIterationsPerSecond:N0} ips [{report.MedianIterationsPerSecond:N0}], allocated {report.GcAllocatedOnThread:N0} bytes, GC={report.GC0:N0}/{report.GC0:N0}/{report.GC0:N0})");
 			if (histo != null)
 			{
 				Log(histo.GetReport(true));
@@ -582,14 +575,14 @@ namespace Doxense.Serialization.Json.Tests
 		{
 #if DEBUG
 			// Build TeamCity
-			const int RUNS = 15;
+			const int RUNS = 30;
 			const int ITER_FAST = 500;
 			const int ITER_NORMAL = 250;
 			const int ITER_MEDIUM = 100;
 			const int ITER_SLOW = 50;
 #else
 			// Benchmarks
-			const int RUNS = 30;
+			const int RUNS = 60;
 			const int ITER_FAST = 1000;
 			const int ITER_NORMAL = 500;
 			const int ITER_MEDIUM = 250;
@@ -664,7 +657,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			Log(String.Format(CultureInfo.InvariantCulture,
-				" {0,-22} {19,5} {1,7:N0} | {2,8:N0} ({3,7:N0} \u00B1{11,7:N1}) {15} | {4,8:N0} ({5,7:N0} \u00B1{12,7:N1}) {16} | {6,8:N0} ({7,7:N0} \u00B1{13,7:N1}) {17} | {8,8:N0} ({9,7:N0} \u00B1{14,7:N1}) {18} | {10}",
+				" {0,-22} {19,5} {1,7:N0} | {2,8:N0} ({3,7:N0} \u00B1{11,7:N1}) {15,10} | {4,8:N0} ({5,7:N0} \u00B1{12,7:N1}) {16,10} | {6,8:N0} ({7,7:N0} \u00B1{13,7:N1}) {17,10} | {8,8:N0} ({9,7:N0} \u00B1{14,7:N1}) {18,10} | {10}",
 				name,
 				jsonText.Length,
 				serReport.BestIterationsNanos,
@@ -680,10 +673,10 @@ namespace Doxense.Serialization.Json.Tests
 				parseReport.StdDevIterationNanos,
 				deserReport.StdDevIterationNanos,
 				domReport.StdDevIterationNanos,
-				string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", serReport.GC0, serReport.GC1, serReport.GC2),
-				string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", parseReport.GC0, parseReport.GC1, parseReport.GC2),
-				string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", deserReport.GC0, deserReport.GC1, deserReport.GC2),
-				string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", domReport.GC0, domReport.GC1, domReport.GC2),
+				serReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", serReport.GC0, serReport.GC1, serReport.GC2),
+				parseReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", parseReport.GC0, parseReport.GC1, parseReport.GC2),
+				deserReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", deserReport.GC0, deserReport.GC1, deserReport.GC2),
+				domReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", domReport.GC0, domReport.GC1, domReport.GC2),
 				iterationsPerRun
 			));
 			//Log(serReport.Histogram.GetReport(true));
@@ -699,7 +692,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Category("LongRunning")]
 		public void Test_NG_Bench()
 		{
-			Log(String.Format(CultureInfo.InvariantCulture, "{0,-30} {1,6} | {2,41} | {3,41} | {4,41} | {5,41} | {6}", "Model Type", "Size", "Ser<T> (nanos)", "Parse (nanos)", "Deser<T> (nanos)", "Domify (nanos)", "JSON Text")); //RobustHistogram.GetDistributionScale(RobustHistogram.HorizontalShade, 1, 10000)));
+			Log("Model Type                       Size | Ser<T>   (nanos)           (allocated) | Parse    (nanos)           (allocated) | Deser<T> (nanos)           (allocated) | Domify   (nanos)           (allocated) | JSON Text");
 
 			var rnd = new Random(24031974);
 
