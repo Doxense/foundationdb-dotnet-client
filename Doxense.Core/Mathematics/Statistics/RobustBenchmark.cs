@@ -95,6 +95,8 @@ namespace Doxense.Mathematics.Statistics
 
 			// ReSharper disable InconsistentNaming
 
+			public long GcAllocatedOnThread { get; set; }
+
 			/// <summary>Number of gen0 collection per 1 million iterations</summary>
 			public double GC0 { get; set; }
 
@@ -117,10 +119,10 @@ namespace Doxense.Mathematics.Statistics
 		{
 
 			/// <summary>Conversion ratio from timestamp ticks to TimeSpan ticks</summary>
-			private static readonly double TicksFrequency = (double)TimeSpan.TicksPerSecond / Stopwatch.Frequency;
+			private static readonly double TicksFrequency = (double) TimeSpan.TicksPerSecond / Stopwatch.Frequency;
 
 			/// <summary>Minimum number of TimeSpan ticks that can accurately be measured</summary>
-			public static readonly long EpsilonDuration = (long)TicksFrequency;
+			public static readonly long EpsilonDuration = (long) TicksFrequency;
 
 			public long StartTimeStamp;
 
@@ -266,18 +268,25 @@ namespace Doxense.Mathematics.Statistics
 			clock.Restart();
 
 			TimeSpan bestRunTotalTime = TimeSpan.MaxValue;
-			var totalTimePerRun = new RobustStopWatch();
-			var iterTimePerRun = new RobustStopWatch();
-			var sw = new RobustStopWatch();
+			var totalTimePerRun = new Stopwatch();
+			var iterTimePerRun = new Stopwatch();
 
 			int totalGc0 = 0;
 			int totalGc1 = 0;
 			int totalGc2 = 0;
 
+			long totalAllocatedOnThread = 0;
+
+#if !NET8_0_OR_GREATER
+			var sw = new Stopwatch();
+#endif
+
+			var swOverhead = new Stopwatch();
+
 			// note: le premier run est toujours ignoré !
 			for (int k = -1; k < runs; k++)
 			{
-				var swH = new RobustStopWatch();
+				swOverhead.Reset();
 
 				totalTimePerRun.Restart();
 				var state = setup(global);
@@ -286,25 +295,46 @@ namespace Doxense.Mathematics.Statistics
 				var gcCount1 = GC.CollectionCount(1);
 				var gcCount2 = GC.CollectionCount(2);
 
+				long allocatedOnThread;
 				iterTimePerRun.Restart();
 				if (histo != null)
 				{
+					long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
 					for (int i = 0; i < iterations; i++)
 					{
+
+#if NET8_0_OR_GREATER
+						long ts = Stopwatch.GetTimestamp();
+						test(global, state, i);
+						var dt = Stopwatch.GetElapsedTime(ts);
+
+						swOverhead.Start();
+						histo.Add(dt);
+						swOverhead.Stop();
+#else
+
 						sw.Restart();
 						test(global, state, i);
 						sw.Stop();
-						swH.Start();
+
+						swOverhead.Start();
 						histo.Add(sw.Elapsed);
-						swH.Stop();
+						swOverhead.Stop();
+#endif
 					}
+
+					long allocatedAtStop = GC.GetAllocatedBytesForCurrentThread();
+					allocatedOnThread = allocatedAtStop - allocatedAtStart;
 				}
 				else
 				{
+					long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
 					for (int i = 0; i < iterations; i++)
 					{
 						test(global, state, i);
 					}
+					long allocatedAtStop = GC.GetAllocatedBytesForCurrentThread();
+					allocatedOnThread = allocatedAtStop - allocatedAtStart;
 				}
 				iterTimePerRun.Stop();
 
@@ -313,6 +343,7 @@ namespace Doxense.Mathematics.Statistics
 					totalGc0 += GC.CollectionCount(0) - gcCount0;
 					totalGc1 += GC.CollectionCount(1) - gcCount1;
 					totalGc2 += GC.CollectionCount(2) - gcCount2;
+					totalAllocatedOnThread += allocatedOnThread;
 				}
 
 				var result = cleanup(global, state);
@@ -321,7 +352,7 @@ namespace Doxense.Mathematics.Statistics
 
 				if (k >= 0)
 				{
-					var t = iterTimePerRun.ElapsedRawTicks - swH.ElapsedRawTicks;
+					var t = iterTimePerRun.Elapsed.Ticks - swOverhead.Elapsed.Ticks;
 					if (t < RobustStopWatch.EpsilonDuration) t = RobustStopWatch.EpsilonDuration; // minimum !!!
 					times.Add(t);
 					results.Add(result);
@@ -339,6 +370,7 @@ namespace Doxense.Mathematics.Statistics
 				RawTotal = clock.Elapsed,
 				BestRunTotalTime = bestRunTotalTime,
 				Histogram = histo,
+				GcAllocatedOnThread = totalAllocatedOnThread,
 				GC0 = totalGc0, //(totalGC0 * 1000000.0) / (runs * iterations),
 				GC1 = totalGc1, //(totalGC1 * 1000000.0) / (runs * iterations),
 				GC2 = totalGc2, //(totalGC2 * 1000000.0) / (runs * iterations),

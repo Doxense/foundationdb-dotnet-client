@@ -26,6 +26,8 @@
 
 namespace Doxense.Mathematics.Statistics
 {
+	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Text;
@@ -33,6 +35,7 @@ namespace Doxense.Mathematics.Statistics
 
 	/// <summary>Helper that will aggregate individual measurements, and output detailed distribution reports and charts.</summary>
 	[PublicAPI]
+	[DebuggerTypeProxy(typeof(DebugView))]
 	public sealed class RobustHistogram
 	{
 
@@ -64,36 +67,87 @@ namespace Doxense.Mathematics.Statistics
 			Ratio,
 		}
 
-		public const string HorizontalScale = "0.01     0.1             1        10              100             1k              10k             100k            1M              10M             100M            1G              10G             100G            1T              10T             100T            ";
-		public const string HorizontalShade = "---------================---------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤----------------================¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤";
+		private sealed class DebugView
+		{
+			public DebugView(RobustHistogram h)
+			{
+				var buckets = h.Buckets;
 
-		private const int NumBuckets = 209;
+				var samples = new List<DebugViewItem>();
+				var limits = BucketLimits;
+				for (int i = 0; i < buckets.Length; i++)
+				{
+					if (buckets[i] == 0) continue;
+					samples.Add(new(i == 0 ? 0 : limits[i - 1], limits[i], buckets[i]));
+				}
+
+				this.Count = h.Count;
+				this.Samples = samples;
+				this.Min = h.Min;
+				this.Median = h.Median;
+				this.Max = h.Max;
+			}
+
+			public int Count;
+			public double Min;
+			public double Median;
+			public double Max;
+
+			[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+			public List<DebugViewItem> Samples;
+
+		}
+
+		[DebuggerDisplay("{Count}", Name = "{From}\u2026{To}")]
+		private readonly struct DebugViewItem
+		{
+			public DebugViewItem(double from, double to, int count)
+			{
+				this.From = from;
+				this.To = to;
+				this.Count = count;
+			}
+
+			// ReSharper disable once NotAccessedField.Local
+			public readonly double From;
+
+			// ReSharper disable once NotAccessedField.Local
+			public readonly double To;
+
+			public readonly int Count;
+		}
+
+
+		public const string HorizontalScale = "0.001      .    0.01       .    0.1        .    1          .    10         .    100        .    1k         .    10k        .    100k            1M         .    10M        .    100M       .    1G         .    10G        .    100G       .    1T         .    10T        .    100T       .    ";
+		public const string HorizontalShade = "|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤";
+
+		private const int NumDecades = 13;
+		private const int NumBuckets = NumDecades * 16 + 1;
 		public const double MinValue = 0;
 		public const double MaxValue = 1e200;
-		private static readonly double[] BucketLimits =
+		private static ReadOnlySpan<double> BucketLimits =>
 		[
 			/*   [0] */ 0.001, 0.0012, 0.0014, 0.0016, 0.0018, 0.002, 0.0025, 0.003, 0.0035, 0.0040, 0.0045, 0.005, 0.006, 0.007, 0.008, 0.009,
 			/*  [16] */ 0.01, 0.012, 0.014, 0.016, 0.018, 0.02, 0.025, 0.03, 0.035, 0.040, 0.045, 0.05, 0.06, 0.07, 0.08, 0.09,
-			/*  [32] */ 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20, 0.225, 0.25, 0.275, 0.30, 0.325, 0.35, 0.375, 0.40, 0.425, 0.45, 0.475, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95,
-			/*  [64] */ 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9,
-			/*  [80] */ 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90,
-			/*  [96] */ 100, 120, 140, 160, 180, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900,
-			/* [112] */ 1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_500, 3_000, 3_500, 4_000, 4_500, 5_000, 6_000, 7_000, 8_000, 9_000,
-			/* [128] */ 10_000, 12_000, 14_000, 16_000, 18_000, 20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000, 60_000, 70_000, 80_000, 90_000,
-			/* [144] */ 100_000, 120_000, 140_000, 160_000, 180_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000, 600_000, 700_000, 800_000, 900_000,
-			/* [160] */ 1_000_000, 1_200_000, 1_400_000, 1_600_000, 1_800_000, 2_000_000, 2_500_000, 3_000_000, 3_500_000, 4_000_000, 4_500_000, 5_000_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000,
-			/* [176] */ 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000, 25_000_000, 30_000_000, 35_000_000, 40_000_000, 45_000_000, 50_000_000, 60_000_000, 70_000_000, 80_000_000, 90_000_000,
-			/* [192] */ 100_000_000, 120_000_000, 140_000_000, 160_000_000, 180_000_000, 200_000_000, 250_000_000, 300_000_000, 350_000_000, 400_000_000, 450_000_000, 500_000_000, 600_000_000, 700_000_000, 800_000_000, 900_000_000,
-			/* [208] */ 1_000_000_000, 1_200_000_000, 1_400_000_000, 1_600_000_000, 1_800_000_000, 2_000_000_000, 2_500_000_000, 3_000_000_000, 3_500_000_000, 4_000_000_000, 4_500_000_000, 5_000_000_000, 6_000_000_000, 7_000_000_000, 8_000_000_000, 9_000_000_000,
+			/*  [32] */ 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.60, 0.70, 0.80, 0.90,
+			/*  [48] */ 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9,
+			/*  [64] */ 10, 12, 14, 16, 18, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90,
+			/*  [80] */ 100, 120, 140, 160, 180, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900,
+			/*  [96] */ 1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_500, 3_000, 3_500, 4_000, 4_500, 5_000, 6_000, 7_000, 8_000, 9_000,
+			/* [112] */ 10_000, 12_000, 14_000, 16_000, 18_000, 20_000, 25_000, 30_000, 35_000, 40_000, 45_000, 50_000, 60_000, 70_000, 80_000, 90_000,
+			/* [128] */ 100_000, 120_000, 140_000, 160_000, 180_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000, 600_000, 700_000, 800_000, 900_000,
+			/* [144] */ 1_000_000, 1_200_000, 1_400_000, 1_600_000, 1_800_000, 2_000_000, 2_500_000, 3_000_000, 3_500_000, 4_000_000, 4_500_000, 5_000_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000,
+			/* [160] */ 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000, 25_000_000, 30_000_000, 35_000_000, 40_000_000, 45_000_000, 50_000_000, 60_000_000, 70_000_000, 80_000_000, 90_000_000,
+			/* [176] */ 100_000_000, 120_000_000, 140_000_000, 160_000_000, 180_000_000, 200_000_000, 250_000_000, 300_000_000, 350_000_000, 400_000_000, 450_000_000, 500_000_000, 600_000_000, 700_000_000, 800_000_000, 900_000_000,
+			/* [192] */ 1_000_000_000, 1_200_000_000, 1_400_000_000, 1_600_000_000, 1_800_000_000, 2_000_000_000, 2_500_000_000, 3_000_000_000, 3_500_000_000, 4_000_000_000, 4_500_000_000, 5_000_000_000, 6_000_000_000, 7_000_000_000, 8_000_000_000, 9_000_000_000,
 			/*  */ 1e200
 		];
 
-		private const int INDEX_ONE_TENTH = 32;
-		private const int INDEX_ONE = 64;
-		private const int INDEX_HUNDRED = 96;
-		private const int INDEX_TEN_THOUSAND = 128;
-		private const int INDEX_MILLION = 160;
-		private const int INDEX_BILLION = 208;
+		private const int INDEX_ONE = 48;
+		private const int INDEX_HUNDRED = 80;
+		private const int INDEX_TEN_THOUSAND = 112;
+		private const int INDEX_MILLION = 144;
+		private const int INDEX_BILLION = 192;
 		private static readonly double SUM_RATIO = (1d / BucketLimits[0]);
 		private static readonly double SUM_SQUARES_RATIO = SUM_RATIO * SUM_RATIO;
 
@@ -109,7 +163,7 @@ namespace Doxense.Mathematics.Statistics
 		{
 			this.Min = MaxValue;
 			this.Max = MinValue;
-			this.Buckets = new long[NumBuckets];
+			this.Buckets = new int[NumBuckets];
 			this.Scale = scale;
 			switch (scale)
 			{
@@ -321,7 +375,7 @@ namespace Doxense.Mathematics.Statistics
 
 		private static int GetBucketIndex(double value)
 		{
-			// We want to find, for each value 'x', the bucket 'B' that verfies: BucketLimits[B - 1] <= x < BucketLimits[B]
+			// We want to find, for each value 'x', the bucket 'B' that verifies: BucketLimits[B - 1] <= x < BucketLimits[B]
 			// Note: If value > MaxValue, we assume that we are still in the last bucket, which may break some measurements
 
 			// This method is performance sensitive, because it will usually be called by benchmarks or when profiling the hot path of an algorithm.
@@ -331,16 +385,8 @@ namespace Doxense.Mathematics.Statistics
 			int begin, end;
 			if (value < 1)
 			{ // 0 <= x < 1
-				if (value < 0.01)
-				{
-					begin = 0;
-					end = INDEX_ONE_TENTH;
-				}
-				else
-				{
-					begin = INDEX_ONE_TENTH;
-					end = INDEX_ONE;
-				}
+				begin = 0;
+				end = INDEX_ONE;
 			}
 			else if (value < 100)
 			{ // 1 <= x < 100
@@ -373,7 +419,7 @@ namespace Doxense.Mathematics.Statistics
 			}
 
 			// found the bucket in this range
-			int p = BucketLimits.AsSpan(begin, end - begin).BinarySearch(value);
+			int p = BucketLimits.Slice(begin, end - begin).BinarySearch(value);
 
 			return begin + (p < 0 ? (~p) : p + 1);
 		}
@@ -475,13 +521,13 @@ namespace Doxense.Mathematics.Statistics
 			Add(nanos * (this.TicksToUnit / 100.0)); // 100 nanos per tick
 		}
 
-		/// <summary>Time scale used by this histogram</summary>
+		/// <summary>Timescale used by this histogram</summary>
 		public TimeScale Scale { get; }
 
 		/// <summary>Dimension of values measured by this histogram</summary>
 		public DimensionType Dimension { get; }
 
-		/// <summary>Conversion factor from ticks (100ns) to the time scale unit used by this histogram</summary>
+		/// <summary>Conversion factor from ticks (100ns) to the timescale unit used by this histogram</summary>
 		private double TicksToUnit { get; }
 
 		/// <summary>Number of samples that where measured so far: Ts.Count()</summary>
@@ -515,7 +561,7 @@ namespace Doxense.Mathematics.Statistics
 
 		/// <summary>Array that contains the number of samples that where measured for each bucket</summary>
 		/// <remarks>The entry <c>Buckets[B]</c> contains the number of samples whose value <c>x</c> is bounded by <c>Buckets[B - 1] &lt;= x &lt; Buckets[B]</c></remarks>
-		private long[] Buckets { get; set; }
+		private int[] Buckets { get; set; }
 
 		/// <summary>Compute the median of all measured samples (50% percentile)</summary>
 		public double Median
@@ -531,59 +577,59 @@ namespace Doxense.Mathematics.Statistics
 		/// <summary>Convert a measured value into seconds (s)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into seconds</returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToSeconds(double value) => value * GetScaleFactor(this.Scale);
 
 		/// <summary>Convert a measured value into seconds with a given precision</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into seconds and rounded to the specified <paramref name="precision"/></returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToSeconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale), precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into milliseconds (ms)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into milliseconds</returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToMilliseconds(double value) => value * GetScaleFactor(this.Scale) * 1E3;
 
 		/// <summary>Convert a measured value into milliseconds (ms) with a given precision</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into milliseconds and rounded to the specified <paramref name="precision"/></returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToMilliseconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E3, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into microseconds (µs)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into microseconds</returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToMicroseconds(double value) => value * GetScaleFactor(this.Scale) * 1E6;
 
 		/// <summary>Convert a measured value into microseconds (µs) with a given precision</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into microseconds and rounded to the specified <paramref name="precision"/></returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToMicroseconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E6, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into nanoseconds (ns)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into nanoseconds</returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToNanoseconds(double value) => value * GetScaleFactor(this.Scale) * 1E9;
 
 		/// <summary>Convert a measured value into nanoseconds (ns) with a given precision</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into nanoseconds and rounded to the specified <paramref name="precision"/></returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double ToNanoseconds(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E9, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a number of nanoseconds (ns) into the equivalent measured value</summary>
 		/// <param name="value">Number of seconds to convert</param>
 		/// <returns><paramref name="value"/> converted from nanoseconds in the corresponding mesaured value</returns>
-		/// <remarks>This only works if the histrogram is measuring elapsed time.</remarks>
+		/// <remarks>This only works if the histogram is measuring elapsed time.</remarks>
 		public double FromNanoseconds(double value) => value / (GetScaleFactor(this.Scale) * 1E9);
 
 		#endregion
@@ -593,21 +639,21 @@ namespace Doxense.Mathematics.Statistics
 		/// <summary>Convert a measured value into bytes</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into bytes</returns>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToBytes(double value) => value * GetScaleFactor(this.Scale);
 
 		/// <summary>Convert a measured value into bytes with a given precision</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into bytes and rounded to the specified <paramref name="precision"/></returns>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale), precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into kilobytes (10^3 or 1,000 bytes)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into kilobytes</returns>
 		/// <remarks>If you want kibibytes (1,024 bytes), please call <see cref="ToKibiBytes(double)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToKiloBytes(double value) => value * GetScaleFactor(this.Scale) * 1E-3;
 
 		/// <summary>Convert a measured value into kilobytes (10^3 or 1,000 bytes) with a given precision</summary>
@@ -615,14 +661,14 @@ namespace Doxense.Mathematics.Statistics
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into kilobytes and rounded to the specified <paramref name="precision"/></returns>
 		/// <remarks>If you want kibibytes (1,024 bytes), please call <see cref="ToKibiBytes(double, int)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes. Other scales will return an incorrect value.</remarks>
 		public double ToKiloBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E-3, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into kibibytes (2^10 or 1024 bytes)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into kibibytes</returns>
 		/// <remarks>If you want kilobytes (1,000 bytes), please call <see cref="ToKiloBytes(double)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToKibiBytes(double value) => value * GetScaleFactor(this.Scale) / 1_024;
 
 		/// <summary>Convert a measured value into kibibytes (2^10 or 1024 bytes) with a given precision</summary>
@@ -630,14 +676,14 @@ namespace Doxense.Mathematics.Statistics
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into kibibytes and rounded to the specified <paramref name="precision"/></returns>
 		/// <remarks>If you want kilobytes (1,000 bytes), please call <see cref="ToKiloBytes(double, int)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes. Other scales will return an incorrect value.</remarks>
 		public double ToKibiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1_024, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into megabytes (10^6 or 1,000,000 bytes)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into megabytes</returns>
 		/// <remarks>If you want mebibytes (2^20 bytes), please call <see cref="ToKibiBytes(double)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToMegaBytes(double value) => value * GetScaleFactor(this.Scale) * 1E-6;
 
 		/// <summary>Convert a measured value into megabytes (10^6 or 1,000,000 bytes) with a given precision</summary>
@@ -645,14 +691,14 @@ namespace Doxense.Mathematics.Statistics
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into megabytes and rounded to the specified <paramref name="precision"/></returns>
 		/// <remarks>If you want mebibytes (2^20 bytes), please call <see cref="ToKibiBytes(double, int)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes. Other scales will return an incorrect value.</remarks>
 		public double ToMegaBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E-6, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into mebibytes (2^20 or 1,048,576 bytes)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into mebibytes</returns>
 		/// <remarks>If you want megabytes (10^6 bytes), please call <see cref="ToKiloBytes(double)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToMebiBytes(double value) => value * GetScaleFactor(this.Scale) / 1_048_576;
 
 		/// <summary>Convert a measured value into mebibytes (2^20 or 1,048,576 bytes) with a given precision</summary>
@@ -660,14 +706,14 @@ namespace Doxense.Mathematics.Statistics
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into mebibytes and rounded to the specified <paramref name="precision"/></returns>
 		/// <remarks>If you want megabytes (10^6 bytes), please call <see cref="ToKiloBytes(double, int)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes. Other scales will return an incorrect value.</remarks>
 		public double ToMebiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1_048_576, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into megabytes (10^9 or 1,000,000,000 bytes)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into gigabytes</returns>
 		/// <remarks>If you want mebibytes (2^30 bytes), please call <see cref="ToGibiBytes(double)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToGigaBytes(double value) => value * GetScaleFactor(this.Scale) * 1E-9;
 
 		/// <summary>Convert a measured value into megabytes (10^9 or 1,000,000,000 bytes) with a given precision</summary>
@@ -675,14 +721,14 @@ namespace Doxense.Mathematics.Statistics
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into gigabytes and rounded to the specified <paramref name="precision"/></returns>
 		/// <remarks>If you want mebibytes (2^30 bytes), please call <see cref="ToGibiBytes(double, int)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes. Other scales will return an incorrect value.</remarks>
 		public double ToGigaBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) * 1E-9, precision, MidpointRounding.AwayFromZero);
 
 		/// <summary>Convert a measured value into mebibytes (2^30 or 1,073,741,824 bytes)</summary>
 		/// <param name="value">Value to convert (any of <see cref="Median"/>, <see cref="Max"/>, ...)</param>
 		/// <returns><paramref name="value"/> converted into gibibytes</returns>
 		/// <remarks>If you want megabytes (10^9 bytes), please call <see cref="ToGigaBytes(double)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes.</remarks>
 		public double ToGibiBytes(double value) => value * GetScaleFactor(this.Scale) / 1_073_741_824;
 
 		/// <summary>Convert a measured value into mebibytes (2^30 or 1,073,741,824 bytes) with a given precision</summary>
@@ -690,7 +736,7 @@ namespace Doxense.Mathematics.Statistics
 		/// <param name="precision">Number of digits for rounding</param>
 		/// <returns><paramref name="value"/> converted into gibibytes and rounded to the specified <paramref name="precision"/></returns>
 		/// <remarks>If you want megabytes (10^9 bytes), please call <see cref="ToGigaBytes(double, int)"/> instead.</remarks>
-		/// <remarks>This only works if the histrogram is measuring bytes. Other scales will return an incorrect value.</remarks>
+		/// <remarks>This only works if the histogram is measuring bytes. Other scales will return an incorrect value.</remarks>
 		public double ToGibiBytes(double value, int precision) => Math.Round(value * GetScaleFactor(this.Scale) / 1_073_741_824, precision, MidpointRounding.AwayFromZero);
 
 		#endregion
@@ -706,15 +752,19 @@ namespace Doxense.Mathematics.Statistics
 			if (this.Count <= 0) return double.NaN;
 			double threshold = this.Count * (p / 100.0d);
 			double sum = 0;
-			for (int b = 0; b < this.Buckets.Length; b++)
+
+			var buckets = this.Buckets;
+			var limits = BucketLimits;
+
+			for (int b = 0; b < buckets.Length; b++)
 			{
-				sum += this.Buckets[b];
+				sum += buckets[b];
 				if (sum >= threshold)
 				{
 					// Scale linearly within this bucket
-					double leftPoint = (b == 0) ? 0 : BucketLimits[b - 1];
-					double rightPoint = BucketLimits[b];
-					double leftSum = sum - this.Buckets[b];
+					double leftPoint = (b == 0) ? 0 : limits[b - 1];
+					double rightPoint = limits[b];
+					double leftSum = sum - buckets[b];
 					double rightSum = sum;
 					double pos = (threshold - leftSum) / (rightSum - leftSum);
 					double r = leftPoint + (rightPoint - leftPoint) * pos;
@@ -849,15 +899,16 @@ namespace Doxense.Mathematics.Statistics
 			int offset = GetBucketIndex(begin);
 			int len = GetBucketIndex(end) - offset;
 
+			var buckets = this.Buckets;
 			var data = new long[fold == 1 ? len : (int)Math.Ceiling(1.0 * len / fold)];
-			for (int i = 0; i < len; i++) { data[i / fold] += this.Buckets[offset + i]; }
+			for (int i = 0; i < len; i++) { data[i / fold] += buckets[offset + i]; }
 
 			long max = this.Count > 0 ? data.Max() : 0;
 
 			if (max <= 0) return new string(' ', len);
 			max = (3 * max + this.Count) / 4;
 
-			char[] cs = new char[data.Length];
+			Span<char> cs = stackalloc char[data.Length];
 			var rr = (double)(VerticalChartChars.Length - 1) / max;
 			for (int i = 0; i < cs.Length; i++)
 			{
@@ -883,19 +934,16 @@ namespace Doxense.Mathematics.Statistics
 		[MustUseReturnValue, Pure]
 		public string GetDistributionAuto() => GetDistribution(this.LowThreshold, this.HighThreshold);
 
-		private static void Write(char[] buf, int offset, double p, char c, char ifEqual = '\0', char replaceWith = '\0')
+		private static void Write(Span<char> buf, int offset, double p, char c, char ifEqual = '\0', char replaceWith = '\0')
 		{
 			int x = GetBucketIndex(p) - offset;
 			if (x >= 0 && x < buf.Length)
 			{
-				if (ifEqual != '\0' && buf[x] == ifEqual)
-					buf[x] = replaceWith;
-				else
-					buf[x] = c;
+				buf[x] = ifEqual != '\0' && buf[x] == ifEqual ? replaceWith : c;
 			}
 		}
 
-		/// <summary>Generate an horizontal boxplot that displays the distribution of the sampled values</summary>
+		/// <summary>Generates a horizontal boxplot that displays the distribution of the sampled values</summary>
 		/// <returns><para>String that will look like <c>"¤     ×·(——[==#===]——————)···×          @"</c>.</para>
 		/// <code>Legend:
 		/// - '#' = MEDIAN
@@ -911,42 +959,46 @@ namespace Doxense.Mathematics.Statistics
 			int offset = GetBucketIndex(begin);
 			int len = Math.Max(GetBucketIndex(end) - offset, 0);
 
-			Span<double> percentiles = new double[101];
-			percentiles[0] = 0;
-			for (int i = 1; i <= 100; i++)
+			return string.Create(len, (Histo: this, Offset: offset), static (cs, s) =>
 			{
-				percentiles[i] = Percentile(i);
-			}
+				var h = s.Histo;
 
-			char[] cs = new char[len];
-			for (int i = 0; i < len; i++)
-			{
-				double p = BucketLimits[i + offset];
-				if (p >= percentiles[1] && p <= percentiles[99])
+				Span<double> percentiles = stackalloc double[101];
+				percentiles[0] = 0;
+				for (int i = 1; i <= 100; i++)
 				{
-					int idx = percentiles.BinarySearch(p);
-					if (idx < 0) idx = ~idx;
-					cs[i] = idx < 5  | idx > 95 ? '\u00B7' // '.'
-						  : idx < 25 | idx > 75 ? '\u2014' // '-'
-						  : '=';
+					percentiles[i] = h.Percentile(i);
 				}
-				else
+
+				var limits = BucketLimits;
+				int offset = s.Offset;
+				for (int i = 0; i < cs.Length; i++)
 				{
-					cs[i] = ' ';
+					double p = limits[i + offset];
+					if (p >= percentiles[1] && p <= percentiles[99])
+					{
+						int idx = percentiles.BinarySearch(p);
+						if (idx < 0) idx = ~idx;
+						cs[i] = idx < 5 | idx > 95 ? '\u00B7' // '.'
+								: idx < 25 | idx > 75 ? '\u2014' // '-'
+								: '=';
+					}
+					else
+					{
+						cs[i] = ' ';
+					}
 				}
-			}
 
-			Write(cs, offset, percentiles[1], '\u00D7');	// P01
-			Write(cs, offset, percentiles[99], '\u00D7');	// P99
-			Write(cs, offset, percentiles[5], '(');			// P05
-			Write(cs, offset, percentiles[95], ')');		// P95
-			Write(cs, offset, percentiles[25], '[', '(', '{'); // P25
-			Write(cs, offset, percentiles[75], ']', ')', '}'); // P75
-			Write(cs, offset, this.Min, '¤');				// MIN
-			Write(cs, offset, this.Max, '@');				// MAX
-			Write(cs, offset, percentiles[50], '#');		// MEDIAN
-
-			return new string(cs);
+				Write(cs, offset, percentiles[1], '\u00D7'); // P01
+				Write(cs, offset, percentiles[99], '\u00D7'); // P99
+				Write(cs, offset, percentiles[5], '('); // P05
+				Write(cs, offset, percentiles[95], ')'); // P95
+				Write(cs, offset, percentiles[25], '[', '(', '{'); // P25
+				Write(cs, offset, percentiles[75], ']', ')', '}'); // P75
+				Write(cs, offset, s.Histo.Min, '¤'); // MIN
+				Write(cs, offset, s.Histo.Max, '@'); // MAX
+				Write(cs, offset, percentiles[50], '#'); // MEDIAN
+			});
 		}
 
 		[MustUseReturnValue, Pure]
@@ -978,32 +1030,27 @@ namespace Doxense.Mathematics.Statistics
 
 		/// <summary>Truncate a distribution scale according to the specified range</summary>
 		[MustUseReturnValue, Pure]
-		public static string GetDistributionScale(string scaleString, double start = 1.0d, double end = MaxValue)
+		public static string GetScale(double start = 1.0d, double end = MaxValue, string? scaleString = null)
 		{
-			int offset = Math.Max(GetBucketIndex(start) - 1, 0);
-			if (end >= MaxValue) return scaleString.Substring(offset);
+			scaleString ??= HorizontalScale;
+			int from = Math.Max(GetBucketIndex(start) - 1, 0);
+			if (end >= MaxValue) return scaleString[from..];
 
-			int len = Math.Max(GetBucketIndex(end) - offset, 1);
-			return scaleString.Substring(offset, len);
+			int to = Math.Max(GetBucketIndex(end) - 1, 0);
+			int len = Math.Max(to - from, 1);
+
+			return scaleString.Substring(from, len);
 		}
 
 		[MustUseReturnValue, Pure]
-		public string GetScaleAuto(string? scaleString = null) => GetDistributionScale(scaleString ?? HorizontalScale, this.LowThreshold, this.HighThreshold);
+		public string GetScaleAuto(string? scaleString = null) => GetScale(this.LowThreshold, this.HighThreshold, scaleString);
 
 		/// <summary>Generate a short text description of the percentiles of this distribution</summary>
 		/// <returns><c>"P5 --| P25 == [ P50 ]== P75 |-- P95"</c></returns>
 		[MustUseReturnValue, Pure]
 		public string GetPercentiles()
 		{
-			return String.Format(
-				CultureInfo.InvariantCulture,
-				"{0,5:#,##0.0} --| {1,5:#,##0.0} ==[ {2,5:#,##0.0} ]== {3,5:#,##0.0} |-- {4,5:#,##0.0}",
-				this.Percentile(5),
-				this.Percentile(25),
-				this.Percentile(50),
-				this.Percentile(75),
-				this.Percentile(95)
-			);
+			return string.Create(CultureInfo.InvariantCulture, $"{this.Percentile(5),5:#,##0.0} --| {this.Percentile(25),5:#,##0.0} ==[ {this.Percentile(50),5:#,##0.0} ]== {this.Percentile(75),5:#,##0.0} |-- {this.Percentile(95),5:#,##0.0}");
 		}
 
 		/// <summary>Generate a text report of the measurements, that can be written to the console or in a log file</summary>
@@ -1029,19 +1076,19 @@ namespace Doxense.Mathematics.Statistics
 				double max = this.Max;
 				double median = this.Median;
 
-				r.AppendLine(String.Format(CultureInfo.InvariantCulture,
+				r.AppendLine(string.Format(CultureInfo.InvariantCulture,
 					"- Min/Max: {0} {2} .. {1} {2}",
 					Friendly(min, xs), Friendly(max, xs), unit
 				));
-				r.AppendLine(String.Format(CultureInfo.InvariantCulture,
+				r.AppendLine(string.Format(CultureInfo.InvariantCulture,
 					"- Average: {0} {2} (+/-{1} {2})",
 					Friendly(this.Average, xs), Friendly(this.StandardDeviation, xs), unit
 				));
-				r.AppendLine(String.Format(CultureInfo.InvariantCulture,
+				r.AppendLine(string.Format(CultureInfo.InvariantCulture,
 					"- Median : {0} {2} (+/-{1} {2})",
 					Friendly(median, xs), Friendly(this.MAD(), xs), unit
 				));
-				r.AppendLine(String.Format(CultureInfo.InvariantCulture,
+				r.AppendLine(string.Format(CultureInfo.InvariantCulture,
 					"- Distrib: ({0}) - {1} =[ {2} ]= {3} - ({4})",
 					Friendly(Percentile(5),  xs), Friendly(Percentile(25),  xs), Friendly(median,  xs), Friendly(Percentile(75),  xs), Friendly(Percentile(95), xs)
 				));
@@ -1060,16 +1107,18 @@ namespace Doxense.Mathematics.Statistics
 
 				double mult = 100.0d / this.Count;
 				double sum = 0;
-				for (int b = 0; b < NumBuckets; b++)
+				var buckets = this.Buckets;
+				var limits = BucketLimits;
+				for (int b = 0; b < buckets.Length; b++)
 				{
-					long count = this.Buckets[b];
+					long count = buckets[b];
 					if (count <= 0) continue;
 
 					sum += count;
-					double left = ((b == 0) ? 0.0 : BucketLimits[b - 1]);
-					double right = BucketLimits[b];
+					double left = ((b == 0) ? 0.0 : limits[b - 1]);
+					double right = limits[b];
 
-					r.Append(String.Format(CultureInfo.InvariantCulture,
+					r.Append(string.Format(CultureInfo.InvariantCulture,
 						"  | {0,8} - {1,-8} | {2,10:#,###,###} | {3,7:##0.000}% " + (detailed ? "{5,50} " : "{5, 16} ") + "| {4,7:##0.000}%" + (detailed ? " {6,10} | {7,10:N0}" : ""),
 						/* 0 */ Friendly(left, xs),			// left
 						/* 1 */ Friendly(right, xs),		// right
@@ -1096,7 +1145,7 @@ namespace Doxense.Mathematics.Statistics
 
 		public override string ToString()
 		{
-			return string.Format(CultureInfo.InvariantCulture, "Count={0}, Avg={1}, Min={2}, Max={3}, Med={4}", this.Count, this.Average, this.Count > 0 ? this.Min : 0, this.Max, this.Median);
+			return string.Create(CultureInfo.InvariantCulture, $"Count={this.Count}, Avg={this.Average}, Min={(this.Count > 0 ? this.Min : 0)}, Max={this.Max}, Med={this.Median}");
 		}
 
 	}

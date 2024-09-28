@@ -94,9 +94,9 @@ namespace FoundationDB.Samples.Benchmarks
 				{
 					if (idx == 0)
 					{
-						Console.WriteLine("T+s | " + RobustHistogram.GetDistributionScale(RobustHistogram.HorizontalScale, 1, 5000 - 1) + " | ");
+						Console.WriteLine("T+s | " + RobustHistogram.GetScale(1, 5000 - 1, RobustHistogram.HorizontalScale) + " | ");
 					}
-					Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.000})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MAD()));
+					Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0,3} | {1} | {2,6:#,##0.0} ms (+/- {3:#0.000})", idx, histo.GetDistribution(1, 5000 - 1), histo.Median, histo.MAD()));
 					if (log != Console.Out) log.WriteLine(histo.GetReport(false));
 					return false;
 				}
