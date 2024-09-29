@@ -238,12 +238,21 @@ namespace SnowBank.Testing
 		#endregion
 
 		#region Float...
-		
-		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(float expected) => new JsonEqualConstraint<float>(expected);
 
-		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(float? expected) => new JsonEqualConstraint<float?>(expected);
+		/// <summary>Assert that the value is equal to the expected value, within 1 ULPS</summary>
+		public static JsonConstraint EqualTo(float expected) => new JsonEqualConstraint<float>(expected, UlpsToleranceComparer.OneUlps);
+
+		/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+		public static JsonConstraint EqualTo(float expected, float tolerance) => new JsonEqualConstraint<float>(expected, CreateToleranceComparer(tolerance));
+
+		/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+		public static JsonConstraint EqualTo(float expected, IEqualityComparer<float>? comparer) => new JsonEqualConstraint<float>(expected, comparer);
+
+		/// <summary>Assert that the value is equal to the expected value, within 1 ULPS</summary>
+		public static JsonConstraint EqualTo(float? expected) => new JsonEqualConstraint<float?>(expected, UlpsToleranceComparer.OneUlps);
+
+		/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+		public static JsonConstraint EqualTo(float? expected, float? tolerance) => new JsonEqualConstraint<float?>(expected, CreateToleranceComparer(tolerance));
 
 		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
 		public static JsonConstraint EqualTo(ReadOnlySpan<float> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
@@ -267,11 +276,20 @@ namespace SnowBank.Testing
 
 		#region Double...
 		
-		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(double expected) => new JsonEqualConstraint<double>(expected);
+		/// <summary>Assert that the value is equal to the expected value, within 1 ULPS</summary>
+		public static JsonConstraint EqualTo(double expected) => new JsonEqualConstraint<double>(expected, UlpsToleranceComparer.OneUlps);
 
-		/// <summary>Assert that the value is equal to the expected value</summary>
-		public static JsonConstraint EqualTo(double? expected) => new JsonEqualConstraint<double?>(expected);
+		/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+		public static JsonConstraint EqualTo(double expected, double tolerance) => new JsonEqualConstraint<double>(expected, CreateToleranceComparer(tolerance));
+
+		/// <summary>Assert that the value is equal to the expected value, within the given comparer</summary>
+		public static JsonConstraint EqualTo(double expected, IEqualityComparer<double>? comparer) => new JsonEqualConstraint<double>(expected, comparer);
+
+		/// <summary>Assert that the value is equal to the expected value, within 1 ULPS</summary>
+		public static JsonConstraint EqualTo(double? expected) => new JsonEqualConstraint<double?>(expected, UlpsToleranceComparer.OneUlps);
+
+		/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+		public static JsonConstraint EqualTo(double? expected, double? tolerance) => new JsonEqualConstraint<double?>(expected, CreateToleranceComparer(tolerance));
 
 		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
 		public static JsonConstraint EqualTo(ReadOnlySpan<double> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
@@ -489,10 +507,10 @@ namespace SnowBank.Testing
 				{
 					JsonComparisonOperator.Equal => new Result(this, obj, obj.Equals(this.Expected)),
 					JsonComparisonOperator.SameAs => new Result(this, obj, ReferenceEquals(obj, this.Expected)),
-					JsonComparisonOperator.GreaterThan => new Result(this, obj, obj > this.Expected),
-					JsonComparisonOperator.GreaterThanOrEqual => new Result(this, obj, obj >= this.Expected),
-					JsonComparisonOperator.LessThan => new Result(this, obj, obj < this.Expected),
-					JsonComparisonOperator.LessThanOrEqual => new Result(this, obj, obj <= this.Expected),
+					JsonComparisonOperator.GreaterThan => new Result(this, obj, obj.CompareTo(this.Expected) > 0),
+					JsonComparisonOperator.GreaterThanOrEqual => new Result(this, obj, obj.CompareTo(this.Expected) >= 0),
+					JsonComparisonOperator.LessThan => new Result(this, obj, obj.CompareTo(this.Expected) < 0),
+					JsonComparisonOperator.LessThanOrEqual => new Result(this, obj, obj.CompareTo(this.Expected) <= 0),
 					_ => throw new NotSupportedException()
 				};
 			}
@@ -1196,7 +1214,8 @@ namespace SnowBank.Testing
 
 			private JsonConstraintExpression AddEqualConstraint(JsonValue expected) => this.Append(new JsonEqualConstraint(JsonComparisonOperator.Equal, expected));
 
-			private JsonConstraintExpression AddTypedEqualConstraint<TValue>(TValue? expected, IEqualityComparer<TValue>? comparer = null) => this.Append(new JsonEqualConstraint<TValue>(expected, comparer));
+			private JsonConstraintExpression AddTypedEqualConstraint<TValue>(TValue? expected, IEqualityComparer<TValue>? comparer = null)
+				=> this.Append(new JsonEqualConstraint<TValue>(expected, comparer));
 
 			private JsonConstraintExpression AddEqualConstraint(JsonComparisonOperator op, JsonValue expected) => this.Append(new JsonEqualConstraint(op, expected));
 
@@ -1421,9 +1440,19 @@ namespace SnowBank.Testing
 			#region Single...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(float expected) => AddTypedEqualConstraint(expected);
+			public JsonConstraintExpression EqualTo(float expected) => AddTypedEqualConstraint(expected, UlpsToleranceComparer.OneUlps);
 
-			public JsonConstraintExpression EqualTo(float? expected) => AddTypedEqualConstraint(expected);
+			/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+			public JsonConstraintExpression EqualTo(float expected, IEqualityComparer<float>? comparer) => AddTypedEqualConstraint(expected, comparer);
+
+			/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+			public JsonConstraintExpression EqualTo(float expected, float tolerance) => AddTypedEqualConstraint(expected, CreateToleranceComparer(tolerance));
+
+			/// <summary>Assert that the value is equal to the expected value</summary>
+			public JsonConstraintExpression EqualTo(float? expected) => AddTypedEqualConstraint(expected, UlpsToleranceComparer.OneUlps);
+
+			/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+			public JsonConstraintExpression EqualTo(float? expected, float? tolerance) => AddTypedEqualConstraint(expected, CreateToleranceComparer(tolerance));
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
 			public JsonConstraintExpression GreaterThan(float expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -1442,10 +1471,19 @@ namespace SnowBank.Testing
 			#region Double...
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(double expected) => AddTypedEqualConstraint(expected);
+			public JsonConstraintExpression EqualTo(double expected) => AddTypedEqualConstraint(expected, UlpsToleranceComparer.OneUlps);
+
+			/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+			public JsonConstraintExpression EqualTo(double expected, double tolerance) => AddTypedEqualConstraint(expected, CreateToleranceComparer(tolerance));
+
+			/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+			public JsonConstraintExpression EqualTo(double expected, IEqualityComparer<double>? comparer) => AddTypedEqualConstraint(expected, comparer);
 
 			/// <summary>Assert that the value is equal to the expected value</summary>
-			public JsonConstraintExpression EqualTo(double? expected) => AddTypedEqualConstraint(expected);
+			public JsonConstraintExpression EqualTo(double? expected) => AddTypedEqualConstraint(expected, UlpsToleranceComparer.OneUlps);
+
+			/// <summary>Assert that the value is equal to the expected value, within the given tolerance</summary>
+			public JsonConstraintExpression EqualTo(double? expected, double? tolerance) => AddTypedEqualConstraint<double?>(expected, CreateToleranceComparer(tolerance));
 
 			/// <summary>Assert that the value is strictly greater than the expected value</summary>
 			public JsonConstraintExpression GreaterThan(double expected) => AddEqualConstraint(JsonComparisonOperator.GreaterThan, JsonNumber.Return(expected));
@@ -1537,6 +1575,108 @@ namespace SnowBank.Testing
 
 		}
 
-	}
+		#region Tolerance
 
+#if NET8_0_OR_GREATER
+
+		private static IEqualityComparer<T> CreateToleranceComparer<T>(T tolerance)
+			where T : struct, System.Numerics.INumberBase<T>, System.Numerics.IComparisonOperators<T, T, bool>
+			=> new WithinToleranceComparer<T>(tolerance);
+
+		private static IEqualityComparer<T?> CreateToleranceComparer<T>(T? tolerance)
+			where T : struct, System.Numerics.INumberBase<T>, System.Numerics.IComparisonOperators<T, T, bool>
+			=> new WithinToleranceComparer<T>(tolerance);
+
+		private sealed class WithinToleranceComparer<T> : IEqualityComparer<T>, IEqualityComparer<T?>
+			where T : struct, System.Numerics.INumberBase<T>, System.Numerics.IComparisonOperators<T, T, bool>
+		{
+
+			private T? Tolerance { get; }
+
+			public WithinToleranceComparer(T tolerance) => this.Tolerance = tolerance;
+
+			public WithinToleranceComparer(T? tolerance) => this.Tolerance = tolerance;
+
+			/// <inheritdoc />
+			public bool Equals(T x, T y)
+				=> T.Abs(x - y) <= (this.Tolerance ?? default);
+
+			public bool Equals(T? x, T? y) =>
+				x is null
+					? (y is null && this.Tolerance is null)
+					: y is not null && T.Abs(x.Value - y.Value) <= (this.Tolerance ?? default);
+
+			int IEqualityComparer<T>.GetHashCode(T obj) => throw new NotSupportedException("This type is only expected to test for equality");
+
+			int IEqualityComparer<T?>.GetHashCode(T? obj) => throw new NotSupportedException("This type is only expected to test for equality");
+
+		}
+
+#else
+
+			private static IEqualityComparer<double> CreateToleranceComparer(double tolerance) => new WithinToleranceComparer(tolerance);
+
+			private static IEqualityComparer<double?> CreateToleranceComparer(double? tolerance) => new WithinToleranceComparer(tolerance);
+
+			private static IEqualityComparer<float> CreateToleranceComparer(float tolerance) => new WithinToleranceComparer(tolerance);
+
+			private static IEqualityComparer<float?> CreateToleranceComparer(float? tolerance) => new WithinToleranceComparer(tolerance);
+
+			private sealed class WithinToleranceComparer : IEqualityComparer<double>, IEqualityComparer<double?>, IEqualityComparer<float>, IEqualityComparer<float?>
+			{
+
+				private double? DoubleTolerance { get; }
+
+				private float? FloatTolerance { get; }
+
+				public WithinToleranceComparer(double? tolerance) => this.DoubleTolerance = tolerance;
+
+				public WithinToleranceComparer(float? tolerance) => this.FloatTolerance = tolerance;
+
+				/// <inheritdoc />
+				public bool Equals(double x, double y) => Math.Abs(x - y) <= (this.DoubleTolerance ?? 0);
+
+				/// <inheritdoc />
+				public bool Equals(double? x, double? y) => x == null
+					? (y == null && this.DoubleTolerance == null)
+					: (y != null && Math.Abs(x.Value - y.Value) <= (this.DoubleTolerance ?? 0));
+
+				/// <inheritdoc />
+				public bool Equals(float x, float y) => Math.Abs(x - y) <= (this.FloatTolerance ?? 0);
+
+				/// <inheritdoc />
+				public bool Equals(float? x, float? y) => x == null
+					? (y == null && this.FloatTolerance == null)
+					: (y != null && Math.Abs(x.Value - y.Value) <= (this.FloatTolerance ?? 0));
+
+				int IEqualityComparer<double>.GetHashCode(double obj) => throw new NotSupportedException("This type is only expected to test for equality");
+
+				int IEqualityComparer<double?>.GetHashCode(double? obj) => throw new NotSupportedException("This type is only expected to test for equality");
+
+				int IEqualityComparer<float>.GetHashCode(float obj) => throw new NotSupportedException("This type is only expected to test for equality");
+
+				int IEqualityComparer<float?>.GetHashCode(float? obj) => throw new NotSupportedException("This type is only expected to test for equality");
+
+			}
+
+			private sealed class FloatToleranceComparer : IEqualityComparer<float>
+			{
+
+				private float Tolerance { get; }
+
+				public FloatToleranceComparer(float tolerance) => this.Tolerance = tolerance;
+
+				/// <inheritdoc />
+				public bool Equals(float x, float y) => MathF.Abs(x - y) <= this.Tolerance;
+
+				/// <inheritdoc />
+				int IEqualityComparer<float>.GetHashCode(float obj) => throw new NotSupportedException("This type is only expected to test for equality");
+			}
+
+#endif
+
+
+		#endregion
+
+	}
 }
