@@ -29,11 +29,12 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
+	using System.Text;
 	using Doxense.Collections.Caching;
 
 	/// <summary>JSON serialization settings</summary>
 	/// <remarks>Instances of this type are immutable and can be cached</remarks>
-	[DebuggerDisplay("Flags={m_flags.ToString(\"X\")}, Target={TargetLanguage}, Layout={TextLayout}, Dates={DateFormatting}, HideDefault={HideDefaultValues}, ShowNulls={ShowNullMembers}, Large={OptimizeForLargeData}, Interning={InterningMode}")]
+	[DebuggerDisplay("<{ToString(),nq}> (Flags = {(int) m_flags,h})")]
 	[DebuggerNonUserCode]
 	public sealed class CrystalJsonSettings : IEquatable<CrystalJsonSettings>
 	{
@@ -445,7 +446,13 @@ namespace Doxense.Serialization.Json
 
 		public override string ToString()
 		{
-			return m_flags.ToString();
+			var sb = new StringBuilder();
+			sb.Append(this.TargetLanguage switch { Target.Json => "Json", _ => "JavaScript" });
+			sb.Append(this.TextLayout switch { Layout.Indented => "_Indented", Layout.Compact => "_Compact", _ => "" });
+			sb.Append(this.UseCamelCasingForNames ? "_CamelCase" : "");
+			sb.Append(this.IgnoreCaseForNames ? "_IgnoreCase" : "");
+			sb.Append(this.ReadOnly ? "_ReadOnly" : "");
+			return sb.ToString();
 		}
 
 		public override bool Equals(object? obj)
@@ -761,6 +768,41 @@ namespace Doxense.Serialization.Json
 		}
 
 		#endregion
+
+	}
+
+	public static class CrystalJsonSettingsExtensions
+	{
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsCompactLayout(this CrystalJsonSettings? settings)
+		{
+			return settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Compact;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsIndentedLayout(this CrystalJsonSettings? settings)
+		{
+			return settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Indented;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsFormattedLayout(this CrystalJsonSettings? settings)
+		{
+			return settings is null || settings.TextLayout == CrystalJsonSettings.Layout.Formatted;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsJsonTarget(this CrystalJsonSettings? settings)
+		{
+			return settings is null || settings.TargetLanguage == CrystalJsonSettings.Target.Json;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsJavascriptTarget(this CrystalJsonSettings? settings)
+		{
+			return settings is not null && settings.TargetLanguage == CrystalJsonSettings.Target.JavaScript;
+		}
 
 	}
 

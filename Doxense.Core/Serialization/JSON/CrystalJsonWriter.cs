@@ -181,9 +181,9 @@ namespace Doxense.Serialization.Json
 
 			if (!ReferenceEquals(settings, m_settings) || ReferenceEquals(resolver, m_resolver))
 			{
-				m_javascript = settings.TargetLanguage == CrystalJsonSettings.Target.JavaScript;
-				m_formatted = settings.TextLayout != CrystalJsonSettings.Layout.Compact;
-				m_indented = settings.TextLayout == CrystalJsonSettings.Layout.Indented;
+				m_javascript = settings.IsJavascriptTarget();
+				m_formatted = !settings.IsCompactLayout();
+				m_indented = settings.IsIndentedLayout();
 				m_state.Indentation = string.Empty;
 				m_dateFormat = settings.DateFormatting != CrystalJsonSettings.DateFormat.Default ? settings.DateFormatting : (m_javascript ? CrystalJsonSettings.DateFormat.JavaScript : CrystalJsonSettings.DateFormat.TimeStampIso8601);
 				m_floatFormat = settings.FloatFormatting != CrystalJsonSettings.FloatFormat.Default ? settings.FloatFormatting : (m_javascript ? CrystalJsonSettings.FloatFormat.JavaScript : CrystalJsonSettings.FloatFormat.Symbol);
